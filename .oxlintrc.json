@@ -1,0 +1,88 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import", "promise", "unicorn", "typescript", "node", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "off",
+    "style": "off",
+    "perf": "off",
+    "restriction": "off"
+  },
+  "rules": {
+    "no-console": "error",
+    "no-debugger": "error",
+    "no-alert": "error",
+    "no-duplicate-imports": "error",
+    "import/no-duplicates": "error",
+    "curly": "error",
+    "prefer-destructuring": "error",
+    "class-methods-use-this": "off",
+    "capitalized-comments": "off",
+    "func-style": "off",
+    "sort-imports": "off",
+    "no-magic-numbers": "off",
+    "import/no-unassigned-import": "off",
+    "import/no-default-export": "off",
+    "import/no-named-export": "off",
+    "import/no-anonymous-default-export": "off",
+    "import/prefer-default-export": "off",
+    "unicorn/filename-case": "off",
+    "unicorn/no-anonymous-default-export": "off",
+    "unicorn/prefer-global-this": "off",
+    "unicorn/no-document-cookie": "off",
+    "unicorn/no-null": "off",
+    "unicorn/prefer-add-event-listener": "off",
+    "unicorn/prefer-dom-node-append": "off",
+    "unicorn/prefer-string-replace-all": "off",
+    "unicorn/prefer-code-point": "off",
+    "promise/prefer-await-to-then": "off",
+    "promise/prefer-await-to-callbacks": "off",
+    "promise/avoid-new": "off",
+    "oxc/no-async-await": "off",
+    "no-unused-vars": [
+      "error",
+      {
+        "args": "all",
+        "argsIgnorePattern": "^_",
+        "caughtErrors": "all",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "ignoreRestSiblings": false
+      }
+    ]
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.test.js", "**/*.spec.ts", "**/*.spec.js", "**/test/**/*"],
+      "plugins": ["import", "promise", "unicorn", "typescript", "node", "oxc", "vitest"],
+      "rules": {
+        "no-console": "off",
+        "no-alert": "off",
+        "typescript/unbound-method": "off",
+        "vitest/no-conditional-in-test": "error",
+        "vitest/require-to-throw-message": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules/**",
+    "vendor/**",
+    "tmp/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    ".ruby-lsp/**",
+    "public/assets/**",
+    "public/packs/**"
+  ],
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  }
+}

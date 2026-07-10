@@ -36,7 +36,7 @@ module ExternalSignIn
     def fetch_jwks
       uri = URI(format(JWKS_URI_TEMPLATE, tenant_id))
       response = Net::HTTP.get_response(uri)
-      raise "JWKS fetch failed (HTTP #{response.code}) for tenant #{tenant_id}" unless response.is_a?(Net::HTTPSuccess)
+      raise StandardError, "JWKS fetch failed (HTTP #{response.code}) for tenant #{tenant_id}" unless response.is_a?(Net::HTTPSuccess)
 
       JSON.parse(response.body)
     end

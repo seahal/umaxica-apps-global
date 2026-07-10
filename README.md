@@ -21,13 +21,13 @@ and subdomain matter in both development and production.
 - Vite Rails + Stimulus + Turbo
 - Tailwind CSS via Vite
 - Propshaft
-- Vite Plus and `pnpm` for JavaScript build, linting, formatting, and tests
+- Vite and `pnpm` for JavaScript build, linting, formatting, and tests
 
 ## Frontend and Assets
 
 - JavaScript entrypoints are bundled through Vite Rails from `src/entrypoints`
 - Stimulus controllers live in `src/controllers`
-- JavaScript tests live in `spec/` and run with Vitest through Vite Plus
+- JavaScript tests live in `spec/` and run directly with Vitest
 - Browser CSS is imported once through the Vite stylesheet graph in `src/styles/application.css`
 - Static non-browser assets are served by Propshaft
 
@@ -175,11 +175,11 @@ bundle exec rubocop
 bundle exec rubocop -a
 bundle exec erb_lint .
 bundle exec erb_lint -a .
-vp check
-vp check --fix
+pnpm check
+pnpm fix
 ```
 
-Use `rubocop -a`, `erb_lint -a .`, and `vp check --fix` to apply auto-fixes where available.
+Use `rubocop -a`, `erb_lint -a .`, and `pnpm fix` to apply auto-fixes where available.
 
 ## Testing
 
@@ -197,13 +197,13 @@ Coverage reports are written to `coverage/rails/`.
 Run JavaScript tests with Vitest:
 
 ```bash
-vp test
-vp test --watch                            # Watch mode
+pnpm test
+pnpm test:watch                            # Watch mode
 pnpm test:coverage
 ```
 
-JavaScript tests are located in `spec/` and use Vitest with Vite Plus. Coverage reports are written
-under `coverage/`.
+JavaScript tests are located in `spec/` and use Vitest. Coverage reports are written under
+`coverage/vite/`.
 
 ## Security and Quality Checks
 

@@ -116,7 +116,7 @@ class CredentialSecurityTransition
       actor: actor,
       event_id: audit_event_id,
       action: "credential_security_transition.#{reason}",
-      ip_address: request&.remote_ip || "0.0.0.0",
+      ip_address: request&.remote_ip,
       user_agent: request&.user_agent,
       metadata: {
         reason: reason.to_s,

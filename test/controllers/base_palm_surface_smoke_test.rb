@@ -12,7 +12,7 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
     get "/?ri=jp", headers: { "Host" => host }
 
     assert_response :success
-    assert_homepage_html title: "Base App", message: "Thin landing endpoint."
+    assert_homepage_html title: "Base App", message: I18n.t("landing.thin_endpoint")
 
     get "/health", headers: { "Host" => host }
 
@@ -44,7 +44,7 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
       get "/?ri=jp", headers: { "Host" => host }
 
       assert_response :success
-      assert_homepage_html title: title, message: "Thin landing endpoint."
+      assert_homepage_html title: title, message: I18n.t("landing.thin_endpoint")
     end
   end
 

@@ -4,12 +4,19 @@
   "type": "module",
   "module": "index.ts",
   "scripts": {
-    "prepare": "vp config",
-    "check": "vp check",
-    "ci:js": "vp check && vp test run --coverage",
-    "fix": "vp check --fix",
-    "test": "vp test run",
-    "test:coverage": "vp test run --coverage"
+    "prepare": "lefthook install",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format": "oxfmt src spec vite.config.ts vitest.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json package.json pnpm-workspace.yaml lefthook.yml .oxfmtrc.json .oxlintrc.json",
+    "format:check": "oxfmt --check src spec vite.config.ts vitest.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json package.json pnpm-workspace.yaml lefthook.yml .oxfmtrc.json .oxlintrc.json",
+    "typecheck": "tsc --noEmit",
+    "check": "pnpm -s format:check && pnpm -s lint && pnpm -s typecheck",
+    "ci": "pnpm -s check && pnpm -s test:coverage",
+    "ci:js": "pnpm -s run ci",
+    "fix": "pnpm -s format && pnpm -s lint:fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@hotwired/stimulus": "^3.2.2",
@@ -25,17 +32,21 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tailwindcss": "^4.3.1",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.0"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.15.0",
+    "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "dependency-cruiser": "^17.4.3",
     "jsdom": "^29.1.1",
+    "lefthook": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
     "playwright": "^1.60.0",
     "vite": "catalog:",
     "vite-plugin-ruby": "^5.2.2",
-    "vite-plus": "catalog:",
     "vitest": "catalog:"
   },
   "packageManager": "pnpm@11.1.3"

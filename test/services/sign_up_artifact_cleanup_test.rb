@@ -339,7 +339,7 @@ class SignUpArtifactCleanupTest < ActiveSupport::TestCase
       self
     end
 
-    def connected_to(role:)
+    def connected_to(_role:)
       yield
     end
 

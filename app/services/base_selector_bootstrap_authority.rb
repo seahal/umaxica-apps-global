@@ -69,7 +69,7 @@ class BaseSelectorBootstrapAuthority
   end
 
   def transaction_owners
-    [
+    result = [
       connection_owner(config.rp_account_class),
       connection_owner(config.identity_class),
       connection_owner(config.account_class),
@@ -78,7 +78,9 @@ class BaseSelectorBootstrapAuthority
       connection_owner(config.unit_class),
       connection_owner(config.membership_class),
       (connection_owner(Avatar) if config.requires_avatar),
-    ].compact.uniq
+    ].compact
+    result.uniq!
+    result
   end
 
   def connection_owner(klass)

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@hotwired/stimulus", () => ({
   // eslint-disable-next-line @typescript-eslint/no-extraneous-class

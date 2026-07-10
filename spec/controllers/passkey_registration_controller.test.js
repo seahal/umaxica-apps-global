@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@hotwired/stimulus", () => ({
   Controller: class {
@@ -654,9 +654,8 @@ describe("PasskeyRegistrationController", () => {
       setTimeout: globalThis.setTimeout,
       clearTimeout: globalThis.clearTimeout,
     });
-    const csrfToken = { content: "csrf-token-value" };
     vi.stubGlobal("document", {
-      querySelector: vi.fn().mockReturnValueOnce(csrfToken).mockReturnValueOnce(existingScript),
+      querySelector: vi.fn().mockReturnValue(existingScript),
       createElement: vi.fn(() => container),
       head: { appendChild: vi.fn() },
     });

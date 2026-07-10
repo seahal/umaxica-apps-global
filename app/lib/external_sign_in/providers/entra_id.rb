@@ -58,7 +58,7 @@ module ExternalSignIn
       rescue JWT::DecodeError, JWT::VerificationError, OpenSSL::PKey::PKeyError,
              ArgumentError, TypeError, KeyError
         raise VerificationError.new("token_decode_failed")
-      rescue Net::OpenTimeout, SocketError, SystemCallError, StandardError
+      rescue Net::OpenTimeout, SocketError, SystemCallError
         raise VerificationError.new("jwks_fetch_failed")
       end
 
@@ -103,12 +103,12 @@ module ExternalSignIn
         format(ISSUER_TEMPLATE, expected_tenant_id)
       end
 
-      def secure_equal?(a, b)
-        a = a.to_s
-        b = b.to_s
-        return false if a.bytesize != b.bytesize
+      def secure_equal?(lhs, rhs)
+        lhs = lhs.to_s
+        rhs = rhs.to_s
+        return false if lhs.bytesize != rhs.bytesize
 
-        ActiveSupport::SecurityUtils.secure_compare(a, b)
+        ActiveSupport::SecurityUtils.secure_compare(lhs, rhs)
       end
 
       def valid_uuid?(value)

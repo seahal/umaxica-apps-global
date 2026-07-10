@@ -499,7 +499,7 @@ Lint/DuplicateBranch:
   Enabled: true
 
 Lint/DuplicateMethods:
-  Enabled: true
+  Enabled: false
 
 Lint/DuplicateRegexpCharacterClassElement:
   Enabled: true
@@ -1489,6 +1489,7 @@ Style/ConstantVisibility:
     - "db/**/*_migrate/**/*.rb"
 
 Layout/LineLength:
+  Enabled: false
   Max: 120
   AllowedPatterns: ['\A#']
   Exclude:

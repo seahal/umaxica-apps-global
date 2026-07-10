@@ -3,6 +3,7 @@
 
 class OtpEmailAdapter < OtpAdapter
   def initialize(mailer)
+    super()
     @mailer = mailer
   end
 

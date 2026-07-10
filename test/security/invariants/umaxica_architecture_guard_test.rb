@@ -117,7 +117,7 @@ module Security
           "Avatar.create!" => /Avatar\.create!\(/,
           "avatar_assignments.create!" => /avatar_assignments\.create!\(/,
           "Handle.create!" => /Handle\.create!\(/,
-          "Avatar binding create!" => /Avatar(?:Persona|Agent|Individual)Binding\.create!\(/,
+          I18n.t("architecture_guard.avatar_binding_create") => /Avatar(?:Persona|Agent|Individual)Binding\.create!\(/,
         }
         offenders =
           production_ruby_paths.flat_map do |path|

@@ -1,84 +1,26 @@
 pre-commit:
   parallel: true
-  commands:
-    vp_check:
-      run: |
-        #!/bin/sh
-        set -eu
-        if [ -f /.dockerenv ]; then
-          vp check
-        else
-          docker compose run core vp check
-        fi
-    ruby_rubocop:
-      run: |
-        #!/bin/sh
-        set -eu
-        if [ -f /.dockerenv ]; then
-          bundle exec rubocop
-        else
-          docker compose run core bundle exec rubocop
-        fi
-    ruby_erb_lint:
-      run: |
-        #!/bin/sh
-        set -eu
-        if [ -f /.dockerenv ]; then
-          bundle exec erb_lint --lint-all
-        else
-          docker compose run core bundle exec erb_lint --lint-all
-        fi
-    pnpm_audit:
-      run: |
-        #!/bin/sh
-        set -eu
-        if [ -f /.dockerenv ]; then
-          pnpm audit
-        else
-          docker compose run core pnpm audit
-        fi
-    ruby_audit:
-      run: |
-        #!/bin/sh
-        set -eu
-        if [ -f /.dockerenv ]; then
-          bundle exec bundler-audit check --update
-        else
-          docker compose run core bundle exec bundler-audit check --update
-        fi
-    ruby_brakeman:
-      run: |
-        #!/bin/sh
-        set -eu
-        if [ -f /.dockerenv ]; then
-          bundle exec brakeman --no-pager
-        else
-          docker compose run core bundle exec brakeman --no-pager
-        fi
-    # ruby_database_consistency:
-    #   run: |
-    #     #!/bin/sh
-    #     set -eu
-    #     if [ -f /.dockerenv ]; then
-    #       bundle exec database_consistency
-    #     else
-    #       docker compose run core bundle exec database_consistency
-    #     fi
-    ruby_on_rails_test:
-      run: |
-        #!/bin/sh
-        set -eu
-        if [ -f /.dockerenv ]; then
-          bundle exec rails test
-        else
-          docker compose run core bash -c "bundle exec rails test"
-        fi
-    secret_scan:
-      run: |
-        #!/bin/sh
-        set -eu
-        if [ -f /.dockerenv ]; then
-          gitleaks protect
-        else
-          docker compose run core gitleaks protect
-        fi
+  jobs:
+    - name: oxfmt
+      glob:
+        - "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,yml,yaml}"
+      run: pnpm exec oxfmt {staged_files}
+      stage_fixed: true
+
+    - name: oxlint
+      glob:
+        - "*.{js,jsx,ts,tsx}"
+      run: pnpm exec oxlint --fix {staged_files}
+      stage_fixed: true
+
+    - name: rubocop
+      glob:
+        - "*.{rb,rake}"
+      run: bundle exec rubocop -A --force-exclusion {staged_files}
+      stage_fixed: true
+
+pre-push:
+  parallel: false
+  jobs:
+    - name: frontend-check
+      run: pnpm -s run ci

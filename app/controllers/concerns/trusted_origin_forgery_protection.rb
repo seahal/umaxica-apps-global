@@ -12,7 +12,7 @@ module TrustedOriginForgeryProtection
     origin = request.origin
     if origin == "null"
       raise ActionController::InvalidCrossOriginRequest,
-            "The browser returned a null Origin header for an origin-protected request."
+            I18n.t("trusted_origin.null_origin_error")
     end
 
     origin.nil? || origin == request.base_url || forgery_protection_trusted_origins.include?(origin)

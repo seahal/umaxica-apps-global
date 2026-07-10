@@ -8,9 +8,9 @@ module Auth
         # EntrasController renders the Microsoft Entra ID sign-in landing page.
         #
         # Ceremony flow:
-        # 1. GET  /sign/in/entra/new          — this controller; operator sees "Sign in with Microsoft"
-        # 2. POST /sign/in/entra/authorization — Entra::AuthorizationsController#create
-        # 3. GET  /sign/in/entra/callback      — Entra::CallbacksController#show
+        # 1. GET  /sign/in/entra/new          - this controller; operator sees "Sign in with Microsoft"
+        # 2. POST /sign/in/entra/authorization - Entra::AuthorizationsController#create
+        # 3. GET  /sign/in/entra/callback      - Entra::CallbacksController#show
         #
         # Shared ceremony invariants live in OrgEntraCeremony.
         # See adr/org-entra-id-sign-in-boundary.md.

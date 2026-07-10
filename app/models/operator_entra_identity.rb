@@ -32,7 +32,7 @@
 #  fk_rails_...  (status_id => operator_entra_identity_states.id)
 #  fk_rails_...  (connection_id => organization_entra_connections.id)
 #
-# Lookup key is (entra_tenant_id, entra_object_id) — the Entra (tid, oid) pair.
+# Lookup key is (entra_tenant_id, entra_object_id) -- the Entra (tid, oid) pair.
 # evidence_issuer and evidence_subject store iss/sub for audit only; never used for auth lookup.
 # operator_id is unique (v1: one Entra identity per Operator; intentionally strict).
 # operator_id is a logical reference to operators in org_principal (cross-DB; no enforced FK).
@@ -56,6 +56,6 @@ class OperatorEntraIdentity < OrgRpRecord
             presence: true
   validates :operator_id, uniqueness: true
   validates :entra_tenant_id, uniqueness: { scope: :entra_object_id }
-  validates :entra_tenant_id, format: { with: ENTRA_ID_FORMAT, message: "must be a valid UUID" }
-  validates :entra_object_id, format: { with: ENTRA_ID_FORMAT, message: "must be a valid UUID" }
+  validates :entra_tenant_id, format: { with: ENTRA_ID_FORMAT, message: :uuid_format }
+  validates :entra_object_id, format: { with: ENTRA_ID_FORMAT, message: :uuid_format }
 end

@@ -129,7 +129,8 @@ Rails.application.configure do
     boot_hosts.palm_origins,
     [boot_hosts.help_service, boot_hosts.help_corporate, boot_hosts.help_staff],
     boot_hosts.info_origins,
-  ].flatten.map(&:host)
+  ].flatten
+  boot_config_hosts.map!(&:host)
 
   public_tunnel_hosts = %w(
     auth.umaxica.app

@@ -53,5 +53,5 @@ class OrganizationEntraConnection < OrgRpRecord
             presence: true
   validates :entra_tenant_id, uniqueness: { scope: :organization_id }
   validates :entra_client_id, uniqueness: { scope: :entra_tenant_id }
-  validates :entra_tenant_id, format: { with: ENTRA_TENANT_ID_FORMAT, message: "must be a valid UUID" }
+  validates :entra_tenant_id, format: { with: ENTRA_TENANT_ID_FORMAT, message: :uuid_format }
 end

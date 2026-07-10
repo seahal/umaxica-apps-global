@@ -4,6 +4,8 @@
 module EmailCeremonyTransactionable
   extend ActiveSupport::Concern
 
+  include EmailVerificationChallengeable
+
   DEFAULT_TTL = 10.minutes
   STATUS_PENDING = "pending"
   STATUS_CONSUMED = "consumed"
@@ -47,7 +49,7 @@ module EmailCeremonyTransactionable
 
     def create_transaction!(surface: ceremony_surface, actor_ref:, session_ref:, operation:, transaction_id: nil,
                             grant_jti: nil, email_candidate_ref: nil, normalized_email_digest: nil,
-                            expires_at: nil, now: Time.current)
+                            expires_at: nil, now: Time.current, evp_nonce_digest: nil, evp_outcome: nil)
       connection_owner.connected_to(role: :writing) do
         create!(
           transaction_id: transaction_id.presence || SecureRandom.uuid,
@@ -58,6 +60,8 @@ module EmailCeremonyTransactionable
           grant_jti: grant_jti.presence || SecureRandom.uuid,
           email_candidate_ref: email_candidate_ref,
           normalized_email_digest: normalized_email_digest,
+          evp_nonce_digest: evp_nonce_digest,
+          evp_outcome: evp_outcome,
           expires_at: expires_at || (now + DEFAULT_TTL),
           created_at: now,
           updated_at: now,

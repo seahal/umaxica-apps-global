@@ -111,7 +111,7 @@ Run the applicable checks after each repair batch:
 - `bundle exec rails test`
 - `bundle exec rubocop`
 - `bundle exec erb_lint .` if views change
-- `vp check` if JavaScript changes
+- `pnpm check` if JavaScript changes
 - `bundle exec database_consistency` with the local Rails-compatible workaround if the stock command
   still fails on `ActiveRecord::Base.connection`
 

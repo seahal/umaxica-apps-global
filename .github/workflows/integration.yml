@@ -422,12 +422,16 @@ jobs:
       - uses: actions/checkout@v6.0.1
         with:
           persist-credentials: false
-      - uses: voidzero-dev/setup-vp@v1
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: true
-      - run: vp install
-      - run: vp run ci:js
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -s run ci
       - name: Upload JavaScript coverage
         if: always()
         uses: actions/upload-artifact@v6.0.0

@@ -3937,3 +3937,24 @@ ja:
     org:
       roots:
         message: "News API is available. Browser article pages are served outside Rails."
+  privacy_erasure:
+    forbidden: プライバシー消去リクエストは、退下手順中にのみ利用可能です。
+  trusted_origin:
+    null_origin_error: ブラウザがOrigin保護リクエストに対してnull Originヘッダーを返しました。
+  withdrawal_ceremony_reentry:
+    generic_message: 入力された情報でアカウントが退下手順を続行できる場合、次のステップはこちらから利用可能です。
+  avatar_backfill:
+    legacy_client_bindings_desc: 曖昧さのないレガシー avatars.client_id バインディングをバックフィルします。デフォルトはドライランです。変更する場合は APPLY=1 を設定してください。
+  db_verify_no_schema_drift:
+    unable_to_inspect: スキーマダンプのドリフトを検査できません。
+    run_reset_workflow: 適切なデータベースリセット/マイグレーションワークフローを実行し、スキーマダンプの変更を確認して、意図したダンプをコミットしてください。
+  landing:
+    thin_endpoint: 薄いランディングエンドポイント。
+  billings:
+    signed_in_required: サインインが必要です。
+  architecture_guard:
+    avatar_binding_create: Avatar binding create!
+  activerecord:
+    errors:
+      messages:
+        uuid_format: 有効なUUIDである必要があります

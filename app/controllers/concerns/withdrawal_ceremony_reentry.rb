@@ -8,7 +8,7 @@ module WithdrawalCeremonyReentry
   include WithdrawalCeremonyAuthentication
 
   REENTRY_SESSION_KEY = :withdrawal_ceremony_reentry
-  GENERIC_MESSAGE = "If an account can continue withdrawal procedures for the information entered, the next step is available here."
+  GENERIC_MESSAGE = I18n.t("withdrawal_ceremony_reentry.generic_message").freeze
 
   included do
     helper_method :withdrawal_reentry_generic_message

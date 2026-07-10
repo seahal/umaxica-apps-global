@@ -248,7 +248,7 @@ module ActiveSupport
       else
         Integer(ENV.fetch("PARALLEL_WORKERS", "16"), 10)
       end
-    raise "PARALLEL_WORKERS must be positive" unless parallel_workers.positive?
+    raise ArgumentError, "PARALLEL_WORKERS must be positive" unless parallel_workers.positive?
 
     fixtures :all
     ParallelTestDatabaseCloner.install!(workers: parallel_workers)
@@ -259,7 +259,7 @@ module ActiveSupport
     # process. Its counters are keyed by request IP (127.0.0.1 for all tests),
     # so without a reset a rate_limit test's counter leaks into later, unrelated
     # tests and spuriously 429s them. Clear it before each test for a clean slate
-    # (mutate the same instance with #clear — replacing it would not reach
+    # (mutate the same instance with #clear -- replacing it would not reach
     # controllers that captured the original store at class-load time).
     setup { Rails.configuration.x.rate_limit.fetch(:store).clear }
   end

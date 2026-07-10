@@ -199,7 +199,7 @@ psql $POSTGRESQL_SOLID_QUEUE_PUB -d <app>_solid_queue_db -c "\\dt"
 # Lint & Test
 bundle exec rubocop
 bundle exec erb_lint .
-vp check
+pnpm check
 bundle exec rails test
 ```
 

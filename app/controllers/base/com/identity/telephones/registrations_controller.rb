@@ -121,12 +121,7 @@ module Base
                 ),
                 allow_other_host: cross_host_redirect_allowed?,
               )
-            when :session_expired
-              reset_registration_session!
-              redirect_to(
-                new_base_com_identity_telephones_registration_path(ri: params[:ri]),
-              )
-            when :locked
+            when :session_expired, :locked
               reset_registration_session!
               redirect_to(
                 new_base_com_identity_telephones_registration_path(ri: params[:ri]),

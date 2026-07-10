@@ -115,12 +115,7 @@ module Base
                 ),
                 allow_other_host: cross_host_redirect_allowed?,
               )
-            when :session_expired
-              reset_registration_session!
-              redirect_to(
-                new_base_org_identity_telephones_registration_path,
-              )
-            when :locked
+            when :session_expired, :locked
               reset_registration_session!
               redirect_to(
                 new_base_org_identity_telephones_registration_path,

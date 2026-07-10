@@ -301,7 +301,7 @@ bin/rails test test/path/to/file_test.rb:LINE
 Use Vitest for JavaScript code:
 
 ```bash
-vp test
+pnpm test
 ```
 
 If behavior changes in both Ruby and JavaScript, add or update coverage on both sides where

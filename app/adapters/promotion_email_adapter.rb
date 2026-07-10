@@ -3,6 +3,7 @@
 
 class PromotionEmailAdapter < PromotionAdapter
   def initialize(mailer)
+    super()
     @mailer = mailer
   end
 

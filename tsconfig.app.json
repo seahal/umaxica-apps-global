@@ -26,6 +26,7 @@
     /* Aliases */
     "paths": {
       "@/*": ["./src/*"],
+      "@styles/*": ["./src/styles/*"],
       "~/*": ["./src/*"],
       "react-aria-components": ["./src/vendor/react-aria-components.tsx"]
     }

@@ -37,6 +37,6 @@ class Base::App::BillingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", text: "Billings"
-    assert_select "p", text: "Signed in required."
+    assert_select "p", text: I18n.t("billings.signed_in_required")
   end
 end

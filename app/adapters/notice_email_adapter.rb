@@ -3,6 +3,7 @@
 
 class NoticeEmailAdapter < NoticeAdapter
   def initialize(mailer)
+    super()
     @mailer = mailer
   end
 

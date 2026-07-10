@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@hotwired/stimulus", () => ({
   Controller: class {
@@ -64,12 +64,12 @@ describe("TurnstileController", () => {
     return controller;
   }
 
-  test("connect binds methods and sets up listeners", () => {
+  test("connect binds methods and sets up listeners", async () => {
     const c = createController();
 
     c.connect();
 
-    expect(c.completed).toBe(true);
+    await vi.waitFor(() => expect(c.completed).toBe(true));
     expect(addEventListenerSpy).toHaveBeenCalledWith("turbo:load", c.scheduleChallenge, {
       once: true,
     });
@@ -368,10 +368,11 @@ describe("TurnstileController", () => {
   test("reportScriptError logs error to console", () => {
     const c = createController();
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = new Error("network failure");
 
-    c.reportScriptError();
+    c.reportScriptError(error);
 
-    expect(consoleSpy).toHaveBeenCalledWith("Turnstile script failed to load");
+    expect(consoleSpy).toHaveBeenCalledWith("Turnstile script failed to load:", error);
     consoleSpy.mockRestore();
   });
 });

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@hotwired/stimulus", () => ({
   Controller: class {

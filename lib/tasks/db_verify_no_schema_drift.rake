@@ -14,7 +14,9 @@ namespace :db do
         path = dump.presence || ActiveRecord::Tasks::DatabaseTasks.schema_dump_path(db_config)
         path = Rails.root.join("db", path) unless Pathname.new(path.to_s).absolute?
         path.relative_path_from(Rails.root).to_s
-      end.uniq.sort
+      end
+    schema_files.uniq!
+    schema_files.sort!
 
     if schema_files.empty?
       puts "No schema dump files are configured for #{Rails.env}."
@@ -31,15 +33,16 @@ namespace :db do
       *schema_files,
       chdir: Rails.root.to_s,
     )
-    abort(stderr.presence || "Unable to inspect schema dump drift.") unless status.success?
+    abort(stderr.presence || I18n.t("db_verify_no_schema_drift.unable_to_inspect")) unless status.success?
 
-    drifted = stdout.lines.map(&:strip).reject(&:empty?)
+    drifted = stdout.lines.map(&:strip)
+    drifted.reject!(&:empty?)
     if drifted.any?
       abort(
         [
           "Schema drift detected in committed schema dump files:",
           *drifted.map { |file| "  - #{file}" },
-          "Run the appropriate database reset/migration workflow, review the schema dump changes, and commit the intended dumps.",
+          I18n.t("db_verify_no_schema_drift.run_reset_workflow"),
         ].join("\n"),
       )
     end

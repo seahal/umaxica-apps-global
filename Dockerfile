@@ -257,12 +257,8 @@ RUN if [ -z "${GITHUB_ACTIONS}" ]; then \
     fi
 
 # Install pnpm for development use only (available by default on PATH).
-RUN npm install -g pnpm@11.0.8 \
+RUN npm install -g pnpm@11.1.3 \
     && rm -rf "${HOME}/.cache" "${HOME}/.local"
-
-# Install Vite+ (unified frontend toolchain: Vite, Vitest, Oxlint, Oxfmt, tsdown)
-RUN curl -fsSL https://vite.plus | bash
-ENV PATH="${HOME}/.vite-plus/bin:${PATH}"
 
 # Final ownership fix for the home directory and workspace
 RUN mkdir -p "${HOME}/workspace" \

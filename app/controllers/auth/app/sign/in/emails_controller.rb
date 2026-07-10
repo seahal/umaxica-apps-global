@@ -296,9 +296,7 @@ module Auth
           end
 
           def redirect_after_successful_email_login(result)
-            if result[:restricted]
-              redirect_to(result[:redirect_path])
-            elsif result[:redirect_path]
+            if result[:restricted] || result[:redirect_path]
               redirect_to(result[:redirect_path])
             else
               redirect_to_sign_in_sequence!(

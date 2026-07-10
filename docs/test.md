@@ -41,7 +41,7 @@ detailed cases, and acceptance criteria derived from the SRS and HLD.
 - API & BFF endpoints (health, inquiry validation, preference APIs)
 - Security controls (JWT issuance, rate limiting, Turnstile, redirect whitelist, encryption)
 - Observability (OpenTelemetry traces and health endpoints)
-- Build/test automation (`vp`-managed JS checks/tests, `bin/rails test`, and `bin/ci`)
+- Build/test automation (pnpm-managed JS checks/tests, `bin/rails test`, and `bin/ci`)
 
 ### 2.2 Out of Scope
 
@@ -75,8 +75,7 @@ detailed cases, and acceptance criteria derived from the SRS and HLD.
   for low-shared-memory local containers, overridable via `PARALLEL_WORKERS`, disables PostgreSQL
   query/maintenance parallelism for test connections, and prepares separate writer/reader database
   names for each configured connection.
-- **Unit tests (JS/TS)**: `vp test` is the JavaScript test baseline. `pnpm test` remains a package
-  alias for `vp test run`.
+- **Unit tests (JS/TS)**: `pnpm test` runs the JavaScript test baseline directly through Vitest.
 - **Integration/system tests**: Rails integration and system tests remain the automated baseline.
   Browser-level Playwright scenarios are deferred until a concrete release flow requires them.
 - **API/contract tests**: Rails controller/integration tests cover API behavior, with
@@ -89,7 +88,7 @@ detailed cases, and acceptance criteria derived from the SRS and HLD.
 - **Observability verification**: OTEL traces appear in Tempo; Loki logs capture Turnstile failures;
   Grafana dashboards show request rate and application error signals.
 - **Automation**: CI runs the configured Rails and JS gates: `bin/ci` for the Rails stack and GitHub
-  Actions `vp check` plus `vp test --coverage` for JavaScript.
+  Actions `pnpm check` plus `pnpm test:coverage` for JavaScript.
 
 ---
 
@@ -208,8 +207,8 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
 | ------------------ | -------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------- |
 | Ruby unit/ctrl/int | `bin/rails test`                             | Covered by `bin/ci`                                         | Adopted baseline.                                                       |
 | Rails system       | `bin/rails test:system`                      | Covered by `bin/ci`                                         | Adopted Rails-level browser/system baseline.                            |
-| JavaScript checks  | `vp check`                                   | Covered by `.github/workflows/integration.yml`              | Adopted baseline.                                                       |
-| JavaScript tests   | `vp test` or `pnpm test`                     | `vp test --coverage` in `.github/workflows/integration.yml` | Adopted baseline; keep expanding behavior-specific coverage.            |
+| JavaScript checks  | `pnpm check`                                 | Covered by `.github/workflows/integration.yml`              | Adopted baseline.                                                       |
+| JavaScript tests   | `pnpm test`                                  | `pnpm test:coverage` in `.github/workflows/integration.yml` | Adopted baseline; keep expanding behavior-specific coverage.            |
 | API contracts      | Rails tests with selective `committee-rails` | Covered when Rails tests exercise schema validation         | Adopted selectively; no Rswag dependency.                               |
 | Browser E2E        | Not adopted                                  | Not gated                                                   | Deferred until a named cross-browser release flow needs it.             |
 | Performance/load   | Not adopted                                  | Not gated                                                   | Deferred until load targets and an execution environment are specified. |
@@ -231,7 +230,7 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
 
 ## 9. Tooling, Data, and Automation
 
-- **Tools**: Minitest, Rails system tests, `committee-rails`, `vp check`, `vp test`, Brakeman,
+- **Tools**: Minitest, Rails system tests, `committee-rails`, Vitest, Oxlint, Oxfmt, Brakeman,
   Bundler Audit, database_consistency, curl scripts for manual smoke checks.
 - **Fixtures**: Stored per DB context; use `ActiveRecord::FixtureSet.create_fixtures` per database
   connection. Sensitive examples anonymized.

@@ -9,7 +9,7 @@ module ExternalSignIn
   # - The found identity's status_id is not ACTIVE
   # - The identity's OrganizationEntraConnection status_id is not ACTIVE
   #
-  # Never creates records. Sign-in fails loudly on miss — no JIT provisioning.
+  # Never creates records. Sign-in fails loudly on miss -- no JIT provisioning.
   class OrgEntraResolver
     Result = Data.define(:identity, :operator)
 

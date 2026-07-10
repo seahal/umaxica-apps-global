@@ -114,8 +114,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
 
       events = []
       subscriber =
-        ActiveSupport::Notifications.subscribe("authentication.audit.write_failed") do |
-        _name, _start, _finish, _id, payload|
+        ActiveSupport::Notifications.subscribe("authentication.audit.write_failed") do |_name, _start, _finish, _id, payload|
           events << payload
         end
 

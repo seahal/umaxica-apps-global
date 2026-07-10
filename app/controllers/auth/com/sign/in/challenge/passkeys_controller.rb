@@ -80,17 +80,7 @@ module Auth
                 verify_passkey!(challenge)
               end
             rescue SignWebauthn::ChallengeNotFoundError, SignWebauthn::ChallengeExpiredError,
-                   SignWebauthn::ChallengePurposeMismatchError
-              redirect_to(
-                auth_com_sign_in_challenge_path(ri: current_region_identifier),
-                status: :see_other,
-              )
-            rescue WebAuthn::SignCountVerificationError
-              redirect_to(
-                auth_com_sign_in_challenge_path(ri: current_region_identifier),
-                status: :see_other,
-              )
-            rescue WebAuthn::Error
+                   SignWebauthn::ChallengePurposeMismatchError, WebAuthn::Error
               redirect_to(
                 auth_com_sign_in_challenge_path(ri: current_region_identifier),
                 status: :see_other,

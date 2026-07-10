@@ -70,7 +70,7 @@ module PrivacyErasureRequestFlow
   end
 
   def render_privacy_erasure_forbidden
-    render plain: "Privacy erasure requests are available only during withdrawal procedures.",
+    render plain: I18n.t("privacy_erasure.forbidden"),
            status: :forbidden
   end
 end

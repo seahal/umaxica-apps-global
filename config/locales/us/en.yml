@@ -3883,3 +3883,24 @@ en:
             logged_in: Logged in
             login_success: Login success
             unknown: Unknown event (%{event_id})
+  privacy_erasure:
+    forbidden: Privacy erasure requests are available only during withdrawal procedures.
+  trusted_origin:
+    null_origin_error: The browser returned a null Origin header for an origin-protected request.
+  withdrawal_ceremony_reentry:
+    generic_message: If an account can continue withdrawal procedures for the information entered, the next step is available here.
+  avatar_backfill:
+    legacy_client_bindings_desc: Backfill unambiguous legacy avatars.client_id bindings. Defaults to dry-run; set APPLY=1 to mutate.
+  db_verify_no_schema_drift:
+    unable_to_inspect: Unable to inspect schema dump drift.
+    run_reset_workflow: Run the appropriate database reset/migration workflow, review the schema dump changes, and commit the intended dumps.
+  landing:
+    thin_endpoint: Thin landing endpoint.
+  billings:
+    signed_in_required: Signed in required.
+  architecture_guard:
+    avatar_binding_create: Avatar binding create!
+  activerecord:
+    errors:
+      messages:
+        uuid_format: must be a valid UUID

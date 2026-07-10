@@ -9,7 +9,7 @@ namespace :avatar_backfill do
     puts "Report written to #{path}"
   end
 
-  desc "Backfill unambiguous legacy avatars.client_id bindings. Defaults to dry-run; set APPLY=1 to mutate."
+  desc I18n.t("avatar_backfill.legacy_client_bindings_desc")
   task legacy_client_bindings: :environment do
     apply = ENV["APPLY"] == "1"
     path = ENV.fetch("REPORT", "tmp/avatar_backfill/legacy_client_binding_backfill.json")

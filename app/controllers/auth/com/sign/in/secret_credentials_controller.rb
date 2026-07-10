@@ -197,15 +197,13 @@ module Auth
             )
             sign_in_result = sign_in_result_from_session_result(result, actor: visitor)
 
-            if sign_in_result.mfa_required?
+            if sign_in_result.mfa_required? || sign_in_result.session_limit_pending?
               redirect_to(sign_in_result.redirect_to)
             elsif sign_in_result.status == :session_limit_hard_reject
               render_session_limit_hard_reject(
                 message: sign_in_result.message,
                 http_status: sign_in_result.response_status,
               )
-            elsif sign_in_result.session_limit_pending?
-              redirect_to(sign_in_result.redirect_to)
             else
               redirect_to_sign_in_sequence!(
                 pt: signed_pt_param,

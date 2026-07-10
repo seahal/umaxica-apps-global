@@ -209,10 +209,13 @@ module OidcClientStoresStaticClientStore
   end
 
   def configured_hosts_for(env_key, default_host)
-    [
+    hosts = [
       ENV.fetch(env_key, nil).presence,
       boot_host_for(env_key, default_host),
-    ].compact.map { |host| normalize_host(host) }.uniq
+    ].compact
+    hosts.map! { |host| normalize_host(host) }
+    hosts.uniq!
+    hosts
   end
 
   def boot_host_for(env_key, default_host)

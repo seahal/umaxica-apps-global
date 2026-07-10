@@ -285,7 +285,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
       end
     end
 
-    # No OperatorEntraIdentity provisioned → IdentityNotFoundError → 422
+    # No OperatorEntraIdentity provisioned -> IdentityNotFoundError -> 422
     assert_response :unprocessable_content
   end
 
@@ -331,7 +331,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
       status_id: OperatorEntraIdentityState::ACTIVE,
     )
 
-    # Operator.find_by returns nil → login_allowed? check fails → 422
+    # Operator.find_by returns nil -> login_allowed? check fails -> 422
     OidcRpTokenClient.stub(:call, token_result) do
       ExternalSignIn::EntraJwksCache.stub(
         :new, ->(**) {

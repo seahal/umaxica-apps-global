@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@inertiajs/react", () => ({
   createInertiaApp: vi.fn(() => Promise.reject(new Error("test inertia error"))),

@@ -96,12 +96,12 @@ module OrgEntraCeremony
     )
   end
 
-  def secure_equal?(a, b)
-    a = a.to_s
-    b = b.to_s
-    return false if a.empty? || b.empty?
-    return false if a.bytesize != b.bytesize
+  def secure_equal?(lhs, rhs)
+    lhs = lhs.to_s
+    rhs = rhs.to_s
+    return false if lhs.empty? || rhs.empty?
+    return false if lhs.bytesize != rhs.bytesize
 
-    ActiveSupport::SecurityUtils.secure_compare(a, b)
+    ActiveSupport::SecurityUtils.secure_compare(lhs, rhs)
   end
 end
