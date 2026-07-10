@@ -4,7 +4,7 @@
 module Base
   module Org
     module Preference
-      class ResetsController < Base::Org::PreferencesBaseController
+      class CustomizationsController < Base::Org::PreferencesBaseController
         include ::PreferenceSignScreenActions
 
         AUTHENTICATION_MODE = :open
@@ -13,7 +13,7 @@ module Base
 
         def edit
           edit_reset_preference_screen
-          render "base/shared/preference/resets" unless performed?
+          render "base/shared/preference/customizations" unless performed?
         end
 
         def destroy

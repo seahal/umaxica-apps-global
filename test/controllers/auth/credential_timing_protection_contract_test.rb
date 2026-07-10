@@ -17,7 +17,7 @@ class AuthCredentialTimingProtectionContractTest < ActiveSupport::TestCase
     Auth::Org::Sign::In::Passkey::OptionsController,
     Auth::Org::Sign::In::Passkey::VerificationsController,
     Auth::Org::Sign::In::SecretCredentialsController,
-    Auth::Org::Sign::In::EntrasController,
+    Auth::Org::Sign::In::Entra::AuthorizationsController,
   ].freeze
 
   DUMMY_WORK_CONTROLLERS = [
@@ -49,7 +49,7 @@ class AuthCredentialTimingProtectionContractTest < ActiveSupport::TestCase
       Auth::Org::Sign::In::Passkey::OptionsController,
       Auth::Org::Sign::In::Passkey::VerificationsController,
       Auth::Org::Sign::In::SecretCredentialsController,
-      Auth::Org::Sign::In::EntrasController,
+      Auth::Org::Sign::In::Entra::AuthorizationsController,
     ]
 
     assert_equal expected.map(&:name).sort, protected_controllers.map(&:name).sort

@@ -91,17 +91,19 @@ class PreferenceCustomizationRouteContractTest < ActionDispatch::IntegrationTest
   end
 
   test "host constraint excludes preference customization routes from foreign base hosts" do
-    SURFACES.each do |surface, _config|
+    SURFACES.each do |surface, config|
       # The app pairing uses com as the foreign host for app and org surfaces
       # (a surface is never gated on a foreign base host).
       foreign_surface = (surface == :app) ? :org : :app
 
-      assert_raises(ActionController::RoutingError) do
-        Rails.application.routes.recognize_path(
-          "http://#{SURFACES.fetch(foreign_surface).fetch(:host)}/preference/customization/edit",
-          method: :get,
-        )
-      end
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{SURFACES.fetch(foreign_surface).fetch(:host)}/preference/customization/edit",
+        method: :get,
+      )
+
+      assert_not_equal "#{config.fetch(:controller_prefix)}/preference/customizations", recognized[:controller]
+      assert_equal "#{SURFACES.fetch(foreign_surface).fetch(:controller_prefix)}/preference/customizations",
+                   recognized[:controller]
     end
   end
   # rubocop:enable Minitest/MultipleAssertions

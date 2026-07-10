@@ -315,6 +315,10 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.9.0
     hostname: kafka
+    # The Confluent entrypoint writes generated configuration under /etc/kafka.
+    # Run it as container root so that directory remains writable through
+    # rootless Podman's host-user UID mapping.
+    user: root
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller

@@ -365,13 +365,13 @@ class BaseAuthorityRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "base/app/preference/resets", action: "edit" },
-      { path: "http://#{BASE_APP_HOST}/preference/reset/edit", method: :get },
+      { controller: "base/app/preference/customizations", action: "edit" },
+      { path: "http://#{BASE_APP_HOST}/preference/customization/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/app/preference/resets", action: "destroy" },
-      { path: "http://#{BASE_APP_HOST}/preference/reset", method: :delete },
+      { controller: "base/app/preference/customizations", action: "destroy" },
+      { path: "http://#{BASE_APP_HOST}/preference/customization", method: :delete },
     )
 
     assert_recognizes(

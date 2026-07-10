@@ -9,6 +9,8 @@ module Auth
       # marker arrive as route defaults; the shared ceremony start issues the
       # sign-up flow ticket when the entry is a sign-up.
       class RegistrationsController < AuthenticationsController
+        AUTHENTICATION_MODE = :open
+
         declare_authentication_mode! :open, only: :new
 
         def new

@@ -5,6 +5,8 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class Base::App::Social::AuthenticationsControllerTest < ActionController::TestCase
+  tests Base::App::Social::Authentication::CompletionsController
+
   setup do
     @request.host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     @commit_user = Client.create!(
@@ -47,7 +49,9 @@ class Base::App::Social::AuthenticationsControllerTest < ActionController::TestC
       ) do
         IdentitySocialCeremonyFinalCommitter.stub(:call!, commit) do
           IdentityGraphProvisioner.stub(:call!, ->(*_args, **_kwargs) { graph_provisioned = true }) do
-            post :completion, params: { id: "google", ri: "jp", social_ceremony_result: "signed-token" }
+            AuthenticationSessionCommitter.stub(:call, { status: :success, redirect_path: "/dashboard" }) do
+              post :create, params: { id: "google", ri: "jp", social_ceremony_result: "signed-token" }
+            end
           end
         end
       end
@@ -88,7 +92,7 @@ class Base::App::Social::AuthenticationsControllerTest < ActionController::TestC
           IdentityGraphProvisioner.stub(:call!, ->(*_args, **_kwargs) { raise error }) do
             raised =
               assert_raises(RuntimeError) do
-                post(:completion, params: { id: "google", ri: "jp", social_ceremony_result: "signed-token" })
+                post(:create, params: { id: "google", ri: "jp", social_ceremony_result: "signed-token" })
               end
 
             assert_same error, raised
@@ -136,7 +140,9 @@ class Base::App::Social::AuthenticationsControllerTest < ActionController::TestC
       ) do
         IdentitySocialCeremonyFinalCommitter.stub(:call!, commit) do
           IdentityGraphProvisioner.stub(:call!, ->(*_args, **_kwargs) { true }) do
-            post :completion, params: { id: "apple", ri: "jp", social_ceremony_result: "signed-token" }
+            AuthenticationSessionCommitter.stub(:call, { status: :success, redirect_path: "/dashboard" }) do
+              post :create, params: { id: "apple", ri: "jp", social_ceremony_result: "signed-token" }
+            end
           end
         end
       end
@@ -168,7 +174,9 @@ class Base::App::Social::AuthenticationsControllerTest < ActionController::TestC
       ) do
         IdentitySocialCeremonyFinalCommitter.stub(:call!, commit) do
           IdentityGraphProvisioner.stub(:call!, ->(*_args, **_kwargs) { true }) do
-            post :completion, params: { id: "google", ri: "jp", social_ceremony_result: "signed-token" }
+            AuthenticationSessionCommitter.stub(:call, { status: :login_forbidden, message: "login blocked" }) do
+              post :create, params: { id: "google", ri: "jp", social_ceremony_result: "signed-token" }
+            end
           end
         end
       end
@@ -202,7 +210,9 @@ class Base::App::Social::AuthenticationsControllerTest < ActionController::TestC
       ) do
         IdentitySocialCeremonyFinalCommitter.stub(:call!, commit) do
           IdentityGraphProvisioner.stub(:call!, ->(*_args, **_kwargs) { true }) do
-            post :completion, params: { id: "google", ri: "jp", social_ceremony_result: "signed-token" }
+            AuthenticationSessionCommitter.stub(:call, ->(**) { raise AuthenticationBase::LoginCooldownError }) do
+              post :create, params: { id: "google", ri: "jp", social_ceremony_result: "signed-token" }
+            end
           end
         end
       end

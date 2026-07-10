@@ -88,13 +88,13 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       host = ENV.fetch(config.fetch(:host_env), config.fetch(:host_default))
       host! host
 
-      get public_send("edit_base_#{surface}_preference_reset_url", ri: "jp", host: host)
+      get public_send("edit_base_#{surface}_preference_customization_url", ri: "jp", host: host)
 
       assert_response :success
       assert_no_match(/id\.umaxica/, response.body)
       assert_no_match(%r{/sign/[^"]*/preference}, response.body)
       assert_match(
-        %r{action="(?:https?://#{Regexp.escape(host)})?/preference/reset(?:\?[^"]*)?"},
+        %r{action="(?:https?://#{Regexp.escape(host)})?/preference/customization(?:\?[^"]*)?"},
         response.body,
       )
     end
@@ -236,7 +236,7 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     user.user_preference.update!(theme: "dr")
 
-    delete base_app_preference_reset_url(host: host),
+    delete base_app_preference_customization_url(host: host),
            params: { confirm_reset: "1" },
            headers: session_headers(host, token, user)
 

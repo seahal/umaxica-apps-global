@@ -30,16 +30,17 @@ class IdentityAudit
   def record!
     ChronicleRecord.connected_to(role: :writing) do
       ensure_dependencies!
-      chronicle_class.create!(
+      attributes = {
         actor: actor,
         subject_type: subject.class.name,
         subject_id: subject.id.to_s,
         event_id: event_id,
         level_id: level_id,
         occurred_at: occurred_at,
-        ip_address: ip_address,
         context: context,
-      )
+      }
+      attributes[:ip_address] = ip_address if ip_address.present?
+      chronicle_class.create!(attributes)
     end
   end
 

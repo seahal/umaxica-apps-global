@@ -339,7 +339,9 @@ class SignUpArtifactCleanupTest < ActiveSupport::TestCase
       self
     end
 
-    def connected_to(_role:)
+    def connected_to(role:)
+      raise ArgumentError, "writing role required" unless role == :writing
+
       yield
     end
 

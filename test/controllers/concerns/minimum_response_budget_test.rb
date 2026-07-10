@@ -93,8 +93,8 @@ class MinimumResponseBudgetTest < ActiveSupport::TestCase
   end
 
   test "org entra authorization uses the secure default budget" do
-    controller = Auth::Org::Sign::In::EntrasController.new
-    controller.define_singleton_method(:action_name) { "authorization" }
+    controller = Auth::Org::Sign::In::Entra::AuthorizationsController.new
+    controller.define_singleton_method(:action_name) { "create" }
 
     assert controller.send(:minimum_response_budget_enabled?)
   end

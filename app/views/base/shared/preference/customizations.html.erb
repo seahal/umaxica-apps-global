@@ -10,7 +10,7 @@
   <h1><%= t(preference_acme_i18n_key(:preference, :resets, :title)) %></h1>
   <p><%= t(preference_acme_i18n_key(:preference, :resets, :description)) %></p>
 
-  <%= form_with url: public_send("base_#{surface}_preference_reset_path", ri: params[:ri]), method: :delete do |f| %>
+  <%= form_with url: public_send("base_#{surface}_preference_customization_path", ri: params[:ri]), method: :delete do |f| %>
     <% if @preference&.errors&.any? %>
       <div>
         <ul>

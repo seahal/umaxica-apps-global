@@ -2,9 +2,9 @@
 # frozen_string_literal: true
 
 module Base
-  module Com
+  module App
     module Preference
-      class ResetsController < Base::Com::PreferencesBaseController
+      class CustomizationsController < Base::App::PreferencesBaseController
         include ::PreferenceSignScreenActions
 
         AUTHENTICATION_MODE = :open
@@ -13,7 +13,7 @@ module Base
 
         def edit
           edit_reset_preference_screen
-          render "base/shared/preference/resets" unless performed?
+          render "base/shared/preference/customizations" unless performed?
         end
 
         def destroy

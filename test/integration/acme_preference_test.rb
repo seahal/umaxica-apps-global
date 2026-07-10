@@ -528,12 +528,12 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
       pref, old_token, cookie_name = assert_preference_created(domain)
 
-      get public_send("edit_base_#{domain[:name]}_preference_reset_url", default_state)
+      get public_send("edit_base_#{domain[:name]}_preference_customization_url", default_state)
 
       assert_response :success
 
       delete(
-        public_send("base_#{domain[:name]}_preference_reset_url", ri: "jp"),
+        public_send("base_#{domain[:name]}_preference_customization_url", ri: "jp"),
         params: { confirm_reset: "1" },
       )
 
@@ -556,12 +556,12 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       state = default_state.merge(ri: "us")
 
       assert_difference -> { domain[:preference_model].count }, 1 do
-        get public_send("edit_base_#{domain[:name]}_preference_reset_url", state)
+        get public_send("edit_base_#{domain[:name]}_preference_customization_url", state)
 
         assert_response :success
 
         delete(
-          public_send("base_#{domain[:name]}_preference_reset_url", state),
+          public_send("base_#{domain[:name]}_preference_customization_url", state),
           params: { confirm_reset: "1" },
         )
 
@@ -580,7 +580,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       pref, _token, cookie_name = assert_preference_created(domain)
 
       delete(
-        public_send("base_#{domain[:name]}_preference_reset_url", ri: "jp"),
+        public_send("base_#{domain[:name]}_preference_customization_url", ri: "jp"),
         params: { confirm_reset: "1" },
       )
 
@@ -783,7 +783,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       assert_preference_created(domain)
 
-      get public_send("edit_base_#{domain[:name]}_preference_reset_url", ri: "jp")
+      get public_send("edit_base_#{domain[:name]}_preference_customization_url", ri: "jp")
 
       assert_response :success
 
@@ -808,7 +808,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       # Submit reset form with confirmation
       delete(
-        public_send("base_#{domain[:name]}_preference_reset_url", ri: "jp"),
+        public_send("base_#{domain[:name]}_preference_customization_url", ri: "jp"),
         params: { confirm_reset: "1" },
       )
 
@@ -839,7 +839,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       cookies[PreferenceBase::TIMEZONE_COOKIE_KEY] = "etc/utc"
 
       delete(
-        public_send("base_#{domain[:name]}_preference_reset_url", ri: "jp"),
+        public_send("base_#{domain[:name]}_preference_customization_url", ri: "jp"),
         params: { confirm_reset: "1" },
       )
 
@@ -856,7 +856,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       # Submit reset form WITHOUT confirmation
       delete(
-        public_send("base_#{domain[:name]}_preference_reset_url", ri: "jp"),
+        public_send("base_#{domain[:name]}_preference_customization_url", ri: "jp"),
         params: { confirm_reset: "0" },
       )
 
@@ -884,7 +884,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       begin
         delete(
-          public_send("base_#{domain[:name]}_preference_reset_url", ri: "jp"),
+          public_send("base_#{domain[:name]}_preference_customization_url", ri: "jp"),
           params: { confirm_reset: "1" },
         )
       ensure

@@ -37,7 +37,7 @@ scope(module: :base, as: :base) do
         resource :motion, only: %i(edit update)
         resource :pagination, only: %i(edit update)
         resource :region, only: %i(edit update)
-        resource :customization, only: %i(edit destroy), path: "reset", as: :reset, controller: :resets
+        resource :customization, only: %i(edit destroy)
         resource :screen, only: %i(edit update)
         resource :theme, only: %i(edit update)
         resource :timezone, only: %i(edit update)
@@ -260,7 +260,7 @@ scope(module: :base, as: :base) do
         resource :motion, only: %i(edit update)
         resource :pagination, only: %i(edit update)
         resource :region, only: %i(edit update)
-        resource :customization, only: %i(edit destroy), path: "reset", as: :reset, controller: :resets
+        resource :customization, only: %i(edit destroy)
         resource :screen, only: %i(edit update)
         resource :theme, only: %i(edit update)
         resource :timezone, only: %i(edit update)
@@ -406,7 +406,7 @@ scope(module: :base, as: :base) do
         resource :motion, only: %i(edit update)
         resource :pagination, only: %i(edit update)
         resource :region, only: %i(edit update)
-        resource :customization, only: %i(edit destroy), path: "reset", as: :reset, controller: :resets
+        resource :customization, only: %i(edit destroy)
         resource :screen, only: %i(edit update)
         resource :theme, only: %i(edit update)
         resource :timezone, only: %i(edit update)
