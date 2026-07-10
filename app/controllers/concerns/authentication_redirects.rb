@@ -78,19 +78,18 @@ module AuthenticationRedirects
   # Either redirects to encoded pt URL or falls back to default path.
   #
   # @param default_path [String] Default path if no pt parameter
-  # @param message_key [Symbol] Either :notice or :alert
-  # @param message_value [String] Flash message value
+  # @param _message_key [Symbol] Legacy message kind, retained for caller compatibility
+  # @param _message_value [String] Legacy message value, intentionally not persisted across redirects
   # @param session_key [Symbol] The session key for pt parameter
-  def redirect_with_pt_handling(default_path, message_key, message_value,
+  def redirect_with_pt_handling(default_path, _message_key, _message_value,
                                 session_key = DEFAULT_PT_SESSION_KEY)
     pt_param = retrieve_pt(session_key)
 
     if pt_param.present?
-      flash[message_key] = message_value
       destination = path_from_signed_pt(pt_param) || default_path
       redirect_to_pt_destination!(destination)
     else
-      redirect_to(default_path, message_key => message_value)
+      redirect_to(default_path)
     end
   end
 
@@ -209,9 +208,9 @@ module AuthenticationRedirects
 
   def sign_in_surface
     case self.class.name
-    when /\A(Sign|Acme)::App::/ then :app
-    when /\A(Sign|Acme)::Com::/ then :com
-    when /\A(Sign|Acme)::Org::/ then :org
+    when /\A(Auth|Sign|Acme)::App::/ then :app
+    when /\A(Auth|Sign|Acme)::Com::/ then :com
+    when /\A(Auth|Sign|Acme)::Org::/ then :org
     end
   end
 

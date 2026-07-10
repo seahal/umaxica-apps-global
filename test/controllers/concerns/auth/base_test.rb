@@ -611,13 +611,14 @@ module Auth
 
       harness.redirect_with_pt_handling("/default", :notice, "done")
 
-      assert_equal "done", harness.flash[:notice]
+      assert_empty harness.flash
       assert_equal [harness.path_from_signed_pt(pt), { allow_other_host: false }],
                    harness.redirected
 
       harness.redirect_with_pt_handling("/default", :alert, "warn")
 
-      assert_equal ["/default", { alert: "warn" }], harness.redirected
+      assert_empty harness.flash
+      assert_equal ["/default", {}], harness.redirected
     end
 
     test "clear_auth_cookies! deletes all auth-related cookies" do

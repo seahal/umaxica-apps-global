@@ -27,8 +27,8 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
     assert_includes auth_routes, 'resource :status, only: :show, path: "check", controller: :checks'
     assert_includes base_routes, 'resource :status, only: :show, path: "check", controller: :checks'
     assert_includes core_routes, 'resource :renewal, only: :create, path: "refresh", controller: :refreshes'
-    assert_includes base_routes,
-                    'resource :customization, only: %i(edit destroy), path: "reset", as: :reset, controller: :resets'
+    assert_includes base_routes, "resource :customization, only: %i(edit destroy)"
+    assert_not_includes base_routes, 'path: "reset", as: :reset, controller: :resets'
     assert_includes base_routes,
                     'resource :revocation, only: :destroy, path: "sessions", controller: "revocations/alls", as: :session_set'
     assert_includes base_routes,

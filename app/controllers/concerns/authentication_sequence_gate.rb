@@ -65,6 +65,7 @@ module AuthenticationSequenceGate
 
   def redirect_after_checkpoint_sequence!(pt: nil, default_path: after_dashboard_path, **redirect_options)
     cycle = current_db_sign_in_flow_for_sequence
+    safe_redirect_options = redirect_options.merge(allow_other_host: false)
     if cycle
       return reject_invalid_sign_in_sequence! unless cycle.sign_in_checkpoint_pending?
       return reject_invalid_sign_in_sequence! unless allowed_to?(:complete_checkpoint?, cycle)
@@ -74,16 +75,16 @@ module AuthenticationSequenceGate
           sign_in_checkpoint_participant(cycle).advance_if_clear!
         end
       if result.blocking?
-        return redirect_to(sign_in_checkpoint_path(pt: cycle.reload.return_to.presence || pt), **redirect_options)
+        return redirect_to(sign_in_checkpoint_path(pt: cycle.reload.return_to.presence || pt), **safe_redirect_options)
       end
 
       return redirect_to(
         sign_in_selector_path(pt: cycle.reload.return_to.presence || pt),
-        **redirect_options,
+        **safe_redirect_options,
       )
     end
 
-    redirect_to(after_checkpoint_sequence_path(pt: pt, default_path: default_path), **redirect_options)
+    redirect_to(after_checkpoint_sequence_path(pt: pt, default_path: default_path), **safe_redirect_options)
   end
 
   def continue_checkpoint_sequence_without_content!

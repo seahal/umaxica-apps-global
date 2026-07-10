@@ -86,10 +86,9 @@ module PreferenceSignScreenActions
     @preference.require_reset_confirmation(params[:confirm_reset])
 
     unless @preference.valid?(:reset)
-      # Render the same shared reset template the edit action uses. Base routes
-      # every preference screen through shared templates and has no per-surface
-      # resets/edit view, so `render :edit` would raise MissingTemplate.
-      render "base/shared/preference/resets", status: :unprocessable_content
+      # Render the same shared customization template the edit action uses.
+      # Base routes every preference screen through shared templates.
+      render "base/shared/preference/customizations", status: :unprocessable_content
       return
     end
 

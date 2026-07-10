@@ -57,7 +57,7 @@ class RenameCustomerActorToVisitor < ActiveRecord::Migration[8.2]
 
   def rename_tables(renames)
     renames.each do |old_name, new_name|
-      rename_table(old_name, new_name) if table_exists?(old_name) && !table_exists?(new_name)
+      rename_table_strict old_name, new_name
     end
   end
 

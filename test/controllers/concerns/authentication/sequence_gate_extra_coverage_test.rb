@@ -269,6 +269,21 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     assert_equal ["/app/session?pt=pt%3Atarget&ri=jp", { allow_other_host: false }], @harness.redirected
   end
 
+  test "redirect_after_checkpoint_sequence! never permits an external host" do
+    @harness.define_singleton_method(:dashboard_sequence_step_required?) { false }
+
+    @harness.redirect_after_checkpoint_sequence!(
+      default_path: "https://evil.example/dashboard",
+      allow_other_host: true,
+      status: :see_other,
+    )
+
+    assert_equal [
+      "https://evil.example/dashboard",
+      { allow_other_host: false, status: :see_other },
+    ], @harness.redirected
+  end
+
   test "issue_welcome_gate_and_path sets the gate and clears previous state" do
     @harness.session[@harness.send(:welcome_gate_key)] = { "remaining" => 1 }
 

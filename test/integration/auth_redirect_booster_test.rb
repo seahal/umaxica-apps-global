@@ -88,7 +88,7 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
     get "/auth_redirect/notice"
 
     assert_redirected_to "/default_path"
-    assert_equal "This is a notice", flash[:notice]
+    assert_empty flash
   end
 
   test "redirect_with_notice with pt" do
@@ -96,14 +96,14 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
     get "/auth_redirect/notice", params: { pt: pt }
     # jump_to_generated_url redirects
     assert_redirected_to "/settings?x=1"
-    assert_equal "This is a notice", flash[:notice]
+    assert_empty flash
   end
 
   test "redirect_with_alert without pt" do
     get "/auth_redirect/alert"
 
     assert_redirected_to "/default_path"
-    assert_equal "This is an alert", flash[:alert]
+    assert_empty flash
   end
 
   test "add_rt_to_params" do

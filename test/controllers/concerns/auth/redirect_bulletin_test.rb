@@ -196,6 +196,27 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
     assert_equal "Warning", result[:alert]
   end
 
+  test "Auth controllers resolve welcome URLs on their Base surface" do
+    expectations = {
+      Auth::App::ApplicationController => ["PRIVATE_BASE_SERVICE_URL", "base.app.localhost"],
+      Auth::Com::ApplicationController => ["PRIVATE_BASE_CORPORATE_URL", "base.com.localhost"],
+      Auth::Org::ApplicationController => ["PRIVATE_BASE_STAFF_URL", "base.org.localhost"],
+    }
+
+    expectations.each do |controller_class, (environment_key, expected_host)|
+      controller = controller_class.new
+      controller.set_request!(ActionController::TestRequest.create(controller_class))
+      controller.define_singleton_method(:current_region_identifier) { "jp" }
+      controller.define_singleton_method(:params) { {} }
+
+      ENV.stub(:fetch, ->(key, *args, &block) {
+        key == environment_key ? expected_host : ENV.fetch(key, *args, &block)
+      }) do
+        assert_equal "http://#{expected_host}/welcome?ri=jp", controller.sign_in_welcome_path
+      end
+    end
+  end
+
   test "safe return path accepts same-host absolute url as internal path" do
     result = @harness.send(:safe_return_path, "https://example.com/settings/sessions?ri=jp")
 

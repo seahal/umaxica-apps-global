@@ -14,7 +14,7 @@ class Base::App::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "title", "Base App"
     assert_select "h1", text: "Base App"
-    assert_select "main p", text: /Thin landing endpoint/
+    assert_select "main p", text: I18n.t("landing.thin_endpoint")
   end
 
   test "auth authorize preserves app sign up and sign in screen hints" do
