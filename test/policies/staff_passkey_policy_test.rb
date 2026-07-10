@@ -2,12 +2,13 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
-class StaffPasskeyPolicyTest < ActiveSupport::TestCase
+class OperatorPasskeyPolicyTest < ActiveSupport::TestCase
   def setup
     @user = nil
     @record = nil
-    @policy = StaffPasskeyPolicy.new(@record, user: @user)
+    @policy = OperatorPasskeyPolicy.new(@record, user: @user)
   end
 
   def test_index
@@ -37,10 +38,4 @@ class StaffPasskeyPolicyTest < ActiveSupport::TestCase
   def test_destroy
     assert_not @policy.destroy?
   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope
-  #     scope = StaffPasskeyPolicy::Scope.new(nil, user: @user)
-  #     assert_raises(NoMethodError) { scope.resolve }
-  #   end
 end

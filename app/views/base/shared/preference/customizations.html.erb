@@ -1,0 +1,34 @@
+<% surface = controller_path.split("/").second %>
+<% content_for :page_title, t(preference_acme_i18n_key(:preference, :resets, :title)) %>
+
+<section>
+  <div>
+    <%= link_to t(preference_acme_i18n_key(:preferences, :regions, :back_link)),
+                public_send("base_#{surface}_preference_path", lx: params[:lx], ri: params[:ri]) %>
+  </div>
+
+  <h1><%= t(preference_acme_i18n_key(:preference, :resets, :title)) %></h1>
+  <p><%= t(preference_acme_i18n_key(:preference, :resets, :description)) %></p>
+
+  <%= form_with url: public_send("base_#{surface}_preference_customization_path", ri: params[:ri]), method: :delete do |f| %>
+    <% if @preference&.errors&.any? %>
+      <div>
+        <ul>
+          <% @preference.errors.each do |error| %>
+            <li><%= error.full_message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div>
+      <%= check_box_tag :confirm_reset, "1", @preference&.confirm_reset == "1", required: true %>
+      <%= label_tag :confirm_reset, t(preference_acme_i18n_key(:preference, :resets, :confirm)) %>
+    </div>
+
+    <div>
+      <%= f.submit t(preference_acme_i18n_key(:preference, :resets, :button)),
+                   data: { turbo_submits_with: t(preference_acme_i18n_key(:preferences, :submitting)) } %>
+    </div>
+  <% end %>
+</section>

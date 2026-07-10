@@ -4,20 +4,49 @@
 module Telephone
   extend ActiveSupport::Concern
   include TelephoneNormalization
+  include OtpLockable
+
+  # Requires:
+  # - number
+  # - number_digest
+  # - otp_counter
+  # - otp_private_key
+  # - otp_attempts_count
+  #
+  # Optional:
+  # - number_bidx        (set only when the column exists)
+  #
+  # Registers (in addition to OtpLockable):
+  # - before_validation :normalize_number_from_raw
+  # - before_validation :set_number_digests
+  # - scope :with_number
+  # - encrypts :number
+  # - validate :validate_telephone_number
+  # - validates :confirm_policy
+  # - validates :confirm_using_mfa
+  # - validates :pass_code
+  #
+  # OTP attempt/lock/expiry mechanics live in OtpLockable. Telephone tables do
+  # not carry otp_last_sent_at, so OtpLockable anchors its time windows on
+  # created_at for these records, and cooldown is intentionally not provided.
+
+  # Re-published from OtpLockable so existing Telephone::CONST references keep working.
+  MAX_OTP_ATTEMPTS = OtpLockable::MAX_OTP_ATTEMPTS
+  OTP_ATTEMPT_WINDOW = OtpLockable::OTP_ATTEMPT_WINDOW
+  OTP_LOCKOUT_DURATION = OtpLockable::OTP_LOCKOUT_DURATION
 
   attr_accessor :confirm_policy, :confirm_using_mfa, :pass_code
   attr_writer :raw_number
 
   included do
     before_validation :normalize_number_from_raw
-
-    after_initialize do
-      self.otp_counter = "0" if otp_counter.blank?
-      self.otp_private_key = ROTP::Base32.random_base32 if otp_private_key.blank?
-      self.otp_attempts_count ||= 0
+    before_validation :set_number_digests
+    scope :with_number, ->(value) do
+      digest = IdentifierBlindIndex.bidx_for_telephone(value)
+      digest.present? ? where(number_digest: digest) : none
     end
 
-    encrypts :number, deterministic: true
+    encrypts :number
 
     validate :validate_telephone_number
 
@@ -31,71 +60,13 @@ module Telephone
                           unless: Proc.new { |a| a.pass_code.blank? && a.raw_number.present? }
   end
 
-  # OTP-related methods for telephone authentication
-  # Stores OTP secret on this telephone record
-  def store_otp(otp_private_key, otp_counter, expires_at)
-    update!(
-      otp_private_key: otp_private_key,
-      otp_counter: otp_counter,
-      otp_expires_at: Time.zone.at(expires_at),
-      otp_attempts_count: 0,
-      locked_at: "-infinity",
-    )
-  end
+  class_methods do
+    def find_by_number(value)
+      digest = IdentifierBlindIndex.bidx_for_telephone(value)
+      return nil if digest.blank?
 
-  # Retrieves OTP secret from this telephone record
-  def get_otp
-    return nil if otp_private_key.blank? || otp_expired? || locked?
-
-    {
-      otp_private_key: otp_private_key,
-      otp_counter: Integer(otp_counter.to_s, 10),
-      otp_expires_at: otp_expires_at.to_i,
-    }
-  end
-
-  # Clears OTP secret after verification
-  def clear_otp
-    update!(
-      otp_counter: "0",
-      otp_expires_at: "-infinity",
-      otp_attempts_count: 0,
-      locked_at: "-infinity",
-    )
-  end
-
-  # Checks if OTP has expired
-  def otp_expired?
-    # PostgreSQL -infinity is used as a sentinel for "never expires"
-    return true if otp_expires_at.is_a?(Float) && otp_expires_at == -Float::INFINITY
-
-    otp_expires_at.nil? || otp_expires_at <= Time.current
-  end
-
-  # Checks if OTP is still active
-  def otp_active?
-    !otp_expired? && !locked?
-  end
-
-  def locked?
-    # PostgreSQL -infinity is used as a sentinel for "not locked"
-    is_locked_by_time = locked_at.present? && locked_at != -Float::INFINITY
-    is_locked_by_attempts = otp_attempts_count >= 3
-    is_locked_by_time || is_locked_by_attempts
-  end
-
-  def increment_attempts!
-    # rubocop:disable Rails/SkipsModelValidations
-    increment!(:otp_attempts_count)
-    # Conditionally set locked_at when threshold is reached and not already locked
-    # Threshold is 3 (see locked? method)
-    self.class
-      .where(id: id)
-      .where(otp_attempts_count: 3..)
-      .where("locked_at IS NULL OR locked_at = '-infinity'::timestamp")
-      .update_all(locked_at: Time.current)
-    # rubocop:enable Rails/SkipsModelValidations
-    reload if locked_at_changed?
+      find_by(number_digest: digest)
+    end
   end
 
   def raw_number
@@ -110,6 +81,12 @@ module Telephone
 
     normalized = TelephoneNormalization.normalize_to_e164(value)
     self.number = normalized if normalized.present?
+  end
+
+  def set_number_digests
+    digest = IdentifierBlindIndex.bidx_for_telephone(raw_number)
+    self.number_bidx = digest if respond_to?(:number_bidx=)
+    self.number_digest = digest if respond_to?(:number_digest=)
   end
 
   def validate_telephone_number
@@ -135,6 +112,5 @@ module Telephone
 
     errors.add(:number, :invalid_e164_format)
     nil
-
   end
 end

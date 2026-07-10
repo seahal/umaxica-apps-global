@@ -14,40 +14,39 @@ and subdomain matter in both development and production.
 
 ## Stack
 
-- Ruby `4.0.2`
+- Ruby `4.0.x`
 - PostgreSQL
   - Solid Queue
 - Valkey/Redis
-- Importmap + Stimulus + Turbo
-  - Tailwind CSS via `tailwindcss-rails`
+- Vite Rails + Stimulus + Turbo
+- Tailwind CSS via Vite
 - Propshaft
-- `pnpm` only for JavaScript linting/formatting tooling
+- Vite and `pnpm` for JavaScript build, linting, formatting, and tests
 
 ## Frontend and Assets
 
-This repository does not use a JavaScript bundler.
-
-- JavaScript is served through `importmap-rails`
-- Stimulus controllers live in `app/javascript/controllers`
-- CSS is built by `tailwindcss-rails`
-- Static assets are served by Propshaft
+- JavaScript entrypoints are bundled through Vite Rails from `src/entrypoints`
+- Stimulus controllers live in `src/controllers`
+- JavaScript tests live in `spec/` and run directly with Vitest
+- Browser CSS is imported once through the Vite stylesheet graph in `src/styles/application.css`
+- Static non-browser assets are served by Propshaft
 
 Useful commands:
 
 ```bash
-bin/rails tailwindcss:watch     # Tailwind watch mode
+bin/dev                         # Web, Vite, and jobs
 bin/rails assets:precompile     # Production asset build
+bin/rails vite:build            # Vite frontend build
 bin/rails assets:clobber        # Remove compiled assets
-bin/importmap audit             # Audit pinned JS packages
 ```
 
 ## Local Setup
 
 - Docker and Docker Compose
-- Ruby `4.0.2`
+- Ruby `4.0.x`
 - Bundler
-- Node.js `20+`
-- `pnpm@10.27.0`
+- Node.js `22.13+`
+- `pnpm@11.0.8`
 
 Start the local stack, install dependencies, and boot the app:
 
@@ -55,18 +54,33 @@ Start the local stack, install dependencies, and boot the app:
 docker compose up
 bundle install
 pnpm install
-TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000 bin/setup
+bin/setup
 ```
 
-`TRUSTED_ORIGINS` is required for boot because WebAuthn origin validation fails fast when it is
-missing.
-
-`docker/core/env` defaults `TRUSTED_ORIGINS` to production sign domains, so override it locally in
-your shell or dev env file, for example:
+`docker compose up` starts the `core` service with `bin/dev`. The PostgreSQL services use Compose
+environment variables instead of inline fixed credentials:
 
 ```bash
-TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000
+POSTGRESQL_USER=root
+POSTGRESQL_PASSWORD=development_password
+POSTGRESQL_DATABASE=db
+POSTGRESQL_REPLICATION_USER=replicator
+POSTGRESQL_REPLICATION_PASSWORD=development_replication_password
 ```
+
+The values above are local defaults only. Override them in your shell or local Compose environment
+when you need different credentials.
+
+WebAuthn trusted origins are derived from the public Auth host variables used by browser-facing
+links:
+
+```bash
+PUBLIC_AUTH_SERVICE_URL=auth.umaxica.app
+PUBLIC_AUTH_CORPORATE_URL=auth.umaxica.com
+PUBLIC_AUTH_STAFF_URL=auth.umaxica.org
+```
+
+`TRUSTED_ORIGINS` remains available only for additional explicit origins.
 
 `bin/setup` installs Ruby gems, runs `bin/rails db:prepare`, clears logs and temp files, then starts
 `bin/dev`. It does not install JavaScript packages, so run `pnpm install` first.
@@ -74,14 +88,15 @@ TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000
 If dependencies are already installed, you can start development directly:
 
 ```bash
-TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000 bin/dev
+bin/dev
 ```
 
-`bin/dev` runs `bin/rails db:prepare` unless `SKIP_DB_PREPARE=1`, then starts:
+`bin/dev` is the unified local entrypoint. It runs `bin/rails db:prepare` unless
+`SKIP_DB_PREPARE=1`, then starts:
 
 - `web`: Rails server on port `3000`
-- `css`: `bin/rails tailwindcss:watch`
-- `job`: `bin/jobs start`
+- `vite`: `bin/vite dev`
+- `jobs`: `bin/jobs start`
 
 ## Development URLs
 
@@ -90,10 +105,68 @@ needed.
 
 | Surface | URL                                        |
 | :------ | :----------------------------------------- |
-| Apex    | `http://{app,com,org}.localhost:3000`      |
+| Acme    | `http://www.{app,com,org}.localhost:3001`  |
 | Sign    | `http://sign.{org,com,app}.localhost:3000` |
-| core    | `http://www.{app,com,org}.localhost:3000`  |
-| Docs    | `http://docs.{app,com,org}.localhost:3000` |
+| Jump    | `http://jump.{app,com,org}.localhost:3001` |
+
+## コード品質
+
+本プロジェクトのコード品質は、ISO/IEC 25010 の System / Software Product
+Quality モデルに基づいて整理する。以降の `Linting and Formatting` / `Testing` /
+`Security and Quality Checks` は、この品質特性をそれぞれ運用面で支えるための具体的手段に対応する。
+
+```mermaid
+flowchart LR
+  Q["System / Software Product Quality"]
+
+  Q --> FS["Functional Suitability"]
+  Q --> PE["Performance Efficiency"]
+  Q --> C["Compatibility"]
+  Q --> U["Usability"]
+  Q --> R["Reliability"]
+  Q --> S["Security"]
+  Q --> M["Maintainability"]
+  Q --> P["Portability"]
+
+  FS --> FS1["Functional Completeness"]
+  FS --> FS2["Functional Correctness"]
+  FS --> FS3["Functional Appropriateness"]
+
+  PE --> PE1["Time Behaviour"]
+  PE --> PE2["Resource Utilization"]
+  PE --> PE3["Capacity"]
+
+  C --> C1["Co-existence"]
+  C --> C2["Interoperability"]
+
+  U --> U1["Appropriateness Recognizability"]
+  U --> U2["Learnability"]
+  U --> U3["Operability"]
+  U --> U4["User Error Protection"]
+  U --> U5["User Interface Aesthetics"]
+  U --> U6["Accessibility"]
+
+  R --> R1["Maturity"]
+  R --> R2["Availability"]
+  R --> R3["Fault Tolerance"]
+  R --> R4["Recoverability"]
+
+  S --> S1["Confidentiality"]
+  S --> S2["Integrity"]
+  S --> S3["Non-repudiation"]
+  S --> S4["Accountability"]
+  S --> S5["Authenticity"]
+
+  M --> M1["Modularity"]
+  M --> M2["Reusability"]
+  M --> M3["Analysability"]
+  M --> M4["Modifiability"]
+  M --> M5["Testability"]
+
+  P --> P1["Adaptability"]
+  P --> P2["Installability"]
+  P --> P3["Replaceability"]
+```
 
 ## Linting and Formatting
 
@@ -102,11 +175,11 @@ bundle exec rubocop
 bundle exec rubocop -a
 bundle exec erb_lint .
 bundle exec erb_lint -a .
-vp check
-vp check --fix
+pnpm check
+pnpm fix
 ```
 
-Use `rubocop -a`, `erb_lint -a .`, and `vp check --fix` to apply auto-fixes where available.
+Use `rubocop -a`, `erb_lint -a .`, and `pnpm fix` to apply auto-fixes where available.
 
 ## Testing
 
@@ -124,13 +197,13 @@ Coverage reports are written to `coverage/rails/`.
 Run JavaScript tests with Vitest:
 
 ```bash
-vp test
-vp test --watch                            # Watch mode
+pnpm test
+pnpm test:watch                            # Watch mode
 pnpm test:coverage
 ```
 
-JavaScript tests are located in `test/javascript/` and use Vitest with Vite Plus. Coverage reports
-are written to `coverage/vite/`.
+JavaScript tests are located in `spec/` and use Vitest. Coverage reports are written under
+`coverage/vite/`.
 
 ## Security and Quality Checks
 
@@ -138,7 +211,6 @@ are written to `coverage/vite/`.
 bundle exec brakeman --no-pager
 bundle exec bundler-audit check --update
 bundle exec database_consistency
-bin/importmap audit
 pnpm audit
 bin/debride
 ```
@@ -172,15 +244,15 @@ These checks cover formatting, linting, security audits, database consistency, a
 
 ## Troubleshooting
 
-| Problem                                  | Fix                                                                                   |
-| :--------------------------------------- | :------------------------------------------------------------------------------------ |
-| Tailwind changes are not reflected       | Run `bin/rails assets:clobber` and restart `bin/dev` or `bin/rails tailwindcss:watch` |
-| Tests fail because databases are missing | Run `bin/rails db:prepare`                                                            |
-| `bin/dev` stops during boot              | Check `TRUSTED_ORIGINS` and database availability                                     |
-| Credentials cannot be decrypted          | Use the shared Rails credentials key for this environment                             |
+| Problem                                  | Fix                                                       |
+| :--------------------------------------- | :-------------------------------------------------------- |
+| Tailwind changes are not reflected       | Run `bin/rails assets:clobber` and restart `bin/dev`      |
+| Tests fail because databases are missing | Run `bin/rails db:prepare`                                |
+| `bin/dev` stops during boot              | Check `PUBLIC_AUTH_*_URL` and database availability       |
+| Credentials cannot be decrypted          | Use the shared Rails credentials key for this environment |
 
 ## Acknowledgement
 
 - Secrets must stay in Rails credentials; do not commit plaintext secrets.
-- WebAuthn origins are controlled by `TRUSTED_ORIGINS`.
+- WebAuthn origins are derived from `PUBLIC_AUTH_*_URL`; `TRUSTED_ORIGINS` is additive only.
 - Public availability of this repository is not guaranteed permanently.

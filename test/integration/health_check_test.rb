@@ -2,106 +2,87 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class HealthCheckTest < ActionDispatch::IntegrationTest
-  # Use the sign.app health endpoint for integration testing of the Health concern.
-  # The concern logic is shared across all health controllers.
-
   setup do
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
   end
 
-  test "returns 200 OK when all dependencies are healthy" do
-    get sign_app_health_url(ri: "jp")
+  test "readiness returns ok when dependencies are healthy" do
+    result = Health::CheckResult.new(
+      check: :readiness,
+      status: :ok,
+      surface: "sign app",
+      dependencies: { "database" => "ok" },
+    )
+
+    Health::ReadinessCheck.stub(:call, result) do
+      get "/health/readiness?ri=jp"
+    end
 
     assert_response :success
-    assert_includes response.body, "OK"
+    assert_equal "ok", response.parsed_body["status"]
+    assert_equal "readiness", response.parsed_body["check"]
+    assert_equal({ "database" => "ok" }, response.parsed_body["dependencies"])
   end
 
-  test "returns 503 UNHEALTHY when a database writer connection fails" do
-    inject_health_method(:check_databases) do |errors|
-      errors << "Database PrincipalRecord(writing) failed: connection refused"
+  test "readiness returns unavailable when dependencies fail" do
+    result = Health::CheckResult.new(
+      check: :readiness,
+      status: :unready,
+      surface: "sign app",
+      dependencies: { "database" => "failed" },
+    )
+
+    Health::ReadinessCheck.stub(:call, result) do
+      get "/health/readiness?ri=jp"
     end
 
-    get(sign_app_health_url(ri: "jp"))
-
     assert_response :service_unavailable
-    assert_includes response.body, "UNHEALTHY"
-  ensure
-    remove_health_method(:check_databases)
+    assert_equal "unavailable", response.parsed_body["status"]
+    assert_equal({ "database" => "failed" }, response.parsed_body["dependencies"])
   end
 
-  test "returns 503 UNHEALTHY when a database reader connection fails" do
-    inject_health_method(:check_databases) do |errors|
-      errors << "Database PrincipalRecord(reading) failed: replica unavailable"
-    end
-
-    get(sign_app_health_url(ri: "jp"))
-
-    assert_response :service_unavailable
-    assert_includes response.body, "UNHEALTHY"
-  ensure
-    remove_health_method(:check_databases)
-  end
-
-  test "returns 503 UNHEALTHY when Redis connection fails" do
-    inject_health_method(:check_redis) do |errors|
-      errors << "Redis connection failed: Redis down"
-    end
-
-    get(sign_app_health_url(ri: "jp"))
-
-    assert_response :service_unavailable
-    assert_includes response.body, "UNHEALTHY"
-  ensure
-    remove_health_method(:check_redis)
-  end
-
-  test "returns 503 UNHEALTHY when multiple dependencies fail" do
-    inject_health_method(:check_dependencies) do
-      [
-        "Database PrincipalRecord(writing) failed: db down",
-        "Redis connection failed: Redis down",
-      ]
-    end
-
-    get(sign_app_health_url(ri: "jp"))
-
-    assert_response :service_unavailable
-    assert_includes response.body, "UNHEALTHY"
-  ensure
-    remove_health_method(:check_dependencies)
-  end
-
-  test "returns 503 BOOTING when Rails is not initialized" do
+  test "startup reports unavailable when Rails is not initialized" do
     Rails.application.stub(:initialized?, false) do
-      get sign_app_health_url(ri: "jp")
+      get "/health/startup?ri=jp"
     end
 
     assert_response :service_unavailable
-    assert_includes response.body, "BOOTING"
+    assert_equal "unavailable", response.parsed_body["status"]
+    assert_equal "starting", response.parsed_body.dig("details", "status")
+    assert_nil response.parsed_body.dig("details", "surface")
   end
 
-  test "returns 503 ERROR when an unexpected exception occurs" do
-    inject_health_method(:check_dependencies) { raise RuntimeError, "unexpected" }
+  test "health snapshot HTML does not expose surface" do
+    result = Health::CheckResult.new(
+      check: :health,
+      status: :ok,
+      surface: "sign app",
+      dependencies: {
+        "liveness" => { status: "ok" },
+        "readiness" => { status: "ok" },
+        "startup" => { status: "ok" },
+      },
+    )
 
-    get(sign_app_health_url(ri: "jp"))
+    Health::SnapshotCheck.stub(:call, result) do
+      get "/health?ri=jp"
+    end
 
-    assert_response :service_unavailable
-    assert_includes response.body, "ERROR"
-  ensure
-    remove_health_method(:check_dependencies)
+    assert_response :success
+    assert_equal "text/html", response.media_type
+    assert_no_match(/Surface/i, response.body)
   end
 
-  private
+  test "health snapshot does not serve json" do
+    get "/health.json?ri=jp"
 
-  def inject_health_method(method_name, &)
-    Sign::App::HealthsController.send(:define_method, method_name, &)
-  end
+    assert_response :not_acceptable
 
-  def remove_health_method(method_name)
-    Sign::App::HealthsController.send(:remove_method, method_name) if Sign::App::HealthsController.private_method_defined?(
-      method_name, false,
-    ) || Sign::App::HealthsController.method_defined?(method_name, false)
+    get "/health", headers: { "Accept" => "application/json" }
+
+    assert_response :not_acceptable
   end
 end

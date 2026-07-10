@@ -1,0 +1,31 @@
+# == Schema Information
+#
+# Table name: operator_preference_timezone_options
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: OperatorPreferenceTimezoneOption
+
+# Table name: staff_preference_timezone_options
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+etc_utc:
+  id: 1
+asia_tokyo:
+  id: 2
+america_new_york:
+  id: 3
+america_chicago:
+  id: 4
+america_denver:
+  id: 5
+america_los_angeles:
+  id: 6
+america_anchorage:
+  id: 7
+pacific_honolulu:
+  id: 8

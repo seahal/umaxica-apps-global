@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: app_preference_timezones
-# Database name: principal
+# Database name: app_setting
 #
 #  id            :bigint           not null, primary key
 #  created_at    :datetime         not null
@@ -23,14 +23,12 @@
 
 # frozen_string_literal: true
 
-class AppPreferenceTimezone < PrincipalRecord
+class AppPreferenceTimezone < AppSettingRecord
   belongs_to :preference, class_name: "AppPreference", inverse_of: :app_preference_timezone
   belongs_to :option,
              class_name: "AppPreferenceTimezoneOption",
-             inverse_of: :app_preference_timezones,
-             optional: true
+             inverse_of: :app_preference_timezones
   validates :preference_id, uniqueness: true
-  validates :option_id, presence: true
   before_validation :set_option_id
 
   private

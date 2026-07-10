@@ -9,6 +9,10 @@ Rails.application.configure do
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
 
+  # Live DOM reloaders mutate forms in-place and break third-party challenge
+  # widgets such as Cloudflare Turnstile. Keep them opt-in for public dev hosts.
+  config.hotwire.spark.enabled = ENV["HOTWIRE_SPARK_ENABLED"] == "true"
+
   # Do not eager load code on boot.
   config.eager_load = false
 
@@ -28,8 +32,23 @@ Rails.application.configure do
     config.action_controller.perform_caching = false
   end
 
-  config.cache_store = :solid_cache_store
-  config.solid_cache.connects_to = { shards: { cache: { writing: :cache, reading: :cache_replica } } }
+  # SolidCache is intentionally disabled in development. A persistent,
+  # database-backed cache is too easily repurposed as an ad-hoc durable data
+  # store, so the cache is turned off entirely here (matching test). Re-enable
+  # :solid_cache_store deliberately if persistent caching is actually needed.
+  config.cache_store = :null_store
+  rate_limit_namespace = [
+    "rate_limit",
+    Rails.env,
+    ENV["RATE_LIMIT_NAMESPACE_SUFFIX"].presence,
+  ].compact.join(":")
+  config.x.rate_limit.store =
+    ActiveSupport::Cache::RedisCacheStore.new(
+      url: ENV.fetch("RATE_LIMIT_REDIS_URL"),
+      namespace: rate_limit_namespace,
+    )
+  # SolidCache shard wiring intentionally left disconnected while :memory_store
+  # is the development cache. See the cache_store note above.
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   # config.active_storage.service = :local
@@ -52,6 +71,7 @@ Rails.application.configure do
 
   # Raise on SQL warnings from PostgreSQL (overrides :log in application.rb).
   config.active_record.db_warnings_action = :raise
+  config.active_record.dump_schema_after_migration = false
 
   # Highlight code that triggered database queries in logs.
   config.active_record.verbose_query_logs = true
@@ -71,10 +91,10 @@ Rails.application.configure do
   config.active_record.action_on_strict_loading_violation = :raise
 
   # Disallow deprecated .connection usage (must use .with_connection for multi-DB)
-  config.active_record.permanent_connection_checkout = :disallowed
+  config.active_record.permanent_connection_checkout = :deprecated
 
-  # Raise error for missing translations.
-  config.i18n.raise_on_missing_translations = true
+  # Raise error for missing translations in controllers, views, and models.
+  config.i18n.raise_on_missing_translations = :strict
 
   # Annotate rendered view with file names.
   config.action_view.annotate_rendered_view_with_filenames = true
@@ -93,46 +113,136 @@ Rails.application.configure do
 
   config.action_dispatch.verbose_redirect_logs = true
 
-  # added by user
-  ## for docker
-  # config.web_console.permitted_networks = "127.0.0.1", "::1", "172.19.0.0/16"
-
-  ## to avoid errors
-  config.hosts << "id.app.localhost"
-  config.hosts << "id.com.localhost"
-  config.hosts << "id.org.localhost"
-  config.hosts << "www.app.localhost"
-  config.hosts << "www.com.localhost"
-  config.hosts << "www.org.localhost"
-  config.hosts << "www.net.localhost"
-  config.hosts << "www.dev.localhost"
-
-  ## file watcher
-  config.file_watcher = ActiveSupport::EventedFileUpdateChecker
-
-  ## Email Settings
-  ### Set localhost to be used by links generated in mailer templates.
-  config.action_mailer.delivery_method = :smtp
-  config.action_mailer.default_url_options = { host: "localhost", port: 3001 }
-  config.action_mailer.smtp_settings = {
-    address: "email-smtp.#{ENV.fetch("AWS_SES_REGION", "ap-northeast-1")}.amazonaws.com",
-    user_name: Rails.app.creds.option(:AWS_SES_SMTP_USER_NAME),
-    password: Rails.app.creds.option(:AWS_SES_SMTP_PASSWORD),
-    port: 465,
-    tls: true,
-    authentication: :login,
-  }
-
-  # static file serve
-  config.public_file_server.enabled = false
-
-  # SMS Provider Configuration - Use test provider in development
-  config.sms_provider = ENV.fetch("SMS_PROVIDER", "test")
-
   # Use Solid Queue in Development.
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue, reading: :queue_replica } }
 
   # Enable Gzip compression
   config.middleware.use(Rack::Deflater)
+
+  # Enable DNS rebinding protection for hosts used in route constraints.
+  boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+  boot_config_hosts = [
+    boot_hosts.sign_origins,
+    boot_hosts.core_origins,
+    boot_hosts.base_origins,
+    boot_hosts.palm_origins,
+    [boot_hosts.help_service, boot_hosts.help_corporate, boot_hosts.help_staff],
+    boot_hosts.info_origins,
+  ].flatten
+  boot_config_hosts.map!(&:host)
+
+  public_tunnel_hosts = %w(
+    auth.umaxica.app
+    auth.umaxica.com
+    auth.umaxica.org
+    base.umaxica.app
+    base.umaxica.com
+    base.umaxica.org
+    side-jp.umaxica.app
+    side-jp.umaxica.com
+    side-jp.umaxica.org
+  )
+
+  localhost_tunnel_hosts = %w(
+    auth.app.localhost:3000
+    base.app.localhost:3000
+    base.org.localhost:3000
+    base.com.localhost:3000
+    info.com.localhost:3000
+    info.org.localhost:3000
+    info.app.localhost:3000
+    help.com.localhost:3000
+    help.org.localhost:3000
+    help.app.localhost:3000
+    core.com.localhost:3000
+    core.org.localhost:3000
+    core.app.localhost:3000
+    docs.com.localhost:3000
+    docs.org.localhost:3000
+    docs.app.localhost:3000
+    news.com.localhost:3000
+    news.org.localhost:3000
+    news.app.localhost:3000
+    palm.app.localhost:3000
+    core.app.localhost
+    core.com.localhost
+    core.org.localhost
+  )
+
+  env_host_keys = %w(
+    PRIVATE_BASE_CORPORATE_URL
+    PRIVATE_BASE_SERVICE_URL
+    PRIVATE_BASE_STAFF_URL
+    PRIVATE_BASE_NETWORK_URL
+    PRIVATE_BASE_DEVELOPER_URL
+    PRIVATE_AUTH_CORPORATE_URL
+    PRIVATE_AUTH_SERVICE_URL
+    PRIVATE_AUTH_STAFF_URL
+    PUBLIC_JUMP_CORPORATE_URL
+    PUBLIC_JUMP_SERVICE_URL
+    PUBLIC_JUMP_STAFF_URL
+    PRIVATE_MAIN_SERVICE_URL
+    PRIVATE_MAIN_STAFF_URL
+    PRIVATE_MAIN_CORPORATE_URL
+    PUBLIC_CORE_SERVICE_URL
+    PUBLIC_CORE_STAFF_URL
+    PUBLIC_CORE_CORPORATE_URL
+    PUBLIC_BASE_SERVICE_URL
+    PUBLIC_BASE_STAFF_URL
+    PUBLIC_BASE_CORPORATE_URL
+    PRIVATE_PALM_SERVICE_URL
+    PUBLIC_INFO_SERVICE_URL
+    PUBLIC_INFO_STAFF_URL
+    PUBLIC_INFO_CORPORATE_URL
+    PRIVATE_DOCS_SERVICE_URL
+    PRIVATE_DOCS_STAFF_URL
+    PRIVATE_DOCS_CORPORATE_URL
+    PRIVATE_NEWS_SERVICE_URL
+    PRIVATE_NEWS_STAFF_URL
+    PRIVATE_NEWS_CORPORATE_URL
+    PRIVATE_HELP_SERVICE_URL
+    PRIVATE_HELP_STAFF_URL
+    PRIVATE_HELP_CORPORATE_URL
+  )
+  env_hosts =
+    ENV.values_at(*env_host_keys).compact_blank.flat_map do |value|
+      origin = ConfigValues.build(value, allow_localhost: true)
+      default_port = (origin.scheme == "https") ? 443 : 80
+      [origin.host, ("#{origin.host}:#{origin.port}" if origin.port != default_port)]
+    end
+
+  config.hosts.concat(
+    (boot_config_hosts + public_tunnel_hosts + localhost_tunnel_hosts + env_hosts).compact_blank.uniq,
+  )
+
+  ## file watcher
+  config.file_watcher = ActiveSupport::EventedFileUpdateChecker
+
+  ## Email Settings
+  config.action_mailer.delivery_method = :smtp
+  # Match the dev Sign surface origin (see TRUSTED_ORIGINS in initializers/webauthn.rb);
+  # production uses AUTH_SERVICE_URL. Puma serves on 3000.
+  config.action_mailer.default_url_options = { host: "sign.app.localhost", port: 3000 }
+  config.action_mailer.smtp_settings = {
+    address: "email-smtp.#{ENV.fetch("AWS_SES_REGION", "ap-northeast-1")}.amazonaws.com",
+    user_name: Rails.app.creds.option(:AWS_SES_SMTP_USERNAME),
+    password: Rails.app.creds.option(:AWS_SES_SMTP_PASSWORD),
+    port: 465,
+    tls: true,
+    authentication: :login,
+    openssl_verify_mode: "peer",
+    open_timeout: 5,
+    read_timeout: 10,
+  }
+
+  # Serve Vite's auto-built files from public/vite-dev when the Vite dev server
+  # is not the active asset host for a request.
+  config.public_file_server.enabled = true
+
+  # SMS Provider Configuration - Use test provider in development
+  config.sms_provider = ENV.fetch("SMS_PROVIDER", "test")
+
+  # add to the default host
+  # config.action_controller.default_url_options = { host: "localhost", port: 3001 }
 end

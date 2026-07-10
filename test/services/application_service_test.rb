@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class ApplicationServiceTest < ActiveSupport::TestCase
   class TestService < ApplicationService
@@ -33,5 +34,11 @@ class ApplicationServiceTest < ActiveSupport::TestCase
     assert_raises(NotImplementedError) do
       ApplicationService.new.call
     end
+  end
+
+  test "#initialize accepts arbitrary arguments as a no-op default" do
+    service = ApplicationService.new(:anything, keyword: "value")
+
+    assert_instance_of ApplicationService, service
   end
 end

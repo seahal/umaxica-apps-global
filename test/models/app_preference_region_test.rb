@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: app_preference_regions
-# Database name: principal
+# Database name: app_setting
 #
 #  id            :bigint           not null, primary key
 #  created_at    :datetime         not null
@@ -29,7 +29,7 @@ class AppPreferenceRegionTest < ActiveSupport::TestCase
   fixtures :app_preference_region_options
 
   setup do
-    AppPreferenceStatus.find_or_create_by!(id: AppPreferenceStatus::NOTHING)
+    AppPreferenceStatus.ensure_defaults!
     @preference = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING)
   end
 
@@ -64,10 +64,13 @@ class AppPreferenceRegionTest < ActiveSupport::TestCase
     assert_not_empty duplicate_region.errors[:preference_id]
   end
 
-  test "raises InvalidForeignKey for non-existent arbitrary option_id" do
-    assert_raises(ActiveRecord::InvalidForeignKey) do
-      AppPreferenceRegion.create!(preference: @preference, option_id: 9999)
-    end
+  test "rejects non-existent arbitrary option_id" do
+    error =
+      assert_raises(ActiveRecord::RecordInvalid) do
+        AppPreferenceRegion.create!(preference: @preference, option_id: 9999)
+      end
+
+    assert_includes error.record.errors[:option], I18n.t("errors.messages.required")
   end
 
   test "AppPreferenceRegionOption accepts numeric ids" do

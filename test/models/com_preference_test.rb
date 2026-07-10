@@ -2,17 +2,16 @@
 # == Schema Information
 #
 # Table name: com_preferences
-# Database name: setting
+# Database name: com_setting
 #
 #  id                       :bigint           not null, primary key
-#  compromised_at           :datetime
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
-#  device_id_digest         :string
-#  expires_at               :datetime
+#  discarded_at             :datetime         default(Infinity), not null
+#  explicit_fields          :jsonb            not null
 #  jti                      :string
-#  revoked_at               :datetime
+#  purged_at                :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -20,7 +19,6 @@
 #  binding_method_id        :bigint           default(0), not null
 #  dbsc_session_id          :string
 #  dbsc_status_id           :bigint           default(0), not null
-#  device_id                :string
 #  public_id                :string           not null
 #  replaced_by_id           :bigint
 #  status_id                :bigint           default(2), not null
@@ -30,12 +28,10 @@
 #  index_com_preferences_on_binding_method_id  (binding_method_id)
 #  index_com_preferences_on_dbsc_session_id    (dbsc_session_id) UNIQUE
 #  index_com_preferences_on_dbsc_status_id     (dbsc_status_id)
-#  index_com_preferences_on_device_id          (device_id)
-#  index_com_preferences_on_device_id_digest   (device_id_digest)
 #  index_com_preferences_on_jti                (jti) UNIQUE
 #  index_com_preferences_on_public_id          (public_id) UNIQUE
+#  index_com_preferences_on_purged_at          (purged_at)
 #  index_com_preferences_on_replaced_by_id     (replaced_by_id)
-#  index_com_preferences_on_revoked_at         (revoked_at)
 #  index_com_preferences_on_status_id          (status_id)
 #  index_com_preferences_on_token_digest       (token_digest)
 #  index_com_preferences_on_used_at            (used_at)
@@ -68,7 +64,7 @@ class ComPreferenceTest < ActiveSupport::TestCase
     preference = ComPreference.new(public_id: "a" * 22)
 
     assert_not preference.valid?
-    assert_includes preference.errors[:public_id], "は21文字以内で入力してください"
+    assert preference.errors.of_kind?(:public_id, :too_long)
   end
 
   test "does not overwrite existing public_id" do
@@ -148,32 +144,31 @@ class ComPreferenceTest < ActiveSupport::TestCase
     assert_nil ComPreferenceLanguage.find_by(id: language_id)
   end
 
-  test "has one com_preference_colortheme" do
+  test "has one com_preference_theme" do
     preference = ComPreference.create!
-    option = com_preference_colortheme_options(:light)
-    colortheme = preference.create_com_preference_colortheme!(option: option)
+    option = com_preference_theme_options(:light)
+    theme = preference.create_com_preference_theme!(option: option)
 
-    assert_equal colortheme, preference.com_preference_colortheme
+    assert_equal theme, preference.com_preference_theme
   end
 
-  test "destroys com_preference_colortheme when destroyed" do
+  test "destroys com_preference_theme when destroyed" do
     preference = ComPreference.create!
-    option = com_preference_colortheme_options(:light)
-    colortheme = preference.create_com_preference_colortheme!(option: option)
-    colortheme_id = colortheme.id
+    option = com_preference_theme_options(:light)
+    theme = preference.create_com_preference_theme!(option: option)
+    theme_id = theme.id
     preference.destroy!
 
-    assert_nil ComPreferenceColortheme.find_by(id: colortheme_id)
+    assert_nil ComPreferenceTheme.find_by(id: theme_id)
   end
 
   test "consume_once_by_digest! is replay-detectable" do
     digest = ComPreference.digest_refresh_token("com-consume-once")
     preference = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
 
     first = ComPreference.consume_once_by_digest!(digest: digest)
@@ -187,26 +182,21 @@ class ComPreferenceTest < ActiveSupport::TestCase
   test "consume_once_by_digest! rejects revoked compromised and expired rows" do
     revoked = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
       token_digest: ComPreference.digest_refresh_token("com-revoked"),
-      revoked_at: Time.current,
+      discarded_at: Time.current,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
     compromised = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
       token_digest: ComPreference.digest_refresh_token("com-compromised"),
-      compromised_at: Time.current,
+      discarded_at: Time.current,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
     expired = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      expires_at: 1.minute.ago,
+      discarded_at: 1.minute.ago,
       token_digest: ComPreference.digest_refresh_token("com-expired"),
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
 
     assert_nil ComPreference.consume_once_by_digest!(digest: revoked.token_digest)
@@ -218,17 +208,29 @@ class ComPreferenceTest < ActiveSupport::TestCase
     digest = ComPreference.digest_refresh_token("com-rotate")
     original = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
-      device_id: "com-device",
     )
 
-    rotated = ComPreference.rotate!(presented_digest: digest, device_id: "com-device", now: Time.current)
+    rotated = ComPreference.rotate!(presented_digest: digest, now: Time.current)
 
     assert_predicate rotated, :present?
     assert_predicate rotated.issued_refresh_token, :present?
     assert_not_equal original.id, rotated.id
     assert_equal rotated.id, original.reload.replaced_by_id
+  end
+
+  test "adult_content_gate returns nothing when no gate is set" do
+    assert_equal "nothing", ComPreference.new.adult_content_gate
+  end
+
+  test "adult_content_gate returns the gate option name when a gate is set" do
+    preference = ComPreference.new
+    preference.build_com_preference_adult_content_gate(
+      option: ComPreferenceAdultContentGateOption.new(id: ComPreferenceAdultContentGateOption::APPROVED),
+    )
+
+    assert_equal "approved", preference.adult_content_gate
   end
 end

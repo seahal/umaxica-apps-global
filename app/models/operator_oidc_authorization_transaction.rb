@@ -1,0 +1,44 @@
+# typed: false
+# frozen_string_literal: true
+
+# == Schema Information
+#
+# Table name: operator_oidc_authorization_transactions
+# Database name: org_ticket
+#
+#  id                         :bigint           not null, primary key
+#  acr                        :string
+#  actor_ref                  :string
+#  auth_method                :string
+#  authenticated_at           :datetime
+#  code_challenge             :string           not null
+#  code_challenge_method      :string           not null
+#  consumed_at                :datetime
+#  expires_at                 :datetime         not null
+#  intent                     :string           not null
+#  login_challenge            :string           not null
+#  login_challenge_expires_at :datetime         not null
+#  nonce                      :string           not null
+#  redirect_uri               :string           not null
+#  response_type              :string           not null
+#  scope                      :string           not null
+#  session_ref                :string
+#  state                      :string           not null
+#  status                     :string           not null
+#  surface                    :string           not null
+#  created_at                 :datetime         not null
+#  updated_at                 :datetime         not null
+#  client_id                  :string           not null
+#  transaction_id             :string           not null
+#
+# Indexes
+#
+#  idx_on_client_id_login_challenge_bf0bf3ad3f  (client_id,login_challenge)
+#  idx_on_login_challenge_48fb6dd61c            (login_challenge) UNIQUE
+#  idx_on_transaction_id_45064136d6             (transaction_id) UNIQUE
+#
+class OperatorOidcAuthorizationTransaction < OrgTicketRecord
+  include OidcAuthorizationTransactionable
+
+  oidc_authorization_surface "org"
+end

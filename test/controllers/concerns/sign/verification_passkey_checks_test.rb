@@ -2,10 +2,11 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
-class VerificationPasskeyChecksTest < ActiveSupport::TestCase
+class SignVerificationPasskeyChecksTest < ActiveSupport::TestCase
   class Harness
-    include Sign::VerificationPasskeyChecks
+    include SignVerificationPasskeyChecks
 
     attr_accessor :verification_errors, :verification_params_value, :scope_records, :passkey_model_class
 
@@ -82,7 +83,8 @@ class VerificationPasskeyChecksTest < ActiveSupport::TestCase
 
     credential = Struct.new(:id, :sign_count) do
       define_method(:verify) do |*|
-        true; end
+        true
+      end
     end.new("cred-1", 7)
     passkey_model =
       Class.new do

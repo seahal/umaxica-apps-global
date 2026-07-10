@@ -1,118 +1,137 @@
-phase 1 のようけんていぎしょですが、まーじしてください。> 認証・認可システム 要件定義書（Phase 1）
+It's similar to phase 1, but please merge it. > Authentication/authorization system requirements
+definition document (Phase 1)
 
-1. 目的・背景
+1. Purpose/background
 
-本システムは、ユーザーに対して安全かつ柔軟な認証・認可機能を提供し、同時にユーザー自身が セキュリティ状態・ログイン履歴・退会状態を把握・管理できることを目的とする。
+The purpose of this system is to provide users with secure and flexible authentication and
+authorization functions, while also allowing users to understand and manage their own security
+status, login history, and withdrawal status.
 
-特に以下を重視する。
+Particular emphasis will be placed on the following:
 
-複数の認証手段を組み合わせた高い安全性
+High security by combining multiple authentication methods
 
-ロックアウトを防ぐ設計
+Designed to prevent lockout
 
-ユーザー主導のセキュリティ管理
+User-driven security management
 
-プライバシーおよび GDPR 等への配慮
+Consideration for privacy and GDPR, etc.
 
-2. 対象範囲対象
+2. Target range
 
-ユーザー向け認証・認可・設定機能
+Authentication/authorization/setting functions for users
 
-サインアップ / サインイン
+Sign up/Sign in
 
-セッション管理
+Session management
 
-ログアウト
+Logout
 
-認証手段の追加・削除
+Adding/deleting authentication methods
 
-アクティビティ確認
+Activity confirmation
 
-退会・復帰・匿名化
+Withdrawal/reinstatement/anonymization
 
-非対象
+Not applicable
 
-スタッフによるユーザー選択型の退会処理
+User-selected withdrawal processing by staff
 
-管理者向け監査・SIEM 連携
+Audit for administrators/SIEM collaboration
 
-法務要件の詳細定義（保持年限など）
+Detailed definition of legal requirements (retention period, etc.)
 
-3. 認証手段（Authentication Methods）利用可能な認証手段
+3. Authentication Methods: Available authentication methods
 
-Email（OTP）
+Email (OTP)
 
-Telephone（SMS OTP）
-
-Passkey
-
-Secret
-
-Google ソーシャルログイン
-
-Apple ソーシャルログイン
-
-認証手段の基本方針
-
-Email / Telephone / Secret は 値の更新（上書き）を行わない
-
-変更は「削除＋新規追加」で行う
-
-Passkey は例外として 表示名のみ変更可能
-
-Social Login（Google / Apple）は 連携・解除のみ
-
-4. サインイン要件 Passkey サインイン
-
-Passkey によるサインインは、以下 3要素すべてが必須とする。
-
-PII（Email または Telephone）
-
-Passkey による認証
-
-Cloudflare Turnstile（stealth / 非表示）
-
-Google / Apple サインイン
-
-Turnstile は使用しない
-
-MFA 要求状態であっても、追加チャレンジへは遷移しない
-
-5. セッション管理要件同時セッション数
-
-モデル上の最大セッション数：3
-
-同時に通常利用可能なセッション数：2
-
-セッション状態
-
-3つ目のセッションは 隔離状態
-
-ログインは成立しているが、ログイン必須ページにはアクセス不可
-
-4つ目のセッション作成は ログイン時点で拒否
-
-セッション管理画面
-
-アクティブなセッションのみ表示
-
-現在のセッションは削除不可
-
-他セッションのみ失効可能（Refresh Token 無効化）
-
-6. ログアウト要件
-
-ログアウト操作により、当該セッションの Refresh Token を失効する
-
-Access Token は即時失効できないため、以後のアクセスは状態チェックで拒否する
-
-7. 認証手段の削除・解除ルールSocial Login（Google / Apple）
-
-解除後もログイン可能な手段が 1つ以上存在する場合のみ解除可能
+Telephone (SMS OTP)
 
 Passkey
 
-全削除する場合、以下のいずれかが存在すること
+Passcode
+
+Google Social Login (app/org only)
+
+Apple social login (app only)
+
+Scope of use of Social Login
+
+app: Allow Google / Apple
+
+org: allow Google, deny Apple
+
+com: Reject both Google/Apple
+
+Basic policy for authentication methods
+
+Email / Telephone / Passcode values ​​will not be updated (overwritten)
+
+Changes can be made using "Delete + Add new"
+
+Passkey is an exception and only the display name can be changed.
+
+Social Login (Google/Apple) can only be linked/unlocked
+
+4. Sign-in requirements Passkey sign-in
+
+All three elements below are required for sign-in using Passkey.
+
+PII (Email or Telephone)
+
+Authentication with Passkey
+
+Cloudflare Turnstile (stealth/hidden)
+
+Google/Apple sign in
+
+Don't use Turnstile
+
+MFA Does not transition to additional challenge even in request state
+
+Apple sign-in should only be available on apps, denied on org/com
+
+Google Sign-in should be available on app/org and denied on com
+
+5. Session management requirements Number of concurrent sessions
+
+Maximum number of sessions on model: 3
+
+Number of sessions normally available at the same time: 2
+
+session state
+
+The third session is isolated
+
+Login is successful, but pages that require login cannot be accessed
+
+Creation of the fourth session is rejected at the time of login.
+
+Session management screen
+
+Show only active sessions
+
+Current session cannot be deleted
+
+Only other sessions can be revoked (Refresh Token invalidation)
+
+6. Logout requirements
+
+The Refresh Token for the session will be expired by logging out.
+
+Since the Access Token cannot be immediately revoked, future access is denied with a status check.
+
+7. Authentication method deletion/cancellation rules Social Login (Google/Apple)
+
+Cancellation is possible only if there is at least one way to log in even after cancellation.
+
+When canceling, the Social Login linkage record will be physically deleted immediately.
+
+Record cancellation history in activity
+
+Passkey
+
+When deleting all, one of the following must exist
 
 Email
 
@@ -120,104 +139,105 @@ Google
 
 Apple
 
-Secret は条件に含めない
+Do not include Passcode as a condition
 
-Secret
+Passcode
 
-原則削除可能
+Can be deleted in principle
 
-削除後に Secret のみでログイン可能な状態を作らない
+Do not create a state where you can log in with only a Passcode after deletion
 
-Email / Telephone（連絡手段）
+Email/Telephone (Method of contact)
 
-Email と Telephone は 連絡手段として扱う
+Treat email and telephone as means of communication
 
-操作の結果として Email + Telephone の合計が「1以上 → 0」になる遷移を禁止
+Prohibit transitions where the sum of Email + Telephone becomes "1 or more → 0" as a result of the
+operation
 
-Email 全削除条件
+Email all deletion conditions
 
-Telephone が1件以上存在 かつ
+There is at least one Telephone and
 
-Passkey / Google / Apple のいずれかが存在
+Passkey / Google / Apple exists
 
-Telephone 全削除条件
+Telephone all deletion conditions
 
-Email が1件以上存在
+1 or more emails exist
 
-8. アクティビティ表示（/configuration/activity）目的
+8. Activity display (/settings/activity) purpose
 
-ユーザーが自身のログイン履歴・操作履歴を確認できること
+Users can check their own login history and operation history
 
-不審なログインを早期に発見できること
+Ability to detect suspicious logins early
 
-表示内容（最低限）
+Display contents (minimum)
 
-日時
+date and time
 
-イベント種別（ログイン / ログアウト / セッション失効 等）
+Event type (login/logout/session expired, etc.)
 
-ログイン手段
+Login method
 
-端末・ブラウザ概要
+Terminal/browser overview
 
-IP（部分マスク）
+IP (partial mask)
 
-9. 退会（Withdraw）要件基本方針
+9. Withdrawal requirements basic policy
 
-ユーザー自身のみが実行可能
+Can only be executed by the user himself
 
-即時停止（利用不可）とする
+Immediate suspension (unavailability)
 
-復帰可能期間は31日（必須）
+Possible return period is 31 days (required)
 
-退会後の状態
+Status after withdrawal
 
-退会後31日間は復帰可能
+You can return for 31 days after canceling your membership.
 
-31日経過後は復帰不可
+No return after 31 days
 
-パージ（匿名化）
+Purge (anonymization)
 
-物理削除は行わない
+No physical deletion
 
-個人情報を匿名化する 論理削除
+Anonymize personal information Logical deletion
 
-バッチ処理により実行
+Executed by batch processing
 
-実行タイミングは 31日経過後、概ね32日以内
+Execution timing is approximately within 32 days after 31 days have passed.
 
-強制匿名化
+Forced anonymization
 
-例外的に31日を待たずに実行可能
+Exceptionally, it can be executed without waiting for 31 days.
 
-バッチ処理による実行
+Execution using batch processing
 
-UI 提供は Phase 1 では行わない
+UI will not be provided in Phase 1
 
-10. 非機能要件（抜粋）
+10. Non-functional requirements (excerpt)
 
-セキュリティ
+security
 
-ロックアウト防止
+Lockout prevention
 
-高リスク操作は ReAuth 必須
+High-risk operations require ReAuth
 
-プライバシー
+privacy
 
-最小限のログ保持
+Minimal log retention
 
-GDPR 等を考慮した匿名化
+Anonymization considering GDPR etc.
 
-可用性
+availability
 
-複数セッション利用を許可
+Allow multiple sessions
 
-11. 未決事項（Phase 2 以降）
+11. Undecided matters (after Phase 2)
 
-復帰不能フラグの具体実装
+Specific implementation of unrecoverable flag
 
-アクティビティの自動異常検知
+Automatic activity anomaly detection
 
-匿名化の詳細粒度
+Detailed granularity of anonymization
 
-ログ保持期間
+Log retention period

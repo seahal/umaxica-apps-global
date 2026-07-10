@@ -1,5 +1,11 @@
 # Device Bound Session Credentials (DBSC)
 
+> **Partially superseded by Identity Authority inversion:** The DBSC vocabulary in this document
+> remains useful only where it does not assign session or token authority to `sign/id`. `acme/www`
+> is the Session, Token, Account, Preference, Authorization, and downstream-token Authority.
+> `sign/id` is ceremony-only. Existing sign-side physical tables/models do not imply sign-side
+> authority.
+
 ## Specification
 
 The DBSC implementation in this application is based on the W3C Web Application Security Working
@@ -38,13 +44,13 @@ DBSC and DPoP (RFC 9449) serve similar purposes (proof-of-possession) but target
 | DBSC      | Browser cookie-based sessions       | Session cookie bound to device key |
 | DPoP      | API access via Authorization header | Access token bound to client key   |
 
-Both are used in this application. DBSC protects Hotwire/Turbo browser sessions. DPoP protects
-Next.js and API client token usage.
+DBSC is the active browser-session binding mechanism. DPoP remains available for
+Authorization-header token binding where an explicitly reviewed flow chooses it.
 
-## Client Token Strategy
+## VisitorAccount Token Strategy
 
-See `docs/architecture/dpop.md` § Client Token Strategy for the full matrix of token transport and
-binding mechanisms across all client types (Rails HTML, Next.js, iOS / Android).
+See `docs/architecture/dpop.md` § VisitorAccount Token Strategy for the full matrix of token
+transport and binding mechanisms across all client types (Rails HTML, Next.js, iOS / Android).
 
 ## Related
 

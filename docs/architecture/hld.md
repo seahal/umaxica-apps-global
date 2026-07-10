@@ -1,64 +1,42 @@
 # High-Level Design
 
-## 1. Purpose
+## Purpose
 
-This document describes the target architecture for the Rails platform. The system is organized
-around four engines:
+This document describes the current high-level architecture for the global Rails application.
 
-- `Identity`
-- `Zenith`
-- `Foundation`
-- `Distributor`
+## Architecture Overview
 
-Engine names are responsibility boundaries. Host labels are separate entry labels.
+The repository is a single Rails app with three user-facing surfaces:
 
-## 2. Architecture Overview
+| Surface | Responsibility                     |
+| ------- | ---------------------------------- |
+| `app`   | End-user product and account flows |
+| `org`   | Staff and organization workflows   |
+| `com`   | Public and corporate workflows     |
 
-### 2.1 Responsibilities
+The application also contains identity provider and relying-party behavior that historically lived
+behind engine names. Those engine boundaries are retired; the active boundaries are surfaces,
+controller lifecycle contracts, database connection groups, and the separate regional repository.
 
-| Engine        | Responsibility                                                              |
-| ------------- | --------------------------------------------------------------------------- |
-| `Identity`    | Identity, authentication, passkeys, tokens, and audit-sensitive login state |
-| `Zenith`      | Acme shared shell, shared coordination, and shared preferences              |
-| `Foundation`  | `base.*` business and admin flows                                           |
-| `Distributor` | `post.*` content and API delivery flows                                     |
+## Routing
 
-### 2.2 Routing
+- `config/routes.rb` draws route fragments for the app.
+- Route fragments apply host constraints and surface-local modules.
+- New work should use RESTful routes and path helpers.
+- Do not introduce local Rails Engines, wrapper apps, or cross-engine routing proxies.
 
-- All engines use `isolate_namespace`.
-- Cross-boundary links use native Rails routing proxies.
-- Host app routes use `main_app`.
+## Data Ownership
 
-### 2.3 Data Ownership
+Surface-owned database names follow the `surface_role` model documented in
+`docs/architecture/database-boundaries.md`.
 
-| Database group                                                                    | Owner                 |
-| --------------------------------------------------------------------------------- | --------------------- |
-| `principal`, `operator`, `token`, `preference`, `guest`, `activity`, `occurrence` | Activity              |
-| `journal`, `notification`, `avatar`                                               | Journal               |
-| `publication`                                                                     | Distributor           |
-| `chronicle`, `message`, `search`, `billing`, `commerce`                           | Foundation            |
-| `queue`, `cache`, `storage`, `cable`                                              | Shared infrastructure |
+Cross-cutting and infrastructure databases remain separate, including `occurrence`, `chronicle`,
+`avatar`, `search`, `queue`, `cache`, and `storage`.
 
-## 3. Components
+## Quality Goals
 
-- Controllers and views are organized by engine and host label.
-- Models stay centralized in `app/models`.
-- Shared concerns and services stay in the host app.
-- Database ownership is expressed by base records and `connects_to`.
-
-## 4. Deployment
-
-| Mode          | Mounted engines                           |
-| ------------- | ----------------------------------------- |
-| `identity`    | Identity                                  |
-| `zenith`      | Zenith                                    |
-| `foundation`  | Foundation                                |
-| `distributor` | Distributor                               |
-| `development` | Identity, Zenith, Foundation, Distributor |
-
-## 5. Quality Goals
-
-- Keep security boundaries explicit.
-- Keep routing readable.
-- Keep data ownership stable.
-- Keep the model layer shared unless a later boundary requires a split.
+- Keep surface boundaries explicit.
+- Keep authentication, authorization, verification, CSRF, and rate-limit order intact.
+- Keep business logic out of controllers.
+- Keep database ownership readable through base records and connection names.
+- Keep regional content concerns out of this repository unless a current ADR says otherwise.

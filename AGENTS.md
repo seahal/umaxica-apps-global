@@ -1,208 +1,357 @@
-# Ruby on Rails Codebase Guide for AI Coding Agents
+# Umaxica Apps Global Guide for AI Coding Agents
 
-This is the code base of the Ruby on Rails web framework.
+This is a Ruby on Rails application, not the Rails framework monorepo.
 
-## Architecture Overview
+Agents must treat this file as the always-loaded entry point. The harness rules live under
+`.agents/harnesses/rules/`, split into reusable `generic/` rules and project-local `project/` rules.
+They are not loaded automatically unless this file points to them or the task explicitly requires
+them.
 
-Rails is a **monorepo containing 10+ independent components** that can work standalone or together.
+## Application Shape
 
-Each component lives in its own directory at the root level:
+This app has three user-facing surfaces:
 
-- **Active Record** (`activerecord/`) - ORM and database abstraction
-- **Action Pack** (`actionpack/`) - Controllers and routing (contains Action Controller and Action
-  Dispatch)
-- **Action View** (`actionview/`) - View templates and helpers (extracted from Action Pack in
-  Rails 3)
-- **Active Model** (`activemodel/`) - Model interfaces without database dependency
-- **Active Support** (`activesupport/`) - Core extensions and utilities used across all Rails
-  components
-- **Action Mailer** (`actionmailer/`), **Action Mailbox** (`actionmailbox/`) - Email
-  sending/receiving
-- **Active Job** (`activejob/`) - Background job abstraction
-- **Action Cable** (`actioncable/`) - WebSocket integration
-- **Active Storage** (`activestorage/`) - File uploads and cloud storage
-- **Action Text** (`actiontext/`) - Rich text content
-- **Railties** (`railties/`) - Rails CLI, generators, and framework glue
+- `app` - end-user application
+- `org` - staff / organization surface
+- `com` - public / corporate surface
 
-**Key architectural principle**: Rails components are loosely coupled. Changes to one of them should
-not break others unless there's an explicit dependency.
+Treat each surface as an independent boundary. Do not mix controllers, routes, views, policies,
+sessions, or state across surfaces unless the existing code has an explicit shared abstraction.
+
+Read `.agents/harnesses/rules/project/surfaces.mdc` when a change touches surface boundaries, and
+the relevant `.agents/harnesses/rules/generic/` rules when it touches controllers, models, services,
+policies, or shared concerns.
+
+## Agent Assets
+
+Agent assets live under `.agents/`.
+
+- `.agents/skills/` is reserved for Codex skills. Each skill must use `SKILL.md` as its canonical
+  entry point.
+- `.agents/harnesses/` contains review, evaluation, audit, and grill-me harnesses.
+- Do not place arbitrary files directly under `.agents/skills/`.
+- Do not add repository goal files under `.agents/goals/`; use the current conversation or Codex
+  goal surface to define task scope.
+
+## Required Harness Context
+
+Use these `.agents/harnesses/rules/` files as task-specific instructions:
+
+- Controller or endpoint work: `.agents/harnesses/rules/generic/controllers.mdc`,
+  `.agents/harnesses/rules/generic/routing.mdc`, `.agents/harnesses/rules/project/surfaces.mdc`,
+  `.agents/harnesses/rules/project/controller-inheritance.mdc`,
+  `docs/architecture/controller-lifecycle.md`
+- Minitest work: `.agents/harnesses/rules/generic/testing.mdc`,
+  `.agents/harnesses/rules/generic/no-test-only-code.mdc`
+- Value object, service-layer, resolver, policy, query, or command work:
+  `.agents/harnesses/rules/project/value-object-boundaries.mdc`
+- Migration work: `.agents/harnesses/rules/generic/migrations.mdc`
+- Security-sensitive work or broad refactors: `.agents/harnesses/rules/generic/absolute-rules.mdc`,
+  `.agents/harnesses/rules/generic/no-silent-fallback.mdc`,
+  `.agents/harnesses/rules/project/regression-guards.mdc`
+- Configuration or environment-variable work:
+  `.agents/harnesses/rules/generic/no-silent-fallback.mdc`
+- Surface, routing, or authentication changes: `.agents/harnesses/rules/project/surfaces.mdc`,
+  `.agents/harnesses/rules/generic/routing.mdc`,
+  `.agents/harnesses/rules/generic/no-workflow-drift.mdc`,
+  `docs/architecture/controller-lifecycle.md`
+- User-facing feedback, notices, alerts, or notification UI:
+  `.agents/harnesses/rules/generic/no-flash-messages.mdc`
+- Technical research, debugging, implementation, design, or explanation that uses external
+  information sources: `.agents/harnesses/rules/generic/source-policy.mdc`
+- Non-trivial implementation decisions, plan deviations, or handoff notes:
+  `.agents/harnesses/rules/generic/implementation-notes.mdc`,
+  `.agents/harnesses/rules/project/repository-knowledge-tree.mdc`
+
+If a task touches one of these areas, read the relevant harness file before editing.
+
+## Decision Context
+
+Use `memos/`, `notes/`, `adr/`, `plans/`, and `docs/` as required context inputs, not as optional
+background. Only `adr/`, `docs/`, and current `plans/` are source-of-truth decision material.
+
+Repository knowledge is separated by purpose:
+
+- `adr/` - accepted architecture and design decisions.
+- `plans/` - implementation plans, active work, proposals, and backlog items.
+- `docs/` - current stable documentation for implemented behavior and operations.
+- `docs/dictionary/` - Eric Evans' DDD ubiquitous language definitions for this application.
+- `notes/` - non-authoritative ADR-adjacent notes and implementation handoff notes.
+- `memos/` - exploratory observations and notes that do not affect implementation.
+
+Before making non-trivial architecture, routing, authentication, authorization, database,
+preference, engine/surface, or service-layer changes:
+
+- Read `memos/` for exploratory notes, rough analysis, and unresolved observations.
+- Read `notes/` for ADR-adjacent notes, handoff context, and implementation notes relevant to the
+  change.
+- Read `docs/index.md` to confirm the documentation model.
+- Read `adr/README.md` and the ADRs relevant to the change.
+- Read `plans/README.md` and relevant files under `plans/active/`.
+- Check `plans/backlog/` when the task mentions an issue number, feature area, migration, or known
+  follow-up.
+- Use `plans/archive/` only for historical context; do not treat archived plans as current intent
+  unless a current ADR, doc, or active plan points to them.
+
+Decision priority when sources disagree:
+
+1. Explicit user instruction in the current conversation.
+2. Current code and tests.
+3. Accepted ADRs in `adr/`.
+4. Stable docs in `docs/`.
+5. Active plans in `plans/active/`.
+6. Backlog notes in `plans/backlog/`.
+7. Notes in `notes/`.
+8. Archived plans in `plans/archive/`.
+
+If an ADR or doc conflicts with current code, call out the conflict before choosing an
+implementation path. If implementing an active plan changes stable behavior, update the relevant
+`docs/` file or mention that documentation still needs to be updated.
+
+## Repository Language Policy
+
+Repository files must be written in English unless a file is explicitly about localization,
+translation fixtures, customer-visible copy in a non-English locale, or a quoted external source
+whose original language matters.
+
+This applies to:
+
+- `AGENTS.md`, `.agents/harnesses/`, `adr/`, `docs/`, `plans/`, `notes/`, and `memos/`
+- code comments, test names, commit-facing summaries, and implementation notes
+- newly added or substantially edited documentation, plans, ADRs, notes, and memos
+
+When updating an existing file that contains Japanese or another non-English language, translate the
+touched material to English in the same change unless the content belongs to an explicit
+localization exception. Do not add new Japanese prose to repository files as an implementation note,
+handoff note, memo, plan, ADR, or harness instruction.
+
+Conversation with the user may follow the user's language. The English-only policy is for committed
+repository content, not chat replies.
+
+See `docs/reference/repository-language-policy.md` for the stable policy and review checklist.
+
+## Working Notes
+
+- Use `notes/implementation/` for implementation decisions, plan deviations, compromises, and
+  handoff context discovered while carrying out a plan.
+- Add or update `notes/` when implementation uncovers durable context that future agents should know
+  but that is not yet an accepted ADR, active plan, backlog item, or stable doc.
+- Prefer leaving a note over losing context when you find contradictions between comments, code,
+  tests, ADRs, docs, plans, or existing notes; record what was checked, the current interpretation,
+  and what still needs promotion or follow-up.
+- Use `notes/` for ADR-adjacent observations, handoff notes, gap notes, compatibility constraints,
+  rejected alternatives likely to be revisited, and implementation caveats discovered during work.
+- Use `memos/` for reusable exploratory field notes from investigation, audit, planning, surprising
+  repository behavior, failed approaches, and unresolved observations that are not yet
+  implementation handoff, stable docs, an ADR, or a plan.
+- Create a short memo when the context would help a future Codex or Claude Code agent avoid
+  rediscovery. Record observations, evidence, and open questions; do not record chain-of-thought,
+  transcripts, raw command logs, secrets, or full request payloads.
+- Do not treat `notes/` or `memos/` as source of truth; promote stable or actionable content to
+  `adr/`, `plans/`, or `docs/`.
+- Never commit secrets, tokens, cookies, authorization headers, full request parameters, private
+  keys, real credentials, or sensitive local environment details into `docs/`, `adr/`, `memos/`,
+  `notes/`, or `plans/`.
+- If sensitive context is needed during work, either keep it only in ephemeral working memory, write
+  a masked/redacted version, or place local scratch material under the ignored `local/`, `private/`,
+  or `tmp/` subdirectories for that documentation area.
+- When preserving a finding without the sensitive value, describe the type of secret, the affected
+  component, and the follow-up needed, but omit or mask the value itself.
+
+## Non-Negotiable Rules
+
+Do not:
+
+- Mix the `app`, `org`, and `com` surfaces.
+- Skip authentication, authorization, verification, CSRF, or rate-limit protections.
+- Reorder the authentication and authorization pipeline.
+- Put business logic in controllers.
+- Use `permit!`, `skip_before_action`, `skip_authorization`, `skip_forgery_protection`, `html_safe`,
+  `raw(...)`, `VERIFY_NONE`, `rescue nil`, or ignored rescues.
+- Use Rails `flash` (`flash[...]`, `flash.now[...]`, or `redirect_to(..., notice:/alert:)`); render
+  feedback inline in the page instead. See `.agents/harnesses/rules/generic/no-flash-messages.mdc`.
+- Log tokens, cookies, authorization headers, or full request params.
+- Store request state in class variables, globals, or `Thread.current`.
+- Read required Ruby environment variables with one-argument `ENV.fetch("NAME")`; do not use
+  `ENV["NAME"]`, default arguments, or fetch blocks for required configuration.
+
+For database changes, do not use destructive operations such as `drop_table`, `remove_column`,
+`change_column`, `delete_all`, `destroy_all`, `update_all`, or raw `execute(...)` unless the user
+has explicitly approved the risk and migration plan.
+
+Do not write migration helpers that silently no-op when DB state is unexpected (e.g. `rename_table`
+wrapped in `return unless table_exists?(...)`). Use `rename_table_strict` or raise loudly — silent
+skips hide partial migrations and corrupt schema_dump files over time.
+
+## Rails Development Conventions
+
+- Keep controllers focused on HTTP concerns.
+- Put domain behavior in models, services, policies, or existing local abstractions.
+- Prefer Value Objects for domain values passed around as data. Use Service Objects for
+  orchestration across multiple models, aggregates, transaction boundaries, external systems, or
+  multi-step workflows; do not create Service Objects as generic containers for values.
+- Use Action Policy authorization through the established pipeline.
+- Use RESTful routes and path helpers.
+- Do not hardcode absolute URLs in application code.
+- Prefer existing project patterns over new abstractions.
+- Keep changes scoped to the requested behavior.
+
+### Rails routing policy
+
+Rails routes must be resourceful by default.
+
+Use only `resource` and `resources` for application route declarations.
+
+Allowed boundary wrappers:
+
+- `namespace`
+- `scope module: ...`
+- `scope(module: ..., as: ...)`
+- `constraints(host: ...)`
+- `constraints(subdomain: ...)`
+
+These wrappers define surface, module, host, or trust boundaries. They do not authorize
+non-resourceful routes inside the block.
+
+Do not add new routes with:
+
+- `get`
+- `post`
+- `patch`
+- `put`
+- `delete`
+- `match`
+- `root`
+- `mount`
+- `redirect`
+- route-level `to:`
+- route-level `controller:`
+- route-level `path:`
+- route-level `as:`
+- route-level `defaults:`
+- custom `member` actions
+- custom `collection` actions
+
+unless the exception has been explicitly approved by the user and recorded in an ADR.
+
+Controller actions for normal app routes should remain within the CRUD vocabulary:
+
+- `index`
+- `show`
+- `new`
+- `edit`
+- `create`
+- `update`
+- `destroy`
+
+Do not add business verbs as controller actions. Model the operation as a noun resource instead.
+If a route cannot be expressed with `resource` or `resources`, stop and ask for approval before
+implementing it. Every approved non-resourceful route exception must be recorded in an ADR.
+
+### Logging Policy
+
+- Specify important business, security, and accountability events explicitly before implementing
+  them. Purchase events, audit logs, compliance records, and similarly important events must have a
+  defined schema, owner, retention expectation, and access path.
+- Consider whether an important event belongs in a durable datastore from the start. Do not rely on
+  application logs as the authoritative record for purchase, audit, security, or compliance
+  behavior.
+- Keep application logs focused on what is useful to developers and infrastructure operators:
+  debugging, incident response, operational visibility, and failure diagnosis.
+- Follow `adr/application-logging-boundary.md` and `docs/security/observability-boundary.md` when
+  deciding whether something is an access log, application log, telemetry signal, audit/security
+  record, or product analytics event.
+
+### Controller Inheritance Contract
+
+- Surface-local `ApplicationController` is the normal parent for authentication-aware endpoints.
+- `BareController` is the explicit exception: it must inherit directly from
+  `ActionController::Base`, never from `ApplicationController`.
+- Do not "normalize" `BareController` inheritance to `ApplicationController`; bare endpoints
+  intentionally bypass app-wide authentication, authorization, preference, actor, and other
+  lifecycle callbacks unless declared directly on `BareController`.
+
+## Code Comments
+
+When implementing or changing code:
+
+- Read nearby comments before editing and verify that they still match the code, tests, ADRs, docs,
+  and active plans.
+- If a comment conflicts with the implementation or current source-of-truth material, fix the
+  comment or call out the conflict before choosing an implementation path.
+- Leave concise comments above classes, constants, variables, methods, and functions when the name
+  or surrounding code does not fully explain the intent, constraint, lifecycle, security boundary,
+  domain meaning, or non-obvious tradeoff.
+- Keep comments factual and maintainable. Do not add comments that merely restate the code.
+- After implementation, review the comments touched or made stale by the change and update them
+  before finishing.
 
 ## Testing Commands
 
-### Running Tests in a Component
+Use Minitest for Ruby code.
 
-From within the component directory (preferred method):
-
-```bash
-cd actionview && bin/test                    # Run all tests
-cd actionview && bin/test test/template/form_helper_test.rb
-cd actionview && bin/test -n "/test_name/"   # Filter by test name pattern
-```
-
-How to run specific test method:
+Common commands:
 
 ```bash
-cd actionview && bin/test test/template/form_helper_test.rb::FormHelperTest#test_hidden_field
+bin/rails test
+bin/rails test test/path/to/file_test.rb
+bin/rails test test/path/to/file_test.rb:LINE
 ```
 
-### Running Tests from Root
-
-Run all tests for a given component:
+Use Vitest for JavaScript code:
 
 ```bash
-rake actionview:test
+pnpm test
 ```
 
-Run tests across all components:
+If behavior changes in both Ruby and JavaScript, add or update coverage on both sides where
+appropriate.
 
-```bash
-rake test          # Run all non-isolated tests
-rake test:isolated # Run isolated tests
-rake smoke         # Quick smoke test
-```
+## Testing Expectations
 
-### Active Record Testing (Multiple Database Adapters)
+All meaningful changes need tests appropriate to their risk.
 
-How to test individual database adapters in Active Record:
+Tests should cover:
 
-```bash
-cd activerecord
-bundle exec rake test:sqlite3 # Default
-bundle exec rake test:postgresql
-bundle exec rake test:mysql2
-bundle exec rake test:trilogy
-```
+- Success paths
+- Failure paths
+- Authentication and authorization when relevant
+- Edge cases for validation, routing, cookies, sessions, tokens, policies, and verification
 
-**Important**: Tests run in parallel using multiple processes. The `bin/test` script wraps Rails'
-custom test runner (`tools/test.rb`) which uses `Rails::TestUnit::Runner`.
+For model-layer validation or classification logic, include boundary value analysis and equivalence
+partitioning where relevant.
 
-## Configuration Testing Patterns
+Do not add placeholder tests, `assert true`, skipped tests, TODO tests, or tests that mock away the
+behavior being verified.
 
-When testing configuration options, use `Object#with` (from Active Support) to temporarily modify
-class attributes:
+## Migration Expectations
 
-```ruby
-# Correct: Use Object#with for temporary config changes
-ActionView::Base.with(remove_hidden_field_autocomplete: true) do
-  # Test code here
-end
+Migrations must be reversible, backward-compatible, and safe for production.
 
-# Avoid: Manual set/restore patterns
-old = ActionView::Base.remove_hidden_field_autocomplete
-ActionView::Base.remove_hidden_field_autocomplete = true
-# ... test code
-ActionView::Base.remove_hidden_field_autocomplete = old
-```
+- Separate schema changes from data changes.
+- Avoid large data updates inside migrations.
+- Do not use application models inside migrations.
+- Check rollback behavior when practical.
+- Consider lock impact before adding indexes or changing large tables.
 
-This pattern is used throughout the test suite, especially for:
+### Table renames
 
-- `ActionView::Base.with(config_option: value)`
-- `ActionController::Base.with(config_option: value)`
-- Other framework configuration testing
+- Use `rename_table_strict` (provided by `MigrationHelpers::SafeTableRename`) for any rename. It
+  raises if state is inconsistent — never silently skips.
+- Do not define a local `rename_table_if_present` or any other "skip if missing" wrapper around
+  `rename_table`. The silent-skip pattern hides partial-rename failures and produces schema drift
+  that surfaces days later as broken fixtures and unrunnable tests.
+- While a rename migration is in flight on a branch, rebuild dev and test DBs with
+  `bin/rails db:migrate:reset` instead of incremental `bin/rails db:migrate`. Incremental migrations
+  against a half-renamed DB silently drift further; rebuild from migrations every time.
+- Before pushing a branch that adds rename migrations, run `bin/rails db:verify_no_schema_drift` to
+  confirm the committed schema_dump files match what migrations produce from a clean DB.
 
-**Requires**: `require "active_support/core_ext/object/with"` at the top of test files.
+See `docs/operations/db-workflow.md` for the full multi-DB workflow.
 
-## Code Conventions
+## Before Finishing
 
-### Configuration Flags
-
-Configuration options follow a consistent pattern across components:
-
-1. **Define the attribute** in the base class (e.g., `ActionView::Base`):
-
-   ```ruby
-   cattr_accessor :remove_hidden_field_autocomplete, default: false
-   ```
-
-2. **Check the flag** before applying behavior:
-
-   ```ruby
-   @options.reverse_merge!(autocomplete: "off") unless ActionView::Base.remove_hidden_field_autocomplete
-   ```
-
-3. **Enable by default** in new Rails versions via `load_defaults`:
-   ```ruby
-   # In railties/lib/rails/application/configuration.rb
-   case target_version.to_s
-   when "8.1"
-     action_view.remove_hidden_field_autocomplete = true
-   end
-   ```
-
-### Changelog Updates
-
-When fixing bugs or adding features:
-
-- Add an entry to the top of `<component>/CHANGELOG.md`
-- Format: Brief description, then `*Your Name*` on new line
-- See existing entries for style
-
-### Test Naming
-
-- Use descriptive names:
-  `test_hidden_field_omits_autocomplete_when_remove_hidden_field_autocomplete_is_true`
-- Group related tests together in the file
-- Test both default behavior AND explicit overrides
-
-### Code Style
-
-- Run RuboCop: `bundle exec rubocop` (there's a project-wide `.rubocop.yml`)
-- Prefer `assert_not` over `assert !` (`Rails/AssertNot` cop)
-- Prefer `assert_dom_equal` for HTML comparisons in view tests
-- Use `# frozen_string_literal: true` at top of all files
-
-## Common Development Workflows
-
-### Making a Fix Across Multiple Components
-
-Example: Issue #55984 required changes to:
-
-1. Helper class: `actionview/lib/action_view/helpers/tags/hidden_field.rb`
-2. Tests: `actionview/test/template/form_helper_test.rb`
-3. Reference: Similar fixes were in `tags/check_box.rb`, `tags/file_field.rb`, `form_tag_helper.rb`,
-   `url_helper.rb`
-
-**Pattern**: When fixing a configuration flag, grep for similar patterns in other helpers:
-
-```bash
-grep -r "unless ActionView::Base.remove_hidden_field_autocomplete" actionview/lib/
-```
-
-### Finding Related Code
-
-- **Similar functionality**: Look in the same `lib/*/helpers/` or `lib/*/tags/` directory
-- **Tests for a helper**: Check `test/template/<helper_name>_test.rb`
-- **Configuration setup**: Check `railties/lib/rails/application/configuration.rb`
-- **Default values**: Look for `load_defaults` version blocks
-
-### Working with Forms and Helpers
-
-Action View helpers follow this structure:
-
-- **Tag helpers** (`lib/action_view/helpers/tags/`) - Individual form elements
-- **Form helpers** (`lib/action_view/helpers/form_helper.rb`) - Form builders
-- **Form tag helpers** (`lib/action_view/helpers/form_tag_helper.rb`) - Standalone tags
-
-When modifying form behavior, check ALL three locations for consistency.
-
-## Issue References and Pull Requests
-
-- Always reference issue numbers in commits: `Fix #12345: Description`
-- Check for previous related PRs/issues when fixing bugs
-- Look at PR #55336 pattern when working on similar autocomplete-related fixes
-- Bug report templates live in `guides/bug_report_templates/`
-
-## File Organization Principles
-
-- `lib/` - Production code
-- `test/` - Test files (NOT `spec/` - Rails uses Minitest, not RSpec)
-- `bin/` - Executable scripts (e.g., `bin/test`)
-- Each framework is self-contained with its own Gemfile and dependencies
-- Shared tools live in `tools/` (e.g., `tools/test.rb`, `tools/release.rb`)
-
-## Documentation
-
-- API docs use YARD/RDoc format
-- Guides source in `guides/source/` (Markdown)
-- Generate docs: `rake rdoc` (from framework directory)
-- Configuration options documented in `guides/source/configuring.md`
+- Run the narrowest relevant tests first.
+- Run broader tests when the change affects shared behavior or multiple surfaces.
+- Mention any tests that could not be run.
+- Keep changelog or documentation updates scoped to the component or feature being changed.

@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: com_preference_region_options
-# Database name: setting
+# Database name: com_setting
 #
 #  id :bigint           not null, primary key
 #
@@ -50,5 +50,11 @@ class ComPreferenceRegionOptionTest < ActiveSupport::TestCase
     option = ComPreferenceRegionOption.find_or_create_by!(id: ComPreferenceRegionOption::JP)
 
     assert_equal "JP", option.name
+  end
+
+  test "name returns nil for unknown id" do
+    option = ComPreferenceRegionOption.new(id: 99)
+
+    assert_nil option.name
   end
 end

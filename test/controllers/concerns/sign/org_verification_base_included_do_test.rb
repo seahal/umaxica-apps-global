@@ -2,67 +2,75 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class SignOrgVerificationBaseIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
-    include Sign::OrgVerificationBase
+    include PreferenceGlobal
+    include CommonOtp
+    include AuthenticationOperator
+    include VerificationOperator
+    include SignWebauthn
+    include SignVerificationTiming
+    include SignVerificationCommonBase
+    include SignVerificationAuditAndCookie
+    include SignVerificationStepUpSessionStore
+    include SignVerificationStepUpLifecycle
+    include SignVerificationPasskeyChecks
+    include SignOrgVerificationBase
   end
 
-  test "included do includes Preference::Global module" do
-    assert_includes Harness.included_modules, Preference::Global
+  test "included do includes PreferenceGlobal module" do
+    assert_includes Harness.included_modules, PreferenceGlobal
   end
 
-  test "included do includes Common::Otp module" do
-    assert_includes Harness.included_modules, Common::Otp
+  test "included do includes CommonOtp module" do
+    assert_includes Harness.included_modules, CommonOtp
   end
 
-  test "included do includes Authentication::Staff module" do
-    assert_includes Harness.included_modules, Authentication::Staff
+  test "included do includes AuthenticationOperator module" do
+    assert_includes Harness.included_modules, AuthenticationOperator
   end
 
-  test "included do includes Verification::Staff module" do
-    assert_includes Harness.included_modules, Verification::Staff
+  test "included do includes VerificationOperator module" do
+    assert_includes Harness.included_modules, VerificationOperator
   end
 
-  test "included do includes Sign::Webauthn module" do
-    assert_includes Harness.included_modules, Sign::Webauthn
+  test "included do includes SignWebauthn module" do
+    assert_includes Harness.included_modules, SignWebauthn
   end
 
-  test "included do includes Sign::VerificationTiming module" do
-    assert_includes Harness.included_modules, Sign::VerificationTiming
+  test "included do includes SignVerificationTiming module" do
+    assert_includes Harness.included_modules, SignVerificationTiming
   end
 
-  test "included do includes Sign::VerificationCommonBase module" do
-    assert_includes Harness.included_modules, Sign::VerificationCommonBase
+  test "included do includes SignVerificationCommonBase module" do
+    assert_includes Harness.included_modules, SignVerificationCommonBase
   end
 
-  test "included do includes Sign::VerificationAuditAndCookie module" do
-    assert_includes Harness.included_modules, Sign::VerificationAuditAndCookie
+  test "included do includes SignVerificationAuditAndCookie module" do
+    assert_includes Harness.included_modules, SignVerificationAuditAndCookie
   end
 
-  test "included do includes Sign::VerificationReauthSessionStore module" do
-    assert_includes Harness.included_modules, Sign::VerificationReauthSessionStore
+  test "included do includes SignVerificationStepUpSessionStore module" do
+    assert_includes Harness.included_modules, SignVerificationStepUpSessionStore
   end
 
-  test "included do includes Sign::VerificationReauthLifecycle module" do
-    assert_includes Harness.included_modules, Sign::VerificationReauthLifecycle
+  test "included do includes SignVerificationStepUpLifecycle module" do
+    assert_includes Harness.included_modules, SignVerificationStepUpLifecycle
   end
 
-  test "included do includes Sign::VerificationPasskeyChecks module" do
-    assert_includes Harness.included_modules, Sign::VerificationPasskeyChecks
+  test "included do includes SignVerificationPasskeyChecks module" do
+    assert_includes Harness.included_modules, SignVerificationPasskeyChecks
   end
 
-  test "REAUTH_TTL constant is defined" do
-    assert_equal 15.minutes, Sign::OrgVerificationBase::REAUTH_TTL
-  end
-
-  test "REAUTH_SESSION_KEY constant is defined" do
-    assert_equal :reauth, Sign::OrgVerificationBase::REAUTH_SESSION_KEY
+  test "STEP_UP_TTL constant is defined" do
+    assert_equal 15.minutes, SignOrgVerificationBase::STEP_UP_TTL
   end
 
   test "ALLOWED_SCOPES constant is defined" do
-    assert_kind_of Hash, Sign::OrgVerificationBase::ALLOWED_SCOPES
-    assert Sign::OrgVerificationBase::ALLOWED_SCOPES.key?("configuration_passkey")
-    assert Sign::OrgVerificationBase::ALLOWED_SCOPES.key?("configuration_mfa")
+    assert_kind_of Hash, SignOrgVerificationBase::ALLOWED_SCOPES
+    assert SignOrgVerificationBase::ALLOWED_SCOPES.key?("settings_passkey")
+    assert SignOrgVerificationBase::ALLOWED_SCOPES.key?("settings_mfa")
   end
 end

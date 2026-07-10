@@ -175,8 +175,8 @@ Table structure:
 
 Authentication-related models:
 
-- UserEmail, StaffEmail
-- UserTelephone, StaffTelephone
+- UserEmail, OperatorEmail
+- UserTelephone, OperatorTelephone
 - UserIdentitySocialApple, UserIdentitySocialGoogle
 - UserWebauthnCredential, StaffWebauthnCredential
 - UserTimeBasedOneTimePassword, StaffTimeBasedOneTimePassword
@@ -361,3 +361,29 @@ applications that prioritize security, multiple business domains, and high scala
 ## Change log
 
 - 2025-11-12: Initial version created, recording the current architecture analysis and design policy
+- 2026-05-07: Marked as historical design input. Current DB names, authorization stack, and runtime
+  components have drifted; use this document only as service-layer improvement context.
+
+## 2026-05-07 What to leave as current differences and improvements
+
+This document is not an accurate description of the current architecture.
+
+Main discrepancies:
+
+- DB name is old. Current is `principal` / `operator` / `com_preference` / `guest` / `token` /
+  `chronicle` / `cache` / `queue` etc. are the main ones.
+- Authorization is Action Policy, not Pundit.
+- Solid Queue / Solid Cache has been installed.
+- Some services such as `Auth::TokenService` already exist.
+
+This document is not a backlog implementation plan, but is left as historical input for improving
+the service-layer.
+
+Improvements to leave:
+
+- Rewrite the service-layer policy to align with the current DB boundaries as separate docs / ADR.
+- Instead of creating a comprehensive service like UserService / StaffService first, you can
+  actually use multiple models. / Determine service boundaries from use cases that span multiple
+  DBs.
+- Existing service (`Auth::TokenService`, `Sign::RefreshTokenService` etc.) and then add a new
+  service.

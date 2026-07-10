@@ -25,9 +25,11 @@
 
     /* Aliases */
     "paths": {
-      "@/*": ["./app/javascript/*"],
-      "~/*": ["./app/javascript/*"]
+      "@/*": ["./src/*"],
+      "@styles/*": ["./src/styles/*"],
+      "~/*": ["./src/*"],
+      "react-aria-components": ["./src/vendor/react-aria-components.tsx"]
     }
   },
-  "include": ["app/javascript"]
+  "include": ["src", "spec"]
 }

@@ -1,7 +1,16 @@
+# Minimal fixture for staff_statuses
 # == Schema Information
 #
 # Table name: operator_statuses
-# Database name: operator
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: OperatorStatus
+
+# Table name: staff_statuses
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
@@ -9,3 +18,5 @@ nothing:
   id: 2
 active:
   id: 1
+reserved:
+  id: 3

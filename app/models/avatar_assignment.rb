@@ -26,11 +26,12 @@
 # frozen_string_literal: true
 
 class AvatarAssignment < AvatarRecord
+  include AvatarAssignmentAuthorityProtection
+
   ROLES = %w(owner affiliation administrator editor reviewer viewer).freeze
 
   belongs_to :avatar
-  belongs_to :user, optional: true
-  validates :user_id, presence: true
+  belongs_to :user, class_name: "Client"
 
   validates :role, presence: true, inclusion: { in: ROLES }, length: { maximum: 50 }
   validates :avatar_id, length: { maximum: 255 }

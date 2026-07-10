@@ -11,25 +11,25 @@ echo "🔍 Checking Claude Code configuration..."
 
 # Check if .claude directory exists
 if [ ! -d "${CLAUDE_DIR}" ]; then
-  echo "❌ ${CLAUDE_DIR} directory not found"
+  echo "❌ Claude directory not found"
   echo "   Please ensure the devcontainer mounts are configured correctly"
   exit 1
 fi
 
-echo "✅ Claude directory found: ${CLAUDE_DIR}"
+echo "✅ Claude directory found"
 
 # Prefer modern auth/config file and keep legacy support.
 if [ -f "${CLAUDE_JSON}" ]; then
-  echo "✅ Claude JSON config found: ${CLAUDE_JSON}"
+  echo "✅ Claude JSON config found"
 elif [ -f "${CREDENTIALS_FILE}" ]; then
-  echo "✅ Legacy credentials file found: ${CREDENTIALS_FILE}"
+  echo "✅ Legacy credentials file found"
 else
-  echo "⚠️  No Claude auth/config file found (${CLAUDE_JSON} or ${CREDENTIALS_FILE})"
+  echo "⚠️  No Claude auth/config file found"
   echo "   You may need to login to Claude Code manually"
   exit 0
 fi
 
-# Check file permissions
+# Check file permissions (omit path to avoid leaking layout in recordings)
 if [ -f "${CLAUDE_JSON}" ]; then
   PERMS=$(stat -c "%a" "${CLAUDE_JSON}" 2>/dev/null || stat -f "%Lp" "${CLAUDE_JSON}" 2>/dev/null || echo "unknown")
   echo "📋 Claude JSON file permissions: ${PERMS}"

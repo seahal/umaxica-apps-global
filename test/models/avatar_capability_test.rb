@@ -30,7 +30,7 @@ class AvatarCapabilityTest < ActiveSupport::TestCase
     )
 
     assert_not @capability.destroy
-    assert_includes @capability.errors[:base], "avatarsが存在しているので削除できません"
+    assert_not_empty @capability.errors[:base]
   end
 
   test "accepts integer ids" do

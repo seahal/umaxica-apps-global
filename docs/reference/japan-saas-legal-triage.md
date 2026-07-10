@@ -6,10 +6,11 @@ This document is a Japan-specific legal triage note for this repository. It sepa
 into `must`, `maybe`, and `not now` based on the currently visible product scope. The main text is
 written in English for repository use.
 
-## 概要 (JA)
+## Overview (EN)
 
-この文書は、このリポジトリ向けの日本法ベースの法務整理です。現在見えているプロダクト範囲を前提に、`must`、`maybe`、`not now`
-に分けて整理します。本文はリポジトリ内利用のため英語で記述します。
+This document is a legal arrangement based on Japanese law for this repository. Based on the
+currently visible product range, `must`, `maybe`, `not now` Organize it by dividing it into The main
+text will be written in English for internal use in the repository.
 
 ## Purpose
 

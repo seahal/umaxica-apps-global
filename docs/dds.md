@@ -17,7 +17,7 @@ collaborates to satisfy the SRS.
 ### 1.2 Scope
 
 - All Rails namespaces within `app/controllers`
-- Front-end bundles in `app/javascript`
+- Front-end bundles in `src`
 - Data models spanning the multi-database setup defined in `config/database.yml`
 - Supporting services (`app/services`, `app/consumers`, ActionMailer, Sms providers)
 - Observability, configuration, and deployment mechanisms (pnpm-managed JS tooling, Compose,
@@ -44,7 +44,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
     ├─ PostgreSQL (identity, guest, universal, token, etc.)
     ├─ Valkey (sessions, rate limit, Memorize)
     ├─ ActionMailer + SMTP
-    ├─ AwsSmsService
+    ├─ Outbound::Sms
     └─ OpenTelemetry exporter → Tempo / Logs → Loki / Dashboards → Grafana
 ```
 
@@ -52,9 +52,9 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 | Layer          | Components                                                                                |
 | -------------- | ----------------------------------------------------------------------------------------- |
-| Presentation   | Namespaced controllers and Turbo/React views under `app/javascript`                       |
+| Presentation   | Namespaced controllers and Turbo/React views under `src`                                  |
 | Domain Logic   | Concerns in `app/controllers/concerns`, services in `app/services`, models per DB         |
-| Integration    | `app/mailers`, `AwsSmsService`, OTEL instrumentation                                      |
+| Integration    | `app/mailers`, `Outbound::Sms`, OTEL instrumentation                                      |
 | Infrastructure | Compose services (Postgres, Valkey, MinIO, Loki, Tempo, Grafana), pnpm/Tailwind toolchain |
 
 ---
@@ -95,8 +95,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 - `Preference::*` controllers (region, cookie, theme, reset) provide UI for personalization and
   ePrivacy. Data stored inside signed cookies named `root_<scope>_preferences` and
   `root_<scope>_theme`.
-- Views interact with JS entrypoints in `app/javascript/views/www/**` to show localized text,
-  doc/help/news URLs, etc.
+- Views interact with JS entrypoints in `src/pages/**` to show localized text, doc/help/news URLs,
+  etc.
 
 ### 3.4 Sign Namespace
 
@@ -104,7 +104,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 1. `#new`: clears session slot, ensures user not logged in, instantiates `UserIdentityEmail`.
 2. `#create`: validates Turnstile, generates HOTP secret + counter, stores intermediate state in
-   session, dispatches OTP via `Email::App::RegistrationMailer`.
+   session, dispatches OTP via the surface-specific `Email::*::OtpMailer`.
 3. `#edit`: ensures session data matches requested ID and not expired.
 4. `#update`: validates OTP; on success, persists `UserIdentityEmail`, clears session, redirects to
    home.
@@ -119,7 +119,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 **Security features**:
 
-- `Sign::*::ApplicationController` mixes in `Authn`, `RateLimit`, `DefaultUrlOptions`, `Pundit`.
+- `Sign::*::ApplicationController` mixes in authentication, rate limiting, default URL options, and
+  Action Policy.
 - `authenticate_user!` ensures `logged_in?` before hitting settings endpoints.
 - JWT cookies: `Auth::Base` writes `jit_auth_access` (JWT) + `jit_auth_refresh` +
   `jit_auth_device_id` (or `__Secure-` prefixed names in production).
@@ -128,22 +129,22 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 - Refresh deny behavior: missing/mismatched `device_id` returns `401`; browser clients are
   force-logged-out (session reset + auth cookies cleared). Mobile/bearer clients should clear local
   tokens on `401` and redirect to login.
-- Refresh deny and reuse telemetry is persisted to `UserOccurrence`/`StaffOccurrence` with
+- Refresh deny and reuse telemetry is persisted to `UserOccurrence`/`OperatorOccurrence` with
   structured `context` JSON.
 
 ### 3.5 Help Namespace
 
 - `Help::Com::ContactsController` handles `new/create/show`.
-- `ServiceSiteContact` (GuestRecord) encrypts email, phone, title, description; requires either
-  email or telephone plus policy consent.
+- `ServiceSiteContact` (ComPrincipalRecord) encrypts email, phone, title, description; requires
+  either email or telephone plus policy consent.
 - Turnstile integration ensures bot mitigation; errors are logged via `Rails.logger`.
-- OTP dispatch uses `Email::App::ContactMailer` and `AwsSmsService`.
+- OTP dispatch uses surface-specific `Email::{App,Com,Org}::OtpMailer` classes and `Outbound::Sms`.
 
 ### 3.6 Docs & News Namespaces
 
 - Mirror the top namespace with simpler controller sets (root + health endpoints).
-- React/Turbo entrypoints under `app/javascript/views/docs/**` and `views/news/**` hydrate
-  placeholder content.
+- React/Turbo entrypoints under `src/pages/docs/**` and `src/pages/news/**` hydrate placeholder
+  content.
 
 ### 3.7 API Namespace
 
@@ -165,17 +166,16 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ### 3.9 Front-End Bundles
 
-- `app/javascript/application.js` imports Turbo and each surface-specific entrypoint.
-- Directory structure: `app/javascript/views/<surface>/<domain>/application.(ts|js)` plus shared
-  scripts (`views/passkey.js`, `views/passkey_helpers.js`,
-  `views/www/app/inquiry/before_submit.js`).
-- JavaScript is served via importmap/Turbo; pnpm manages tooling (Biome) for linting/formatting the
-  sources.
-- Tailwind CSS is compiled through Rails' Tailwind CLI (`bin/rails tailwindcss:watch`).
+- `src/entrypoints/application.ts` imports Turbo, Stimulus controllers, shared browser helpers, and
+  the single Vite stylesheet graph.
+- Additional Vite entrypoints live under `src/entrypoints`, with page modules under `src/pages`.
+- JavaScript is bundled through Vite Rails; pnpm and Vite Plus manage linting, formatting, tests,
+  and build tooling.
+- Tailwind CSS is compiled through the Vite-backed frontend pipeline and surfaced through `bin/dev`.
 
 ### 3.10 Services & Integrations
 
-- `AwsSmsService` handles SMS dispatch for OTP-related flows.
+- `Outbound::Sms` handles SMS dispatch for OTP-related flows.
 - Other service placeholders (`AccountService`, `CoreService`, `EntityService`) mark future
   boundaries (business/customer mgmt, tokens).
 - `RedisMemorize` (inside `Memorize`) encrypts values using `ActiveSupport::MessageEncryptor`
@@ -204,15 +204,15 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 2. `PreferenceRegions#set_edit_variables` normalizes query params, populates `@current_*`.
 3. User submits new locale/timezone.
 4. `#update` calls `apply_updates` → `assign_if_present` / `update_language` / `update_timezone`.
-5. On success, `persist_preference_cookie!` writes signed JSON cookie
-   (`__Secure-root_app_preferences`).
+5. On success, the preference write path persists the DB row and reissues the Preference JWT
+   projection in `preference_access` / `__Host-preference_access`.
 6. Controller redirects to edit URL with normalized query params.
 
 ### 4.2 Email Registration Flow
 
 1. `Sign::App::Registration::EmailsController#new` resets session, renders form.
 2. `#create` verifies Turnstile, generates HOTP secret/counter, stores metadata in session, and
-   emails OTP via `Email::App::RegistrationMailer`.
+   emails OTP via the surface-specific `Email::*::OtpMailer`.
 3. User enters OTP → `#update` reuses `UserIdentityEmail` validations; ensures session ID matches
    and not expired.
 4. On success, `UserIdentityEmail` persists to identity DB, session cleared, redirect with success
@@ -221,10 +221,10 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 ### 4.3 Help Contact Submission
 
 1. User visits `help.umaxica.com/contacts/new`.
-2. Form ensures policy consent via `views/www/app/inquiry/before_submit.js`.
+2. Form ensures policy consent via `src/pages/app/inquiry/before_submit.js`.
 3. `#create` builds `ServiceSiteContact`, ensures Turnstile passes, encrypts PII, and stores IP
    address.
-4. Send immediate email via `Email::App::ContactMailer`.
+4. Send immediate email through the surface-specific alert mailer.
 5. Redirect back with success notice.
 
 ### 4.4 Passkey Enrollment
@@ -233,7 +233,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
    `webauthn_id`, collects exclude credentials.
 2. `WebAuthn::Credential.options_for_create` returns challenge; stored in
    `session[:webauthn_create_challenge]`.
-3. Client JS uses `navigator.credentials.create` with challenge; POSTs `/setting/passkeys/verify`.
+3. VisitorAccount JS uses `navigator.credentials.create` with challenge; POSTs
+   `/setting/passkeys/verify`.
 4. Server verifies challenge (TODO) and persists `UserPasskey` with `webauthn_id`, `public_key`,
    `sign_count`.
 
@@ -243,19 +244,21 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ### 5.1 Models & Storage
 
-| Model                                  | Base DB             | Notes                                                                            |
-| -------------------------------------- | ------------------- | -------------------------------------------------------------------------------- |
-| `User`, `Staff`                        | `IdentitiesRecord`  | `has_many :emails`, `:phones`, `webauthn_id` stored                              |
-| `UserIdentityEmail`                    | `IdentitiesRecord`  | Includes `Email` concern, encrypts `address`, `before_create` sets UUID v7       |
-| `ServiceSiteContact`                   | `GuestRecord`       | Encrypts email/phone/title/description, validates OTP codes, stores `ip_address` |
-| `TimeBasedOneTimePassword`             | `OccurrenceRecord`  | Encrypts `private_key`, stores `last_otp_at`, `first_token` virtual attr         |
-| `UserPasskey`                          | `ApplicationRecord` | Validates `webauthn_id`, `public_key`, `description`, `sign_count`               |
-| `UserToken`, `StaffToken`              | `TokensRecord`      | Reference tokens for JWT refresh handling                                        |
-| `IdentifierRegionCode` and join tables | `OccurrenceRecord`  | Future mapping for personas/staff region codes                                   |
+| Model                                  | Base DB              | Notes                                                                            |
+| -------------------------------------- | -------------------- | -------------------------------------------------------------------------------- |
+| `User`, `Staff`                        | `IdentitiesRecord`   | `has_many :emails`, `:phones`, `webauthn_id` stored                              |
+| `UserIdentityEmail`                    | `IdentitiesRecord`   | Includes `Email` concern, encrypts `address`, `before_create` sets UUID v7       |
+| `ServiceSiteContact`                   | `ComPrincipalRecord` | Encrypts email/phone/title/description, validates OTP codes, stores `ip_address` |
+| `TimeBasedOneTimePassword`             | `OccurrenceRecord`   | Encrypts `private_key`, stores `last_otp_at`, `first_token` virtual attr         |
+| `UserPasskey`                          | `ApplicationRecord`  | Validates `webauthn_id`, `public_key`, `description`, `sign_count`               |
+| `UserToken`, `OperatorToken`           | `TokensRecord`       | Reference tokens for JWT refresh handling                                        |
+| `IdentifierRegionCode` and join tables | `OccurrenceRecord`   | Future mapping for personas/staff region codes                                   |
 
 ### 5.2 Cookies & Sessions
 
-- Preference cookie: `__Secure-root_app_preferences` (JSON: `lx`, `ri`, `tz`, `ct`).
+- Preference credential cookie: `preference_access` / `__Host-preference_access`, with refresh and
+  DBSC siblings using the same basename pattern. The payload projects DB-backed preference fields
+  such as `lx`, `ri`, `tz`, and `ct`.
 - Theme cookie: `root_<scope>_theme`.
 - Consent cookies: `:accept_functional_cookies`, `:accept_performance_cookies`,
   `:accept_targeting_cookies`.
@@ -276,14 +279,14 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ## 6. External Interfaces
 
-| Interface            | Endpoint(s)                                                                                               | Details                                                                               |
-| -------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| HTTP/Turbo           | `/`, `/health`, `/v1/health`, `/preference/*`, `/sign/*`, `/help/contacts`, `/api/v1/inquiry/*`, `/bff/*` | Host-specific responses; `allow_browser` enforces modern clients.                     |
-| Cloudflare Turnstile | `https://challenges.cloudflare.com/turnstile/v0/siteverify`                                               | Called server-side with secret key, form response, and client IP.                     |
-| ActionMailer         | `Email::App::RegistrationMailer`, `Email::App::ContactMailer`, etc.                                       | Default sender from credentials `SMTP_FROM_ADDRESS`; uses `mailer/app/mailer` layout. |
-| SMS                  | `AwsSmsService`                                                                                           | Called via `AwsSmsService.send_message` for OTP-related flows.                        |
-| OpenTelemetry        | OTLP exporter                                                                                             | Default endpoint `http://tempo:4318/v1/traces` (configurable).                        |
-| Storage              | MinIO / Google Cloud Storage                                                                              | `google-cloud-storage` + `shrine` used for file storage (future).                     |
+| Interface            | Endpoint(s)                                                                                               | Details                                                                                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP/Turbo           | `/`, `/health`, `/v1/health`, `/preference/*`, `/sign/*`, `/help/contacts`, `/api/v1/inquiry/*`, `/bff/*` | Host-specific responses; `allow_browser` enforces modern clients.                                                                                                               |
+| Cloudflare Turnstile | `https://challenges.cloudflare.com/turnstile/v0/siteverify`                                               | Called server-side with secret key, form response, and client IP.                                                                                                               |
+| ActionMailer         | `Email::{App,Com,Org}::{OtpMailer,AlertMailer,PromotionalMailer}`                                         | OTP, alert, and promotion senders are fixed per surface and purpose, for example `otp@umaxica.app` and `promotion@umaxica.org`. OTP job arguments carry encrypted OTP payloads. |
+| SMS                  | `Outbound::Sms`                                                                                           | Called via `Outbound::Sms.deliver_later` for OTP-related flows; `SMS_PROVIDER` selects the concrete provider. SMS job arguments carry encrypted message bodies.                 |
+| OpenTelemetry        | OTLP exporter                                                                                             | Default endpoint `http://tempo:4318/v1/traces` (configurable).                                                                                                                  |
+| Storage              | MinIO / Google Cloud Storage                                                                              | `google-cloud-storage` + `shrine` used for file storage (future).                                                                                                               |
 
 ---
 
@@ -296,12 +299,12 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
   credentials, OTLP endpoint.
 - `compose.yml` launches all infra dependencies with sensible defaults; volumes store data per
   service.
-- `Procfile.dev` ensures the Rails server and local development processes run concurrently; Tailwind
-  watcher runs via `bin/rails tailwindcss:watch`.
+- `bin/dev` ensures the Rails server, Vite dev server, and background jobs run concurrently via
+  `foreman start -f Procfile.dev`.
 - Build/test commands:
   - `bundle install`, `pnpm install`
   - `bin/rails db:prepare`
-  - `foreman start -f Procfile.dev`
+  - `bin/dev`
   - Tests: `bin/rails test`
   - Lint: `bundle exec rubocop`, `bundle exec erb_lint .`, `pnpm run lint`, `pnpm run format`,
     `pnpm run check`
@@ -311,14 +314,14 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 ## 8. Security Mechanisms
 
 - **Authentication**: JWT-based session cookies with ES256 keys stored in credentials.
-- **Authorization**: Pundit included; settings controllers call `authorize`.
+- **Authorization**: Action Policy is included; settings controllers call `authorize!`.
 - **Bot mitigation**: Cloudflare Turnstile required for registration/contact forms; server logs
   failures.
 - **Rate limiting**: Configured via `RateLimit` concern (Valkey backend).
 - **Data encryption**: Active Record encryption for PII (emails, phones, private keys, titles,
   descriptions). `ServiceSiteContact` ensures deterministic encryption for lookups where needed.
-- **Passkeys & OTP**: WebAuthn for passkeys, ROTP for HOTP/TOTP, RQRCode for QR codes, AwsSmsService
-  for SMS OTP.
+- **Passkeys & OTP**: WebAuthn for passkeys, ROTP for HOTP/TOTP, RQRCode for QR codes,
+  `Outbound::Sms` for SMS OTP.
 - **Redirect safety**: `Redirect::ALLOWED_HOSTS` enumerates acceptable targets;
   `generate_redirect_url` rejects unknown hosts.
 - **Browser allowlist**: `allow_browser versions: :modern` prevents outdated user agents from
@@ -347,7 +350,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 - **Local**: Compose + Foreman; pnpm handles JS lint/format tasks.
 - **CI**: GitHub Actions pipeline runs bundler install, database setup, Rails tests, pnpm linting,
-  Brakeman, Bundler Audit, Biome (via `lefthook.yml`).
+  Brakeman, Bundler Audit, and Vite Plus checks.
 - **Staging/Production**:
   - Rails server deployed to Google Cloud Run (per README) or equivalent.
   - Fastly/Cloudflare handle DNS & TLS; `EDGE_*` hostnames define redirect targets.
@@ -360,7 +363,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 ## 11. Future Enhancements
 
 1. Flesh out staff/admin flows (owner/customer/news/docs CRUD).
-2. Implement policy checks (`am_i_user?`, `am_i_staff?`, etc.) and integrate with Pundit.
+2. Continue replacing legacy helper-style checks with explicit Action Policy authorization.
 3. Publish OpenAPI via Rswag and mount `/api-docs`.
 4. Add geolocation- and cookie-based personalization to `Top::*` once privacy reviewed.
 5. Automate Fastly cache purges after docs/news updates.

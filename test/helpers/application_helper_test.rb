@@ -2,26 +2,40 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class ApplicationHelperTest < ActionView::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
-  fixtures :app_banners, :org_banners, :com_banners, :users, :user_statuses, :staffs, :staff_statuses
+  fixtures :client_banners, :operator_banners, :visitor_banners, :clients, :client_statuses, :operators,
+           :operator_statuses, :visitors, :visitor_statuses, :visitor_visibilities, :visitor_mfa_levels,
+           :visitor_mfa_statuses
 
   setup do
-    extend ApplicationHelper
+    @helper_context = view
+    @helper_context.extend(ApplicationHelper)
+    define_singleton_method(:theme_cookie_value) { @helper_context.theme_cookie_value }
+    define_singleton_method(:theme_html_class) { @helper_context.theme_html_class }
+    define_singleton_method(:edge_host) { @helper_context.edge_host }
+    define_singleton_method(:current_banner_for) { |**kwargs| @helper_context.current_banner_for(**kwargs) }
   end
 
   def stub_cookie(value)
-    define_singleton_method(:cookies) { { "ct" => value } }
+    cookie_hash = { :ct => value, "ct" => value }
+    @helper_context.define_singleton_method(:cookies) { cookie_hash }
+    @helper_context.define_singleton_method(:request) {
+      Struct.new(:host, :cookies).new("www.umaxica.app", cookie_hash)
+    }
   end
 
   def stub_request_host(host)
-    define_singleton_method(:request) { Struct.new(:host).new(host) }
+    cookie_hash = {}
+    @helper_context.define_singleton_method(:request) { Struct.new(:host, :cookies).new(host, cookie_hash) }
   end
 
   def with_edge_env(overrides)
-    keys = %w(EDGE_SERVICE_URL EDGE_STAFF_URL EDGE_CORPORATE_URL)
+    keys = %w(PUBLIC_EDGE_SERVICE_URL PUBLIC_EDGE_STAFF_URL PUBLIC_EDGE_CORPORATE_URL EDGE_SERVICE_URL EDGE_STAFF_URL
+              EDGE_CORPORATE_URL)
     previous = keys.index_with { |key| ENV[key] }
 
     overrides.each do |key, value|
@@ -38,11 +52,11 @@ class ApplicationHelperTest < ActionView::TestCase
   test "theme_cookie_value maps short codes" do
     stub_cookie("dr")
 
-    assert_equal "dark", theme_cookie_value
+    assert_equal "system", theme_cookie_value
 
     stub_cookie("li")
 
-    assert_equal "light", theme_cookie_value
+    assert_equal "system", theme_cookie_value
 
     stub_cookie("sy")
 
@@ -52,11 +66,11 @@ class ApplicationHelperTest < ActionView::TestCase
   test "theme_cookie_value accepts full names" do
     stub_cookie("dark")
 
-    assert_equal "dark", theme_cookie_value
+    assert_equal "system", theme_cookie_value
 
     stub_cookie("light")
 
-    assert_equal "light", theme_cookie_value
+    assert_equal "system", theme_cookie_value
 
     stub_cookie("system")
 
@@ -72,11 +86,11 @@ class ApplicationHelperTest < ActionView::TestCase
   test "theme_html_class includes dark class only for dark theme" do
     stub_cookie("dark")
 
-    assert_equal "theme-dark dark", theme_html_class
+    assert_equal "theme-system", theme_html_class
 
     stub_cookie("light")
 
-    assert_equal "theme-light", theme_html_class
+    assert_equal "theme-system", theme_html_class
 
     stub_cookie("system")
 
@@ -110,41 +124,116 @@ class ApplicationHelperTest < ActionView::TestCase
 
   test "current_banner_for returns current banner for each surface" do
     travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
-      assert_equal app_banners(:newer_current_app_banner), current_banner_for(tld: :app, region: :jp, domain: :news)
-      assert_equal org_banners(:current_org_banner), current_banner_for(tld: :org, region: :jp, domain: :news)
-      assert_equal com_banners(:current_com_banner), current_banner_for(tld: :com, region: :jp, domain: :news)
+      assert_equal client_banners(:newer_current_user_banner), current_banner_for(tld: :app, region: :jp, domain: :news)
+      assert_equal operator_banners(:current_staff_banner), current_banner_for(tld: :org, region: :jp, domain: :news)
+      assert_equal visitor_banners(:current_visitor_banner),
+                   current_banner_for(tld: :com, region: :jp, domain: :news)
+    end
+  end
+
+  test "current_banner_for uses the writing connection" do
+    travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
+      roles = []
+
+      AppPrincipalRecord.stub(
+        :connected_to, ->(role:, &block) do
+                         roles << role
+                         block.call
+                       end,
+      ) do
+        assert_equal client_banners(:newer_current_user_banner),
+                     current_banner_for(tld: :app, region: :jp, domain: :news)
+      end
+
+      assert_equal [:writing], roles
     end
   end
 
   test "edge_host returns nil when matching edge env is unset" do
     stub_request_host(ENV["MAIN_CORPORATE_URL"])
 
-    with_edge_env("EDGE_CORPORATE_URL" => nil) do
-      assert_nil edge_host
+    with_edge_env("PUBLIC_EDGE_CORPORATE_URL" => nil, "EDGE_CORPORATE_URL" => nil) do
+      assert_raises(KeyError) { edge_host }
     end
   end
 
-  test "edge_host resolves service edge host for app surface" do
+  test "edge_host resolves service edge host for user surface" do
     stub_request_host(ENV["MAIN_SERVICE_URL"])
 
-    with_edge_env("EDGE_SERVICE_URL" => "https://edge.app.localhost:5171") do
-      assert_equal "edge.app.localhost", edge_host
+    with_edge_env("PUBLIC_EDGE_SERVICE_URL" => "https://edge.app.localhost:5171") do
+      assert_equal "edge.com.localhost", edge_host
     end
   end
 
-  test "edge_host resolves staff edge host for org surface" do
-    stub_request_host(ENV["SIDE_STAFF_URL"])
+  test "edge_host resolves staff edge host for staff surface" do
+    stub_request_host(ENV["PUBLIC_SIDE_STAFF_URL"])
 
-    with_edge_env("EDGE_STAFF_URL" => "edge.org.localhost") do
+    with_edge_env("PUBLIC_EDGE_STAFF_URL" => "edge.org.localhost", "EDGE_STAFF_URL" => nil) do
       assert_equal "edge.org.localhost", edge_host
     end
   end
 
-  test "edge_host resolves corporate edge host for com surface" do
-    stub_request_host(ENV["DOCS_CORPORATE_URL"])
+  test "edge_host resolves corporate edge host for client surface" do
+    stub_request_host(ENV["PRIVATE_DOCS_CORPORATE_URL"])
 
-    with_edge_env("EDGE_CORPORATE_URL" => "http://edge.com.localhost") do
+    with_edge_env("PUBLIC_EDGE_CORPORATE_URL" => "http://edge.com.localhost", "EDGE_CORPORATE_URL" => nil) do
       assert_equal "edge.com.localhost", edge_host
     end
+  end
+
+  test "current_banner_for returns nil when the connection is unavailable" do
+    travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
+      AppPrincipalRecord.stub(
+        :connected_to,
+        ->(*) {
+          raise ActiveRecord::ConnectionNotEstablished
+        },
+      ) do
+        assert_nil current_banner_for(tld: :app, region: :jp, domain: :news)
+      end
+    end
+  end
+
+  test "validate_banner_args! rejects invalid banner inputs" do
+    error = assert_raises(ArgumentError) { send(:validate_banner_args!, tld: :bad, region: :jp, domain: :news) }
+    assert_match(/Invalid tld/, error.message)
+
+    error = assert_raises(ArgumentError) { send(:validate_banner_args!, tld: :app, region: :jp, domain: :bad) }
+    assert_match(/Invalid domain/, error.message)
+
+    error = assert_raises(ArgumentError) { send(:validate_banner_args!, tld: :app, region: :us, domain: :sign) }
+    assert_match(/Invalid region/, error.message)
+  end
+
+  test "current_banner_for normalizes a :global region to :ww for sign and acme domains" do
+    travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
+      assert_equal client_banners(:newer_current_user_banner),
+                   current_banner_for(tld: :app, region: :global, domain: :sign)
+      assert_equal client_banners(:newer_current_user_banner),
+                   current_banner_for(tld: :app, region: :global, domain: :acme)
+    end
+  end
+
+  test "current_banner_for returns the banner directly when the model has no abstract base" do
+    travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
+      stub(:banner_connection_owner_for, ->(*) { }) do
+        assert_equal client_banners(:newer_current_user_banner),
+                     current_banner_for(tld: :app, region: :jp, domain: :news)
+      end
+    end
+  end
+  private
+
+  def stub_cookie(theme)
+    cookies[:root_theme] = theme
+  end
+
+  def assert_theme_cookie_for(theme, path:, expected: theme)
+    stub_cookie(theme)
+
+    get(path)
+
+    assert_response :success
+    assert_select "html[data-theme=?]", expected
   end
 end

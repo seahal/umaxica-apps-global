@@ -1,0 +1,7 @@
+<% content_for :page_title, "Avatar" %>
+
+<h1><%= @avatar.moniker %></h1>
+
+<p><%= @avatar.active_handle.handle %></p>
+
+<%= link_to "Edit", edit_base_app_avatar_path(@avatar.public_id, ri: params[:ri]) %>

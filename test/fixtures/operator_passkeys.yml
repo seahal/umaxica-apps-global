@@ -1,0 +1,73 @@
+# == Schema Information
+#
+# Table name: operator_passkeys
+# Database name: org_principal
+#
+#  id           :bigint           not null, primary key
+#  last_used_at :datetime
+#  name         :string           not null
+#  public_key   :text             not null
+#  sign_count   :integer          not null
+#  transports   :string
+#  user_handle  :string
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  external_id  :string           not null
+#  staff_id     :bigint           not null
+#  status_id    :bigint           default(1), not null
+#  webauthn_id  :string           default(""), not null
+#
+# Indexes
+#
+#  index_operator_passkeys_on_external_id  (external_id)
+#  index_operator_passkeys_on_staff_id     (staff_id)
+#  index_operator_passkeys_on_status_id    (status_id)
+#  index_operator_passkeys_on_webauthn_id  (webauthn_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (staff_id => operators.id)
+#  fk_rails_...  (status_id => operator_passkey_statuses.id)
+#
+_fixture:
+  model_class: OperatorPasskey
+
+# Table name: staff_passkeys
+# Database name: org_principal
+#
+#  id           :bigint           not null, primary key
+#  last_used_at :datetime
+#  name         :string           not null
+#  public_key   :text             not null
+#  sign_count   :integer          not null
+#  transports   :string
+#  user_handle  :string
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  external_id  :string           not null
+#  staff_id     :bigint           not null
+#  status_id    :bigint           default(1), not null
+#  webauthn_id  :string           default(""), not null
+#
+# Indexes
+#
+#  index_staff_passkeys_on_external_id  (external_id)
+#  index_staff_passkeys_on_staff_id     (staff_id)
+#  index_staff_passkeys_on_status_id    (status_id)
+#  index_staff_passkeys_on_webauthn_id  (webauthn_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (staff_id => operators.id)
+#  fk_rails_...  (status_id => staff_passkey_statuses.id)
+#
+one:
+  staff_id: <%= ActiveRecord::FixtureSet.identify(:one) %>
+  name: "My Passkey"
+  webauthn_id: "webauthn_id_1"
+  external_id: "external_id_1"
+  public_key: "public_key_1"
+  sign_count: 0
+  status_id: 1
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>

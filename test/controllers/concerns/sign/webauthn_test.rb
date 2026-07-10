@@ -2,18 +2,19 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 module Sign
   class WebauthnTest < ActionDispatch::IntegrationTest
     class TestController < ApplicationController
-      include Sign::Webauthn
+      include SignWebauthn
 
       # Stub methods required by the concern
       attr_accessor :request, :session
 
       def initialize
         super
-        @request = Struct.new(:host, :base_url).new("id.umaxica.app", "https://id.umaxica.app")
+        @request = Struct.new(:host, :base_url).new("log.umaxica.app", "https://log.umaxica.app")
         @session = {}
       end
     end
@@ -82,7 +83,7 @@ module Sign
     # Test normalize_webauthn_options_for_json
     test "normalize_webauthn_options_for_json converts symbol keys to string keys" do
       options = WebAuthn::Credential.options_for_create(
-        user: { id: "123".b, name: "test", display_name: "Test User" },
+        user: { id: "123".b, name: "test", display_name: "Test Client" },
         exclude: [],
       )
 
@@ -94,7 +95,7 @@ module Sign
 
     test "normalize_webauthn_options_for_json produces single challenge key in JSON" do
       options = WebAuthn::Credential.options_for_create(
-        user: { id: "123".b, name: "test", display_name: "Test User" },
+        user: { id: "123".b, name: "test", display_name: "Test Client" },
         exclude: [],
       )
 
@@ -223,8 +224,8 @@ module Sign
       rp = @controller.webauthn_relying_party
 
       assert_kind_of WebAuthn::RelyingParty, rp
-      assert_equal ["https://id.umaxica.app"], rp.allowed_origins
-      assert_equal "id.umaxica.app", rp.id
+      assert_equal ["https://log.umaxica.app"], rp.allowed_origins
+      assert_equal "log.umaxica.app", rp.id
     end
 
     test "global WebAuthn.configuration is not mutated during request" do

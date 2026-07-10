@@ -7,15 +7,18 @@
 # Database name: avatar
 #
 #  id                           :bigint           not null, primary key
+#  discarded_at                 :datetime         default(Infinity), not null
 #  image_data                   :jsonb            not null
+#  lifecycle_state_id           :bigint           not null
 #  lock_version                 :integer          default(0), not null
 #  moniker                      :string           not null
+#  purged_at                    :datetime         default(Infinity), not null
 #  created_at                   :datetime         not null
 #  updated_at                   :datetime         not null
 #  active_handle_id             :bigint           not null
 #  avatar_status_id             :string
 #  capability_id                :bigint           default(0), not null
-#  member_id                    :bigint
+#  client_id                    :bigint
 #  owner_organization_id        :string
 #  public_id                    :string           not null
 #  representing_organization_id :string
@@ -24,34 +27,47 @@
 #
 #  index_avatars_on_active_handle_id              (active_handle_id)
 #  index_avatars_on_capability_id                 (capability_id)
-#  index_avatars_on_member_id                     (member_id)
+#  index_avatars_on_client_id                     (client_id)
+#  index_avatars_on_lifecycle_state_id            (lifecycle_state_id)
 #  index_avatars_on_owner_organization_id         (owner_organization_id)
 #  index_avatars_on_public_id                     (public_id) UNIQUE
+#  index_avatars_on_purged_at                     (purged_at)
 #  index_avatars_on_representing_organization_id  (representing_organization_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (active_handle_id => handles.id)
 #  fk_rails_...  (capability_id => avatar_capabilities.id)
+#  fk_rails_...  (lifecycle_state_id => avatar_lifecycle_states.id)
 #
 
 class Avatar < AvatarRecord
-  # TODO: Add `shreddable_at` to Avatar and align deletion lifecycle with shredding flow.
+  include Retainable
   include PublicId
 
-  belongs_to :member, optional: true, inverse_of: :avatars
+  self.belongs_to_required_by_default = false
+
+  belongs_to :member, foreign_key: :client_id, inverse_of: :avatars
   belongs_to :capability, class_name: "AvatarCapability"
   belongs_to :active_handle, class_name: "Handle"
+  belongs_to :lifecycle_state, class_name: "AvatarLifecycleState"
 
   has_many :handle_assignments, dependent: :restrict_with_error
+  has_many :assignments_created,
+           class_name: "HandleAssignment",
+           foreign_key: :assigned_by_actor_id,
+           inverse_of: :assigned_by_actor,
+           dependent: :restrict_with_error
   has_many :handles, through: :handle_assignments
   has_many :avatar_monikers, dependent: :restrict_with_error
   has_many :avatar_memberships, dependent: :restrict_with_error
   has_many :avatar_ownership_periods, dependent: :restrict_with_error
-  has_many :posts, foreign_key: :author_avatar_id, dependent: :restrict_with_error, inverse_of: :author_avatar
 
   # Avatar assignments (role-based access control)
   has_many :avatar_assignments, dependent: :destroy
+  has_one :avatar_persona_binding, dependent: :destroy, inverse_of: :avatar
+  has_one :avatar_agent_binding, dependent: :destroy, inverse_of: :avatar
+  has_one :avatar_individual_binding, dependent: :destroy, inverse_of: :avatar
 
   has_many :member_avatar_accesses, dependent: :destroy, inverse_of: :avatar
   has_many :member_avatar_visibilities, dependent: :destroy, inverse_of: :avatar
@@ -60,6 +76,9 @@ class Avatar < AvatarRecord
   has_many :member_avatar_impersonations, dependent: :destroy, inverse_of: :avatar
   has_many :member_avatar_suspensions, dependent: :destroy, inverse_of: :avatar
   has_many :member_avatar_deletions, dependent: :destroy, inverse_of: :avatar
+  has_many :avatar_lifecycle_events, dependent: :restrict_with_error, inverse_of: :avatar
+  has_many :group_avatar_memberships, dependent: :restrict_with_error, inverse_of: :avatar
+  has_many :avatar_groups, through: :group_avatar_memberships
 
   # Single-user roles (has_one through)
   has_one :owner_assignment,
@@ -118,6 +137,7 @@ class Avatar < AvatarRecord
            class_name: "AvatarAssignment",
            inverse_of: :avatar,
            dependent: :destroy
+
   has_many :viewers,
            through: :viewer_assignments,
            source: :user,
@@ -155,6 +175,16 @@ class Avatar < AvatarRecord
            through: :outgoing_blocks,
            source: :blocked_avatar
 
+  has_many :incoming_blocks,
+           class_name: "AvatarBlock",
+           foreign_key: :blocked_avatar_id,
+           inverse_of: :blocked_avatar,
+           dependent: :destroy
+
+  has_many :blocking_avatars,
+           through: :incoming_blocks,
+           source: :blocker_avatar
+
   # mutes
   has_many :outgoing_mutes,
            class_name: "AvatarMute",
@@ -166,15 +196,65 @@ class Avatar < AvatarRecord
            through: :outgoing_mutes,
            source: :muted_avatar
 
+  has_many :incoming_mutes,
+           class_name: "AvatarMute",
+           foreign_key: :muted_avatar_id,
+           inverse_of: :muted_avatar,
+           dependent: :destroy
+
+  has_many :muting_avatars,
+           through: :incoming_mutes,
+           source: :muter_avatar
+
   validates :public_id, presence: true, uniqueness: true
+  validates :capability_id, numericality: { only_integer: true, greater_than: 0 }
   validates :moniker, presence: true
 
-  # Create avatar with owner assigned in a transaction
+  before_validation :default_lifecycle_state, on: :create
+
+  # Deprecated compatibility wrapper. New avatar creation must call AvatarProvisioning::Create
+  # so the handle, binding, assignment, lifecycle state, and legacy client_id write stay together.
   def self.create_with_owner(attributes, user)
-    transaction do
-      avatar = create!(attributes)
-      avatar.avatar_assignments.create!(user_id: user.id, role: "owner")
-      avatar
-    end
+    attributes = attributes.to_h.symbolize_keys
+    subject = attributes.delete(:subject)
+    subject_type = attributes.delete(:subject_type)
+    handle_params = attributes.delete(:handle_params) || {}
+    handle_params = handle_params.to_h.symbolize_keys
+    handle_params[:handle] ||= attributes.delete(:handle) if attributes.key?(:handle)
+    handle_params[:handle] ||= attributes[:active_handle]&.handle if attributes[:active_handle].present?
+    assignment_role = attributes.delete(:assignment_role) || AvatarProvisioning::Create::DEFAULT_ASSIGNMENT_ROLE
+    organization_public_id =
+      attributes.delete(:organization_public_id) ||
+      attributes[:owner_organization_id] ||
+      attributes[:representing_organization_id]
+
+    result = AvatarProvisioning::Create.call(
+      actor: user,
+      subject_type: subject_type,
+      subject: subject,
+      avatar_params: attributes.slice(:moniker),
+      handle_params: handle_params,
+      assignment_role: assignment_role,
+      organization_public_id: organization_public_id,
+    )
+    raise result.errors.first if result.errors.any?
+
+    result.avatar
+  end
+
+  def current_avatar_persona_binding
+    return nil unless persisted?
+
+    AvatarPersonaBinding.active.find_by(avatar_id: id)
+  end
+
+  def current_persona
+    current_avatar_persona_binding&.persona
+  end
+
+  private
+
+  def default_lifecycle_state
+    self.lifecycle_state ||= AvatarLifecycleState.find_by!(key: "active")
   end
 end

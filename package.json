@@ -4,37 +4,50 @@
   "type": "module",
   "module": "index.ts",
   "scripts": {
-    "prepare": "vp config",
-    "check": "tsc -p tsconfig.app.json && tsc -p tsconfig.node.json",
-    "fix": "vp check --fix",
-    "test": "vp test run",
-    "test:coverage": "vp test run --coverage"
+    "prepare": "lefthook install",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format": "oxfmt src spec vite.config.ts vitest.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json package.json pnpm-workspace.yaml lefthook.yml .oxfmtrc.json .oxlintrc.json",
+    "format:check": "oxfmt --check src spec vite.config.ts vitest.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json package.json pnpm-workspace.yaml lefthook.yml .oxfmtrc.json .oxlintrc.json",
+    "typecheck": "tsc --noEmit",
+    "check": "pnpm -s format:check && pnpm -s lint && pnpm -s typecheck",
+    "ci": "pnpm -s check && pnpm -s test:coverage",
+    "ci:js": "pnpm -s run ci",
+    "fix": "pnpm -s format && pnpm -s lint:fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@inertiajs/react": "^3.0.3",
-    "@inertiajs/vite": "^3.0.3",
+    "@hotwired/stimulus": "^3.2.2",
+    "@hotwired/turbo-rails": "^8.0.23",
+    "@inertiajs/react": "^3.4.0",
+    "@inertiajs/vite": "^3.4.0",
     "@tailwindcss/forms": "^0.5.11",
-    "@tailwindcss/typography": "^0.5.19",
-    "@tailwindcss/vite": "^4.2.4",
-    "@types/react": "^19.2.14",
+    "@tailwindcss/typography": "^0.5.20",
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "tailwindcss": "^4.2.4",
-    "typescript": "^6.0.3"
+    "@vitejs/plugin-react": "^6.0.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^7.0.0"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.5",
-    "vite": "^8.0.10",
-    "vite-plugin-ruby": "^5.2.1",
-    "vite-plus": "latest"
+    "@mermaid-js/mermaid-cli": "^11.15.0",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "dependency-cruiser": "^17.4.3",
+    "jsdom": "^29.1.1",
+    "lefthook": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "playwright": "^1.60.0",
+    "vite": "catalog:",
+    "vite-plugin-ruby": "^5.2.2",
+    "vitest": "catalog:"
   },
-  "packageManager": "pnpm@10.27.0",
-  "pnpm": {
-    "strictDepBuilds": true,
-    "overrides": {
-      "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
-    }
-  }
+  "packageManager": "pnpm@11.1.3"
 }

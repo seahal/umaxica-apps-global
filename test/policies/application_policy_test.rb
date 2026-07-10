@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class ApplicationPolicyTest < ActiveSupport::TestCase
   class TestRecord
@@ -25,6 +26,15 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
 
     def initialize(organization_id)
       @organization_id = organization_id
+    end
+  end
+
+  class RelationDouble
+    attr_reader :none_called
+
+    def none
+      @none_called = true
+      :none_scope
     end
   end
 
@@ -65,21 +75,12 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
     assert_not @policy.send(:destroy?)
   end
 
-  # Scope tests
-  # COMMENTED OUT BY FIX SCRIPT
-  #   def test_scope_initialization
-  #     scope_obj = ApplicationPolicy::Scope.new([], user: @user)
-  #
-  #     assert scope_obj
-  #   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope_resolve_raises_not_implemented_error
-  #     scope_obj = ApplicationPolicy::Scope.new([], user: @user)
-  #     assert_raises(NoMethodError) do
-  #       scope_obj.resolve
-  #     end
-  #   end
+  def test_relation_scope_denies_all_by_default
+    relation = RelationDouble.new
+
+    assert_equal :none_scope, @policy.apply_scope(relation, type: :active_record_relation)
+    assert relation.none_called
+  end
 
   # Attributes tests
   def test_user_attribute_is_accessible
@@ -118,7 +119,7 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
   end
 
   def test_owner_returns_true_for_user_owner
-    actor = build_actor(User, 10)
+    actor = build_actor(Client, 10)
     record = Struct.new(:user_id).new(10)
     policy = ApplicationPolicy.new(record, user: actor)
 
@@ -126,7 +127,7 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
   end
 
   def test_owner_returns_false_for_user_non_owner
-    actor = build_actor(User, 10)
+    actor = build_actor(Client, 10)
     record = Struct.new(:user_id).new(11)
     policy = ApplicationPolicy.new(record, user: actor)
 
@@ -134,19 +135,42 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
   end
 
   def test_owner_returns_true_for_staff_owner
-    actor = build_actor(Staff, 20)
+    actor = build_actor(Operator, 20)
     record = Struct.new(:staff_id).new(20)
     policy = ApplicationPolicy.new(record, user: actor)
 
     assert policy.send(:owner?)
   end
 
-  def test_owner_returns_false_for_unknown_actor_type
-    actor = build_actor(String, 1)
-    record = Struct.new(:user_id, :staff_id).new(1, 1)
+  def test_owner_returns_true_for_visitor_owner
+    actor = build_actor(Visitor, 30)
+    record = Struct.new(:visitor_id).new(30)
+    policy = ApplicationPolicy.new(record, user: actor)
+
+    assert policy.send(:owner?)
+  end
+
+  def test_owner_returns_false_for_visitor_non_owner
+    actor = build_actor(Visitor, 30)
+    record = Struct.new(:visitor_id).new(31)
     policy = ApplicationPolicy.new(record, user: actor)
 
     assert_not policy.send(:owner?)
+  end
+
+  def test_owner_returns_false_for_unknown_actor_type
+    actor = build_actor(String, 1)
+    record = Struct.new(:client_id, :staff_id).new(1, 1)
+    policy = ApplicationPolicy.new(record, user: actor)
+
+    assert_not policy.send(:owner?)
+  end
+
+  def test_owner_returns_true_when_actor_and_record_are_same_user_record
+    user = Client.new(id: 10)
+    policy = ApplicationPolicy.new(user, user: user)
+
+    assert policy.send(:owner?)
   end
 
   def test_role_helpers_pass_organization_to_actor
@@ -179,24 +203,6 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
       actor.calls,
     )
   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope_helpers_delegate_to_actor_with_organization
-  #     actor = ScopeActor.new
-  #     scope_obj = ApplicationPolicy::Scope.new([], user: actor)
-  #
-  #     assert scope_obj.send(:has_role?, "operator", organization: "org-1")
-  #     assert scope_obj.send(:operator_or_manager?, organization: "org-2")
-  #     assert_equal [[:has_role?, "operator", "org-1"], [:operator_or_manager?, "org-2"]], actor.calls
-  #   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope_helpers_return_nil_without_actor
-  #     scope_obj = ApplicationPolicy::Scope.new([], user: nil)
-  #
-  #     assert_nil scope_obj.send(:has_role?, "operator", organization: "org-1")
-  #     assert_nil scope_obj.send(:operator_or_manager?, organization: "org-1")
-  #   end
 
   private
 
@@ -238,24 +244,6 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
 
     def can_contribute?(organization:)
       @calls << [:can_contribute?, organization]
-      true
-    end
-  end
-
-  class ScopeActor
-    attr_reader :calls
-
-    def initialize
-      @calls = []
-    end
-
-    def has_role?(role_key, organization:)
-      @calls << [:has_role?, role_key, organization]
-      true
-    end
-
-    def operator_or_manager?(organization:)
-      @calls << [:operator_or_manager?, organization]
       true
     end
   end

@@ -1,0 +1,32 @@
+---
+name: surfaces
+description: The app/org/com surfaces are independent boundaries that must never be mixed.
+---
+
+# Surfaces
+
+This is a multi-surface Ruby on Rails application with three user-facing surfaces:
+
+- `app` — end-user application
+- `org` — staff / organization surface
+- `com` — public / corporate surface
+
+Each surface is an independent boundary.
+
+## Do not mix surfaces
+
+Do not share controllers, routes, views, policies, sessions, or state across surfaces unless the
+existing code has an explicit, reviewed shared abstraction. One surface must not access another
+surface directly.
+
+## Per-surface host constraints
+
+- Each surface must enforce its own host constraints.
+- Never assume a default host.
+- Cross-surface routing is forbidden.
+
+## Boundary discipline
+
+- Respect the boundary in every layer: request handling, authorization, and persistence.
+- Do not store request data so that it can leak across surfaces (see `absolute-rules` on shared
+  state).

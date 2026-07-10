@@ -1,6 +1,12 @@
 # ADR: Restore Rails Way Engine Architecture with Fat Engines
 
-**Status:** Accepted (2026-04-22)
+> **Status update (2026-05-19):** Obsolete. Per `adr/split-into-regional-and-global-repos.md`
+> (2026-04-25), both the Rails Engine strategy and the 4-app split strategy are abandoned. This
+> repository is now a single ordinary Rails app for the global surface, with regional content split
+> to a separate repository. Do not use the Fat Engine target described below for new work; treat
+> this document as historical only.
+
+**Status:** Obsolete (accepted 2026-04-22, superseded 2026-04-25)
 
 **Supersedes:**
 

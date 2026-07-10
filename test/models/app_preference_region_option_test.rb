@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: app_preference_region_options
-# Database name: principal
+# Database name: app_setting
 #
 #  id :bigint           not null, primary key
 #
@@ -13,7 +13,7 @@ require "test_helper"
 
 class AppPreferenceRegionOptionTest < ActiveSupport::TestCase
   setup do
-    AppPreferenceStatus.find_or_create_by!(id: AppPreferenceStatus::NOTHING)
+    AppPreferenceStatus.ensure_defaults!
   end
 
   test "can be created" do

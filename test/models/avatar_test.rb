@@ -7,15 +7,17 @@
 # Database name: avatar
 #
 #  id                           :bigint           not null, primary key
+#  discarded_at                 :datetime         default(Infinity), not null
 #  image_data                   :jsonb            not null
 #  lock_version                 :integer          default(0), not null
 #  moniker                      :string           not null
+#  purged_at                    :datetime         default(Infinity), not null
 #  created_at                   :datetime         not null
 #  updated_at                   :datetime         not null
 #  active_handle_id             :bigint           not null
 #  avatar_status_id             :string
 #  capability_id                :bigint           default(0), not null
-#  member_id                    :bigint
+#  client_id                    :bigint
 #  owner_organization_id        :string
 #  public_id                    :string           not null
 #  representing_organization_id :string
@@ -24,9 +26,10 @@
 #
 #  index_avatars_on_active_handle_id              (active_handle_id)
 #  index_avatars_on_capability_id                 (capability_id)
-#  index_avatars_on_member_id                     (member_id)
+#  index_avatars_on_client_id                     (client_id)
 #  index_avatars_on_owner_organization_id         (owner_organization_id)
 #  index_avatars_on_public_id                     (public_id) UNIQUE
+#  index_avatars_on_purged_at                     (purged_at)
 #  index_avatars_on_representing_organization_id  (representing_organization_id)
 #
 # Foreign Keys
@@ -53,7 +56,7 @@ class AvatarTest < ActiveSupport::TestCase
     avatar = Avatar.new(
       capability: @capability,
       active_handle: @handle,
-      moniker: "Test User",
+      moniker: "Test Client",
       image_data: { url: "http://example.com/img.png" },
     )
 
@@ -66,14 +69,14 @@ class AvatarTest < ActiveSupport::TestCase
     avatar = Avatar.new(active_handle: @handle, moniker: "No Cap", capability_id: nil)
 
     assert_not avatar.valid?
-    assert_not_empty avatar.errors[:capability]
+    assert_not_empty avatar.errors[:capability_id]
   end
 
   test "requires active_handle" do
     avatar = Avatar.new(capability: @capability, moniker: "No Handle")
 
-    assert_not avatar.valid?
-    assert_not_empty avatar.errors[:active_handle]
+    assert_predicate avatar, :valid?
+    assert_raises(ActiveRecord::NotNullViolation) { avatar.save! }
   end
 
   test "requires moniker" do
@@ -91,6 +94,40 @@ class AvatarTest < ActiveSupport::TestCase
     )
 
     assert_empty(avatar.image_data)
+  end
+
+  test "defaults lifecycle state to active for new avatars" do
+    avatar = Avatar.create!(
+      capability: @capability,
+      active_handle: @handle,
+      moniker: "Default Lifecycle",
+    )
+
+    assert_equal "active", avatar.lifecycle_state.key
+  end
+
+  test "requires lifecycle state id at database level" do
+    avatar = Avatar.create!(
+      capability: @capability,
+      active_handle: @handle,
+      moniker: "Lifecycle Null Constraint",
+    )
+
+    assert_raises(ActiveRecord::NotNullViolation) do
+      Avatar.connection.execute("UPDATE avatars SET lifecycle_state_id = NULL WHERE id = #{avatar.id}")
+    end
+  end
+
+  test "rejects invalid lifecycle state id at database level" do
+    avatar = Avatar.create!(
+      capability: @capability,
+      active_handle: @handle,
+      moniker: "Lifecycle FK Constraint",
+    )
+
+    assert_raises(ActiveRecord::InvalidForeignKey) do
+      Avatar.connection.execute("UPDATE avatars SET lifecycle_state_id = 999999999 WHERE id = #{avatar.id}")
+    end
   end
 
   test "moniker is invalid when only whitespace" do
@@ -117,44 +154,32 @@ class AvatarTest < ActiveSupport::TestCase
     assert_not_empty duplicate.errors[:public_id]
   end
 
-  test "association deletion: restriction by posts" do
-    avatar = Avatar.create!(
-      moniker: "Post Author",
-      capability: @capability,
-      active_handle: @handle,
-    )
-    status = PostStatus.find_or_create_by!(id: PostStatus::NOTHING)
-    Post.create!(
-      author_avatar: avatar,
-      post_status: status,
-      body: "Test Post",
-      created_by_actor_id: "user-1",
-    )
-
-    assert_not avatar.destroy
-    assert_includes avatar.errors[:base], "postsが存在しているので削除できません"
-  end
-
   test "create_with_owner creates avatar and assigns owner" do
     create_user_and_status
-    user = User.find_by!(public_id: "one_id")
+    user = Client.find_by!(public_id: "one_id")
+    bootstrap = BaseSelectorBootstrapAuthority.call(surface: :app, principal: user)
+    bootstrap.avatar.current_avatar_persona_binding.revoke!(force: true)
+
     avatar = nil
-    assert_difference ["Avatar.count", "AvatarAssignment.count"], 1 do
+    assert_difference ["Avatar.count", "AvatarAssignment.count", "AvatarPersonaBinding.active.count"], 1 do
       avatar = Avatar.create_with_owner(
         {
-          capability: @capability,
-          active_handle: @handle,
+          subject_type: :persona,
+          subject: bootstrap.account,
+          handle_params: { handle: "owned-avatar-wrapper" },
           moniker: "Owned Avatar",
+          organization_public_id: bootstrap.collective.public_id,
         }, user,
       )
     end
 
     assert_equal user, avatar.owner
     assert_includes avatar.avatar_assignments.pluck(:role), "owner"
+    assert_equal bootstrap.account, avatar.current_persona
   end
 
   test "role associations" do
-    user = User.find_by!(public_id: "one_id")
+    user = Client.find_by!(public_id: "one_id")
     avatar = Avatar.create!(capability: @capability, active_handle: @handle, moniker: "Role Test")
 
     # Affiliation
@@ -213,7 +238,7 @@ class AvatarTest < ActiveSupport::TestCase
 
   test "dependent associations" do
     avatar = Avatar.create!(capability: @capability, active_handle: @handle, moniker: "Dependent Test")
-    user = User.find_by!(public_id: "one_id")
+    user = Client.find_by!(public_id: "one_id")
 
     # Assignments
     avatar.avatar_assignments.create!(user_id: user.id, role: "viewer")
@@ -230,7 +255,7 @@ class AvatarTest < ActiveSupport::TestCase
       assert_difference "AvatarFollow.count", -2 do
         assert_difference "AvatarBlock.count", -1 do
           assert_difference "AvatarMute.count", -1 do
-            avatar.destroy
+            Prosopite.pause { avatar.destroy }
           end
         end
       end
@@ -238,9 +263,9 @@ class AvatarTest < ActiveSupport::TestCase
   end
 
   def create_user_and_status
-    UserStatus.find_or_create_by!(id: UserStatus::NOTHING)
-    User.find_or_create_by!(public_id: "one_id") do |u|
-      u.status_id = UserStatus::NOTHING
+    ClientStatus.find_or_create_by!(id: ClientStatus::NOTHING)
+    Client.find_or_create_by!(public_id: "one_id") do |u|
+      u.status_id = ClientStatus::NOTHING
     end
   end
 end

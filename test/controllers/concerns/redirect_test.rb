@@ -2,10 +2,11 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
-class RedirectConcernTest < ActiveSupport::TestCase
+class RedirectTest < ActiveSupport::TestCase
   class RedirectHarness
-    include Common::Redirect
+    include CommonRedirect
 
     attr_reader :redirect_target, :redirect_options
 

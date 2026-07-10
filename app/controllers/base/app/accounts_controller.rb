@@ -1,0 +1,40 @@
+# typed: false
+# frozen_string_literal: true
+
+module Base
+  module App
+    # Account entity management for the app surface. Plural CRUD over the accounts the
+    # signed-in client may act as; changing the *current* account is the switcher's job, not this
+    # controller's. Requires a selected actor context (FullAccessController).
+    class AccountsController < Base::App::FullAccessController
+      AUTHENTICATION_MODE = :private
+      declare_authentication_mode! :private
+
+      before_action :authenticate_client!
+
+      def index
+        authorize!(current_client, to: :show?)
+        @accounts = switcher.available_accounts
+      end
+
+      def show
+        @account = find_account!
+        authorize!(@account, to: :show?, with: AccountPolicy)
+      end
+
+      private
+
+      # Scoped to the principal's available accounts: a foreign or non-existent id raises
+      # RecordNotFound (404), which is the authoritative ownership gate for show/edit/update.
+      def find_account!
+        switcher.find_account(params.expect(:id)) || raise(ActiveRecord::RecordNotFound)
+      end
+
+      def switcher
+        @switcher ||= BaseSwitcherAuthority.new(
+          surface: :app, principal: current_client, session: current_session,
+        )
+      end
+    end
+  end
+end

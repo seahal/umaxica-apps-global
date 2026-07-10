@@ -1,12 +1,10 @@
 # typed: false
 # frozen_string_literal: true
 
-# rubocop:disable Layout/LineLength
-
 # == Schema Information
 #
 # Table name: member_notifications
-# Database name: notification
+# Database name: app_signal
 #
 #  id                   :bigint           not null, primary key
 #  created_at           :datetime         not null
@@ -21,12 +19,15 @@
 #
 # Foreign Keys
 #
-#  fk_member_notifications_on_user_notification_id_cascade  (user_notification_id => user_notifications.id) ON DELETE => cascade
+#  fk_rails_...  (user_notification_id => client_notification_records.id) ON DELETE => cascade
 #
 
-class MemberNotification < NotificationRecord
+class MemberNotification < AppSignalRecord
   include ::PublicId
 
-  belongs_to :user_notification, optional: false, inverse_of: :member_notifications
+  belongs_to :client_notification_record,
+             class_name: "ClientNotificationRecord",
+             foreign_key: :user_notification_id,
+             optional: false,
+             inverse_of: :member_notifications
 end
-# rubocop:enable Layout/LineLength

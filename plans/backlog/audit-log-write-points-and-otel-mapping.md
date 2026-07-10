@@ -434,3 +434,25 @@ The first version should prefer:
 - stable event ids
 
 Detailed tamper resistance can be added later.
+
+## 2026-05-07 What to leave as current differences and improvements
+
+The design principles in this document are valid, but are more suited to docs / ADR than to
+individual backlog implementation plans.
+
+Confirmed:
+
+- Chronicle DB/schema exists.
+- `Auth::AuditWriter` exists.
+- OpenTelemetry initializer exists.
+
+This document is treated as an improvement memo that describes the separation policy between audit
+write point and OTEL.
+
+Improvements to leave:
+
+- Inventory the existing audit write points and check the controller / service / model List where
+  callback is written.
+- Promote the rule to write audits where the business outcome is established to docs / ADR.
+- OTEL Maintain a policy of not forcing event name and audit event id to be unified.
+- Only `request_id` and, if necessary, `trace_id` are treated as common correlations.

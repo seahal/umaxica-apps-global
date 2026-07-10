@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: organization_statuses
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #

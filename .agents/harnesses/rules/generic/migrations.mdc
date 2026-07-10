@@ -1,0 +1,43 @@
+---
+name: migrations
+description: Reversible, backward-compatible, lock-aware migrations; how to add one safely.
+---
+
+# Migrations
+
+Migrations must be reversible, backward-compatible, and safe for production.
+
+## Adding a migration
+
+1. Generate the migration.
+2. Define safe schema changes only.
+3. Avoid destructive operations.
+4. Ensure the migration is reversible.
+5. Review production impact (locks, table size).
+6. Add tests when behavior depends on the change.
+
+## Forbidden without explicit approval
+
+- `drop_table`, `remove_column`, `change_column`
+- `delete_all`, `destroy_all`, `update_all`
+- raw `execute(...)`
+- large data updates inside a migration
+
+## Required practices
+
+- Separate schema changes from data changes — never mix them in one migration.
+- Do not use application models inside migrations; the model can drift from the migration's intent.
+- Add indexes carefully and consider lock impact on large tables.
+- For large data changes, use a background job, not the migration.
+
+## Table renames
+
+- Use a strict rename helper that raises when state is inconsistent. Never write a local
+  "skip if missing" wrapper around `rename_table` — a silent skip hides partial-rename failures and
+  produces schema drift (see `no-silent-fallback` and `fail-fast`).
+- While a rename migration is in flight, rebuild the database from migrations rather than applying
+  incremental migrations onto a half-renamed state (see `no-workflow-drift`).
+
+## Validation
+
+Before applying, confirm rollback is possible and no data is lost.

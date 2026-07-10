@@ -1,0 +1,32 @@
+---
+name: regression-guards
+description: Mechanical tests that pin security boundaries; a failure means review, not allowlist edits.
+---
+
+# Enforced Regression Guards
+
+These tests mechanically enforce security boundaries. When one fails, confirm the underlying change
+is an intentional, reviewed security decision before touching the test.
+
+## Forbidden-pattern guard
+
+`test/unit/security/forbidden_rails_patterns_test.rb` enforces:
+
+- No test-framework detection or known test-only bypass in `app/` or `lib/` (for example
+  `defined?(Minitest)`, `defined?(RSpec)`, `ENV["RAILS_ENV"]`, `TEST_VERIFICATION_COOKIE_PREFIX`).
+  See `no-test-only-code`.
+- `skip_before_action :enforce_verification_if_required`, `:enforce_step_up_prereqs!`, and
+  `:authenticate_client!` may appear only in the reviewed `SENSITIVE_SKIP_ALLOWLIST`. Adding a new
+  file that skips one of these fails the suite until the boundary change is reviewed.
+
+## Bare controller guard
+
+`test/controllers/apex/app/bare_controller_test.rb` pins the set of controllers inheriting
+`Apex::App::BareController` (a no-op `public_strict!` boundary). A new descendant fails the suite
+until it is confirmed to be a public, self-defending endpoint. See `controller-inheritance`.
+
+## On failure
+
+Do not just edit the allowlist or the pinned set to make the suite green. Confirm first that the
+change is a deliberate, reviewed security decision; the failing test is the review gate, not an
+obstacle.

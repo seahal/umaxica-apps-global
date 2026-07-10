@@ -1,0 +1,112 @@
+---
+name: no-silent-fallback
+description: Never swallow errors or skip work silently; unexpected state must not be hidden.
+---
+
+# No Silent Fallback
+
+Code must never hide a failure or an unexpected state behind a silent success.
+
+## Exception handling
+
+Do not:
+
+- rescue and ignore errors
+- use `rescue nil`
+- catch a broad exception only to continue as if nothing happened
+- swallow JavaScript or TypeScript failures with empty `catch`, fallback return values, default
+  responses, or best-effort continuation
+
+Reason: swallowed exceptions hide failures and turn a hard error into silent data corruption.
+
+## No "skip if missing" guards
+
+Do not wrap an operation in a guard that silently no-ops when state is unexpected, for example a
+`rename_table` wrapped in `return unless table_exists?(...)`. A silent skip hides a partial or failed
+operation and lets state drift until it surfaces much later as a confusing failure.
+
+When state may be inconsistent, fail loudly instead (see `fail-fast`).
+
+## No masking default-value fallbacks
+
+Do not substitute a default value to paper over a missing or invalid input when its absence means
+something is actually wrong. A fallback is only acceptable when the absent value is a legitimate,
+expected case — never as a way to avoid handling an error.
+
+Do not hide invalid configuration by supplying defaults for required settings. Required
+configuration must be explicit and must fail clearly when missing.
+
+Read required Ruby environment variables with one-argument `ENV.fetch("NAME")`. Do not use
+`ENV["NAME"]` for required configuration because a missing value returns `nil` and can continue
+silently. Do not pass a default value or block to `ENV.fetch`; missing required configuration must
+raise immediately.
+
+Forbidden required-configuration patterns include:
+
+- `ENV["NAME"]`, `ENV.fetch("NAME", "default")`, `ENV.fetch("NAME") { ... }`,
+  `ENV["NAME"] || "default"`, or equivalent Ruby defaults
+- `Rails.application.credentials.dig(...) || "default"` or equivalent credential defaults
+- `process.env.NAME ?? "default"`, `process.env.NAME || "default"`,
+  `import.meta.env.NAME ?? "default"`, or equivalent JavaScript or TypeScript defaults
+
+Validate required environment variables at startup or module boundaries and raise or throw a clear
+error when they are missing.
+
+## Exhaustive Ruby branches
+
+When Ruby branch logic dispatches over a known finite set of values, list every expected success
+branch explicitly. This applies to `case` / `when` and to `if` / `elsif` / `else` chains.
+
+Do not hide a known success route in `else`. If a branch is expected and reachable, name its
+condition directly. Keeping known routes explicit follows the open/closed principle: adding a new
+value should require adding a deliberate branch, not reinterpreting a catch-all default.
+
+Use `else` only for genuine default behavior or loud unexpected-state handling, such as
+`raise ArgumentError` or another explicit failure helper.
+
+For example, do not write:
+
+```ruby
+case resource_type
+when "operator" then "ORG"
+when "visitor" then "COM"
+else "APP"
+end
+```
+
+Write the expected value explicitly and reserve `else` for unsupported input:
+
+```ruby
+case resource_type
+when "operator" then "ORG"
+when "visitor" then "COM"
+when "client" then "APP"
+else raise ArgumentError, "unsupported resource_type: #{resource_type.inspect}"
+end
+```
+
+The same rule applies to `if` chains. Do not write:
+
+```ruby
+if resource_type == "operator"
+  "ORG"
+elsif resource_type == "visitor"
+  "COM"
+else
+  "APP"
+end
+```
+
+Write the known condition explicitly:
+
+```ruby
+if resource_type == "operator"
+  "ORG"
+elsif resource_type == "visitor"
+  "COM"
+elsif resource_type == "client"
+  "APP"
+else
+  raise ArgumentError, "unsupported resource_type: #{resource_type.inspect}"
+end
+```

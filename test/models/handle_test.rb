@@ -101,6 +101,6 @@ class HandleTest < ActiveSupport::TestCase
     )
 
     assert_not @handle.destroy
-    assert_includes @handle.errors[:base], "active avatarsが存在しているので削除できません"
+    assert @handle.errors[:base].any? { |message| message.include?("active avatars") }
   end
 end

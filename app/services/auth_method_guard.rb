@@ -3,46 +3,24 @@
 
 class AuthMethodGuard
   VERIFIED_EMAIL_STATUSES = [
-    UserEmailStatus::VERIFIED,
-    UserEmailStatus::VERIFIED_WITH_SIGN_UP,
+    ClientEmailStatus::VERIFIED,
+    ClientEmailStatus::VERIFIED_WITH_SIGN_UP,
   ].freeze
   VERIFIED_TELEPHONE_STATUSES = [
-    UserTelephoneStatus::VERIFIED,
-    UserTelephoneStatus::VERIFIED_WITH_SIGN_UP,
+    ClientTelephoneStatus::VERIFIED,
+    ClientTelephoneStatus::VERIFIED_WITH_SIGN_UP,
   ].freeze
-  CUSTOMER_VERIFIED_EMAIL_STATUSES = [
-    CustomerEmailStatus::VERIFIED,
-    CustomerEmailStatus::VERIFIED_WITH_SIGN_UP,
+  VISITOR_VERIFIED_EMAIL_STATUSES = [
+    VisitorEmailStatus::VERIFIED,
+    VisitorEmailStatus::VERIFIED_WITH_SIGN_UP,
   ].freeze
-  CUSTOMER_VERIFIED_TELEPHONE_STATUSES = [
-    CustomerTelephoneStatus::VERIFIED,
-    CustomerTelephoneStatus::VERIFIED_WITH_SIGN_UP,
+  VISITOR_VERIFIED_TELEPHONE_STATUSES = [
+    VisitorTelephoneStatus::VERIFIED,
+    VisitorTelephoneStatus::VERIFIED_WITH_SIGN_UP,
   ].freeze
 
   def self.remaining_count(actor, excluding: nil)
-    count = 0
-
-    if actor.respond_to?(:user_social_google)
-      google = actor.user_social_google
-      if google&.status_id == UserSocialGoogleStatus::ACTIVE
-        count += 1
-        count -= 1 if excluding.is_a?(UserSocialGoogle) && excluding.id == google.id
-      end
-    end
-
-    if actor.respond_to?(:user_social_apple)
-      apple = actor.user_social_apple
-      if apple&.status_id == UserSocialAppleStatus::ACTIVE
-        count += 1
-        count -= 1 if excluding.is_a?(UserSocialApple) && excluding.id == apple.id
-      end
-    end
-
-    count += verified_emails_count(actor, excluding: excluding)
-    count += verified_telephones_count(actor, excluding: excluding)
-    count += active_passkeys_count(actor, excluding: excluding)
-
-    [count, 0].max
+    AuthenticationCredentialInventory.call(actor, excluding: excluding, reload: true).aal1_method_count
   end
 
   def self.last_method?(actor, excluding: nil)
@@ -50,39 +28,37 @@ class AuthMethodGuard
   end
 
   def self.can_remove_passkey?(actor, passkey)
-    remaining_passkeys = active_passkeys_count(actor, excluding: passkey)
-    return true if remaining_passkeys.positive?
-
-    verified_emails_count(actor).positive? || active_social_count(actor).positive?
+    inventory = AuthenticationCredentialInventory.call(actor, excluding: passkey, reload: true)
+    inventory.retains_aal1? && inventory.retains_aal2?
   end
 
   def self.can_remove_email?(actor, email)
-    remaining_emails = verified_emails_count(actor, excluding: email)
-    return true if remaining_emails.positive?
-
-    remaining_telephones = verified_telephones_count(actor)
-    return false if remaining_telephones.zero?
-
-    active_passkeys_count(actor).positive? || active_social_count(actor).positive?
+    inventory = AuthenticationCredentialInventory.call(actor, excluding: email, reload: true)
+    inventory.retains_contactability? && inventory.retains_aal1? && inventory.retains_aal2?
   end
 
   def self.can_remove_telephone?(actor, telephone)
-    remaining_telephones = verified_telephones_count(actor, excluding: telephone)
-    return true if remaining_telephones.positive?
+    AuthenticationCredentialInventory.call(actor, excluding: telephone, reload: true).retains_contactability?
+  end
 
-    verified_emails_count(actor).positive?
+  def self.can_remove_totp?(actor, totp)
+    AuthenticationCredentialInventory.call(actor, excluding: totp, reload: true).retains_aal2?
+  end
+
+  def self.can_remove_secret_credential?(actor, secret_credential)
+    AuthenticationCredentialInventory.call(actor, excluding: secret_credential, reload: true).retains_aal1?
   end
 
   def self.verified_emails_count(actor, excluding: nil)
-    if actor.respond_to?(:user_emails)
-      scope = actor.user_emails.where(user_email_status_id: VERIFIED_EMAIL_STATUSES)
-      scope = scope.where.not(id: excluding.id) if excluding.is_a?(UserEmail)
+    if actor.respond_to?(:client_emails)
+      scope = actor.client_emails.where(user_email_status_id: VERIFIED_EMAIL_STATUSES)
+      scope = scope.where.not(id: excluding.id) if excluding_record?(excluding, "ClientEmail")
       return scope.count
     end
 
-    if actor.respond_to?(:customer_emails)
-      scope = actor.customer_emails.where(customer_email_status_id: CUSTOMER_VERIFIED_EMAIL_STATUSES)
-      scope = scope.where.not(id: excluding.id) if excluding.is_a?(CustomerEmail)
+    if actor.respond_to?(:visitor_emails)
+      scope = actor.visitor_emails.where(visitor_email_status_id: VISITOR_VERIFIED_EMAIL_STATUSES)
+      scope = scope.where.not(id: excluding.id) if excluding_record?(excluding, "VisitorEmail")
       return scope.count
     end
 
@@ -90,15 +66,15 @@ class AuthMethodGuard
   end
 
   def self.verified_telephones_count(actor, excluding: nil)
-    if actor.respond_to?(:user_telephones)
-      scope = actor.user_telephones.where(user_telephone_status_id: VERIFIED_TELEPHONE_STATUSES)
-      scope = scope.where.not(id: excluding.id) if excluding.is_a?(UserTelephone)
+    if actor.respond_to?(:client_telephones)
+      scope = actor.client_telephones.where(user_telephone_status_id: VERIFIED_TELEPHONE_STATUSES)
+      scope = scope.where.not(id: excluding.id) if excluding_record?(excluding, "ClientTelephone")
       return scope.count
     end
 
-    if actor.respond_to?(:customer_telephones)
-      scope = actor.customer_telephones.where(customer_telephone_status_id: CUSTOMER_VERIFIED_TELEPHONE_STATUSES)
-      scope = scope.where.not(id: excluding.id) if excluding.is_a?(CustomerTelephone)
+    if actor.respond_to?(:visitor_telephones)
+      scope = actor.visitor_telephones.where(visitor_telephone_status_id: VISITOR_VERIFIED_TELEPHONE_STATUSES)
+      scope = scope.where.not(id: excluding.id) if excluding_record?(excluding, "VisitorTelephone")
       return scope.count
     end
 
@@ -106,15 +82,15 @@ class AuthMethodGuard
   end
 
   def self.active_passkeys_count(actor, excluding: nil)
-    if actor.respond_to?(:user_passkeys)
-      scope = actor.user_passkeys.where(status_id: UserPasskeyStatus::ACTIVE)
-      scope = scope.where.not(id: excluding.id) if excluding.is_a?(UserPasskey)
+    if actor.respond_to?(:client_passkeys)
+      scope = actor.client_passkeys.where(status_id: ClientPasskeyStatus::ACTIVE)
+      scope = scope.where.not(id: excluding.id) if excluding_record?(excluding, "ClientPasskey")
       return scope.count
     end
 
-    if actor.respond_to?(:customer_passkeys)
-      scope = actor.customer_passkeys.where(status_id: CustomerPasskeyStatus::ACTIVE)
-      scope = scope.where.not(id: excluding.id) if excluding.is_a?(CustomerPasskey)
+    if actor.respond_to?(:visitor_passkeys)
+      scope = actor.visitor_passkeys.where(status_id: VisitorPasskeyStatus::ACTIVE)
+      scope = scope.where.not(id: excluding.id) if excluding_record?(excluding, "VisitorPasskey")
       return scope.count
     end
 
@@ -123,12 +99,12 @@ class AuthMethodGuard
 
   def self.active_social_count(actor)
     count = 0
-    if actor.respond_to?(:user_social_google) &&
-        actor.user_social_google&.status_id == UserSocialGoogleStatus::ACTIVE
+    if actor.respond_to?(:user_google_identity) &&
+        actor.user_google_identity&.status_id == ClientGoogleIdentityStatus::ACTIVE
       count += 1
     end
-    if actor.respond_to?(:user_social_apple) &&
-        actor.user_social_apple&.status_id == UserSocialAppleStatus::ACTIVE
+    if actor.respond_to?(:user_apple_identity) &&
+        actor.user_apple_identity&.status_id == ClientAppleIdentityStatus::ACTIVE
       count += 1
     end
     count
@@ -138,4 +114,10 @@ class AuthMethodGuard
                        :verified_telephones_count,
                        :active_passkeys_count,
                        :active_social_count
+
+  def self.excluding_record?(record, class_name)
+    record.present? && record.respond_to?(:id) && record.class.name == class_name
+  end
+
+  private_class_method :excluding_record?
 end

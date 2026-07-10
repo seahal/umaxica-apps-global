@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 require Rails.root.join("app/subscribers/jwt_anomaly_subscriber")
 
 class JwtAnomalySubscriberCoverageTest < ActiveSupport::TestCase
@@ -51,8 +52,8 @@ class JwtAnomalySubscriberCoverageTest < ActiveSupport::TestCase
     end
 
     logged_message = nil
-    Rails.logger.stub(:error, ->(message) { logged_message = message }) do
-      JwtAnomalyEvent.stub(:create!, ->(**) { raise StandardError, "explode" }) do
+    Rails.logger.stub(:error, proc { |message = nil| logged_message = message if message }) do
+      JwtAnomalyEvent.stub(:create!, ->(**) { raise ActiveRecord::ActiveRecordError, "explode" }) do
         JwtAnomalySubscriber.new.emit(
           MockEvent.new(
             name: "jwt.anomaly.detected",
@@ -62,7 +63,32 @@ class JwtAnomalySubscriberCoverageTest < ActiveSupport::TestCase
       end
     end
 
-    assert_includes logged_message, "JwtAnomalySubscriber failed"
+    assert_includes logged_message, "jwt.anomaly.subscriber_failed"
+  end
+
+  test "emit ignores blank codes and events without a name" do
+    assert_no_difference "JwtAnomalyEvent.count" do
+      JwtAnomalySubscriber.new.emit(MockEvent.new(name: "jwt.anomaly.detected", payload: {}))
+      JwtAnomalySubscriber.new.emit(MockEvent.new(name: nil, payload: { code: "AUTH_USER_MALFORMED_TOKEN" }))
+    end
+  end
+
+  test "emit accepts string keyed payloads and defaults occurred_at to current time" do
+    travel_to Time.zone.parse("2026-06-15 21:00:00") do
+      assert_difference "JwtAnomalyEvent.count", 1 do
+        JwtAnomalySubscriber.new.emit(
+          MockEvent.new(
+            name: "jwt.anomaly.detected",
+            payload: { "code" => "AUTH_USER_MALFORMED_TOKEN", "extra" => "kept" },
+          ),
+        )
+      end
+    end
+
+    event = JwtAnomalyEvent.order(:id).last
+
+    assert_equal({ "extra" => "kept" }, event.metadata)
+    assert_equal Time.zone.parse("2026-06-15 21:00:00"), event.occurred_at
   end
 
   test "build_metadata includes extra fields" do

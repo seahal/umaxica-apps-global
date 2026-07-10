@@ -2,9 +2,10 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class RedirectTest < ActiveSupport::TestCase
-  include Common::Redirect
+  include CommonRedirect
 
   setup do
     @original_env = ENV.to_h

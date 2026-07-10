@@ -6,18 +6,30 @@
 #  id :bigint           not null, primary key
 #
 create_new_preference_token:
-  id: 8
-refresh_token_rotated:
   id: 1
-update_preference_cookie:
+refresh_token_rotated:
   id: 2
+update_preference_cookie:
+  id: 3
 update_preference_language:
-  id: 7
+  id: 4
 update_preference_timezone:
   id: 5
 reset_by_user_decision:
-  id: 4
-update_preference_region:
   id: 6
-update_preference_colortheme:
-  id: 3
+update_preference_region:
+  id: 7
+update_preference_theme:
+  id: 8
+update_preference_currency:
+  id: 9
+update_preference_date_format:
+  id: 10
+update_preference_time_format:
+  id: 11
+update_preference_motion:
+  id: 12
+update_preference_density:
+  id: 13
+update_preference_page_size:
+  id: 14

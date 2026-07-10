@@ -5,20 +5,30 @@
 #
 # This initializer sets up WebAuthn for Passkey authentication.
 #
-# IMPORTANT: TRUSTED_ORIGINS must be configured in environment variables.
-# The application will fail to start if TRUSTED_ORIGINS is not set or empty.
+# IMPORTANT: WebAuthn trusted origins are derived from public Auth hosts.
+# The application will fail to start if no public Auth host or explicit origin is configured.
 #
 # Environment Variables:
-# - TRUSTED_ORIGINS: Comma-separated list of allowed origins (required)
-#   - Development: http://id.app.localhost:3000,http://id.org.localhost:3000
-#   - Production: https://id.app.example.com,https://id.org.example.com
+# - PUBLIC_AUTH_SERVICE_URL / PUBLIC_AUTH_CORPORATE_URL / PUBLIC_AUTH_STAFF_URL:
+#   Public browser hosts for the Auth surfaces (required unless explicit WebAuthn origins are set).
+# - TRUSTED_ORIGINS: Optional comma-separated additional origins.
+# - WEBAUTHN_APP_RP_ID / WEBAUTHN_COM_RP_ID / WEBAUTHN_ORG_RP_ID: Public RP IDs.
+# - WEBAUTHN_APP_ORIGIN / WEBAUTHN_COM_ORIGIN / WEBAUTHN_ORG_ORIGIN: Public origins.
+# - WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN: Shared fallback values.
 #
-# Note: rp_id is NOT configured here. It is dynamically determined per-request
-# using request.host in the Webauthn::Config concern. This allows different
-# rp_id values for service (id.app.localhost) and staff (id.org.localhost).
+# Note: rp_id is NOT configured on the global gem object. It is dynamically
+# determined per-request in SignWebauthn, with environment overrides for
+# deployments where Rails sees an internal host behind a proxy.
+
+require "jit_host_origin_env"
 
 module Webauthn
   class TrustedOriginsNotConfiguredError < StandardError; end
+
+  # Raised at startup when production is missing RP_ID env vars.
+  # Without an explicit RP_ID, rpId falls back to request.host, which is
+  # attacker-controllable via Host header injection and enables rpId confusion.
+  class MissingRpIdError < StandardError; end
 
   class << self
     def trusted_origins
@@ -33,34 +43,50 @@ module Webauthn
             "Allowed origins: #{trusted_origins.join(", ")}"
     end
 
+    # Raises MissingRpIdError in production when no surface has an RP_ID configured.
+    # Each WebAuthn surface (APP/COM/ORG) must have either WEBAUTHN_<SURFACE>_RP_ID
+    # or the shared WEBAUTHN_RP_ID set. Checked at startup before the first request.
+    def validate_rp_id_configuration!
+      return unless Rails.env.production?
+
+      shared_rp_id = ENV["WEBAUTHN_RP_ID"].to_s.strip
+
+      %w(APP COM ORG).each do |surface|
+        next if ENV["WEBAUTHN_#{surface}_RP_ID"].to_s.strip.present?
+        next if shared_rp_id.present?
+
+        raise MissingRpIdError,
+              "WEBAUTHN_#{surface}_RP_ID or WEBAUTHN_RP_ID must be set in production. " \
+              "Without it, webauthn_rp_id falls back to request.host, which is " \
+              "attacker-controllable via Host header injection."
+      end
+    end
+
     private
 
     def parse_trusted_origins
-      raw = ENV["TRUSTED_ORIGINS"].to_s.strip
-      origins = raw.split(",")
-      origins.map!(&:strip)
-      origins.reject!(&:empty?)
+      origins = JitHostOriginEnv.trusted_origins(
+        ENV["PUBLIC_AUTH_SERVICE_URL"],
+        ENV["PUBLIC_AUTH_CORPORATE_URL"],
+        ENV["PUBLIC_AUTH_STAFF_URL"],
+        ENV["WEBAUTHN_APP_ORIGIN"],
+        ENV["WEBAUTHN_COM_ORIGIN"],
+        ENV["WEBAUTHN_ORG_ORIGIN"],
+        ENV["WEBAUTHN_ORIGIN"],
+        ENV["TRUSTED_ORIGINS"].to_s.split(","),
+      )
 
       if origins.empty?
         raise TrustedOriginsNotConfiguredError,
-              "TRUSTED_ORIGINS environment variable is required but not set. " \
-              "Please configure it with comma-separated origin URLs. " \
-              "Example for development: TRUSTED_ORIGINS=http://id.app.localhost:3000, " \
-              "http://id.org.localhost:3000" \
-              "Example for production: TRUSTED_ORIGINS=https://id.app.example.com, " \
-              "https://id.org.example.com"
+              "WebAuthn trusted origins are not configured. " \
+              "Configure PUBLIC_AUTH_SERVICE_URL, PUBLIC_AUTH_CORPORATE_URL, " \
+              "and PUBLIC_AUTH_STAFF_URL with public Auth hosts. " \
+              "TRUSTED_ORIGINS may be set only for additional explicit origins."
       end
 
-      # Validate origin format
       origins.each do |origin|
-        uri = URI.parse(origin)
-        unless uri.scheme && uri.host
-          raise TrustedOriginsNotConfiguredError,
-                "Invalid origin format in TRUSTED_ORIGINS: '#{origin}'. " \
-                "Origins must include scheme and host (e.g., https://example.com)"
-        end
+        uri = parse_origin_uri(origin)
 
-        # Production must use HTTPS
         if Rails.env.production? && uri.scheme != "https"
           raise TrustedOriginsNotConfiguredError,
                 "Production requires HTTPS origins. Found HTTP origin: '#{origin}'"
@@ -69,13 +95,27 @@ module Webauthn
 
       origins.freeze
     end
+
+    def parse_origin_uri(origin)
+      uri = URI.parse(origin)
+      return uri if uri.scheme && uri.host
+
+      raise URI::InvalidURIError
+    rescue URI::InvalidURIError
+      raise TrustedOriginsNotConfiguredError,
+            "Invalid origin format in TRUSTED_ORIGINS: '#{origin}'. " \
+            "Origins must include scheme and host (e.g., https://example.com)"
+    end
   end
 
   TRUSTED_ORIGINS = parse_trusted_origins
 end
 
-# Fail-fast: Validate TRUSTED_ORIGINS at application startup
+# Fail-fast: Validate WebAuthn trusted origins at application startup
 Webauthn.trusted_origins
+
+# Fail-fast: Validate RP_ID configuration at application startup
+Webauthn.validate_rp_id_configuration!
 
 # Configure webauthn gem defaults
 WebAuthn.configure do |config|
@@ -83,7 +123,7 @@ WebAuthn.configure do |config|
   config.rp_name = ENV.fetch("WEBAUTHN_RP_NAME", "Umaxica")
 
   # IMPORTANT: allowed_origins and rp_id are NOT set here.
-  # They are dynamically configured per-request in Webauthn::Config concern.
+  # They are dynamically configured per-request in SignWebauthn.
   # This allows:
   # - rp_id to vary by host (id.app.localhost vs id.org.localhost)
   # - origin validation to use our stricter Webauthn.validate_origin!

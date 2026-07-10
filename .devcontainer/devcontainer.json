@@ -6,8 +6,12 @@
   "containerUser": "global",
   "workspaceFolder": "/home/global/workspace",
   "overrideCommand": true,
-  "forwardPorts": [3002],
-  "remoteEnv": { "EDITOR": "code --wait --reuse-window", "DEBUGGER_DISABLE": "1" },
+  "forwardPorts": [3000, 3036, 5050],
+  "remoteEnv": {
+    "EDITOR": "code --wait --reuse-window",
+    "DEBUGGER_DISABLE": "1",
+    "PATH": "/home/global/.opencode/bin:${containerEnv:PATH}"
+  },
   "customizations": {
     "vscode": {
       "extensions": [
@@ -84,37 +88,45 @@
     }
   },
   "shutdownAction": "stopCompose",
-  "containerEnv": {
-    "DEVCONTAINER_AUTO_START_BIN_DEV": "1",
-    "NODE_OPTIONS": "--max-old-space-size=4096",
-    "QT_QPA_PLATFORM": "wayland",
-    "GDK_BACKEND": "wayland",
-    "RUBY_YJIT_ENABLE": "1",
-    "RUBY_YJIT_CALL_THRESHOLD": "10",
-    "RUBY_DEBUG_OPEN": "false"
-  },
-  "updateRemoteUserUID": true,
-  "postStartCommand": "",
+  "updateRemoteUserUID": false,
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/copilot-cli:1": {},
-    "ghcr.io/stu-bell/devcontainer-features/gemini-cli:0": {},
     "ghcr.io/jsburckhardt/devcontainer-features/codex:1": {},
-    "ghcr.io/jsburckhardt/devcontainer-features/opencode:1": {},
-    "ghcr.io/devcontainers-extra/features/lefthook-asdf:1": {},
-    "ghcr.io/jasonthedeveloper/features/trivy:1": {},
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
+    "ghcr.io/devcontainers-extra/features/opencode:1": {}
   },
+  // Host bind mounts that hold general config remain readonly so in-container
+  // writes cannot re-own them to a subuid on the host under rootless podman.
+  // Tool auth/state directories are mounted narrowly:
+  //   - ~/.claude.json  rw  (ClaudeCode rewrites this on every auth refresh)
+  //   - ~/.claude       rw  (project settings, CLAUDE.md, credentials sub-dir)
+  //   - ~/.codex        rw  (Codex auth and project state)
+  // Heavy-write cache directories route through the umaxica-home-cache named
+  // volume mounted at /home/global/.cache — they never churn host ownership.
+  // Executable tool binaries come from devcontainer features or the image, not
+  // host .local/bin, so host-only symlinks cannot shadow container installs.
+  //
+  // Workspace write-guards: critical supply-chain paths are overlaid as
+  // readonly bind mounts on top of the rw workspace bind mount. A compromised
+  // in-container process cannot rewrite CI workflows, bin scripts, or lockfiles.
   "mounts": [
+    "source=${localEnv:HOME}/.codex,target=/home/global/.codex,type=bind",
     "source=${localEnv:HOME}/.claude,target=/home/global/.claude,type=bind",
     "source=${localEnv:HOME}/.claude.json,target=/home/global/.claude.json,type=bind",
-    "source=${localEnv:HOME}/.copilot,target=/home/global/.copilot,type=bind",
-    "source=${localEnv:HOME}/.codex,target=/home/global/.codex,type=bind",
-    "source=${localEnv:HOME}/.gemini,target=/home/global/.gemini,type=bind",
-    "source=${localEnv:HOME}/.config/gh,target=/home/global/.config/gh,type=bind",
-    "source=${localEnv:HOME}/.config/git,target=/home/global/.config/git,type=bind",
-    "source=${localEnv:HOME}/.gitconfig,target=/home/global/.gitconfig,type=bind",
-    "source=${localEnv:HOME}/.ssh,target=/home/global/.ssh,type=bind",
-    "source=${localEnv:HOME}/.config/opencode,target=/home/global/.config/opencode,type=bind"
+    "source=${localEnv:HOME}/.config/git,target=/home/global/.config/git,type=bind,readonly",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/global/.gitconfig,type=bind,readonly",
+    "source=${localEnv:HOME}/.ssh,target=/home/global/.ssh,type=bind,readonly",
+    "source=${localEnv:HOME}/.config/opencode,target=/home/global/.config/opencode,type=bind,readonly",
+    "source=${localEnv:HOME}/.config/gh,target=/home/global/.config/gh,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.devcontainer/dotfiles/bashrc,target=/home/global/.bashrc,type=bind",
+    "source=${localWorkspaceFolder}/.devcontainer/dotfiles/irbrc,target=/home/global/.irbrc,type=bind",
+    "type=bind,source=/etc/timezone,target=/etc/timezone,readonly",
+    "source=${localWorkspaceFolder}/.github,target=/home/global/workspace/.github,type=bind,readonly",
+    "source=${localWorkspaceFolder}/bin,target=/home/global/workspace/bin,type=bind,readonly",
+    "source=${localWorkspaceFolder}/Gemfile,target=/home/global/workspace/Gemfile,type=bind,readonly",
+    "source=${localWorkspaceFolder}/Gemfile.lock,target=/home/global/workspace/Gemfile.lock,type=bind,readonly",
+    "source=${localWorkspaceFolder}/package.json,target=/home/global/workspace/package.json,type=bind,readonly",
+    "source=${localWorkspaceFolder}/pnpm-lock.yaml,target=/home/global/workspace/pnpm-lock.yaml,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.devcontainer,target=/home/global/workspace/.devcontainer,type=bind,readonly"
   ]
 }

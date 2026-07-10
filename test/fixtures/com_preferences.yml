@@ -1,17 +1,16 @@
 # == Schema Information
 #
 # Table name: com_preferences
-# Database name: setting
+# Database name: com_setting
 #
 #  id                       :bigint           not null, primary key
-#  compromised_at           :datetime
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
-#  device_id_digest         :string
-#  expires_at               :datetime
+#  discarded_at             :datetime         default(Infinity), not null
+#  explicit_fields          :jsonb            not null
 #  jti                      :string
-#  revoked_at               :datetime
+#  purged_at                :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -19,7 +18,6 @@
 #  binding_method_id        :bigint           default(0), not null
 #  dbsc_session_id          :string
 #  dbsc_status_id           :bigint           default(0), not null
-#  device_id                :string
 #  public_id                :string           not null
 #  replaced_by_id           :bigint
 #  status_id                :bigint           default(2), not null
@@ -29,12 +27,10 @@
 #  index_com_preferences_on_binding_method_id  (binding_method_id)
 #  index_com_preferences_on_dbsc_session_id    (dbsc_session_id) UNIQUE
 #  index_com_preferences_on_dbsc_status_id     (dbsc_status_id)
-#  index_com_preferences_on_device_id          (device_id)
-#  index_com_preferences_on_device_id_digest   (device_id_digest)
 #  index_com_preferences_on_jti                (jti) UNIQUE
 #  index_com_preferences_on_public_id          (public_id) UNIQUE
+#  index_com_preferences_on_purged_at          (purged_at)
 #  index_com_preferences_on_replaced_by_id     (replaced_by_id)
-#  index_com_preferences_on_revoked_at         (revoked_at)
 #  index_com_preferences_on_status_id          (status_id)
 #  index_com_preferences_on_token_digest       (token_digest)
 #  index_com_preferences_on_used_at            (used_at)
@@ -52,12 +48,14 @@ one:
   binding_method_id: <%= ComPreferenceBindingMethod::NOTHING %>
   dbsc_status_id: <%= ComPreferenceDbscStatus::NOTHING %>
   status_id: 2
-  expires_at: <%= 20.years.from_now %>
+  purged_at: <%= 20.years.from_now %>
+  discarded_at: <%= 20.years.from_now %>
   token_digest: <%= Digest::SHA256.hexdigest("test_token_001") %>
 two:
   public_id: 820 # was com_pref_002
   binding_method_id: <%= ComPreferenceBindingMethod::NOTHING %>
   dbsc_status_id: <%= ComPreferenceDbscStatus::NOTHING %>
   status_id: 2
-  expires_at: <%= 20.years.from_now %>
+  purged_at: <%= 20.years.from_now %>
+  discarded_at: <%= 20.years.from_now %>
   token_digest: <%= Digest::SHA256.hexdigest("test_token_002") %>

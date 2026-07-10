@@ -3,24 +3,24 @@
 
 require "test_helper"
 
-# Test with UserEmail which includes Email
+# Test with ClientEmail which includes Email
 class EmailTest < ActiveSupport::TestCase
-  fixtures :users, :staffs, :user_statuses, :staff_statuses
+  fixtures :clients, :operators, :client_statuses, :operator_statuses
 
   setup do
-    @user = users(:none_user)
+    @user = clients(:none_user)
   end
 
   def build_email(attrs = {})
-    UserEmail.new({ user: @user }.merge(attrs))
+    ClientEmail.new({ user: @user }.merge(attrs))
   end
 
   def create_email(attrs = {})
-    UserEmail.create!({ user: @user }.merge(attrs))
+    ClientEmail.create!({ user: @user }.merge(attrs))
   end
 
   test "concern can be included in a class" do
-    assert_includes UserEmail.included_modules, Email
+    assert_includes ClientEmail.included_modules, Email
   end
 
   test "concern adds confirm_policy accessor" do
@@ -44,17 +44,17 @@ class EmailTest < ActiveSupport::TestCase
     assert_equal "test@example.com", email.address
   end
 
-  test "encrypts address deterministically" do
+  test "stores distinct ciphertexts for distinct addresses" do
     email1 = create_email(address: "test1@example.com", confirm_policy: true)
     email2 = create_email(address: "test2@example.com", confirm_policy: true)
-    sql = "SELECT address FROM #{UserEmail.table_name} WHERE id = :id"
+    sql = "SELECT address FROM #{ClientEmail.table_name} WHERE id = :id"
 
     # Different emails should have different encrypted values
-    raw1 = UserEmail.connection.execute(
-      UserEmail.sanitize_sql_array([sql, { id: email1.id }]),
+    raw1 = ClientEmail.connection.execute(
+      ClientEmail.sanitize_sql_array([sql, { id: email1.id }]),
     ).first
-    raw2 = UserEmail.connection.execute(
-      UserEmail.sanitize_sql_array([sql, { id: email2.id }]),
+    raw2 = ClientEmail.connection.execute(
+      ClientEmail.sanitize_sql_array([sql, { id: email2.id }]),
     ).first
 
     assert_not_equal raw1["address"], raw2["address"]
@@ -138,49 +138,66 @@ class EmailTest < ActiveSupport::TestCase
     assert_equal initial_count + 1, email.reload.otp_attempts_count
   end
 
-  test "locked? returns false when attempts < 3" do
+  test "locked? returns false when attempts are below threshold" do
     email = create_email(address: "test@example.com", confirm_policy: true)
 
     assert_not email.locked?
 
-    email.increment_attempts!
+    (Email::MAX_OTP_ATTEMPTS - 1).times do
+      email.increment_attempts!
 
-    assert_not email.reload.locked?
-
-    email.increment_attempts!
-
-    assert_not email.reload.locked?
+      assert_not email.locked?
+    end
   end
 
-  test "locked? returns true when attempts >= 3" do
+  test "locked? returns true when attempts reach threshold within observation window" do
     email = create_email(address: "test@example.com", confirm_policy: true)
 
-    3.times { email.increment_attempts! }
+    Email::MAX_OTP_ATTEMPTS.times { email.increment_attempts! }
 
-    assert_predicate email.reload, :locked?
+    assert_predicate email, :locked?
   end
 
-  test "increment_attempts! sets locked_at timestamp when threshold is reached" do
+  test "increment_attempts! sets lockout expiry when threshold is reached" do
     email = create_email(address: "test@example.com", confirm_policy: true)
 
     # Initially locked_at should be a sentinel (infinity or nil)
     assert email.locked_at.nil? || email.locked_at == Float::INFINITY || email.locked_at.to_s == "infinity"
 
-    # Increment to threshold
-    3.times { email.increment_attempts! }
+    Email::MAX_OTP_ATTEMPTS.times { email.increment_attempts! }
     email.reload
 
-    # locked_at should now be a real timestamp
     assert_predicate email.locked_at, :present?
     assert_not_equal email.locked_at, Float::INFINITY
     assert_not_equal email.locked_at, -Float::INFINITY
-    assert_operator email.locked_at, :<=, Time.current
+    assert_operator email.locked_at, :>, Time.current
+    assert_operator email.locked_at, :<=, Email::OTP_LOCKOUT_DURATION.from_now
+  end
+
+  test "increment_attempts! keeps locked_at stable when incrementing beyond threshold" do
+    email = create_email(address: "test@example.com", confirm_policy: true)
+
+    Email::MAX_OTP_ATTEMPTS.times { email.increment_attempts! }
+    email.reload
+
+    first_locked_at = email.locked_at
+
+    assert_predicate first_locked_at, :present?
+    assert_not_equal first_locked_at, Float::INFINITY
+    assert_not_equal first_locked_at, -Float::INFINITY
+
+    # Increment again beyond threshold
+    email.increment_attempts!
+    email.reload
+
+    # locked_at should remain the same (idempotent)
+    assert_equal first_locked_at.to_i, email.locked_at.to_i
   end
 
   test "increment_attempts! does not change locked_at if already set" do
     email = create_email(address: "test@example.com", confirm_policy: true)
-    initial_lock_time = 1.hour.ago
-    email.update!(locked_at: initial_lock_time, otp_attempts_count: 3)
+    initial_lock_time = 1.hour.from_now
+    email.update!(locked_at: initial_lock_time, otp_attempts_count: Email::MAX_OTP_ATTEMPTS)
 
     # Increment again
     email.increment_attempts!
@@ -192,15 +209,35 @@ class EmailTest < ActiveSupport::TestCase
 
   test "locked? returns true when locked_at is set" do
     email = create_email(address: "test@example.com", confirm_policy: true)
-    email.update!(locked_at: Time.current)
+    email.update!(locked_at: 1.minute.from_now)
 
     assert_predicate email, :locked?
   end
 
+  test "locked? returns false after lockout expires" do
+    email = create_email(address: "test@example.com", confirm_policy: true)
+    email.update!(locked_at: 1.second.ago, otp_attempts_count: Email::MAX_OTP_ATTEMPTS)
+
+    assert_not email.locked?
+  end
+
+  test "attempts outside observation window reset before lockout" do
+    email = create_email(address: "test@example.com", confirm_policy: true)
+    email.update!(
+      otp_attempts_count: Email::MAX_OTP_ATTEMPTS - 1,
+      otp_last_sent_at: (Email::OTP_ATTEMPT_WINDOW + 1.second).ago,
+    )
+
+    email.increment_attempts!
+
+    assert_equal 1, email.reload.otp_attempts_count
+    assert_not email.locked?
+  end
+
   test "clear_otp resets attempts and locked_at" do
     email = create_email(address: "test@example.com", confirm_policy: true)
-    3.times { email.increment_attempts! }
-    email.update!(locked_at: Time.current)
+    Email::MAX_OTP_ATTEMPTS.times { email.increment_attempts! }
+    email.update!(locked_at: 1.minute.from_now)
 
     email.clear_otp
 
@@ -217,7 +254,7 @@ class EmailTest < ActiveSupport::TestCase
           10.times do
             ActiveRecord::Base.connection_pool.with_connection do
               # Use a fresh instance to better simulate concurrent requests
-              UserEmail.find(email.id).increment_attempts!
+              ClientEmail.find(email.id).increment_attempts!
             end
           end
         end
@@ -225,7 +262,8 @@ class EmailTest < ActiveSupport::TestCase
 
     Concurrent::Promises.zip(*futures).value!
 
-    assert_equal 100, email.reload.otp_attempts_count
+    assert_equal Email::MAX_OTP_ATTEMPTS, email.reload.otp_attempts_count
+    assert_predicate email, :locked?
   end
 
   # OTP method tests
@@ -277,7 +315,7 @@ class EmailTest < ActiveSupport::TestCase
     expires_at = 1.hour.from_now.to_i
 
     email.store_otp(otp_key, otp_counter, expires_at)
-    email.update!(locked_at: Time.current)
+    email.update!(locked_at: 1.minute.from_now)
 
     otp_data = email.get_otp
 
@@ -328,7 +366,7 @@ class EmailTest < ActiveSupport::TestCase
 
   test "otp_active? returns false when OTP is locked" do
     email = create_email(address: "otp11@example.com", confirm_policy: true)
-    email.update!(otp_expires_at: 1.hour.from_now, locked_at: Time.current)
+    email.update!(otp_expires_at: 1.hour.from_now, locked_at: 1.minute.from_now)
 
     assert_not email.otp_active?
   end
@@ -336,35 +374,15 @@ class EmailTest < ActiveSupport::TestCase
   test "clear_otp clears all OTP data" do
     email = create_email(address: "otp12@example.com", confirm_policy: true)
     email.store_otp("key", 50, 1.hour.from_now.to_i)
-    email.update!(locked_at: Time.current, otp_attempts_count: 2)
+    email.update!(locked_at: 1.minute.from_now, otp_attempts_count: 2)
 
     email.clear_otp
 
-    # otp_private_key is NOT cleared by clear_otp (it persists secret key? No, logic sets it to nil? No defaults now)
-    # Wait, clear_otp implementation now DOES NOT set private_key.
-    # Logic in Step 177: update!(otp_counter: "0", otp_expires_at: "-infinity", ...)
-    # It does NOT touch otp_private_key!
-    # So assertions on private_key should expect it to REMAIN or be unchanged?
-    # Previous test expected NIL. Old logic set it to nil.
-    # New logic MUST set it to something valid if presence: true.
-    # If I removed it from update!, it stays as is.
-    # Is that desired? "Christmas destruction" -> maybe not clear it?
-    # If test expects nil, I should checking what clear_otp actually does.
-    # My replacement in Step 177 REMOVED otp_private_key from update! entirely?
-    # Yes. (Lines 60-67 replacement).
-    # So private key persists.
-    # Check if that is okay. "Clear OTP" usually resets state for NEXT attempt.
-    # If key is reused, it's fine (TOTP). HOTP needs counter reset.
-    # So assuming key persistence is fine.
-    # I update the test to expect persistence OR simply don't check it if it's not nil.
-    # But assertion `assert_nil email.otp_private_key` forces me to change it.
-
-    assert_equal "key", email.otp_private_key # Persists?
+    # clear_otp resets counter, expiry, attempts, and lock state but intentionally
+    # keeps otp_private_key (the column is NOT NULL, and the key is safe to reuse).
+    assert_equal "key", email.otp_private_key
     assert_equal "0", email.otp_counter
-    # otp_expires_at is "-infinity". ActiveSupport returns... Time?
-    # AR might return nil if logic converts invalid date? No, -infinity is valid.
-    # Test expects nil.
-    # I should assert UNLOCKED (locked_at: -infinity) and EXPIRED (expires_at: -infinity).
+    # otp_expires_at is reset to the "-infinity" sentinel ("never valid").
     assert(
       email.otp_expires_at.is_a?(Time) ||
       email.otp_expires_at.to_s == "-infinity" ||
@@ -419,5 +437,29 @@ class EmailTest < ActiveSupport::TestCase
     email.update!(otp_last_sent_at: "-infinity")
 
     assert_not email.otp_cooldown_active?
+  end
+
+  test "reregistration_window_active? uses independent ten second window" do
+    email = create_email(address: "rereg-window@example.com", confirm_policy: true)
+
+    email.update!(otp_last_sent_at: 9.seconds.ago)
+
+    assert_predicate email, :reregistration_window_active?
+
+    email.update!(otp_last_sent_at: 11.seconds.ago)
+
+    assert_not email.reregistration_window_active?
+
+    email.update!(otp_last_sent_at: "-infinity")
+
+    assert_not email.reregistration_window_active?
+  end
+
+  test "find_by_address returns the matching email or nil" do
+    created = create_email(address: "findable@example.com", confirm_policy: true)
+
+    assert_equal created, ClientEmail.public_send(:find_by_address, "findable@example.com")
+    assert_nil ClientEmail.public_send(:find_by_address, "")
+    assert_nil ClientEmail.public_send(:find_by_address, "missing@example.com")
   end
 end

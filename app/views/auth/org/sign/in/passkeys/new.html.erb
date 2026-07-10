@@ -1,0 +1,49 @@
+<% title t("sign.org.authentication.passkey.new.page_title") %>
+<% pt = signed_pt_param %>
+<% regional_context = current_region_identifier %>
+
+<div>
+  <div>
+    <h1><%= t("sign.org.authentication.passkey.new.page_title") %></h1>
+    <p><%= t("sign.org.authentication.passkey.new.description") %></p>
+  </div>
+
+  <div
+    data-controller="passkey-authentication"
+    data-passkey-authentication-options-url-value="<%= auth_org_sign_in_passkey_options_path(pt: pt, ri: regional_context) %>"
+    data-passkey-authentication-verification-url-value="<%= auth_org_sign_in_passkey_verification_path(pt: pt, ri: regional_context) %>"
+    data-passkey-authentication-region-value="<%= regional_context %>"
+    data-passkey-authentication-identifier-param-value="identifier"
+    data-passkey-authentication-turnstile-site-key-value="<%= JitSecurityTurnstileConfig.stealth_site_key.to_s %>"
+    data-passkey-authentication-turnstile-error-message-value="<%= t("turnstile_error") %>">
+
+    <div>
+      <label for="identifier">
+        <%= t("sign.org.authentication.passkey.new.identifier_label") %>
+      </label>
+      <input type="text"
+             id="identifier"
+             data-passkey-authentication-target="identifier"
+             placeholder="<%= t("sign.org.authentication.passkey.new.identifier_placeholder") %>"
+             autocomplete="username webauthn"
+             autocapitalize="characters"
+             minlength="<%= Operator::PUBLIC_ID_LENGTH %>"
+             maxlength="<%= Operator::PUBLIC_ID_LENGTH %>"
+             pattern="[0-9A-FGHJKMNPQRSTVWXYZ]{16}"
+             spellcheck="false"
+             required>
+    </div>
+
+    <p data-passkey-authentication-target="error" class="hidden"></p>
+    <p data-passkey-authentication-target="status" class="hidden"></p>
+    <input type="hidden" data-passkey-authentication-target="turnstileResponse" autocomplete="off">
+
+    <div>
+      <button type="button"
+              data-action="click->passkey-authentication#authenticate">
+        <%= t("sign.org.authentication.passkey.new.submit") %>
+      </button>
+      <%= link_to t("sign.org.authentication.new.back"), auth_org_sign_in_path(pt: pt, ri: regional_context) %>
+    </div>
+  </div>
+</div>

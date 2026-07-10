@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class JwtAnomalySubscriberTest < ActiveSupport::TestCase
   fixtures :jwt_occurrences
@@ -162,19 +163,23 @@ class JwtAnomalySubscriberTest < ActiveSupport::TestCase
     assert_equal({ :extra => "kept", "another" => "kept-too" }, metadata)
   end
 
-  test "emit logs and swallows errors from event creation" do
+  test "emit logs and swallows persistence errors from event creation" do
     logged_message = nil
     mock_event = MockEvent.new(
       name: "jwt.anomaly.detected",
       payload: { code: "AUTH_USER_MALFORMED_TOKEN" },
     )
 
-    JwtAnomalyEvent.stub(:create!, ->(**) { raise StandardError, "explode" }) do
+    JwtAnomalyEvent.stub(:create!, ->(**) { raise ActiveRecord::ActiveRecordError, "explode" }) do
       Rails.logger.stub(:error, ->(message) { logged_message = message }) do
         JwtAnomalySubscriber.new.emit(mock_event)
       end
     end
 
-    assert_includes logged_message, "JwtAnomalySubscriber failed"
+    payload = JSON.parse(logged_message)
+
+    assert_equal "jwt.anomaly.subscriber_failed", payload.fetch("event")
+    assert_equal "ActiveRecord::ActiveRecordError", payload.dig("data", "error_class")
+    assert_equal "explode", payload.dig("data", "message")
   end
 end

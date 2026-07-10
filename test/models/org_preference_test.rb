@@ -2,17 +2,16 @@
 # == Schema Information
 #
 # Table name: org_preferences
-# Database name: operator
+# Database name: org_setting
 #
 #  id                       :bigint           not null, primary key
-#  compromised_at           :datetime
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
-#  device_id_digest         :string
-#  expires_at               :datetime
+#  discarded_at             :datetime         default(Infinity), not null
+#  explicit_fields          :jsonb            not null
 #  jti                      :string
-#  revoked_at               :datetime
+#  purged_at                :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -20,7 +19,6 @@
 #  binding_method_id        :bigint           default(0), not null
 #  dbsc_session_id          :string
 #  dbsc_status_id           :bigint           default(0), not null
-#  device_id                :string
 #  public_id                :string           not null
 #  replaced_by_id           :bigint
 #  status_id                :bigint           default(2), not null
@@ -30,12 +28,10 @@
 #  index_org_preferences_on_binding_method_id  (binding_method_id)
 #  index_org_preferences_on_dbsc_session_id    (dbsc_session_id) UNIQUE
 #  index_org_preferences_on_dbsc_status_id     (dbsc_status_id)
-#  index_org_preferences_on_device_id          (device_id)
-#  index_org_preferences_on_device_id_digest   (device_id_digest)
 #  index_org_preferences_on_jti                (jti) UNIQUE
 #  index_org_preferences_on_public_id          (public_id) UNIQUE
+#  index_org_preferences_on_purged_at          (purged_at)
 #  index_org_preferences_on_replaced_by_id     (replaced_by_id)
-#  index_org_preferences_on_revoked_at         (revoked_at)
 #  index_org_preferences_on_status_id          (status_id)
 #  index_org_preferences_on_token_digest       (token_digest)
 #  index_org_preferences_on_used_at            (used_at)
@@ -68,7 +64,7 @@ class OrgPreferenceTest < ActiveSupport::TestCase
     preference = OrgPreference.new(public_id: "a" * 22)
 
     assert_not preference.valid?
-    assert_includes preference.errors[:public_id], "は21文字以内で入力してください"
+    assert preference.errors.of_kind?(:public_id, :too_long)
   end
 
   test "does not overwrite existing public_id" do
@@ -142,30 +138,29 @@ class OrgPreferenceTest < ActiveSupport::TestCase
     assert_nil OrgPreferenceLanguage.find_by(id: language_id)
   end
 
-  test "has one org_preference_colortheme" do
+  test "has one org_preference_theme" do
     preference = OrgPreference.create!
-    colortheme = preference.create_org_preference_colortheme!
+    theme = preference.create_org_preference_theme!
 
-    assert_equal colortheme, preference.org_preference_colortheme
+    assert_equal theme, preference.org_preference_theme
   end
 
-  test "destroys org_preference_colortheme when destroyed" do
+  test "destroys org_preference_theme when destroyed" do
     preference = OrgPreference.create!
-    colortheme = preference.create_org_preference_colortheme!
-    colortheme_id = colortheme.id
+    theme = preference.create_org_preference_theme!
+    theme_id = theme.id
     preference.destroy!
 
-    assert_nil OrgPreferenceColortheme.find_by(id: colortheme_id)
+    assert_nil OrgPreferenceTheme.find_by(id: theme_id)
   end
 
   test "consume_once_by_digest! is replay-detectable" do
     digest = OrgPreference.digest_refresh_token("org-consume-once")
     preference = OrgPreference.create!(
       status_id: OrgPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
 
     first = OrgPreference.consume_once_by_digest!(digest: digest)
@@ -179,26 +174,21 @@ class OrgPreferenceTest < ActiveSupport::TestCase
   test "consume_once_by_digest! rejects revoked compromised and expired rows" do
     revoked = OrgPreference.create!(
       status_id: OrgPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
       token_digest: OrgPreference.digest_refresh_token("org-revoked"),
-      revoked_at: Time.current,
+      discarded_at: Time.current,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
     compromised = OrgPreference.create!(
       status_id: OrgPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
       token_digest: OrgPreference.digest_refresh_token("org-compromised"),
-      compromised_at: Time.current,
+      discarded_at: Time.current,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
     expired = OrgPreference.create!(
       status_id: OrgPreferenceStatus::NOTHING,
-      expires_at: 1.minute.ago,
+      discarded_at: 1.minute.ago,
       token_digest: OrgPreference.digest_refresh_token("org-expired"),
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
 
     assert_nil OrgPreference.consume_once_by_digest!(digest: revoked.token_digest)
@@ -210,17 +200,29 @@ class OrgPreferenceTest < ActiveSupport::TestCase
     digest = OrgPreference.digest_refresh_token("org-rotate")
     original = OrgPreference.create!(
       status_id: OrgPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
-      device_id: "org-device",
     )
 
-    rotated = OrgPreference.rotate!(presented_digest: digest, device_id: "org-device", now: Time.current)
+    rotated = OrgPreference.rotate!(presented_digest: digest, now: Time.current)
 
     assert_predicate rotated, :present?
     assert_predicate rotated.issued_refresh_token, :present?
     assert_not_equal original.id, rotated.id
     assert_equal rotated.id, original.reload.replaced_by_id
+  end
+
+  test "adult_content_gate returns nothing when no gate is set" do
+    assert_equal "nothing", OrgPreference.new.adult_content_gate
+  end
+
+  test "adult_content_gate returns the gate option name when a gate is set" do
+    preference = OrgPreference.new
+    preference.build_org_preference_adult_content_gate(
+      option: OrgPreferenceAdultContentGateOption.new(id: OrgPreferenceAdultContentGateOption::APPROVED),
+    )
+
+    assert_equal "approved", preference.adult_content_gate
   end
 end

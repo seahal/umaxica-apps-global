@@ -25,13 +25,13 @@
 
 require "test_helper"
 
-class AreaStaffOccurrenceTest < ActiveSupport::TestCase
+class AreaOperatorOccurrenceTest < ActiveSupport::TestCase
   fixtures :area_occurrences
 
   test "associations" do
     area = area_occurrences(:one)
-    staff = StaffOccurrence.create!(body: "staff-001")
-    record = AreaStaffOccurrence.new(
+    staff = OperatorOccurrence.create!(body: "staff-001")
+    record = AreaOperatorOccurrence.new(
       area_occurrence: area,
       staff_occurrence: staff,
     )
@@ -43,9 +43,9 @@ class AreaStaffOccurrenceTest < ActiveSupport::TestCase
 
   test "uniqueness validation" do
     area = area_occurrences(:one)
-    staff = StaffOccurrence.create!(body: "staff-002")
-    AreaStaffOccurrence.create!(area_occurrence: area, staff_occurrence: staff)
-    duplicate = AreaStaffOccurrence.new(area_occurrence: area, staff_occurrence: staff)
+    staff = OperatorOccurrence.create!(body: "staff-002")
+    AreaOperatorOccurrence.create!(area_occurrence: area, staff_occurrence: staff)
+    duplicate = AreaOperatorOccurrence.new(area_occurrence: area, staff_occurrence: staff)
 
     assert_not duplicate.valid?
     assert_not_empty duplicate.errors[:area_occurrence_id]

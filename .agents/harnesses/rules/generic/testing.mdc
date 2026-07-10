@@ -1,0 +1,83 @@
+---
+name: testing
+description: Test principles, required coverage, and forbidden patterns for meaningful changes.
+---
+
+# Testing
+
+All meaningful changes need tests appropriate to their risk. A change without adequate tests is
+incomplete.
+
+## Required coverage
+
+Cover every case relevant to the change:
+
+- **Success path** — the intended behavior works (expected status, record created/updated, expected
+  response body, redirect to the expected internal path).
+- **Failure path** — invalid or rejected input fails safely without mutating state; unauthenticated
+  access is redirected or rejected.
+- **Authorization** — when a policy, role, or actor context is involved, assert that an authorized
+  actor is allowed and an unauthorized one is denied.
+- **Edge cases** — empty/nil values, invalid format, expired token, wrong host, wrong route, missing
+  cookie, restricted session, verification incomplete, already-existing record, idempotent re-entry.
+
+For model-layer validation or classification logic, include boundary value analysis and equivalence
+partitioning whenever validations, ranges, limits, formats, or categorizable inputs are involved.
+
+## Quality (FIRST, and readable)
+
+Tests must be:
+
+- **Fast, Independent, Repeatable, Self-validating, Timely** (FIRST).
+- Deterministic and hermetic — no dependence on wall-clock time, randomness, execution order,
+  external network, or leftover database state. Control such boundaries from the test.
+- Structured as Arrange / Act / Assert (or Given / When / Then), verifying one behavior per test, and
+  failing for one clear reason.
+- DAMP over DRY — keep each test's meaning readable at the point of use even if that duplicates a
+  little. Keep important setup visible in the test; do not hide business meaning (authorization
+  conditions, actor types, state transitions) in shared setup, fixtures, or helpers.
+- For both Rails/Minitest and Vitest, do not use test helpers at all. Keep setup, inputs,
+  actions, and assertions directly in the test body unless they are production APIs, framework
+  assertions/matchers, or the test framework's required lifecycle hooks.
+
+## What to assert
+
+Assert observable outcomes: HTTP status, redirect target, rendered response, database changes,
+cookies set or cleared, headers when relevant, and policy results seen through behavior. Prefer
+request- or integration-level tests for controllers. Do not assert on private methods, internal
+temporary variables, or incidental implementation details.
+
+When behavior uses Rails session for temporary workflow state, tests must cover lifecycle cleanup:
+
+- consumed, expired, rejected, or superseded session keys are removed with observable behavior
+- empty session containers are removed after their last entry is consumed
+- large or duplicated workflow values are not left in cookie-backed session storage after the
+  workflow reaches its target
+- cookie-backed session size stays below the browser cookie limit when the change materially adds to
+  session payload size
+
+## Forbidden
+
+Do not:
+
+- write `assert true` or other meaningless assertions
+- skip tests, or leave `TODO` placeholder tests
+- mock the code under test so heavily that behavior is no longer verified
+- call external APIs directly from tests — replace the third-party boundary (payment, email, network)
+  with a local fake, fixture, or adapter stub
+- add test-aware branches to application code to make tests pass (see `no-test-only-code`)
+- create or call test helper methods, helper modules, helper files, shared setup helpers, custom
+  assertion helpers, fixture-builder helpers, render helpers, request helpers, sign-in helpers, or
+  Vitest utility helpers
+- edit `test_helper.rb` while implementing or editing tests; global test-setup changes are forbidden
+  unless the user explicitly requests test-infrastructure work
+
+## Avoid these smells
+
+Mystery Guest, Obscure Test, Fragile Test, Flaky Test, Overspecified Test, and shared setup that
+hides business meaning.
+
+## Tools
+
+Use Minitest for Ruby and `vp test` (Vitest) for JavaScript. When a change spans both languages, add
+coverage on both sides where behavior changes.

@@ -17,15 +17,15 @@ servers:
   - url: https://core.org.localhost
     description: Core Staff
   - url: https://www.com.localhost
-    description: Apex Corporate
+    description: Acme Corporate
   - url: https://www.app.localhost
-    description: Apex Service
+    description: Acme Service
   - url: https://www.org.localhost
-    description: Apex Staff
+    description: Acme Staff
   - url: https://www.net.localhost
-    description: Apex Network
+    description: Acme Network
   - url: https://www.dev.localhost
-    description: Apex Developer
+    description: Acme Developer
 
 paths:
   /v0/health:
@@ -44,15 +44,32 @@ paths:
                 type: object
                 required:
                   - status
+                  - service
+                  - version
+                  - time
                 properties:
                   status:
                     type: string
-                    enum: [OK, BOOTING, ERROR]
+                    enum: [OK, BOOTING, UNHEALTHY, ERROR]
                     description: Health status of the API
+                  service:
+                    type: string
+                    description: Service namespace handling the health check
+                  version:
+                    type: string
+                    nullable: true
+                    description: Rails application revision
+                  time:
+                    type: string
+                    format: date-time
+                    description: UTC response timestamp
               examples:
                 success:
                   value:
                     status: OK
+                    service: sign
+                    version: 114fe4bd-6ee1-4f37-bf61-8e3ce208684a
+                    time: "2026-05-29T00:17:52.131Z"
 
 components:
   securitySchemes:

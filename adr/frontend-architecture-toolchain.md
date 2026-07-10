@@ -1,65 +1,79 @@
-# Frontend Architecture Decision: Rails + Importmap + Bun (Toolchain)
+# Frontend Architecture Decision: Rails + Vite Rails + Direct pnpm Tooling
 
 ## Overview
 
-This document records the architectural decision to use **Rails Importmap** for the runtime
-environment and **Bun** solely as a development toolchain (Linter/Formatter).
+This document records the architecture for browser JavaScript and asset tooling.
 
 ## Decision
 
-- **Runtime**: Rails Importmap (Hotwire/Turbo/Stimulus). No Node.js runtime in production.
-- **Development Toolchain**: Bun + Biome (High-speed Linting/Formatting).
+- **JavaScript runtime delivery**: Vite Rails bundles browser entrypoints from `src/entrypoints`.
+- **JavaScript layer**: Turbo, Stimulus, and React/Inertia modules are imported through npm packages
+  and bundled by Vite.
+- **CSS and static assets**: Vite-managed browser stylesheets are the default path for app UI CSS.
+  Browser assets that participate in the Vite graph live under `src`; Rails continues to serve
+  non-browser assets unless a feature explicitly needs a different delivery path.
+- **Development toolchain**: pnpm manages dependencies and scripts. Vite, Vitest, Oxlint, Oxfmt,
+  and TypeScript run directly without a unified CLI wrapper.
+- **Importmap**: The application no longer uses `javascript_importmap_tags`, `config/importmap.rb`,
+  or `bin/importmap` for browser entrypoint management. `importmap-rails` may still appear in
+  `Gemfile.lock` as a transitive dependency of mounted engines such as `mission_control-jobs`.
 
 ## Rationale
 
-### 1. Operational Simplicity (No Node.js in Production)
+### 1. Single JavaScript Entry Point System
 
-- **Benefit**: Removes the need to maintain a Node.js runtime in the production environment.
+- **Benefit**: Avoids maintaining the same Turbo, Stimulus, controller, and local module graph in
+  both importmap pins and Vite imports.
 - **Impact**:
-  - Reduced Docker image size.
-  - Reduced security attack surface.
-  - Lower memory consumption (Pure Ruby/Puma).
-  - Aligns with Rails 8 "No-Build" philosophy for default assets.
+  - Layouts load one explicit Vite entrypoint through `vite_typescript_tag`.
+  - npm dependencies are resolved by the same toolchain used for JavaScript tests.
+  - Importmap audit and pin maintenance are removed from application CI.
 
-### 2. Superior Developer Experience (DX)
+### 2. Keep Rails Asset Pipeline Where It Fits
 
-- **Benefit**: Bun + Biome provides near-instantaneous Linting and Formatting.
+- **Benefit**: JavaScript migration does not force images, fonts, or non-CSS Rails assets into Vite.
 - **Impact**:
-  - Comparable speed to RuboCop/standard Rails tools.
-  - Faster CI/CD pipelines compared to npm/yarn/pnpm.
-  - Avoids `node_modules` bloat in simple setups.
+  - Propshaft continues to serve static assets that do not participate in the Vite graph.
+  - App UI stylesheets are imported from Vite entrypoints such as `src/entrypoints/application.ts`.
+  - Mailer layouts and other non-Vite delivery paths may continue to use `stylesheet_link_tag` where
+    that is still the right transport.
 
-### 3. Alignment with "The Rails Way"
+### 3. Rails-Oriented Frontend Complexity
 
-- **Benefit**: Hotwire is designed to work without complex build steps.
+- **Benefit**: Vite is used for the parts that need npm resolution, React/Inertia support, and
+  JavaScript testing without replacing the Rails asset pipeline wholesale.
 - **Impact**:
-  - Eliminates "Webpack/Esbuild Config Hell".
-  - Keeps the focus on Rails development.
+  - Hotwire remains the default interaction model.
+  - React/Inertia modules can be introduced as explicit Vite entrypoints.
+  - New abstractions are avoided unless an entrypoint or surface boundary needs them.
 
 ## Considerations & Mitigation
 
-### 1. CI/CD & Dockerfile Strategy
+### 1. CI/CD and Build Strategy
 
-- **Challenge**: Bun is needed for linting in CI but not in production.
-- **Strategy**: Use **Multi-stage Docker builds**.
-  - `build` stage: Install Bun, run Biome/Tests.
-  - `release` stage: Copy only necessary assets. Do NOT include Bun runtime.
+- **Challenge**: Vite entrypoints need npm dependencies at build time.
+- **Strategy**:
+  - Keep JavaScript dependencies in `package.json` / `pnpm-lock.yaml`.
+  - Run `pnpm check`, `pnpm test:coverage`, and `bin/rails vite:build` in validation paths.
+  - Keep runtime Rails assets validated with `bin/rails assets:precompile`.
 
 ### 2. JavaScript Library Management
 
-- **Challenge**: Importmap requires ES Module compatible libraries.
+- **Challenge**: Browser runtime libraries must be explicit npm dependencies rather than importmap
+  pins.
 - **Strategy**:
-  - Use `bin/importmap pin` to fetch from CDNs (jspm, unpkg, etc.).
-  - For strict security requirements, use `bin/importmap pin --download` to vendor libraries.
+  - Put runtime imports such as Turbo and Stimulus in `dependencies`.
+  - Keep test/build-only packages in `devDependencies`.
+  - Use `pnpm audit` and Ruby audits instead of `bin/importmap audit`.
 
-### 3. Future Scalability (Complexity)
+### 3. Transitive Importmap Dependencies
 
-- **Challenge**: If complex SPA features (React/Vue with heavy state) are needed later.
-- **Strategy**: Adopt a hybrid approach.
-  - Stick to Hotwire for 90% of the app.
-  - Introduce Vite/Bun build step _only_ for specific complex islands if absolutely necessary.
+- **Challenge**: Mounted Rails engines may still depend on `importmap-rails`.
+- **Strategy**:
+  - Do not reintroduce application importmap pins or layout tags for those transitive dependencies.
+  - Treat complete gem removal as a separate engine dependency decision.
 
 ## Conclusion
 
-This architecture optimizes for "Simple Production, Fast Development," which is the ideal state for
-a modern Rails application.
+This architecture uses Vite Rails as the single JavaScript entrypoint system while keeping Rails'
+asset pipeline for CSS and static assets where it remains the simpler Rails-native fit.

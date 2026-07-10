@@ -1,0 +1,14 @@
+<%= link_to t("sign.app.settings.show.back"), base_app_identity_path(ri: params[:ri]) %>
+
+<% content_for :page_title, t("sign.app.settings.mfa.show.title") %>
+
+<h1><%= t("sign.app.settings.mfa.show.title") %></h1>
+
+<p>
+  <%= t("sign.app.settings.mfa.show.reset_unavailable") %>
+</p>
+
+<div>
+  <span><%= t("sign.app.settings.mfa.show.toggle_title") %></span>
+  <span><%= @user.mfa_level_enabled? ? t("sign.app.settings.mfa.show.enabled") : t("sign.app.settings.mfa.show.disabled") %></span>
+</div>

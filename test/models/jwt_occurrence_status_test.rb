@@ -32,4 +32,12 @@ class JwtOccurrenceStatusTest < ActiveSupport::TestCase
     assert_equal 3, JwtOccurrenceStatus::INACTIVE
     assert_equal 4, JwtOccurrenceStatus::DELETED
   end
+
+  test "ensure_defaults! creates default records" do
+    JwtOccurrenceStatus.ensure_defaults!
+
+    JwtOccurrenceStatus::DEFAULTS.each do |id|
+      assert JwtOccurrenceStatus.exists?(id), "missing default jwt occurrence status #{id}"
+    end
+  end
 end

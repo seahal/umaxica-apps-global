@@ -1,0 +1,22 @@
+<% content_for :page_title, t("sign.org.verification.setup.title") %>
+<% title t("sign.org.verification.setup.title") %>
+
+<div>
+  <h1><%= t("sign.org.verification.setup.title") %></h1>
+  <p><%= t("sign.org.verification.setup.description") %></p>
+
+  <% if @pt_destination.present? %>
+    <p>
+      <%= link_to t("actions.back"), @pt_destination %>
+    </p>
+  <% end %>
+
+  <ul>
+    <% if @missing_methods.include?(:passkey) %>
+    <li>
+      <%= link_to t("sign.org.verification.setup.methods.passkey"),
+                  new_auth_org_settings_passkey_path(ri: params[:ri], pt: @pt) %>
+    </li>
+    <% end %>
+  </ul>
+</div>

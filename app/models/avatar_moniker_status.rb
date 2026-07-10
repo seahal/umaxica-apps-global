@@ -9,12 +9,14 @@
 #  id :bigint           not null, primary key
 #
 class AvatarMonikerStatus < AvatarRecord
-  self.record_timestamps = false
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 1
   ACTIVE = 2
   INACTIVE = 3
   DELETED = 4
+  DEFAULTS = [NOTHING, ACTIVE, INACTIVE, DELETED].freeze
 
   has_many :avatar_monikers, dependent: :restrict_with_error
 end

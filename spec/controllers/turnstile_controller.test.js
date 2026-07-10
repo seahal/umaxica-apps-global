@@ -1,0 +1,378 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+
+vi.mock("@hotwired/stimulus", () => ({
+  Controller: class {
+    constructor() {
+      this.element = document.createElement("div");
+      this.containerTarget = {
+        dataset: { sitekey: "site-key" },
+        id: "turnstile-widget",
+      };
+      this.responseTarget = { value: "" };
+      this.hasContainerTarget = true;
+      this.hasResponseTarget = true;
+      this.completed = false;
+    }
+
+    connect() {}
+
+    disconnect() {}
+  },
+}));
+
+const { default: TurnstileController } =
+  await import("../../src/controllers/turnstile_controller.js");
+
+function restoreReadyState(descriptor) {
+  if (descriptor) {
+    Object.defineProperty(document, "readyState", descriptor);
+  }
+}
+
+describe("TurnstileController", () => {
+  let controller;
+  let render;
+  let execute;
+  let dispatchEvent;
+  let addEventListenerSpy;
+  let removeEventListenerSpy;
+
+  beforeEach(() => {
+    render = vi.fn();
+    execute = vi.fn();
+    dispatchEvent = vi.fn();
+    addEventListenerSpy = vi.spyOn(document, "addEventListener");
+    removeEventListenerSpy = vi.spyOn(document, "removeEventListener");
+
+    vi.stubGlobal("window", {
+      turnstile: { render, execute },
+      dispatchEvent,
+    });
+    vi.stubGlobal("CustomEvent", function CustomEventMock(type, options) {
+      this.type = type;
+      this.detail = options.detail;
+    });
+  });
+
+  afterEach(() => {
+    addEventListenerSpy.mockRestore();
+    removeEventListenerSpy.mockRestore();
+  });
+
+  function createController() {
+    controller = new TurnstileController();
+    return controller;
+  }
+
+  test("connect binds methods and sets up listeners", async () => {
+    const c = createController();
+
+    c.connect();
+
+    await vi.waitFor(() => expect(c.completed).toBe(true));
+    expect(addEventListenerSpy).toHaveBeenCalledWith("turbo:load", c.scheduleChallenge, {
+      once: true,
+    });
+  });
+
+  test("connect adds DOMContentLoaded listener when readyState is loading", () => {
+    const c = createController();
+    const originalReadyState = Object.getOwnPropertyDescriptor(document, "readyState");
+    Object.defineProperty(document, "readyState", {
+      value: "loading",
+      configurable: true,
+    });
+
+    c.connect();
+
+    expect(addEventListenerSpy).toHaveBeenCalledWith("DOMContentLoaded", c.scheduleChallenge, {
+      once: true,
+    });
+
+    restoreReadyState(originalReadyState);
+  });
+
+  test("connect calls scheduleChallenge directly when document is already loaded", () => {
+    const c = createController();
+    const originalReadyState = Object.getOwnPropertyDescriptor(document, "readyState");
+    Object.defineProperty(document, "readyState", {
+      value: "complete",
+      configurable: true,
+    });
+
+    const originalSchedule = c.scheduleChallenge;
+    let called = 0;
+    c.scheduleChallenge = (...args) => {
+      called += 1;
+      return originalSchedule.apply(c, args);
+    };
+
+    c.connect();
+
+    expect(called).toBe(1);
+    c.scheduleChallenge = originalSchedule;
+    restoreReadyState(originalReadyState);
+  });
+
+  test("disconnect removes all listeners", () => {
+    const c = createController();
+
+    c.disconnect();
+
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("turbo:load", c.scheduleChallenge);
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("DOMContentLoaded", c.scheduleChallenge);
+  });
+
+  test("scheduleChallenge renders visible turnstile once", async () => {
+    const c = createController();
+    c.modeValue = "render";
+    c.completed = false;
+
+    await c.scheduleChallenge();
+    await c.scheduleChallenge();
+
+    expect(render).toHaveBeenCalledOnce();
+    expect(render).toHaveBeenCalledWith(
+      c.containerTarget,
+      expect.objectContaining({
+        sitekey: "site-key",
+      }),
+    );
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  test("challenge options include ceremony binding values when present", () => {
+    const c = createController();
+    c.hasActionValue = true;
+    c.actionValue = "social_signup_confirmation";
+    c.hasCdataValue = true;
+    c.cdataValue = "cycle-public-id";
+
+    const options = c.challengeOptions();
+
+    expect(options.action).toBe("social_signup_confirmation");
+    expect(options.cData).toBe("cycle-public-id");
+  });
+
+  test("challenge options can read ceremony binding values from the widget element", () => {
+    const c = createController();
+    c.hasActionValue = false;
+    c.hasCdataValue = false;
+    c.containerTarget.dataset.action = "social_signup_confirmation";
+    c.containerTarget.dataset.cdata = "cycle-public-id";
+
+    const options = c.challengeOptions();
+
+    expect(options.action).toBe("social_signup_confirmation");
+    expect(options.cData).toBe("cycle-public-id");
+  });
+
+  test("scheduleChallenge executes stealth turnstile", async () => {
+    const c = createController();
+    c.modeValue = "execute";
+    c.completed = false;
+    render.mockReturnValue("widget-id");
+
+    await c.scheduleChallenge();
+
+    expect(render).toHaveBeenCalledOnce();
+    expect(render).toHaveBeenCalledWith(
+      c.containerTarget,
+      expect.objectContaining({
+        sitekey: "site-key",
+      }),
+    );
+    expect(execute).toHaveBeenCalledOnce();
+    expect(execute).toHaveBeenCalledWith("widget-id");
+  });
+
+  test("scheduleChallenge does nothing when already completed", async () => {
+    const c = createController();
+    c.modeValue = "render";
+    c.completed = true;
+
+    await c.scheduleChallenge();
+
+    expect(render).not.toHaveBeenCalled();
+  });
+
+  test("scheduleChallenge does nothing when window.turnstile is missing", async () => {
+    vi.stubGlobal("window", {
+      turnstile: undefined,
+      dispatchEvent,
+      setTimeout: globalThis.setTimeout,
+      clearTimeout: globalThis.clearTimeout,
+    });
+    const c = createController();
+    c.modeValue = "render";
+    c.completed = false;
+
+    await c.scheduleChallenge();
+
+    expect(render).not.toHaveBeenCalled();
+  });
+
+  test("scheduleChallenge does nothing when container target is missing", async () => {
+    const c = createController();
+    c.hasContainerTarget = false;
+    c.modeValue = "render";
+    c.completed = false;
+
+    await c.scheduleChallenge();
+
+    expect(render).not.toHaveBeenCalled();
+  });
+
+  test("scheduleChallenge does nothing when response target is missing", async () => {
+    const c = createController();
+    c.hasResponseTarget = false;
+    c.modeValue = "render";
+    c.completed = false;
+
+    await c.scheduleChallenge();
+
+    expect(render).not.toHaveBeenCalled();
+  });
+
+  test("success callback stores response token and dispatches event", () => {
+    const c = createController();
+    const options = c.challengeOptions();
+
+    options.callback("response-token");
+
+    expect(c.responseTarget.value).toBe("response-token");
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "turnstile:success",
+        detail: { widgetId: "turnstile-widget" },
+      }),
+    );
+  });
+
+  test("error callback clears response and dispatches event", () => {
+    const c = createController();
+    c.responseTarget.value = "old";
+    const options = c.challengeOptions();
+
+    const result = options["error-callback"]("E-123");
+
+    expect(c.responseTarget.value).toBe("");
+    expect(result).toBe(true);
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "turnstile:error",
+        detail: { errorCode: "E-123", widgetId: "turnstile-widget" },
+      }),
+    );
+  });
+
+  test("expired callback clears response and dispatches event", () => {
+    const c = createController();
+    c.responseTarget.value = "old";
+    const options = c.challengeOptions();
+
+    options["expired-callback"]();
+
+    expect(c.responseTarget.value).toBe("");
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "turnstile:expired",
+        detail: { widgetId: "turnstile-widget" },
+      }),
+    );
+  });
+
+  test("timeout callback clears response and dispatches event", () => {
+    const c = createController();
+    c.responseTarget.value = "old";
+    const options = c.challengeOptions();
+
+    options["timeout-callback"]();
+
+    expect(c.responseTarget.value).toBe("");
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "turnstile:timeout",
+        detail: { widgetId: "turnstile-widget" },
+      }),
+    );
+  });
+
+  test("unsupported callback clears response and dispatches event", () => {
+    const c = createController();
+    c.responseTarget.value = "old";
+    const options = c.challengeOptions();
+
+    options["unsupported-callback"]();
+
+    expect(c.responseTarget.value).toBe("");
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "turnstile:unsupported",
+        detail: { widgetId: "turnstile-widget" },
+      }),
+    );
+  });
+
+  test("submit handler allows the first token-backed submit and blocks token replay", () => {
+    const form = document.createElement("form");
+    const submitter = document.createElement("button");
+    form.appendChild(submitter);
+
+    const c = createController();
+    c.form = form;
+    c.responseTarget.value = "response-token";
+
+    const firstSubmit = new Event("submit", { cancelable: true });
+    c.preventDuplicateSubmit(firstSubmit);
+
+    expect(firstSubmit.defaultPrevented).toBe(false);
+    expect(form.dataset.turnstileSubmitted).toBe("true");
+    expect(submitter.disabled).toBe(true);
+
+    const replaySubmit = new Event("submit", { cancelable: true });
+    c.preventDuplicateSubmit(replaySubmit);
+
+    expect(replaySubmit.defaultPrevented).toBe(true);
+  });
+
+  test("submit handler does not block submissions before a token exists", () => {
+    const form = document.createElement("form");
+    const submitter = document.createElement("button");
+    form.appendChild(submitter);
+
+    const c = createController();
+    c.form = form;
+    c.responseTarget.value = "";
+
+    const event = new Event("submit", { cancelable: true });
+    c.preventDuplicateSubmit(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(form.dataset.turnstileSubmitted).toBeUndefined();
+    expect(submitter.disabled).toBe(false);
+  });
+
+  test("dispatchTurnstileEvent creates and dispatches CustomEvent", () => {
+    const c = createController();
+    c.dispatchTurnstileEvent("test", { foo: "bar" });
+
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "turnstile:test",
+        detail: { foo: "bar", widgetId: "turnstile-widget" },
+      }),
+    );
+  });
+
+  test("reportScriptError logs error to console", () => {
+    const c = createController();
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = new Error("network failure");
+
+    c.reportScriptError(error);
+
+    expect(consoleSpy).toHaveBeenCalledWith("Turnstile script failed to load:", error);
+    consoleSpy.mockRestore();
+  });
+});

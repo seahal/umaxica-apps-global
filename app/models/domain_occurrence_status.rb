@@ -10,6 +10,8 @@
 #
 
 class DomainOccurrenceStatus < OccurrenceRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 0
   ACTIVE = 1

@@ -4,18 +4,21 @@
 # == Schema Information
 #
 # Table name: member_statuses
-# Database name: principal
+# Database name: app_principal
 #
 #  id         :bigint           not null, primary key
 #  created_at :datetime         not null
 #  updated_at :datetime         not null
 #
-class MemberStatus < PrincipalRecord
+class MemberStatus < AppPrincipalRecord
+  include ReferenceRecord
+
   ACTIVE = 1
   INACTIVE = 2
   PENDING = 3
   DELETED = 4
-  NOTHING = 5
+  NOTHING = 5 # FIXME: i want to set nothing as 0.
+  DEFAULTS = [ACTIVE, INACTIVE, PENDING, DELETED, NOTHING].freeze
 
   validates :created_at, :updated_at, presence: true
 

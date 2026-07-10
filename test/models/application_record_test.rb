@@ -4,77 +4,133 @@
 require "test_helper"
 
 class ApplicationRecordTest < ActiveSupport::TestCase
-  class ApplicationRecordTestModel < OperatorRecord
-    # This model inherits from OperatorRecord, which inherits from ApplicationRecord
-  end
-
-  def setup
-    super
-    @connection = OperatorRecord.connection
-    @connection.create_table(:application_record_test_models, force: true) do |t|
-      t.timestamps
-    end
-    ApplicationRecordTestModel.reset_column_information
-  end
-
-  def teardown
-    @connection.drop_table(:application_record_test_models, if_exists: true)
-    super
-  end
-
-  test "insert_missing_fixed_ids! inserts records" do
-    ids = [101, 102, 103]
-    ApplicationRecordTestModel.insert_missing_fixed_ids!(ids)
-
-    assert_equal 3, ApplicationRecordTestModel.count
-    assert_includes ApplicationRecordTestModel.pluck(:id), 101
-    assert_includes ApplicationRecordTestModel.pluck(:id), 102
-    assert_includes ApplicationRecordTestModel.pluck(:id), 103
-  end
-
-  test "insert_missing_fixed_ids! handles duplicates and ignores existing" do
-    ApplicationRecordTestModel.create!(id: 101)
-
-    ids = [101, 101, 102]
-    ApplicationRecordTestModel.insert_missing_fixed_ids!(ids)
-
-    assert_equal 2, ApplicationRecordTestModel.count
-    assert_includes ApplicationRecordTestModel.pluck(:id), 101
-    assert_includes ApplicationRecordTestModel.pluck(:id), 102
-  end
-
-  test "insert_missing_fixed_ids! does nothing when all ids exist" do
-    ApplicationRecordTestModel.create!(id: 201)
-    ApplicationRecordTestModel.create!(id: 202)
-
-    assert_no_difference "ApplicationRecordTestModel.count" do
-      ApplicationRecordTestModel.insert_missing_fixed_ids!([201, 202])
+  test "clear_fixed_id_seed_cache! clears the cache" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
+    ApplicationRecord.insert_missing_fixed_ids!([99_999])
+    assert_nothing_raised do
+      ApplicationRecord.clear_fixed_id_seed_cache!
     end
   end
 
-  test "insert_missing_fixed_ids! inserts only missing ids" do
-    ApplicationRecordTestModel.create!(id: 301)
+  test "insert_missing_fixed_ids! creates records for missing IDs" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
+    max_id = ClientStatus.maximum(:id) || 0
+    missing_id = max_id + 10_000
 
-    ApplicationRecordTestModel.insert_missing_fixed_ids!([301, 302, 303])
+    assert_not_predicate ClientStatus.where(id: missing_id), :exists?
 
-    assert_equal 3, ApplicationRecordTestModel.count
-    assert_includes ApplicationRecordTestModel.pluck(:id), 301
-    assert_includes ApplicationRecordTestModel.pluck(:id), 302
-    assert_includes ApplicationRecordTestModel.pluck(:id), 303
+    assert_nothing_raised do
+      ClientStatus.insert_missing_fixed_ids!([missing_id])
+    end
+
+    assert_predicate ClientStatus.where(id: missing_id), :exists?
   end
 
-  test "insert_missing_fixed_ids! handles empty array" do
-    assert_no_difference "ApplicationRecordTestModel.count" do
-      ApplicationRecordTestModel.insert_missing_fixed_ids!([])
+  test "insert_missing_fixed_ids! is idempotent" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
+    max_id = ClientStatus.maximum(:id) || 0
+    missing_id = max_id + 10_001
+
+    ClientStatus.insert_missing_fixed_ids!([missing_id])
+    count = ClientStatus.where(id: missing_id).count
+
+    ClientStatus.insert_missing_fixed_ids!([missing_id])
+
+    assert_equal count, ClientStatus.where(id: missing_id).count
+  end
+
+  test "insert_missing_fixed_ids! handles blank ids" do
+    assert_nothing_raised do
+      ApplicationRecord.insert_missing_fixed_ids!([])
     end
   end
 
-  test "insert_missing_fixed_ids! sets timestamps" do
-    ApplicationRecordTestModel.insert_missing_fixed_ids!([401])
+  test "insert_missing_fixed_ids! handles nil ids" do
+    assert_nothing_raised do
+      ApplicationRecord.insert_missing_fixed_ids!(nil)
+    end
+  end
 
-    record = ApplicationRecordTestModel.find(401)
+  test "insert_missing_fixed_ids! skips when table does not exist" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
 
-    assert_not_nil record.created_at
-    assert_not_nil record.updated_at
+    nonexistent_class =
+      Class.new(ApplicationRecord) do
+        self.table_name = "nonexistent_table_for_test"
+      end
+
+    assert_nothing_raised do
+      nonexistent_class.insert_missing_fixed_ids!([1])
+    end
+  end
+
+  test "insert_missing_fixed_ids! skips when all ids already present" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
+    existing = ClientStatus.first!
+
+    assert_nothing_raised do
+      ClientStatus.insert_missing_fixed_ids!([existing.id])
+    end
+  end
+
+  test "insert_missing_fixed_ids! uses cache to skip redundant work" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
+    max_id = ClientStatus.maximum(:id) || 0
+    missing_id = max_id + 10_002
+
+    ClientStatus.insert_missing_fixed_ids!([missing_id])
+
+    # Second call should hit cache and skip
+    assert_nothing_raised do
+      ClientStatus.insert_missing_fixed_ids!([missing_id])
+    end
+  end
+
+  test "insert_missing_fixed_ids! falls back when bulk insert is unavailable" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
+    max_id = ClientStatus.maximum(:id) || 0
+    missing_id = max_id + 10_003
+    prosopite = defined?(Prosopite) ? Prosopite : nil
+
+    Object.send(:remove_const, :Prosopite) if prosopite
+
+    ClientStatus.stub(:insert_all, ->(*) { raise ActiveRecord::StatementInvalid, "unsupported" }) do
+      ClientStatus.insert_missing_fixed_ids!([missing_id])
+    end
+
+    assert_predicate ClientStatus.where(id: missing_id), :exists?
+  ensure
+    Object.const_set(:Prosopite, prosopite) if prosopite && !defined?(Prosopite)
+  end
+
+  test "insert_missing_fixed_ids! fallback tolerates concurrent creation collisions" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
+    max_id = ClientStatus.maximum(:id) || 0
+    missing_id = max_id + 10_004
+    prosopite = defined?(Prosopite) ? Prosopite : nil
+
+    Object.send(:remove_const, :Prosopite) if prosopite
+
+    relation = ClientStatus.where(id: missing_id)
+
+    ClientStatus.stub(:insert_all, ->(*) { raise ActiveRecord::StatementInvalid, "unsupported" }) do
+      relation.stub(:first_or_create!, -> { raise ActiveRecord::RecordNotUnique, "duplicate" }) do
+        ClientStatus.stub(
+          :where, ->(conditions) {
+                    if conditions["id"] == missing_id || conditions[:id] == missing_id
+                      relation
+                    else
+                      ClientStatus.unscoped.where(conditions)
+                    end
+                  },
+        ) do
+          assert_nothing_raised do
+            ClientStatus.insert_missing_fixed_ids!([missing_id])
+          end
+        end
+      end
+    end
+  ensure
+    Object.const_set(:Prosopite, prosopite) if prosopite && !defined?(Prosopite)
   end
 end

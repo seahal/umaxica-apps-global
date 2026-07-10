@@ -1,0 +1,15 @@
+# == Schema Information
+#
+# Table name: avatar_ownership_periods
+# Database name: avatar
+#
+#  id               :bigint           not null, primary key
+#  owner_type       :string           not null
+#  valid_from       :datetime         not null
+#  valid_to         :datetime         not null
+#  created_at       :datetime         not null
+#  updated_at       :datetime         not null
+#  avatar_id        :bigint           not null
+#  owner_public_id  :string           not null
+#  public_id        :string           not null
+#

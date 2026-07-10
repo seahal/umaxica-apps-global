@@ -1,0 +1,52 @@
+---
+name: no-compatibility-layer
+description: Replace cleanly; do not add aliases, shims, or transitional layers.
+---
+
+# No Compatibility Layer
+
+When changing or removing something, replace it cleanly. Do not leave a parallel old path alive.
+
+## Do not add
+
+- compatibility aliases for renamed methods, constants, files, or paths
+- transitional layers that let old and new behavior coexist "for now"
+- dead shims or wrappers kept only to avoid updating callers
+- default-value fallbacks introduced to tolerate the absence of the new behavior
+- legacy route aliases, redirect-only compatibility routes, duplicated namespace paths, or old
+  controller names unless explicitly required
+- compatibility exports, renamed re-exports, alias functions, fallback components, legacy route
+  paths, or transitional loaders/actions in JavaScript or TypeScript
+
+## Replace completely
+
+Prefer complete replacement when compatibility is not explicitly required. Remove old paths,
+aliases, deprecated names, historical traces, and temporary bridges so the final code reads as if
+the intended design had existed from the beginning.
+
+Do not keep old controller inheritance paths as compatibility shims. Leaf controllers must inherit
+from the intended current base controller directly.
+
+Do not preserve obsolete model names, concern names, service aliases, constants, scopes, callbacks,
+or wrapper names merely to avoid changing call sites.
+
+Do not make TypeScript types permissive to preserve old behavior. Avoid unnecessary unions,
+optional fields, `any`, `unknown` pass-throughs, and partial compatibility shapes.
+
+## Replace, then update callers
+
+When you rename or restructure, update every reference in the same change and delete the old
+definition. A reference that still points at the old path is a bug to fix, not a reason to keep a
+shim.
+
+Tests must assert only the final intended behavior. Do not make tests accept both old and new
+behavior unless an explicit compatibility requirement says both are valid.
+
+## Why
+
+Transitional layers accumulate. Each one adds a second code path that must be understood, tested, and
+eventually removed — and "eventually" rarely comes. Clean replacement keeps exactly one correct path
+and makes the change reviewable.
+
+Removing the old path may surface broken references. That is the intended signal: fix them, do not
+hide them behind an alias.

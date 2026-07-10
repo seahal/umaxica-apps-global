@@ -21,9 +21,9 @@ elseif (Phone number)
   endif
 
 elseif (Google)
-  :Sign in with Google;
+  :Continue with Google;
 else (Apple)
-  :Sign in with Apple;
+  :Continue with Apple;
 endif
 
 if (Is MFA required?) then (Yes)

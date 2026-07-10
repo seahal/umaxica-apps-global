@@ -1,0 +1,62 @@
+---
+name: controllers
+description: Controllers handle HTTP only and delegate domain logic; how to implement one safely.
+---
+
+# Controllers
+
+Controllers are an HTTP boundary, not a place for business logic.
+
+## Responsibilities
+
+Controllers must:
+
+- handle HTTP concerns only — params, response, status, redirects
+- delegate business logic to models or services
+- enforce authentication, authorization, and verification through the pipeline
+
+Controllers must not:
+
+- contain heavy business logic
+- bypass pipeline concerns (see `no-workflow-drift`)
+- reach into unrelated parts of the system directly
+
+## Implementing an action
+
+1. Define the route as a RESTful resource (see `routing`).
+2. Create the controller under the correct boundary.
+3. Include the required pipeline concerns.
+4. Implement the action by delegating to a model or service.
+5. Apply authentication.
+6. Apply authorization through the established mechanism.
+7. Handle errors explicitly — do not rescue and ignore (see `no-silent-fallback`).
+8. Add tests (see `testing`).
+
+## Constraints
+
+- Respect the pipeline order; do not skip authentication or authorization.
+- Do not hardcode URLs; use path helpers.
+- Do not blindly `permit!` parameters (see `absolute-rules`).
+
+## Rails session storage
+
+Rails session data may be backed by cookies, and browser cookies have a practical 4KB size limit.
+When a controller stores temporary workflow state in `session`, it must treat that state as a
+capacity-limited transport, not durable storage.
+
+Controllers must:
+
+- store only the minimum session data needed to complete the workflow
+- delete session keys as soon as the workflow has consumed, expired, rejected, or superseded them
+- use `session.delete(key)` when clearing completed state so the key is removed from the serialized
+  session payload
+- delete empty session containers after their last entry is consumed, such as a pending-flow hash
+- avoid duplicating the same return target, token, nonce, verifier, or workflow payload under
+  multiple session keys
+
+Controllers must not:
+
+- leave completed temporary state in session for convenience
+- clear completed session values by assigning `nil` when the intent is to recover cookie capacity
+- use session as a cache for large payloads, request parameters, token bodies, or full external
+  callback payloads

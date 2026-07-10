@@ -1,5 +1,10 @@
 # Sign Configuration Sprint Spec (2026-02-06)
 
+> **Partial supersession (2026-06-02):** The vocabulary and security properties in this ADR remain
+> useful, but authority ownership is superseded by `adr/identity-authority-boundary.md`. `acme/www`
+> owns session, token, account, preference, authorization, downstream-token trust, and step-up
+> freshness. `sign/id` owns only credential inventory and short-lived credential ceremony state.
+
 This document fixes the remaining ambiguous points and is the source of truth for this sprint.
 
 ## Implementation Status
@@ -8,7 +13,7 @@ This document fixes the remaining ambiguous points and is the source of truth fo
 | ------------------------------ | -------------- | -------------------------------------------------------------- |
 | 1. SMS + Passkey Required      | ✅ Implemented | Passkey registration flow after SMS OTP is active              |
 | 2. Unlink / Disable Conditions | ✅ Implemented | `AuthMethodGuard.last_method?` enforces no-lockout rule        |
-| 3. Emergency Key               | ✅ Implemented | `UserSecrets::IssueRecovery` service handles recovery codes    |
+| 3. Passcode                    | ✅ Implemented | `UserSecrets::IssueRecovery` service handles passcodes         |
 | 4. Withdrawal (2-way)          | 🚧 Partial     | Reversible withdrawal implemented; permanent deletion deferred |
 | 5. public_id Boundary          | ✅ Implemented | `UserPasskey` has `public_id` (string, 21 chars, unique)       |
 
@@ -36,29 +41,30 @@ This document fixes the remaining ambiguous points and is the source of truth fo
 - Rate limit: 60s cooldown per session for resend attempts.
 - Response is generic on success; rate-limited responses use a generic cooldown message.
 
-## 2. Unlink / Disable Conditions (Social / Email / Telephone / Secret) ✅
+## 2. Unlink / Disable Conditions (Social / Email / Telephone / Passcode) ✅
 
 ### Common guards (applies to all unlink/disable actions)
 
-- **Recent Reauth required**: use the existing step-up gate (`Verification::Base::STEP_UP_TTL`,
+- **Recent StepUp required**: use the existing step-up gate (`Verification::Base::STEP_UP_TTL`,
   currently 15 minutes).
-- **No lockout**: after removal, the user must still have **at least one** remaining
-  authentication/recovery method.
+- **No lockout**: after removal, the user must still have **at least one** remaining authentication
+  method.
 - "Last method" removal is rejected with a user-facing error.
 - Audit log entry is required for each unlink/disable action.
+- Social-login unlink physically deletes the Google/Apple identity row after writing the audit log.
 
 ### Implementation
 
 - `AuthMethodGuard.last_method?(actor, excluding:)` checks remaining auth methods
 - Controllers use `require_step_up!(scope: "social_unlink")` for sensitive actions
-- Flash message: `t("sign.app.configuration.email.destroy.last_method")`
+- Flash message: `t("sign.app.settings.email.destroy.last_method")`
 
-### What counts as an authentication/recovery method
+### What counts as an authentication method
 
 - Email: `UserEmailStatus::VERIFIED` or `VERIFIED_WITH_SIGN_UP`.
 - Telephone: `UserTelephoneStatus::VERIFIED` or `VERIFIED_WITH_SIGN_UP`.
 - Passkey: `UserPasskeyStatus::ACTIVE`.
-- Secret (login or recovery): `UserSecretStatus::ACTIVE`.
+- Passcode: `UserSecretStatus::ACTIVE`.
 - Social: Google/Apple identities in `ACTIVE` status.
 
 ### Telephone unlink interpretation
@@ -66,19 +72,19 @@ This document fixes the remaining ambiguous points and is the source of truth fo
 - Telephone is not mandatory.
 - If removed, it is considered **SMS login disabled** for that user.
 
-### Secret disable rules
+### Passcode disable rules
 
 - `enabled=false` or destroy is treated as unlink and is guarded by the same rules.
 
-## 3. Emergency Key (Issued After Passkey Registration) ✅
+## 3. Passcode (Issued After Passkey Registration) ✅
 
 ### Adopted spec
 
-- After a passkey is registered, an Emergency Key is issued automatically.
+- After a passkey is registered, a passcode is issued automatically.
 - Stored in DB as a `UserSecret` with `user_secret_kind_id = RECOVERY` and **hashed** (never
   plaintext).
 - Plaintext is shown **only once** on a dedicated page, then removed from session.
-- Re-issuing invalidates prior active recovery secrets (set to `REVOKED`).
+- Re-issuing invalidates prior active passcodes (set to `REVOKED`).
 
 ### Implementation
 
@@ -92,15 +98,20 @@ This document fixes the remaining ambiguous points and is the source of truth fo
 
 - Two-way model is **"withdraw (reversible)" ↔ "recover"** within a fixed recovery window.
 - Permanent deletion is **not** available via UI in this sprint.
-- `/configuration/withdrawal` should present **only the reversible path**.
+- `/setting/withdrawal` should present **only the reversible path**.
 - If permanent deletion is needed later, it must be moved to a separate flow (support or delayed
   job).
 
 ### Behavior
 
-- Withdraw sets `withdrawn_at` and `status_id = PRE_WITHDRAWAL_CONDITION`.
-- Recovery clears `withdrawn_at` if within `Withdrawable::WITHDRAWAL_RECOVERY_PERIOD` (30 days).
-- Withdrawal gate confines users in PRE_WITHDRAWAL status to the withdrawal page until recovered.
+- Withdrawal scheduling starts the account lifecycle with `withdrawal_started_at`.
+- Suspension/logical deletion sets `deactivated_at` and `discarded_at`, and sets `purged_at` to the
+  31-day recovery deadline.
+- Recovery is available only after the one-hour recovery delay and before `purged_at`; it clears the
+  withdrawal lifecycle timestamps and restores the retention sentinels.
+- `withdrawn_at` is terminal history only. It must not drive recovery or withdrawal-gate decisions.
+- Withdrawal gates are based on the current lifecycle and retention columns, not
+  `PRE_WITHDRAWAL_CONDITION`.
 
 ### Status
 

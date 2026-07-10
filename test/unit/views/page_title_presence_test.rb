@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class PageTitlePresenceTest < ActiveSupport::TestCase
   # Pure static analysis test - no database/fixtures needed
@@ -12,8 +13,10 @@ class PageTitlePresenceTest < ActiveSupport::TestCase
   PAGE_TITLE_PATTERNS = [
     /content_for\s+:page_title/,
     /provide\s*\(\s*:page_title/,
+    /page_title\s+/, # ApplicationHelper#page_title
     /<%=?\s*title\s+/, # meta-tags gem helper
     /set_meta_tags.*title/,
+    %r{<title[^>]*>},  # standalone full-page views that own their own <title> tag
   ].freeze
 
   # Files excluded from page_title requirement with reasons

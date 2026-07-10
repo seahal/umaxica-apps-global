@@ -1,80 +1,86 @@
-# Service Layer 設計ドキュメント
+# Service Layer Design Document
 
-最終更新: 2025-11-12
+Last updated: 2025-11-12
 
-## 概要
+## overview
 
-このドキュメントは、マルチデータベース環境における UserService と StaffService の Service Class
-Layer の導入設計について記録します。
+This document describes Service Classes for UserService and StaffService in a multi-database
+environment. Document the Layer implementation design.
 
-## 設計の根拠
+## Design rationale
 
-### 1. データとロジックの分離の必要性
+### 1. The need for separation of data and logic
 
-現在のアプリケーションは複雑なマルチデータベース構成を持っており、以下の理由から Service
-Layer の導入が推奨されます：
+The current application has a complex multi-database configuration and the Service It is recommended
+to introduce Layer:
 
-#### Identity vs. Personality の分離
+#### Separation of Identity vs. Personality
 
-- **Identity データ（認証情報）**: グローバルに一意。ログイン認証情報、MFA設定など
-- **Personality データ（プロフィール）**: 地域固有。ユーザー設定、ロケール、地域特有の情報など
-- この分離により、スケーラビリティとデータのローカリティが向上
+- **Identity data (credentials)**: Globally unique. Login credentials, MFA settings, etc.
+- **Personality data (profile)**: Region-specific. User settings, locale, region-specific
+  information, etc.
+- This separation improves scalability and data locality
 
-#### User vs. Staff の分離
+#### Separation of User vs. Staff
 
-- **セキュリティ要件の違い**: Staff と User は異なる認証システム（SSO vs OAuth など）
-- **アクセスパターンの違い**: 明確なセキュリティ境界と負荷分離が必要
-- **運用上の理由**: 別々のサービス境界で管理することで、セキュリティ強化と負荷分離を実現
+- **Differences in security requirements**: Staff and User have different authentication systems
+  (SSO vs OAuth, etc.)
+- **Differences in access patterns**: Requires clear security boundaries and load isolation
+- **Operational Reasons**: Managed in separate service boundaries for increased security and load
+  isolation
 
-### 2. Service Layer の役割
+### 2. Service layer role
 
-マルチモデル・マルチデータベース環境において、Service Layer は以下の責務を持ちます：
+In a multi-model, multi-database environment, the Service Layer has the following responsibilities:
 
-#### 集約（Aggregation）
+#### Aggregation
 
-- サービスは **Aggregate Root** として機能
-- 複数の分離されたモデル（*Identity と *Personality）を組み合わせて、完全な User または Staff を表現
-- ビジネスロジックの一元化
+- Service acts as **Aggregate Root**
+- Combine multiple separate models (*Identity and *Personality) to represent a complete User or
+  Staff
+- Centralize business logic
 
-#### トランザクション管理
+#### transaction management
 
-- 異なるデータベース間での分散トランザクションの管理
-  - Identity データベース: グローバル DB
-  - Personality データベース: リージョナル DB
-- データ整合性の保証
+- Managing distributed transactions between different databases
+  - Identity database: Global DB
+  - Personality database: Regional DB
+- Guaranteed data integrity
 
-#### デザインパターンの実装場所
+#### Where to implement design patterns
 
-- **CQRS（Command Query Responsibility Segregation）**: コマンドとクエリの責任分離
-- **Saga Pattern**: 分離されたデータストア間でのデータ整合性管理
+- **CQRS (Command Query Responsibility Segregation)**: Separation of responsibility between commands
+  and queries
+- **Saga Pattern**: Data integrity management across separate data stores
 
-## 現在のアーキテクチャ分析
+## Current architecture analysis
 
-### データベース構成
+### Database configuration
 
-アプリケーションは10以上の PostgreSQL データベースを使用：
+Application uses 10 or more PostgreSQL databases:
 
 ```
-universal      - ユニバーサル識別子とユーザーデータ
-identity       - 認証と ID 管理
-guest          - ゲスト連絡先情報
-profile        - ユーザープロフィールと設定
-token          - セッションと認証トークン
-business       - ビジネスロジックとエンティティ
-message        - メッセージングシステム
-notification   - 通知管理
-cache          - アプリケーションキャッシュ
-speciality     - ドメイン固有機能
-storage        - ファイルストレージメタデータ
+universal - Universal identifier and user data
+identity - Authentication and ID management
+guest - Guest contact information
+profile - User profile and settings
+token - Session and authentication token
+business - Business logic and entities
+message - Messaging system
+notification - Notification management
+cache - Application cache
+speciality - Domain-specific functionality
+storage - File storage metadata
 ```
 
-各データベースは Primary/Replica ペアを持ち、別々のマイグレーションパス（`db/{database_name}_migrate/`）を持っています。
+Each database has a Primary/Replica pair and has a separate migration path
+(`db/{database_name}_migrate/`).
 
-### 現在のモデル構造
+### Current model structure
 
-#### Base クラス
+#### Base class
 
-1. **IdentitiesRecord** (Identity データベース)
+1. **IdentitiesRecord** (Identities database)
 
    ```ruby
    class IdentitiesRecord < ApplicationRecord
@@ -83,7 +89,7 @@ storage        - ファイルストレージメタデータ
    end
    ```
 
-2. **OccurrenceRecord** (Occurrence データベース)
+2. **OccurrenceRecord** (Occurrence database)
 
    ```ruby
    class OccurrenceRecord < ApplicationRecord
@@ -92,7 +98,7 @@ storage        - ファイルストレージメタデータ
    end
    ```
 
-3. **ProfilesRecord** (Profile データベース)
+3. **ProfilesRecord** (Profile database)
    ```ruby
    class ProfilesRecord < ApplicationRecord
      self.abstract_class = true
@@ -100,17 +106,17 @@ storage        - ファイルストレージメタデータ
    end
    ```
 
-#### Identity モデル（既存）
+#### Identity model (existing)
 
-##### User モデル
+##### User model
 
 ```ruby
-# Identity データベース
+# Identity database
 class User < IdentitiesRecord
-  # 認証情報
+  # Authentication information
   has_secure_password algorithm: :argon2
 
-  # 認証手段
+  # Authentication method
   has_many :user_emails
   has_many :user_telephones
   has_one :user_apple_auth
@@ -121,34 +127,34 @@ class User < IdentitiesRecord
 end
 ```
 
-テーブル: `users`
+Table: `users`
 
 - id (uuid)
 - password_digest
 - webauthn_id
 - created_at, updated_at
 
-##### Staff モデル
+##### Staff model
 
 ```ruby
-# Identity データベース
+# Identity database
 class Staff < IdentitiesRecord
   has_secure_password algorithm: :argon2
   has_many :staff_emails
 end
 ```
 
-テーブル: `staffs`
+Table: `staffs`
 
 - id (uuid)
 - password_digest
 - webauthn_id
 - created_at, updated_at
 
-##### Universal Identity モデル
+##### Universal Identity model
 
 ```ruby
-# Universal データベース - OTP 用
+# Universal database - for OTP
 class UniversalUserIdentity < OccurrenceRecord
   self.table_name = "universal_user_identifiers"
 end
@@ -158,107 +164,107 @@ class UniversalStaffIdentity < OccurrenceRecord
 end
 ```
 
-テーブル構造:
+Table structure:
 
 - id (uuid)
 - otp_private_key
 - last_otp_at
 - created_at, updated_at
 
-#### Identity データベースの関連モデル
+#### Identity database related models
 
-認証関連:
+Certification related:
 
-- UserEmail, StaffEmail
-- UserTelephone, StaffTelephone
+- UserEmail, OperatorEmail
+- UserTelephone, OperatorTelephone
 - UserIdentitySocialApple, UserIdentitySocialGoogle
 - UserWebauthnCredential, StaffWebauthnCredential
 - UserTimeBasedOneTimePassword, StaffTimeBasedOneTimePassword
 - UserHmacBasedOneTimePassword, StaffHmacBasedOneTimePassword
 - UserRecoveryCode, StaffRecoveryCode
 
-#### Profile モデル
+#### Profile model
 
-Profile / Personality モデルの実装トラッキングは GitHub issue #575 へ移動しました。
+Profile / Personality model implementation tracking has been moved to GitHub issue #575.
 
-### ドメイン構造
+### domain structure
 
-#### Web インターフェース（WWW）
+#### Web interface (WWW)
 
-- `WWW_CORPORATE_URL` (com): 法人/クライアントサイト
-- `WWW_SERVICE_URL` (app): メインサービスアプリケーション
-- `WWW_STAFF_URL` (org): スタッフ管理インターフェース
+- `WWW_CORPORATE_URL` (com): Corporate/Client site
+- `WWW_SERVICE_URL` (app): Main service application
+- `WWW_STAFF_URL` (org): Staff management interface
 
-#### API エンドポイント
+#### API endpoint
 
 - `API_CORPORATE_URL`, `API_SERVICE_URL`, `API_STAFF_URL`
 
-#### コントローラー構成
+#### Controller configuration
 
 ```
-app/controllers/www/{com,app,org}/  - 各ドメインの Web コントローラー
-app/controllers/api/{com,app,org}/  - 各ドメインの API コントローラー
-app/controllers/concerns/           - 共有コントローラーロジック
+app/controllers/www/{com,app,org}/ - Web controller for each domain
+app/controllers/api/{com,app,org}/ - API controller for each domain
+app/controllers/concerns/ - Shared controller logic
 ```
 
-### Service Layer の実装パターン
+### Service Layer implementation patterns
 
-#### 基本構造案
+#### Basic structure plan
 
 ```ruby
 # app/services/user_service.rb
 class UserService
-  # Identity + Personality の集約
-  # トランザクション管理
-  # ビジネスロジック
+  # Aggregation of Identity + Personality
+  # transaction management
+  # business logic
 
   def create_user(identity_params, personality_params)
-    # 分散トランザクション管理
+    # distributed transaction management
   end
 
   def find_complete_user(id)
-    # Identity + Personality を結合して返す
+    # Combine and return Identity + Personality
   end
 
   def update_identity(id, params)
-    # Identity のみ更新
+    # Update only Identity
   end
 
   def update_personality(id, params)
-    # Personality のみ更新
+    # Update only Personality
   end
 end
 
 # app/services/staff_service.rb
 class StaffService
-  # Staff 用の同様の実装
+  # Similar implementation for Staff
 end
 ```
 
-#### トランザクション戦略
+#### transaction strategy
 
-複数のデータベースにまたがるトランザクションの扱いについて、要件を明確化する必要があります：
+We need to clarify our requirements for handling transactions that span multiple databases:
 
-1. **強整合性（ACID）が必要か？**
-   - Identity と Personality の両方が成功するか、両方が失敗するか
-   - 実装は複雑になるが、データ整合性は最も高い
+1. **Do you need strong consistency (ACID)? **
+   - Will both Identity and Personality succeed or both fail?
+   - More complex to implement, but provides the highest data integrity
 
-2. **結果整合性で許容できるか？**
-   - Identity を先に作成し、Personality は非同期で作成
-   - 実装は簡単だが、一時的に不整合な状態が発生する可能性
-   - 必要ならバックグラウンドジョブを使用
+2. **Is it acceptable with eventual consistency? **
+   - Create Identity first, Personality asynchronously
+   - Easy to implement, but may result in temporary inconsistency
+   - Use background jobs if necessary
 
-3. **Saga Pattern の導入**
-   - 複数ステップのトランザクションを管理
-   - 各ステップの補償トランザクション（ロールバック処理）を定義
-   - 複雑だが、柔軟性が高い
+3. **Introducing Saga Pattern**
+   - Manage multi-step transactions
+   - Define compensation transactions (rollback processing) for each step
+   - Complex but flexible
 
-### CQRS の適用
+### Applying CQRS
 
-Command（書き込み）と Query（読み込み）を分離：
+Separate command (write) and query (read):
 
 ```ruby
-# Command 側
+# Command side
 class UserCommandService
   def create_user(params)
   def update_identity(id, params)
@@ -266,7 +272,7 @@ class UserCommandService
   def delete_user(id)
 end
 
-# Query 側
+# Query side
 class UserQueryService
   def find_by_id(id)
   def find_by_email(email)
@@ -274,70 +280,72 @@ class UserQueryService
 end
 ```
 
-## 次のステップ（未解決の質問）
+## Next steps (open questions)
 
-### 1. Personality に移行したいデータの明確化
+### 1. Clarifying the data you want to move to Personality
 
-- 具体的にどのようなデータ/属性を Personality として扱うか？
-- 現在のデータの保存場所は？
-- 新規実装なのか、既存データの移行なのか？
+- What kind of data/attributes should be treated as Personality?
+- Where is the current data stored?
+- Is it a new implementation or migration of existing data?
 
-### 2. トランザクション要件の定義
+### 2. Defining transaction requirements
 
-- どの程度の整合性が必要か？
-- パフォーマンス要件は？
-- 障害時の挙動（リトライ、ロールバック）はどうあるべきか？
+- How consistent is required?
+- What are the performance requirements?
+- What should be the behavior in the event of a failure (retry, rollback)?
 
-### 3. 実装の優先順位
+### 3. Implementation priority
 
-- UserService と StaffService、どちらから実装するか？
-- 段階的な移行計画は？
-- 既存機能への影響範囲は？
+- Which should be implemented first, UserService or StaffService?
+- What is the phased migration plan?
+- What is the scope of impact on existing functions?
 
-### 4. 認証フローの理解
+### 4. Understanding the authentication flow
 
-- 現在の User/Staff 認証フローの詳細確認
-- Service Layer との統合ポイントの特定
-- セッション管理との連携
+- Check details of current User/Staff authentication flow
+- Identifying integration points with Service Layer
+- Cooperation with session management
 
-### 5. テスト戦略
+### 5. testing strategy
 
-- マルチデータベース環境でのテスト方法
-- トランザクション管理のテスト
-- 統合テストのスコープ
+- How to test in a multi-database environment
+- Transaction management testing
+- Integration test scope
 
-## 参考情報
+## Reference information
 
-### 現在の技術スタック
+### Current technology stack
 
-- **認証**: WebAuthn, TOTP, Apple/Google OAuth, recovery codes
-- **認可**: Pundit + Rolify
-- **バックグラウンドジョブ**: 未定
-- **パスワードハッシュ**: argon2
-- **セキュリティ**: Rack::Attack (レート制限)
+- **Authentication**: WebAuthn, TOTP, Apple/Google OAuth, passcodes
+- **Authorization**: Action Policy
+- **Background job**: TBA
+- **Password hash**: argon2
+- **Security**: Rack::Attack (rate limiting)
 
-### 関連ファイル
+### Related files
 
-- モデル: `app/models/user.rb`, `app/models/staff.rb`
-- Base クラス: `app/models/identities_record.rb`, `app/models/occurrence_record.rb`,
+- Model: `app/models/user.rb`, `app/models/staff.rb`
+- Base class: `app/models/identities_record.rb`, `app/models/occurrence_record.rb`,
   `app/models/profiles_record.rb`
-- データベース設定: `config/database.yml`
-- マイグレーション: `db/identity_migrate/`, `db/occurrences_migrate/`, `db/profile_migrate/`
+- Database settings: `config/database.yml`
+- Migration: `db/identity_migrate/`, `db/occurrences_migrate/`, `db/profile_migrate/`
 
-## まとめ
+## summary
 
-Service Class Layer の導入は、以下の理由から強く推奨されます：
+Deploying Service Class Layer is highly recommended for the following reasons:
 
-1. **明確な責任分離**: Identity（認証）と Personality（プロフィール）の分離
-2. **スケーラビリティ**: グローバル DB とリージョナル DB の最適な使用
-3. **保守性**: ビジネスロジックの一元化と再利用性の向上
-4. **テスタビリティ**: モデル層とビジネスロジック層の分離によるテストの容易化
-5. **セキュリティ**: User と Staff の明確な境界による安全性の向上
+1. **Clear separation of responsibilities**: Separation of Identity (authentication) and Personality
+   (profile)
+2. **Scalability**: Optimal use of global and regional DBs
+3. **Maintainability**: Centralize business logic and improve reusability
+4. **Testability**: Easier testing by separating the model layer and business logic layer
+5. **Security**: Improved safety with clear boundaries between User and Staff
 
-このアーキテクチャは、大規模・国際的なシステムに適した成熟した設計であり、セキュリティ、異なるビジネスドメイン、高いスケーラビリティを優先するアプリケーションに最適です。
+This architecture is a mature design suitable for large-scale, international systems and is ideal
+for applications that prioritize security, different business domains, and high scalability.
 
 ---
 
-## 変更履歴
+## Change history
 
-- 2025-11-12: 初版作成、現在のアーキテクチャ分析と設計方針の記録
+- 2025-11-12: First edition created, record of current architecture analysis and design policy

@@ -1,0 +1,35 @@
+<% content_for :page_title, t('.title') %>
+<div>
+  <div>
+    <div>
+      <div>
+        <h3><%= t('.title') %></h3>
+        <p><%= t('.description') %></p>
+      </div>
+    </div>
+    <div>
+      <div>
+        <div>
+
+          <div>
+            <h3><%= @secret_credential.name %></h3>
+          </div>
+          <dl>
+            <div>
+              <dt><%= t('activerecord.attributes.user_secret_credential.created_at') %></dt>
+              <dd><%= l @secret_credential.created_at, format: :long %></dd>
+            </div>
+            <div>
+              <dt><%= t('activerecord.attributes.user_secret_credential.last_used_at') %></dt>
+              <dd><%= @secret_credential.last_used_at ? l(@secret_credential.last_used_at, format: :long) : t('defaults.never') %></dd>
+            </div>
+          </dl>
+        </div>
+        <div>
+          <%= link_to t('actions.back'), base_app_identity_secrets_path %>
+          <%= link_to t('actions.edit'), edit_base_app_identity_secret_path(@secret_credential.public_id) %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

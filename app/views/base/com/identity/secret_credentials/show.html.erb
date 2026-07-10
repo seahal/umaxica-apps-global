@@ -1,0 +1,19 @@
+<% content_for :page_title, 'Secret' %>
+
+<div>
+  <h3><%= @secret_credential.name %></h3>
+  <dl>
+    <div>
+      <dt>Created</dt>
+      <dd><%= l @secret_credential.created_at, format: :long %></dd>
+    </div>
+    <div>
+      <dt>Last used</dt>
+      <dd><%= @secret_credential.last_used_at ? l(@secret_credential.last_used_at, format: :long) : t('defaults.never') %></dd>
+    </div>
+  </dl>
+  <div>
+    <%= link_to 'Back', base_com_identity_secrets_path(ri: params[:ri]) %>
+    <%= link_to t('actions.edit'), edit_base_com_identity_secret_path(@secret_credential.public_id, ri: params[:ri]) %>
+  </div>
+</div>

@@ -1,12 +1,15 @@
 # GH-645: Implement CSP Violation Reporting Endpoint
 
+Status: Implemented in `plans/archive/csp-violation-reporting-plan.md`. Keep this file only as
+historical backlog context for the original route request and future storage/analytics extensions.
+
 GitHub: #645
 
 ## Summary
 
-Add a browser-facing endpoint for CSP violation reports. The public path should remain
-`/csp-violation-report`. Phase 1 records reports as structured logs only. Phase 2 can add storage
-and aggregation after the rollout boundary is clear.
+The browser-facing endpoint for CSP violation reports exists at the public path
+`/csp-violation-report`. Phase 1 records sanitized reports as structured logs only. Phase 2 can add
+storage and aggregation after the rollout boundary is clear.
 
 ## Scope
 

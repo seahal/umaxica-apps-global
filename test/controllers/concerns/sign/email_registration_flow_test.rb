@@ -2,8 +2,9 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
-class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
+class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
   class Harness
     class << self
       def before_action(*) = nil
@@ -11,7 +12,8 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
       def skip_before_action(*) = nil
     end
 
-    include Sign::EmailRegistrationFlow
+    include SignEmailRegistrable
+    include SignEmailRegistrationFlow
 
     attr_accessor :session_hash, :flash_hash, :reset_called, :target_user, :params_hash, :render_args, :redirect_args
 
@@ -32,8 +34,17 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
       (path.to_s.start_with?("/") && !path.to_s.start_with?("//")) ? path : nil
     end
 
-    def build_notice_params(message)
-      { notice: message, rd: Base64.urlsafe_encode64("/configuration/emails") }
+    def signed_pt_token(value)
+      safe_path = safe_internal_path(value)
+      safe_path ? "signed:#{safe_path}" : nil
+    end
+
+    def path_from_signed_pt(token)
+      token.to_s.start_with?("signed:") ? token.delete_prefix("signed:") : nil
+    end
+
+    def build_notice_params(message, _session_key = nil)
+      { notice: message, pt: signed_pt_token("/settings/emails") }
     end
 
     def reset_email_flow!
@@ -48,8 +59,21 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
       "/emails/new?#{params.to_query}"
     end
 
+    def auth_app_settings_emails_url(**params)
+      query = params.to_query
+      query.present? ? "/settings/emails?#{query}" : "/settings/emails"
+    end
+
+    def cross_host_redirect_allowed?
+      false
+    end
+
     def email_registration_target_user
       target_user
+    end
+
+    def verify_email_registration_turnstile!(...)
+      true
     end
 
     def initiate_email_verification!(*)
@@ -73,17 +97,17 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
 
     assert_empty empty_params
 
-    safe_path = "/configuration/emails"
-    params = { rd: Base64.urlsafe_encode64(safe_path) }
+    safe_path = "/settings/emails"
+    params = { pt: safe_path }
 
     harness.send(:sanitize_redirect_params!, params)
 
-    assert_equal Base64.urlsafe_encode64(safe_path), params[:rd]
+    assert_equal "signed:#{safe_path}", params[:pt]
 
-    params = { rd: Base64.urlsafe_encode64("https://evil.example") }
+    params = { pt: "https://evil.example" }
     harness.send(:sanitize_redirect_params!, params)
 
-    assert_not params.key?(:rd)
+    assert_not params.key?(:pt)
 
     assert_nil harness.send(:sanitize_encoded_redirect, "")
     assert_nil harness.send(:sanitize_encoded_redirect, "not-base64%%%")
@@ -106,9 +130,9 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
 
   test "valid registration email session checks presence expiry and status" do
     harness = Harness.new
-    valid_email = Struct.new(:otp_expired?, :user_email_status_id).new(false, UserEmailStatus::UNVERIFIED_WITH_SIGN_UP)
-    expired_email = Struct.new(:otp_expired?, :user_email_status_id).new(true, UserEmailStatus::UNVERIFIED_WITH_SIGN_UP)
-    verified_email = Struct.new(:otp_expired?, :user_email_status_id).new(false, UserEmailStatus::VERIFIED)
+    valid_email = Struct.new(:otp_expired?, :user_email_status_id).new(false, ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP)
+    expired_email = Struct.new(:otp_expired?, :user_email_status_id).new(true, ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP)
+    verified_email = Struct.new(:otp_expired?, :user_email_status_id).new(false, ClientEmailStatus::VERIFIED)
 
     assert_not harness.send(:valid_registration_email_session?)
 
@@ -130,7 +154,7 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
 
     harness.new
 
-    assert_instance_of UserEmail, harness.instance_variable_get(:@user_email)
+    assert_instance_of ClientEmail, harness.instance_variable_get(:@user_email)
     assert_nil harness.send(:current_registration_email)
     assert_nil harness.send(:on_email_registration_verified!)
   end
@@ -156,13 +180,17 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
     harness.update
 
     assert_predicate harness, :reset_called
-    assert_equal ["/emails/new?rd=#{Base64.urlsafe_encode64("/configuration/emails")}"], harness.redirect_args
+    assert_equal ["/emails/new?pt=signed%3A%2Fsettings%2Femails"], harness.redirect_args
   end
 
   test "abstract path hooks raise not implemented" do
     harness = Harness.new
 
-    assert_raises(NotImplementedError) { Sign::EmailRegistrationFlow.instance_method(:after_email_registration_started_path).bind_call(harness) }
-    assert_raises(NotImplementedError) { Sign::EmailRegistrationFlow.instance_method(:after_email_registration_verified_path).bind_call(harness) }
+    assert_raises(NotImplementedError) {
+      SignEmailRegistrationFlow.instance_method(:after_email_registration_started_path).bind_call(harness)
+    }
+    assert_raises(NotImplementedError) {
+      SignEmailRegistrationFlow.instance_method(:after_email_registration_verified_path).bind_call(harness)
+    }
   end
 end

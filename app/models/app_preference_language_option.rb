@@ -2,19 +2,18 @@
 # == Schema Information
 #
 # Table name: app_preference_language_options
-# Database name: principal
+# Database name: app_setting
 #
 #  id :bigint           not null, primary key
 #
 
 # frozen_string_literal: true
 
-class AppPreferenceLanguageOption < PrincipalRecord
+class AppPreferenceLanguageOption < AppSettingRecord
   # Fixed IDs - do not modify these values
-  NOTHING = 0
   JA = 1
   EN = 2
-  DEFAULTS = [NOTHING, JA, EN].freeze
+  DEFAULTS = [JA, EN].freeze
 
   has_many :app_preference_languages,
            class_name: "AppPreferenceLanguage",

@@ -17,10 +17,10 @@ Rails.application.configure do
   config.action_controller.perform_caching = true
 
   # Cache assets for far-future expiry since they are all digest stamped.
-  # config.publicGe_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
+  # config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
 
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
-  config.asset_host = ENV["ASSET_URL"] || "https://asset-jp.umaxica.net"
+  config.asset_host = ENV["PUBLIC_ASSET_URL"] || ENV["ASSET_URL"] || "https://asset-jp.umaxica.net"
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   # config.active_storage.service = :local
@@ -28,15 +28,23 @@ Rails.application.configure do
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   config.assume_ssl = true
 
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
+  # Force all access to the app over SSL and use secure cookies.
   config.force_ssl = true
 
-  # HSTS with preload support (submit to hstspreload.org after deploying).
+  # Rails emits HSTS as a safe default; the CDN may override or replace this header.
+  # includeSubDomains is enabled so every subdomain is HTTPS-only. preload stays off:
+  # preload-list registration is effectively irreversible and requires every subdomain to
+  # serve HTTPS, so it is deferred until a deliberate review (see
+  # adr/session-token-hardening-baseline.md).
   config.ssl_options = {
-    hsts: { subdomains: true, preload: true, expires: Integer(2.years, 10) },
+    hsts: {
+      expires: 365.days,
+      subdomains: true,
+      preload: false,
+    },
   }
 
-  # Log to STDOUT as JSON for Cloud Run visibility.
+  # Log application output to STDOUT for Cloud Run visibility.
   STDOUT.sync = true
   STDERR.sync = true
   primary_logger = ActiveSupport::Logger.new($stdout)
@@ -74,6 +82,16 @@ Rails.application.configure do
   config.sandbox_by_default = true
 
   config.cache_store = :solid_cache_store
+  rate_limit_namespace = [
+    "rate_limit",
+    Rails.env,
+    ENV["RATE_LIMIT_NAMESPACE_SUFFIX"].presence,
+  ].compact.join(":")
+  config.x.rate_limit.store =
+    ActiveSupport::Cache::RedisCacheStore.new(
+      url: ENV.fetch("RATE_LIMIT_REDIS_URL"),
+      namespace: rate_limit_namespace,
+    )
   config.solid_cache.connects_to = { shards: { cache: { writing: :cache, reading: :cache_replica } } }
 
   # Replace the default in-process and non-durable queuing backend for Active Job.
@@ -83,19 +101,24 @@ Rails.application.configure do
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false
-  config.action_mailer.delivery_method = :smtp
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: ENV.fetch("ID_SERVICE_URL", "id.app.example.com") }
+  # url_for's :host option expects a bare hostname; OriginValue#to_s returns a full
+  # "https://..." origin, so use #host.
+  config.action_mailer.default_url_options = { host: Rails.configuration.x.boot_config.fetch(:hosts).base_service.host }
 
-  # Specify outgoing SMTP server. Remember to add credentials via bin/rails credentials:edit.
+  ## Email Settings
+  config.action_mailer.delivery_method = :smtp
   config.action_mailer.smtp_settings = {
     address: "email-smtp.#{ENV.fetch("AWS_SES_REGION", "ap-northeast-1")}.amazonaws.com",
-    user_name: Rails.app.creds.require(:AWS_SES_SMTP_USER_NAME),
-    password: Rails.app.creds.require(:AWS_SES_SMTP_PASSWORD),
+    user_name: Rails.app.creds.option(:AWS_SES_SMTP_USERNAME),
+    password: Rails.app.creds.option(:AWS_SES_SMTP_PASSWORD),
     port: 465,
     tls: true,
     authentication: :login,
+    openssl_verify_mode: "peer",
+    open_timeout: 5,
+    read_timeout: 10,
   }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
@@ -110,21 +133,47 @@ Rails.application.configure do
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   # Collect all host ENV vars used in route constraints.
-  config.hosts = ENV.values_at(
-    "ID_SERVICE_URL",
-    "ID_CORPORATE_URL",
-    "ID_STAFF_URL",
-    "JUMP_SERVICE_URL", "JUMP_STAFF_URL", "JUMP_CORPORATE_URL",
-    "MAIN_SERVICE_URL", "MAIN_STAFF_URL", "MAIN_CORPORATE_URL",
-    "APEX_SERVICE_URL", "APEX_STAFF_URL", "APEX_CORPORATE_URL",
-    "CORE_SERVICE_URL", "CORE_STAFF_URL", "CORE_CORPORATE_URL",
-    "DOCS_SERVICE_URL", "DOCS_STAFF_URL", "DOCS_CORPORATE_URL",
-    "NEWS_SERVICE_URL", "NEWS_STAFF_URL", "NEWS_CORPORATE_URL",
-    "HELP_SERVICE_URL", "HELP_STAFF_URL", "HELP_CORPORATE_URL",
-  ).compact_blank
+  boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+  # Rails host authorization matches against the bare hostname from the Host header,
+  # so use OriginValue#host (e.g. "www.umaxica.app") - not #to_s which is a full origin.
+  config.hosts = [
+    boot_hosts.base_service.host,
+    boot_hosts.base_corporate.host,
+    boot_hosts.base_staff.host,
+    boot_hosts.sign_service.host,
+    boot_hosts.sign_corporate.host,
+    boot_hosts.sign_staff.host,
+    boot_hosts.core_service.host,
+    boot_hosts.core_corporate.host,
+    boot_hosts.core_staff.host,
+    "auth.umaxica.app",
+    "auth.umaxica.com",
+    "auth.umaxica.org",
+    "side-jp.umaxica.app",
+    "side-jp.umaxica.com",
+    "side-jp.umaxica.org",
+    "www.umaxica.app",
+    "www.umaxica.com",
+    "www.umaxica.org",
+    "jpx.umaxica.app",
+    "jpx.umaxica.com",
+    "jpx.umaxica.org",
+    boot_hosts.base_service.host,
+    boot_hosts.base_corporate.host,
+    boot_hosts.base_staff.host,
+    boot_hosts.palm_service.host,
+    boot_hosts.palm_corporate.host,
+    boot_hosts.palm_staff.host,
+    boot_hosts.help_service.host,
+    boot_hosts.help_corporate.host,
+    boot_hosts.help_staff.host,
+    boot_hosts.info_service.host,
+    boot_hosts.info_corporate.host,
+    boot_hosts.info_staff.host,
+  ]
 
-  # Skip DNS rebinding protection for health checks and load balancer probes.
-  config.host_authorization = { exclude: ->(request) { request.path.start_with?("/health", "/sign/up") } }
+  # Skip DNS rebinding protection only for health checks and load balancer probes.
+  config.host_authorization = { exclude: ->(request) { request.path == "/health" } }
 
   ### Added by owner
   # We've configured this production environment to prevent the delivery of public static content.
@@ -139,8 +188,12 @@ Rails.application.configure do
     "X-Permitted-Cross-Domain-Policies" => "none",
   )
 
-  # Explicit SameSite cookie protection (matches Rails 8.1 default, pinned against future changes)
-  config.action_dispatch.cookies_same_site_protection = :lax
+  # Default SameSite for cookies that do not set the attribute themselves (e.g. CSRF authenticity).
+  # Strict by default: the Rails session cookie keeps SameSite=Lax via its explicit option in
+  # config/initializers/session_store.rb (it must carry OIDC/email cross-site inbound flow state),
+  # so this stricter default does not affect it. See plans/backlog for the session-cookie Strict
+  # migration that would remove the remaining Lax dependency.
+  config.action_dispatch.cookies_same_site_protection = :strict
 
   # Raise on missing callback actions (same as dev/test)
   config.action_controller.raise_on_missing_callback_actions = true

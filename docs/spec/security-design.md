@@ -1,21 +1,22 @@
 # Security Design Documentation
 
-## Recovery Key Design
+## Passcode Design
 
-### High-Entropy Recovery Key with Argon2 Hashing
+### High-Entropy Passcode with Argon2 Hashing
 
-This design, combining a high-entropy recovery key (non-changeable by the user) with Argon2 hashing,
-is excellent and aligns with security best practices.
+This design, combining a high-entropy passcode (non-changeable by the user) with Argon2 hashing, is
+excellent and aligns with security best practices.
 
-For long-term safety, as the key is permanent, we strongly recommend 32 characters (approx. 208 bits
-of entropy). This better prepares against future increases in computing power than 24 characters.
+For long-term safety, as the passcode is permanent, we strongly recommend 32 characters (approx. 208
+bits of entropy). This better prepares against future increases in computing power than 24
+characters.
 
-Argon2 is the highest-standard hashing algorithm, robust against GPU attacks. Given the key is
+Argon2 is the highest-standard hashing algorithm, robust against GPU attacks. Given the passcode is
 stored in a password manager, its use is essential.
 
-### Key Characteristics
+### Passcode Characteristics
 
-- **Non-changeable**: Recovery keys are permanent and cannot be modified by users
+- **Non-changeable**: Passcodes are permanent and cannot be modified by users
 - **High entropy**: 32 characters provide approximately 208 bits of entropy
 - **Future-proof**: Designed to withstand advances in computing power
 - **Password manager storage**: Expected to be stored in secure password managers
@@ -23,37 +24,37 @@ stored in a password manager, its use is essential.
 
 ### Implementation Guidelines
 
-1. **Key Generation**
-   - Generate recovery keys with minimum 32 characters
+1. **Passcode Generation**
+   - Generate passcodes with minimum 32 characters
    - Use cryptographically secure random number generators
    - Ensure sufficient entropy (208+ bits)
 
-2. **Key Storage**
-   - Hash all recovery keys with Argon2 before database storage
-   - Never store plaintext recovery keys
+2. **Passcode Storage**
+   - Hash all passcodes with Argon2 before database storage
+   - Never store plaintext passcodes
    - Use appropriate Argon2 parameters (memory cost, time cost, parallelism)
 
-3. **Key Verification**
-   - Verify submitted keys against Argon2 hashes
+3. **Passcode Verification**
+   - Verify submitted passcodes against Argon2 hashes
    - Implement rate limiting to prevent brute force attempts
    - Log verification attempts for security monitoring
 
 4. **User Guidance**
-   - Instruct users to store keys in password managers
-   - Emphasize the permanence and importance of the key
-   - Provide clear warnings about key security
+   - Instruct users to store passcodes in password managers
+   - Emphasize the permanence and importance of the passcode
+   - Provide clear warnings about passcode security
 
 ### Security Rationale
 
-The combination of high-entropy keys and Argon2 hashing provides defense-in-depth:
+The combination of high-entropy passcodes and Argon2 hashing provides defense-in-depth:
 
 - **Entropy**: Makes brute force attacks computationally infeasible
 - **Argon2**: Adds significant computational cost to each verification attempt
 - **GPU resistance**: Argon2's memory-hard design mitigates GPU acceleration
 - **Future resilience**: 208-bit entropy accounts for long-term cryptographic advances
 
-This approach ensures that even if the database is compromised, recovery keys remain protected
-against offline attacks.
+This approach ensures that even if the database is compromised, passcodes remain protected against
+offline attacks.
 
 ---
 

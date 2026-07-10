@@ -1,0 +1,51 @@
+---
+name: absolute-rules
+description: Always-on prohibitions that hold in every task regardless of context.
+---
+
+# Absolute Rules
+
+These prohibitions always apply. A change that violates one is forbidden, even if it would pass
+tests or satisfy the immediate request.
+
+## Forbidden methods and constructs
+
+Do not use:
+
+- `permit!` — never mass-permit parameters.
+- `skip_before_action`, `skip_authorization`, `skip_forgery_protection` — never skip authentication,
+  authorization, verification, CSRF, or rate-limit protections.
+- `html_safe`, `raw(...)` — never mark untrusted markup as safe.
+- `VERIFY_NONE` — never disable TLS verification.
+
+## No global or per-request shared state
+
+Do not store request state in:
+
+- `@@` class variables
+- `Thread.current`
+- global variables (`$...`)
+
+These are unsafe in concurrent environments and leak data across requests. Pass state explicitly.
+
+## No destructive actions over GET
+
+State-changing or destructive actions must never be reachable by GET. Use the HTTP verb that matches
+the intent.
+
+## Logging
+
+Never log:
+
+- tokens
+- cookies
+- authorization headers
+- full request parameters
+
+## Source of truth
+
+The authoritative list of forbidden Rails methods lives in
+`docs/reference/forbidden-rails-methods.md`. Read it before changing controllers, models,
+migrations, rendering boundaries, or transport-security code.
+
+A change that introduces risk or bypasses a safeguard is forbidden.

@@ -1,0 +1,42 @@
+<% title t("sign.app.verification.edit.title") %>
+
+<div>
+  <h1><%= t("sign.app.verification.edit.title") %></h1>
+  <p><%= t("sign.app.verification.edit.description") %></p>
+
+  <% if @verification_errors&.any? %>
+    <div>
+      <%= @verification_errors.to_sentence %>
+    </div>
+  <% end %>
+
+  <%= form_with url: auth_com_verification_passkey_path(ri: params[:ri]), method: :post, data: { turbo: false } do |f| %>
+    <% options_json = @passkey_request_options ? json_escape(@passkey_request_options.to_json) : "" %>
+    <%= f.hidden_field :scope, value: params.dig(:verification, :scope).presence || params[:scope], name: "verification[scope]" %>
+    <%= f.hidden_field :pt, value: params.dig(:verification, :pt).presence || params[:pt], name: "verification[pt]" %>
+    <div
+      data-controller="step-up-passkey"
+      data-step-up-passkey-options-value="<%= options_json %>"
+      data-step-up-passkey-challenge-id-value="<%= @passkey_challenge_id.to_s %>">
+
+      <%= f.hidden_field :challenge_id, value: @passkey_challenge_id.to_s, data: { "step-up-passkey-target": "challengeId" }, name: "verification[challenge_id]" %>
+      <%= f.hidden_field :credential_json, value: "", data: { "step-up-passkey-target": "credentialJson" }, name: "verification[credential_json]" %>
+
+      <button type="button"
+              data-action="click->step-up-passkey#authenticate">
+        <%= t("sign.app.verification.edit.authenticate_with_passkey") %>
+      </button>
+      <p data-step-up-passkey-target="error" class="hidden"></p>
+      <p data-step-up-passkey-target="status" class="hidden"></p>
+    </div>
+  <% end %>
+
+  <div>
+    <%= link_to t("sign.app.verification.edit.back"),
+                auth_com_verification_path(
+                  ri: params[:ri],
+                  scope: params.dig(:verification, :scope).presence || params[:scope],
+                  pt: params.dig(:verification, :pt).presence || params[:pt]
+                ) %>
+  </div>
+</div>

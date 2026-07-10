@@ -1,0 +1,21 @@
+# typed: false
+# frozen_string_literal: true
+
+module Auth
+  module App
+    module Sign
+      module Outs
+        class CompletionsController < ::Auth::App::Sign::OutsController
+          AUTHENTICATION_MODE = :open
+          declare_authentication_mode! :open
+
+          after_action :sign_out_notice_cache_headers!, only: :show
+
+          def show
+            render "auth/shared/sign_outs/complete"
+          end
+        end
+      end
+    end
+  end
+end

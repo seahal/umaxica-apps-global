@@ -8,9 +8,9 @@
 #
 #  id           :bigint           not null, primary key
 #  body         :string           default(""), not null
-#  deletable_at :datetime         default(Infinity), not null
+#  discarded_at :datetime         default(Infinity), not null
 #  memo         :string           default(""), not null
-#  revoked_at   :datetime         default(Infinity), not null
+#  purged_at    :datetime         default(Infinity), not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
 #  public_id    :string(21)       default(""), not null
@@ -20,9 +20,8 @@
 #
 #  index_telephone_occurrences_on_body             (body) UNIQUE
 #  index_telephone_occurrences_on_body_created_at  (body,created_at)
-#  index_telephone_occurrences_on_deletable_at     (deletable_at)
 #  index_telephone_occurrences_on_public_id        (public_id) UNIQUE
-#  index_telephone_occurrences_on_revoked_at       (revoked_at)
+#  index_telephone_occurrences_on_purged_at        (purged_at)
 #  index_telephone_occurrences_on_status_id        (status_id)
 #
 # Foreign Keys
@@ -160,5 +159,53 @@ class TelephoneOccurrenceTest < ActiveSupport::TestCase
 
     assert_not duplicate.valid?
     assert_predicate duplicate.errors[:body], :any?
+  end
+
+  test "preserves HMAC body without normalization" do
+    hmac_body = "a" * 64
+    record = build_occurrence(TelephoneOccurrence, body: hmac_body, public_id: "tel_hmac_test_0000001")
+
+    assert_predicate record, :valid?
+    assert_equal hmac_body, record.body
+  end
+
+  test "rejects invalid HMAC body format" do
+    record = build_occurrence(TelephoneOccurrence, body: "invalid_hmac", public_id: "tel_hmac_test_0000002")
+
+    assert_not record.valid?
+    assert_predicate record.errors[:body], :any?
+  end
+
+  test "validates E.164 format for non-HMAC bodies" do
+    record = build_occurrence(TelephoneOccurrence, body: "+0123456789", public_id: "tel_hmac_test_0000003")
+
+    assert_not record.valid?
+    assert_predicate record.errors[:body], :any?
+  end
+  private
+
+  def build_occurrence(klass, attrs = {})
+    klass.new(attrs)
+  end
+
+  def assert_invalid_attribute(record, attribute)
+    assert_not_predicate record, :valid?, "expected #{record.class.name} to be invalid"
+    assert_includes record.errors.attribute_names, attribute
+  end
+
+  def assert_public_id_generated(record)
+    assert_predicate record, :valid?
+    assert_predicate record.public_id, :present?
+    assert_equal 21, record.public_id.length
+  end
+
+  def assert_public_id_preserved(record, expected_public_id)
+    assert_predicate record, :valid?
+    assert_equal expected_public_id, record.public_id
+  end
+
+  def assert_occurrence_lifecycle_defaults(record)
+    assert_equal Float::INFINITY, record.discarded_at
+    assert_equal Float::INFINITY, record.purged_at
   end
 end

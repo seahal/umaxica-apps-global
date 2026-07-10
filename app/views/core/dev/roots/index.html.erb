@@ -1,0 +1,20 @@
+<% content_for :page_title, "Core Dev React Aria Probe" %>
+<!doctype html>
+<html lang="<%= I18n.locale %>">
+  <head>
+    <meta charset="utf-8">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1">
+    <title>Core Dev React Aria Probe</title>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= vite_client_tag nonce: true %>
+    <%= vite_react_refresh_tag nonce: true %>
+    <%= vite_typescript_tag "entrypoints/core/dev", nonce: true, "data-turbo-eval": "false" %>
+  </head>
+  <body>
+    <div
+      data-react-component="ReactAriaProbe"></div>
+  </body>
+</html>

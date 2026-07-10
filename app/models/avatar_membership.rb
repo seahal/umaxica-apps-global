@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-# rubocop:disable Layout/LineLength
-
 # == Schema Information
 #
 # Table name: avatar_memberships
@@ -24,7 +22,6 @@
 #  index_avatar_memberships_on_actor_id                     (actor_id) WHERE (valid_to = 'infinity'::timestamp with time zone)
 #  index_avatar_memberships_on_avatar_id_and_actor_id       (avatar_id,actor_id) UNIQUE WHERE (valid_to = 'infinity'::timestamp with time zone)
 #  index_avatar_memberships_on_avatar_membership_status_id  (avatar_membership_status_id)
-#  index_avatar_memberships_on_granted_by_actor_id          (granted_by_actor_id)
 #  index_avatar_memberships_on_role_id                      (role_id)
 #
 # Foreign Keys
@@ -36,7 +33,7 @@
 
 class AvatarMembership < AvatarRecord
   belongs_to :avatar
-  belongs_to :avatar_membership_status, optional: true
+  belongs_to :avatar_membership_status
   belongs_to :avatar_role, foreign_key: :role_id, inverse_of: :avatar_memberships
 
   validates :avatar_id,
@@ -46,6 +43,8 @@ class AvatarMembership < AvatarRecord
             }
   validates :actor_id, presence: true
   validates :valid_from, presence: true
+  validates :valid_to,
+            comparison: { greater_than_or_equal_to: :valid_from },
+            if: -> { valid_from.present? && valid_to.present? }
   validates :id, numericality: { only_integer: true }, allow_nil: true
 end
-# rubocop:enable Layout/LineLength

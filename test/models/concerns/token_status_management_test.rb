@@ -5,15 +5,28 @@ require "test_helper"
 
 class TokenStatusManagementTest < ActiveSupport::TestCase
   def setup
-    @user = User.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: UserStatus::NOTHING)
-    @token = UserToken.create!(user: @user, user_token_kind_id: UserTokenKind::BROWSER_WEB)
+    @user = Client.create!(
+      public_id: "u_#{SecureRandom.hex(8)}",
+      status_id: ClientStatus::NOTHING,
+      created_at: 1.day.ago,
+      updated_at: 1.day.ago,
+    )
+    @token = ClientToken.create!(
+      user: @user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      discarded_at: 1.day.from_now,
+      purged_at: 2.days.from_now,
+      created_at: 1.day.ago,
+      updated_at: 1.day.ago,
+    )
   end
 
   test "defines status constants" do
-    assert_equal "active", TokenStatusManagement::STATUS_ACTIVE
-    assert_equal "restricted", TokenStatusManagement::STATUS_RESTRICTED
-    assert_equal "revoked", TokenStatusManagement::STATUS_REVOKED
-    assert_equal %w(active restricted revoked), TokenStatusManagement::VALID_STATUSES
+    assert_equal 1, TokenStatusManagement::STATUS_ACTIVE
+    assert_equal 102, TokenStatusManagement::STATUS_EXPIRED
+    assert_equal 103, TokenStatusManagement::STATUS_RESTRICTED
+    assert_equal 104, TokenStatusManagement::STATUS_REVOKED
+    assert_equal [1, 102, 103, 104], TokenStatusManagement::VALID_STATUSES
   end
 
   test "defines restricted ttl" do
@@ -21,32 +34,48 @@ class TokenStatusManagementTest < ActiveSupport::TestCase
   end
 
   test "active_status scope returns only active usable tokens" do
-    @token.update!(status: "active", expired_at: nil)
-    restricted = UserToken.create!(user: @user, status: "restricted")
-    revoked = UserToken.create!(user: @user, expired_at: Time.current)
-    refresh_expired = UserToken.create!(user: @user, status: "active", refresh_expires_at: 1.minute.ago)
-    compromised = UserToken.create!(user: @user, status: "active", compromised_at: Time.current)
-    rotated_source = UserToken.create!(user: @user, status: "active")
+    @token.update!(user_token_status_id: ClientTokenStatus::ACTIVE, discarded_at: 1.day.from_now)
+    restricted = ClientToken.create!(
+      user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED, discarded_at: 1.day.from_now,
+      purged_at: 2.days.from_now,
+    )
+    revoked = ClientToken.create!(user: @user, discarded_at: Time.current, purged_at: 1.day.from_now)
+    refresh_expired = ClientToken.create!(
+      user: @user, user_token_status_id: ClientTokenStatus::ACTIVE, discarded_at: 1.minute.ago,
+      purged_at: 1.day.from_now,
+    )
+    rotated_source = ClientToken.create!(
+      user: @user, user_token_status_id: ClientTokenStatus::ACTIVE, discarded_at: 1.day.from_now,
+      purged_at: 2.days.from_now,
+    )
     rotated_refresh = rotated_source.rotate_refresh_token!
-    Sign::RefreshTokenService.call(refresh_token: rotated_refresh)
+    SignRefreshTokenIssuer.call(refresh_token: rotated_refresh)
 
-    results = UserToken.active_status
+    results = ClientToken.active_status
 
     assert_includes results, @token
     assert_not_includes results, restricted
     assert_not_includes results, revoked
     assert_not_includes results, refresh_expired
-    assert_not_includes results, compromised
     assert_not_includes results, rotated_source.reload
   end
 
   test "restricted_status scope returns only restricted usable tokens" do
-    active = UserToken.create!(user: @user, status: "active")
-    @token.update!(status: "restricted", expired_at: nil)
-    revoked = UserToken.create!(user: @user, status: "restricted", expired_at: Time.current)
-    refresh_expired = UserToken.create!(user: @user, status: "restricted", refresh_expires_at: 1.minute.ago)
+    active = ClientToken.create!(
+      user: @user, user_token_status_id: ClientTokenStatus::ACTIVE,
+      discarded_at: 1.day.from_now, purged_at: 2.days.from_now,
+    )
+    @token.update!(user_token_status_id: ClientTokenStatus::RESTRICTED, discarded_at: 1.day.from_now)
+    revoked = ClientToken.create!(
+      user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED,
+      discarded_at: Time.current, purged_at: 1.day.from_now,
+    )
+    refresh_expired = ClientToken.create!(
+      user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED, discarded_at: 1.minute.ago,
+      purged_at: 1.day.from_now,
+    )
 
-    results = UserToken.restricted_status
+    results = ClientToken.restricted_status
 
     assert_includes results, @token
     assert_not_includes results, active
@@ -55,14 +84,14 @@ class TokenStatusManagementTest < ActiveSupport::TestCase
   end
 
   test "not_revoked scope returns only usable tokens" do
-    @token.update!(expired_at: nil)
-    revoked = UserToken.create!(user: @user, expired_at: Time.current)
-    refresh_expired = UserToken.create!(user: @user, refresh_expires_at: 1.minute.ago)
-    rotated_source = UserToken.create!(user: @user)
+    @token.update!(discarded_at: 1.day.from_now)
+    revoked = ClientToken.create!(user: @user, discarded_at: Time.current, purged_at: 1.day.from_now)
+    refresh_expired = ClientToken.create!(user: @user, discarded_at: 1.minute.ago, purged_at: 1.day.from_now)
+    rotated_source = ClientToken.create!(user: @user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
     rotated_refresh = rotated_source.rotate_refresh_token!
-    Sign::RefreshTokenService.call(refresh_token: rotated_refresh)
+    SignRefreshTokenIssuer.call(refresh_token: rotated_refresh)
 
-    results = UserToken.not_revoked
+    results = ClientToken.not_revoked
 
     assert_includes results, @token
     assert_not_includes results, revoked
@@ -70,11 +99,11 @@ class TokenStatusManagementTest < ActiveSupport::TestCase
     assert_not_includes results, rotated_source.reload
   end
 
-  test "future revoked_at stays valid until due and past revoked_at is excluded" do
-    future_token = UserToken.create!(user: @user, revoked_at: 10.minutes.from_now)
-    past_token = UserToken.create!(user: @user, revoked_at: 10.minutes.ago)
+  test "future discarded_at stays valid until due and past discarded_at is excluded" do
+    future_token = ClientToken.create!(user: @user, discarded_at: 10.minutes.from_now, purged_at: 1.day.from_now)
+    past_token = ClientToken.create!(user: @user, discarded_at: 10.minutes.ago, purged_at: 1.day.from_now)
 
-    results = UserToken.not_revoked
+    results = ClientToken.not_revoked
 
     assert_includes results, future_token
     assert_not_includes results, past_token
@@ -83,31 +112,70 @@ class TokenStatusManagementTest < ActiveSupport::TestCase
   end
 
   test "restricted? returns true when status is restricted" do
-    @token.update!(status: "restricted")
+    @token.update!(user_token_status_id: ClientTokenStatus::RESTRICTED)
 
     assert_predicate @token, :restricted?
 
-    @token.update!(status: "active")
+    @token.update!(user_token_status_id: ClientTokenStatus::ACTIVE)
 
     assert_not_predicate @token, :restricted?
   end
 
   test "active_status? returns true only when active and currently usable" do
-    @token.update!(status: "active", expired_at: nil)
+    @token.update!(
+      user_token_status_id: ClientTokenStatus::ACTIVE, discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
+    )
 
     assert_predicate @token, :active_status?
 
-    @token.update!(status: "restricted")
+    @token.update!(user_token_status_id: ClientTokenStatus::RESTRICTED)
 
     assert_not_predicate @token, :active_status?
 
-    @token.update!(status: "active", expired_at: Time.current)
+    @token.update!(
+      user_token_status_id: ClientTokenStatus::ACTIVE, discarded_at: Time.current,
+      purged_at: 1.day.from_now,
+    )
 
     assert_not_predicate @token, :active_status?
   end
 
-  test "currently_usable? returns false for rotated, refresh-expired, and compromised tokens" do
-    @token.update!(status: "active", expired_at: nil)
+  test "revoked? returns true when status is revoked" do
+    @token.update!(user_token_status_id: ClientTokenStatus::REVOKED)
+
+    assert_predicate @token, :revoked?
+
+    @token.update!(user_token_status_id: ClientTokenStatus::ACTIVE)
+
+    assert_not_predicate @token, :revoked?
+  end
+
+  test "expired? handles blank and infinite discarded_at" do
+    token = ClientToken.new(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+
+    token.define_singleton_method(:discarded_at) { nil }
+
+    assert_not token.send(:expired?)
+
+    token.define_singleton_method(:discarded_at) { Float::INFINITY }
+
+    assert_not token.send(:expired?)
+  end
+
+  test "scheduled_revocation_due? tracks past discarded_at" do
+    token = ClientToken.new(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    token.define_singleton_method(:discarded_at) { 1.minute.ago }
+
+    assert_predicate token, :scheduled_revocation_due?
+    assert_predicate token, :expired?
+  end
+
+  test "currently_usable? returns false for rotated and expired tokens" do
+    @token.update!(
+      user_token_status_id: ClientTokenStatus::ACTIVE, discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
+    )
 
     assert_predicate @token, :currently_usable?
 
@@ -115,57 +183,56 @@ class TokenStatusManagementTest < ActiveSupport::TestCase
 
     assert_not_predicate @token, :currently_usable?
 
-    @token.update!(rotated_at: nil, refresh_expires_at: 1.minute.ago)
+    @token.update!(rotated_at: nil, discarded_at: 1.minute.from_now)
 
-    assert_not_predicate @token, :currently_usable?
+    assert_predicate @token, :currently_usable?
 
-    @token.update!(refresh_expires_at: 1.day.from_now, compromised_at: Time.current)
-
-    assert_not_predicate @token, :currently_usable?
+    travel 2.minutes do
+      assert_not_predicate @token.reload, :currently_usable?
+    end
   end
 
   test "mark_restricted! updates status to restricted" do
-    @token.update!(status: "active")
+    @token.update!(user_token_status_id: ClientTokenStatus::ACTIVE)
     @token.mark_restricted!
 
-    assert_equal "restricted", @token.reload.status
+    assert_equal ClientTokenStatus::RESTRICTED, @token.reload.user_token_status_id
   end
 
   test "promote_to_active! updates status to active" do
-    @token.update!(status: "restricted")
+    @token.update!(user_token_status_id: ClientTokenStatus::RESTRICTED)
     @token.promote_to_active!
 
-    assert_equal "active", @token.reload.status
+    assert_equal ClientTokenStatus::ACTIVE, @token.reload.user_token_status_id
+  end
+
+  test "expiry_column returns discarded_at when present" do
+    assert_equal :discarded_at, ClientToken.expiry_column
   end
 
   test "revoke! sets expired_at and status to revoked" do
     freeze_time do
       @token.revoke!
 
-      assert_predicate @token.expired_at, :present?
-      assert_equal Time.current, @token.expired_at
-      assert_equal "revoked", @token.status
+      assert_predicate @token.discarded_at, :present?
+      assert_in_delta Time.current.to_f, @token.discarded_at.to_f, 1
+      assert_equal ClientTokenStatus::REVOKED, @token.user_token_status_id
     end
   end
 
-  test "validates status inclusion" do
-    token = UserToken.new(user: @user, status: "invalid_status")
+  test "revoke! restores missing revoked status reference" do
+    ClientTokenStatus.find(ClientTokenStatus::REVOKED).destroy!
 
-    assert_not token.valid?
-    assert_not_empty token.errors[:status]
+    @token.revoke!
+
+    assert ClientTokenStatus.exists?(id: ClientTokenStatus::REVOKED)
+    assert_equal ClientTokenStatus::REVOKED, @token.reload.user_token_status_id
   end
 
-  test "validates status length" do
-    token = UserToken.new(user: @user, status: "a" * 21)
+  test "default token status is active" do
+    token = ClientToken.new(user: @user)
 
-    assert_not token.valid?
-    assert_not_empty token.errors[:status]
-  end
-
-  test "default status is active" do
-    token = UserToken.new(user: @user)
-
-    assert_equal "active", token.status
+    assert_equal ClientTokenStatus::ACTIVE, token.user_token_status_id
   end
 
   test "expiry_column raises when model has no expiry columns" do
@@ -185,9 +252,22 @@ class TokenStatusManagementTest < ActiveSupport::TestCase
     assert_raises(ArgumentError) { klass.expiry_column }
   end
 
-  test "works with StaffToken as well" do
-    staff = Staff.find_by!(public_id: "BCDE2345FGHJ67KM")
-    token = StaffToken.create!(staff: staff)
+  test "token_status_model raises for unknown token class" do
+    klass =
+      Class.new do
+        extend TokenStatusManagement::ClassMethods
+
+        define_singleton_method(:name) do
+          "UnknownToken"
+        end
+      end
+
+    assert_raises(ArgumentError) { klass.token_status_model }
+  end
+
+  test "works with OperatorToken as well" do
+    staff = Operator.find_by!(public_id: "BCDE2345FGHJ67KM")
+    token = OperatorToken.create!(staff: staff)
 
     assert_predicate token, :active_status?
 
@@ -201,6 +281,6 @@ class TokenStatusManagementTest < ActiveSupport::TestCase
 
     token.revoke!
 
-    assert_equal "revoked", token.reload.status
+    assert_equal OperatorTokenStatus::REVOKED, token.reload.staff_token_status_id
   end
 end

@@ -1,0 +1,21 @@
+# == Schema Information
+#
+# Table name: visitor_token_statuses
+# Database name: com_ticket
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: <%= VisitorTokenStatus::NOTHING %>
+
+active:
+  id: <%= VisitorTokenStatus::ACTIVE %>
+
+expired:
+  id: <%= VisitorTokenStatus::EXPIRED %>
+
+restricted:
+  id: <%= VisitorTokenStatus::RESTRICTED %>
+
+revoked:
+  id: <%= VisitorTokenStatus::REVOKED %>

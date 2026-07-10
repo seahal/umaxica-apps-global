@@ -1,166 +1,240 @@
 # frozen_string_literal: true
 
-source "https://rubygems.org"
-# source "https://gem.coop"
+source "https://rubygems.org", cooldown: 3
 
-ruby "4.0.3"
+ruby "4.0.5"
 
-# Rake
-gem "rake"
-# Rack
-gem "rack"
-# Rails
-#   gem "rails", "~> 8.1.0"
+# Type signatures for Ruby libraries.
+gem "rbs", require: false
+# Rails application framework from the main branch.
 gem "rails", github: "rails/rails", branch: "main"
-# Web server
-gem "puma"
-# Push Notification
-gem "web-push"
-gem "action_push_native"
-# JSON APIs
-gem "jbuilder"
-# Use OpenStruct
-gem "ostruct"
-# Database
-gem "pg"
-gem "strong_migrations"
-# Redis
-gem "redis"
-# Timeout
+# Rails task runner.
+gem "rake"
+# Rack webserver interface.
+gem "rack"
+# Rack request timeout protection.
 gem "rack-timeout", group: %i(development production)
-# CORS
+# Rack CORS middleware.
 gem "rack-cors"
-# Password hashing
-gem "argon2"
-gem "bcrypt"
-# SHA3
-gem "sha3"
-# Time zone data for Windows
-gem "tzinfo-data", platforms: %i(windows jruby)
-# Boot caching
-gem "bootsnap", require: false
-# File uploads and processing
-gem "shrine"
-gem "image_processing"
-# AWS SDKs
-gem "aws-sdk-sns" # for sms delivery
-gem "aws-sdk-secretsmanager" # for secret_key_base rotation
-# Asset pipeline
-gem "propshaft"
-# OpenTelemetry
-gem "opentelemetry-sdk", require: false
-gem "opentelemetry-exporter-otlp", require: false
-gem "opentelemetry-instrumentation-all", require: false
-# search
+# Puma application server.
+gem "puma"
+# PostgreSQL database adapter.
+gem "pg"
+# gem "activerecord-tenant-level-security"
+# Counter cache maintenance helpers.
+gem "counter_culture"
+# SQL query annotations for request tracing.
+gem "marginalia"
+# Model translation support.
+gem "mobility"
+# Money and currency handling for Rails models.
+gem "money-rails"
+# Safe migration guardrails.
+gem "strong_migrations"
+# PostgreSQL full-text search helpers.
 gem "pg_search"
-# TOTP
-gem "rotp"
-# QR code generation
-gem "rqrcode"
-# Solid Cache
-gem "solid_cache"
-# Solid Queue
-gem "solid_queue"
-gem "mission_control-jobs"
-# Pagination
-gem "pagy"
-# WebAuthn (FIDO2)
-gem "webauthn"
-# Social login
-gem "omniauth"
-gem "omniauth-apple"
-gem "omniauth-google-oauth2"
-gem "omniauth-rails_csrf_protection"
-# JWT
-gem "jwt"
-# Hotwire
-gem "turbo-rails"
-gem "stimulus-rails"
-gem "importmap-rails"
-# Tailwind CSS
-gem "tailwindcss-rails"
-# HTML head tags
+# PostgreSQL database inspection helpers.
+gem "rails-pg-extras", require: false
+# Browser-based database console.
+gem "rails_db"
+# Redis client.
+gem "redis"
+# JSON response builder.
+gem "jbuilder"
+# OpenStruct standard library dependency.
+gem "ostruct"
+# Windows and JRuby time zone data.
+gem "tzinfo-data", platforms: %i(windows jruby)
+# Bootsnap boot cache.
+gem "bootsnap", require: false
+# Password hashing with Argon2.
+gem "argon2"
+# SHA-3 digest implementation.
+gem "sha3", require: false
+# File upload toolkit.
+gem "shrine"
+# Image processing integration.
+gem "image_processing", require: false
+# AWS SNS client for SMS delivery.
+gem "aws-sdk-sns", require: false
+# Propshaft asset pipeline.
+gem "propshaft"
+# Tailwind CSS integration.
+# HTML metadata helpers.
 gem "meta-tags"
-# ID generation
-gem "nanoid"
-# Authentication
-gem "action_policy"
-# billing
-gem "stripe"
-# SQL exploration
-gem "blazer"
+# OpenTelemetry SDK.
+gem "opentelemetry-sdk", require: false
+# OpenTelemetry OTLP exporter.
+gem "opentelemetry-exporter-otlp", require: false
+# OpenTelemetry auto-instrumentation bundle.
+gem "opentelemetry-instrumentation-all", require: false
+# Sentry Ruby client.
 gem "sentry-ruby"
+# Sentry Rails integration.
 gem "sentry-rails"
+# Action Policy authorization.
+gem "action_policy"
+# WebAuthn FIDO2 authentication.
+gem "webauthn"
+# TOTP generation and verification.
+gem "rotp"
+# QR code generation.
+gem "rqrcode", require: false
+# OmniAuth core middleware.
+gem "omniauth"
+# OmniAuth Apple strategy.
+gem "omniauth-apple"
+# OmniAuth Google OAuth2 strategy.
+gem "omniauth-google-oauth2"
+# OmniAuth CSRF protection for Rails.
+gem "omniauth-rails_csrf_protection"
+# JSON Web Token support.
+gem "jwt"
+# Web Push notification support.
+gem "web-push", require: false
+# Native Action Push integration.
+gem "action_push_native", require: false
+# Solid Cache backend.
+gem "solid_cache"
+# Solid Queue backend.
+gem "solid_queue"
+# Turbo Rails integration.
+gem "turbo-rails"
+# Stimulus Rails integration.
+gem "stimulus-rails"
+# Inertia Rails adapter.
 gem "inertia_rails"
+# Vite Rails integration.
 gem "vite_rails"
+# Pagination helpers.
+gem "pagy"
+# Nanoid identifier generation.
+gem "nanoid"
+# Soft deletion support.
+gem "discard"
+# Store-backed attribute helpers.
+gem "store_attribute"
+# Store-backed model objects.
+gem "store_model"
+# Stripe API client.
+gem "stripe", require: false
+# dependency
+gem "ruby-vips"
+# log
+gem "lograge"
+# json
+gem "json-canonicalization"
+# Solid Queue operations UI.
+gem "mission_control-jobs"
 
 group :development, :test do
-  # Test coverage
-  gem "simplecov", require: false
-  gem "simplecov-lcov", require: false
-  # Minitest mock (extracted from minitest 6.0+)
+  # Test coverage reporting.
+  gem "simplecov"
+  # LCOV formatter for SimpleCov.
+  gem "simplecov-lcov"
+  # Minitest mock extraction.
   gem "minitest-mock"
-  # Slow test profiling
-  gem "test-prof"
-  # N+1 query detector
+  # Slow test profiling.
+  gem "test-prof", require: false
+  # N+1 query detector alternative.
   gem "prosopite"
-  gem "pg_query"
-  # Database consistency checks
+  # SQL query parser.
+  gem "pg_query", require: false
+  # Database consistency checks.
   gem "database_consistency", require: false
-  # ckecker for open api
-  gem "committee-rails"
-  gem "debride"
-  # type
+  # OpenAPI contract checker.
+  gem "committee-rails", require: false
+  # Dead code detector.
+  gem "debride", require: false
+  # RBI generation for Sorbet.
   gem "tapioca", require: false
+  # gem "findbug"
+  # Static security scanner.
+  gem "brakeman", require: false
+  # Bundler vulnerability scanner.
+  gem "bundler-audit", require: false
+  # RuboCop core linter.
+  gem "rubocop", require: false
+  # RuboCop AST utilities.
+  gem "rubocop-ast", require: false
+  # RuboCop performance rules.
+  gem "rubocop-performance", require: false
+  # RuboCop thread-safety rules.
+  gem "rubocop-thread_safety", require: false
+  # RuboCop Rake rules.
+  gem "rubocop-rake", require: false
+  # RuboCop Minitest rules.
+  gem "rubocop-minitest", require: false
+  # RuboCop Rails omakase rules.
+  gem "rubocop-rails-omakase", require: false
+  # RuboCop i18n rules.
+  gem "rubocop-i18n", require: false
+  # Locale auditing and normalization.
+  gem "i18n-tasks", require: false
+  # RuboCop RubyCW rules.
+  gem "rubocop-rubycw", require: false
+  # RuboCop Rails rules.
+  gem "rubocop-rails", require: false
+end
 
-  gem "rack-livereload"
+group :test do
+  # Mutation testing for Minitest.
+  gem "mutant-minitest", require: false
+  # Browser and integration testing DSL.
+  gem "capybara"
+  # Playwright Ruby client.
+  gem "playwright-ruby-client", require: false
+  # Capybara Playwright driver.
+  gem "capybara-playwright-driver", require: false
+  # Memory allocation profiler.
+  gem "memory_profiler", require: false
+  # Ruby CPU profiler.
+  gem "ruby-prof", require: false
+  # Rails memory and boot profiling tools.
+  gem "derailed_benchmarks", require: false
+  # Sampling profiler.
+  gem "stackprof", require: false
+  # Minitest output formatters.
+  gem "minitest-reporters", require: false
 end
 
 group :development do
-  # Debugging
-  gem "debug", platforms: %i( mri windows )
-  gem "sorbet"
-  gem "foreman"
-  gem "yard"
-  # Preview email in the browser instead of sending it
-  gem "letter_opener"
-  # Live reload
+  # Debugging tools.
+  gem "debug", platforms: %i(mri windows)
+  # Procfile process manager.
+  gem "foreman", require: false
+  # Documentation generator.
+  gem "yard", require: false
+  # Browser email previewer.
+  gem "letter_opener", require: false
+  # Web UI for email previews.
+  gem "letter_opener_web", require: false
+  # Hotwire live reload helper.
   gem "hotwire-spark"
+  # Rails live reload helper.
   gem "rails_live_reload"
-  # Performance profiling
+  # Rack live reload middleware.
+  gem "rack-livereload"
+  # Request performance profiler.
   gem "rack-mini-profiler"
-  # Speed up commands on slow machines / big apps
-  gem "brakeman", require: false
-  # RuboCop
-  gem "rubocop", require: false
-  gem "rubocop-ast", require: false
-  gem "rubocop-performance", require: false
-  gem "rubocop-thread_safety", require: false
-  gem "rubocop-rake", require: false
-  gem "rubocop-minitest", require: false
-  gem "rubocop-rails-omakase", require: false
-  gem "rubocop-i18n", require: false
-  gem "rubocop-rubycw", require: false
-  gem "rubocop-rails", require: false
-  gem "rubocop-sorbet", require: false
-  # Boundary enforcement for granular modular architecture
+  # PostgreSQL dashboard.
+  gem "pghero", require: false
+  # SQL exploration dashboard.
+  gem "blazer", require: false
+  # Package boundary enforcement.
   gem "packwerk", require: false
-  # ERB lint
+  # ERB linter.
   gem "erb_lint", require: false
-  # Annotate models, routes, fixtures, etc.
-  gem "annotaterb"
-  # Ruby LSP
-  gem "ruby-lsp"
-  # Code quality tools
+  # Model and route annotation tool.
+  gem "annotaterb", require: false
+  # Ruby language server.
+  gem "ruby-lsp", require: false
+  # ABC complexity analyzer.
   gem "flog", require: false
+  # Duplicate code detector.
   gem "flay", require: false
+  # Code smell detector.
   gem "reek", require: false
-  # ERD diagrams
-  gem "rails-erd", require: false
-  gem "railroady", require: false
-  gem "rails-mermaid_erd", require: false
-  # Security
-  gem "bundler-audit", require: false
 end
 
 gem "rbs", "~> 4.0"

@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-# rubocop:disable Layout/LineLength
-
 # == Schema Information
 #
 # Table name: avatar_ownership_periods
@@ -23,7 +21,6 @@
 #  index_avatar_ownership_periods_on_avatar_id                   (avatar_id) UNIQUE WHERE (valid_to = 'infinity'::timestamp with time zone)
 #  index_avatar_ownership_periods_on_avatar_ownership_status_id  (avatar_ownership_status_id)
 #  index_avatar_ownership_periods_on_owner_organization_id       (owner_organization_id) WHERE (valid_to = 'infinity'::timestamp with time zone)
-#  index_avatar_ownership_periods_on_transferred_by_actor_id     (transferred_by_actor_id)
 #
 # Foreign Keys
 #
@@ -32,8 +29,10 @@
 #
 
 class AvatarOwnershipPeriod < AvatarRecord
+  self.belongs_to_required_by_default = false
+
   belongs_to :avatar
-  belongs_to :avatar_ownership_status, optional: true
+  belongs_to :avatar_ownership_status
 
   validates :avatar_id,
             uniqueness: { conditions: -> { where("valid_to = 'infinity'::timestamp with time zone") } }
@@ -41,4 +40,3 @@ class AvatarOwnershipPeriod < AvatarRecord
   validates :valid_from, presence: true
   validates :id, length: { maximum: 255 }
 end
-# rubocop:enable Layout/LineLength

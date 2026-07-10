@@ -1,0 +1,12 @@
+# == Schema Information
+#
+# Table name: client_profile_statuses
+# Database name: app_zenith
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: ClientProfileStatus
+
+default:
+  id: 1

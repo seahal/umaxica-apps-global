@@ -12,5 +12,5 @@ RailsLiveReload.configure do |config|
   # config.watch %r{app/helpers/.+\.rb}, reload: :always
   # config.watch %r{config/locales/.+\.yml}, reload: :always
 
-  # config.enabled = Rails.env.development?
+  config.enabled = ENV["RAILS_LIVE_RELOAD_ENABLED"] == "true"
 end if defined?(RailsLiveReload)

@@ -1,0 +1,19 @@
+<% content_for :page_title, page_title %>
+
+<h1><%= title page_title %></h1>
+
+<p>Signed in</p>
+
+<section>
+  <h2>Account</h2>
+  <ul>
+    <% case surface %>
+    <% when :app %>
+      <li><%= link_to t("sign.app.settings.show.logout"), new_base_app_sign_out_path %></li>
+    <% when :com %>
+      <li><%= link_to t("sign.app.settings.show.logout"), new_base_com_sign_out_path(ri: params[:ri]) %></li>
+    <% when :org %>
+      <li><%= link_to t("sign.app.settings.show.logout"), new_base_org_sign_out_path(ri: params[:ri]) %></li>
+    <% end %>
+  </ul>
+</section>

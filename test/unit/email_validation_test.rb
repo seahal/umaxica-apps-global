@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class EmailValidationCoverageTest < ActiveSupport::TestCase
   class TestController
@@ -13,13 +14,13 @@ class EmailValidationCoverageTest < ActiveSupport::TestCase
   end
 
   test "valid_email?" do
-    # EmailValidation concern uses Jit::Utils::EmailValidator
-    assert Jit::Utils::EmailValidator.valid?("test@example.com")
-    assert_not Jit::Utils::EmailValidator.valid?("invalid")
+    # EmailValidation concern uses JitUtilsEmailValidator
+    assert JitUtilsEmailValidator.valid?("test@example.com")
+    assert_not JitUtilsEmailValidator.valid?("invalid")
   end
 
   test "validate_and_normalize_email" do
-    assert_equal "test@example.com", Jit::Utils::EmailValidator.normalize(" TEST@example.com ")
-    assert_nil Jit::Utils::EmailValidator.normalize("invalid")
+    assert_equal "test@example.com", JitUtilsEmailValidator.normalize(" TEST@example.com ")
+    assert_nil JitUtilsEmailValidator.normalize("invalid")
   end
 end

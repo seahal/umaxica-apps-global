@@ -1,0 +1,12 @@
+<% content_for :page_title, "Early personal data erasure" %>
+
+<h1>Early personal data erasure</h1>
+
+<p>This is a privacy request for personal data deletion or restriction. It is separate from normal withdrawal.</p>
+<p>After processing, recovery may no longer be available. Some data may be retained for legal, safety, audit, billing, or dispute handling reasons.</p>
+<p>Messages, posts, audit logs, billing records, and similar records may follow separate retention policies.</p>
+
+<%= form_with url: base_com_identity_privacy_erasure_path(ri: params[:ri]) do |form| %>
+  <%= form.hidden_field :jurisdiction, value: "unknown" %>
+  <%= form.submit "Request early erasure" %>
+<% end %>

@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: app_preference_language_options
-# Database name: principal
+# Database name: app_setting
 #
 #  id :bigint           not null, primary key
 #
@@ -13,17 +13,17 @@ require "test_helper"
 
 class AppPreferenceLanguageOptionTest < ActiveSupport::TestCase
   setup do
-    AppPreferenceStatus.find_or_create_by!(id: AppPreferenceStatus::NOTHING)
+    AppPreferenceStatus.ensure_defaults!
   end
 
   test "has correct constants" do
-    assert_equal 0, AppPreferenceLanguageOption::NOTHING
     assert_equal 1, AppPreferenceLanguageOption::JA
     assert_equal 2, AppPreferenceLanguageOption::EN
   end
 
-  test "defaults includes NOTHING" do
-    assert_includes AppPreferenceLanguageOption::DEFAULTS, AppPreferenceLanguageOption::NOTHING
+  test "defaults includes supported languages" do
+    assert_equal [AppPreferenceLanguageOption::JA, AppPreferenceLanguageOption::EN],
+                 AppPreferenceLanguageOption::DEFAULTS
   end
 
   test "can be created" do

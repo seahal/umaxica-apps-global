@@ -1,0 +1,36 @@
+<% content_for :page_title, t("sign.app.registration.telephone.edit.page_title") %>
+
+<div>
+  <h1><%= t("sign.app.registration.telephone.edit.page_title") %></h1>
+  <p><%= t("sign.app.registration.telephone.create.verification_code_sent") %></p>
+
+  <%= form_with model: @visitor_telephone, url: auth_com_sign_up_check_telephone_otp_path(ri: params[:ri]), method: :patch do |form| %>
+    <% if @visitor_telephone.errors.any? %>
+      <div>
+        <ul>
+          <% @visitor_telephone.errors.each do |error| %>
+            <li><%= error.full_message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div>
+      <%= form.label :pass_code, t("sign.app.registration.telephone.edit.code_label") %>
+      <%= form.text_field :pass_code,
+                          placeholder: t("sign.app.registration.telephone.edit.code_placeholder"),
+                          autofocus: true,
+                          autocomplete: "one-time-code",
+                          inputmode: "numeric",
+                          pattern: "[0-9]*" %>
+    </div>
+
+    <%= form.submit t("sign.app.registration.telephone.edit.submit") %>
+  <% end %>
+
+  <p><%= t("sign.app.registration.telephone.edit.delivery_help") %></p>
+
+  <div>
+    <%= link_to t("controller.sign.app.registration.telephone.edit.return_page"), auth_com_sign_up_path(ri: params[:ri]) %>
+  </div>
+</div>

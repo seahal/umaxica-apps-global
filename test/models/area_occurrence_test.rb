@@ -8,9 +8,9 @@
 #
 #  id           :bigint           not null, primary key
 #  body         :string           default(""), not null
-#  deletable_at :datetime         default(Infinity), not null
+#  discarded_at :datetime         default(Infinity), not null
 #  memo         :string           default(""), not null
-#  revoked_at   :datetime         default(Infinity), not null
+#  purged_at    :datetime         default(Infinity), not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
 #  public_id    :string(21)       default(""), not null
@@ -18,11 +18,10 @@
 #
 # Indexes
 #
-#  index_area_occurrences_on_body          (body) UNIQUE
-#  index_area_occurrences_on_deletable_at  (deletable_at)
-#  index_area_occurrences_on_public_id     (public_id) UNIQUE
-#  index_area_occurrences_on_revoked_at    (revoked_at)
-#  index_area_occurrences_on_status_id     (status_id)
+#  index_area_occurrences_on_body       (body) UNIQUE
+#  index_area_occurrences_on_public_id  (public_id) UNIQUE
+#  index_area_occurrences_on_purged_at  (purged_at)
+#  index_area_occurrences_on_status_id  (status_id)
 #
 # Foreign Keys
 #
@@ -101,5 +100,31 @@ class AreaOccurrenceTest < ActiveSupport::TestCase
     record = build_occurrence(AreaOccurrence, body: "JP/Kyoto/Sakyo", public_id: "Y" * 21)
 
     assert_occurrence_lifecycle_defaults(record)
+  end
+  private
+
+  def build_occurrence(klass, attrs = {})
+    klass.new(attrs)
+  end
+
+  def assert_invalid_attribute(record, attribute)
+    assert_not_predicate record, :valid?, "expected #{record.class.name} to be invalid"
+    assert_includes record.errors.attribute_names, attribute
+  end
+
+  def assert_public_id_generated(record)
+    assert_predicate record, :valid?
+    assert_predicate record.public_id, :present?
+    assert_equal 21, record.public_id.length
+  end
+
+  def assert_public_id_preserved(record, expected_public_id)
+    assert_predicate record, :valid?
+    assert_equal expected_public_id, record.public_id
+  end
+
+  def assert_occurrence_lifecycle_defaults(record)
+    assert_equal Float::INFINITY, record.discarded_at
+    assert_equal Float::INFINITY, record.purged_at
   end
 end

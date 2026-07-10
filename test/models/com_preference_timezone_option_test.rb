@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: com_preference_timezone_options
-# Database name: setting
+# Database name: com_setting
 #
 #  id :bigint           not null, primary key
 #
@@ -47,6 +47,39 @@ class ComPreferenceTimezoneOptionTest < ActiveSupport::TestCase
 
     assert_raises(ActiveRecord::RecordNotDestroyed) do
       option.destroy!
+    end
+  end
+
+  test "name returns nil for unknown id" do
+    option = ComPreferenceTimezoneOption.new(id: 99)
+
+    assert_nil option.name
+  end
+
+  test "name returns Etc/UTC for ETC_UTC id" do
+    option = ComPreferenceTimezoneOption.new(id: ComPreferenceTimezoneOption::ETC_UTC)
+
+    assert_equal "Etc/UTC", option.name
+  end
+
+  test "name returns Asia/Tokyo for ASIA_TOKYO id" do
+    option = ComPreferenceTimezoneOption.new(id: ComPreferenceTimezoneOption::ASIA_TOKYO)
+
+    assert_equal "Asia/Tokyo", option.name
+  end
+
+  test "name returns United States timezones" do
+    expectations = {
+      ComPreferenceTimezoneOption::AMERICA_NEW_YORK => "America/New_York",
+      ComPreferenceTimezoneOption::AMERICA_CHICAGO => "America/Chicago",
+      ComPreferenceTimezoneOption::AMERICA_DENVER => "America/Denver",
+      ComPreferenceTimezoneOption::AMERICA_LOS_ANGELES => "America/Los_Angeles",
+      ComPreferenceTimezoneOption::AMERICA_ANCHORAGE => "America/Anchorage",
+      ComPreferenceTimezoneOption::PACIFIC_HONOLULU => "Pacific/Honolulu",
+    }
+
+    expectations.each do |id, timezone|
+      assert_equal timezone, ComPreferenceTimezoneOption.new(id: id).name
     end
   end
 end

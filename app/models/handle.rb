@@ -31,7 +31,9 @@
 class Handle < AvatarRecord
   include PublicId
 
-  belongs_to :handle_status, optional: true
+  attribute :handle_status_id, default: HandleStatus::NOTHING
+
+  belongs_to :handle_status
 
   has_many :handle_assignments, dependent: :restrict_with_error
   has_many :avatars, through: :handle_assignments

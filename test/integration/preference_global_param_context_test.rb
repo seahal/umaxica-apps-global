@@ -2,16 +2,25 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
+  self.fixture_table_names = []
+
   setup do
     https!
   end
 
   DOMAINS = [
-    { name: "sign_app", host: "id.app.localhost", preference_url_method: :sign_app_preference_url },
-    { name: "sign_org", host: "id.org.localhost", preference_url_method: :sign_org_preference_url },
-    { name: "sign_com", host: "id.com.localhost", preference_url_method: :sign_com_preference_url },
+    { name: "base_app",
+      host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
+      preference_url_method: :base_app_preference_url, },
+    { name: "base_org",
+      host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
+      preference_url_method: :base_org_preference_url, },
+    { name: "base_com",
+      host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
+      preference_url_method: :base_com_preference_url, },
   ].freeze
 
   # =============================================================================
@@ -40,6 +49,47 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_match(/ri=us/, request.url)
+    end
+
+    test "#{domain[:name]} uses ri as request-local locale when lx is absent" do
+      host!(domain[:host])
+
+      url_method = domain[:preference_url_method] || domain[:root_url_method]
+      get public_send(url_method, ri: "us")
+
+      assert_response :success
+      assert_select "html[lang='en']"
+
+      get public_send(url_method, ri: "jp")
+
+      assert_response :success
+      assert_select "html[lang='ja']"
+    end
+
+    test "#{domain[:name]} prefers explicit lx over ri-derived locale" do
+      host!(domain[:host])
+
+      url_method = domain[:preference_url_method] || domain[:root_url_method]
+      get public_send(url_method, ri: "jp", lx: "en")
+
+      assert_response :success
+      assert_select "html[lang='en']"
+    end
+
+    test "#{domain[:name]} timezone edit includes United States timezone options" do
+      host!(domain[:host])
+
+      surface = domain[:name].delete_prefix("base_")
+      get public_send("edit_base_#{surface}_preference_timezone_url", ri: "jp", lx: "ja")
+
+      assert_response :success
+      assert_select "html[lang='ja']"
+      assert_select "select[name='preference_timezone[option_id]'] option", text: /東部時間/
+      assert_select "select[name='preference_timezone[option_id]'] option", text: /中部時間/
+      assert_select "select[name='preference_timezone[option_id]'] option", text: /山岳部時間/
+      assert_select "select[name='preference_timezone[option_id]'] option", text: /太平洋時間/
+      assert_select "select[name='preference_timezone[option_id]'] option", text: /アラスカ時間/
+      assert_select "select[name='preference_timezone[option_id]'] option", text: /ハワイ時間/
     end
 
     test "#{domain[:name]} ri param is always included in default_url_options" do
@@ -162,7 +212,19 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
 
       url_method = domain[:preference_url_method] || domain[:root_url_method]
-      get public_send(url_method, ri: "us", lx: "en", ct: "dr", tz: "utc")
+      get public_send(
+        url_method,
+        ri: "us",
+        lx: "en",
+        ct: "dr",
+        tz: "utc",
+        cu: "usd",
+        df: "us",
+        tf: "12",
+        mo: "rd",
+        dn: "cp",
+        ps: "50",
+      )
 
       assert_response :success
 
@@ -175,11 +237,76 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       links_with_all_params =
         links.select do |link|
           href = link["href"]
-          href.include?("lx=en") && href.include?("ct=dr") && href.include?("tz=utc")
+          %w(lx=en ct=dr tz=utc cu=usd df=us tf=12 mo=rd dn=cp ps=50).all? do |param|
+            href.include?(param)
+          end
         end
 
       assert_predicate links_with_all_params, :any?,
                        "Some preference links should have all optional params preserved"
+    end
+
+    test "#{domain[:name]} redirect target params are not preserved in navigation links by default" do
+      host!(domain[:host])
+
+      url_method = domain[:preference_url_method] || domain[:root_url_method]
+      get public_send(url_method, ri: "jp", pt: "signed-path-target", nt: "dashboard")
+
+      assert_response :success
+
+      links = css_select("a[href*='/preference']")
+      links.each do |link|
+        href = link["href"]
+
+        assert_no_match(/pt=/, href, "Preference link should not include pt by default: #{href}")
+        assert_no_match(/nt=/, href, "Preference link should not include nt by default: #{href}")
+      end
+    end
+
+    test "#{domain[:name]} invalid optional params are removed from request URL" do
+      host!(domain[:host])
+
+      url_method = domain[:preference_url_method] || domain[:root_url_method]
+      get public_send(url_method, ri: "jp", lx: "kr", ct: "purple", tz: "Mars/Base")
+
+      assert_response :redirect
+      location = response.headers["Location"]
+
+      assert_match(/ri=jp/, location)
+      assert_no_match(/lx=/, location)
+      assert_no_match(/ct=/, location)
+      assert_no_match(/tz=/, location)
+    end
+
+    test "#{domain[:name]} jst timezone param is removed from theme edit URL" do
+      host!(domain[:host])
+
+      surface = domain[:name].delete_prefix("base_")
+      get public_send("edit_base_#{surface}_preference_theme_url", ri: "us", lx: "en", tz: "jst")
+
+      assert_response :redirect
+      location = URI.parse(response.headers.fetch("Location"))
+      query = Rack::Utils.parse_query(location.query)
+
+      assert_equal "/preference/theme/edit", location.path
+      assert_equal "us", query["ri"]
+      assert_equal "en", query["lx"]
+      assert_not query.key?("tz")
+    end
+
+    test "#{domain[:name]} canonicalizes timezone param in request URL to lowercase" do
+      host!(domain[:host])
+
+      surface = domain[:name].delete_prefix("base_")
+      get public_send("edit_base_#{surface}_preference_theme_url", ri: "jp", tz: "Asia/Tokyo")
+
+      assert_response :redirect
+      location = URI.parse(response.headers.fetch("Location"))
+      query = Rack::Utils.parse_query(location.query)
+
+      assert_equal "/preference/theme/edit", location.path
+      assert_equal "jp", query["ri"]
+      assert_equal "asia/tokyo", query["tz"]
     end
   end
 
@@ -225,8 +352,8 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
   def internal_links_for(host)
     allowed_hosts = [
       host,
-      ENV["ID_SERVICE_URL"],
-      ENV["ID_STAFF_URL"],
+      ENV["PRIVATE_AUTH_SERVICE_URL"],
+      ENV["PRIVATE_AUTH_STAFF_URL"],
       ENV["EDGE_SERVICE_URL"],
       ENV["EDGE_STAFF_URL"],
     ].compact

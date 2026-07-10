@@ -26,8 +26,9 @@ Theme edit/update flows exist on `app`, `org`, and `com`, and the shared UI expo
 
 ## Evidence
 
-- `app/config/preference/io_keys.rb` defines the cookie key contract and keeps theme as `ct`.
-- `test/config/auth/io_keys_test.rb` asserts the contract directly.
+- `app/controllers/concerns/preference/io_keys.rb` defines the cookie key contract and keeps theme
+  as `ct`.
+- `test/controllers/concerns/preference/io_keys_test.rb` asserts the contract directly.
 - `test/controllers/concerns/preference/base_test.rb` and
   `test/controllers/concerns/preference/jwt_and_color_theme_test.rb` assert
   `Preference::Base::THEME_COOKIE_KEY == "ct"`.
@@ -47,6 +48,16 @@ Theme edit/update flows exist on `app`, `org`, and `com`, and the shared UI expo
 - `ct` is the accepted stable key for theme preference transport.
 - Any future migration to a longer name would require an explicit compatibility plan because the
   short key is now relied on across UI, cookies, links, and tests.
+
+## Current Operational Clarification
+
+`ct` may appear as optional request-local context and may be propagated in URLs when explicitly
+present and valid. It is not a preference write path. Persistent theme changes must go through the
+dedicated preference write endpoints, which update the database and reissue the preference access
+token.
+
+Rails may write the `ct` cookie as a browser/UI compatibility mirror, but Rails request code must
+not trust JS-readable preference cookies as preference input.
 
 ## Related
 

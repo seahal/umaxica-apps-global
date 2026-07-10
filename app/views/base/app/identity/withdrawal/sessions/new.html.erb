@@ -1,0 +1,23 @@
+<% content_for :page_title, "Withdrawal session" %>
+
+<h1>Withdrawal session</h1>
+
+<p><%= withdrawal_reentry_generic_message %></p>
+
+<%= form_with url: base_app_identity_withdrawal_session_path(ri: params[:ri]), scope: :withdrawal_reentry do |form| %>
+  <div>
+    <%= form.label :address, "Email address" %>
+    <%= form.email_field :address, value: params.dig(:withdrawal_reentry, :address), autocomplete: "email" %>
+  </div>
+  <%= form.submit "Send verification code" %>
+<% end %>
+
+<% if @reentry_state.present? %>
+  <%= form_with url: base_app_identity_withdrawal_session_path(ri: params[:ri]) do |form| %>
+    <div>
+      <%= form.label :pass_code, "Verification code" %>
+      <%= form.text_field :pass_code, inputmode: "numeric", autocomplete: "one-time-code" %>
+    </div>
+    <%= form.submit "Continue" %>
+  <% end %>
+<% end %>

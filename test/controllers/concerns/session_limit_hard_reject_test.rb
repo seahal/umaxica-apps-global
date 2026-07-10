@@ -2,17 +2,18 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class SessionLimitHardRejectTest < ActionDispatch::IntegrationTest
-  fixtures :users
+  fixtures :clients
 
   class TestController < ApplicationController
-    include Authentication::User
+    include AuthenticationClient
 
-    public_strict!
+    declare_authentication_mode! :open
 
     def create
-      user = User.find(params[:user_id])
+      user = Client.find(params[:user_id])
       result = log_in(user, require_totp_check: false)
 
       if result[:status] == :session_limit_hard_reject
@@ -30,14 +31,18 @@ class SessionLimitHardRejectTest < ActionDispatch::IntegrationTest
   end
 
   setup do
-    @user = users(:one)
-    UserToken.where(user_id: @user.id).delete_all
-    2.times do
-      token = UserToken.create!(user: @user, status: UserToken::STATUS_ACTIVE)
-      token.rotate_refresh_token!
+    @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
+    AuthenticationBase.login_cooldown_enabled = false
+    @user = clients(:one)
+    ClientToken.where(user_id: @user.id).delete_all
+    Prosopite.pause do
+      2.times do
+        token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
+        token.rotate_refresh_token!
+      end
+      restricted = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
+      restricted.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
     end
-    restricted = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED)
-    restricted.rotate_refresh_token!(expires_at: 15.minutes.from_now)
 
     Rails.application.routes.draw do
       post "/test/hard_reject_login" => "session_limit_hard_reject_test/test#create"
@@ -45,28 +50,29 @@ class SessionLimitHardRejectTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
+    AuthenticationBase.login_cooldown_enabled = @original_login_cooldown_enabled
     Rails.application.reload_routes!
   end
 
-  test "hard reject returns 409 for html and does not create new token" do
-    before_count = UserToken.where(user_id: @user.id).count
+  test "hard reject returns 403 for html and does not create new token" do
+    before_count = ClientToken.where(user_id: @user.id).count
 
     post "/test/hard_reject_login", params: { user_id: @user.id }
 
-    assert_response :conflict
-    assert_equal Authentication::Base::SESSION_LIMIT_HARD_REJECT_MESSAGE, response.body
-    assert_equal before_count, UserToken.where(user_id: @user.id).count
+    assert_response :forbidden
+    assert_equal AuthenticationBase::SESSION_LIMIT_HARD_REJECT_MESSAGE, response.body
+    assert_equal before_count, ClientToken.where(user_id: @user.id).count
   end
 
-  test "hard reject returns 409 for json and does not create new token" do
-    before_count = UserToken.where(user_id: @user.id).count
+  test "hard reject returns 403 for json and does not create new token" do
+    before_count = ClientToken.where(user_id: @user.id).count
 
     post "/test/hard_reject_login",
          params: { user_id: @user.id },
          as: :json
 
-    assert_response :conflict
+    assert_response :forbidden
     assert_equal "session_limit_hard_reject", response.parsed_body["error_code"]
-    assert_equal before_count, UserToken.where(user_id: @user.id).count
+    assert_equal before_count, ClientToken.where(user_id: @user.id).count
   end
 end

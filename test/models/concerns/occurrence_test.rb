@@ -4,26 +4,42 @@
 require "test_helper"
 
 class OccurrenceTest < ActiveSupport::TestCase
-  test "set_default_lifecycle_timestamps sets defaults when attributes exist" do
-    record = UserOccurrence.new
-
-    record.revoked_at = nil
-    record.deletable_at = nil
-    record.send(:set_default_lifecycle_timestamps)
+  test "includes retainable defaults" do
+    record = ClientOccurrence.new
 
     assert_occurrence_lifecycle_defaults(record)
   end
 
-  test "set_default_lifecycle_timestamps skips when has_attribute? is false" do
-    record = UserOccurrence.new
-    record.revoked_at = nil
-    record.deletable_at = nil
+  test "accessible? and purgeable? reflect retainable state" do
+    record = ClientOccurrence.new(discarded_at: 1.hour.from_now, purged_at: 1.hour.ago)
 
-    record.stub(:has_attribute?, false) do
-      record.send(:set_default_lifecycle_timestamps)
-    end
+    assert_predicate record, :accessible?
+    assert_predicate record, :purgeable?
+  end
+  private
 
-    assert_nil record.revoked_at
-    assert_nil record.deletable_at
+  def build_occurrence(klass, attrs = {})
+    klass.new(attrs)
+  end
+
+  def assert_invalid_attribute(record, attribute)
+    assert_not_predicate record, :valid?, "expected #{record.class.name} to be invalid"
+    assert_includes record.errors.attribute_names, attribute
+  end
+
+  def assert_public_id_generated(record)
+    assert_predicate record, :valid?
+    assert_predicate record.public_id, :present?
+    assert_equal 21, record.public_id.length
+  end
+
+  def assert_public_id_preserved(record, expected_public_id)
+    assert_predicate record, :valid?
+    assert_equal expected_public_id, record.public_id
+  end
+
+  def assert_occurrence_lifecycle_defaults(record)
+    assert_equal Float::INFINITY, record.discarded_at
+    assert_equal Float::INFINITY, record.purged_at
   end
 end

@@ -2,34 +2,49 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
-# Unit tests for the MFA intercept logic in Authentication::Base.
-# Tests mfa_required_for?, complete_sign_in_or_start_mfa!, and related helpers.
+# Unit tests for the MFA intercept logic in AuthenticationBase.
+# Tests mfa_required_for?, establish_signed_in_session!, and related helpers.
 class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
-  fixtures :user_statuses
+  fixtures :client_statuses
 
-  test "mfa_required_for? returns false for user without multi_factor_enabled" do
-    user = User.create!(multi_factor_enabled: false)
+  test "mfa_required_for? returns false for user without mfa_level_enabled" do
+    user = Client.create!(mfa_level_enabled: false)
     controller = build_test_controller
 
     assert_not controller.send(:mfa_required_for?, user)
   end
 
-  test "mfa_required_for? returns true for user with multi_factor_enabled" do
-    user = User.create!(multi_factor_enabled: true)
+  test "mfa_required_for? returns true for user with mfa_level_enabled" do
+    user = Client.create!(mfa_level_enabled: true)
     controller = build_test_controller
 
     assert controller.send(:mfa_required_for?, user)
   end
 
-  test "mfa_required_for? returns false for non-User resources" do
+  test "mfa_required_for? returns true for user with full mfa_level_id" do
+    user = Client.create!(mfa_level_id: ClientMfaLevel::FULL, mfa_level_enabled: true)
+    controller = build_test_controller
+
+    assert controller.send(:mfa_required_for?, user)
+  end
+
+  test "mfa_required_for? returns false for user with nothing mfa_level_id" do
+    user = Client.create!(mfa_level_id: ClientMfaLevel::NOTHING)
+    controller = build_test_controller
+
+    assert_not controller.send(:mfa_required_for?, user)
+  end
+
+  test "mfa_required_for? returns false for non-Client resources" do
     controller = build_test_controller
 
     assert_not controller.send(:mfa_required_for?, nil)
   end
 
   test "check_totp_requirement returns mfa_required status for MFA user" do
-    user = User.create!(multi_factor_enabled: true)
+    user = Client.create!(mfa_level_enabled: true)
     controller = build_test_controller
 
     result = controller.send(:check_totp_requirement, user)
@@ -38,7 +53,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
   end
 
   test "check_totp_requirement returns nil for non-MFA user" do
-    user = User.create!(multi_factor_enabled: false)
+    user = Client.create!(mfa_level_enabled: false)
     controller = build_test_controller
 
     result = controller.send(:check_totp_requirement, user)
@@ -55,11 +70,11 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
 
   test "resolve_mfa_return_to decodes base64 internal path" do
     controller = build_test_controller
-    encoded = Base64.urlsafe_encode64("/configuration")
+    encoded = Base64.urlsafe_encode64("/settings")
 
     result = controller.send(:resolve_mfa_return_to, encoded)
 
-    assert_equal "/configuration", result
+    assert_equal "/settings", result
   end
 
   test "resolve_mfa_return_to rejects external URLs without allowed host" do
@@ -70,14 +85,64 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
     assert_nil result
   end
 
+  test "complete_sign_in_or_start_mfa adds auth method to login audit context" do
+    user = Client.create!(mfa_level_enabled: false)
+    controller = build_test_controller
+    captured = nil
+
+    controller.define_singleton_method(:log_in) do |resource, **kwargs|
+      captured = [resource, kwargs]
+      { status: :success }
+    end
+
+    result = controller.send(
+      :establish_signed_in_session!,
+      user,
+      pt: nil,
+      ri: "jp",
+      auth_method: "secret_credential",
+    )
+
+    assert_equal({ status: :success, redirect_path: "/dashboard" }, result)
+    assert_equal user, captured.first
+    assert_not captured.last[:require_totp_check]
+    assert_equal({ auth_method: "secret_credential" }, captured.last[:audit_context])
+  end
+
+  test "complete_sign_in_or_start_mfa preserves explicit audit context" do
+    user = Client.create!(mfa_level_enabled: false)
+    controller = build_test_controller
+    captured = nil
+
+    controller.define_singleton_method(:log_in) do |resource, **kwargs|
+      captured = [resource, kwargs]
+      { status: :success }
+    end
+
+    controller.send(
+      :establish_signed_in_session!,
+      user,
+      pt: nil,
+      ri: "jp",
+      auth_method: "social",
+      audit_context: { auth_method: "oauth", provider: "google" },
+    )
+
+    assert_equal user, captured.first
+    assert_equal(
+      { auth_method: "oauth", provider: "google" },
+      captured.last[:audit_context],
+    )
+  end
+
   private
 
-  # Build a minimal controller-like object that includes Authentication::Base for testing
+  # Build a minimal controller-like object that includes AuthenticationBase for testing
   def build_test_controller
     controller_class =
       Class.new do
-        include Common::Redirect
-        include Authentication::Base
+        include CommonRedirect
+        include AuthenticationBase
 
         attr_accessor :session
 
@@ -86,15 +151,15 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
         end
 
         define_method(:resource_class) do
-          ::User
+          ::Client
         end
 
         define_method(:token_class) do
-          UserToken
+          ClientToken
         end
 
         define_method(:audit_class) do
-          ::UserChronicle
+          ::ClientChronicle
         end
 
         define_method(:resource_type) do
@@ -109,7 +174,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
           "X-TEST-CURRENT-USER"
         end
 
-        define_method(:sign_in_url_with_return) do |_rt|
+        define_method(:sign_in_url_with_pt) do |_rt|
           "/sign/in"
         end
 
@@ -125,15 +190,51 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
           false
         end
 
-        define_method(:respond_to?) do |name, *|
-          (name == :sign_app_in_mfa_path) ? true : super
+        define_method(:respond_to?) do |name, include_private = false|
+          return true if name == :sign_app_sign_in_mfa_path
+
+          super(name, include_private)
         end
 
-        define_method(:sign_app_in_mfa_path) do |ri: nil|
+        define_method(:sign_app_sign_in_mfa_path) do |ri: nil|
           ri ? "/sign/in/mfa?ri=#{ri}" : "/sign/in/mfa"
         end
       end
 
     controller_class.new
+  end
+end
+
+# DAMP local route helper aliases for former shared test support.
+class Auth::MfaInterceptUnitTest
+  SURFACE_ROUTE_PREFIX_MAP = {
+    "sign_app_" => "auth_app_",
+    "sign_org_" => "auth_org_",
+    "sign_com_" => "auth_com_",
+    "acme_app_" => "base_app_",
+    "acme_org_" => "base_org_",
+    "acme_com_" => "base_com_",
+  }.freeze unless const_defined?(:SURFACE_ROUTE_PREFIX_MAP, false)
+
+  private
+
+  def method_missing(name, ...)
+    aliased_name = aliased_surface_route_helper_name(name)
+    return public_send(aliased_name, ...) if aliased_name && respond_to?(aliased_name, true)
+
+    super
+  end
+
+  def respond_to_missing?(name, include_private = false)
+    aliased_name = aliased_surface_route_helper_name(name)
+    (aliased_name && respond_to?(aliased_name, include_private)) || super
+  end
+
+  def aliased_surface_route_helper_name(name)
+    helper_name = name.to_s
+    self.class::SURFACE_ROUTE_PREFIX_MAP.each do |source_prefix, target_prefix|
+      return helper_name.sub(source_prefix, target_prefix).to_sym if helper_name.start_with?(source_prefix)
+    end
+    nil
   end
 end

@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: org_preference_languages
-# Database name: operator
+# Database name: org_setting
 #
 #  id            :bigint           not null, primary key
 #  created_at    :datetime         not null
@@ -23,15 +23,13 @@
 
 # frozen_string_literal: true
 
-class OrgPreferenceLanguage < OperatorRecord
+class OrgPreferenceLanguage < OrgSettingRecord
   belongs_to :preference, class_name: "OrgPreference", inverse_of: :org_preference_language
   belongs_to :option,
              class_name: "OrgPreferenceLanguageOption",
-             inverse_of: :org_preference_languages,
-             optional: true
+             inverse_of: :org_preference_languages
 
   validates :preference_id, uniqueness: true
-  validates :option_id, presence: true
 
   before_validation :set_option_id
 

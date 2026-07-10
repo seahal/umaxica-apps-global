@@ -22,7 +22,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   - Public sites: `www.umaxica.app`, `www.umaxica.com`, `www.umaxica.org`
   - Service endpoints: `sign.umaxica.*`, `api.jp.umaxica.*`, `docs.[jp|us].umaxica.*`,
     `help.[jp|us].umaxica.*`, `news.[jp|us].umaxica.*`
-  - Staff estate: `www.umaxica.org`, `id.umaxica.org`, `api.umaxica.org`, etc.
+  - Staff estate: `www.umaxica.org`, `log.umaxica.org`, `api.umaxica.org`, etc.
   - Network-only hosts (e.g., `asset-jp.umaxica.net`) are proxied but not powered by Rails.
 - Subsystems: top-level marketing pages, authentication (sign), help center/contact flows,
   documentation and news portals, BFF preference endpoints, public API endpoints for inquiry
@@ -44,7 +44,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 | --------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | Product Owner         | Defines feature scope, localization priorities, and compliance targets                                                | Roadmap, Notion/Jira                                      |
 | Tech Lead / Architect | Owns multi-surface Rails architecture, multi-DB strategy, and integration points (Valkey, SMS, email)                 | Rails, Docker Compose                                     |
-| Front-End Engineer    | Builds Turbo/React views in `app/javascript`, owns theme and preference UX                                            | pnpm, Biome, Tailwind, Turbo                              |
+| Front-End Engineer    | Builds Turbo/React views in `src`, owns theme and preference UX                                                       | pnpm, Vite Plus, Tailwind, Turbo                          |
 | Back-End Engineer     | Implements controller logic (e.g., `config/routes/*.rb` namespaces), models, encryption, OTP/passkey workflows        | Rails 8, PostgreSQL, Valkey                               |
 | Platform/DevOps       | Manages Compose stack (PostgreSQL shards, Valkey, MinIO, Grafana/Loki/Tempo), CI (`integration.yml`), and deployments | Docker, Foreman, GitHub Actions                           |
 | QA Engineer           | Designs Minitest/spec + JS/TS tests (via pnpm), Rswag/OpenAPI verification, smoke/load tests                          | `bin/rails test`, `pnpm test` (when added), Playwright/k6 |
@@ -57,12 +57,13 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - **Runtime & language**: Ruby 3.4.7 / Rails 8.x monolith with multi-database (`connects_to`)
   separation (identity, universal, guest, profile, token, etc.) backed by PostgreSQL 18 (primary +
   replica).
-- **Frontend toolchain**: pnpm-managed JS tooling (Biome) with Turbo/React entrypoints under
-  `app/javascript`; assets are served via importmap and Rails Tailwind CLI for CSS.
+- **Frontend toolchain**: Vite Rails with pnpm-managed Vite Plus tooling for Turbo/Stimulus/React
+  entrypoints under `src`; browser CSS is bundled through Vite entrypoints while Rails still serves
+  non-browser static assets.
 - **Caching & session adjuncts**: Valkey (Redis-compatible) powers request rate limiting, `Memorize`
   ephemeral storage, signed preference cookies, and Rack session backing for Action Cable.
 - **Security & identity**: JWT auth cookies (ES256) via the `Authn` concern, WebAuthn passkeys,
-  HOTP/TOTP (ROTP), `AwsSmsService`, and Cloudflare Turnstile for bot defense.
+  HOTP/TOTP (ROTP), `Outbound::Sms`, and Cloudflare Turnstile for bot defense.
 - **Observability**: OpenTelemetry instrumentation exports to Tempo via OTLP; logs/metrics land in
   Loki/Grafana (docker/observability stack).
 - **Storage & CDN**: Active Storage/Shrine configured for Google Cloud Storage or MinIO (dev).
@@ -72,13 +73,13 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   |---------|---------------|-----------|-----------------| | Top (marketing / preferences) |
   `www.umaxica.com`, `www.umaxica.app`, `www.umaxica.org` | `Top::Com/App/Org` | Redirects to edge,
   exposes `/health`, `/v1/health`, preference UIs (cookie/region/theme). | | Sign |
-  `id.umaxica.app`, `id.umaxica.org` | `Sign::App/Org` | Registration (email/phone), OTP, passkeys,
-  OAuth (Google/Apple), recovery, withdrawals. | | Help | `help.umaxica.com` | `Help::Com/App/Org` |
-  Contact forms, ticket intake (`ServiceSiteContact`), Turnstile enforcement. | | Docs / News |
-  `docs.umaxica.*`, `news.umaxica.*` | `Docs::*`, `News::*` | Documentation/newsroom placeholders
-  with health pages. | | BFF | `bff.umaxica.*` | `Bff::*` | Non-auth preference/email endpoints for
-  clients. | | API | `api.umaxica.*` | `Api::*` | JSON APIs (`/v1/inquiry/valid_email_addresses`,
-  `valid_telephone_numbers`, `health`). |
+  `log.umaxica.app`, `log.umaxica.org` | `Sign::App/Org` | Registration (email/phone), OTP,
+  passkeys, OAuth (Google/Apple), recovery, withdrawals. | | Help | `help.umaxica.com` |
+  `Help::Com/App/Org` | Contact forms, ticket intake (`ServiceSiteContact`), Turnstile enforcement.
+  | | Docs / News | `docs.umaxica.*`, `news.umaxica.*` | `Docs::*`, `News::*` |
+  Documentation/newsroom placeholders with health pages. | | BFF | `bff.umaxica.*` | `Bff::*` |
+  Non-auth preference/email endpoints for clients. | | API | `api.umaxica.*` | `Api::*` | JSON APIs
+  (`/v1/inquiry/valid_email_addresses`, `valid_telephone_numbers`, `health`). |
 
 ---
 
@@ -100,9 +101,9 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 
 ### 4.2 Preference management & localization
 
-- **FR-05**: Region/language/timezone updates in `Top::*::Preference::RegionController` must
-  validate against the mappings defined in `PreferenceRegions` and persist to signed cookies
-  (`__Secure-root_app_preferences`) plus Rails session.
+- **FR-05**: Region/language/timezone updates in preference controllers must validate against the
+  current preference option registry, persist to DB-backed preference rows, and reissue the
+  Preference JWT projection in `preference_access` / `__Host-preference_access`.
 - **FR-06**: Theme selection (`Theme` concern) must support `system/dark/light` with shorthand codes
   (sy/dr/li) and rewrite to the correct edit URL per scope (Top::App/Com/Org).
 - **FR-07**: Cookie consent toggles (`Preference::CookieController` using `Cookie` concern) must
@@ -114,7 +115,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   Cloudflare Turnstile verification, HOTP issuance (ROTP), and `UserIdentityEmail` persistence using
   encrypted attributes.
 - **FR-09**: Telephone registration controllers mirror email flow but dispatch OTP codes through
-  `AwsSmsService`.
+  `Outbound::Sms`.
 - **FR-10**: Authentication controllers (`Sign::App::Authentication::*`) must issue short-lived
   access tokens (JWT ES384) and refresh tokens using `Auth::Base#log_in`. Refresh now requires
   `device_id` (`jit_auth_device_id` cookie or `X-Device-Id` header). If both are present they must
@@ -128,8 +129,8 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - **FR-12**: TOTP provisioning (`Sign::App::Setting::TotpsController`) must generate QR codes
   (`rqrcode`) with session-stored secrets, verify first token, and persist to
   `TimeBasedOneTimePassword` (encrypted key).
-- **FR-13**: OAuth integrations (Google/Apple) use OmniAuth and must be wired for CSRF-safe flows
-  (move to GET in backlog but tracked here as compliance requirement).
+- **FR-13**: OAuth integrations use OmniAuth and must be wired for CSRF-safe flows. Google is
+  available on `app` and `org`; Apple is available only on `app`; `com` rejects both providers.
 - **FR-14**: Withdrawal controllers must collect user intent and mark accounts for deletion once the
   `Authn` layer supports revocation.
 
@@ -138,11 +139,11 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - **FR-15**: Help center contact forms (`Help::Com::ContactsController`) shall validate input via
   `ServiceSiteContact`, requiring either email or telephone, policy acceptance, and OTP
   confirmation. IP addresses must be logged (`ip_address` column) and PII encrypted at rest.
-- **FR-16**: Successful contact submissions must trigger notifications via
-  `Email::App::ContactMailer` and remain observable through application logs and traces.
+- **FR-16**: Successful contact submissions must trigger surface-scoped email notifications and
+  remain observable through application logs and traces.
 - **FR-17**: News and Docs namespaces must redirect to content-specific roots and expose health
   status; they are placeholders for static/dynamic content served through Rails/Turbo (React slots
-  defined in `app/javascript/views`).
+  defined in `src/pages`).
 
 ### 4.5 API and BFF services
 
@@ -161,13 +162,14 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 ### 4.6 Data protection and compliance
 
 - **FR-21**: Personally identifiable records must reside in their designated database clusters
-  (`IdentitiesRecord`, `GuestRecord`, `OccurrenceRecord`, etc.) with `connects_to` wiring honoring
-  read replicas for reporting workloads.
+  (`IdentitiesRecord`, `ComPrincipalRecord`, `OccurrenceRecord`, etc.) with `connects_to` wiring
+  honoring read replicas for reporting workloads.
 - **FR-22**: Sensitive columns (emails, telephone numbers, OTP secrets) must use Active Record
   encryption with deterministic mode for lookups where required.
-- **FR-23**: Preference cookies (`__Secure-root_app_preferences`) must be signed/HTTP-only/Lax by
-  default, with same-site exceptions documented if a downstream domain (e.g., `help` forms)
-  legitimately reads them.
+- **FR-23**: Preference credential cookies (`preference_access`, `preference_refresh`, and
+  `preference_dbsc`, with `__Host-` prefixes in production) must keep their documented security
+  attributes. Any downstream readable mirror must be documented separately from the credential
+  cookie contract.
 - **FR-24**: All database operations (create, update, delete) involving `User` and `Staff` entities
   must be recorded in the Audit log (`UserIdentityAudit`, `StaffIdentityAudit`) to ensure
   traceability and accountability.
@@ -205,14 +207,14 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 
 ### 6.1 Technical constraints
 
-- Ruby 3.4.7, Rails 8.x, pnpm 10+, Node.js 20+ (for tooling), PostgreSQL 18.
+- Ruby 3.4.7, Rails 8.x, pnpm 11.0.8, Node.js 22.13+ (for tooling), PostgreSQL 18.
 - Multi-database config defined in `config/database.yml` requires environment variables for each
   host (e.g., `POSTGRESQL_IDENTITY_PUB`, `POSTGRESQL_ACTIVITY_PUB`/`POSTGRESQL_ACTIVITY_SUB`, and
   `POSTGRESQL_BEHAVIOR_PUB`).
-- Asset pipeline relies on Rails Tailwind CLI and pnpm-managed JS tooling; Vite is intentionally not
-  used.
-- Dependencies include ROTP, WebAuthn, OmniAuth (Google/Apple), Rswag, Pundit, Shrine, SolidCache,
-  Fastly gem, AWS SDK.
+- Asset pipeline relies on Vite for browser CSS and pnpm-managed JS tooling for the app UI; Rails
+  continues to serve static non-browser assets where appropriate.
+- Dependencies include ROTP, WebAuthn, OmniAuth (Google/Apple), Rswag, Action Policy, Shrine,
+  SolidCache, Fastly gem, AWS SDK.
 
 ### 6.2 Environmental & configuration constraints
 
@@ -228,7 +230,8 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 ### 6.3 External services & integrations
 
 - Email providers: AWS SES, ActionMailer + SMTP credentials.
-- SMS: `AwsSmsService`.
+- SMS: `Outbound::Sms` with `SMS_PROVIDER` selecting the concrete provider; queued message bodies
+  are encrypted before enqueueing.
 - Cloud providers: Google Cloud (Cloud Run/Build/Storage/Artifact Registry) for deployment,
   Cloudflare (R2, Turnstile, DNS), Fastly (asset CDN).
 - Observability: Tempo/Loki/Grafana stack via Docker; production may forward to managed Grafana
@@ -258,8 +261,8 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - Repository guides: `README.md`, `AGENTS.md`, `docs/checklist.md`
 - Infrastructure: `compose.yml`, `Procfile.dev`
 - Security: `SECURITY.md`, `CODE_OF_CONDUCT.md`
-- Testing assets: `test/`, `test/javascript/`, `rswag` configuration
+- Testing assets: `test/`, `spec/`, `rswag` configuration
 - Change log: tracked via Git history and PR descriptions
 
 > **Note:** This SRS is internal-facing and must be updated whenever routes, data stores, or
-> external integrations change. It supersedes the legacy Apex portal specifications.
+> external integrations change. It supersedes the legacy Acme portal specifications.

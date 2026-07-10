@@ -5,7 +5,7 @@
 ## Context
 
 Two race conditions were identified in the `Email` concern (`app/models/concerns/email.rb`) and the
-`EmailRegistrable` concern (`engines/signature/app/controllers/concerns/sign/email_registrable.rb`).
+`EmailRegistrable` concern (`app/controllers/concerns/sign/email_registrable.rb`).
 
 ### Race condition 1: Non-atomic OTP attempt increment
 
@@ -46,30 +46,41 @@ set `otp_last_sent_at`, resulting in two OTP emails being sent within the cooldo
 
 ## Decision
 
-### Fix 1: Atomic increment with `update_all`
+### Fix 1: Atomic increment under a row lock
 
-Replace the read-then-write pattern with a single SQL `UPDATE` that increments at the database
-level, and follow it with a second `update_all` for the lock condition:
+Replace the read-then-write pattern with a `with_lock` block (`SELECT ... FOR UPDATE` on the email
+row) so concurrent increments are serialized. Inside the lock the method applies the attempt-window
+reset, increments, and sets `locked_at` once the threshold is reached, then saves in the same
+transaction:
 
 ```ruby
 def increment_attempts!
-  self.class.where(id: id).update_all(
-    "otp_attempts_count = otp_attempts_count + 1, updated_at = NOW()"
-  )
-  reload
+  with_lock do
+    next if lockout_active?
 
-  self.class.where(id: id)
-    .where(
-      "locked_at IS NULL OR locked_at = '-infinity'::timestamp OR locked_at = 'infinity'::timestamp"
-    )
-    .where(otp_attempts_count: MAX_OTP_ATTEMPTS..)
-    .update_all(locked_at: Time.current)
+    unless attempt_window_active?
+      self.otp_last_sent_at = Time.current
+      self.otp_attempts_count = 0
+    end
 
+    self.otp_attempts_count = otp_attempts_count.to_i + 1
+    self.locked_at = OTP_LOCKOUT_DURATION.from_now if otp_attempts_count >= MAX_OTP_ATTEMPTS
+    save!
+  end
   reload
 end
 ```
 
-Both operations are now database-level and do not depend on in-memory state read before the update.
+Because the row lock is held for the whole read-modify-write, two concurrent attempts cannot both
+read the same `otp_attempts_count`; the second waits for the first to commit. This uses the same
+`SELECT ... FOR UPDATE` primitive as Fix 2, so both fixes share one locking strategy, and it
+preserves model callbacks/validations and the windowed-reset / lockout-duration logic that a raw
+`update_all` would bypass. The implementation wraps the block in `Prosopite.pause` so the
+intentional `reload` is not flagged as an N+1 in development and test.
+
+> Implementation note: an earlier draft of this ADR prescribed two `update_all` statements. The
+> shipped implementation in `app/models/concerns/email.rb` (`increment_attempts!`) uses `with_lock`
+> instead; this section documents the approach that is actually in the code.
 
 ### Fix 2: Cooldown check inside transaction with row lock
 
@@ -98,8 +109,10 @@ in-transaction check is the authoritative gate.
 
 ## Trade-offs
 
-- `update_all` bypasses ActiveRecord callbacks and validations. This is intentional: the increment
-  and lock operations must not trigger validation side-effects.
+- `with_lock` holds `SELECT ... FOR UPDATE` on the email row for the whole read-modify-write, which
+  serializes concurrent attempts on the same row. The per-row contention is negligible and, unlike a
+  raw `update_all`, model callbacks/validations and the windowed-reset / lockout logic are
+  preserved.
 - `SELECT ... FOR UPDATE` on the email row serializes concurrent signup requests for the same
   address. This is the correct behavior and the performance impact is negligible for a per-user row.
 - The pre-transaction cooldown check is a best-effort optimization only. The in-transaction check is
@@ -108,5 +121,4 @@ in-transaction check is the authoritative gate.
 ## Affected Files
 
 - `app/models/concerns/email.rb` — `increment_attempts!`
-- `engines/signature/app/controllers/concerns/sign/email_registrable.rb` —
-  `initiate_email_verification!`
+- `app/controllers/concerns/sign/email_registrable.rb` — `initiate_email_verification!`

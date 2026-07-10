@@ -45,9 +45,8 @@ Treat these as confirmed and actionable:
 - `AuditTimestamp.verification_status` is a nullable boolean and should be reviewed against the
   intended state model.
 - `SearchBehavior.search` and `MessageBehavior.message` refer to non-existent models.
-- `UserAppPreference` has a redundant non-unique index on `user_id`.
-- `User.user_app_preferences` and `Staff.staff_org_preferences` depend on delete behavior in the
-  model, but the database FK rules are not fully aligned with that intent.
+- The retired `UserAppPreference` and `OperatorOrgPreference` bridge tables previously had delete
+  behavior mismatches; they are no longer part of the current preference model.
 - Document parent/version/revision associations in `AppDocument`, `ComDocument`, and `OrgDocument`
   need review against the actual FK delete actions.
 - `AuditTimestamp` uses a UUID primary key without an explicit ordering column.
@@ -112,7 +111,7 @@ Run the applicable checks after each repair batch:
 - `bundle exec rails test`
 - `bundle exec rubocop`
 - `bundle exec erb_lint .` if views change
-- `vp check` if JavaScript changes
+- `pnpm check` if JavaScript changes
 - `bundle exec database_consistency` with the local Rails-compatible workaround if the stock command
   still fails on `ActiveRecord::Base.connection`
 

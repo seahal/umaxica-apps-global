@@ -1,0 +1,19 @@
+# == Schema Information
+#
+# Table name: operator_passkey_statuses
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: OperatorPasskeyStatus
+
+# Table name: staff_passkey_statuses
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+active:
+  id: 1
+revoked:
+  id: 2

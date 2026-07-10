@@ -5,28 +5,21 @@ require "test_helper"
 
 class OccurrenceStatusTest < ActiveSupport::TestCase
   class DummyOccurrenceStatus < OccurrenceRecord
-    self.table_name = "user_occurrences"
+    self.table_name = "client_occurrence_statuses"
     include OccurrenceStatus
   end
 
-  test "set_default_lifecycle_timestamps runs when lifecycle attributes exist" do
+  test "retains no lifecycle helper methods" do
     record = DummyOccurrenceStatus.new
 
-    record.revoked_at = nil
-    record.deletable_at = nil
-    record.valid?
-
-    assert_occurrence_lifecycle_defaults(record)
+    assert_not record.respond_to?(:set_default_lifecycle_timestamps)
+    assert_not record.respond_to?(:ensure_lifecycle_timestamps)
   end
 
-  test "skips lifecycle timestamps when attributes are missing" do
-    record = UserOccurrenceStatus.new
+  test "does not add lifecycle attributes on status rows" do
+    record = ClientOccurrenceStatus.new
 
-    assert_not record.has_attribute?(:revoked_at)
-    assert_not record.has_attribute?(:deletable_at)
-    record.valid?
-
-    assert_not record.respond_to?(:revoked_at)
-    assert_not record.respond_to?(:deletable_at)
+    assert_not record.has_attribute?(:discarded_at)
+    assert_not record.has_attribute?(:purged_at)
   end
 end

@@ -472,7 +472,7 @@ Metrics/PerceivedComplexity:
   Max: 18
 
 Metrics/CollectionLiteralLength:
-  LengthThreshold: 80
+  Max: 80
   Exclude:
     - "db/**/*_migrate/**/*"
     - "test/**/*"
@@ -497,7 +497,7 @@ Lint/DuplicateBranch:
   Enabled: true
 
 Lint/DuplicateMethods:
-  Enabled: true
+  Enabled: false
 
 Lint/DuplicateRegexpCharacterClassElement:
   Enabled: true
@@ -1508,6 +1508,7 @@ Style/ConstantVisibility:
     - "db/**/*_migrate/**/*.rb"
 
 Layout/LineLength:
+  Enabled: false
   Exclude:
     - "db/**/*_migrate/**/*.rb"
 

@@ -1,0 +1,88 @@
+# == Schema Information
+#
+# Table name: operator_lifecycle_requests
+# Database name: org_principal
+#
+#  id                       :bigint           not null, primary key
+#  action                   :string           not null
+#  approved_at              :datetime
+#  executed_at              :datetime
+#  lock_version             :integer          default(0), not null
+#  reason                   :text
+#  rejected_at              :datetime
+#  rejection_reason         :text
+#  status                   :string           default("pending"), not null
+#  target_email             :string
+#  created_at               :datetime         not null
+#  updated_at               :datetime         not null
+#  approved_by_operator_id  :bigint
+#  executed_by_operator_id  :bigint
+#  invitation_id            :bigint
+#  organization_id          :bigint
+#  public_id                :string(21)       not null
+#  rejected_by_operator_id  :bigint
+#  requested_by_operator_id :bigint           not null
+#  role_id                  :bigint           default(0), not null
+#  target_operator_id       :bigint
+#
+# Indexes
+#
+#  index_operator_lifecycle_requests_on_action                    (action)
+#  index_operator_lifecycle_requests_on_approved_by_operator_id   (approved_by_operator_id)
+#  index_operator_lifecycle_requests_on_executed_by_operator_id   (executed_by_operator_id)
+#  index_operator_lifecycle_requests_on_public_id                 (public_id) UNIQUE
+#  index_operator_lifecycle_requests_on_rejected_by_operator_id   (rejected_by_operator_id)
+#  index_operator_lifecycle_requests_on_requested_by_operator_id  (requested_by_operator_id)
+#  index_operator_lifecycle_requests_on_status                    (status)
+#  index_operator_lifecycle_requests_on_target_email              (target_email)
+#  index_operator_lifecycle_requests_on_target_operator_id        (target_operator_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (requested_by_operator_id => operators.id) ON DELETE => restrict
+#
+_fixture:
+  model_class: OperatorLifecycleRequest
+
+pending_withdraw_one:
+  public_id: "ABCabc123def456ghi78"
+  action: withdraw
+  status: pending
+  target_operator: one
+  requested_by_operator: one
+  reason: "leaving"
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+pending_withdraw_two:
+  public_id: "XYZxyz789def456abc12"
+  action: withdraw
+  status: pending
+  target_operator: two
+  requested_by_operator: one
+  reason: "personal reasons"
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+pending_join_one:
+  public_id: "Join000123def456ghi7"
+  action: join
+  status: pending
+  target_email: "new@example.com"
+  organization_id: 1
+  requested_by_operator: one
+  reason: "new hire"
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+approved_withdraw_one:
+  public_id: "Appr000123def456ghi7"
+  action: withdraw
+  status: approved
+  target_operator: one
+  requested_by_operator: one
+  approved_by_operator: two
+  approved_at: <%= Time.current %>
+  reason: "approved departure"
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>

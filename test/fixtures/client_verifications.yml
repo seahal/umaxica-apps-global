@@ -1,0 +1,24 @@
+# Empty fixture to prevent FK violations when client_tokens are destroyed in tests.
+# == Schema Information
+#
+# Table name: client_verifications
+# Database name: app_ticket
+#
+#  id            :bigint           not null, primary key
+#  discarded_at  :datetime         default(Infinity), not null
+#  last_used_at  :datetime
+#  purged_at     :datetime         default(Infinity), not null
+#  token_digest  :string           not null
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#  user_token_id :bigint           not null
+#
+# Indexes
+#
+#  index_client_verifications_on_token_digest   (token_digest) UNIQUE
+#  index_client_verifications_on_user_token_id  (user_token_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (user_token_id => client_tokens.id) ON DELETE => cascade
+  #

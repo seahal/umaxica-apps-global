@@ -2,16 +2,58 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
-class StaffTokenPolicyTest < ActiveSupport::TestCase
+class OperatorTokenPolicyTest < ActiveSupport::TestCase
   def setup
     @user = nil
     @record = nil
-    @policy = StaffTokenPolicy.new(@record, user: @user)
+    @policy = OperatorTokenPolicy.new(@record, user: @user)
   end
 
   def test_index
     assert_not @policy.index?
+  end
+
+  # index? gates the session listing to the owning actor type (Operator).
+  def test_index_allows_operator
+    assert_predicate OperatorTokenPolicy.new(nil, user: Operator.new), :index?
+  end
+
+  def test_index_denies_other_actor_types
+    assert_not OperatorTokenPolicy.new(nil, user: Client.new).index?
+    assert_not OperatorTokenPolicy.new(nil, user: Visitor.new).index?
+  end
+
+  def test_destroy_allows_owner_operator_token
+    operator = Operator.new(id: 123)
+    token = OperatorToken.new(staff_id: operator.id)
+
+    assert_predicate OperatorTokenPolicy.new(token, user: operator), :destroy?
+  end
+
+  def test_destroy_denies_other_operator_token
+    operator = Operator.new(id: 123)
+    token = OperatorToken.new(staff_id: 456)
+
+    assert_not OperatorTokenPolicy.new(token, user: operator).destroy?
+  end
+
+  def test_destroy_denies_other_actor_types
+    token = OperatorToken.new(staff_id: 123)
+
+    assert_not OperatorTokenPolicy.new(token, user: Client.new(id: 123)).destroy?
+    assert_not OperatorTokenPolicy.new(token, user: Visitor.new(id: 123)).destroy?
+  end
+
+  def test_revoke_others_allows_operator_token_class_for_operator
+    assert_predicate OperatorTokenPolicy.new(OperatorToken, user: Operator.new), :revoke_others?
+  end
+
+  def test_revoke_others_denies_non_operators_and_instances
+    assert_not OperatorTokenPolicy.new(OperatorToken, user: Client.new).revoke_others?
+    assert_not OperatorTokenPolicy.new(OperatorToken, user: Visitor.new).revoke_others?
+    assert_not OperatorTokenPolicy.new(OperatorToken.new, user: Operator.new).revoke_others?
   end
 
   def test_show
@@ -37,10 +79,4 @@ class StaffTokenPolicyTest < ActiveSupport::TestCase
   def test_destroy
     assert_not @policy.destroy?
   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope
-  #     scope = StaffTokenPolicy::Scope.new(nil, user: @user)
-  #     assert_raises(NoMethodError) { scope.resolve }
-  #   end
 end

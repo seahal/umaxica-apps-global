@@ -1,0 +1,11 @@
+# == Schema Information
+#
+# Table name: operator_workspace_account_statuses
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: 2
+active:
+  id: 1

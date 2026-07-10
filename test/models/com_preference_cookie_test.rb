@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: com_preference_cookies
-# Database name: setting
+# Database name: com_setting
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid
@@ -38,7 +38,7 @@ class ComPreferenceCookieTest < ActiveSupport::TestCase
     cookie = ComPreferenceCookie.new(targetable: true)
 
     assert_not cookie.valid?
-    assert_includes cookie.errors[:preference], "を入力してください"
+    assert cookie.errors.of_kind?(:preference, :blank)
   end
 
   test "has false as default for all flags" do
@@ -47,6 +47,23 @@ class ComPreferenceCookieTest < ActiveSupport::TestCase
     assert_not cookie.targetable
     assert_not cookie.performant
     assert_not cookie.functional
+  end
+
+  test "loading an existing cookie preserves stored flags" do
+    cookie = ComPreferenceCookie.create!(
+      preference: @preference,
+      targetable: true,
+      performant: true,
+      functional: true,
+      consented: true,
+    )
+
+    loaded = ComPreferenceCookie.find(cookie.id)
+
+    assert loaded.targetable
+    assert loaded.performant
+    assert loaded.functional
+    assert loaded.consented
   end
 
   %i(targetable performant functional).each do |flag|
@@ -73,5 +90,20 @@ class ComPreferenceCookieTest < ActiveSupport::TestCase
       assert cookie.save, "combo failed: targetable=#{targetable} performant=#{performant} functional=#{functional}"
       cookie.destroy!
     end
+  end
+
+  test "set_defaults fills nil booleans on new records" do
+    cookie = ComPreferenceCookie.new(preference: @preference)
+    cookie.targetable = nil
+    cookie.performant = nil
+    cookie.functional = nil
+    cookie.consented = nil
+
+    cookie.send(:set_defaults)
+
+    assert_not cookie.targetable
+    assert_not cookie.performant
+    assert_not cookie.functional
+    assert_not cookie.consented
   end
 end

@@ -1,0 +1,35 @@
+<% content_for :page_title, t('sign.app.settings.passkeys.show.title') %>
+<%= link_to t("sign.app.settings.show.back"), auth_app_settings_passkeys_path(ri: params[:ri]) %>
+
+<div>
+  <div>
+    <div>
+      <div>
+        <h3><%= t('sign.app.settings.passkeys.show.title') %></h3>
+        <p><%= t('sign.app.settings.passkeys.show.description') %></p>
+      </div>
+    </div>
+    <div>
+      <div>
+        <div>
+          <div>
+            <h3><%= @passkey.description %></h3>
+          </div>
+          <dl>
+            <div>
+              <dt><%= t('activerecord.attributes.user_passkey.created_at') %></dt>
+              <dd><%= l @passkey.created_at, format: :long %></dd>
+            </div>
+            <div>
+              <dt><%= t('activerecord.attributes.user_passkey.last_used_at') %></dt>
+              <dd><%= @passkey.last_used_at ? l(@passkey.last_used_at, format: :long) : t('defaults.never') %></dd>
+            </div>
+          </dl>
+        </div>
+        <div>
+          <%= link_to t('actions.edit'), edit_auth_app_settings_passkey_path(@passkey.public_id, ri: params[:ri]) %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

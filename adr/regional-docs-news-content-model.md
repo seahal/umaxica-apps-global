@@ -79,7 +79,7 @@ This means category and tag are intentionally not symmetric.
 Public readability depends on both:
 
 - published status
-- publish window defined by `published_at` and `expires_at`
+- publish window defined by `publish_at` and `expires_at`
 
 ## Consequences
 

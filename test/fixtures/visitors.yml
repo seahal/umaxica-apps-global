@@ -1,0 +1,67 @@
+# == Schema Information
+#
+# Table name: visitors
+# Database name: com_principal
+#
+#  id                          :bigint           not null, primary key
+#  access_state                :string           default("enabled"), not null
+#  admin_locked_at             :datetime
+#  admin_locked_reason_code    :string
+#  admin_locked_reason_note    :text
+#  birthdate                   :text
+#  deactivated_at              :datetime
+#  discarded_at                :datetime         default(Infinity), not null
+#  lock_version                :integer          default(0), not null
+#  mfa_level_enabled           :boolean          default(FALSE), not null
+#  purged_at                   :datetime         default(Infinity), not null
+#  reactivated_at              :datetime
+#  terminated_at               :datetime
+#  token_valid_after_at        :datetime
+#  withdrawal_started_at       :datetime
+#  withdrawn_at                :datetime         default(Infinity)
+#  created_at                  :datetime         not null
+#  updated_at                  :datetime         not null
+#  admin_locked_by_operator_id :bigint
+#  mfa_level_id                :bigint           default(0), not null
+#  mfa_status_id               :bigint           default(5), not null
+#  public_id                   :string           default(""), not null
+#  status_id                   :bigint           default(2), not null
+#  visibility_id               :bigint           default(1), not null
+#
+# Indexes
+#
+#  index_visitors_on_access_state           (access_state)
+#  index_visitors_on_admin_locked_at        (admin_locked_at) WHERE (admin_locked_at IS NOT NULL)
+#  index_visitors_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_visitors_on_discarded_at           (discarded_at)
+#  index_visitors_on_mfa_level_id           (mfa_level_id)
+#  index_visitors_on_mfa_status_id          (mfa_status_id)
+#  index_visitors_on_public_id              (public_id) UNIQUE
+#  index_visitors_on_purged_at              (purged_at)
+#  index_visitors_on_status_id              (status_id)
+#  index_visitors_on_terminated_at          (terminated_at) WHERE (terminated_at IS NOT NULL)
+#  index_visitors_on_token_valid_after_at   (token_valid_after_at) WHERE (token_valid_after_at IS NOT NULL)
+#  index_visitors_on_visibility_id          (visibility_id)
+#  index_visitors_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_visitors_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (mfa_level_id => visitor_mfa_levels.id)
+#  fk_rails_...  (mfa_status_id => visitor_mfa_statuses.id)
+#  fk_rails_...  (status_id => visitor_statuses.id)
+#  fk_rails_...  (visibility_id => visitor_visibilities.id)
+#
+_fixture:
+  model_class: Visitor
+
+reserved_visitor:
+  status_id: <%= VisitorStatus::ACTIVE %>
+  visibility_id: <%= VisitorVisibility::VISITOR %>
+  mfa_level_id: <%= VisitorMfaLevel::NOTHING %>
+  mfa_status_id: <%= VisitorMfaStatus::UNCONFIGURED %>
+  public_id: "reserved_visitor"
+  discarded_at: <%= 20.years.from_now %>
+  purged_at: <%= 20.years.from_now %>
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>

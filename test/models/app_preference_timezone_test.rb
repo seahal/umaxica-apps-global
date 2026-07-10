@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: app_preference_timezones
-# Database name: principal
+# Database name: app_setting
 #
 #  id            :bigint           not null, primary key
 #  created_at    :datetime         not null
@@ -27,7 +27,7 @@ require "test_helper"
 
 class AppPreferenceTimezoneTest < ActiveSupport::TestCase
   setup do
-    AppPreferenceStatus.find_or_create_by!(id: AppPreferenceStatus::NOTHING)
+    AppPreferenceStatus.ensure_defaults!
     @preference = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING)
   end
 
@@ -35,7 +35,7 @@ class AppPreferenceTimezoneTest < ActiveSupport::TestCase
     timezone = AppPreferenceTimezone.new
 
     assert_not timezone.valid?
-    assert_includes timezone.errors[:preference], "を入力してください"
+    assert_not_empty timezone.errors[:preference]
   end
 
   test "can be created with preference and option" do
@@ -59,7 +59,7 @@ class AppPreferenceTimezoneTest < ActiveSupport::TestCase
     duplicate_timezone = AppPreferenceTimezone.new(preference: @preference, option: option)
 
     assert_not duplicate_timezone.valid?
-    assert_includes duplicate_timezone.errors[:preference_id], "はすでに存在します"
+    assert_not_empty duplicate_timezone.errors[:preference_id]
   end
 
   test "AppPreferenceTimezoneOption accepts numeric ids" do

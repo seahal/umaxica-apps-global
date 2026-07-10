@@ -85,7 +85,7 @@ rules.
 - Respect multi-database model ownership and existing record base classes.
 - Use model associations and configured record classes as the source of truth for database
   ownership.
-- Do not change routes, controllers, migrations, schema files, or `.harnes/`.
+- Do not change routes, controllers, migrations, schema files, or `.agents/harnesses/`.
 - Do not repair unrelated route-helper or full-suite failures as part of this work.
 
 ## Test Plan

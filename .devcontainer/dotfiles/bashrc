@@ -1,0 +1,28 @@
+export PATH="$HOME/.local/bin:$PATH"
+
+export HISTFILE="$HOME/workspace/docker/core/preferences/.bash_history"
+export HISTSIZE=50000
+export HISTFILESIZE=100000
+export HISTCONTROL=ignoreboth:erasedups
+export HISTIGNORE='ls:ll:cd:pwd:exit'
+export HISTTIMEFORMAT='%F %T '
+shopt -s histappend
+shopt -s checkwinsize
+shopt -s cmdhist
+
+PROMPT_COMMAND='history -a; history -n'
+
+alias ll='ls -lah'
+alias la='ls -A'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias be='bundle exec'
+alias rc='bin/rails console'
+alias rt='bin/rails test'
+alias rr='bin/rails routes'
+
+_git_branch() {
+  git branch --show-current 2>/dev/null
+}
+
+PS1='\[\e[36m\]\u@\h\[\e[0m\]:\[\e[33m\]\w\[\e[0m\] \[\e[32m\]$(_git_branch)\[\e[0m\]\n\$ '

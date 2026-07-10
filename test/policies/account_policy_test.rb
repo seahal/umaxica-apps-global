@@ -2,11 +2,14 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class AccountPolicyTest < ActiveSupport::TestCase
   def setup
-    @user = User.new
-    @record = User.new
+    @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
+    @other_user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
+    @record = BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user).account
+    @other_record = BaseSelectorBootstrapAuthority.call(surface: :app, principal: @other_user).account
     @policy = AccountPolicy.new(@record, user: @user)
   end
 
@@ -15,7 +18,11 @@ class AccountPolicyTest < ActiveSupport::TestCase
   end
 
   def test_show
-    assert_not @policy.show?
+    assert_predicate @policy, :show?
+  end
+
+  def test_show_rejects_account_owned_by_another_principal
+    assert_not AccountPolicy.new(@other_record, user: @user).show?
   end
 
   def test_create
@@ -37,9 +44,4 @@ class AccountPolicyTest < ActiveSupport::TestCase
   def test_destroy
     assert_not @policy.destroy?
   end
-
-  # test "scope" do
-  #   scope = AccountPolicy::Scope.new(user: @user, user: nil)
-  #   assert_raises(NoMethodError) { scope.resolve }
-  # end
 end

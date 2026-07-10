@@ -11,6 +11,10 @@ module PublicId
     validates :public_id, presence: true, length: { maximum: 21 }, uniqueness: true
   end
 
+  def to_param
+    public_id
+  end
+
   private
 
   def generate_public_id

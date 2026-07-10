@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class SignErrorResponsesTest < ActiveSupport::TestCase
   class FormatCollector
@@ -23,7 +24,7 @@ class SignErrorResponsesTest < ActiveSupport::TestCase
   end
 
   class Harness
-    include Sign::ErrorResponses
+    include SignErrorResponses
 
     attr_accessor :format_kind, :flash, :request
 
@@ -105,12 +106,12 @@ class SignErrorResponsesTest < ActiveSupport::TestCase
 
     assert_equal :forbidden, harness.headed
 
-    harness.request = Struct.new(:format).new(Struct.new(:json?).new(true))
+    harness.request = Struct.new(:format, :path).new(Struct.new(:json?).new(true), "/")
     harness.handle_csrf_failure
 
-    assert_equal :unprocessable_content, harness.rendered[:status]
+    assert_equal :forbidden, harness.rendered[:status]
 
-    harness.request = Struct.new(:format).new(Struct.new(:json?).new(false))
+    harness.request = Struct.new(:format, :path).new(Struct.new(:json?).new(false), "/")
     assert_raises(ActionController::InvalidCrossOriginRequest) do
       harness.handle_csrf_failure
     end

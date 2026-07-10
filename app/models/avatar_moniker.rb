@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-# rubocop:disable Layout/LineLength
-
 # == Schema Information
 #
 # Table name: avatar_monikers
@@ -23,7 +21,6 @@
 #  index_avatar_monikers_on_avatar_id                 (avatar_id) UNIQUE WHERE (valid_to = 'infinity'::timestamp with time zone)
 #  index_avatar_monikers_on_avatar_id_and_valid_from  (avatar_id,valid_from DESC)
 #  index_avatar_monikers_on_avatar_moniker_status_id  (avatar_moniker_status_id)
-#  index_avatar_monikers_on_set_by_actor_id           (set_by_actor_id)
 #
 # Foreign Keys
 #
@@ -33,7 +30,7 @@
 
 class AvatarMoniker < AvatarRecord
   belongs_to :avatar
-  belongs_to :avatar_moniker_status, optional: true
+  belongs_to :avatar_moniker_status
 
   validates :avatar_id,
             uniqueness: { conditions: -> { where("valid_to = 'infinity'::timestamp with time zone") } }
@@ -41,4 +38,3 @@ class AvatarMoniker < AvatarRecord
   validates :valid_from, presence: true
   validates :id, length: { maximum: 255 }
 end
-# rubocop:enable Layout/LineLength

@@ -25,11 +25,11 @@
 
 require "test_helper"
 
-class EmailStaffOccurrenceTest < ActiveSupport::TestCase
+class EmailOperatorOccurrenceTest < ActiveSupport::TestCase
   test "associations" do
     email = EmailOccurrence.create!(body: "test@example.com")
-    staff = StaffOccurrence.create!(body: "staff-001")
-    record = EmailStaffOccurrence.new(
+    staff = OperatorOccurrence.create!(body: "staff-001")
+    record = EmailOperatorOccurrence.new(
       email_occurrence: email,
       staff_occurrence: staff,
     )
@@ -41,9 +41,9 @@ class EmailStaffOccurrenceTest < ActiveSupport::TestCase
 
   test "uniqueness validation" do
     email = EmailOccurrence.create!(body: "test2@example.com")
-    staff = StaffOccurrence.create!(body: "staff-002")
-    EmailStaffOccurrence.create!(email_occurrence: email, staff_occurrence: staff)
-    duplicate = EmailStaffOccurrence.new(email_occurrence: email, staff_occurrence: staff)
+    staff = OperatorOccurrence.create!(body: "staff-002")
+    EmailOperatorOccurrence.create!(email_occurrence: email, staff_occurrence: staff)
+    duplicate = EmailOperatorOccurrence.new(email_occurrence: email, staff_occurrence: staff)
 
     assert_not duplicate.valid?
     assert_not_empty duplicate.errors[:email_occurrence_id]

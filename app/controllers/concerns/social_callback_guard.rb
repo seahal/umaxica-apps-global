@@ -14,21 +14,15 @@ module SocialCallbackGuard
 
   REQUEST_ALLOWED_METHODS_BY_PROVIDER = {
     "apple" => %w(POST GET).freeze,
-    "google_app" => %w(POST GET).freeze,
-    "google_org" => %w(POST GET).freeze,
+    "google" => %w(POST GET).freeze,
   }.freeze
 
   CALLBACK_ALLOWED_METHODS_BY_PROVIDER = {
     "apple" => %w(POST GET).freeze,
-    "google_app" => %w(GET).freeze,
-    "google_org" => %w(GET).freeze,
+    "google" => %w(GET).freeze,
   }.freeze
 
-  REQUEST_PHASE_PATH = %r{\A/auth/(?<provider>google_app|google_org|apple)\z}.freeze
-
-  included do
-    before_action :verify_social_callback_request!, only: [:omniauth], raise: false
-  end
+  REQUEST_PHASE_PATH = %r{\A/social/(?<provider>google|apple)\z}.freeze
 
   module_function
 
@@ -80,11 +74,26 @@ module SocialCallbackGuard
     provider = match[:provider]
     state = request.session["omniauth.state"].to_s.presence || request.params["state"].to_s.presence
     return if state.blank?
+    return if request.session[SOCIAL_STATE_SESSION_KEY].to_s == state &&
+      request.session[SOCIAL_STATE_PROVIDER_SESSION_KEY].to_s == provider
 
     request.session[SOCIAL_STATE_SESSION_KEY] = state
     request.session[SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
-    request.session[SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
+    request.session.delete(SOCIAL_STATE_USED_AT_SESSION_KEY)
     request.session[SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
+    SocialAuthCallbackStateStore.issue!(state: state, provider: provider)
+
+    return unless provider == "apple"
+
+    Rails.logger.info(
+      JitLogEvent.format(
+        "social_auth.apple.request_phase_nonce_context",
+        request_path: request.path_info,
+        request_method: request.request_method,
+        strategy_has_value: request.session["omniauth.nonce"].present?,
+        callback_present: state.present?,
+      ),
+    )
   end
 
   def allowed_request_method?(provider, method)
@@ -101,9 +110,35 @@ module SocialCallbackGuard
     @allowed_hosts ||=
       begin
         hosts =
-          [ENV["ID_SERVICE_URL"], ENV["ID_STAFF_URL"]].compact.filter_map { |v|
-            normalize_host_port(v)
-          }
+          %w(
+            PUBLIC_AUTH_SERVICE_URL
+            PRIVATE_AUTH_SERVICE_URL
+            PUBLIC_AUTH_CORPORATE_URL
+            AUTH_CORPORATE_URL
+            PRIVATE_AUTH_CORPORATE_URL
+            PUBLIC_AUTH_STAFF_URL
+            AUTH_STAFF_URL
+            PRIVATE_AUTH_STAFF_URL
+          ).filter_map { |key| normalize_host_port(ENV.fetch(key)) }
+
+        if Rails.configuration.x.respond_to?(:boot_config)
+          boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+          hosts.concat(
+            %i(sign_service sign_corporate sign_staff).filter_map do |host_name|
+              normalize_host_port(boot_hosts.public_send(host_name).to_s)
+            end,
+          )
+        end
+
+        if Rails.env.local?
+          hosts << "auth.app.localhost"
+          hosts << "auth.com.localhost"
+          hosts << "auth.org.localhost"
+          hosts << "sign.app.localhost"
+          hosts << "sign.com.localhost"
+          hosts << "sign.org.localhost"
+        end
+
         hosts.uniq
       end
   end
@@ -178,7 +213,6 @@ module SocialCallbackGuard
 
   def valid_callback_state?(provider)
     state = load_callback_state_data(provider)
-    apply_test_mode_state_bypass!(state, provider)
 
     error = detect_callback_state_error(state, provider)
     if error
@@ -186,16 +220,22 @@ module SocialCallbackGuard
       return [false, error]
     end
 
+    unless SocialAuthCallbackStateStore.consume!(state: state[:expected], provider: provider)
+      clear_social_state!
+      return [false, "server_state_reused"]
+    end
+
     record_social_state_used!(state[:expected], provider)
     [true, nil]
   rescue StandardError
     clear_social_state!
-    [false, "state_parse_error"]
+    raise
   end
 
   def load_callback_state_data(_provider)
+    callback_params = respond_to?(:params, true) ? params : request.parameters
     {
-      callback: params[:state].to_s.presence,
+      callback: callback_params["state"].to_s.presence,
       expected: session[SOCIAL_STATE_SESSION_KEY].to_s.presence ||
         request.env.dig("omniauth.params", "state").to_s.presence,
       started_at: session[SOCIAL_STATE_STARTED_AT_SESSION_KEY].to_i,
@@ -204,17 +244,12 @@ module SocialCallbackGuard
     }
   end
 
-  def apply_test_mode_state_bypass!(state, provider)
-    return unless state[:callback].blank? || state[:expected].blank?
-    return unless allow_test_mode_state_bypass?
+  def test_mode_mock_auth_present?
+    return false unless defined?(OmniAuth) && OmniAuth.config.test_mode
 
-    synthetic = state[:callback] || state[:expected] || SecureRandom.hex(16)
-    session[SOCIAL_STATE_SESSION_KEY] = synthetic
-    session[SOCIAL_STATE_PROVIDER_SESSION_KEY] ||= provider
-    session[SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
-    session[SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
-    state[:callback] ||= synthetic
-    state[:expected] ||= synthetic
+    callback_params = respond_to?(:params, true) ? params : request.parameters
+    provider = callback_params["provider"].to_s
+    OmniAuth.config.mock_auth[provider.to_sym].present?
   end
 
   def detect_callback_state_error(state, provider)
@@ -242,22 +277,6 @@ module SocialCallbackGuard
     session[SOCIAL_STATE_USED_AT_SESSION_KEY] = Time.current.to_i
   end
 
-  def allow_test_mode_state_bypass?
-    return false unless Rails.env.test?
-    return false if request.headers["X-STRICT-SOCIAL-STATE"] == "1"
-
-    request.env["omniauth.auth"].present? || test_mode_mock_auth_present?
-  end
-
-  def test_mode_mock_auth_present?
-    return false unless defined?(OmniAuth) && OmniAuth.config.test_mode
-
-    provider = params[:provider].to_s
-    return false if provider.blank?
-
-    OmniAuth.config.mock_auth[provider.to_sym].present? || OmniAuth.config.mock_auth[provider].present?
-  end
-
   def clear_social_state!
     session.delete(SOCIAL_STATE_SESSION_KEY)
     session.delete(SOCIAL_STATE_STARTED_AT_SESSION_KEY)
@@ -266,7 +285,8 @@ module SocialCallbackGuard
   end
 
   def evaluate_social_callback_request
-    provider = params[:provider].to_s
+    callback_params = respond_to?(:params, true) ? params : request.parameters
+    provider = callback_params["provider"].to_s
     method = request.request_method.to_s.upcase
 
     unless SocialCallbackGuard.allowed_callback_method?(provider, method)
@@ -301,9 +321,10 @@ module SocialCallbackGuard
   end
 
   def default_social_callback_rejection
+    callback_params = respond_to?(:params, true) ? params : request.parameters
     {
       reason: "bad_state",
-      provider: params[:provider].to_s,
+      provider: callback_params["provider"].to_s,
       details: {},
     }
   end
@@ -331,13 +352,20 @@ module SocialCallbackGuard
 
   def reject_social_callback!(reason:, provider:, details: {})
     clear_social_state!
+    failure_redirect_path =
+      if respond_to?(:social_auth_failure_redirect_path, true)
+        social_auth_failure_redirect_path
+      else
+        auth_app_sign_in_path
+      end
 
     Rails.logger.warn(
-      "[SocialCallbackGuard] phase=callback provider=#{provider.inspect} reason=#{reason} details=#{details.inspect}",
+      "[SocialCallbackGuard] phase=callback provider=#{provider.inspect} reason=#{reason} details=#{details.inspect} " \
+      "host=#{request.host_with_port} allowed_hosts=#{SocialCallbackGuard.allowed_hosts.inspect}",
     )
 
     redirect_to(
-      new_sign_app_in_path,
+      failure_redirect_path,
       alert: I18n.t("sign.app.social.sessions.create.failure"),
       status: :forbidden,
     )
@@ -368,12 +396,13 @@ module SocialCallbackGuard
     if query["state"].present?
       request.session[SOCIAL_STATE_SESSION_KEY] = query["state"].to_s
       request.session[SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
-      request.session[SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
+      request.session.delete(SOCIAL_STATE_USED_AT_SESSION_KEY)
       request.session[SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
+      SocialAuthCallbackStateStore.issue!(state: query["state"].to_s, provider: provider)
       return
     end
 
-    generated_state = SecureRandom.hex(24)
+    generated_state = SecureRandom.hex(16)
     query["state"] = generated_state
 
     env["QUERY_STRING"] = Rack::Utils.build_query(query)
@@ -382,8 +411,9 @@ module SocialCallbackGuard
 
     request.session[SOCIAL_STATE_SESSION_KEY] = generated_state
     request.session[SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
-    request.session[SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
+    request.session.delete(SOCIAL_STATE_USED_AT_SESSION_KEY)
     request.session[SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
+    SocialAuthCallbackStateStore.issue!(state: generated_state, provider: provider)
   end
 
   def self.reject_request_phase!(phase:, reason:, provider:, details: {})

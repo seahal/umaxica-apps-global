@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: app_preference_cookies
-# Database name: principal
+# Database name: app_setting
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid
@@ -26,7 +26,7 @@
 
 # frozen_string_literal: true
 
-class AppPreferenceCookie < PrincipalRecord
+class AppPreferenceCookie < AppSettingRecord
   belongs_to :preference,
              class_name: "AppPreference",
              inverse_of: :app_preference_cookie

@@ -4,6 +4,11 @@
 
 Accepted as the current design direction.
 
+> **Partial supersession (2026-06-02):** The vocabulary and security properties in this ADR remain
+> useful, but authority ownership is superseded by `adr/identity-authority-boundary.md`. `acme/www`
+> owns session, token, account, preference, authorization, downstream-token trust, and step-up
+> freshness. `sign/id` owns only credential inventory and short-lived credential ceremony state.
+
 ## Decision
 
 For OIDC-facing identity claims, the repository will use:
@@ -13,7 +18,45 @@ For OIDC-facing identity claims, the repository will use:
 - `acr` as the current verification level
 - `amr` as the methods actually used to establish the current authentication state
 
-`act` is intentionally not used.
+`act` is intentionally not used in the OIDC-facing `id_token` in the RFC 8693 sense (delegation /
+impersonation actor). The repository does not implement token-exchange delegation.
+
+Separately, `AuthorizationTokenClaims.build`
+(`app/controllers/concerns/authorization_token_claims.rb`) emits an `act` claim on the internal auth
+access token whose value is the resource type (`client`/`operator`/`visitor`), not an RFC 8693
+delegation actor. This reuses a claim name reserved by the RAR/token-exchange vocabulary below for a
+private, non-standard purpose and is a known naming collision, not evidence of delegation support.
+Any consumer of the auth access token must not interpret `act` as an RFC 8693 actor claim. This
+claim is scheduled to be renamed to a non-colliding private name (see Open Questions in
+`docs/architecture/preference.md` and the DB SSOT / JWT projection audit); until then, treat `act`
+on the auth access token strictly as `resource_type`.
+
+## RAR / Authorization Details Reservation
+
+The repository does not implement Rich Authorization Requests (RAR, RFC 9396) or the
+`authorization_details` parameter/claim in this phase.
+
+To leave room for a future standards-aligned RAR implementation, Umaxica private claims, request
+params, database columns, service names, and internal APIs must not use RAR-reserved or RAR-like
+vocabulary for proprietary semantics. Treat these names as reserved for future standards work:
+
+- `authorization_details`
+- `authorization_detail`
+- `authorization_data`
+- `authz_details`
+- `authz_detail`
+- `details` when used as a generic authorization payload
+- `locations`
+- `actions`
+- `datatypes`
+- `privileges`
+- `resources` when used in an RAR-like structure
+
+Use explicit Umaxica or standard OAuth/OIDC names instead. Standard claims and parameters such as
+`sid`, `jti`, `client_id`, `scope`, `aud`, `sub`, and `iss` may keep their standard names. Umaxica
+private values should prefer names such as `region`, `surface`, `tenant_id`, `roles`,
+`permission_version`, `policy_version`, `membership_id`, and `access_mode`. If a private claim could
+plausibly collide with a current or future OAuth/OIDC extension, prefix it with `umx_`.
 
 ## `id_token` must claims
 
@@ -43,18 +86,14 @@ Allowed values:
 
 ## `acr`
 
-Allowed values:
+Allowed product AAL boundaries are defined in `adr/authentication-assurance-level-boundaries.md`.
+For the current OIDC token paths:
 
-- `aal1`
-- `aal2`
-
-Rules:
-
-- post-login default is always `aal1`
-- even `passkey` login starts at `aal1`
-- `aal2` is granted only after explicit verification / step-up
-- refreshed access tokens downgrade to `aal1`
-- `aal3` is out of scope for now
+- post-login default is always `aal1`;
+- even passkey login starts at `aal1`;
+- `aal2` is granted only after explicit verification / step-up;
+- refreshed access tokens downgrade to `aal1`;
+- `aal3` is reserved and not currently emitted.
 
 ## `amr`
 
@@ -64,7 +103,7 @@ Allowed values:
 - `passkey`
 - `apple`
 - `google`
-- `recovery_code`
+- `passcode`
 - `totp`
 
 Rules:
@@ -78,7 +117,7 @@ Examples:
 - `["email_otp"]`
 - `["google"]`
 - `["passkey"]`
-- `["recovery_code"]`
+- `["passcode"]`
 - `["email_otp", "totp"]`
 - `["google", "passkey"]`
 

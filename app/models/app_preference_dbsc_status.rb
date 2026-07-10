@@ -4,11 +4,13 @@
 # == Schema Information
 #
 # Table name: app_preference_dbsc_statuses
-# Database name: principal
+# Database name: app_setting
 #
 #  id :bigint           not null, primary key
 #
-class AppPreferenceDbscStatus < PrincipalRecord
+class AppPreferenceDbscStatus < AppSettingRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 0
   ACTIVE = 1

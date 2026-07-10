@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: org_preference_region_options
-# Database name: operator
+# Database name: org_setting
 #
 #  id :bigint           not null, primary key
 #
@@ -50,5 +50,11 @@ class OrgPreferenceRegionOptionTest < ActiveSupport::TestCase
     option = OrgPreferenceRegionOption.find_or_create_by!(id: OrgPreferenceRegionOption::JP)
 
     assert_equal "JP", option.name
+  end
+
+  test "name returns nil for unknown id" do
+    option = OrgPreferenceRegionOption.new(id: 99)
+
+    assert_nil option.name
   end
 end

@@ -133,7 +133,7 @@ focus was on:
 ### ForeignKeyCascadeChecker
 
 - ✅ `OrgContactStatus` / `ComContactStatus` with ON DELETE SET NULL
-- ✅ `UserNotification` / `StaffNotification` with ON DELETE CASCADE
+- ✅ `UserNotification` / `OperatorNotification` with ON DELETE CASCADE
 - ✅ `UserMessage` / `StaffMessage` with ON DELETE CASCADE
 
 ### PrimaryKeyTypeChecker

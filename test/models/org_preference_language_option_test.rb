@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: org_preference_language_options
-# Database name: operator
+# Database name: org_setting
 #
 #  id :bigint           not null, primary key
 #
@@ -28,6 +28,25 @@ class OrgPreferenceLanguageOptionTest < ActiveSupport::TestCase
     language = OrgPreferenceLanguage.create!(preference: preference, option: option)
 
     assert_includes option.org_preference_languages, language
+  end
+
+  test "ensure_defaults! creates missing default records" do
+    OrgPreferenceLanguageOption.where(id: OrgPreferenceLanguageOption::DEFAULTS).delete_all
+
+    assert_empty OrgPreferenceLanguageOption.where(id: OrgPreferenceLanguageOption::DEFAULTS)
+
+    OrgPreferenceLanguageOption.ensure_defaults!
+
+    assert_equal OrgPreferenceLanguageOption::DEFAULTS.sort,
+                 OrgPreferenceLanguageOption.where(id: OrgPreferenceLanguageOption::DEFAULTS).pluck(:id).sort
+  end
+
+  test "ensure_defaults! does nothing when all defaults exist" do
+    OrgPreferenceLanguageOption.ensure_defaults!
+
+    assert_no_difference("OrgPreferenceLanguageOption.count") do
+      OrgPreferenceLanguageOption.ensure_defaults!
+    end
   end
 
   test "restricts deletion when associated records exist" do

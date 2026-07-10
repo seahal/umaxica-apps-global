@@ -4,17 +4,19 @@
 # == Schema Information
 #
 # Table name: org_preference_dbsc_statuses
-# Database name: operator
+# Database name: org_setting
 #
 #  id :bigint           not null, primary key
 #
-class OrgPreferenceDbscStatus < OperatorRecord
+class OrgPreferenceDbscStatus < OrgSettingRecord
+  include ReferenceRecord
+
   NOTHING = 0
-  PENDING = 1
-  ACTIVE = 2
+  ACTIVE = 1
+  PENDING = 2
   FAILED = 3
   REVOKE = 4
-  DEFAULTS = [NOTHING, PENDING, ACTIVE, FAILED, REVOKE].freeze
+  DEFAULTS = [NOTHING, ACTIVE, PENDING, FAILED, REVOKE].freeze
 
   has_many :org_preferences,
            foreign_key: :dbsc_status_id,

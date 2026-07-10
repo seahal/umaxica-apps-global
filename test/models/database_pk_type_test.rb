@@ -8,20 +8,19 @@ class DatabasePkTypeTest < ActiveSupport::TestCase
   # After migration, all status/kind/master tables should use bigint
 
   test "operator schema tables use bigint primary keys" do
+    assert_bigint_pk(OperatorWorkspaceAccountStatus)
     assert_bigint_pk(OperatorStatus)
-    assert_bigint_pk(StaffStatus)
     assert_bigint_pk(OrganizationStatus)
   end
 
   test "principal schema tables use bigint primary keys" do
-    assert_bigint_pk(UserStatus)
+    assert_bigint_pk(ClientStatus)
     assert_bigint_pk(MemberStatus)
-    assert_bigint_pk(UserSecretKind)
+    assert_bigint_pk(ClientSecretCredentialKind)
   end
 
   test "avatar schema tables use bigint primary keys" do
     assert_bigint_pk(HandleStatus)
-    assert_bigint_pk(PostStatus)
     assert_bigint_pk(AvatarCapability)
   end
 
@@ -37,17 +36,17 @@ class DatabasePkTypeTest < ActiveSupport::TestCase
   end
 
   test "guest schema tables use bigint primary keys" do
-    assert_bigint_pk(AppContactStatus)
-    assert_bigint_pk(ComContactCategory)
+    assert_bigint_pk(VisitorStatus)
+    assert_bigint_pk(VisitorSecretCredentialKind)
   end
 
   test "chronicle schema tables use bigint primary keys" do
-    assert_bigint_pk(StaffChronicleEvent)
-    assert_bigint_pk(UserChronicleLevel)
+    assert_bigint_pk(OperatorChronicleEvent)
+    assert_bigint_pk(ClientChronicleLevel)
   end
 
   test "models with code column use citext" do
-    models = [StaffTokenKind, StaffTokenStatus, UserTokenKind, UserTokenStatus]
+    models = [OperatorTokenKind, OperatorTokenStatus, ClientTokenKind, ClientTokenStatus]
     models.select! { |model| model.column_names.include?("code") }
 
     if models.empty?

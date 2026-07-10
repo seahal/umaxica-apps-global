@@ -7,8 +7,6 @@
 # Database name: avatar
 #
 #  id                   :bigint           not null, primary key
-#  created_at           :datetime         not null
-#  updated_at           :datetime         not null
 #  avatar_permission_id :bigint           default(0), not null
 #  avatar_role_id       :bigint           default(0), not null
 #

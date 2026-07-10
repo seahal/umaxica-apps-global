@@ -1,380 +1,218 @@
-# Authorization (AuthZ) Implementation Guide
+# 認可 (Authorization) 実装ガイド
 
-## Overview
+## 概要
 
-このアプリケーションは、**Pundit**ベースの認可システムを実装しています。 **RBAC（Role-Based Access
-Control）**と**リソースベース認可**を組み合わせたハイブリッドアプローチを採用しています。
+本アプリケーションの認可は **Action Policy** (`action_policy` gem) で実装する。Pundit は使用しない。
 
-## ロール定義
+基本方針:
 
-5段階のロールヒエラルキー：
+- 認可コンテキストは **Actor**（`Actor::Context`）。`ApplicationController` 系で
+  `authorize :actor, through: :current_actor` として束ねる。
+- すべてのポリシーは `ApplicationPolicy < ActionPolicy::Base` を継承し、**デフォルト全拒否 (deny-all
+  / allowlist)**。各アクション述語を明示的に `true` にしない限り許可されない。
+- 所有者判定・ロール判定・JWT スコープ判定・サーフェス（app/org/com）判定を `ApplicationPolicy`
+  のヘルパとして提供する。
 
-| Role        | Key           | 権限                                             |
-| ----------- | ------------- | ------------------------------------------------ |
-| Operator    | `admin`       | 全権限（ユーザー管理、削除権限含む）             |
-| Manager     | `manager`     | コンテンツ管理、他ユーザーの投稿編集・削除       |
-| Editor      | `editor`      | 全コンテンツの作成・編集、自分の投稿のみ削除可能 |
-| Contributor | `contributor` | コンテンツ作成、自分の投稿のみ編集可能           |
-| Viewer      | `viewer`      | 閲覧のみ                                         |
+関連実装:
 
-## コントローラーでの使用
+- ベース: `app/policies/application_policy.rb`
+- ポリシー群: `app/policies/`（`ClientPolicy` / `OperatorPolicy` / `VisitorPolicy` ほか）
+- コンテキスト: `app/models/actor.rb`、`app/controllers/concerns/actor_support.rb`
+- 失敗ハンドリング: `app/controllers/concerns/authorization_audit.rb`
 
-### 基本的な認可チェック
+## 認可コンテキスト（Actor）
+
+`ApplicationPolicy` は以下の 2 コンテキストを宣言する（`app/policies/application_policy.rb`）:
 
 ```ruby
-class DocumentsController < ApplicationController
-  before_action :authenticate_user!
-  before_action :set_document, only: [:show, :edit, :update, :destroy]
+class ApplicationPolicy < ActionPolicy::Base
+  # Actor::Context が主コンテキスト。レガシーな `user` は省略時に actor から導出する。
+  authorize :actor, optional: true
+  authorize :user, optional: true
 
-  def show
-    authorize @document  # ポリシーで権限チェック
+  def user
+    @user || actor_resource
   end
-
-  def create
-    @document = Document.new(document_params)
-    @document.user = current_user
-
-    authorize @document
-
-    if @document.save
-      redirect_to @document, notice: 'Created successfully'
-    else
-      render :new
-    end
-  end
-
-  def update
-    authorize @document
-
-    if @document.update(document_params)
-      redirect_to @document, notice: 'Updated successfully'
-    else
-      render :edit
-    end
-  end
-
-  def destroy
-    authorize @document
-
-    @document.destroy!
-    redirect_to documents_path, notice: 'Deleted successfully'
-  end
-
-  private
-
-  def set_document
-    @document = Document.find(params[:id])
-  end
+  # ...
 end
 ```
 
-### スコープを使ったフィルタリング
+サーフェスごとの `ApplicationController` が actor を供給する（例:
+`app/controllers/core/app/application_controller.rb`）:
 
 ```ruby
-def index
-  # ポリシースコープで自動的にフィルタリング
-  # - Operator/Manager: 全ドキュメント表示
-  # - その他: 自分のドキュメントのみ表示
-  @documents = policy_scope(Document)
-end
+authorize :actor, through: :current_actor
 ```
 
-### 条件付き認可
+`current_actor` は `Actor.context`（`ActiveSupport::CurrentAttributes`
+ベース）を返す（`app/controllers/concerns/actor_support.rb`）。ポリシー内では:
+
+- `actor` … `Actor::Context`
+- `user` … `actor` から導出した実リソース（`Client` / `Operator` / `Visitor`）。未認証時は `nil`
+- `record` … 認可対象レコード
+
+## ApplicationPolicy のヘルパ
+
+`app/policies/application_policy.rb` がポリシー内で使えるヘルパを提供する。
+
+| メソッド                                                                      | 説明                                                                                                               |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `actor` / `user`                                                              | 認可コンテキスト / 導出された実リソース                                                                            |
+| `record`                                                                      | 認可対象レコード                                                                                                   |
+| `owner?`                                                                      | `user` が `record` の所有者か（Client→`user_id` / Operator→`staff_id` / Visitor→`visitor_id`、または同一リソース） |
+| `operator?` / `manager?` / `editor?` / `contributor?` / `viewer?`             | 組織スコープ付きロール判定                                                                                         |
+| `operator_or_manager?` / `can_edit?` / `can_view?` / `can_contribute?`        | 複合ロール判定                                                                                                     |
+| `has_scope?(scope)`                                                           | JWT スコープ判定（`current_token` の `scp` クレーム由来）                                                          |
+| `domain_app?` / `domain_org?` / `domain_com?` / `domain_permitted?(*domains)` | JWT `aud` クレームのサーフェス判定                                                                                 |
+| `current_token`                                                               | `Actor.authz.token_claims`                                                                                         |
+
+デフォルト述語（`index?` / `show?` / `create?` / `update?` / `destroy?`）はすべて `false`。
+`edit?`→`update?`、`new?`→`create?` は `alias_rule` で対応付けられている。
+
+## ポリシーの実装
+
+`app/policies/client_policy.rb` の例:
 
 ```ruby
-def some_action
-  @document = Document.find(params[:id])
-
-  if policy(@document).update?
-    # 更新権限がある場合の処理
-  else
-    # 権限がない場合の処理
-  end
-end
-```
-
-## ビューでの使用
-
-### AuthorizationHelper メソッド
-
-#### 1. `authorized?` - アクション権限チェック
-
-```erb
-<% if authorized?(@document, :edit?) %>
-  <%= link_to "Edit", edit_document_path(@document), class: "btn btn-primary" %>
-<% end %>
-
-<% if authorized?(@document, :destroy?) %>
-  <%= link_to "Delete", document_path(@document), method: :delete,
-      data: { confirm: "Are you sure?" }, class: "btn btn-danger" %>
-<% end %>
-```
-
-#### 2. `has_role?` - ロールチェック
-
-```erb
-<% if has_role?('operator') %>
-  <div class="admin-panel">
-    <%= link_to "User Management", admin_users_path %>
-    <%= link_to "System Settings", admin_settings_path %>
-  </div>
-<% end %>
-
-<% if has_role?('editor', organization: @current_organization) %>
-  <%= render 'editor_tools' %>
-<% end %>
-```
-
-#### 3. `has_any_role?` - 複数ロールチェック
-
-```erb
-<% if has_any_role?('operator', 'manager') %>
-  <%= render 'management_dashboard' %>
-<% end %>
-```
-
-#### 4. 便利なショートカットメソッド
-
-```erb
-<!-- Operator check -->
-<% if admin? %>
-  <%= render 'admin_menu' %>
-<% end %>
-
-<!-- Manager or Operator -->
-<% if admin_or_manager? %>
-  <%= link_to "Manage Users", manage_users_path %>
-<% end %>
-
-<!-- Can edit -->
-<% if can_edit? %>
-  <%= render 'edit_tools' %>
-<% end %>
-
-<!-- Can contribute -->
-<% if can_contribute? %>
-  <%= link_to "Create New", new_document_path %>
-<% end %>
-```
-
-#### 5. ブロック構文
-
-```erb
-<%= if_authorized @document, :edit? do %>
-  <div class="edit-section">
-    <%= render 'edit_form' %>
-  </div>
-<% end %>
-
-<%= if_has_role 'operator' do %>
-  <%= render 'admin_controls' %>
-<% end %>
-```
-
-## ポリシークラスの作成
-
-### 基本構造
-
-```ruby
-# app/policies/document_policy.rb
-class DocumentPolicy < ApplicationPolicy
+class ClientPolicy < ApplicationPolicy
   def index?
-    # Organization members can view list
-    can_view?
+    user.is_a?(Operator) && operator_or_manager?
   end
 
   def show?
-    # Owner or viewer role
-    owner? || can_view?
+    owner? || (user.is_a?(Operator) && operator_or_manager?)
   end
 
   def create?
-    # Contributors and above
-    can_contribute?
+    user.is_a?(Operator) && operator?
   end
 
   def update?
-    # Owner or editors and above
-    owner? || can_edit?
+    owner? || (user.is_a?(Operator) && operator_or_manager?)
   end
 
   def destroy?
-    # Owner or managers and above
-    owner? || admin_or_manager?
+    (owner? && user.is_a?(Client)) || (user.is_a?(Operator) && operator?)
   end
 
-  class Scope < ApplicationPolicy::Scope
-    def resolve
-      if admin_or_manager?
-        scope.all
-      elsif actor
-        scope.where(user_id: actor.id)
-      else
-        scope.none
-      end
+  # スコープ（一覧フィルタ）は relation_scope で定義する。
+  relation_scope do |relation|
+    if user.is_a?(Operator) && operator_or_manager?
+      relation.all
+    elsif user.is_a?(Client)
+      relation.where(id: user.id)
+    else
+      relation.none
     end
   end
 end
 ```
 
-### ApplicationPolicy の便利メソッド
+ポイント:
 
-ポリシー内で使用可能なヘルパーメソッド：
+- アクター種別（`Client` / `Operator` / `Visitor`）を明示的に分岐する。
+- 所有権は `owner?` で明示チェックする。
+- スコープは Pundit の `Scope` クラスではなく Action Policy の `relation_scope` ブロックで定義する。
 
-| メソッド            | 説明                                         |
-| ------------------- | -------------------------------------------- |
-| `actor`             | 現在のUser/Staff                             |
-| `record`            | 認可対象のレコード                           |
-| `organization`      | recordから自動取得されたWorkspace（互換名）  |
-| `owner?`            | アクターがレコードの所有者か                 |
-| `admin?`            | adminロールを持つか                          |
-| `manager?`          | managerロールを持つか                        |
-| `editor?`           | editorロールを持つか                         |
-| `contributor?`      | contributorロールを持つか                    |
-| `viewer?`           | viewerロールを持つか                         |
-| `admin_or_manager?` | admin または manager                         |
-| `can_edit?`         | 編集権限（admin/manager/editor）             |
-| `can_view?`         | 閲覧権限（全ロール）                         |
-| `can_contribute?`   | 作成権限（admin/manager/editor/contributor） |
+## コントローラでの利用
 
-## ロール管理
+### アクション認可
 
-### ロールの割り当て
+`authorize!(record, to: :action?)` を呼ぶ。`before_action`
+から使う場合はシンボルで渡せないため、名前付きラッパーメソッドにして `before_action`
+に登録するのが本アプリの慣用パターン:
 
 ```ruby
-# 組織とロールを取得
-organization = Workspace.find_by(name: "My Organization")
-admin_role = Role.find_by(key: 'operator', organization: organization)
+class Sign::App::Settings::SessionsController < ...
+  before_action :authorize_sessions!, only: %i(index)
 
-# ユーザーにロールを割り当て
-RoleAssignment.create!(user: user, role: admin_role)
+  private
+
+  def authorize_sessions!
+    authorize!(ClientToken, to: :index?)
+  end
+end
 ```
 
-### ロールのチェック
+レコードインスタンスを直接渡すこともできる（例: `authorize!(current_client, to: :show?)`）。
+
+### スコープ適用
+
+一覧取得は `authorized_scope` で `relation_scope` を適用する（例:
+`app/controllers/sign/app/settings/passkeys_controller.rb`）:
 
 ```ruby
-user = User.find(params[:id])
-organization = Workspace.first
-
-# 特定のロールを持つか
-user.has_role?('operator', organization: organization)
-
-# いずれかのロールを持つか
-user.has_any_role?('operator', 'manager', organization: organization)
-
-# 編集権限があるか
-user.can_edit?(organization: organization)
-
-# 組織内の全ロールを取得
-user.roles_in(organization)
+@passkeys = authorized_scope(current_client.client_passkeys).order(created_at: :desc)
 ```
 
-## 監査ログ
+## 認可失敗時の挙動
 
-認可失敗時には自動的に監査ログが記録されます：
+各サーフェスの `ApplicationController` が例外を捕捉する:
 
 ```ruby
-# ログには以下の情報が含まれます：
-# - actor_type: User または Staff
-# - actor_id: アクターのID
-# - action: アクション名（show, edit, etc）
-# - controller: コントローラー名
-# - policy: ポリシークラス名
-# - query: チェックしたメソッド名
-# - record_type: レコードの型
-# - record_id: レコードのID
-# - ip_address: リクエスト元IPアドレス
-# - timestamp: タイムスタンプ
+rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error
 ```
 
-監査ログは：
+`handle_authorization_error`（`app/controllers/concerns/authorization_audit.rb`）の挙動:
 
-1. **Rails.logger** に警告として記録
-2. **UserIdentityAudit** または **StaffIdentityAudit** テーブルに保存
+- 失敗を監査ログに記録（`authorization.failure`
+  イベント、監査レコード作成）。ログ処理自体の例外は握りつぶしてアプリを止めない。
+- レスポンス:
+  - HTML:
+    `flash[:alert] = I18n.t("errors.messages.not_authorized")`（`この操作を行う権限がありません。`）の上で
+    `safe_redirect_back_or_to(root_path)`。
+  - JSON: `{ error: "Unauthorized" }` を `:forbidden`（403）で返す。
+
+> 注: 認可と **ステップアップ認証** は別レイヤ。ステップアップは
+> `Verification::Base#require_step_up!` と `step_up`
+> DSL（`Verification::StepUpGuard`）で扱い、失敗時は 302 リダイレクト / 401 /
+> 422 を返す。認可（ActionPolicy）の 403 とは別物。
 
 ## テスト
 
-### ポリシーのテスト
+ポリシーは `test/policies/` 配下で単体テストする（Action
+Policy のテストヘルパを利用）。アクターごとに許可 / 拒否 / 未認証 / 別ユーザ / 別スタッフのケースを網羅する。
 
 ```ruby
-require 'test_helper'
+require "test_helper"
 
-class DocumentPolicyTest < ActiveSupport::TestCase
-  setup do
-    @organization = Workspace.create!(name: "Test Org")
-    @admin_role = Role.create!(key: "operator", organization: @organization)
-    @viewer_role = Role.create!(key: "viewer", organization: @organization)
-
-    @admin = users(:one)
-    @viewer = users(:two)
-
-    RoleAssignment.create!(user: @admin, role: @admin_role)
-    RoleAssignment.create!(user: @viewer, role: @viewer_role)
-
-    @document = Document.new(user_id: users(:three).id)
+class ClientPolicyTest < ActiveSupport::TestCase
+  test "operator manager can view the client list" do
+    assert_predicate ClientPolicy.new(record, actor: operator_manager_context), :index?
   end
 
-  test "admin can destroy documents" do
-    policy = DocumentPolicy.new(@admin, @document)
-    assert policy.destroy?
-  end
-
-  test "viewer cannot destroy documents" do
-    policy = DocumentPolicy.new(@viewer, @document)
-    assert_not policy.destroy?
+  test "anonymous actor cannot view the client list" do
+    assert_not_predicate ClientPolicy.new(record, actor: anonymous_context), :index?
   end
 end
 ```
+
+（実際のコンテキスト生成は `test/policies/application_policy_actor_context_test.rb` 等を参照。）
 
 ## ベストプラクティス
 
-1. **常にホワイトリスト方式**: ApplicationPolicyはデフォルトで全て拒否
-2. **明示的な権限チェック**: コントローラーで`authorize`を忘れずに呼ぶ
-3. **スコープの活用**: `policy_scope`で自動フィルタリング
-4. **テストの作成**: 各ポリシーに対してテストを書く
-5. **組織スコープの考慮**: マルチテナント環境では組織を意識する
-6. **監査ログの確認**: 不正アクセス試行を定期的にチェック
+1. **デフォルト全拒否**: `ApplicationPolicy` は allowlist。必要な述語のみ明示的に許可する。
+2. **明示的な認可呼び出し**: コントローラで `authorize!` / `authorized_scope` を必ず呼ぶ。
+3. **アクター種別と所有権を明示**: `user.is_a?(...)` と `owner?` を組み合わせる。
+4. **コンテキストは Actor 経由**: コントローラのインスタンス変数に依存せず `actor` / `user` を使う。
+5. **テストを書く**: 各ポリシーに許可 / 拒否 / 未認証 / 越境ケースのテストを追加する。
 
-## トラブルシューティング
+## トラブルシュート
 
-### `ActionPolicy::Unauthorized`が発生する
+### `ActionPolicy::Unauthorized` が発生する
 
-コントローラーに`authorize`を追加し忘れていないか確認：
-
-```ruby
-def show
-  @document = Document.find(params[:id])
-  authorize @document  # <- これを追加
-end
-```
+- 当該アクションのポリシー述語が `false`
+  を返している。ポリシーとアクター種別・所有権・ロールを確認する。
+- 期待挙動なら問題なし（403 / リダイレクト）。誤りなら述語条件を見直す。
 
 ### ポリシーが見つからない
 
-ポリシーファイルが存在し、正しい命名規則になっているか確認：
+命名規約を確認する（モデル `Client` → `ClientPolicy` =
+`app/policies/client_policy.rb`）。レコードを使わない認可は `authorize!(SomeClass, to: :action?)`
+のようにクラスを渡す。
 
-- モデル: `Document`
-- ポリシー: `DocumentPolicy`（`app/policies/document_policy.rb`）
+### コンテキストが取れない
 
-### ロールが機能しない
-
-1. ロールが正しくシードされているか確認
-2. RoleAssignmentが作成されているか確認
-3. 組織スコープが正しいか確認
-
-```ruby
-# デバッグ用コード
-user.roles.pluck(:key)  # => ["operator", "editor"]
-user.has_role?('operator', organization: org)  # => true/false
-```
-
-## まとめ
-
-このAuthZ実装により：
-
-- ✅ 柔軟なロールベース権限管理
-- ✅ リソースレベルの細かい制御
-- ✅ 認可失敗の自動監査ログ
-- ✅ ビューでの簡単な権限チェック
-- ✅ テスト可能な設計
-
-詳細は各ポリシーファイルとApplicationPolicyを参照してください。
+`current_actor`（= `Actor.context`）が `set_current_actor`
+で投入されているかを確認する（`app/controllers/concerns/actor_support.rb`、`BareController`
+系はライフサイクルを意図的にバイパスする）。

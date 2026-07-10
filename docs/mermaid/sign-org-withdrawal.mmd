@@ -1,0 +1,38 @@
+---
+title: Org Withdrawal Request State Machine
+---
+
+%% Deprecated by Identity Authority inversion.
+%% withdrawal is acme/www account lifecycle, not sign/id authority.
+
+stateDiagram-v2
+  [*] --> REQUEST_DRAFT: operator opens withdrawal or membership request
+
+  REQUEST_DRAFT --> REQUEST_SUBMITTED: request submitted for operator handling
+  REQUEST_DRAFT --> CANCELLED: requester abandons draft
+
+  REQUEST_SUBMITTED --> REVIEW_PENDING: another operator must review
+  REQUEST_SUBMITTED --> CANCELLED: requester cancels before review
+  REQUEST_SUBMITTED --> FAILED: request cannot continue
+
+  REVIEW_PENDING --> STEP_UP_REQUIRED: reviewer must complete MFA step-up
+  REVIEW_PENDING --> REJECTED: reviewer rejects request
+  REVIEW_PENDING --> FAILED: review cannot continue
+
+  STEP_UP_REQUIRED --> APPROVED: reviewer passes MFA and approves
+  STEP_UP_REQUIRED --> REJECTED: step-up fails or approval denied
+  STEP_UP_REQUIRED --> FAILED: approval cannot continue
+
+  APPROVED --> EXECUTED: operator withdrawal or membership change executed
+  APPROVED --> FAILED: execution failed
+
+  note right of REQUEST_DRAFT
+    Org withdrawal remains a request workflow.
+    It is not the app/com account withdrawal
+    lifecycle diagram.
+  end note
+
+  EXECUTED --> [*]
+  REJECTED --> [*]
+  CANCELLED --> [*]
+  FAILED --> [*]

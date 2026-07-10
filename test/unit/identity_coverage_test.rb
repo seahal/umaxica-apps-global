@@ -2,19 +2,20 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class IdentityCoverageTest < ActiveSupport::TestCase
   setup do
-    UserStatus.find_or_create_by!(id: 1)
-    UserVisibility.find_or_create_by!(id: 1)
-    @user = User.create!(status_id: 1, visibility_id: 1)
+    ClientStatus.find_or_create_by!(id: 1)
+    ClientVisibility.find_or_create_by!(id: 1)
+    @user = Client.create!(status_id: 1, visibility_id: 1)
   end
 
   test "login_allowed?" do
     assert_predicate @user, :login_allowed?
 
     # Blocked status
-    @user.update!(status_id: UserStatus::RESERVED)
+    @user.update!(status_id: ClientStatus::RESERVED)
 
     assert_not @user.login_allowed?
   end
@@ -22,12 +23,16 @@ class IdentityCoverageTest < ActiveSupport::TestCase
   test "recovery_deadline and can_recover?" do
     assert_nil @user.recovery_deadline
 
-    # We need a value that is NOT infinity for the deadline calculation
     now = Time.current
-    @user.update!(withdrawn_at: now)
+    deadline = now + 31.days
+    @user.update!(deactivated_at: now, discarded_at: now, purged_at: deadline)
     @user.reload
 
-    assert_equal @user.withdrawn_at + 31.days, @user.recovery_deadline
+    assert_equal deadline.to_i, @user.recovery_deadline.to_i
+    assert_not @user.can_recover?
+
+    @user.update!(deactivated_at: 2.hours.ago)
+
     assert_predicate @user, :can_recover?
   end
 end

@@ -5,7 +5,7 @@ return if Rails.env.test?
 
 # Rack::Timeout reads these ENV variables during middleware initialization.
 # Set them before the Railtie inserts the middleware.
-ENV["RACK_TIMEOUT_SERVICE_TIMEOUT"] ||= "30"
+ENV["RACK_TIMEOUT_SERVICE_TIMEOUT"] ||= "10"
 
 require "rack-timeout" unless defined?(Rack::Timeout)
 

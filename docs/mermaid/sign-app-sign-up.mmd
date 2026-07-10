@@ -1,0 +1,76 @@
+---
+title: App Sign-Up State Machine
+---
+
+%% Partially superseded by Identity Authority inversion.
+%% sign/id is ceremony-only; acme/www commits account and session state.
+
+stateDiagram-v2
+  [*] --> STARTED: begin sign-up cycle
+  STARTED --> IDENTITY_PENDING: select or receive identity strategy
+
+  note right of IDENTITY_PENDING
+    Provider and entry details are strategy data,
+    not lifecycle state: email, telephone, Google,
+    Apple, LINE, gift, invitation, or future methods.
+  end note
+
+  IDENTITY_PENDING --> identity_route: identity accepted
+  IDENTITY_PENDING --> FAILED: unrecoverable identity failure
+
+  state identity_route <<choice>>
+  identity_route --> CONTACT_PENDING: contact verification required
+  identity_route --> CREDENTIAL_PENDING: credential setup required
+  identity_route --> GUARDRAIL_PENDING: identity requirements already satisfied
+
+  CONTACT_PENDING --> contact_route: contact verified
+  CONTACT_PENDING --> FAILED: unrecoverable contact failure
+
+  state contact_route <<choice>>
+  contact_route --> CREDENTIAL_PENDING: credential setup required
+  contact_route --> GUARDRAIL_PENDING: credential already satisfied
+
+  CREDENTIAL_PENDING --> GUARDRAIL_PENDING: credential registered
+  CREDENTIAL_PENDING --> FAILED: unrecoverable credential failure
+
+  GUARDRAIL_PENDING --> CHECKPOINT_PENDING: guardrail cleared
+  GUARDRAIL_PENDING --> FAILED: guardrail blocks continuation
+
+  CHECKPOINT_PENDING --> FINALIZING: required checkpoint items cleared
+  CHECKPOINT_PENDING --> FAILED: unrecoverable checkpoint failure
+
+  FINALIZING --> SIGN_IN_HANDOFF_PENDING: account artifacts committed
+  FINALIZING --> FAILED: commit failed or integrity check failed
+
+  SIGN_IN_HANDOFF_PENDING --> COMPLETED: sign-in handoff accepted
+  SIGN_IN_HANDOFF_PENDING --> FAILED: handoff failed before completion
+
+  STARTED --> CANCELLED: user cancels
+  IDENTITY_PENDING --> CANCELLED: user cancels
+  CONTACT_PENDING --> CANCELLED: user cancels
+  CREDENTIAL_PENDING --> CANCELLED: user cancels
+  GUARDRAIL_PENDING --> CANCELLED: user cancels
+  CHECKPOINT_PENDING --> CANCELLED: user cancels
+
+  STARTED --> EXPIRED: cycle TTL expires
+  IDENTITY_PENDING --> EXPIRED: cycle TTL expires
+  CONTACT_PENDING --> EXPIRED: cycle TTL expires
+  CREDENTIAL_PENDING --> EXPIRED: cycle TTL expires
+  GUARDRAIL_PENDING --> EXPIRED: cycle TTL expires
+  CHECKPOINT_PENDING --> EXPIRED: cycle TTL expires
+
+  note right of FAILED
+    FAILED means unrecoverable, non-resumable cycle
+    failure. Retryable validation errors do not enter
+    this terminal state.
+  end note
+
+  note right of EXPIRED
+    EXPIRED, FAILED, and CANCELLED require retention
+    scheduling and artifact cleanup. COMPLETED does not.
+  end note
+
+  COMPLETED --> [*]
+  EXPIRED --> [*]
+  FAILED --> [*]
+  CANCELLED --> [*]

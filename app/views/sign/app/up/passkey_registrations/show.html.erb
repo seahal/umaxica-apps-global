@@ -1,6 +1,0 @@
-<% title t("sign.app.registration.telephone.update.passkey_required") %>
-
-<%= render "shared/passkeys/registration",
-           begin_url: begin_sign_app_up_telephone_passkey_registration_path(@user_telephone, ri: params[:ri]),
-           finish_url: sign_app_up_telephone_passkey_registration_path(@user_telephone, ri: params[:ri]),
-           success_redirect_url: @success_redirect_url %>

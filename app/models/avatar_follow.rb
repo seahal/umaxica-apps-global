@@ -30,4 +30,16 @@ class AvatarFollow < AvatarRecord
   belongs_to :followed_avatar,
              class_name: "Avatar",
              inverse_of: :incoming_follows
+
+  validates :followed_avatar_id, uniqueness: { scope: :follower_avatar_id }
+  validate :follower_and_followed_must_differ
+
+  private
+
+  def follower_and_followed_must_differ
+    return if follower_avatar_id.blank? || followed_avatar_id.blank?
+    return if follower_avatar_id != followed_avatar_id
+
+    errors.add(:followed_avatar_id, "must differ from follower_avatar_id")
+  end
 end

@@ -1,0 +1,23 @@
+# == Schema Information
+#
+# Table name: client_telephone_statuses
+# Database name: app_principal
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: 0
+verified:
+  id: 1
+unverified:
+  id: 2
+suspended:
+  id: 3
+deleted:
+  id: 4
+legacy_nothing:
+  id: 5
+unverified_with_sign_up:
+  id: 6
+verified_with_sign_up:
+  id: 7

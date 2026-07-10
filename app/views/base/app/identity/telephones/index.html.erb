@@ -1,0 +1,58 @@
+<% content_for :page_title, 'Telephones' %>
+<%= link_to t('sign.app.settings.show.back'), base_app_identity_path(ri: params[:ri]) %>
+
+<div>
+  <div>
+    <%= link_to t('sign.app.settings.telephone.index.new_link'),
+                new_base_app_identity_telephones_registration_path %>
+  </div>
+</div>
+
+<div>
+  <div>
+    <div>
+      <div>
+        <table>
+          <thead>
+          <tr>
+            <th scope="col"><%= t('activerecord.attributes.user_telephone.number') %></th>
+            <th scope="col"><%= t('activerecord.attributes.user_telephone.status') %></th>
+            <th scope="col">
+              <span><%= t("views.sign.app.settings.telephones.index.actions") %></span>
+            </th>
+          </tr>
+          </thead>
+          <tbody>
+          <% @client_telephones.each do |telephone| %>
+            <tr>
+              <td><%= telephone.number %></td>
+              <td>
+                <% if [ClientTelephoneStatus::VERIFIED, ClientTelephoneStatus::VERIFIED_WITH_SIGN_UP].include?(telephone.user_telephone_status_id) %>
+                      <span>
+                        <%= t("views.sign.app.settings.telephones.index.verified") %>
+                      </span>
+                <% else %>
+                      <span>
+                        <%= t("views.sign.app.settings.telephones.index.unverified") %>
+                      </span>
+                <% end %>
+              </td>
+              <td>
+                <%= link_to t("sign.app.settings.telephone.index.edit"),
+                            edit_base_app_identity_telephone_path(telephone) %>
+              </td>
+            </tr>
+          <% end %>
+          <% if @client_telephones.empty? %>
+            <tr>
+              <td colspan="3" class="italic">
+                <%= t("views.sign.app.settings.telephones.index.empty") %>
+              </td>
+            </tr>
+          <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

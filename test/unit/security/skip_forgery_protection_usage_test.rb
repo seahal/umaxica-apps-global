@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class SkipForgeryProtectionUsageTest < ActiveSupport::TestCase
   self.use_transactional_tests = false

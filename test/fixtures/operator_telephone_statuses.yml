@@ -1,0 +1,30 @@
+# Auto-generated minimal fixture
+# == Schema Information
+#
+# Table name: operator_telephone_statuses
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: OperatorTelephoneStatus
+
+# Table name: staff_telephone_statuses
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: 4
+active:
+  id: 1
+inactive:
+  id: 3
+pending:
+  id: 5
+deleted:
+  id: 2
+unverified:
+  id: 6
+verified:
+  id: 7

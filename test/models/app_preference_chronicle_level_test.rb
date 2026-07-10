@@ -13,6 +13,14 @@ require "test_helper"
 class AppPreferenceChronicleLevelTest < ActiveSupport::TestCase
   fixtures :app_preference_chronicle_levels
 
+  setup do
+    clear_fixed_id_seed_cache
+  end
+
+  teardown do
+    clear_fixed_id_seed_cache
+  end
+
   test "includes all default ids" do
     ids = AppPreferenceChronicleLevel.pluck(:id)
 
@@ -52,5 +60,36 @@ class AppPreferenceChronicleLevelTest < ActiveSupport::TestCase
   test "ensure_defaults! is idempotent" do
     AppPreferenceChronicleLevel.ensure_defaults!
     assert_nothing_raised { AppPreferenceChronicleLevel.ensure_defaults! }
+  end
+
+  test "ensure_defaults! skips repeat seed inserts in the same process" do
+    capture_sql =
+      lambda do
+        queries = []
+        subscription =
+          ActiveSupport::Notifications.subscribe("sql.active_record") do |_name, _start, _finish, _id, payload|
+            next if payload[:name] == "SCHEMA"
+            next if payload[:cached]
+
+            queries << payload[:sql].to_s
+          end
+
+        AppPreferenceChronicleLevel.ensure_defaults!
+        queries.clear
+        AppPreferenceChronicleLevel.ensure_defaults!
+        queries
+      ensure
+        ActiveSupport::Notifications.unsubscribe(subscription) if subscription
+      end
+
+    queries = capture_sql.call
+
+    assert_not queries.any? { |sql| sql.include?('INSERT INTO "app_preference_chronicle_levels"') }
+  end
+
+  private
+
+  def clear_fixed_id_seed_cache
+    ApplicationRecord.send(:const_get, :FIXED_ID_SEED_CACHE).clear
   end
 end

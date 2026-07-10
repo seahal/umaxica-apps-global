@@ -23,8 +23,7 @@
 ## 2) Passkey edit/show pages were scaffold placeholders and used numeric IDs
 
 - What was weird:
-  - `/configuration/passkeys/:id/edit` and `show` rendered placeholder scaffolds and leaked numeric
-    IDs.
+  - `/settings/passkeys/:id/edit` and `show` rendered placeholder scaffolds and leaked numeric IDs.
 - Repro:
   1. Visit edit/show page for an existing passkey.
   2. Placeholder content appears; URL uses numeric id.
@@ -34,7 +33,7 @@
   - Routes now use `param: :public_id`.
   - Edit/show views updated with real UI and public_id-based links.
 - Regression tests:
-  - `test/controllers/sign/app/configuration/passkeys_controller_test.rb`
+  - `test/controllers/sign/app/settings/passkeys_controller_test.rb`
     - edit/update/destroy by public_id
     - other user public_id returns 404
     - index link uses public_id
@@ -54,10 +53,10 @@
   - Added audit events for email/telephone/social unlink.
   - Added step-up requirement for secret disable/destroy.
 - Regression tests:
-  - `test/controllers/sign/app/configuration/emails_controller_test.rb`
+  - `test/controllers/sign/app/settings/emails_controller_test.rb`
     - destroy succeeds with another method
     - destroy blocked when last method
-  - `test/controllers/sign/app/configuration/telephones_controller_test.rb`
+  - `test/controllers/sign/app/settings/telephones_controller_test.rb`
     - destroy succeeds with another method
     - destroy blocked when last method
 

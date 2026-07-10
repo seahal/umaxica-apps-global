@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-# rubocop:disable Layout/LineLength
-
 # == Schema Information
 #
 # Table name: handle_assignments
@@ -94,4 +92,3 @@ class HandleAssignmentTest < ActiveSupport::TestCase
     end
   end
 end
-# rubocop:enable Layout/LineLength

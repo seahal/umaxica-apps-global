@@ -1,5 +1,13 @@
 # Authentication / Authorization Requirements Specification (Phase 1)
 
+> **Deprecated / partially superseded by Identity Authority inversion:** `acme/www` is the Session,
+> Token, Account, Preference, Authorization, and downstream-token Authority. `sign/id` is
+> ceremony-only: it may host credential entry points and execute delegated credential ceremonies,
+> but it must not own sessions, refresh tokens, preference writes, dashboards, account lifecycle,
+> token issuance, logout, or step-up freshness. Existing sign-side physical tables/models do not
+> imply sign-side authority. Do not use this document to reintroduce sign-side sessions, refresh,
+> preference, dashboard, account lifecycle, token issuance, logout, or step-up freshness.
+
 ## 1. Purpose and Background
 
 This system aims to provide users with safe and flexible authentication and authorization features,
@@ -33,21 +41,59 @@ The following points are especially important:
 
 ## 3. Authentication Methods
 
-### Available methods
+### Available methods and entry points
 
 - Email (OTP)
-- Telephone (SMS OTP)
 - Passkey
-- Secret
-- Google social login
-- Apple social login
+- TOTP (`app`)
+- Passcode
+- Google social login (`app` and `org` only)
+- Apple social login (`app` only)
+
+Telephone (SMS OTP) is a sign-in or sign-up entry point and contact identifier. It is not itself an
+AAL authentication method. Knowing the telephone number may identify the actor and route them to an
+actual verifier such as TOTP, passcode, or passkey.
+
+Email address, telephone number, Google identity, and Apple identity are personal identifiers. Email
+address and telephone number are also contact identifiers. A sign-in flow that requires a personal
+identifier must require both the identifier and an AAL1 verifier; knowing only the identifier, or
+knowing only the verifier without the required identifier, must not complete login.
+
+Email address is not an AAL method by itself. Email functions as AAL1 or AAL2 only when email OTP
+verification succeeds.
+
+Social login provider availability is surface-specific:
+
+| Surface | Google   | Apple    |
+| ------- | -------- | -------- |
+| `app`   | Allowed  | Allowed  |
+| `org`   | Allowed  | Rejected |
+| `com`   | Rejected | Rejected |
 
 ### Basic policy for authentication methods
 
-- Email / Telephone / Secret must not be updated in place
+- Email / Telephone / Passcode must not be updated in place
 - Changes must be handled as "delete + add new"
 - Passkey is the exception; only the display name may be changed
-- Social login (Google / Apple) is limited to linking and unlinking
+- Social login (Google / Apple) can be used for sign-in/sign-up on supported surfaces and can be
+  linked or unlinked through credential management
+
+### Duplicate sign-up policy
+
+Email and telephone sign-up must distinguish incomplete OTP verification from completed
+registration.
+
+- A record in `UNVERIFIED_WITH_SIGN_UP` is the only sign-up record eligible for re-registration
+  overwrite.
+- If that unverified record is still inside the re-registration overwrite window, the new sign-up
+  attempt is rejected with the OTP resend/cooldown response and must not send a new OTP.
+- If that unverified record is outside the overwrite window, the pending record and its pending
+  account may be replaced and a fresh OTP may be issued.
+- A completed or otherwise already-registered identifier, including `VERIFIED` and
+  `VERIFIED_WITH_SIGN_UP`, must not receive a new sign-up OTP and must not create or reuse sign-up
+  account artifacts. The sign-up create response must remain indistinguishable from a normal valid
+  submission by redirecting to the OTP entry step with the same visible copy. Submitted OTPs for
+  that dummy flow must fail with the normal invalid-code feedback.
 
 ## 4. Sign-in Requirements
 
@@ -63,6 +109,8 @@ Passkey sign-in requires all three of the following:
 
 - Turnstile is not used
 - Even when MFA is required, the flow does not transition to an additional challenge
+- Apple sign-in is available only on `app`; `org` and `com` must reject it.
+- Google sign-in is available on `app` and `org`; `com` must reject it.
 
 ## 5. Session Management Requirements
 
@@ -93,7 +141,15 @@ Passkey sign-in requires all three of the following:
 
 ### Social Login (Google / Apple)
 
-- Unlinking is allowed only if at least one other login method remains available
+- Unlinking is allowed only if at least one other social-unlink-safe sign-in method remains
+  available after removal.
+- For `app`, social-unlink-safe sign-in methods are verified email OTP, active passkey, active
+  Google social, and active Apple social.
+- Passcode is not counted for the social unlink no-lockout guard.
+- Unlinking requires recent AAL2 step-up and Cloudflare Turnstile validation before the destructive
+  request is executed.
+- Unlinking physically deletes the linked social identity immediately
+- Each unlink writes a `SOCIAL_UNLINKED` activity entry
 
 ### Passkey
 
@@ -103,12 +159,12 @@ If removing all passkeys, at least one of the following must exist:
 - Google
 - Apple
 
-Secret is not counted in this condition.
+Passcode is not counted in this condition.
 
-### Secret
+### Passcode
 
 - In principle, it may be removed
-- Do not create a state where login is possible only through Secret after removal
+- Do not create a state where login is possible only through passcode after removal
 
 ### Email / Telephone (contact methods)
 
@@ -126,7 +182,7 @@ or more to 0.
 
 - At least one Email exists
 
-## 8. Activity Display (`/configuration/activity`)
+## 8. Activity Display (`/settings/activity`)
 
 ### Purpose
 

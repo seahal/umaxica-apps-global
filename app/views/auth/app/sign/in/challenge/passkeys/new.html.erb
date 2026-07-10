@@ -1,0 +1,29 @@
+<% title t("sign.app.in.mfa.passkey.title") %>
+
+<div>
+  <h1><%= t("sign.app.in.mfa.passkey.title") %></h1>
+  <p><%= t("sign.app.in.mfa.passkey.description") %></p>
+
+  <%= form_with url: auth_app_sign_in_challenge_passkey_path, method: :post, data: { turbo: false } do |f| %>
+    <% options_json = @passkey_request_options ? json_escape(@passkey_request_options.to_json) : "" %>
+    <div
+      data-controller="step-up-passkey"
+      data-step-up-passkey-options-value="<%= options_json %>"
+      data-step-up-passkey-challenge-id-value="<%= @passkey_challenge_id.to_s %>">
+
+      <%= f.hidden_field :challenge_id, value: @passkey_challenge_id.to_s, data: { "step-up-passkey-target": "challengeId" }, name: "mfa_passkey_form[challenge_id]" %>
+      <%= f.hidden_field :credential_json, value: "", data: { "step-up-passkey-target": "credentialJson" }, name: "mfa_passkey_form[credential_json]" %>
+
+      <button type="button"
+              data-action="click->step-up-passkey#authenticate">
+        <%= t("sign.app.in.mfa.passkey.authenticate") %>
+      </button>
+      <p data-step-up-passkey-target="error" class="hidden"></p>
+      <p data-step-up-passkey-target="status" class="hidden"></p>
+    </div>
+  <% end %>
+
+  <div>
+    <%= link_to t("sign.app.in.mfa.passkey.back"), auth_app_sign_in_challenge_path %>
+  </div>
+</div>

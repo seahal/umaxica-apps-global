@@ -1,0 +1,13 @@
+# == Schema Information
+#
+# Table name: client_token_kinds
+# Database name: app_ticket
+#
+#  id :bigint           not null, primary key
+#
+browser_web:
+  id: 11
+client_ios:
+  id: 12
+client_android:
+  id: 13

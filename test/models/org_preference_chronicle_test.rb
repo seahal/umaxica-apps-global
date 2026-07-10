@@ -8,10 +8,11 @@
 #  actor_type     :text             default(""), not null
 #  context        :jsonb            not null
 #  current_value  :text             default(""), not null
-#  expires_at     :datetime         not null
+#  discarded_at   :datetime         default(Infinity), not null
 #  ip_address     :inet             default(#<IPAddr: IPv4:0.0.0.0/255.255.255.255>), not null
 #  occurred_at    :datetime         not null
 #  previous_value :text             default(""), not null
+#  purged_at      :datetime         not null
 #  subject_type   :text             not null
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
@@ -24,10 +25,11 @@
 #
 #  idx_on_subject_type_subject_id_occurred_at_org_pref          (subject_type,subject_id,occurred_at)
 #  index_org_preference_chronicles_on_actor_id_and_occurred_at  (actor_id,occurred_at)
+#  index_org_preference_chronicles_on_actor_type_and_actor_id   (actor_type,actor_id)
 #  index_org_preference_chronicles_on_event_id                  (event_id)
-#  index_org_preference_chronicles_on_expires_at                (expires_at)
 #  index_org_preference_chronicles_on_level_id                  (level_id)
 #  index_org_preference_chronicles_on_occurred_at               (occurred_at)
+#  index_org_preference_chronicles_on_purged_at                 (purged_at)
 #  index_org_preference_chronicles_on_subject_id                (subject_id)
 #
 # Foreign Keys
@@ -86,8 +88,7 @@ class OrgPreferenceChronicleTest < ActiveSupport::TestCase
   test "validates presence of subject_id" do
     @audit.subject_id = nil
 
-    assert_not @audit.valid?
-    assert_includes @audit.errors[:subject_id], I18n.t("errors.messages.blank")
+    assert_raises(ActiveRecord::NotNullViolation) { @audit.save!(validate: false) }
   end
 
   test "validates presence of subject_type" do

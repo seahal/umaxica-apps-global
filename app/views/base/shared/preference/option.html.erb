@@ -1,0 +1,92 @@
+<% surface = controller_path.split("/").second %>
+<% screen = @preference_screen.presence || params[:preference_screen].to_s %>
+<% model = instance_variable_get("@preference_#{screen}") %>
+<% option_class = model.class.reflect_on_association(:option)&.klass %>
+<% option_type = screen.to_sym %>
+<% title_text = t(preference_acme_i18n_key(:preference, screen, :edit, :heading),
+                  default: t(preference_acme_i18n_key(:preferences, :"#{screen}_settings"), default: screen.titleize)) %>
+<% content_for :page_title, title_text %>
+
+<section>
+  <div>
+    <%= link_to t(preference_acme_i18n_key(:preferences, :regions, :back_link),
+                  default: t(preference_acme_i18n_key(:preferences, :back_to_settings))),
+                (screen == "region" ? public_send("base_#{surface}_preference_path", lx: params[:lx], ri: params[:ri]) : public_send("edit_base_#{surface}_preference_region_path", lx: params[:lx], ri: params[:ri])) %>
+  </div>
+
+  <h1><%= title_text %></h1>
+  <p><%= t(preference_acme_i18n_key(:preference, screen, :edit, :description), default: "") %></p>
+
+  <%= form_with model: model,
+                scope: :"preference_#{screen}",
+                url: public_send("base_#{surface}_preference_#{screen}_path", ri: params[:ri]),
+                method: :patch do |f| %>
+    <div>
+      <%= f.label :option_id,
+                  t(preference_acme_i18n_key(:preference, screen, :edit, :"#{screen}_label"), default: title_text) %>
+      <div>
+        <%= f.select :option_id,
+                     options_for_select(
+                       option_class.order(:id).filter_map { |option|
+                         option_name = option.name.to_s
+                         next if option_name.blank?
+
+                         default_label = option_type == :region ? option_name.upcase : option_name.tr("_", " ").titleize
+                         option_key = option_type == :timezone ? option_name.tr("/", "_").upcase : option_name
+                         translation_key =
+                           if option_type == :timezone
+                             preference_acme_i18n_key(:preference, :locale, :edit, :timezone_options, option_key)
+                           elsif option_type == :region
+                             "acme.app.preferences.regions.select_region_selector.#{option_name.upcase}"
+                           else
+                             preference_acme_i18n_key(:preference, screen, :options, option_key)
+                           end
+                         translation_defaults =
+                           if option_type == :timezone
+                             timezone_alias_key = { "ETC_UTC" => "UTC", "ASIA_TOKYO" => "JST" }[option_key]
+                             [
+                               (preference_acme_i18n_key(:preference, :locale, :edit, :timezone_options, timezone_alias_key) if timezone_alias_key),
+                               :"base.com.preference.locale.edit.timezone_options.#{option_key}",
+                               (:"base.com.preference.locale.edit.timezone_options.#{timezone_alias_key}" if timezone_alias_key),
+                               default_label,
+                             ].compact
+                           elsif option_type == :region
+                             [
+                               "acme.app.preferences.regions.select_region_selector.#{option_name.upcase}",
+                               default_label,
+                             ]
+                           else
+                             default_label
+                           end
+                         [I18n.t(translation_key, locale: I18n.locale, fallback: false, default: translation_defaults), option.id]
+                       },
+                       model.option_id,
+                     ),
+                     { include_blank: false },
+                     {} %>
+      </div>
+    </div>
+
+    <div>
+      <%= f.submit t(preference_acme_i18n_key(:preferences, :update_settings)),
+                   data: { turbo_submits_with: t(preference_acme_i18n_key(:preferences, :submitting)) } %>
+      <% unless screen == "region" %>
+        <%= link_to t(preference_acme_i18n_key(:preferences, :region_settings)),
+                    public_send("edit_base_#{surface}_preference_region_path", lx: params[:lx], ri: params[:ri]) %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if screen == "region" %>
+    <div>
+      <% %i(timezone language currency calendar clock).each do |linked_screen| %>
+        <%= link_to public_send("edit_base_#{surface}_preference_#{linked_screen}_path", lx: params[:lx], ri: params[:ri]) do %>
+          <div>
+            <span><%= t(preference_acme_i18n_key(:preferences, :region, (linked_screen == :calendar ? :date_format : linked_screen == :clock ? :time_format : linked_screen), :link),
+                        default: linked_screen.to_s.tr("_", " ").titleize) %></span>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</section>

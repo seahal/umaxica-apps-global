@@ -1,0 +1,70 @@
+---
+name: implementation-notes
+description: Record durable implementation decisions as handoff notes, not transcripts.
+---
+
+# Implementation Notes
+
+Implementation notes preserve the decisions made while carrying out a plan. They are durable handoff
+context for future maintainers — not transcripts and not source-of-truth documentation.
+
+## When to write
+
+Write a note when a non-trivial task involves any of:
+
+- a decision not written in the original spec, plan, or docs
+- a change, compromise, or deferral from the accepted plan
+- an interpretation of ambiguous existing code or tests
+- a contradiction between comments, code, tests, docs, plans, or existing notes
+- a compatibility, lifecycle, or security-boundary constraint that is easy to miss
+- a rejected alternative future maintainers are likely to revisit
+
+When in doubt, prefer a short note over losing durable context.
+
+## What to include
+
+- the original plan or spec reference, and related decision documents
+- the comments, code paths, or tests checked for consistency
+- decisions made during implementation and why
+- deviations from the plan and their risk
+- contradictions or stale guidance found, and the current interpretation
+- follow-up work that should be promoted into the project's planning system
+- tests run and tests not run
+
+## What to exclude
+
+- chain-of-thought and raw command history
+- secrets, tokens, cookies, authorization headers, or full request parameters
+- stable decisions or current-behavior documentation that belong in their permanent home
+
+## Template
+
+```markdown
+# <Task Name> Implementation Notes
+
+## Context
+
+- Original plan/spec:
+- Related decisions/docs/plans:
+- Implementation date:
+
+## Decisions Made During Implementation
+
+- Decision:
+  - Why:
+  - Alternatives considered:
+  - Follow-up needed:
+
+## Deviations From Plan
+
+- Change:
+  - Why:
+  - Risk:
+  - Follow-up:
+
+## Review Notes
+
+- Tests run:
+- Tests not run:
+- Documentation promotion needed:
+```

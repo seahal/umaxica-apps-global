@@ -1,0 +1,170 @@
+# Value Objects, Services, Resolvers, Policies, Queries, and Commands
+
+## Purpose
+
+This project intentionally avoids the common "everything is a Service Object" pattern.
+
+Before introducing a new class, determine its architectural role and place it in the correct layer.
+Prefer explicit domain concepts over generic service classes.
+
+## Value Objects
+
+A Value Object represents a domain value and its behavior.
+
+A Value Object:
+
+- Has no independent identity
+- Is compared by value
+- Is immutable after creation
+- Contains domain-specific validation and behavior
+- Does not persist itself
+- Does not orchestrate workflows
+
+Prefer creating a Value Object when a concept is passed around the system as data.
+
+Good examples:
+
+```ruby
+ActorContext
+AuthenticationState
+SessionIdentifier
+SessionGeneration
+CredentialIdentifier
+RedirectDestination
+ReturnVerificationResult
+TenantContext
+```
+
+Bad:
+
+```ruby
+ResolveActorService
+BuildRedirectService
+SessionStateService
+```
+
+Good:
+
+```ruby
+ActorContext
+RedirectDestination
+AuthenticationState
+```
+
+## Resolvers
+
+A Resolver assembles or derives a Value Object.
+
+A Resolver:
+
+- Reads from one or more sources
+- Produces a value
+- Does not mutate persistent state
+- Does not perform business workflows
+
+Typical signature:
+
+```ruby
+ActorContextResolver.call(request)
+# => ActorContext
+```
+
+## Policies
+
+A Policy answers authorization or decision questions.
+
+A Policy:
+
+- Returns a decision
+- Contains business rules
+- Does not perform side effects
+- Does not update records
+
+Typical signature:
+
+```ruby
+ActorPermissionPolicy.allowed?(actor, resource)
+# => true/false
+```
+
+## Queries
+
+A Query retrieves information.
+
+A Query:
+
+- Reads data
+- Does not modify data
+- May join multiple models
+- May return Value Objects or DTOs
+
+## Commands
+
+A Command performs a single write operation.
+
+A Command:
+
+- Mutates state
+- Has a clear write intent
+- Does not coordinate large workflows
+
+## Services
+
+A Service coordinates workflows. Services are intentionally rare.
+
+A Service should exist only when at least one of the following is true:
+
+- Multiple aggregates must be coordinated
+- Multiple repositories or models are involved
+- An external system must be called
+- A transaction boundary must be managed
+- A business workflow spans several steps
+
+Services should orchestrate. They should not become containers for domain values.
+
+Bad:
+
+```ruby
+SessionStateService
+ActorContextService
+RedirectDestinationService
+AuthenticationStateService
+```
+
+These should usually be Value Objects or Resolvers.
+
+## Decision Guide
+
+Before creating a Service Object, ask:
+
+1. Is this primarily a value?
+   - Create a Value Object.
+
+2. Does it derive or assemble a value?
+   - Create a Resolver.
+
+3. Does it answer a rule or permission question?
+   - Create a Policy.
+
+4. Is it a read operation?
+   - Create a Query.
+
+5. Is it a single write operation?
+   - Create a Command.
+
+6. Is it coordinating multiple models, aggregates, or external systems?
+   - Create a Service.
+
+If the answer is not #6, a Service Object is probably the wrong abstraction.
+
+When uncertain, prefer this order before introducing a Service:
+
+```text
+Value Object
+-> Resolver
+-> Policy
+-> Query
+-> Command
+```
+
+Service Objects are the last resort, not the default abstraction.

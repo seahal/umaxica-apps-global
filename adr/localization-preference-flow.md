@@ -4,6 +4,14 @@
 
 Accepted on 2026-04-07.
 
+> **Hydration and dynamic region seeding update (2026-05-30, updated 2026-06-18):** The effective
+> request locale is chosen by `apply_localization_preferences` from `Actor.preferences.language`.
+> `Actor.preferences` is hydrated from the Preference JWT payload, the signed projection of the
+> database source of truth. Auth access tokens do not carry or read the obsolete `prf` preference
+> claim. Language priority is: `?lx` request-local overlay, explicit language from the
+> `explicit_fields` marker, dynamic `?ri` seeding (`jp` -> `ja`, `us` -> `en`) for unset users, then
+> the default `ja`.
+
 ## Context
 
 GitHub issue `#631` tracked completion of the localization preference flow across the sign surfaces.
@@ -23,6 +31,16 @@ The request and cookie contract keeps:
 
 The preference UI, redirect behavior, and persisted state use the same contract across all three
 surfaces.
+
+Region resolution follows request-context precedence:
+
+1. An explicit valid `ri` request parameter wins for the current request.
+2. When `ri` is missing, the persisted preference context supplies the redirect value.
+3. When neither request nor persisted preference has a region, the default region is `jp`.
+
+The system must not rewrite an explicit `?ri=us` to the persisted value merely because the saved
+preference is `jp`. Persisted preference is a fallback for missing request context, not an override
+for explicit request context.
 
 ## Evidence
 
@@ -46,6 +64,17 @@ surfaces.
 
 - Localization behavior is now part of the stable preference contract, not an incomplete follow-up.
 - Future work should extend this flow without changing the `ri` / `lx` / `tz` keys casually.
+
+## Current Operational Clarification
+
+As of the current controller-boundary migration, `ri` is mandatory request context on the sign
+`app`, `org`, and `com` surfaces. Earlier implementations had routes where `ri` could be absent; the
+current surfaces should redirect missing or invalid `ri` values to a valid `ri`.
+
+`lx` and `tz` remain optional request-local context. They can affect the current request when
+present and valid, but they are not preference write paths. Persistent preference changes must go
+through the dedicated preference write endpoints, which update the database and reissue the
+preference access token.
 
 ## Related
 

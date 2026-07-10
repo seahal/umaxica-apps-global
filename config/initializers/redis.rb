@@ -4,23 +4,42 @@
 # Redis configuration for the application
 default_redis_url = Rails.app.creds.option(:REDIS_NORMAL_URL, default: "redis://localhost:6379/0")
 
-# Configure SSL for production Redis (Upstash requires SSL)
+# TLS is negotiated automatically when REDIS_NORMAL_URL uses the rediss:// scheme
+# (required by managed providers such as Upstash). No explicit ssl_params needed here.
 redis_config = { url: default_redis_url }
 
-REDIS_CLIENT = Redis.new(redis_config)
+class NullRedisClient
+  def ping
+    "PONG"
+  end
+end
 
-# Connection smoke test (skip in test).
-# Default: only fail fast in production. Opt-in for dev via env vars.
+REDIS_CLIENT =
+  if Rails.env.test?
+    NullRedisClient.new
+  else
+    Redis.new(redis_config)
+  end
+
+fail_fast_redis_by_default = Rails.env.development? || Rails.env.production?
+
+# Connection smoke test (skip in test). Development and production fail fast so
+# missing Redis is noticed before request-time behavior diverges.
 should_smoke_test =
-  ENV.fetch("REDIS_SMOKE_TEST", Rails.env.production? ? "1" : "0") == "1"
+  ENV.fetch("REDIS_SMOKE_TEST", fail_fast_redis_by_default ? "1" : "0") == "1"
 fail_fast =
-  ENV.fetch("REDIS_FAIL_FAST", Rails.env.production? ? "1" : "0") == "1"
+  ENV.fetch("REDIS_FAIL_FAST", fail_fast_redis_by_default ? "1" : "0") == "1"
 
-if should_smoke_test && !Rails.env.test?
+running_rake_task =
+  defined?(Rake) &&
+  Rake.respond_to?(:application) &&
+  Rake.application.top_level_tasks.any?
+
+if should_smoke_test && !Rails.env.test? && !running_rake_task
   begin
     REDIS_CLIENT.ping
   rescue StandardError => e
-    Rails.logger.error("❌ Redis connection failed: #{e.class}: #{e.message} (url=#{default_redis_url})")
+    Rails.logger.error("❌ Redis connection failed: #{e.class}: #{e.message}")
     raise e if fail_fast
   end
 end

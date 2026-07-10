@@ -1,0 +1,63 @@
+<% content_for :page_title, t("sign.com.registration.checkpoint.show.page_title") %>
+
+<h1><%= t("sign.com.registration.checkpoint.show.page_title") %></h1>
+
+<% if @sign_up_missing_requirements.include?(:birthdate) %>
+  <section>
+    <h2><%= t("sign.com.registration.checkpoint.show.birthdate.title") %></h2>
+    <p><%= t("sign.com.registration.checkpoint.show.birthdate.description") %></p>
+
+    <%= form_with url: public_send(:"auth_com_sign_up_check_#{@sign_up_ticket.entry_method}_birthdate_path", ri: params[:ri]),
+                  method: :patch,
+                  local: true,
+                  data: { turbo: false } do %>
+      <% if signed_pt_param.present? %>
+        <%= hidden_field_tag :pt, signed_pt_param %>
+      <% end %>
+      <%= hidden_field_tag :requirement, "birthdate" %>
+      <%= hidden_field_tag :checkpoint_version, @sign_up_ticket.checkpoint_version %>
+
+      <div>
+        <p id="birthdate_label"><%= t("sign.com.registration.checkpoint.show.birthdate.label") %></p>
+        <%= sign_up_birthdate_fields(@sign_up_pending_actor&.birthdate, labelledby: "birthdate_label") %>
+      </div>
+
+      <%= submit_tag t("sign.com.registration.checkpoint.show.birthdate.submit") %>
+    <% end %>
+  </section>
+<% end %>
+
+<% if @sign_up_missing_requirements.include?(:passkey) %>
+  <section>
+    <h2><%= t("sign.com.registration.checkpoint.show.passkey.title") %></h2>
+    <p><%= t("sign.com.registration.checkpoint.show.passkey.description") %></p>
+    <%= link_to t("sign.com.registration.checkpoint.show.passkey.action"),
+                auth_com_sign_up_check_telephone_passkey_path(
+                  ri: params[:ri],
+                  pt: signed_pt_param,
+                  checkpoint_version: @sign_up_ticket.checkpoint_version,
+                ) %>
+  </section>
+<% end %>
+
+<% if @sign_up_missing_requirements.include?(:passcode) %>
+  <section>
+    <h2><%= t("sign.com.registration.checkpoint.show.passcode.title") %></h2>
+    <p><%= t("sign.com.registration.checkpoint.show.passcode.description") %></p>
+    <%= link_to t("sign.com.registration.checkpoint.show.passcode.action"),
+                auth_com_sign_up_check_telephone_passcode_path(
+                  ri: params[:ri],
+                  pt: signed_pt_param,
+                  checkpoint_version: @sign_up_ticket.checkpoint_version,
+                ) %>
+  </section>
+<% end %>
+
+<% if @sign_up_missing_requirements.empty? %>
+  <p><%= t("sign.com.registration.checkpoint.show.complete") %></p>
+<% end %>
+
+<%= button_to t("actions.cancel"),
+              public_send(:"auth_com_sign_up_check_#{@sign_up_ticket.entry_method}_path", ri: params[:ri], pt: signed_pt_param),
+              method: :delete,
+              form: { data: { turbo: false } } %>

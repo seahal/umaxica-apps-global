@@ -4,8 +4,10 @@
 require "test_helper"
 
 class ApplicationPushNotificationTest < ActiveSupport::TestCase
+  self.fixture_table_names = []
+
   test "ApplicationPushNotification inherits from ActionPushNative::Notification" do
-    assert_equal ActionPushNative::Notification, ApplicationPushNotification.superclass
+    assert_equal "ActionPushNative::Notification", ApplicationPushNotification.superclass.name
   end
 
   test "can be instantiated with title and body" do

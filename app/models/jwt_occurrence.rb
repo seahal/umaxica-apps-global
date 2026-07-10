@@ -8,9 +8,9 @@
 #
 #  id           :bigint           not null, primary key
 #  body         :string           default(""), not null
-#  deletable_at :datetime         default(Infinity), not null
+#  discarded_at :datetime         default(Infinity), not null
 #  memo         :string           default(""), not null
-#  revoked_at   :datetime         default(Infinity), not null
+#  purged_at    :datetime         default(Infinity), not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
 #  public_id    :string(21)       default(""), not null
@@ -20,9 +20,8 @@
 #
 #  index_jwt_occurrences_on_body                 (body) UNIQUE
 #  index_jwt_occurrences_on_body_and_created_at  (body,created_at)
-#  index_jwt_occurrences_on_deletable_at         (deletable_at)
 #  index_jwt_occurrences_on_public_id            (public_id) UNIQUE
-#  index_jwt_occurrences_on_revoked_at           (revoked_at)
+#  index_jwt_occurrences_on_purged_at            (purged_at)
 #  index_jwt_occurrences_on_status_id            (status_id)
 #
 # Foreign Keys
@@ -30,12 +29,13 @@
 #  fk_jwt_occurrences_on_status_id  (status_id => jwt_occurrence_statuses.id)
 #
 class JwtOccurrence < OccurrenceRecord
+  include Retainable
   include PublicId
   include Occurrence
 
   attribute :status_id, default: JwtOccurrenceStatus::NOTHING
 
-  belongs_to :jwt_occurrence_status, foreign_key: :status_id, optional: true, inverse_of: :jwt_occurrences
+  belongs_to :jwt_occurrence_status, foreign_key: :status_id, inverse_of: :jwt_occurrences
   has_many :jwt_anomaly_events, dependent: :restrict_with_error, inverse_of: :jwt_occurrence
 
   validates :body, length: { maximum: 255 }

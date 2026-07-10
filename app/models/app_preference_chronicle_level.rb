@@ -9,7 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class AppPreferenceChronicleLevel < ChronicleRecord
-  self.record_timestamps = false
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 0
   INFO = 1

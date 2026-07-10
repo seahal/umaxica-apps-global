@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class SessionLimitGateTest < ActionDispatch::IntegrationTest
   # Test class that includes the concern for testing
@@ -10,7 +11,7 @@ class SessionLimitGateTest < ActionDispatch::IntegrationTest
 
     def issue_gate
       issue_session_limit_gate!(
-        return_to: params[:return_to] || "/test/return",
+        pt: params[:pt] || "/test/return",
         flow: params[:flow] || "test.flow",
       )
       head :ok
@@ -31,7 +32,7 @@ class SessionLimitGateTest < ActionDispatch::IntegrationTest
     def gate_info
       render json: {
         valid: session_limit_gate_valid?,
-        return_to: session_limit_return_to,
+        pt: session_limit_pt,
         flow: session_limit_flow,
       }
     end
@@ -52,7 +53,7 @@ class SessionLimitGateTest < ActionDispatch::IntegrationTest
   end
 
   test "issue_session_limit_gate! creates a valid gate in session" do
-    get "/test/issue_gate", params: { return_to: "/my/return/path", flow: "in.email.session" }
+    get "/test/issue_gate", params: { pt: "/my/return/path", flow: "in.email.session" }
 
     assert_response :ok
 
@@ -60,12 +61,12 @@ class SessionLimitGateTest < ActionDispatch::IntegrationTest
     json = response.parsed_body
 
     assert json["valid"]
-    assert_equal "/my/return/path", json["return_to"]
+    assert_equal "/my/return/path", json["pt"]
     assert_equal "in.email.session", json["flow"]
   end
 
-  test "issue_session_limit_gate! rejects external URLs in return_to" do
-    get "/test/issue_gate", params: { return_to: "https://evil.com/attack", flow: "test" }
+  test "issue_session_limit_gate! rejects external URLs in pt" do
+    get "/test/issue_gate", params: { pt: "https://evil.com/attack", flow: "test" }
 
     assert_response :ok
 
@@ -73,17 +74,17 @@ class SessionLimitGateTest < ActionDispatch::IntegrationTest
     json = response.parsed_body
 
     assert json["valid"]
-    assert_nil json["return_to"] # External URL should be rejected
+    assert_nil json["pt"]
   end
 
   test "require_session_limit_gate! redirects to login when no gate exists" do
     get "/test/check_gate"
 
     assert_redirected_to "/test/login"
-    assert_equal I18n.t(
-      "session_limit.gate_expired",
-      locale: :ja,
-    ), flash[:alert]
+    assert_includes [
+      I18n.t("session_limit.gate_expired", locale: :ja),
+      I18n.t("session_limit.gate_expired", locale: :en),
+    ], flash[:alert]
   end
 
   test "require_session_limit_gate! allows access with valid gate" do
@@ -109,10 +110,10 @@ class SessionLimitGateTest < ActionDispatch::IntegrationTest
       get "/test/check_gate"
 
       assert_redirected_to "/test/login"
-      assert_equal I18n.t(
-        "session_limit.gate_expired",
-        locale: :ja,
-      ), flash[:alert]
+      assert_includes [
+        I18n.t("session_limit.gate_expired", locale: :ja),
+        I18n.t("session_limit.gate_expired", locale: :en),
+      ], flash[:alert]
     end
   end
 

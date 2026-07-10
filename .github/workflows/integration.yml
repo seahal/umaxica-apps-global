@@ -25,7 +25,7 @@ env:
   DOCKER_BUILDKIT: "1"
   COMPOSE_DOCKER_CLI_BUILD: "1"
   # Version Configuration
-  RUBY_VERSION: "4.0.2"
+  RUBY_VERSION: "4.0.5"
   NODE_VERSION: "24"
   # Rails Configuration
   RAILS_ENV: test
@@ -39,7 +39,7 @@ env:
   BUNDLE_FROZEN: "true"
   # Region Configuration
   REGION_CODE: all
-  APEX_REGION: true
+  ACME_REGION: true
 jobs:
   # ====================
   # FAST CHECKS (Lint & Security)
@@ -157,8 +157,6 @@ jobs:
         run: bundle exec rubocop --fail-fast --format github
       - name: Run ERB Lint
         run: bundle exec erb_lint --lint-all
-      - name: Check importmap integrity
-        run: bin/importmap audit
   # ====================
   # CORE TESTS
   # ====================
@@ -177,12 +175,12 @@ jobs:
       SINGLETON_DEFAULT_SALT: hoge
       IDENTIFIER_REGION_CODE: "392"
       IDENTIFIER_INSTANCE_ID: "0123456789"
-      # Domain URLs - APEX
-      APEX_CORPORATE_URL: www.com.localhost
-      APEX_SERVICE_URL: www.app.localhost
-      APEX_STAFF_URL: www.org.localhost
-      APEX_NETWORK_URL: www.net.localhost
-      APEX_DEVELOPER_URL: www.dev.localhost
+      # Domain URLs - ACME
+      ACME_CORPORATE_URL: www.com.localhost
+      ACME_SERVICE_URL: www.app.localhost
+      ACME_STAFF_URL: www.org.localhost
+      ACME_NETWORK_URL: www.net.localhost
+      ACME_DEVELOPER_URL: www.dev.localhost
       # Domain URLs - Auth
       SIGN_CORPORATE_URL: sign.com.localhost
       SIGN_SERVICE_URL: sign.app.localhost
@@ -211,7 +209,7 @@ jobs:
       STATUS_URL: status.localhost
       ASSET_URL: asset.localhost
       # Region
-      APEX_REGION: true
+      ACME_REGION: true
       GLOBAL_MODE: true
       REGION_CODE: all
       # Valkey
@@ -319,7 +317,7 @@ jobs:
           bundler-cache: true
           cache-version: 1
       - name: Setup test databases
-        run: bin/rails db:create db:schema:load
+        run: bin/rails db:prepare
       - name: Run Rails tests
         run: COVERAGE=true bundle exec rails test
       - name: Upload test coverage
@@ -413,7 +411,7 @@ jobs:
           bundler-cache: true
           cache-version: 1
       - name: Setup test databases
-        run: bin/rails db:create db:schema:load
+        run: bin/rails db:prepare
       - name: Run database consistency checks
         run: bundle exec database_consistency
   lint-js:
@@ -424,13 +422,16 @@ jobs:
       - uses: actions/checkout@v6.0.1
         with:
           persist-credentials: false
-      - uses: voidzero-dev/setup-vp@v1
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: true
-      - run: vp install
-      - run: vp check
-      - run: vp test --coverage
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -s run ci
       - name: Upload JavaScript coverage
         if: always()
         uses: actions/upload-artifact@v6.0.0
@@ -461,7 +462,7 @@ jobs:
           context: .
           target: production
           tags: umaxica-app:${{ github.sha }}
-          build-args: RUBY_VERSION=4.0.2
+          build-args: RUBY_VERSION=4.0.5
           cache-from: type=gha
           cache-to: type=gha,mode=max
           load: true

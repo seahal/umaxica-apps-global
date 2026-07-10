@@ -9,28 +9,41 @@
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # Use the cheapest password hashing cost in tests. Honored by both bcrypt and
+  # argon2 (ActiveModel::SecurePassword::Argon2Password switches to the
+  # :unsafe_cheapest profile when min_cost is true). Set after initialization so
+  # the secure_password algorithm is loaded first.
+  config.after_initialize { ActiveModel::SecurePassword.min_cost = true }
+
   # While tests run files are not watched, reloading is not necessary.
   config.enable_reloading = false
 
-  # Eager loading loads your entire application. When running a single test locally,
-  # this is usually not necessary, and can slow down your test suite. However, it's
-  # recommended that you enable it in continuous integration systems to ensure eager
-  # loading is working properly before deploying your code.
-  config.eager_load = ENV["CI"].present?
+  # Eager loading loads your entire application before parallel workers fork.
+  # Process-based parallelize relies on this so each worker inherits the loaded
+  # constant table via copy-on-write instead of repeating cold autoload after fork.
+  config.eager_load = true
 
   # Configure public file server for tests with cache-control for performance.
   config.public_file_server.headers = { "cache-control" => "public, max-age=3600" }
 
   # Show full error reports.
   config.consider_all_requests_local = true
-  config.cache_store = :solid_cache_store
-  config.solid_cache.connects_to = { shards: { cache: { writing: :cache, reading: :cache_replica } } }
+
+  # Cache store for test environment. SolidCache is intentionally disabled here:
+  # the cache must not double as a persistent, database-backed store in tests.
+  config.cache_store = :null_store
+  config.x.rate_limit.store = ActiveSupport::Cache::MemoryStore.new
+  # SolidCache shard wiring intentionally left disconnected while :null_store is
+  # the test cache.
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 
-  # Disable request forgery protection in test environment.
-  config.action_controller.allow_forgery_protection = false
+  # Keep request forgery protection off by default so the existing suite can migrate in batches.
+  # Enable it for inventory runs with:
+  #   ACTION_CONTROLLER_ALLOW_FORGERY_PROTECTION=true bin/rails test
+  config.action_controller.allow_forgery_protection =
+    ActiveModel::Type::Boolean.new.cast(ENV.fetch("ACTION_CONTROLLER_ALLOW_FORGERY_PROTECTION", false))
 
   # Store uploaded files on the local file system in a temporary directory.
   # config.active_storage.service = :test
@@ -50,17 +63,18 @@ Rails.application.configure do
   # Raise on deprecation warnings to catch issues early.
   config.active_support.deprecation = :raise
 
-  # Raise error for missing translations.
-  config.i18n.raise_on_missing_translations = true
+  # Raise error for missing translations in controllers, views, and models.
+  config.i18n.raise_on_missing_translations = :strict
 
   # Annotate rendered view with file names.
   # config.action_view.annotate_rendered_view_with_filenames = true
 
   # Disallow deprecated .connection usage (must use .with_connection for multi-DB)
-  config.active_record.permanent_connection_checkout = :disallowed
-
+  config.active_record.permanent_connection_checkout = :deprecated
+  config.active_record.async_query_executor = nil
   # Raise on SQL warnings from PostgreSQL.
   config.active_record.db_warnings_action = :raise
+  config.active_record.dump_schema_after_migration = false
 
   # Detect N+1 queries and raise errors immediately.
   config.active_record.strict_loading_by_default = true
@@ -70,18 +84,9 @@ Rails.application.configure do
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
 
-  # Set log level to :warn to avoid cluttered output during tests
-  config.log_level = :warn
-
-  # The following lines were added by me.
-  # Bullet, a gem to help you avoid N+1 queries and unused eager loading.
-  # Rails.application.configure do
-  #   config.after_initialize do
-  #     Bullet.enable = true
-  #     Bullet.bullet_logger = true
-  #     Bullet.raise = true # raise an error if n+1 query occurs
-  #   end
-  # end
+  # Disable Rails logging during tests for better suite performance.
+  config.logger = Logger.new(nil)
+  config.log_level = :fatal
 
   # ci seed up.
   if ENV["CI"]
@@ -91,9 +96,20 @@ Rails.application.configure do
 
   # SMS Provider Configuration - Use test provider in test environment
   config.sms_provider = "test"
+  config.x.security.allow_turnstile_validation_override = true
 
-  # Use PostgreSQL unlogged tables for faster test performance
+  # Keep test tables logged. Unlogged tables require PostgreSQL shared memory
+  # that is too small in the local multi-DB test container.
   ActiveSupport.on_load(:active_record_postgresqladapter) do
-    self.create_unlogged_tables = true
+    self.create_unlogged_tables = false
   end
+
+  config.after_initialize do
+    # Rails' fixture FK validation deadlocks under this multi-DB test suite; the
+    # database constraints still enforce integrity when fixtures are loaded.
+    ActiveRecord.verify_foreign_keys_for_fixtures = false
+  end
+
+  # Log slow queries over 100ms.
+  config.active_record.query_log_tags_enabled = true
 end

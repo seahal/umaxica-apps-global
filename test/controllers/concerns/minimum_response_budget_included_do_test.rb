@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class MinimumResponseBudgetIncludedDoTest < ActiveSupport::TestCase
   test "start_minimum_response_budget method exists (private)" do

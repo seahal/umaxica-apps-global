@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
   class GuardHarness
@@ -24,7 +25,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
     end
 
     def params
-      params_hash
+      ActionController::Parameters.new(params_hash)
     end
 
     def request
@@ -35,7 +36,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
       redirects << [args, kwargs]
     end
 
-    def new_sign_app_in_path
+    def auth_app_sign_in_path
       "/sign/app/in"
     end
   end
@@ -52,14 +53,14 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
     SocialCallbackGuard.instance_variable_set(:@allowed_hosts, ["id.example.test"])
     SocialCallbackGuard.instance_variable_set(:@allowed_request_origins, ["https://id.example.test"])
 
-    missing_source_env = Rack::MockRequest.env_for("/auth/apple", method: "GET")
+    missing_source_env = Rack::MockRequest.env_for("/social/apple", method: "GET")
     missing_source_env["rack.session"] = {}
     status, = SocialCallbackGuard.verify_request_phase!(missing_source_env)
 
     assert_equal 403, status
 
     mismatch_env = Rack::MockRequest.env_for(
-      "/auth/apple",
+      "/social/apple",
       :method => "GET",
       "HTTP_ORIGIN" => "https://evil.example.test",
     )
@@ -77,7 +78,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
     SocialCallbackGuard.instance_variable_set(:@allowed_request_origins, ["https://id.example.test"])
 
     env = Rack::MockRequest.env_for(
-      "/auth/apple?state=known-state",
+      "/social/apple?state=known-state",
       :method => "GET",
       "HTTP_ORIGIN" => "https://id.example.test",
     )
@@ -85,13 +86,17 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
 
     assert_nil SocialCallbackGuard.verify_request_phase!(env)
     assert_equal "known-state", env["rack.session"][SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY]
+    assert_not env["rack.session"].key?(SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY)
 
+    issued_count = ClientOauthCallbackState.count
     SocialCallbackGuard.capture_request_state!(env)
 
     assert_equal "apple", env["rack.session"][SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY]
+    assert_equal issued_count, ClientOauthCallbackState.count
+    assert_not env["rack.session"].key?(SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY)
 
     generated_env = Rack::MockRequest.env_for(
-      "/auth/apple",
+      "/social/apple",
       :method => "GET",
       "HTTP_ORIGIN" => "https://id.example.test",
     )
@@ -100,9 +105,33 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
     assert_nil SocialCallbackGuard.verify_request_phase!(generated_env)
     assert_match(/state=/, generated_env["QUERY_STRING"])
     assert_predicate generated_env["rack.session"][SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY], :present?
+    assert_not generated_env["rack.session"].key?(SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY)
   ensure
     SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)
     SocialCallbackGuard.instance_variable_set(:@allowed_request_origins, nil)
+  end
+
+  test "apple request phase logs safe nonce context" do
+    env = Rack::MockRequest.env_for(
+      "/social/apple?state=known-state",
+      :method => "GET",
+      "HTTP_ORIGIN" => "https://id.example.test",
+    )
+    env["rack.session"] = { "omniauth.nonce" => "strategy-nonce" }
+
+    logged =
+      capture_json_logs do
+        SocialCallbackGuard.capture_request_state!(env)
+      end
+
+    event = logged.find { |entry| entry[:event] == "social_auth.apple.request_phase_nonce_context" }
+
+    assert_not_nil event
+    assert_equal "/social/apple", event.dig(:data, :request_path)
+    assert_equal "GET", event.dig(:data, :request_method)
+    assert event.dig(:data, :strategy_has_value)
+    assert event.dig(:data, :callback_present)
+    assert_not_includes logged.to_s, "strategy-nonce"
   end
 
   test "normalizes malformed origins and referer sources" do
@@ -131,6 +160,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
     harness.params_hash[:state] = "callback-state"
     harness.session_hash[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = "callback-state"
     harness.session_hash[SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY] = "apple"
+    SocialAuthCallbackStateStore.issue!(state: "callback-state", provider: "apple")
 
     assert_equal [true, nil], harness.send(:valid_callback_state?, "apple")
     assert_predicate harness.session_hash[SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY], :present?
@@ -142,8 +172,20 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
 
     harness.params_hash[:state] = "callback-state"
     harness.session_hash[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = "different-state"
+    SocialAuthCallbackStateStore.issue!(state: "different-state", provider: "apple")
 
     assert_equal [false, "state_mismatch"], harness.send(:valid_callback_state?, "apple")
+    assert_empty harness.session_hash
+  end
+
+  test "callback state requires server side one time consumption" do
+    harness = GuardHarness.new
+    harness.params_hash[:provider] = "apple"
+    harness.params_hash[:state] = "server-state"
+    harness.session_hash[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = "server-state"
+    harness.session_hash[SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY] = "apple"
+
+    assert_equal [false, "server_state_reused"], harness.send(:valid_callback_state?, "apple")
     assert_empty harness.session_hash
   end
 
@@ -167,20 +209,52 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
                  harness.redirects.last
   end
 
-  test "callback state parse errors and omniauth test mode mocks" do
+  test "callback state resolution errors clear session and raise" do
     harness = GuardHarness.new
+    harness.session_hash[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = "state"
     harness.define_singleton_method(:load_callback_state_data) { |_| raise JSON::ParserError }
 
-    assert_equal [false, "state_parse_error"], harness.send(:valid_callback_state?, "apple")
+    assert_raises(JSON::ParserError) do
+      harness.send(:valid_callback_state?, "apple")
+    end
+    assert_empty harness.session_hash
+  end
+
+  test "callback state accepts omniauth test mode mocks" do
+    harness = GuardHarness.new
 
     OmniAuth.config.test_mode = true
     OmniAuth.config.mock_auth[:apple] = OpenStruct.new(provider: "apple")
-    harness = GuardHarness.new
     harness.params_hash[:provider] = "apple"
 
     assert harness.send(:test_mode_mock_auth_present?)
   ensure
     OmniAuth.config.mock_auth.delete(:apple) if defined?(OmniAuth)
     OmniAuth.config.test_mode = false if defined?(OmniAuth)
+  end
+
+  def capture_json_logs
+    logged = []
+    collector =
+      lambda do |message = nil, &block|
+        message = block.call if message.nil? && block
+        logged << JSON.parse(message, symbolize_names: true) if message.to_s.start_with?("{")
+      rescue JSON::ParserError
+        nil
+      end
+
+    logger = Object.new
+    logger.define_singleton_method(:info) do |message = nil, &block|
+      collector.call(message, &block)
+    end
+    logger.define_singleton_method(:error) do |message = nil, &block|
+      collector.call(message, &block)
+    end
+
+    Rails.stub(:logger, logger) do
+      yield
+    end
+
+    logged
   end
 end

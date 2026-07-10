@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: org_preference_cookies
-# Database name: operator
+# Database name: org_setting
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid
@@ -26,7 +26,7 @@
 
 # frozen_string_literal: true
 
-class OrgPreferenceCookie < OperatorRecord
+class OrgPreferenceCookie < OrgSettingRecord
   belongs_to :preference, class_name: "OrgPreference", inverse_of: :org_preference_cookie
 
   validates :preference_id, uniqueness: true
@@ -45,6 +45,7 @@ class OrgPreferenceCookie < OperatorRecord
 
     self.targetable = false if targetable.nil?
     self.performant = false if performant.nil?
+    self.functional = false if functional.nil?
     self.consented = false if consented.nil?
   end
 end

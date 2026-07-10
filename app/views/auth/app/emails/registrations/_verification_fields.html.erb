@@ -1,0 +1,31 @@
+<% if user_email.errors.any? %>
+  <div>
+    <ul>
+      <% user_email.errors.each do |error| %>
+        <li><%= error.full_message %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<% if verification_token.present? %>
+  <%= form.hidden_field :token, value: verification_token %>
+<% end %>
+
+<div>
+  <%= form.label :pass_code, t("sign.app.authentication.email.edit.code_label") %>
+  <%= form.text_field :pass_code,
+                      placeholder: t("sign.app.authentication.email.edit.code_placeholder"),
+                      autofocus: true,
+                      autocomplete: "one-time-code",
+                      inputmode: "numeric",
+                      pattern: "[0-9]*" %>
+</div>
+
+<p><%= t("sign.app.authentication.email.edit.delivery_help") %></p>
+
+<div>
+  <%= render "shared/cloudflare_turnstile_stealth" %>
+</div>
+
+<%= form.submit t("sign.app.authentication.email.edit.submit") %>

@@ -6,7 +6,7 @@ class JwtAnomalySubscriber
     return unless event.respond_to?(:name) && event.name == "jwt.anomaly.detected"
 
     payload = event.payload || {}
-    code = payload[:code] || payload["code"]
+    code = payload[:reason_code] || payload["reason_code"] || payload[:code] || payload["code"]
     return if code.blank?
 
     occurrence = JwtOccurrence.find_by(body: code)
@@ -26,8 +26,14 @@ class JwtAnomalySubscriber
       metadata: build_metadata(payload),
       occurred_at: event.time || Time.current,
     )
-  rescue StandardError => e
-    Rails.logger.error("JwtAnomalySubscriber failed: #{e.class}: #{e.message}")
+  rescue ActiveRecord::ActiveRecordError => e
+    Rails.logger.error(
+      JitLogEvent.format(
+        "jwt.anomaly.subscriber_failed",
+        error_class: e.class.name,
+        message: e.message,
+      ),
+    )
   end
 
   private
@@ -36,6 +42,7 @@ class JwtAnomalySubscriber
     data = payload.respond_to?(:to_h) ? payload.to_h : {}
     data.except(
       :code,
+      :reason_code,
       :request_host,
       :kid,
       :alg,
@@ -45,6 +52,7 @@ class JwtAnomalySubscriber
       :error_class,
       :error_message,
       "code",
+      "reason_code",
       "request_host",
       "kid",
       "alg",

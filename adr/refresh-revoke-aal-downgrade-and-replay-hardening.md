@@ -4,6 +4,11 @@
 
 Accepted on 2026-04-07.
 
+> **Partial supersession (2026-06-02):** The vocabulary and security properties in this ADR remain
+> useful, but authority ownership is superseded by `adr/identity-authority-boundary.md`. `acme/www`
+> owns session, token, account, preference, authorization, downstream-token trust, and step-up
+> freshness. `sign/id` owns only credential inventory and short-lived credential ceremony state.
+
 ## Context
 
 GitHub issue `#612` tracked three concrete requirements in the authentication pipeline:
@@ -27,7 +32,7 @@ Normal revoke state also blocks later refresh attempts.
 
 ## Evidence
 
-- `Auth::TokenClaims.normalize_acr` defaults blank values to `aal1`.
+- `Authorization::TokenClaims.normalize_acr` defaults blank values to `aal1`.
 - `Sign::RefreshTokenService` handles replay as a first-class branch and revokes actor token
   families.
 - `test/controllers/sign/org/edge/v0/token/refreshes_controller_test.rb` verifies:

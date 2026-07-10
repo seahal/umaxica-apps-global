@@ -1,0 +1,29 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class AcmeRegionTranslationTest < ActiveSupport::TestCase
+  DOMAINS = %w(app com org).freeze
+
+  def test_ja_region_selector_has_localized_country_names
+    DOMAINS.each do |domain|
+      locale_prefix = "acme.#{domain}.preferences.regions.select_region_selector"
+      us_key = [locale_prefix, "US"].join(".")
+      jp_key = [locale_prefix, "JP"].join(".")
+
+      assert_equal "アメリカ合衆国 (USA)", I18n.t(us_key, locale: :ja)
+      assert_equal "日本", I18n.t(jp_key, locale: :ja)
+    end
+  end
+
+  def test_en_region_selector_keys_exist
+    locale_prefix = "acme.app.preferences.regions.select_region_selector"
+
+    us_key = "#{locale_prefix}.US"
+    jp_key = "#{locale_prefix}.JP"
+
+    assert_equal "United States - USA", I18n.t(us_key, locale: :en)
+    assert_equal "Japan - 日本", I18n.t(jp_key, locale: :en)
+  end
+end

@@ -112,6 +112,8 @@ minimum fields required for that engine.
 
 ## Related
 
+- `adr/preference-soft-bubble-doctrine.md` — successor ADR for the single-app `Current` / preference
+  design (2026-05-06)
 - `adr/three-engine-consolidation.md`
 - `adr/engine-isolate-namespace-adoption.md`
 - `docs/architecture/engine.md`

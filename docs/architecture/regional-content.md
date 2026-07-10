@@ -1,124 +1,49 @@
-# Foundation and Distributor Content Design
+# Regional And Global Delivery Boundary
 
-## Purpose
+> **Partially superseded by Identity Authority inversion:** The old RP vocabulary in this document
+> must not be used to treat `acme/www` as an RP-only boundary. `acme/www` is now the Session, Token,
+> Account, Preference, Authorization, and downstream-token Authority. `core`, `line`, and future
+> downstream services trust acme-issued downstream tokens.
 
-This document records the current stable design for content surfaces split across `Foundation` and
-`Distributor`.
+## Status
 
-It covers only `post.*` delivery for docs and news families.
+Regional RP delivery remains outside this repository's stable application architecture. Per
+`adr/split-into-regional-and-global-repos.md`, regional RP delivery belongs to the separate regional
+repository.
 
-`help` is not part of this design and is planned separately.
+Read-only `docs`, `news`, and `help` content delivery is the explicit exception accepted by
+`adr/read-only-content-surfaces-in-rails.md`. That v1 Rails implementation is public and read-only;
+it does not restore the old regional engine, CMS editing, OIDC RP callbacks, preference writes, or
+authenticated actor lifecycle.
 
-## Surface Mapping
+## Boundary Map
 
-Content is split by surface role and storage model:
+| Boundary | Placement | Meaning                                                                      |
+| -------- | --------- | ---------------------------------------------------------------------------- |
+| `acme`   | Global    | Global RP surface for the primary application runtime.                       |
+| `post`   | Global    | SNS-style or in-application posts. This does not mean docs/news publication. |
+| `notice` | Global    | Push notification and notification-delivery behavior.                        |
+| `core`   | Regional  | Regional RP surface, parallel in kind to `acme` but region-owned.            |
+| `line`   | Regional  | Direct message behavior.                                                     |
+| `docs`   | Regional  | Regional or locale-specific documentation delivery.                          |
+| `news`   | Regional  | Regional or locale-specific news delivery.                                   |
+| `help`   | Regional  | Regional or locale-specific help delivery.                                   |
 
-- `docs` uses the `Document` model family
-- `news` uses the `Timeline` model family
+`acme` and `core` are both RP surfaces, but they do not share repository ownership: `acme` remains
+global, while `core` belongs to regional.
 
-Audience-specific storage remains separate:
+## Current Rule
 
-- `app` -> `AppDocument` / `AppTimeline`
-- `com` -> `ComDocument` / `ComTimeline`
-- `org` -> `OrgDocument` / `OrgTimeline`
+Do not add regional RP or direct message implementation to this repository unless a current ADR
+explicitly changes the repository boundary.
 
-Editing is performed only from the `org` staff CMS surface.
+For `docs`, `news`, and `help`, only the v1 read-only Rails content delivery path described in
+`adr/read-only-content-surfaces-in-rails.md` is current. Do not infer CMS editing, regional RP
+behavior, OIDC callbacks, or preference writes from historical regional content material.
 
-Foundation owns editorial write flows. Distributor owns public and API delivery on `post.*`.
+When a document says `post`, read the local context carefully:
 
-Public delivery exists for `app`, `com`, `org`, `dev`, and `net`, but `dev` and `net` are restricted
-by audience purpose.
+- global `post` means SNS-style or in-application posts;
+- docs/news/help publication remains regional unless a current ADR says otherwise.
 
-## Canonical Content Models
-
-### Docs
-
-The canonical model family for `docs` is:
-
-- entry: `*Document`
-- draft/history: `*DocumentRevision`
-- public snapshot: `*DocumentVersion`
-
-Do not use `Post` or `PostVersion` for `docs`.
-
-### News
-
-The canonical model family for `news` is:
-
-- entry: `*Timeline`
-- draft/history: `*TimelineRevision`
-- public snapshot: `*TimelineVersion`
-
-`news` remains an application surface name. The storage model is `Timeline`.
-
-Do not use `Post` or `PostVersion` for `news`.
-
-## Editorial Model
-
-The content model keeps both `revision` and `version`.
-
-Their roles are different:
-
-- `revision` stores draft and working history
-- `version` stores public release snapshots
-
-Editorial flow:
-
-1. create an entry shell
-2. save draft edits by creating a new `revision`
-3. publish by creating or promoting a `version` from a selected `revision`
-4. update the entry pointers and publication state
-
-Public read controllers must use `latest_version_id` as the public source.
-
-`latest_revision_id` is the working/history pointer and is not the public source.
-
-## Publication Rules
-
-An entry is publicly readable only when both conditions are satisfied:
-
-- the entry is in an allowed published status
-- `published_at <= now < expires_at`
-
-This rule applies to both `docs` and `news`.
-
-## Taxonomy Model
-
-Taxonomy master data is tree-structured.
-
-- category masters use a parent-child tree
-- tag masters use a parent-child tree
-- tree reads use recursive traversal
-
-Assignment rules:
-
-- category is single-valued per entry
-- tag is multi-valued per entry
-
-This means:
-
-- one entry has at most one category assignment
-- one entry can have many tag assignments
-- duplicate assignment of the same tag to one entry is invalid
-
-In v1:
-
-- public APIs may read taxonomy trees
-- staff CMS may assign existing taxonomy values
-- taxonomy master CRUD is out of scope
-
-## Out of Scope
-
-The following are outside the current docs/news design:
-
-- `help`
-- `avatar.posts`
-- review workflow
-- taxonomy master CRUD
-- cross-surface editing from `app` or `com`
-
-## Related
-
-- `adr/news-is-timeline.md`
-- `adr/regional-docs-news-content-model.md`
-- `plans/active/regional-docs-news-cms-implementation-plan.md`
+Historical Foundation / Distributor content notes should be treated as migration background only.

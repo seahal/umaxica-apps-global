@@ -4,36 +4,121 @@
 require "test_helper"
 
 class StylesheetTagsTest < ActiveSupport::TestCase
-  test "sign layouts include sign main stylesheet" do
-    paths = [
-      "app/views/layouts/sign/app/application.html.erb",
-      "app/views/layouts/sign/org/application.html.erb",
-    ]
+  self.fixture_table_names = []
 
-    paths.each do |path|
+  APPLICATION_LAYOUTS = {
+    "app/views/layouts/base/app/application.html.erb" => "entrypoints/base/app",
+    "app/views/layouts/base/com/application.html.erb" => "entrypoints/base/com",
+    "app/views/layouts/base/org/application.html.erb" => "entrypoints/base/org",
+    "app/views/layouts/auth/app/application.html.erb" => "entrypoints/sign/app",
+    "app/views/layouts/auth/com/application.html.erb" => "entrypoints/sign/com",
+    "app/views/layouts/auth/org/application.html.erb" => "entrypoints/sign/org",
+  }.freeze
+
+  INERTIA_LAYOUT = "app/views/layouts/base/app/inertia.html.erb"
+
+  TURNSTILE_LAYOUTS = %w(
+    app/views/layouts/base/app/application.html.erb
+    app/views/layouts/base/com/application.html.erb
+    app/views/layouts/base/org/application.html.erb
+    app/views/layouts/auth/app/application.html.erb
+    app/views/layouts/auth/com/application.html.erb
+    app/views/layouts/auth/org/application.html.erb
+  ).freeze
+
+  FORBIDDEN_TAILWIND_FRAGMENTS = %w(
+    bg-
+    border-
+    flex
+    font-
+    gap-
+    inset-
+    justify-
+    min-h-screen
+    opacity-
+    p-
+    rounded
+    shadow
+    space-
+    text-
+    hover:
+  ).freeze
+
+  test "target layouts use Vite and avoid stylesheet_link_tag" do
+    (APPLICATION_LAYOUTS.merge(INERTIA_LAYOUT => "entrypoints/inertia")).each do |path, entrypoint|
       contents = Rails.root.join(path).read
 
-      assert_match(
-        /(stylesheet_link_tag\s+\"sign\/main\")|(\"sign\/main\")/, contents,
-        "missing sign/main in #{path}",
+      assert_includes contents, "<meta charset=\"utf-8\">", "missing charset meta tag in #{path}"
+      assert_includes contents, "display_meta_tags", "missing title metadata helper in #{path}"
+      assert_includes contents, 'meta name="turbo-refresh-method" content="morph"',
+                      "missing turbo refresh method meta tag in #{path}"
+      assert_includes contents, 'meta name="turbo-refresh-scroll" content="preserve"',
+                      "missing turbo refresh scroll meta tag in #{path}"
+      assert_includes contents, %(vite_typescript_tag "#{entrypoint}"),
+                      "missing Vite entrypoint in #{path}"
+      assert_not_includes contents, "stylesheet_link_tag", "web UI CSS must come from Vite in #{path}"
+      assert_not_includes contents, "content_for", "layout #{path} must not use content_for"
+      assert_not_includes contents, "yield :head", "layout #{path} must not use named head yields"
+      assert_not_includes contents, "yield :nav_links", "layout #{path} must not use named nav yields"
+      assert_not_includes contents, "yield :root_link", "layout #{path} must not use named root yields"
+      assert_not_includes contents, "yield :footer_links", "layout #{path} must not use named footer yields"
+      assert_not_includes contents, "t(..., default:", "layout #{path} must not use i18n defaults"
+      assert_not_includes contents, "surface =", "layout #{path} must not define a surface variable"
+      assert_not_includes contents, "tld =", "layout #{path} must not define a tld variable"
+      assert_not_includes contents, "vite_entrypoint =", "layout #{path} must not define a vite entrypoint variable"
+      assert_no_match(/\b\w+_path\s*=/, contents, "layout #{path} must not precompute route helpers")
+      assert_no_match(
+        /class="[^"]*(?:#{FORBIDDEN_TAILWIND_FRAGMENTS.join("|")})[^"]*"/,
+        contents,
+        "layout #{path} must not carry Tailwind utility classes",
       )
     end
   end
 
-  test "apex layouts include apex main stylesheet" do
-    paths = [
-      "app/views/layouts/apex/app/application.html.erb",
-      "app/views/layouts/apex/com/application.html.erb",
-      "app/views/layouts/apex/org/application.html.erb",
-    ]
-
-    paths.each do |path|
+  test "target layouts include shared chrome and semantic landmarks" do
+    APPLICATION_LAYOUTS.each_key do |path|
       contents = Rails.root.join(path).read
 
-      assert_match(
-        /(stylesheet_link_tag\s+\"apex\/main\")|(\"apex\/main\")/, contents,
-        "missing apex/main in #{path}",
-      )
+      assert_includes contents, "<header>", "layout #{path} must include a header"
+      assert_includes contents, "<nav aria-label=", "layout #{path} must label navigation"
+      assert_includes contents, 'id="main"', "layout #{path} must place content in main#main"
+      assert_includes contents, "<footer>", "layout #{path} must include a footer"
+      assert_includes contents, 'render "layouts/shared/flash_messages"', "layout #{path} must render flash messages"
+      assert_includes contents, 'render "layouts/shared/current_banner"', "layout #{path} must render the banner"
+      assert_includes contents, 'render "layouts/shared/footer_cookie_controls"',
+                      "layout #{path} must render cookie controls"
+      assert_includes contents, 'render "layouts/shared/footer_theme_controls"',
+                      "layout #{path} must render theme controls"
+      assert_includes contents, 'render "layouts/shared/copyright"',
+                      "layout #{path} must render copyright"
     end
+  end
+
+  test "sign and base application layouts own turnstile api loading" do
+    TURNSTILE_LAYOUTS.each do |path|
+      contents = Rails.root.join(path).read
+
+      assert_includes contents, 'render "layouts/shared/cloudflare_turnstile_api"',
+                      "Turnstile API loading must be layout-owned in #{path}"
+    end
+  end
+
+  test "application-owned importmap entrypoints are retired" do
+    assert_not Rails.root.join("config/importmap.rb").exist?, "config/importmap.rb must not be restored"
+    assert_not Rails.root.join("bin/importmap").exist?, "bin/importmap must not be restored"
+
+    gemfile = Rails.root.join("Gemfile").read
+
+    assert_no_match(/^\s*gem\s+["']importmap-rails["']/, gemfile)
+  end
+
+  test "inertia app layout keeps the shared vite entrypoint" do
+    contents = Rails.root.join(INERTIA_LAYOUT).read
+
+    assert_includes contents, 'meta name="turbo-refresh-method" content="morph"'
+    assert_includes contents, 'meta name="turbo-refresh-scroll" content="preserve"'
+    assert_includes contents, 'vite_typescript_tag "entrypoints/inertia"'
+    assert_not_includes contents, "yield :head"
+    assert_not_includes contents, "content_for"
   end
 end

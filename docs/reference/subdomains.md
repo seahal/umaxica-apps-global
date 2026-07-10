@@ -1,53 +1,44 @@
 # Subdomain Map
 
-Subdomain labels are entry points. They are not the same thing as engine boundaries.
+Subdomain labels are entry points. They are not Rails Engine boundaries.
 
-## Host Labels
+## Current Public Surfaces
 
-- `sign` -> public sign entry surface owned by Identity
-- `base` -> foundation operations and management surface (formerly `core` / `ww`)
-- `acme` -> zenith shared entry surface
-- `post` -> distributor API and delivery surface
+| Surface | Default local host  | Purpose                        |
+| ------- | ------------------- | ------------------------------ |
+| `app`   | `www.app.localhost` | End-user product surface       |
+| `org`   | `www.org.localhost` | Staff and organization surface |
+| `com`   | `www.com.localhost` | Public and corporate surface   |
 
-## Audience Tiers
+Identity provider hosts use the `id.*` label for the same audience families:
 
-Each host label is combined with an audience tier to form the full hostname.
+| Audience | Default local host |
+| -------- | ------------------ |
+| `app`    | `id.app.localhost` |
+| `org`    | `id.org.localhost` |
+| `com`    | `id.com.localhost` |
 
-| Tier  | Purpose                                   | Example (base)       |
-| ----- | ----------------------------------------- | -------------------- |
-| `app` | Public end-user surface                   | `base.app.localhost` |
-| `org` | Service operator and admin surface        | `base.org.localhost` |
-| `com` | Corporate and public-information surface  | `base.com.localhost` |
-| `dev` | Developer and operational tooling surface | `base.dev.localhost` |
-| `net` | Private internal-service API surface      | `base.net.localhost` |
-
-### Notes
-
-- `app`, `org`, and `com` are public-facing audience categories.
-- `dev` is for human operational use.
-- `net` is for non-public internal API communication between services.
-- `net` should not be treated as a general public browser surface.
-
-## Full Hostname Matrix
-
-| Host label | `app`                | `org`                | `com`                | `dev`                | `net`                |
-| ---------- | -------------------- | -------------------- | -------------------- | -------------------- | -------------------- |
-| (acme)     | `app.localhost`      | `org.localhost`      | `com.localhost`      | `dev.localhost`      | `net.localhost`      |
-| `sign`     | `id.app.localhost`   | `id.org.localhost`   | `id.com.localhost`   | `sign.dev.localhost` | `sign.net.localhost` |
-| `base`     | `base.app.localhost` | `base.org.localhost` | `base.com.localhost` | `base.dev.localhost` | `base.net.localhost` |
-| `post`     | `post.app.localhost` | `post.org.localhost` | `post.com.localhost` | `post.dev.localhost` | `post.net.localhost` |
+Development and network-only hosts may exist for operational endpoints, but they are not separate
+Rails Engines.
 
 ## Canonical ENV Naming
 
-Host and origin environment variables use this canonical format:
+URL environment variables should use the smallest boundary name that makes the ownership clear.
 
-- `ENGINE_HOSTLABEL_AUDIENCE_URL`
+- `PUBLIC_*` means a browser-visible or externally reachable URL.
+- `PRIVATE_*` means a Rails-internal, pod-internal, or service-internal URL.
 
-Examples:
+Current runtime code still contains surface/service names for compatibility, but new docs and new
+runtime config should prefer the public/private boundary language instead of inventing another
+surface-prefixed URL family.
 
-- `IDENTITY_SIGN_APP_URL`
-- `ZENITH_ACME_ORG_URL`
-- `FOUNDATION_BASE_COM_URL`
-- `DISTRIBUTOR_POST_APP_URL`
-- `DISTRIBUTOR_POST_DEV_URL`
-- `DISTRIBUTOR_POST_NET_URL`
+Examples of the older compatibility style that still exists in code:
+
+- `ACME_SERVICE_URL`
+- `ACME_STAFF_URL`
+- `ACME_CORPORATE_URL`
+- `ACME_DEVELOPER_URL`
+- `ACME_NETWORK_URL`
+
+Do not introduce engine-prefixed URL names such as `IDENTITY_SIGN_APP_URL`,
+`FOUNDATION_BASE_ORG_URL`, or `DISTRIBUTOR_POST_APP_URL` for new runtime code in this repository.

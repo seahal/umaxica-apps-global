@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: departments
-# Database name: operator
+# Database name: org_principal
 #
 #  id                   :bigint           not null, primary key
 #  name                 :string           not null
@@ -33,6 +33,7 @@ class DepartmentTest < ActiveSupport::TestCase
   fixtures :organizations, :organization_statuses, :department_statuses
 
   setup do
+    I18n.locale = I18n.default_locale # rubocop:disable Rails/I18nLocaleAssignment
     @workspace = organizations(:one)
   end
 

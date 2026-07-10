@@ -5,18 +5,18 @@ require "test_helper"
 
 class IdColumnTypeTest < ActiveSupport::TestCase
   test "roles and memberships use bigint foreign keys" do
-    assert_bigint_table_column(PrincipalRecord.connection, :roles, "organization_id")
-    assert_bigint_column(UserMembership, "workspace_id")
-  end
-
-  test "polymorphic ids use bigint" do
-    assert_bigint_column(PostVersion, "edited_by_id")
-    assert_bigint_column(Post, "created_by_actor_id")
-    assert_bigint_column(Post, "published_by_actor_id")
+    assert_bigint_table_column(AppPrincipalRecord.connection, :roles, "organization_id")
+    assert_bigint_column(ClientMembership, "workspace_id")
   end
 
   test "notification public_id columns are strings" do
-    [OperatorNotification, MemberNotification, StaffNotification, UserNotification].each do |model|
+    [
+      ClientNotificationRecord,
+      OperatorNotificationRecord,
+      VisitorNotificationRecord,
+      MemberNotification,
+      OperatorNotification,
+    ].each do |model|
       assert_string_column(model, "public_id")
     end
   end

@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: app_preference_cookies
-# Database name: principal
+# Database name: app_setting
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid
@@ -30,7 +30,7 @@ require "test_helper"
 
 class AppPreferenceCookieTest < ActiveSupport::TestCase
   setup do
-    AppPreferenceStatus.find_or_create_by!(id: AppPreferenceStatus::NOTHING)
+    AppPreferenceStatus.ensure_defaults!
     @preference = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING)
   end
 
@@ -40,7 +40,7 @@ class AppPreferenceCookieTest < ActiveSupport::TestCase
       cookie.assign_attributes(flag => nil)
 
       assert_not cookie.valid?
-      assert_includes cookie.errors[flag], "は一覧にありません"
+      assert_includes cookie.errors[flag], I18n.t("errors.messages.inclusion")
     end
   end
 
@@ -62,7 +62,7 @@ class AppPreferenceCookieTest < ActiveSupport::TestCase
     cookie = AppPreferenceCookie.new(targetable: true)
 
     assert_not cookie.valid?
-    assert_includes cookie.errors[:preference], "を入力してください"
+    assert_includes cookie.errors[:preference], I18n.t("errors.messages.required")
   end
 
   test "has false as default for all flags" do
@@ -71,5 +71,37 @@ class AppPreferenceCookieTest < ActiveSupport::TestCase
     assert_not cookie.targetable
     assert_not cookie.performant
     assert_not cookie.functional
+  end
+
+  test "loading an existing cookie preserves stored flags" do
+    cookie = AppPreferenceCookie.create!(
+      preference: @preference,
+      targetable: true,
+      performant: true,
+      functional: true,
+      consented: true,
+    )
+
+    loaded = AppPreferenceCookie.find(cookie.id)
+
+    assert loaded.targetable
+    assert loaded.performant
+    assert loaded.functional
+    assert loaded.consented
+  end
+
+  test "set_defaults fills nil booleans on new records" do
+    cookie = AppPreferenceCookie.new(preference: @preference)
+    cookie.targetable = nil
+    cookie.performant = nil
+    cookie.functional = nil
+    cookie.consented = nil
+
+    cookie.send(:set_defaults)
+
+    assert_not cookie.targetable
+    assert_not cookie.performant
+    assert_not cookie.functional
+    assert_not cookie.consented
   end
 end

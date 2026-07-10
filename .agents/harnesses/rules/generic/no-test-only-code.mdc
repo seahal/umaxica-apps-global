@@ -1,0 +1,26 @@
+---
+name: no-test-only-code
+description: Application code must never change behavior because tests are running.
+---
+
+# No Test-Only Application Code
+
+Do not add code to `app/` or `lib/` that behaves differently when tests run. Tests must verify
+production behavior; test-aware code hides bugs and creates unsafe bypasses.
+
+## Forbidden in implementation code
+
+- `Rails.env.test?` branches, or checks for `ENV["RAILS_ENV"] == "test"` and similar flags
+- test-framework detection such as `defined?(Minitest)` or `defined?(RSpec)`
+- test-only params, headers, cookies, feature flags, routes, service branches, or policy exceptions
+  added only to make tests pass
+- hardcoded fixture ids, fixture names, factory data, or seeded-data assumptions in application
+  behavior
+- bypassing authentication, authorization, verification, callbacks, validations, rate limits, CSRF,
+  external-service boundaries, or error handling only under test
+
+## Use a production-valid seam instead
+
+If behavior needs a controllable boundary, introduce or use a production-valid abstraction: a service
+object, an adapter, a configuration object, a dependency-injected collaborator, or a local fake in
+the test. The application behavior must remain valid outside the test environment.

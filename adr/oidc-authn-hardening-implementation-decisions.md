@@ -1,5 +1,12 @@
 # OIDC AuthN Hardening - Decision Record
 
+> **Supersession (2026-06-02):** This ADR's IdP/RP-centered authority model is superseded by
+> `adr/identity-authority-boundary.md`. `acme/www` is now the Session, Token, Account, Preference,
+> and Authorization Authority. `sign/id` is no longer the IdP; it is a Credential Gateway and
+> Credential Ceremony Zone only. Historical implementation details in this ADR must not be used to
+> reintroduce sign-side sessions, refresh tokens, preference writes, dashboards, account lifecycle,
+> downstream token issuance, authorization decisions, or step-up freshness.
+
 ## What
 
 Hardening OIDC authentication, aligning OIDC claims, making `Current.actor` fail-fast, and adding
@@ -26,17 +33,17 @@ acceptance tests.
 
 ## Where
 
-| Change target                | File                                                      |
-| ---------------------------- | --------------------------------------------------------- |
-| Current guard logic          | `app/models/current.rb`                                   |
-| AuthorizationCode column add | `db/migrate/*_add_auth_context_to_authorization_codes.rb` |
-| TokenClaims                  | `app/services/auth/token_claims.rb`                       |
-| TokenService                 | `app/services/auth/token_service.rb`                      |
-| TokenExchangeService         | `app/services/oidc/token_exchange_service.rb`             |
-| AuthorizeService             | `app/services/oidc/authorize_service.rb`                  |
-| Authentication::Base         | `app/controllers/concerns/authentication/base.rb`         |
-| Oidc::Callback               | `app/controllers/concerns/oidc/callback.rb`               |
-| Tests                        | Corresponding test files                                  |
+| Change target                | File                                                       |
+| ---------------------------- | ---------------------------------------------------------- |
+| Current guard logic          | `app/models/current.rb`                                    |
+| AuthorizationCode column add | `db/migrate/*_add_auth_context_to_authorization_codes.rb`  |
+| TokenClaims                  | `app/controllers/concerns/authorization/token_claims.rb`   |
+| TokenService                 | `app/controllers/concerns/authentication/token_service.rb` |
+| TokenExchangeService         | `app/services/oidc/token_exchange_service.rb`              |
+| AuthorizeService             | `app/services/oidc/authorize_service.rb`                   |
+| Authentication::Base         | `app/controllers/concerns/authentication/base.rb`          |
+| Oidc::Callback               | `app/controllers/concerns/oidc/callback.rb`                |
+| Tests                        | Corresponding test files                                   |
 
 ## How
 
@@ -51,8 +58,8 @@ acceptance tests.
 ### Phase 2: Add OIDC claims
 
 - Add `auth_method` and `acr` columns to AuthorizationCode
-- Add `subject_type`, `acr`, and `amr` parameters to `Auth::TokenClaims.build`
-- Add `acr` and `amr` parameters to `Auth::TokenService.encode`
+- Add `subject_type`, `acr`, and `amr` parameters to `Authorization::TokenClaims.build`
+- Add `acr` and `amr` parameters to `Authentication::TokenService.encode`
 - Add `"customer"` to `VALID_ACTOR_TYPES`
 - Add `subject_type`, `acr`, and `amr` to `TokenService.decode` required claims
 - Support CustomerToken in `Oidc::TokenExchangeService` + ID token verification + nonce verification
@@ -68,15 +75,16 @@ acceptance tests.
 
 ### amr normalization rules
 
-| auth_method           | amr                 |
-| --------------------- | ------------------- |
-| `"email"`             | `["email_otp"]`     |
-| `"passkey"`           | `["passkey"]`       |
-| `"social"` + Google   | `["google"]`        |
-| `"social"` + Apple    | `["apple"]`         |
-| `"secret"` (recovery) | `["recovery_code"]` |
+| auth_method         | amr             |
+| ------------------- | --------------- |
+| `"email"`           | `["email_otp"]` |
+| `"passkey"`         | `["passkey"]`   |
+| `"social"` + Google | `["google"]`    |
+| `"social"` + Apple  | `["apple"]`     |
+| `"passcode"`        | `["passcode"]`  |
 
-For step-up, add verification methods: `["email_otp", "totp"]`, `["google", "passkey"]`
+For step-up, add only the surface's current AAL2 methods as documented in
+`docs/security/authentication-assurance-levels.md`.
 
 ## Decision points and rationale
 

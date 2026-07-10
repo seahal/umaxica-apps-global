@@ -1,5 +1,13 @@
 # FIDO2 Security Key Implementation Task List
 
+> **Deprecated / partially superseded by Identity Authority inversion:** `acme/www` is the Session,
+> Token, Account, Preference, Authorization, and downstream-token Authority. `sign/id` is
+> ceremony-only: it may host credential entry points and execute delegated credential ceremonies,
+> but it must not own sessions, refresh tokens, preference writes, dashboards, account lifecycle,
+> token issuance, logout, or step-up freshness. Existing sign-side physical tables/models do not
+> imply sign-side authority. Do not use this document to reintroduce sign-side sessions, refresh,
+> preference, dashboard, account lifecycle, token issuance, logout, or step-up freshness.
+
 ## Current Analysis
 
 ### Completed ✅
@@ -531,7 +539,7 @@ Content-Security-Policy: default-src 'self'; connect-src 'self' https:
 
 ### Compatibility with existing systems
 
-- Coexist with TOTP and recovery-code flows.
+- Coexist with TOTP and passcode flows.
 - Integrate with the session management layer.
 - Ensure alignment with the multi-domain architecture.
 

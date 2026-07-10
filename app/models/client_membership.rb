@@ -1,0 +1,32 @@
+# typed: false
+# frozen_string_literal: true
+
+# == Schema Information
+#
+# Table name: client_memberships
+# Database name: app_principal
+#
+#  id           :bigint           not null, primary key
+#  joined_at    :datetime         not null
+#  left_at      :datetime         default(-Infinity), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  user_id      :bigint           not null
+#  workspace_id :bigint           not null
+#
+# Indexes
+#
+#  index_client_memberships_on_user_id_and_workspace_id  (user_id,workspace_id) UNIQUE
+#  index_client_memberships_on_workspace_id              (workspace_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (user_id => clients.id)
+#
+
+class ClientMembership < AppPrincipalRecord
+  belongs_to :user, class_name: "Client", inverse_of: :client_memberships
+  validates :workspace_id, presence: true
+
+  validates :user_id, uniqueness: { scope: :workspace_id }
+end

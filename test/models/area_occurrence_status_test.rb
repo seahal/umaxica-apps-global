@@ -34,10 +34,25 @@ class AreaOccurrenceStatusTest < ActiveSupport::TestCase
     assert_status_association(AreaOccurrenceStatus, :area_occurrences)
   end
 
+  test "ensure_defaults! creates default records" do
+    AreaOccurrenceStatus.ensure_defaults!
+
+    AreaOccurrenceStatus::DEFAULTS.each do |id|
+      assert AreaOccurrenceStatus.exists?(id), "missing default area occurrence status #{id}"
+    end
+  end
+
   # expires_at column does not exist on area_occurrence_statuses table
   # test "expires_at default" do
   #   record = AreaOccurrenceStatus.new(id: "EXPIRES_AT_TEST")
   #
   #   assert_expires_at_default(record)
   # end
+  private
+
+  def assert_status_association(status_class, association_name)
+    reflection = status_class.reflect_on_association(association_name)
+
+    assert_not_nil reflection
+  end
 end

@@ -1,0 +1,198 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+# require "helpers/global_test_support"
+require "minitest/mock"
+
+module Auth::App::Sign::In::Passkey
+  class AuthenticationFlowTest < ActionDispatch::IntegrationTest
+    include ActiveSupport::Testing::TimeHelpers
+
+    fixtures :clients, :client_statuses, :client_email_statuses, :client_passkey_statuses,
+             :client_totp_credential_statuses
+
+    setup do
+      host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+      CloudflareTurnstile.test_mode = true
+      CloudflareTurnstile.test_validation_response = { "success" => true }
+      JitSecurityTurnstileVerifier.test_mode = true
+      JitSecurityTurnstileVerifier.test_response = { "success" => true }
+      # Mock TRUSTED_ORIGINS
+      @original_trusted_origins = Webauthn.method(:trusted_origins)
+      Webauthn.define_singleton_method(:trusted_origins) { ["http://auth.app.localhost", "http://auth.org.localhost"] }
+
+      @user = clients(:one)
+      ClientEmail.create!(
+        user: @user,
+        address: "one@example.com",
+        user_email_status_id: ClientEmailStatus::VERIFIED,
+        otp_attempts_count: 0,
+        otp_counter: "0",
+        otp_private_key: "secret_credential",
+        otp_expires_at: 10.minutes.from_now,
+        otp_last_sent_at: 1.hour.ago,
+      )
+
+      # Setup a passkey for the user
+      @raw_credential_id = "credential-12345"
+      @encoded_credential_id = Base64.urlsafe_encode64(@raw_credential_id, padding: false)
+
+      @passkey = ClientPasskey.create!(
+        user: @user,
+        webauthn_id: @encoded_credential_id,
+        public_key: "dummy-public-key",
+        sign_count: 10,
+        description: "Test Passkey",
+        external_id: SecureRandom.uuid,
+        status_id: ClientPasskeyStatus::ACTIVE,
+      )
+    end
+
+    teardown do
+      Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
+      CloudflareTurnstile.test_mode = false
+      CloudflareTurnstile.test_validation_response = nil
+      JitSecurityTurnstileVerifier.test_mode = false
+      JitSecurityTurnstileVerifier.test_response = nil
+    end
+
+    test "should generate authentication options and store challenge in session" do
+      email = @user.client_emails.first.address
+      post auth_app_sign_in_passkey_options_url(ri: "jp"), params: options_params(identifier: email), as: :json
+
+      assert_response :success
+      json_response = response.parsed_body
+      challenge_id = json_response["challenge_id"]
+
+      assert_not_nil challenge_id
+
+      # Verify session storage
+      assert_not_nil session[:passkey_challenges]
+      assert_not_nil session[:passkey_challenges][challenge_id]
+      assert_equal "authentication", session[:passkey_challenges][challenge_id]["purpose"]
+    end
+
+    test "should verify valid credential and log in" do
+      # 1. Get options to setup session
+      email = @user.client_emails.first.address
+      post auth_app_sign_in_passkey_options_url(ri: "jp"), params: options_params(identifier: email), as: :json
+
+      json_response = response.parsed_body
+      challenge_id = json_response["challenge_id"]
+      session[:passkey_challenges][challenge_id]["challenge"]
+
+      # 2. Mock WebAuthn verification
+      mock_credential = OpenStruct.new(
+        id: @encoded_credential_id,
+        sign_count: 11,
+      )
+
+      # We need to verify signature and return expected result
+      mock_credential.define_singleton_method(:verify) do |_challenge, **|
+        true
+      end
+
+      travel 31.seconds do
+        WebAuthn::Credential.stub(:from_get, mock_credential) do
+          post auth_app_sign_in_passkey_verification_url(ri: "jp"), params: {
+            challenge_id: challenge_id,
+            credential: {
+              id: @encoded_credential_id,
+              rawId: @encoded_credential_id,
+              type: "public-key",
+              response: {
+                clientDataJSON: "dummy",
+                authenticatorData: "dummy",
+                signature: "dummy",
+                userHandle: @user.public_id,
+              },
+            },
+          }, as: :json
+        end
+      end
+
+      assert_response :success
+      json_response = response.parsed_body
+
+      assert_equal "ok", json_response["status"]
+      assert_not_nil json_response["access_token"]
+
+      # 3. Verify side effects
+      # Challenge should be consumed (removed from session)
+      # Challenge should be consumed (removed from session) or session reset
+      assert_nil session[:passkey_challenges]
+      @passkey.reload
+
+      assert_equal 11, @passkey.sign_count # updated
+    end
+
+    test "passkey login completes without additional MFA even when MFA is enabled" do
+      @user.update!(mfa_level_enabled: true)
+      ClientTotpCredential.create!(
+        user: @user,
+        private_key: ROTP::Base32.random_base32,
+        user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
+        title: "app",
+      )
+
+      email = @user.client_emails.first.address
+      post auth_app_sign_in_passkey_options_url(ri: "jp"), params: options_params(identifier: email), as: :json
+      challenge_id = response.parsed_body["challenge_id"]
+
+      mock_credential = OpenStruct.new(
+        id: @encoded_credential_id,
+        sign_count: 12,
+      )
+      mock_credential.define_singleton_method(:verify) do |_challenge, **|
+        true
+      end
+
+      travel 31.seconds do
+        WebAuthn::Credential.stub(:from_get, mock_credential) do
+          post auth_app_sign_in_passkey_verification_url(ri: "jp"), params: {
+            challenge_id: challenge_id,
+            credential: {
+              id: @encoded_credential_id,
+              rawId: @encoded_credential_id,
+              type: "public-key",
+              response: {
+                clientDataJSON: "dummy",
+                authenticatorData: "dummy",
+                signature: "dummy",
+                userHandle: @user.public_id,
+              },
+            },
+          }, as: :json
+        end
+      end
+
+      assert_response :success
+      assert_equal "ok", response.parsed_body["status"]
+      assert_not_equal "mfa_required", response.parsed_body["status"]
+    end
+
+    test "should fail verification with invalid challenge" do
+      # 1. No options call (no session)
+
+      post auth_app_sign_in_passkey_verification_url(ri: "jp"), params: {
+        challenge_id: "invalid-id",
+        credential: { id: "foo" },
+      }, as: :json
+
+      assert_response :bad_request
+      json_response = response.parsed_body
+
+      assert_equal I18n.t("errors.webauthn.challenge_invalid"), json_response["error"]
+    end
+
+    private
+
+    def options_params(identifier:)
+      {
+        identifier: identifier,
+        "cf-turnstile-response": "test_token",
+      }
+    end
+  end
+end

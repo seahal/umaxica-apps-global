@@ -1,0 +1,37 @@
+---
+title: Com Withdrawal State Machine
+---
+
+%% Deprecated by Identity Authority inversion.
+%% withdrawal is acme/www account lifecycle, not sign/id authority.
+
+stateDiagram-v2
+  [*] --> REQUESTED: actor opens withdrawal flow
+
+  REQUESTED --> DEACTIVATION_PENDING: actor confirms withdrawal intent
+  REQUESTED --> CANCELLED: actor abandons before deactivation
+  REQUESTED --> FAILED: request failed
+
+  DEACTIVATION_PENDING --> DISCARDED: logical deletion active and purge scheduled
+  DEACTIVATION_PENDING --> FAILED: scheduling failed
+
+  DISCARDED --> RECOVERED: actor recovers inside recovery window
+  DISCARDED --> TERMINATED: purge job anonymizes after retention
+  DISCARDED --> FAILED: recovery or purge failed
+
+  note right of DEACTIVATION_PENDING
+    This is the processing state after explicit
+    confirmation and before logical deletion becomes
+    active. It replaces the ambiguous CLOSING name.
+  end note
+
+  note right of DISCARDED
+    Retention-window expiry is not EXPIRED here.
+    It resolves through purge/anonymization into
+    TERMINATED.
+  end note
+
+  RECOVERED --> [*]
+  TERMINATED --> [*]
+  CANCELLED --> [*]
+  FAILED --> [*]

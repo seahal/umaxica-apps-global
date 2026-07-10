@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: app_preference_languages
-# Database name: principal
+# Database name: app_setting
 #
 #  id            :bigint           not null, primary key
 #  created_at    :datetime         not null
@@ -27,7 +27,7 @@ require "test_helper"
 
 class AppPreferenceLanguageTest < ActiveSupport::TestCase
   setup do
-    AppPreferenceStatus.find_or_create_by!(id: AppPreferenceStatus::NOTHING)
+    AppPreferenceStatus.ensure_defaults!
     @preference = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING)
   end
 

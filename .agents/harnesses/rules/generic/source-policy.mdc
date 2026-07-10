@@ -1,0 +1,46 @@
+---
+name: source-policy
+description: Allowed and forbidden external information sources for technical work.
+---
+
+# Source Policy
+
+Use this rule whenever technical research, debugging, implementation, design, or explanation depends
+on external information sources.
+
+## Qiita and Zenn are forbidden
+
+Do not use Qiita or Zenn as information sources.
+
+Forbidden domains:
+
+- `qiita.com`
+- `*.qiita.com`
+- `zenn.dev`
+- `*.zenn.dev`
+
+Rules:
+
+- Do not open Qiita or Zenn pages.
+- Do not summarize Qiita or Zenn articles.
+- Do not cite Qiita or Zenn.
+- Do not use Qiita or Zenn content as evidence or as the basis for an implementation direction.
+- If search results include Qiita or Zenn, ignore those results and look for another source.
+- When searching the web, add exclusions whenever practical:
+  - `-site:qiita.com`
+  - `-site:zenn.dev`
+
+## Preferred sources
+
+Prefer sources in this order:
+
+1. Official documentation
+2. Official GitHub repositories
+3. RFCs, specifications, and standards
+4. Official issues or discussions
+5. Maintainer blogs or release notes
+6. Trusted company engineering blogs
+7. Stack Overflow only as a supplementary source for practical troubleshooting
+
+If no sufficient evidence can be found without Qiita or Zenn, state that no primary or trustworthy
+source was found. Do not use Qiita or Zenn as a fallback.

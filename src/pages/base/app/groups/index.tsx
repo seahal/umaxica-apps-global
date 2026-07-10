@@ -1,0 +1,20 @@
+type GroupsPageProps = {
+  title?: string;
+};
+
+export default function GroupsIndex({ title = "Groups" }: GroupsPageProps) {
+  return (
+    <>
+      <main className="min-h-screen bg-white text-black">
+        <section className="mx-auto flex min-h-screen w-full max-w-4xl flex-col justify-center gap-6 p-6">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em]">Base App</p>
+            <h1 className="text-4xl font-bold tracking-tight">{title}</h1>
+          </div>
+
+          <p className="max-w-prose text-base leading-7">groups</p>
+        </section>
+      </main>
+    </>
+  );
+}

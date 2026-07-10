@@ -19,8 +19,8 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (blocked_avatar_id => avatars.id)
-#  fk_rails_...  (blocker_avatar_id => avatars.id)
+#  fk_rails_...  (blocked_avatar_id => avatars.id) ON DELETE => cascade
+#  fk_rails_...  (blocker_avatar_id => avatars.id) ON DELETE => cascade
 #
 
 # frozen_string_literal: true
@@ -30,5 +30,18 @@ class AvatarBlock < AvatarRecord
              class_name: "Avatar",
              inverse_of: :outgoing_blocks
   belongs_to :blocked_avatar,
-             class_name: "Avatar"
+             class_name: "Avatar",
+             inverse_of: :incoming_blocks
+
+  validates :blocked_avatar_id, uniqueness: { scope: :blocker_avatar_id }
+  validate :blocker_and_blocked_must_differ
+
+  private
+
+  def blocker_and_blocked_must_differ
+    return if blocker_avatar_id.blank? || blocked_avatar_id.blank?
+    return if blocker_avatar_id != blocked_avatar_id
+
+    errors.add(:blocked_avatar_id, "must differ from blocker_avatar_id")
+  end
 end

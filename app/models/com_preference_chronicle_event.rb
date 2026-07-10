@@ -9,7 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class ComPreferenceChronicleEvent < ChronicleRecord
-  self.record_timestamps = false
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 0
   CREATE_NEW_PREFERENCE_TOKEN = 1
@@ -19,7 +20,13 @@ class ComPreferenceChronicleEvent < ChronicleRecord
   UPDATE_PREFERENCE_TIMEZONE = 5
   RESET_BY_USER_DECISION = 6
   UPDATE_PREFERENCE_REGION = 7
-  UPDATE_PREFERENCE_COLORTHEME = 8
+  UPDATE_PREFERENCE_THEME = 8
+  UPDATE_PREFERENCE_CURRENCY = 9
+  UPDATE_PREFERENCE_DATE_FORMAT = 10
+  UPDATE_PREFERENCE_TIME_FORMAT = 11
+  UPDATE_PREFERENCE_MOTION = 12
+  UPDATE_PREFERENCE_DENSITY = 13
+  UPDATE_PREFERENCE_PAGE_SIZE = 14
 
   # Placeholder for audit event types; ids are string tokens (e.g., 'CREATED')
   has_many :com_preference_chronicles,
@@ -38,7 +45,13 @@ class ComPreferenceChronicleEvent < ChronicleRecord
     UPDATE_PREFERENCE_TIMEZONE,
     RESET_BY_USER_DECISION,
     UPDATE_PREFERENCE_REGION,
-    UPDATE_PREFERENCE_COLORTHEME,
+    UPDATE_PREFERENCE_THEME,
+    UPDATE_PREFERENCE_CURRENCY,
+    UPDATE_PREFERENCE_DATE_FORMAT,
+    UPDATE_PREFERENCE_TIME_FORMAT,
+    UPDATE_PREFERENCE_MOTION,
+    UPDATE_PREFERENCE_DENSITY,
+    UPDATE_PREFERENCE_PAGE_SIZE,
   ].freeze
 
   def self.ensure_defaults!

@@ -1,0 +1,52 @@
+# typed: false
+# frozen_string_literal: true
+
+module SignAcmeAuthorityRedirect
+  extend ActiveSupport::Concern
+
+  private
+
+  def redirect_to_base_authority!(path, query: nil)
+    redirect_to(
+      URI::Generic.build(
+        scheme: request.scheme,
+        host: base_authority_host,
+        path: path,
+        query: base_authority_query(query),
+      ).to_s,
+      allow_other_host: cross_host_redirect_allowed?,
+      status: :see_other,
+    )
+  end
+
+  def base_authority_query(query_params = nil)
+    return query_params.to_query if query_params.present?
+
+    ri = params[:ri].presence
+    return if ri.blank?
+
+    { ri: ri }.to_query
+  end
+
+  def base_authority_host
+    case self.class.name
+    when /\A(Auth::App|Sign::App|Acme::App)::/ then ENV.fetch("PRIVATE_BASE_SERVICE_URL")
+    when /\A(Auth::Com|Sign::Com|Acme::Com)::/ then ENV.fetch("PRIVATE_BASE_CORPORATE_URL")
+    when /\A(Auth::Org|Sign::Org|Acme::Org)::/ then ENV.fetch("PRIVATE_BASE_STAFF_URL")
+    else
+      request.host
+    end
+  end
+
+  def redirect_to_acme_authority!(path, query: nil)
+    redirect_to_base_authority!(path, query: query)
+  end
+
+  def acme_authority_query(query_params = nil)
+    base_authority_query(query_params)
+  end
+
+  def acme_authority_host
+    base_authority_host
+  end
+end

@@ -5,8 +5,6 @@ class SeedTestReferenceIdsInUniversals < ActiveRecord::Migration[8.2]
 
   NEYO_ID_TABLES = %w(
     com_timeline_audit_levels
-    org_contact_audit_events
-    org_contact_audit_levels
     org_document_audit_events
     org_document_audit_levels
     org_timeline_audit_events

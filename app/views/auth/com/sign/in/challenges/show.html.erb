@@ -1,0 +1,19 @@
+<% title t("sign.app.in.mfa.title") %>
+
+<div>
+  <div>
+    <h1><%= t("sign.app.in.mfa.title") %></h1>
+    <p><%= t("sign.app.in.mfa.description") %></p>
+  </div>
+
+  <div>
+    <% if @can_use_passkey %>
+      <p>
+        <%= link_to t("sign.app.in.mfa.methods.passkey"), new_auth_com_sign_in_challenge_passkey_path %>
+      </p>
+    <% else %>
+      <p><%= t("sign.app.in.mfa.no_methods_available") %></p>
+      <p><%= link_to t("sign.app.authentication.new.back"), auth_com_sign_in_path %></p>
+    <% end %>
+  </div>
+</div>

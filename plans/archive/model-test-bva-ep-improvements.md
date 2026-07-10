@@ -17,7 +17,7 @@ matter for correctness and security:
 | `UserOneTimePassword` | TOTP limit bypass, title overflow                                       | title 32 vs 33 chars, below/at/above MAX (2), private_key exactly 1024 chars                |
 | `UserSecret`          | Backup-code limit bypass, sign-in after expiry                          | name exactly 255, below/at limit, isolation, expiry boundary (inclusive/exclusive/Infinity) |
 | `UserToken`           | Session count bypass, status overflow                                   | 3rd session allowed, rotated excluded from count, status col length 20/21                   |
-| `StaffPasskey`        | Same as UserPasskey for staff; fragile stub prevents DB-level detection | Replace Struct stub with real DB; add full BVA                                              |
+| `OperatorPasskey`     | Same as UserPasskey for staff; fragile stub prevents DB-level detection | Replace Struct stub with real DB; add full BVA                                              |
 
 ## Approach
 

@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: member_statuses
-# Database name: principal
+# Database name: app_principal
 #
 #  id         :bigint           not null, primary key
 #  created_at :datetime         not null

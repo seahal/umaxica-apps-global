@@ -1,7 +1,7 @@
 # == Schema Information
 #
 # Table name: org_preference_timezone_options
-# Database name: operator
+# Database name: org_setting
 #
 #  id :bigint           not null, primary key
 #
@@ -9,3 +9,15 @@ utc:
   id: 1
 asia_tokyo:
   id: 2
+america_new_york:
+  id: 3
+america_chicago:
+  id: 4
+america_denver:
+  id: 5
+america_los_angeles:
+  id: 6
+america_anchorage:
+  id: 7
+pacific_honolulu:
+  id: 8

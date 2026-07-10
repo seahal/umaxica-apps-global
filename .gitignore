@@ -75,6 +75,7 @@
 
 # Vite Ruby
 /public/vite*
+/public/uploads
 node_modules
 # Vite uses dotenv and suggests to ignore local-only env files. See
 # https://vitejs.dev/guide/env-and-mode.html#env-files
@@ -111,6 +112,7 @@ node_modules
 
 /docker/core/preferences/*
 !/docker/core/preferences/.bashrc
+/docker/core/preferences/.bash_history
 erd.pdf
 .pnpm-store/
 .claudeignore
@@ -119,6 +121,30 @@ test_output*.txt
 gha-creds-*.json
 nvim.log
 .codex
+.junie/
+.air/
+
+# Local/private documentation scratch space. Shared docs, ADRs, plans, notes, and memos stay
+# tracked; sensitive or machine-local material belongs in these ignored subdirectories only.
+/docs/local/
+/docs/private/
+/docs/tmp/
+/adr/local/
+/adr/private/
+/adr/tmp/
+/memos/local/
+/memos/private/
+/memos/tmp/
+/notes/local/
+/notes/private/
+/notes/tmp/
+/plans/local/
+/plans/private/
+/plans/tmp/
+/plans/drafts/local/
+.antigravitycli/
+app/javascript/node_modules
+app/javascript/coverage
 
 # Vite Ruby
 /public/vite*
@@ -126,4 +152,3 @@ node_modules
 # Vite uses dotenv and suggests to ignore local-only env files. See
 # https://vitejs.dev/guide/env-and-mode.html#env-files
 *.local
-

@@ -22,7 +22,7 @@ specifically focusing on `ColumnPresenceChecker` and `NullConstraintChecker`.
 - **Rationale**: Resolves `ColumnPresenceChecker` failures by requiring the status association at
   the database level.
 
-#### 2. `EnsureStaffSecretKindData` (`db/operators_migrate/20260202200301_ensure_staff_secret_kind_data.rb`)
+#### 2. `EnsureOperatorSecretKindData` (`db/operators_migrate/20260202200301_ensure_staff_secret_kind_data.rb`)
 
 - **Domain**: Operator
 - **Tables**: `staff_secret_kinds`
@@ -43,7 +43,7 @@ specifically focusing on `ColumnPresenceChecker` and `NullConstraintChecker`.
 - **Rationale**: Resolves `NullConstraintChecker` failures by ensuring model-level validation
   matches database constraints.
 
-#### 2. `StaffSecretKind` (`app/models/staff_secret_kind.rb`)
+#### 2. `OperatorSecretKind` (`app/models/staff_secret_kind.rb`)
 
 - **Action**:
   - Added `validates :code, presence: true`.

@@ -1,0 +1,20 @@
+# typed: false
+# frozen_string_literal: true
+
+class Auth::Org::VerificationsController < ::Auth::Org::Verification::BaseController
+  include SignOrgVerificationBase
+
+  include SignVerificationEntry
+
+  AUTHENTICATION_MODE = :private
+
+  private
+
+  def verification_success_notice_key
+    "sign.org.verification.success.complete"
+  end
+
+  def verification_invalid_request_redirect_path(ri:)
+    auth_org_settings_path(ri: ri)
+  end
+end

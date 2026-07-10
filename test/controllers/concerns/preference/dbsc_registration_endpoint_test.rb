@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class PreferenceDbscRegistrationEndpointTestController < ApplicationController
   class PreferenceRecord
@@ -12,11 +13,15 @@ class PreferenceDbscRegistrationEndpointTestController < ApplicationController
     end
   end
 
-  # rubocop:disable ThreadSafety/ClassAndModuleAttributes
-  mattr_accessor :dbsc_test_preference_record, instance_accessor: false
-  # rubocop:enable ThreadSafety/ClassAndModuleAttributes
+  def self.dbsc_test_preference_record
+    @dbsc_test_preference_record
+  end
 
-  include Preference::DbscRegistrationEndpoint
+  def self.dbsc_test_preference_record=(value)
+    @dbsc_test_preference_record = value
+  end
+
+  include PreferenceDbscRegistrationEndpoint
 
   private
 
@@ -42,7 +47,7 @@ class PreferenceDbscRegistrationEndpointTestController < ApplicationController
   end
 end
 
-class Preference::DbscRegistrationEndpointTest < ActionDispatch::IntegrationTest
+class PreferenceDbscRegistrationEndpointTest < ActionDispatch::IntegrationTest
   setup do
     PreferenceDbscRegistrationEndpointTestController.dbsc_test_preference_record = nil
 
@@ -67,8 +72,8 @@ class Preference::DbscRegistrationEndpointTest < ActionDispatch::IntegrationTest
       error_code: nil,
     }
 
-    Dbsc::RegistrationService.stub(:call, result) do
-      post "/test/preference_dbsc", headers: { Preference::IoKeys::Headers::DBSC_RESPONSE => "proof" }
+    DbscRegistrationService.stub(:call, result) do
+      post "/test/preference_dbsc", headers: { PreferenceIoKeys::Headers::DBSC_RESPONSE => "proof" }
     end
 
     assert_response :created
@@ -80,7 +85,7 @@ class Preference::DbscRegistrationEndpointTest < ActionDispatch::IntegrationTest
     assert_equal "http://www.example.com/test/dbsc", json["refresh_url"]
     assert_equal "http://www.example.com", json["scope"]["origin"]
     assert_not json["scope"]["include_site"]
-    assert_equal Preference::CookieName.dbsc, json["credentials"].first["name"]
+    assert_equal PreferenceCookieName.dbsc, json["credentials"].first["name"]
   end
 
   test "create handles registration failure" do
@@ -92,8 +97,8 @@ class Preference::DbscRegistrationEndpointTest < ActionDispatch::IntegrationTest
       error_code: "bad_proof",
     }
 
-    Dbsc::RegistrationService.stub(:call, result) do
-      post "/test/preference_dbsc", headers: { Preference::IoKeys::Headers::DBSC_RESPONSE => "proof" }
+    DbscRegistrationService.stub(:call, result) do
+      post "/test/preference_dbsc", headers: { PreferenceIoKeys::Headers::DBSC_RESPONSE => "proof" }
     end
 
     assert_response :unprocessable_content
@@ -103,7 +108,7 @@ class Preference::DbscRegistrationEndpointTest < ActionDispatch::IntegrationTest
 
   test "create rejects bound cookie refresh when preference record is missing" do
     post "/test/preference_dbsc",
-         headers: { Preference::IoKeys::Headers::DBSC_SESSION_ID => "session-123" }
+         headers: { PreferenceIoKeys::Headers::DBSC_SESSION_ID => "session-123" }
 
     assert_response :unauthorized
   end
@@ -113,11 +118,11 @@ class Preference::DbscRegistrationEndpointTest < ActionDispatch::IntegrationTest
       PreferenceDbscRegistrationEndpointTestController::PreferenceRecord.new
 
     post "/test/preference_dbsc",
-         headers: { Preference::IoKeys::Headers::DBSC_SESSION_ID => "session-123" }
+         headers: { PreferenceIoKeys::Headers::DBSC_SESSION_ID => "session-123" }
 
     assert_response :forbidden
     assert_equal "\"challenge-token\";id=\"session-123\"",
-                 response.headers[Preference::IoKeys::Headers::DBSC_CHALLENGE]
+                 response.headers[PreferenceIoKeys::Headers::DBSC_CHALLENGE]
   end
 
   test "create returns error when bound cookie verification fails" do
@@ -132,11 +137,11 @@ class Preference::DbscRegistrationEndpointTest < ActionDispatch::IntegrationTest
       error_code: "verification_failed",
     }
 
-    Dbsc::VerificationService.stub(:call, result) do
+    DbscVerificationService.stub(:call, result) do
       post "/test/preference_dbsc",
            headers: {
-             Preference::IoKeys::Headers::DBSC_SESSION_ID => "session-123",
-             Preference::IoKeys::Headers::DBSC_RESPONSE => "proof",
+             PreferenceIoKeys::Headers::DBSC_SESSION_ID => "session-123",
+             PreferenceIoKeys::Headers::DBSC_RESPONSE => "proof",
            }
     end
 
@@ -157,11 +162,11 @@ class Preference::DbscRegistrationEndpointTest < ActionDispatch::IntegrationTest
       error_code: nil,
     }
 
-    Dbsc::VerificationService.stub(:call, result) do
+    DbscVerificationService.stub(:call, result) do
       post "/test/preference_dbsc",
            headers: {
-             Preference::IoKeys::Headers::DBSC_SESSION_ID => "session-123",
-             Preference::IoKeys::Headers::DBSC_RESPONSE => "proof",
+             PreferenceIoKeys::Headers::DBSC_SESSION_ID => "session-123",
+             PreferenceIoKeys::Headers::DBSC_RESPONSE => "proof",
            }
     end
 

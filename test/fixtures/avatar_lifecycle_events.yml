@@ -1,0 +1,13 @@
+# == Schema Information
+#
+# Table name: avatar_lifecycle_events
+# Database name: avatar
+#
+#  id              :bigint           not null, primary key
+#  changed_by_type :string
+#  metadata        :jsonb            not null
+#  created_at      :datetime         not null
+#  avatar_id       :bigint           not null
+#  from_state_key  :string
+#  to_state_key    :string           not null
+#

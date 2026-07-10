@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: organization_invitations
-# Database name: token
+# Database name: org_ticket
 #
 #  id              :bigint           not null, primary key
 #  code            :string(32)       not null
@@ -29,9 +29,11 @@ require "test_helper"
 
 class OrganizationInvitationTest < ActiveSupport::TestCase
   def setup
-    [0, 1, 2, 3].each { |id| OrganizationStatus.find_or_create_by!(id: id) }
-    @staff = Staff.create!
-    @organization = Organization.create!(name: "Test Org")
+    Prosopite.pause do
+      [0, 1, 2, 3].each { |id| OrganizationStatus.find_or_create_by!(id: id) }
+    end
+    @staff = Operator.create!
+    @organization = Organization.create!(name: "Test Org", domain: "test-org-#{SecureRandom.hex(4)}")
     @invitation = OrganizationInvitation.create!(
       email: "invitee@example.com",
       organization_id: @organization.id,
@@ -86,7 +88,7 @@ class OrganizationInvitationTest < ActiveSupport::TestCase
     )
 
     assert_not invitation.valid?
-    assert_not_empty invitation.errors[:invited_by_id]
+    assert_not_empty invitation.errors[:invited_by]
   end
 
   test "code uniqueness validation" do
@@ -99,6 +101,18 @@ class OrganizationInvitationTest < ActiveSupport::TestCase
 
     assert_not duplicate.valid?
     assert_not_empty duplicate.errors[:code]
+  end
+
+  test "code length validation" do
+    invitation = OrganizationInvitation.new(
+      email: "test@example.com",
+      organization_id: @organization.id,
+      invited_by: @staff,
+    )
+    invitation.code = "x" * 33
+
+    assert_not invitation.valid?
+    assert_not_empty invitation.errors[:code]
   end
 
   test "active? returns true for fresh invitation" do

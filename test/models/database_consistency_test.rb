@@ -6,13 +6,17 @@ require "test_helper"
 # Test suite to verify database consistency improvements
 # Tests for uniqueness, presence, and foreign key validations
 class DatabaseConsistencyTest < ActiveSupport::TestCase
-  fixtures :users, :user_statuses, :user_occurrence_statuses, :zip_occurrence_statuses
+  fixtures :clients, :client_statuses, :client_occurrence_statuses, :zip_occurrence_statuses
+
+  setup do
+    I18n.locale = I18n.default_locale # rubocop:disable Rails/I18nLocaleAssignment
+  end
 
   # Test PublicId concern validations
-  test "UserEmail requires unique public_id" do
-    email = UserEmail.new(
+  test "ClientEmail requires unique public_id" do
+    email = ClientEmail.new(
       address: "test@example.com",
-      user_id: users(:one).id,
+      user_id: clients(:one).id,
       public_id: "test_public_id_12345",
     )
 
@@ -24,9 +28,9 @@ class DatabaseConsistencyTest < ActiveSupport::TestCase
     # So duplicate IS valid unless we save 'email' first.
     email.save!
 
-    duplicate = UserEmail.new(
+    duplicate = ClientEmail.new(
       address: "other@example.com",
-      user_id: users(:one).id,
+      user_id: clients(:one).id,
       public_id: "test_public_id_12345",
     )
 
@@ -34,10 +38,10 @@ class DatabaseConsistencyTest < ActiveSupport::TestCase
     assert_includes duplicate.errors[:public_id], "はすでに存在します"
   end
 
-  test "UserEmail auto-generates public_id when nil" do
-    email = UserEmail.new(
+  test "ClientEmail auto-generates public_id when nil" do
+    email = ClientEmail.new(
       address: "test@example.com",
-      user_id: users(:one).id,
+      user_id: clients(:one).id,
       public_id: nil,
     )
     # PublicId concern auto-generates public_id before validation on create
@@ -64,23 +68,23 @@ class DatabaseConsistencyTest < ActiveSupport::TestCase
   end
 
   # Test Occurrence composite uniqueness
-  test "UserZipOccurrence requires unique combination of user_occurrence_id and zip_occurrence_id" do
-    user_occ = UserOccurrence.first || UserOccurrence.create!(
+  test "ClientZipOccurrence requires unique combination of user_occurrence_id and zip_occurrence_id" do
+    user_occ = ClientOccurrence.first || ClientOccurrence.create!(
       body: "user_occ_#{SecureRandom.hex(6)}",
-      status_id: UserOccurrenceStatus::NOTHING,
+      status_id: ClientOccurrenceStatus::NOTHING,
     )
     zip_occ = ZipOccurrence.first || ZipOccurrence.create!(
       body: "zip_#{SecureRandom.hex(4)}",
       status_id: ZipOccurrenceStatus::NOTHING,
     )
 
-    UserZipOccurrence.create!(
+    ClientZipOccurrence.create!(
       user_occurrence_id: user_occ.id,
       zip_occurrence_id: zip_occ.id,
     )
 
     # Try to create duplicate
-    occurrence2 = UserZipOccurrence.new(
+    occurrence2 = ClientZipOccurrence.new(
       user_occurrence_id: user_occ.id,
       zip_occurrence_id: zip_occ.id,
     )
@@ -90,8 +94,8 @@ class DatabaseConsistencyTest < ActiveSupport::TestCase
   end
 
   # Test belongs_to presence validation
-  test "UserEmail requires user association" do
-    email = UserEmail.new(
+  test "ClientEmail requires user association" do
+    email = ClientEmail.new(
       address: "test@example.com",
       public_id: "test_public_id",
       user_id: nil,
@@ -104,13 +108,13 @@ class DatabaseConsistencyTest < ActiveSupport::TestCase
     assert_includes email.errors[:user], "を入力してください"
   end
 
-  test "StaffNotification requires staff association" do
-    notification = StaffNotification.new(
+  test "OperatorNotificationRecord requires operator association" do
+    notification = OperatorNotificationRecord.new(
       public_id: SecureRandom.uuid,
       staff_id: nil,
     )
 
     assert_not notification.valid?
-    assert_includes notification.errors[:staff], "を入力してください"
+    assert_includes notification.errors[:operator], "を入力してください"
   end
 end

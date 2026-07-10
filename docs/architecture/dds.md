@@ -1,74 +1,60 @@
 # Detailed Design Specification
 
-## 1. Purpose
+## Purpose
 
-This document translates the high-level boundary model into implementation guidance.
+This document translates the current global Rails app boundary model into implementation guidance.
 
-## 2. System Context
+## System Context
 
-The Rails monolith is split into four engines:
+The Rails app serves the `app`, `org`, and `com` surfaces from one root application. The previous
+Rails Engine and wrapper-app strategies are retired by
+`adr/split-into-regional-and-global-repos.md`.
 
-- `Identity`
-- `Zenith`
-- `Foundation`
-- `Distributor`
+Regional content delivery is handled by a separate repository.
 
-## 3. Module Design
+## Module Design
 
-### 3.1 Routing
+### Routing
 
-- Each engine owns its own route file.
-- Each engine uses `isolate_namespace`.
-- Cross-engine links use native Rails routing proxies.
-- Host app links use `main_app`.
+- Keep route fragments under `config/routes/*.rb`.
+- Use host constraints and surface-local modules for `app`, `org`, and `com`.
+- Use ordinary Rails path helpers.
+- Do not add `engines/`, `apps/<name>`, `isolate_namespace`, or engine routing proxies.
 
-### 3.2 Shared Code
+### Controllers
 
-| Layer                 | Ownership                                               |
-| --------------------- | ------------------------------------------------------- |
-| Controllers and views | Engine-specific                                         |
-| Models                | Centralized in `app/models`                             |
-| Concerns              | Shared in the host app                                  |
-| Services              | Shared in the host app unless a later split is required |
-| Helpers               | Shared in the host app                                  |
+Controllers should use the current two-base lifecycle split:
 
-### 3.3 Boundary Responsibilities
+- `BareController` for endpoints that do not use application authentication machinery.
+- Surface-local `ApplicationController` for authentication-aware endpoints.
 
-| Engine        | Responsibilities                                                            |
-| ------------- | --------------------------------------------------------------------------- |
-| `Identity`    | Identity, authentication, passkeys, tokens, and audit-sensitive login state |
-| `Zenith`      | Acme shared shell, shared preferences, and coordination flows               |
-| `Foundation`  | `base.*` business and admin flows                                           |
-| `Distributor` | `post.*` content and API delivery flows                                     |
+`OpenController`, `PrivateController`, and `GuestController` are legacy compatibility wrappers.
+Authentication classification must be explicit concrete controller/action metadata, not controller
+inheritance. Undeclared endpoints fail closed as `:deny_all`.
 
-## 4. Data Design
+Surface behavior must remain local unless an existing shared concern explicitly abstracts it.
 
-### 4.1 Database ownership
+### Shared Code
 
-| Database group                                                                    | Owner                 |
-| --------------------------------------------------------------------------------- | --------------------- |
-| `principal`, `operator`, `token`, `preference`, `guest`, `activity`, `occurrence` | Activity              |
-| `journal`, `notification`, `avatar`                                               | Journal               |
-| `publication`                                                                     | Distributor           |
-| `chronicle`, `message`, `search`, `billing`, `commerce`                           | Foundation            |
-| `queue`, `cache`, `storage`, `cable`                                              | Shared infrastructure |
+| Layer                 | Ownership                                                   |
+| --------------------- | ----------------------------------------------------------- |
+| Controllers and views | Surface-local under `app/`                                  |
+| Models                | Centralized in `app/models`                                 |
+| Concerns              | Shared only through explicit local abstractions             |
+| Services              | `app/services` unless a narrower existing namespace applies |
+| Helpers               | Surface-local or shared through existing helper modules     |
 
-### 4.2 Model policy
+## Data Design
 
-- Keep a single model definition when several engines use the same table family.
-- Use base records to express database ownership.
-- Move a model into an engine only when the boundary truly requires it.
+Surface-owned database names follow the `surface_role` model documented in
+`docs/architecture/database-boundaries.md`.
 
-## 5. Key Flows
+Cross-cutting and infrastructure databases remain separate, including `occurrence`, `chronicle`,
+`avatar`, `search`, `queue`, `cache`, and `storage`.
 
-- Sign-in and token flow happen in `Identity`.
-- Shared entry and shared preference navigation happen in `Zenith`.
-- Business and admin flows happen in `Foundation`.
-- Delivery and read-oriented API flows happen in `Distributor`.
+## Verification
 
-## 6. Verification
-
-- Route tests confirm host isolation.
-- Model tests confirm database ownership.
-- Integration tests confirm cross-boundary navigation.
-- Security tests confirm auth, redirect, and audit rules.
+- Route tests should prove host constraints and surface isolation.
+- Controller tests should cover authentication, authorization, verification, CSRF, and rate-limit
+  behavior where relevant.
+- Model and service tests should cover database connection ownership and business rules.

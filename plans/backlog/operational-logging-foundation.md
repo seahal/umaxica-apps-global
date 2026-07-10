@@ -1,5 +1,9 @@
 # Operational Logging Foundation
 
+## Status
+
+Pending
+
 ## Summary
 
 This note records the first design direction for operational logging.
@@ -149,4 +153,28 @@ They should not be collapsed into one undifferentiated stream.
 
 ## Related
 
-- `plans/backlog/gh659-pre-consent-event-allowlist.md`
+- `plans/archive/gh659-pre-consent-event-allowlist.md`
+
+## 2026-05-07 What to leave as current differences and improvements
+
+The policy itself is valid, but in the current tree implementation around observability/audit is
+progressing.
+
+Confirmed:
+
+- `config/initializers/opentelemetry.rb` exists.
+- Chronicle-based schema / model / test exists.
+- `Auth::AuditWriter` exists.
+- `Rails.event` is used around some WebAuthn / Turnstile.
+
+This document is not intended as an "initial implementation plan" but as a guideline for improving
+operational logging.
+
+Improvements to leave:
+
+- Specify the boundaries of audit logging / product analytics / operational logging in the docs.
+- High-value events (auth failure, external dependency failure, rate limit, job) Determine the
+  minimum event set from only failure).
+- Match `request_id` / job id / trace id correlation rule with implemented logging.
+- Consider whether it is possible to fix the payload shape by testing or linting so that it does not
+  reveal confidential information.

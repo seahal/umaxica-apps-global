@@ -2,10 +2,11 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class ApplicationPushNotificationJobTest < ActiveJob::TestCase
   test "ApplicationPushNotificationJob inherits from ActionPushNative::NotificationJob" do
-    assert_equal ActionPushNative::NotificationJob, ApplicationPushNotificationJob.superclass
+    assert_equal "ActionPushNative::NotificationJob", ApplicationPushNotificationJob.superclass.name
   end
 
   test "job can be instantiated" do

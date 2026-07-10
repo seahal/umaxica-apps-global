@@ -1,0 +1,31 @@
+<% title t("sign.app.registration.new.page_title") %>
+
+<h1><%= t("sign.app.registration.new.page_title") %></h1>
+
+<ul>
+  <li data-test-id="registration-method">
+    <%= link_to t("sign.app.registration.new.methods.email.cta"),
+                new_auth_app_sign_up_email_path(ri: params[:ri]) %>
+  </li>
+  <li data-test-id="registration-method">
+    <%= link_to t("sign.app.registration.new.methods.telephone.cta"),
+                new_auth_app_sign_up_telephone_path(ri: params[:ri]) %>
+  </li>
+</ul>
+
+<ul>
+  <li data-test-id="registration-method">
+    <%= link_to new_auth_app_social_google_registration_path,
+                data: { turbo: false } do %>
+      <%= t("sign.app.registration.new.social.buttons.google") %>
+    <% end %>
+  </li>
+  <li data-test-id="registration-method">
+    <%= link_to new_auth_app_social_apple_registration_path,
+                data: { turbo: false } do %>
+      <%= t("sign.app.registration.new.social.buttons.apple") %>
+    <% end %>
+  </li>
+</ul>
+
+<%= link_to t("sign.app.registration.new.links.sign_in"), auth_app_sign_in_path %>

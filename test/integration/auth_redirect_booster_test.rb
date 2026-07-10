@@ -2,28 +2,32 @@
 # frozen_string_literal: true
 
 require "test_helper"
+# require "helpers/global_test_support"
 
 class AuthRedirectTestController < ApplicationController
-  include Authentication::Base
+  include AuthenticationBase
 
-  public_strict!
+  declare_authentication_mode! :open
 
   def trigger_redirect_with_notice
-    # We need to set up the rd parameter first
-    session[Authentication::Base::DEFAULT_RD_SESSION_KEY] = params[:rd] if params[:rd].present?
+    session[AuthenticationBase::DEFAULT_PT_SESSION_KEY] = signed_pt_token(params[:pt]) if params[:pt].present?
     redirect_with_notice("/default_path", "This is a notice")
   end
 
   def trigger_redirect_with_alert
-    session[Authentication::Base::DEFAULT_RD_SESSION_KEY] = params[:rd] if params[:rd].present?
+    session[AuthenticationBase::DEFAULT_PT_SESSION_KEY] = signed_pt_token(params[:pt]) if params[:pt].present?
     redirect_with_alert("/default_path", "This is an alert")
   end
 
-  def trigger_add_rd_to_params
-    session[Authentication::Base::DEFAULT_RD_SESSION_KEY] = params[:rd] if params[:rd].present?
+  def trigger_add_rt_to_params
+    session[AuthenticationBase::DEFAULT_PT_SESSION_KEY] = signed_pt_token(params[:pt]) if params[:pt].present?
     redirect_params = { action: "index" }
-    add_rd_to_params!(redirect_params)
+    add_pt_to_params!(redirect_params)
     render json: redirect_params
+  end
+
+  def trigger_safe_rt
+    render plain: path_from_signed_pt(params[:pt]) || ""
   end
 
   def trigger_issue_bulletin
@@ -34,22 +38,33 @@ class AuthRedirectTestController < ApplicationController
     end
   end
 
-  def trigger_inject_test_bulletin
-    maybe_inject_test_bulletin!
-    render json: session[Authentication::Base::BULLETIN_SESSION_KEY] || {}
+  def am_i_user?
+    false
   end
 
-  def am_i_user?; false; end
+  def am_i_staff?
+    false
+  end
 
-  def am_i_staff?; false; end
+  def am_i_owner?
+    false
+  end
 
-  def am_i_owner?; false; end
+  def resource_type
+    "Client"
+  end
 
-  def resource_type; "User"; end
+  def resource_class
+    Client
+  end
 
-  def resource_class; User; end
+  def token_class
+    ClientToken
+  end
 
-  def token_class; UserToken; end
+  def current_region_identifier
+    "jp"
+  end
 end
 
 class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
@@ -58,9 +73,9 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
     Rails.application.routes.draw do
       get "/auth_redirect/notice" => "auth_redirect_test#trigger_redirect_with_notice"
       get "/auth_redirect/alert" => "auth_redirect_test#trigger_redirect_with_alert"
-      get "/auth_redirect/params" => "auth_redirect_test#trigger_add_rd_to_params"
+      get "/auth_redirect/params" => "auth_redirect_test#trigger_add_rt_to_params"
+      get "/auth_redirect/safe_rt" => "auth_redirect_test#trigger_safe_rt"
       get "/auth_redirect/bulletin" => "auth_redirect_test#trigger_issue_bulletin"
-      get "/auth_redirect/inject" => "auth_redirect_test#trigger_inject_test_bulletin"
       get "/auth_redirect/index" => "auth_redirect_test#trigger_redirect_with_notice" # dummy destination
     end
   end
@@ -69,49 +84,54 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
     Rails.application.reload_routes!
   end
 
-  test "redirect_with_notice without rd" do
+  test "redirect_with_notice without pt" do
     get "/auth_redirect/notice"
 
     assert_redirected_to "/default_path"
-    assert_equal "This is a notice", flash[:notice]
+    assert_empty flash
   end
 
-  test "redirect_with_notice with rd" do
-    # Assuming rd is a valid base64 encoded URL
-    # "L2F1dGhfcmVkaXJlY3QvaW5kZXg=" -> "/auth_redirect/index"
-    rd = Base64.urlsafe_encode64("/auth_redirect/index")
-    get "/auth_redirect/notice", params: { rd: rd }
+  test "redirect_with_notice with pt" do
+    pt = "/settings?x=1"
+    get "/auth_redirect/notice", params: { pt: pt }
     # jump_to_generated_url redirects
-    assert_redirected_to "/auth_redirect/index"
-    assert_equal "This is a notice", flash[:notice]
+    assert_redirected_to "/settings?x=1"
+    assert_empty flash
   end
 
-  test "redirect_with_alert without rd" do
+  test "redirect_with_alert without pt" do
     get "/auth_redirect/alert"
 
     assert_redirected_to "/default_path"
-    assert_equal "This is an alert", flash[:alert]
+    assert_empty flash
   end
 
-  test "add_rd_to_params" do
-    rd = Base64.urlsafe_encode64("/auth_redirect/index")
-    get "/auth_redirect/params", params: { rd: rd }
+  test "add_rt_to_params" do
+    pt = "/dashboard"
+    get "/auth_redirect/params", params: { pt: pt }
 
     assert_response :success
-    assert_equal rd, response.parsed_body["rd"]
+    assert_match(/--/, response.parsed_body["pt"])
+  end
+
+  test "path_from_signed_pt rejects raw internal path" do
+    pt = "/settings?x=1"
+    get "/auth_redirect/safe_rt", params: { pt: pt }
+
+    assert_response :success
+    assert_equal "", response.body
+  end
+
+  test "path_from_signed_pt rejects unencoded external URL" do
+    get "/auth_redirect/safe_rt", params: { pt: "https://evil.example/path" }
+
+    assert_response :success
+    assert_equal "", response.body
   end
 
   test "issue_bulletin returns false when no bulletin" do
     get "/auth_redirect/bulletin"
 
     assert_equal "not_issued", response.body
-  end
-
-  test "inject_test_bulletin" do
-    # Send test header
-    get "/auth_redirect/inject", headers: { "X-TEST-BULLETIN" => { "some" => "data" }.to_json }
-
-    assert_response :success
-    assert_equal "data", response.parsed_body["some"]
   end
 end

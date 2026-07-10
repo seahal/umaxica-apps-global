@@ -2,21 +2,30 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
-  # Redirect to localhost from 127.0.0.1 to use same IP address with Vite server
-  constraints(host: "127.0.0.1") do
-    get "(*path)", to: redirect { |params, req| "#{req.protocol}localhost:#{req.port}/#{params[:path]}" }
-  end
-  # #FIXME remove or exile this
-  # CSP violation reporting endpoint (host-agnostic, all domains)
-  post "/csp-violation-report", to: "csp_violations#create"
+  # Base owns the OP/Authorization Server and durable identity/session authority.
+  draw :base
 
-  # BFF
-  draw :apex
-  # sign in / up
-  draw :sign
-  # Jump Page
-  draw :jump
+  # Auth owns the credential gateway for sign-in/sign-up ceremonies.
+  draw :auth
 
-  root "inertia_example#index"
-  get "inertia-example", to: "inertia_example#index"
+  # Info owns public informational content.
+  draw :info
+
+  # Core owns the regional BFF surface.
+  draw :core
+
+  # Side owns the Rails foundation/control-plane surface.
+  draw :side
+
+  # Palm owns the native RP and bearer-token API surface.
+  draw :palm
+
+  # Help owns the public help content surface.
+  draw :help
+
+  # Docs owns the public documentation content surface.
+  draw :docs
+
+  # News owns the public news content surface.
+  draw :news
 end

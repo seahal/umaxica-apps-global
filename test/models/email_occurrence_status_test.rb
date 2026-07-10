@@ -34,9 +34,24 @@ class EmailOccurrenceStatusTest < ActiveSupport::TestCase
     assert_status_association(EmailOccurrenceStatus, :email_occurrences)
   end
 
+  test "ensure_defaults! creates default records" do
+    EmailOccurrenceStatus.ensure_defaults!
+
+    EmailOccurrenceStatus::DEFAULTS.each do |id|
+      assert EmailOccurrenceStatus.exists?(id), "missing default email occurrence status #{id}"
+    end
+  end
+
   #   test "expires_at default" do
   #     record = EmailOccurrenceStatus.new(id: "EXPIRES_AT_TEST")
   #
   #     assert_expires_at_default(record)
   #   end
+  private
+
+  def assert_status_association(status_class, association_name)
+    reflection = status_class.reflect_on_association(association_name)
+
+    assert_not_nil reflection
+  end
 end

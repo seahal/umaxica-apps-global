@@ -5,7 +5,7 @@
 # == Schema Information
 #
 # Table name: organization_invitations
-# Database name: token
+# Database name: org_ticket
 #
 #  id              :bigint           not null, primary key
 #  code            :string(32)       not null
@@ -26,22 +26,20 @@
 #  index_organization_invitations_on_organization_id  (organization_id)
 #
 
-class OrganizationInvitation < TokenRecord
+class OrganizationInvitation < OrgTicketRecord
   belongs_to :invited_by,
-             class_name: "Staff",
-             primary_key: :id,
-             optional: true
+             class_name: "Operator",
+             primary_key: :id
 
-  validates :code, presence: true, uniqueness: true
+  validates :code, presence: true, uniqueness: true, length: { maximum: 32 }
   validates :email, presence: true
   validates :organization_id, presence: true
-  validates :invited_by_id, presence: true
   validates :expires_at, presence: true
 
   before_validation :generate_code, on: :create
   before_validation :set_expiration, on: :create
 
-  scope :active, -> { where(consumed_at: nil).where("expires_at > ?", Time.current) }
+  scope :active, -> { where(consumed_at: nil).where(arel_table[:expires_at].gt(Time.current)) }
   scope :expired, -> { where(expires_at: ..Time.current) }
   scope :consumed, -> { where.not(consumed_at: nil) }
 
@@ -58,9 +56,12 @@ class OrganizationInvitation < TokenRecord
   end
 
   def consume!
-    return false unless active?
+    self.class.transaction do
+      lock!
+      return false unless active?
 
-    update!(consumed_at: Time.current)
+      update!(consumed_at: Time.current)
+    end
   end
 
   class << self
@@ -73,10 +74,15 @@ class OrganizationInvitation < TokenRecord
     end
 
     def generate_unique_code
-      loop do
-        code = SecureRandom.alphanumeric(32).downcase
-        break code unless exists?(code: code)
-      end
+      operation =
+        lambda do
+          loop do
+            code = SecureRandom.alphanumeric(32).downcase
+            break code unless exists?(code: code)
+          end
+        end
+
+      defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
     end
   end
 
