@@ -11,6 +11,21 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
   BASE_COM_HOST = ENV.fetch("PUBLIC_BASE_CORPORATE_URL")
   BASE_ORG_HOST = ENV.fetch("PUBLIC_BASE_STAFF_URL")
 
+  test "base private network and developer hosts preserve their constrained routes" do
+    {
+      "base.net.localhost" => "base/net/csp_violation_reports",
+      "base.dev.localhost" => "base/dev/csp_violation_reports",
+    }.each do |host, controller|
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/csp-violation-report",
+        method: :post,
+      )
+
+      assert_equal controller, recognized[:controller]
+      assert_equal "create", recognized[:action]
+    end
+  end
+
   # rubocop:disable Minitest/MultipleAssertions
   test "base app route contract" do
     [Rails.configuration.x.boot_config.fetch(:hosts).base_service.host, "www.umaxica.app",

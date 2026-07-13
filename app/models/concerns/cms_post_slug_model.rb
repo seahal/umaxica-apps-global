@@ -7,7 +7,7 @@ module CmsPostSlugModel
 
   class_methods do
     def cms_post_slug_model(post_class_name:)
-      belongs_to :post, class_name: post_class_name, foreign_key: :post_id, inverse_of: :slugs
+      belongs_to :post, class_name: post_class_name, inverse_of: :slugs
     end
   end
 

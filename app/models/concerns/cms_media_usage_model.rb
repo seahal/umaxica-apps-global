@@ -8,12 +8,12 @@ module CmsMediaUsageModel
 
   class_methods do
     def cms_media_usage_model(media_file_class_name:, post_class_name:, revision_class_name:, version_class_name:)
-      belongs_to :media_file, class_name: media_file_class_name, foreign_key: :media_file_id,
+      belongs_to :media_file, class_name: media_file_class_name,
                               inverse_of: :media_usages
-      belongs_to :post, class_name: post_class_name, foreign_key: :post_id, inverse_of: :media_usages
-      belongs_to :post_revision, class_name: revision_class_name, foreign_key: :post_revision_id,
+      belongs_to :post, class_name: post_class_name, inverse_of: :media_usages
+      belongs_to :post_revision, class_name: revision_class_name,
                                  inverse_of: :media_usages, optional: true
-      belongs_to :post_version, class_name: version_class_name, foreign_key: :post_version_id,
+      belongs_to :post_version, class_name: version_class_name,
                                 inverse_of: :media_usages, optional: true
     end
   end

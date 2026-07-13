@@ -13,6 +13,20 @@ class NewsRouteContractTest < ActionDispatch::IntegrationTest
     "news.jp.umaxica.com" => "news/com/roots",
     "news.jp.umaxica.org" => "news/org/roots",
   }.freeze
+  PRIVATE_ORIGIN_HOSTS = {
+    "news.app.localhost" => "news/app/roots",
+    "news.com.localhost" => "news/com/roots",
+    "news.org.localhost" => "news/org/roots",
+  }.freeze
+
+  test "news private origin hosts route to the matching surface" do
+    PRIVATE_ORIGIN_HOSTS.each do |host, controller|
+      recognized = Rails.application.routes.recognize_path("http://#{host}/", method: :get)
+
+      assert_equal controller, recognized[:controller]
+      assert_equal "index", recognized[:action]
+    end
+  end
 
   test "news public host aliases route to the matching surface" do
     PUBLIC_NEWS_HOSTS.each do |host, controller|

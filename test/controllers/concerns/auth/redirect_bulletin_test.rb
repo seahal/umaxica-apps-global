@@ -209,9 +209,11 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
       controller.define_singleton_method(:current_region_identifier) { "jp" }
       controller.define_singleton_method(:params) { {} }
 
-      ENV.stub(:fetch, ->(key, *args, &block) {
-        key == environment_key ? expected_host : ENV.fetch(key, *args, &block)
-      }) do
+      ENV.stub(
+        :fetch, ->(key, *args, &block) {
+          (key == environment_key) ? expected_host : ENV.fetch(key, *args, &block)
+        },
+      ) do
         assert_equal "http://#{expected_host}/welcome?ri=jp", controller.sign_in_welcome_path
       end
     end

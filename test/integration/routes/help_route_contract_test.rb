@@ -8,6 +8,21 @@ class HelpRouteContractTest < ActionDispatch::IntegrationTest
   HELP_APP_HOST = ENV.fetch("PRIVATE_HELP_SERVICE_URL")
   HELP_COM_HOST = ENV.fetch("PRIVATE_HELP_CORPORATE_URL")
   HELP_ORG_HOST = ENV.fetch("PRIVATE_HELP_STAFF_URL")
+  PRIVATE_ORIGIN_HOSTS = {
+    "help.app.localhost" => "help/app/roots",
+    "help.com.localhost" => "help/com/roots",
+    "help.org.localhost" => "help/org/roots",
+  }.freeze
+
+  test "help private origin hosts route to the matching surface" do
+    PRIVATE_ORIGIN_HOSTS.each do |host, controller|
+      recognized = Rails.application.routes.recognize_path("http://#{host}/", method: :get)
+
+      assert_equal controller, recognized[:controller]
+      assert_equal "index", recognized[:action]
+    end
+  end
+
   test "help app route contract" do
     recognized = Rails.application.routes.recognize_path(
       "http://#{HELP_APP_HOST}/",
