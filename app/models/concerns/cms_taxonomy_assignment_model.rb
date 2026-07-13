@@ -7,8 +7,8 @@ module CmsTaxonomyAssignmentModel
   include Cms::ImmutableRecord
 
   included do
-    validates :public_id, :locale, :taxonomy_public_id_snapshot, :slug_snapshot, :name_snapshot,
-              :path_snapshot, :created_at, presence: true
+    validates :public_id, :locale, :taxonomy_public_id_snapshot, :slug_snapshot, :name_snapshot, :created_at,
+              presence: true
     validate :path_snapshot_is_an_array
   end
 

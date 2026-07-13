@@ -175,6 +175,30 @@ services:
       backend: {}
       frontend:
         aliases:
+          - base.app.localhost
+          - base.com.localhost
+          - base.org.localhost
+          - base.net.localhost
+          - base.dev.localhost
+          - auth.app.localhost
+          - auth.com.localhost
+          - auth.org.localhost
+          - core.app.localhost
+          - core.com.localhost
+          - core.org.localhost
+          - docs.app.localhost
+          - docs.com.localhost
+          - docs.org.localhost
+          - help.app.localhost
+          - help.com.localhost
+          - help.org.localhost
+          - news.app.localhost
+          - news.com.localhost
+          - news.org.localhost
+          - palm.app.localhost
+          - edge.app.localhost
+          - edge.com.localhost
+          - edge.org.localhost
           - info.app.localhost
           - info.com.localhost
           - info.org.localhost
@@ -464,12 +488,14 @@ services:
         condition: service_healthy
     restart: unless-stopped
   cloudflare-tunnel:
-    image: cloudflare/cloudflared:latest
+    # Workers VPC requires cloudflared 2025.7.0 or newer.
+    image: cloudflare/cloudflared:2025.7.0
     depends_on:
     - core
-    command: tunnel run --token ${CLOUDFLARED_TOKEN}
+    # Workers VPC DNS routing requires QUIC and outbound UDP 7844.
+    command: tunnel --protocol quic run
     environment:
-      CLOUDFLARED_TOKEN: "${CLOUDFLARED_TOKEN}"
+      TUNNEL_TOKEN: "${CLOUDFLARED_TOKEN}"
     networks:
     - frontend
     extra_hosts:

@@ -9,7 +9,7 @@ module CmsCategoryModel
 
   class_methods do
     def cms_category_model(category_class_name:, revision_assignment_class_name:, version_assignment_class_name:)
-      belongs_to :parent, class_name: category_class_name, foreign_key: :parent_id, inverse_of: :children, optional: true
+      belongs_to :parent, class_name: category_class_name, inverse_of: :children, optional: true
       has_many :children, class_name: category_class_name, foreign_key: :parent_id, inverse_of: :parent,
                           dependent: :restrict_with_exception
       has_many :revision_assignments, class_name: revision_assignment_class_name, foreign_key: :category_id,

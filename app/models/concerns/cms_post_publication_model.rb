@@ -9,8 +9,8 @@ module CmsPostPublicationModel
 
   class_methods do
     def cms_post_publication_model(post_class_name:, version_class_name:)
-      belongs_to :post, class_name: post_class_name, foreign_key: :post_id, inverse_of: :publications
-      belongs_to :post_version, class_name: version_class_name, foreign_key: :post_version_id,
+      belongs_to :post, class_name: post_class_name, inverse_of: :publications
+      belongs_to :post_version, class_name: version_class_name,
                                 inverse_of: :publications
     end
   end

@@ -47,3 +47,8 @@ staff_secret.staff_secret_kind_id = OperatorSecretCredentialKind::PERMANENT
 staff_secret.staff_identity_secret_status_id = OperatorSecretCredentialStatus::ACTIVE
 staff_secret.password = sample_staff_secret
 staff_secret.save!
+
+if Rails.env.development? && ENV["SEED_CMS_SAMPLES"] == "1"
+  require_relative "seeds/cms_samples"
+  CmsSamples.load!
+end

@@ -11,10 +11,10 @@ module CmsPostRevisionModel
   class_methods do
     def cms_post_revision_model(post_class_name:, revision_class_name:, version_class_name:, media_usage_class_name:,
                                 category_assignment_class_name:, tag_assignment_class_name:)
-      belongs_to :post, class_name: post_class_name, foreign_key: :post_id, inverse_of: :revisions
-      belongs_to :restored_from_revision, class_name: revision_class_name, foreign_key: :restored_from_revision_id,
+      belongs_to :post, class_name: post_class_name, inverse_of: :revisions
+      belongs_to :restored_from_revision, class_name: revision_class_name,
                                           inverse_of: :restored_revisions, optional: true
-      belongs_to :restored_from_version, class_name: version_class_name, foreign_key: :restored_from_version_id,
+      belongs_to :restored_from_version, class_name: version_class_name,
                                          inverse_of: :restored_revisions, optional: true
       has_many :restored_revisions, class_name: revision_class_name, foreign_key: :restored_from_revision_id,
                                     inverse_of: :restored_from_revision, dependent: :restrict_with_exception

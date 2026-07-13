@@ -146,9 +146,13 @@ Rails.application.configure do
 
   localhost_tunnel_hosts = %w(
     auth.app.localhost:3000
+    auth.com.localhost:3000
+    auth.org.localhost:3000
     base.app.localhost:3000
     base.org.localhost:3000
     base.com.localhost:3000
+    base.net.localhost:3000
+    base.dev.localhost:3000
     info.com.localhost:3000
     info.org.localhost:3000
     info.app.localhost:3000

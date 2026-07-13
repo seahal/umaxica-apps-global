@@ -11,8 +11,8 @@ module CmsPostVersionModel
   class_methods do
     def cms_post_version_model(post_class_name:, revision_class_name:, publication_class_name:, media_usage_class_name:,
                                category_assignment_class_name:, tag_assignment_class_name:)
-      belongs_to :post, class_name: post_class_name, foreign_key: :post_id, inverse_of: :versions
-      belongs_to :post_revision, class_name: revision_class_name, foreign_key: :post_revision_id, inverse_of: :version
+      belongs_to :post, class_name: post_class_name, inverse_of: :versions
+      belongs_to :post_revision, class_name: revision_class_name, inverse_of: :version
       has_many :restored_revisions, class_name: revision_class_name, foreign_key: :restored_from_version_id,
                                     inverse_of: :restored_from_version, dependent: :restrict_with_exception
       has_many :publications, class_name: publication_class_name, foreign_key: :post_version_id,

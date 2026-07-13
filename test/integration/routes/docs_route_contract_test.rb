@@ -13,6 +13,20 @@ class DocsRouteContractTest < ActionDispatch::IntegrationTest
     "docs.jp.umaxica.com" => "docs/com/roots",
     "docs.jp.umaxica.org" => "docs/org/roots",
   }.freeze
+  PRIVATE_ORIGIN_HOSTS = {
+    "docs.app.localhost" => "docs/app/roots",
+    "docs.com.localhost" => "docs/com/roots",
+    "docs.org.localhost" => "docs/org/roots",
+  }.freeze
+
+  test "docs private origin hosts route to the matching surface" do
+    PRIVATE_ORIGIN_HOSTS.each do |host, controller|
+      recognized = Rails.application.routes.recognize_path("http://#{host}/", method: :get)
+
+      assert_equal controller, recognized[:controller]
+      assert_equal "index", recognized[:action]
+    end
+  end
 
   test "docs public host aliases route to the matching surface" do
     PUBLIC_DOCS_HOSTS.each do |host, controller|
