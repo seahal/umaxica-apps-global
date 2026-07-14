@@ -108,7 +108,10 @@
   //
   // Workspace write-guards: critical supply-chain paths are overlaid as
   // readonly bind mounts on top of the rw workspace bind mount. A compromised
-  // in-container process cannot rewrite CI workflows, bin scripts, or lockfiles.
+  // in-container process cannot rewrite CI workflows, bin scripts, or the
+  // dependency manifests used by the frozen-install workflow. pnpm-lock.yaml
+  // remains on the workspace mount because dependency updates replace it
+  // atomically; CI protects reproducibility with pnpm install --frozen-lockfile.
   "mounts": [
     "source=${localEnv:HOME}/.codex,target=/home/global/.codex,type=bind",
     "source=${localEnv:HOME}/.claude,target=/home/global/.claude,type=bind",
@@ -126,7 +129,6 @@
     "source=${localWorkspaceFolder}/Gemfile,target=/home/global/workspace/Gemfile,type=bind,readonly",
     "source=${localWorkspaceFolder}/Gemfile.lock,target=/home/global/workspace/Gemfile.lock,type=bind,readonly",
     "source=${localWorkspaceFolder}/package.json,target=/home/global/workspace/package.json,type=bind,readonly",
-    "source=${localWorkspaceFolder}/pnpm-lock.yaml,target=/home/global/workspace/pnpm-lock.yaml,type=bind,readonly",
     "source=${localWorkspaceFolder}/.devcontainer,target=/home/global/workspace/.devcontainer,type=bind,readonly"
   ]
 }
