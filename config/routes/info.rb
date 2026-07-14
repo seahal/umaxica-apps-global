@@ -20,7 +20,8 @@ scope module: :info, as: :info do
 
       namespace :api do
         namespace :v0 do
-          # FIXME: remove param: :slug !
+          # `param: :slug` only renames the path segment to the public
+          # identifier; the route stays fully resourceful.
           resources :entries, only: %i(index show), param: :slug
         end
       end
@@ -44,7 +45,8 @@ scope module: :info, as: :info do
 
       namespace :api do
         namespace :v0 do
-          # FIXME: remove param: :slug !
+          # `param: :slug` only renames the path segment to the public
+          # identifier; the route stays fully resourceful.
           resources :entries, only: %i(index show), param: :slug
         end
       end
@@ -68,7 +70,8 @@ scope module: :info, as: :info do
 
       namespace :api do
         namespace :v0 do
-          # FIXME: remove param: :slug !
+          # `param: :slug` only renames the path segment to the public
+          # identifier; the route stays fully resourceful.
           resources :entries, only: %i(index show), param: :slug
         end
       end

@@ -220,7 +220,7 @@ module Security
         },
         {
           pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/palm/app/auth/authorizations_controller.rb",
+          path: "app/controllers/palm/app/oidc/authorizations_controller.rb",
           line: /redirect_to\(url, allow_other_host: true\)/,
           reason: "Palm app authorization starts the reviewed jump gateway handoff.",
         },

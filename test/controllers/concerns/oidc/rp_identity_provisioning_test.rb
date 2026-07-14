@@ -15,7 +15,7 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
     client = clients(:one)
     ClientIdentity.where(source_record_id: client.id).delete_all
     CoreAppClientBridge.where(client_id: client.id).delete_all
-    controller = Core::App::Auth::CallbacksController.new
+    controller = Core::App::Oidc::CallbacksController.new
 
     actor = controller.send(
       :provision_rp_account_from_id_token_payload!, {
@@ -49,7 +49,7 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
       source_record_id: client.id,
       status_id: ClientIdentityState::ACTIVE,
     )
-    controller = Core::App::Auth::CallbacksController.new
+    controller = Core::App::Oidc::CallbacksController.new
 
     actor = controller.send(
       :provision_rp_account_from_id_token_payload!, {

@@ -717,7 +717,20 @@ class CspViolationReportsControllerTest
   private
 
   def configured_host(surface_name)
-    Rails.configuration.x.boot_config.fetch(:hosts).public_send(surface_name).host
+    public_env_key = {
+      base_service: "PUBLIC_BASE_SERVICE_URL",
+      base_corporate: "PUBLIC_BASE_CORPORATE_URL",
+      base_staff: "PUBLIC_BASE_STAFF_URL",
+      auth_service: "PUBLIC_AUTH_SERVICE_URL",
+      auth_corporate: "PUBLIC_AUTH_CORPORATE_URL",
+      auth_staff: "PUBLIC_AUTH_STAFF_URL",
+      core_service: "PUBLIC_CORE_SERVICE_URL",
+      core_corporate: "PUBLIC_CORE_CORPORATE_URL",
+      core_staff: "PUBLIC_CORE_STAFF_URL",
+      palm_service: "PUBLIC_PALM_SERVICE_URL",
+    }.fetch(surface_name)
+
+    ENV.fetch(public_env_key, Rails.configuration.x.boot_config.fetch(:hosts).public_send(surface_name).host)
   end
 
   def set_access_cookie(token)

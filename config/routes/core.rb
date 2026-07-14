@@ -64,8 +64,8 @@ scope module: :core, as: :core do
 
       # RP OIDC entrypoints.
       namespace :oidc do
-        resource :authorization, only: :show, to: "/core/app/auth/authorizations#show"
-        resource :callback, only: :show, to: "/core/app/auth/callbacks#show"
+        resource :authorization, only: :show
+        resource :callback, only: :show
 
         # RP back-channel receiver.
         namespace :backchannel do
@@ -73,9 +73,11 @@ scope module: :core, as: :core do
         end
       end
 
-      # Canonical browser sign-out flow.
-      resource :sign_out, only: %i(new edit create), path: "sign/out" do
-        resource :completion, only: :show, path: "complete", module: :sign_outs
+      # Canonical browser sign-out ceremony (see config/routes/auth.rb for the pattern).
+      namespace :sign do
+        resource :termination, only: %i(new edit create), path: "out", controller: :outs, as: :out do
+          resource :completion, only: :show, path: "complete", module: :outs
+        end
       end
     end
   end
@@ -141,8 +143,8 @@ scope module: :core, as: :core do
 
       # RP OIDC entrypoints.
       namespace :oidc do
-        resource :callback, only: :show, to: "/core/com/auth/callbacks#show"
-        resource :authorization, only: :show, to: "/core/com/auth/authorizations#show"
+        resource :callback, only: :show
+        resource :authorization, only: :show
 
         # RP back-channel receiver.
         namespace :backchannel do
@@ -150,9 +152,11 @@ scope module: :core, as: :core do
         end
       end
 
-      # Canonical browser sign-out flow.
-      resource :sign_out, only: %i(new edit create), path: "sign/out" do
-        resource :completion, only: :show, path: "complete", module: :sign_outs
+      # Canonical browser sign-out ceremony (see config/routes/auth.rb for the pattern).
+      namespace :sign do
+        resource :termination, only: %i(new edit create), path: "out", controller: :outs, as: :out do
+          resource :completion, only: :show, path: "complete", module: :outs
+        end
       end
     end
   end
@@ -221,8 +225,8 @@ scope module: :core, as: :core do
 
       # RP OIDC entrypoints.
       namespace :oidc do
-        resource :callback, only: :show, to: "/core/org/auth/callbacks#show"
-        resource :authorization, only: :show, to: "/core/org/auth/authorizations#show"
+        resource :callback, only: :show
+        resource :authorization, only: :show
 
         # RP back-channel receiver.
         namespace :backchannel do
@@ -230,9 +234,11 @@ scope module: :core, as: :core do
         end
       end
 
-      # Canonical browser sign-out flow.
-      resource :sign_out, only: %i(new edit create), path: "sign/out" do
-        resource :completion, only: :show, path: "complete", module: :sign_outs
+      # Canonical browser sign-out ceremony (see config/routes/auth.rb for the pattern).
+      namespace :sign do
+        resource :termination, only: %i(new edit create), path: "out", controller: :outs, as: :out do
+          resource :completion, only: :show, path: "complete", module: :outs
+        end
       end
     end
   end

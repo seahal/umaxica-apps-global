@@ -8,9 +8,9 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
   self.fixture_table_names = []
 
   BOOT_HOSTS = Rails.configuration.x.boot_config.fetch(:hosts)
-  CORE_APP_HOST = BOOT_HOSTS.core_service.host
-  CORE_COM_HOST = BOOT_HOSTS.core_corporate.host
-  CORE_ORG_HOST = BOOT_HOSTS.core_staff.host
+  CORE_APP_HOST = ENV.fetch("PUBLIC_CORE_SERVICE_URL", BOOT_HOSTS.core_service.host)
+  CORE_COM_HOST = ENV.fetch("PUBLIC_CORE_CORPORATE_URL", BOOT_HOSTS.core_corporate.host)
+  CORE_ORG_HOST = ENV.fetch("PUBLIC_CORE_STAFF_URL", BOOT_HOSTS.core_staff.host)
   CORE_NET_HOST = ENV["PRIVATE_CORE_NETWORK_URL"] || ENV.fetch("PRIVATE_CORE_NETWORK_URL", "core.net.localhost")
   CORE_DEV_HOST = ENV["PRIVATE_CORE_DEVELOPER_URL"] || ENV.fetch("PRIVATE_CORE_DEVELOPER_URL", "core.dev.localhost")
 
@@ -114,32 +114,32 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/app/auth/callbacks", action: "show", to: "/core/app/auth/callbacks#show" },
+      { controller: "core/app/oidc/callbacks", action: "show" },
       { path: "http://#{CORE_APP_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/app/auth/authorizations", action: "show", to: "/core/app/auth/authorizations#show" },
+      { controller: "core/app/oidc/authorizations", action: "show" },
       { path: "http://#{CORE_APP_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/app/sign_outs", action: "new" },
+      { controller: "core/app/sign/outs", action: "new" },
       { path: "http://#{CORE_APP_HOST}/sign/out/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/app/sign_outs", action: "edit" },
+      { controller: "core/app/sign/outs", action: "edit" },
       { path: "http://#{CORE_APP_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/app/sign_outs", action: "create" },
+      { controller: "core/app/sign/outs", action: "create" },
       { path: "http://#{CORE_APP_HOST}/sign/out", method: :post },
     )
 
     assert_recognizes(
-      { controller: "core/app/sign_outs/completions", action: "show" },
+      { controller: "core/app/sign/outs/completions", action: "show" },
       { path: "http://#{CORE_APP_HOST}/sign/out/complete", method: :get },
     )
 
@@ -261,32 +261,32 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/com/auth/callbacks", action: "show", to: "/core/com/auth/callbacks#show" },
+      { controller: "core/com/oidc/callbacks", action: "show" },
       { path: "http://#{CORE_COM_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/com/auth/authorizations", action: "show", to: "/core/com/auth/authorizations#show" },
+      { controller: "core/com/oidc/authorizations", action: "show" },
       { path: "http://#{CORE_COM_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/com/sign_outs", action: "new" },
+      { controller: "core/com/sign/outs", action: "new" },
       { path: "http://#{CORE_COM_HOST}/sign/out/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/com/sign_outs", action: "edit" },
+      { controller: "core/com/sign/outs", action: "edit" },
       { path: "http://#{CORE_COM_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/com/sign_outs", action: "create" },
+      { controller: "core/com/sign/outs", action: "create" },
       { path: "http://#{CORE_COM_HOST}/sign/out", method: :post },
     )
 
     assert_recognizes(
-      { controller: "core/com/sign_outs/completions", action: "show" },
+      { controller: "core/com/sign/outs/completions", action: "show" },
       { path: "http://#{CORE_COM_HOST}/sign/out/complete", method: :get },
     )
 
@@ -414,32 +414,32 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/org/auth/callbacks", action: "show", to: "/core/org/auth/callbacks#show" },
+      { controller: "core/org/oidc/callbacks", action: "show" },
       { path: "http://#{CORE_ORG_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/org/auth/authorizations", action: "show", to: "/core/org/auth/authorizations#show" },
+      { controller: "core/org/oidc/authorizations", action: "show" },
       { path: "http://#{CORE_ORG_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/org/sign_outs", action: "new" },
+      { controller: "core/org/sign/outs", action: "new" },
       { path: "http://#{CORE_ORG_HOST}/sign/out/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/org/sign_outs", action: "edit" },
+      { controller: "core/org/sign/outs", action: "edit" },
       { path: "http://#{CORE_ORG_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/org/sign_outs", action: "create" },
+      { controller: "core/org/sign/outs", action: "create" },
       { path: "http://#{CORE_ORG_HOST}/sign/out", method: :post },
     )
 
     assert_recognizes(
-      { controller: "core/org/sign_outs/completions", action: "show" },
+      { controller: "core/org/sign/outs/completions", action: "show" },
       { path: "http://#{CORE_ORG_HOST}/sign/out/complete", method: :get },
     )
 

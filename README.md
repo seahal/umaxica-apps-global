@@ -5,12 +5,12 @@
 
 ## Routing
 
-- `app`: for end user
-- `org`: controller panel
-- `com`: brand page
+- `app`: end-user application
+- `org`: staff and organization surface
+- `com`: public and corporate surface
 
-Multi-domain Rails application for three audience surfaces. Routing is host-constrained, so domain
-and subdomain matter in both development and production.
+Multi-domain Rails application serving three independent audience surfaces. Routing is
+host-constrained, so domain and subdomain matter in both development and production.
 
 ## Stack
 
@@ -25,11 +25,11 @@ and subdomain matter in both development and production.
 
 ## Frontend and Assets
 
-- JavaScript entrypoints are bundled through Vite Rails from `src/entrypoints`
-- Stimulus controllers live in `src/controllers`
-- JavaScript tests live in `spec/` and run directly with Vitest
-- Browser CSS is imported once through the Vite stylesheet graph in `src/styles/application.css`
-- Static non-browser assets are served by Propshaft
+- JavaScript entrypoints are bundled through Vite Rails from `src/entrypoints`.
+- Stimulus controllers live in `src/controllers`.
+- JavaScript tests live in `spec/` and run directly with Vitest.
+- Browser CSS is imported once through the Vite stylesheet graph in `src/styles/application.css`.
+- Static non-browser assets are served by Propshaft.
 
 Useful commands:
 

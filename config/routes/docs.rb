@@ -32,8 +32,8 @@ scope module: :docs, as: :docs do
       namespace :api do
         # Versioned documentation API.
         namespace :v0 do
-          # Published documentation entries.
-          # FIXME: nasty entrypoint!
+          # Published documentation entries. `param: :slug` only renames the path
+          # segment to the public identifier; the route stays fully resourceful.
           resources :entries, only: %i(index show), param: :slug do
             resources :revisions, only: %i(index show), module: :entries
           end

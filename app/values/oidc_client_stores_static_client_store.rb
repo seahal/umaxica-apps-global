@@ -73,15 +73,17 @@ module OidcClientStoresStaticClientStore
       },
       # Core browser RP.
       "core-next-rp" => {
-        redirect_uris: build_redirect_uris("CORE_SERVICE_URL", "jpx.umaxica.app") +
-          build_redirect_uris("CORE_STAFF_URL", "jpx.umaxica.org") +
-          build_redirect_uris("CORE_CORPORATE_URL", "jpx.umaxica.com"),
-        post_logout_redirect_uris: build_post_logout_redirect_uris("CORE_SERVICE_URL", "jpx.umaxica.app") +
-          build_post_logout_redirect_uris("CORE_STAFF_URL", "jpx.umaxica.org") +
-          build_post_logout_redirect_uris("CORE_CORPORATE_URL", "jpx.umaxica.com"),
-        backchannel_logout_uris: build_logout_uris("CORE_SERVICE_URL", "jpx.umaxica.app", "backchannel/logout") +
-          build_logout_uris("CORE_STAFF_URL", "jpx.umaxica.org", "backchannel/logout") +
-          build_logout_uris("CORE_CORPORATE_URL", "jpx.umaxica.com", "backchannel/logout"),
+        redirect_uris: build_redirect_uris("PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app") +
+          build_redirect_uris("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org") +
+          build_redirect_uris("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com"),
+        post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app") +
+          build_post_logout_redirect_uris("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org") +
+          build_post_logout_redirect_uris("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com"),
+        backchannel_logout_uris: build_logout_uris(
+          "PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app", "backchannel/logout",
+        ) +
+          build_logout_uris("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org", "backchannel/logout") +
+          build_logout_uris("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com", "backchannel/logout"),
         backchannel_logout_session_required: true,
         aud: "core-next-rp",
         resource_type: "client",

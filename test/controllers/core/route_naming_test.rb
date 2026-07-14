@@ -7,9 +7,9 @@ require "test_helper"
 class CoreRouteNamingTest < ActionDispatch::IntegrationTest
   BOOT_HOSTS = Rails.configuration.x.boot_config.fetch(:hosts)
   SURFACES = {
-    app: BOOT_HOSTS.core_service.host,
-    com: BOOT_HOSTS.core_corporate.host,
-    org: BOOT_HOSTS.core_staff.host,
+    app: ENV.fetch("PUBLIC_CORE_SERVICE_URL", BOOT_HOSTS.core_service.host),
+    com: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", BOOT_HOSTS.core_corporate.host),
+    org: ENV.fetch("PUBLIC_CORE_STAFF_URL", BOOT_HOSTS.core_staff.host),
   }.freeze
 
   test "robots sitemap csp and token refresh use the current core vocabulary" do
