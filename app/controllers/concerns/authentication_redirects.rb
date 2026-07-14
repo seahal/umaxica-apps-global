@@ -186,12 +186,12 @@ module AuthenticationRedirects
         host: ENV.fetch("PUBLIC_BASE_SERVICE_URL"),
       )
     when :com
-      acme_com_dashboard_url(
+      base_com_dashboard_url(
         ri: params[:ri],
         host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL"),
       )
     when :org
-      acme_org_dashboard_url(
+      base_org_dashboard_url(
         ri: params[:ri],
         host: ENV.fetch("PRIVATE_BASE_STAFF_URL"),
       )

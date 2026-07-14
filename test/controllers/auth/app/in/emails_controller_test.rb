@@ -49,6 +49,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     ActiveJob::Base.queue_adapter = :test
     ActionMailer::Base.deliveries.clear
     CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
     @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
     AuthenticationBase.login_cooldown_enabled = false
   end

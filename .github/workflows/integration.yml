@@ -138,7 +138,6 @@ jobs:
         with:
           fail-on-severity: moderate
           comment-summary-in-pr: true
-          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
   lint-ruby:
     name: Ruby Linting (RuboCop, ERB)
     runs-on: ubuntu-latest

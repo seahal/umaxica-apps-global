@@ -27,6 +27,9 @@ readonly ORIGIN_HOSTS=(
   news.app.localhost
   news.com.localhost
   news.org.localhost
+  side.app.localhost
+  side.com.localhost
+  side.org.localhost
   palm.app.localhost
 )
 

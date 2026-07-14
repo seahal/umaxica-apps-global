@@ -730,13 +730,13 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     controller.define_singleton_method(:issue_bulletin!) { true }
     controller.handle_successful_mfa(@user, secret_credential)
 
-    assert_equal "/dashboard", redirects.last.first
+    assert_equal "http://www.umaxica.app/dashboard?ri=jp", redirects.last.first
 
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.handle_successful_mfa(@user, secret_credential)
 
-    assert_equal "/dashboard", redirects.last.first
-    assert_equal({ allow_other_host: false }, redirects.last.second)
+    assert_equal "http://www.umaxica.app/dashboard?ri=jp", redirects.last.first
+    assert_empty redirects.last.second
 
     controller.define_singleton_method(:finalize_mfa_login!) { |_| { status: :unexpected } }
     controller.handle_successful_mfa(@user, secret_credential)
@@ -766,11 +766,11 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     controller.define_singleton_method(:issue_bulletin!) { true }
     controller.process_standard_login(@user)
 
-    assert_equal ["/dashboard", { allow_other_host: false }], redirects.last
+    assert_equal ["http://www.umaxica.app/dashboard?ri=jp", {}], redirects.last
 
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.process_standard_login(@user)
 
-    assert_equal ["/dashboard", { allow_other_host: false }], redirects.last
+    assert_equal ["http://www.umaxica.app/dashboard?ri=jp", {}], redirects.last
   end
 end

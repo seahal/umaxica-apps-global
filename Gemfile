@@ -5,7 +5,7 @@ source "https://rubygems.org", cooldown: 3
 ruby "4.0.5"
 
 # Type signatures for Ruby libraries.
-gem "rbs", require: false
+gem "rbs", "~> 4.0", require: false
 # Rails application framework from the main branch.
 gem "rails", github: "rails/rails", branch: "main"
 # Rails task runner.
@@ -58,7 +58,7 @@ gem "image_processing", require: false
 # AWS SNS client for SMS delivery.
 gem "aws-sdk-sns", require: false
 # Propshaft asset pipeline.
-gem "propshaft"
+gem "propshaft", github: "rails/propshaft"
 # Tailwind CSS integration.
 # HTML metadata helpers.
 gem "meta-tags"
@@ -236,5 +236,3 @@ group :development do
   # Code smell detector.
   gem "reek", require: false
 end
-
-gem "rbs", "~> 4.0"

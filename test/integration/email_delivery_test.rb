@@ -17,6 +17,7 @@ class EmailDeliveryTest < ActionDispatch::IntegrationTest
 
     # Mock Turnstile to pass validation
     CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
   end
 
   teardown do

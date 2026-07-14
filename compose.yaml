@@ -85,9 +85,9 @@ services:
       PUBLIC_SIDE_CORPORATE_URL: side-jp.umaxica.com
       PUBLIC_SIDE_SERVICE_URL: side-jp.umaxica.app
       PUBLIC_SIDE_STAFF_URL: side-jp.umaxica.org
-      PUBLIC_CORE_CORPORATE_URL: jpx.umaxica.com
-      PUBLIC_CORE_SERVICE_URL: jpx.umaxica.app
-      PUBLIC_CORE_STAFF_URL: jpx.umaxica.org
+      PUBLIC_CORE_CORPORATE_URL: core-jp.umaxica.com
+      PUBLIC_CORE_SERVICE_URL: core-jp.umaxica.app
+      PUBLIC_CORE_STAFF_URL: core-jp.umaxica.org
       PUBLIC_PALM_SERVICE_URL: palm-jp.umaxica.app
       PUBLIC_INFO_CORPORATE_URL: info.umaxica.com
       PUBLIC_INFO_SERVICE_URL: info.umaxica.app
@@ -196,6 +196,9 @@ services:
           - news.com.localhost
           - news.org.localhost
           - palm.app.localhost
+          - side.app.localhost
+          - side.com.localhost
+          - side.org.localhost
           - edge.app.localhost
           - edge.com.localhost
           - edge.org.localhost
@@ -217,9 +220,6 @@ services:
           - core-jp.umaxica.app
           - core-jp.umaxica.com
           - core-jp.umaxica.org
-          - jpx.umaxica.app
-          - jpx.umaxica.com
-          - jpx.umaxica.org
           - palm-jp.umaxica.app
           - docs-jp.umaxica.app
           - docs-jp.umaxica.com
