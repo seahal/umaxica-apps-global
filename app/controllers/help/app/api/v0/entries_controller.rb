@@ -6,17 +6,11 @@ module Help
     module Api
       module V0
         class EntriesController < Help::App::BareController
-          include ::ReadOnlyContentRendering
+          include ::SurfaceEntriesRendering
 
           AUTHENTICATION_MODE = :bare
-
-          def index
-            render_content_api_index
-          end
-
-          def show
-            render_content_api_show
-          end
+          PUBLISHING_AUDIENCE = "app"
+          PUBLISHING_SURFACE = "help"
         end
       end
     end
