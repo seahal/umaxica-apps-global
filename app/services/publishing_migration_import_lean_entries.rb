@@ -121,6 +121,7 @@ class PublishingMigrationImportLeanEntries < ApplicationService
     existing =
       Publishing::EntrySlug
         .joins(:entry)
+        .includes(:entry)
         .find_by(edition:, slug: row.fetch("slug"), publishing_entries: { locale: row.fetch("locale") })
         &.entry
     return existing if existing

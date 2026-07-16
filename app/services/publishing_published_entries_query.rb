@@ -23,7 +23,7 @@ class PublishingPublishedEntriesQuery < ApplicationService
   def find_by(slug:)
     return unless edition
 
-    entry = edition.entry_slugs.canonical.find_by(slug:)&.entry
+    entry = edition.entry_slugs.canonical.includes(:entry).find_by(slug:)&.entry
     return unless entry
     return unless entry.publications.merge(Publishing::Publication.active).exists?
 

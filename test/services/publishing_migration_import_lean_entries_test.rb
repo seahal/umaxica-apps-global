@@ -27,7 +27,7 @@ class PublishingMigrationImportLeanEntriesTest < ActiveSupport::TestCase
     assert_operator result.summary[:imported_published], :>=, 1
 
     edition = Publishing::Edition.find_by(audience: "app", surface: "docs", locale: "ja")
-    entry = edition.entry_slugs.canonical.find_by(slug: "import-published").entry
+    entry = edition.entry_slugs.canonical.includes(:entry).find_by(slug: "import-published").entry
 
     assert_equal 1, entry.revisions.count
     assert_equal 1, entry.versions.count
@@ -44,7 +44,7 @@ class PublishingMigrationImportLeanEntriesTest < ActiveSupport::TestCase
     PublishingMigrationImportLeanEntries.call(apply: true)
 
     edition = Publishing::Edition.find_by(audience: "app", surface: "docs", locale: "ja")
-    entry = edition.entry_slugs.canonical.find_by(slug: "import-draft").entry
+    entry = edition.entry_slugs.canonical.includes(:entry).find_by(slug: "import-draft").entry
 
     assert_equal 1, entry.revisions.count
     assert_equal 0, entry.versions.count
@@ -63,7 +63,7 @@ class PublishingMigrationImportLeanEntriesTest < ActiveSupport::TestCase
     assert_equal 0, second.summary[:errors]
 
     edition = Publishing::Edition.find_by(audience: "app", surface: "docs", locale: "ja")
-    entry = edition.entry_slugs.canonical.find_by(slug: "import-idempotent").entry
+    entry = edition.entry_slugs.canonical.includes(:entry).find_by(slug: "import-idempotent").entry
 
     assert_equal 1, entry.revisions.count
     assert_equal 1, entry.versions.count

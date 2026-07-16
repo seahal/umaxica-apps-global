@@ -36,7 +36,8 @@ class PublishingEntrySerializer < ApplicationService
   end
 
   def current_publication
-    @current_publication ||= entry.publications.merge(Publishing::Publication.active).order(effective_from: :desc).first
+    @current_publication ||=
+      entry.publications.includes(:entry_version).merge(Publishing::Publication.active).order(effective_from: :desc).first
   end
 
   def canonical_slug
