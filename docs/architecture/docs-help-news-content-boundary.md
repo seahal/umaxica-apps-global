@@ -4,6 +4,14 @@
 
 This document describes the current responsibility split for `docs`, `help`, and `news`.
 
+> **Persistence re-scoped (2026-07-16):** Per `adr/publishing-db-content-authority.md`, the content
+> authority for `info`, `docs`, `news`, and `help` moves to the central `publishing` database
+> (`Publishing::Entry` / `EntryRevision` / `EntryVersion` / `Publication` and media tables). All
+> four surfaces are global content surfaces; `app`/`com`/`org` are audience identifiers. The
+> "Persistence Direction" section below describes the superseded lean content-entry placement and is
+> kept for migration reference only. Frontend ownership, routing direction, and the controller
+> boundary in this document remain current.
+
 ## Frontend Ownership
 
 Next.js owns the public frontend for `docs`, `help`, `news`, and `core`.
@@ -110,7 +118,7 @@ equivalent API-only base that does not depend on:
 org-scoped in the future, but that must reuse the existing authority boundary and must not make
 `docs`, `help`, or `news` a new identity, session, or authorization authority.
 
-## Persistence Direction
+## Persistence Direction (superseded — migration reference only)
 
 Use the lean content-entry direction. Do not restore the old `Document`, `Timeline`, `Contact`,
 taxonomy, status, revision, or version model families.

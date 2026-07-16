@@ -2,7 +2,15 @@
 
 ## Status
 
+Superseded by `adr/publishing-db-content-authority.md` (2026-07-16)
+
 Accepted (2026-04-16)
+
+> **Superseded:** docs/news の regional 配置と `Document`/`Timeline` model
+> family は廃止された。コンテンツ authority は中央 `publishing`
+> DB の Entry/Revision/Version/Publication に統一される。Revision=編集履歴 /
+> Version=公開スナップショットという責務分割の考え方は新設計に引き継がれる。Taxonomy(category 1 /
+> tag N)は新 DB へそのまま移植せず、別 ADR で再設計する。
 
 ## Context
 

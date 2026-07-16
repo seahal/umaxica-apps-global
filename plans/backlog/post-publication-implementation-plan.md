@@ -2,6 +2,11 @@
 
 ## Status
 
+Superseded (2026-07-16): docs/news publication history is now covered by
+`adr/publishing-db-content-authority.md` and `plans/publishing-db-valiant-moore.md` (central
+`publishing` DB, `Publishing::EntryVersion` / `Publishing::Publication`). This note is kept as
+historical reference only.
+
 Backlog planning note. Moved out of `plans/active` during active-plan strictness cleanup on
 2026-06-14 because the current stable regional-content boundary does not authorize implementing this
 repository-local `post` / publication surface yet.

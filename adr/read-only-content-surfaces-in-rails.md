@@ -2,7 +2,14 @@
 
 ## Status
 
+Superseded by `adr/publishing-db-content-authority.md` (2026-07-16)
+
 Accepted (2026-06-13)
+
+> **Superseded:** コンテンツ authority は zenith DB の lean content-entry テーブルから中央
+> `publishing` DB へ移行する。docs/news/help を含む info/docs/news/help はすべて global content
+> surface となり、taxonomy 廃止・revision/version future の判断も新 ADR に置き換わる。API noun
+> `entries`、host 分離ルーティング、Next.js/Rails の責務分担、BareController 境界は新 ADR でも維持される。
 
 ## Context
 
