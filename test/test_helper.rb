@@ -13,40 +13,10 @@ ENV["PRIVATE_AUTH_STAFF_URL"] = "auth.org.localhost"
 ENV["SMTP_FROM_ADDRESS_APP"] = "from@umaxica.app"
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
 
-if ENV["COVERAGE"] == "true"
-  require "simplecov"
-
-  SimpleCov.start("rails") do
-    enable_coverage :branch
-
-    # Ensure all Ruby files under app/ are included,
-    # even if they are not loaded during the test run.
-    cover "app/**/*.rb"
-
-    skip "/test/"
-    skip "/config/"
-    skip "/vendor/"
-
-    group "Controllers", "app/controllers"
-    group "Models", "app/models"
-    group "Helpers", "app/helpers"
-    group "Jobs", "app/jobs"
-    group "Mailers", "app/mailers"
-    group "Services", "app/services"
-    group "Values", "app/values"
-    group "Forms", "app/forms"
-    group "Policies", "app/policies"
-    group "Subscribers", "app/subscribers"
-    group "Validators", "app/validators"
-    group "Errors", "app/errors"
-
-    minimum_coverage line: 98
-  end
-end
-
 require_relative "../config/environment"
 require "rails/test_help"
 require_relative "support/parallel_test_database_cloner"
+require_relative "support/parallel_test_configuration"
 
 module AuthenticationHarness
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " \
@@ -242,13 +212,7 @@ module ActiveSupport
   class TestCase
     include AuthenticationHarness
 
-    parallel_workers =
-      if ENV["COVERAGE"] == "true"
-        1
-      else
-        Integer(ENV.fetch("PARALLEL_WORKERS", "16"), 10)
-      end
-    raise ArgumentError, "PARALLEL_WORKERS must be positive" unless parallel_workers.positive?
+    parallel_workers = ParallelTestConfiguration.workers
 
     fixtures :all
     ParallelTestDatabaseCloner.install!(workers: parallel_workers)

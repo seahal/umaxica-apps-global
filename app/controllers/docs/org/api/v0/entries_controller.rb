@@ -6,11 +6,19 @@ module Docs
     module Api
       module V0
         class EntriesController < Docs::Org::BareController
-          include ::SurfaceEntriesRendering
+          include ::PublishingContentRendering
 
           AUTHENTICATION_MODE = :bare
           PUBLISHING_AUDIENCE = "org"
           PUBLISHING_SURFACE = "docs"
+
+          def index
+            render_publishing_entries_index
+          end
+
+          def show
+            render_publishing_entry_show
+          end
         end
       end
     end

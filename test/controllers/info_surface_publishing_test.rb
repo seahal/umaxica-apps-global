@@ -22,8 +22,8 @@ class InfoSurfacePublishingTest < ActionDispatch::IntegrationTest
       json_entry = response.parsed_body.fetch("entries").find { |candidate| candidate.fetch("slug") == entry.slugs.first.slug }
 
       assert json_entry, "expected #{audience} index to include the published entry"
-      assert_equal "info", json_entry.fetch("surface")
-      assert_equal audience, json_entry.fetch("namespace")
+      assert_equal "info", json_entry.fetch("namespace")
+      assert_equal audience, json_entry.fetch("surface")
 
       get "/api/v0/entries/#{entry.slugs.first.slug}", headers: { "Host" => surface.fetch(:host_fallback), "Accept" => "application/json" }, as: :json
 

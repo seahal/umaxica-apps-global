@@ -1183,6 +1183,7 @@ module Preference
       assert_equal "xx", @controller.send(:option_id_to_region, "XX", "App")
       assert_equal "Mars/Base", @controller.send(:option_id_to_timezone, "Mars/Base", "App")
       assert_equal "contrast", @controller.send(:option_id_to_theme, "contrast", "App")
+      assert_nil @controller.send(:option_id_to_preference_value, "missing", "App", :currency)
     end
 
     test "refresh failure handlers and render error branches set state" do

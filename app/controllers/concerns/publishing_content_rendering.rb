@@ -25,8 +25,11 @@ module PublishingContentRendering
     publishing_entries_query.call.filter_map { |entry| publishing_entry_json(entry) }
   end
 
+  # JSON contract preserved from the legacy ReadOnlyContentRendering: the
+  # "namespace" field is the content surface (docs/news/help/info) and the
+  # "surface" field is the audience (app/com/org).
   def publishing_entry_json(entry)
-    PublishingEntrySerializer.call(entry:, namespace: self.class::PUBLISHING_AUDIENCE, surface: self.class::PUBLISHING_SURFACE)
+    PublishingEntrySerializer.call(entry:, namespace: self.class::PUBLISHING_SURFACE, surface: self.class::PUBLISHING_AUDIENCE)
   end
 
   def publishing_entries_query
@@ -41,6 +44,15 @@ module PublishingContentRendering
   end
 
   def publishing_locale
-    params[:locale].presence || I18n.locale.to_s
+    params[:locale].presence || locale_from_request_region(params[:ri]) || I18n.locale.to_s
+  end
+
+  def locale_from_request_region(region)
+    return if region.blank?
+
+    {
+      "jp" => "ja",
+      "us" => "en",
+    }[region.to_s.downcase]
   end
 end

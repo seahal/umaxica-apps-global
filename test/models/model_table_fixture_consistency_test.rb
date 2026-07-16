@@ -6,23 +6,11 @@ require "test_helper"
 class ModelTableFixtureConsistencyTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
-  IGNORED_MODEL_NAMES = %w(
-    DocsAppContentEntry
-    DocsComContentEntry
-    DocsOrgContentEntry
-    HelpAppContentEntry
-    HelpComContentEntry
-    HelpOrgContentEntry
-    NewsAppContentEntry
-    NewsComContentEntry
-    NewsOrgContentEntry
-  ).freeze
-
   test "application record table names follow model tableize convention" do
     Rails.application.eager_load!
 
     mismatches =
-      application_record_models.reject { |model| IGNORED_MODEL_NAMES.include?(model.name) }.filter_map do |model|
+      application_record_models.filter_map do |model|
         expected = model.name.tableize
         actual = model.table_name
         "#{model.name}: expected #{expected}, got #{actual}" unless expected == actual
