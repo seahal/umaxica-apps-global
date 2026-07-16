@@ -483,6 +483,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
           )
         end,
         transaction_class: ClientOidcAuthorizationTransaction,
+        resource_type: "client",
         header_builder: ->(actor, host:, session_public_id:) do
           as_user_headers(actor, host: host, session_public_id: session_public_id)
         end,
@@ -501,6 +502,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
           )
         end,
         transaction_class: OperatorOidcAuthorizationTransaction,
+        resource_type: "operator",
         header_builder: ->(actor, host:, session_public_id:) do
           as_staff_headers(actor, host: host, session_public_id: session_public_id)
         end,
@@ -519,6 +521,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
           )
         end,
         transaction_class: VisitorOidcAuthorizationTransaction,
+        resource_type: "visitor",
         header_builder: ->(actor, host:, session_public_id:) do
           as_visitor_headers(actor, host: host, session_public_id: session_public_id)
         end,
@@ -532,7 +535,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       host!(host)
 
       assert_no_difference -> { surface.fetch(:transaction_class).pending.count } do
-        get "/oauth/authorize", params: oidc_authorize_params, headers: headers
+        get "/oauth/authorize", params: oidc_authorize_params(resource_type: surface.fetch(:resource_type)), headers: headers
       end
 
       assert_response :redirect
@@ -641,11 +644,11 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
   private
 
-  def oidc_authorize_params(screen_hint: nil, scope: "openid profile")
+  def oidc_authorize_params(screen_hint: nil, scope: "openid profile", resource_type: "client")
     params = {
       response_type: "code",
       client_id: "core-next-rp",
-      redirect_uri: OidcClientRegistry.find!("core-next-rp").redirect_uris.first,
+      redirect_uri: OidcClientRegistry.find!("core-next-rp").redirect_uris_by_realm.fetch(resource_type).first,
       code_challenge: "challenge",
       code_challenge_method: "S256",
       state: "state",

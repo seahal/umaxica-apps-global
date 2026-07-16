@@ -36,6 +36,7 @@ class VisitorAuthorizationCode < ComTicketRecord
 
   CODE_TTL = 10.seconds
   CODE_BYTES = 32
+  PKCE_CODE_VERIFIER_PATTERN = /\A[A-Za-z0-9\-._~]{43,128}\z/
 
   belongs_to :visitor
   belongs_to :visitor_token, optional: true
@@ -112,6 +113,8 @@ class VisitorAuthorizationCode < ComTicketRecord
 
   def verify_pkce(code_verifier)
     return false if code_verifier.blank?
+    return false unless code_challenge_method == "S256"
+    return false unless PKCE_CODE_VERIFIER_PATTERN.match?(code_verifier.to_s)
 
     expected = Base64.urlsafe_encode64(
       Digest::SHA256.digest(code_verifier),

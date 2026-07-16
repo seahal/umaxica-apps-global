@@ -21,24 +21,24 @@ if ENV["COVERAGE"] == "true"
 
     # Ensure all Ruby files under app/ are included,
     # even if they are not loaded during the test run.
-    track_files "app/**/*.rb"
+    cover "app/**/*.rb"
 
-    add_filter "/test/"
-    add_filter "/config/"
-    add_filter "/vendor/"
+    skip "/test/"
+    skip "/config/"
+    skip "/vendor/"
 
-    add_group "Controllers", "app/controllers"
-    add_group "Models", "app/models"
-    add_group "Helpers", "app/helpers"
-    add_group "Jobs", "app/jobs"
-    add_group "Mailers", "app/mailers"
-    add_group "Services", "app/services"
-    add_group "Values", "app/values"
-    add_group "Forms", "app/forms"
-    add_group "Policies", "app/policies"
-    add_group "Subscribers", "app/subscribers"
-    add_group "Validators", "app/validators"
-    add_group "Errors", "app/errors"
+    group "Controllers", "app/controllers"
+    group "Models", "app/models"
+    group "Helpers", "app/helpers"
+    group "Jobs", "app/jobs"
+    group "Mailers", "app/mailers"
+    group "Services", "app/services"
+    group "Values", "app/values"
+    group "Forms", "app/forms"
+    group "Policies", "app/policies"
+    group "Subscribers", "app/subscribers"
+    group "Validators", "app/validators"
+    group "Errors", "app/errors"
 
     minimum_coverage line: 98
   end

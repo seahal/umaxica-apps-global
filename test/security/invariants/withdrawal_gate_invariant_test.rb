@@ -489,7 +489,7 @@ class Security::Invariants::WithdrawalGateInvariantTest
   def ensure_visitor_token_reference_records!
     VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
     VisitorTokenStatus.find_or_create_by!(id: VisitorTokenStatus::ACTIVE)
-    VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::LEGACY)
+    VisitorTokenBindingMethod.ensure_defaults!
     VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
   end
 
@@ -907,7 +907,7 @@ class Security::Invariants::WithdrawalGateInvariantTest
   def ensure_visitor_token_reference_records!
     VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
     VisitorTokenStatus.find_or_create_by!(id: VisitorTokenStatus::ACTIVE)
-    VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::LEGACY)
+    VisitorTokenBindingMethod.ensure_defaults!
     VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
   end
 

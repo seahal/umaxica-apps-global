@@ -39,7 +39,9 @@ module Base
         private
 
         def validate_authorization_request!(params_hash = authorize_params)
-          @validated_client = OidcAuthorizeRequestValidator.call(params: params_hash, resource: current_client)
+          @validated_client = OidcAuthorizeRequestValidator.call(
+            params: params_hash, resource: current_client, resource_type: resource_type,
+          )
         end
 
         def issue_authorization_code!(resource, params_hash: authorize_params)

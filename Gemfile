@@ -2,12 +2,16 @@
 
 source "https://rubygems.org", cooldown: 3
 
-ruby "4.0.5"
+ruby "4.0.6"
 
 # Type signatures for Ruby libraries.
 gem "rbs", "~> 4.0", require: false
+# runtime for sorbet
+gem "sorbet-runtime"
 # Rails application framework from the main branch.
 gem "rails", github: "rails/rails", branch: "main"
+# Propshaft asset pipeline.
+gem "propshaft", github: "rails/propshaft"
 # Rails task runner.
 gem "rake"
 # Rack webserver interface.
@@ -57,8 +61,6 @@ gem "shrine"
 gem "image_processing", require: false
 # AWS SNS client for SMS delivery.
 gem "aws-sdk-sns", require: false
-# Propshaft asset pipeline.
-gem "propshaft", github: "rails/propshaft"
 # Tailwind CSS integration.
 # HTML metadata helpers.
 gem "meta-tags"
@@ -175,6 +177,8 @@ group :development, :test do
   gem "rubocop-rubycw", require: false
   # RuboCop Rails rules.
   gem "rubocop-rails", require: false
+  # Type for ruby.
+  gem "sorbet"
 end
 
 group :test do

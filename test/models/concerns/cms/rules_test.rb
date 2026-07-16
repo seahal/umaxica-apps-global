@@ -16,9 +16,13 @@ class CmsRulesTest < ActiveSupport::TestCase
     now = Time.utc(2026, 7, 10)
 
     assert Cms::SlugRules.timestamps_valid?(state: "reserved", canonicalized_at: nil, redirected_at: nil)
+    assert_not Cms::SlugRules.timestamps_valid?(state: "reserved", canonicalized_at: now, redirected_at: nil)
     assert Cms::SlugRules.timestamps_valid?(state: "canonical", canonicalized_at: now, redirected_at: nil)
+    assert_not Cms::SlugRules.timestamps_valid?(state: "canonical", canonicalized_at: nil, redirected_at: nil)
     assert Cms::SlugRules.timestamps_valid?(state: "redirect", canonicalized_at: now, redirected_at: now + 1)
+    assert_not Cms::SlugRules.timestamps_valid?(state: "redirect", canonicalized_at: nil, redirected_at: now)
     assert_not Cms::SlugRules.timestamps_valid?(state: "redirect", canonicalized_at: now, redirected_at: now - 1)
+    assert_not Cms::SlugRules.timestamps_valid?(state: "unknown", canonicalized_at: now, redirected_at: now)
   end
 
   test "publication predicates use a half-open window" do

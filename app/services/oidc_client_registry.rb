@@ -15,7 +15,8 @@ module OidcClientRegistry
 
   VisitorAccount =
     Data.define(
-      :client_id, :client_secret, :redirect_uris, :post_logout_redirect_uris, :aud, :resource_type,
+      :client_id, :client_secret, :redirect_uris, :redirect_uris_by_realm, :post_logout_redirect_uris,
+      :aud, :resource_type,
       :name, :domains, :allowed_scopes, :registered_token_endpoint_auth_method,
       :metadata_token_endpoint_auth_method, :jwt_namespace, :backchannel_logout_uris,
       :backchannel_logout_session_required,
@@ -44,18 +45,20 @@ module OidcClientRegistry
     return nil unless config
 
     registered_auth_method = config[:token_endpoint_auth_method]
+    redirect_uris_by_realm = redirect_uris_by_realm_for(config)
 
     VisitorAccount.new(
       client_id: client_id.to_s,
       client_secret: resolve_secret_credential(client_id.to_s),
-      redirect_uris: config[:redirect_uris],
+      redirect_uris: redirect_uris_by_realm.values.flatten,
+      redirect_uris_by_realm: redirect_uris_by_realm,
       post_logout_redirect_uris: config[:post_logout_redirect_uris] || [],
       backchannel_logout_uris: config[:backchannel_logout_uris] || [],
       backchannel_logout_session_required: config.fetch(:backchannel_logout_session_required, false),
       aud: config[:aud],
       resource_type: config[:resource_type],
       name: config[:name],
-      domains: domains_from_redirect_uris(config[:redirect_uris]),
+      domains: domains_from_redirect_uris(redirect_uris_by_realm.values.flatten),
       allowed_scopes: normalize_allowed_scopes(config.fetch(:allowed_scopes, DEFAULT_ALLOWED_SCOPES)),
       registered_token_endpoint_auth_method: registered_auth_method,
       metadata_token_endpoint_auth_method: registered_auth_method || metadata_auth_method(client_id.to_s),
@@ -72,17 +75,22 @@ module OidcClientRegistry
 
   # @param client_id [String]
   # @param uri [String]
+  # @param resource_type [String, nil] when given, the redirect_uri must be registered for this
+  #   realm (client/operator/visitor) specifically, not merely registered anywhere for the client.
   # @return [Boolean]
-  def valid_redirect_uri?(client_id, uri)
+  def valid_redirect_uri?(client_id, uri, resource_type: nil)
     client = find(client_id)
 
-    OidcRedirectUriValidator.valid_redirect_uri?(client, uri)
+    OidcRedirectUriValidator.valid_redirect_uri?(client, uri, resource_type: resource_type)
   end
 
-  def valid_post_logout_redirect_uri?(client_id:, uri:)
+  def valid_post_logout_redirect_uri?(client_id:, uri:, resource_type:)
     client = find(client_id)
+    return false unless OidcRedirectUriValidator.valid_post_logout_redirect_uri?(client, uri)
 
-    OidcRedirectUriValidator.valid_post_logout_redirect_uri?(client, uri)
+    # Registered post_logout URIs mix all three realms in one list; a logout on
+    # one surface must not redirect to another surface's host.
+    logout_uri_resource_type(uri) == normalize_resource_type(resource_type)
   end
 
   def backchannel_logout_uris_for(client_id:, resource_type: nil)
@@ -277,6 +285,12 @@ module OidcClientRegistry
     end
   end
 
+  def redirect_uris_by_realm_for(config)
+    return config[:redirect_uris_by_realm] if config[:redirect_uris_by_realm]
+
+    { normalize_resource_type(config[:resource_type]) => Array(config[:redirect_uris]) }
+  end
+
   def normalize_resource_type(resource_type)
     case resource_type.to_s
     when "operator", "staff" then "operator"
@@ -294,7 +308,7 @@ module OidcClientRegistry
 
   private_class_method :clients, :build_clients,
                        :resolve_secret_credential, :domains_from_redirect_uris,
-                       :public_host?,
+                       :public_host?, :redirect_uris_by_realm_for,
                        :filter_logout_uris, :logout_uri_resource_type, :logout_hosts_for,
                        :normalize_resource_type, :metadata_auth_method, :normalize_allowed_scopes,
                        :normalize_host

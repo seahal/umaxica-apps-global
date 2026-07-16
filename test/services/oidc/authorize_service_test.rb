@@ -262,7 +262,7 @@ class OidcAuthorizeCoordinatorTest < ActiveSupport::TestCase
   test "issues authorization code for operator with org client" do
     staff = operators(:one)
     org_client = OidcClientRegistry.find("core-next-rp")
-    org_redirect_uri = org_client.redirect_uris.first
+    org_redirect_uri = org_client.redirect_uris_by_realm.fetch("operator").first
 
     result = authorize_service_call(
       params: {
@@ -290,7 +290,7 @@ class OidcAuthorizeCoordinatorTest < ActiveSupport::TestCase
   test "operator authorization code is stored with staff_id backing column" do
     staff = operators(:one)
     org_client = OidcClientRegistry.find("core-next-rp")
-    org_redirect_uri = org_client.redirect_uris.first
+    org_redirect_uri = org_client.redirect_uris_by_realm.fetch("operator").first
 
     assert_difference "OperatorAuthorizationCode.count", 1 do
       authorize_service_call(
@@ -317,7 +317,7 @@ class OidcAuthorizeCoordinatorTest < ActiveSupport::TestCase
   test "issues authorization code for visitor with com client" do
     visitor = create_visitor!
     com_client = OidcClientRegistry.find("core-next-rp")
-    com_redirect_uri = com_client.redirect_uris.first
+    com_redirect_uri = com_client.redirect_uris_by_realm.fetch("visitor").first
 
     result = authorize_service_call(
       params: {
@@ -344,7 +344,7 @@ class OidcAuthorizeCoordinatorTest < ActiveSupport::TestCase
   test "visitor authorization code is stored with visitor_id" do
     visitor = create_visitor!
     com_client = OidcClientRegistry.find("core-next-rp")
-    com_redirect_uri = com_client.redirect_uris.first
+    com_redirect_uri = com_client.redirect_uris_by_realm.fetch("visitor").first
 
     assert_difference "VisitorAuthorizationCode.count", 1 do
       authorize_service_call(
@@ -366,6 +366,143 @@ class OidcAuthorizeCoordinatorTest < ActiveSupport::TestCase
 
     assert_equal visitor.id, code.visitor_id
     assert_equal "core-next-rp", code.client_id
+  end
+
+  # --- realm/redirect_uri binding (issuer/realm must match the registered redirect_uri's realm) ---
+
+  test "BASE_APP authorize rejects an org core-next-rp redirect_uri before code issuance" do
+    org_redirect_uri = OidcClientRegistry.find("core-next-rp").redirect_uris_by_realm.fetch("operator").first
+
+    result = authorize_service_call(
+      params: valid_params.merge(redirect_uri: org_redirect_uri),
+      resource: @user,
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+    assert_equal 0, ClientAuthorizationCode.count
+  end
+
+  test "BASE_ORG authorize rejects an app core-next-rp redirect_uri before code issuance" do
+    staff = operators(:one)
+    app_redirect_uri = OidcClientRegistry.find("core-next-rp").redirect_uris_by_realm.fetch("client").first
+
+    result = authorize_service_call(
+      params: {
+        response_type: "code",
+        client_id: "core-next-rp",
+        redirect_uri: app_redirect_uri,
+        code_challenge: @code_challenge,
+        code_challenge_method: "S256",
+        state: "staff_state",
+        nonce: "staff_nonce",
+        scope: "openid profile email",
+      },
+      resource: staff,
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+    assert_equal 0, OperatorAuthorizationCode.count
+  end
+
+  test "BASE_COM authorize rejects an org core-next-rp redirect_uri before code issuance" do
+    visitor = create_visitor!
+    org_redirect_uri = OidcClientRegistry.find("core-next-rp").redirect_uris_by_realm.fetch("operator").first
+
+    result = authorize_service_call(
+      params: {
+        response_type: "code",
+        client_id: "core-next-rp",
+        redirect_uri: org_redirect_uri,
+        code_challenge: @code_challenge,
+        code_challenge_method: "S256",
+        state: "visitor_state",
+        nonce: "visitor_nonce",
+        scope: "openid profile email",
+      },
+      resource: visitor,
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+    assert_equal 0, VisitorAuthorizationCode.count
+  end
+
+  test "BASE_APP authorize rejects a sign-rp org realm redirect_uri before code issuance" do
+    sign_client = OidcClientRegistry.find("sign-rp")
+    org_redirect_uri = sign_client.redirect_uris_by_realm.fetch("operator").first
+
+    result = authorize_service_call(
+      params: valid_params.merge(client_id: "sign-rp", redirect_uri: org_redirect_uri),
+      resource: @user,
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+    assert_equal 0, ClientAuthorizationCode.count
+  end
+
+  test "BASE_APP authorize rejects a sign-rp com realm redirect_uri before code issuance" do
+    sign_client = OidcClientRegistry.find("sign-rp")
+    com_redirect_uri = sign_client.redirect_uris_by_realm.fetch("visitor").first
+
+    result = authorize_service_call(
+      params: valid_params.merge(client_id: "sign-rp", redirect_uri: com_redirect_uri),
+      resource: @user,
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+    assert_equal 0, ClientAuthorizationCode.count
+  end
+
+  test "BASE_ORG authorize rejects a side-rails-rp app realm redirect_uri before code issuance" do
+    staff = operators(:one)
+    side_client = OidcClientRegistry.find("side-rails-rp")
+    app_redirect_uri = side_client.redirect_uris_by_realm.fetch("client").first
+
+    result = authorize_service_call(
+      params: {
+        response_type: "code",
+        client_id: "side-rails-rp",
+        redirect_uri: app_redirect_uri,
+        code_challenge: @code_challenge,
+        code_challenge_method: "S256",
+        state: "staff_state",
+        nonce: "staff_nonce",
+        scope: "openid profile email",
+      },
+      resource: staff,
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+    assert_equal 0, OperatorAuthorizationCode.count
+  end
+
+  test "BASE_ORG authorize rejects a side-rails-rp com realm redirect_uri before code issuance" do
+    staff = operators(:one)
+    side_client = OidcClientRegistry.find("side-rails-rp")
+    com_redirect_uri = side_client.redirect_uris_by_realm.fetch("visitor").first
+
+    result = authorize_service_call(
+      params: {
+        response_type: "code",
+        client_id: "side-rails-rp",
+        redirect_uri: com_redirect_uri,
+        code_challenge: @code_challenge,
+        code_challenge_method: "S256",
+        state: "staff_state",
+        nonce: "staff_nonce",
+        scope: "openid profile email",
+      },
+      resource: staff,
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+    assert_equal 0, OperatorAuthorizationCode.count
   end
 
   private

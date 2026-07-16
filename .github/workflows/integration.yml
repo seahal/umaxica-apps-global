@@ -25,7 +25,7 @@ env:
   DOCKER_BUILDKIT: "1"
   COMPOSE_DOCKER_CLI_BUILD: "1"
   # Version Configuration
-  RUBY_VERSION: "4.0.5"
+  RUBY_VERSION: "4.0.6"
   NODE_VERSION: "24"
   # Rails Configuration
   RAILS_ENV: test
@@ -461,7 +461,7 @@ jobs:
           context: .
           target: production
           tags: umaxica-app:${{ github.sha }}
-          build-args: RUBY_VERSION=4.0.5
+          build-args: RUBY_VERSION=4.0.6
           cache-from: type=gha
           cache-to: type=gha,mode=max
           load: true

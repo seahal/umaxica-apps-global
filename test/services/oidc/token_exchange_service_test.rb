@@ -481,6 +481,28 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     end
   end
 
+  test "token exchange rejects a core-next-rp code whose stored redirect_uri belongs to a different realm than the code's resource_type" do
+    org_redirect_uri = @client.redirect_uris_by_realm.fetch("operator").first
+    code_record = issue_code!(client_id: "core-next-rp", redirect_uri: org_redirect_uri)
+
+    with_authenticated_client do
+      result = OidcTokenExchangeCoordinator.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: org_redirect_uri,
+        client_id: "core-next-rp",
+        client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+        client_assertion: "test-client-assertion",
+        token_endpoint_uri: "https://log.umaxica.app/oauth/token",
+        code_verifier: @code_verifier,
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_request", result.error
+      assert_equal "redirect_uri is not registered for this authorization code's realm", result.error_description
+    end
+  end
+
   test "explicit public client fails with client_id mismatch" do
     public_client = public_visitor_account
     code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
@@ -499,6 +521,23 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       assert_equal "invalid_request", result.error
       assert_equal "client_id mismatch", result.error_description
     end
+  end
+
+  test "app-ios-rp cannot exchange an authorization code issued to app-android-rp" do
+    code_record = issue_code!(client_id: "app-android-rp", redirect_uri: "com.umaxica.app:/oidc/callback")
+
+    result = OidcTokenExchangeCoordinator.call(
+      grant_type: "authorization_code",
+      code: code_record.code,
+      redirect_uri: "com.umaxica.app:/oidc/callback",
+      client_id: "app-ios-rp",
+      code_verifier: @code_verifier,
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+    assert_equal "client_id mismatch", result.error_description
+    assert_not_predicate code_record.reload, :consumed?
   end
 
   test "token exchange rejects codes with disallowed scopes" do
@@ -861,7 +900,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     staff = operators(:one)
     staff_session_token = OperatorToken.create!(staff: staff)
     org_client = OidcClientRegistry.find("core-next-rp")
-    org_redirect_uri = org_client.redirect_uris.first
+    org_redirect_uri = org_client.redirect_uris_by_realm.fetch("operator").first
     staff_secret_credential = "test_secret_credential_for_core_org"
 
     code_record = OperatorAuthorizationCode.issue!(
@@ -899,7 +938,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     staff = operators(:one)
     staff_session_token = OperatorToken.create!(staff: staff)
     org_client = OidcClientRegistry.find("core-next-rp")
-    org_redirect_uri = org_client.redirect_uris.first
+    org_redirect_uri = org_client.redirect_uris_by_realm.fetch("operator").first
     staff_secret_credential = "test_secret_credential_for_core_org"
 
     code_record = OperatorAuthorizationCode.issue!(
@@ -940,7 +979,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       staff: staff,
       operator_token: staff_session_token,
       client_id: "core-next-rp",
-      redirect_uri: org_client.redirect_uris.first,
+      redirect_uri: org_client.redirect_uris_by_realm.fetch("operator").first,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
       nonce: "staff_nonce",
@@ -951,7 +990,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       OidcTokenExchangeCoordinator.call(
         grant_type: "authorization_code",
         code: code_record.code,
-        redirect_uri: org_client.redirect_uris.first,
+        redirect_uri: org_client.redirect_uris_by_realm.fetch("operator").first,
         client_id: "core-next-rp",
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: "test-staff-client-assertion",
@@ -973,7 +1012,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     visitor = create_visitor!
     visitor_session_token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     com_client = OidcClientRegistry.find("core-next-rp")
-    com_redirect_uri = com_client.redirect_uris.first
+    com_redirect_uri = com_client.redirect_uris_by_realm.fetch("visitor").first
     visitor_secret_credential = "test_secret_credential_for_core_com"
 
     code_record = VisitorAuthorizationCode.issue!(
@@ -1011,7 +1050,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     visitor = create_visitor!
     visitor_session_token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     com_client = OidcClientRegistry.find("core-next-rp")
-    com_redirect_uri = com_client.redirect_uris.first
+    com_redirect_uri = com_client.redirect_uris_by_realm.fetch("visitor").first
     visitor_secret_credential = "test_secret_credential_for_core_com"
 
     code_record = VisitorAuthorizationCode.issue!(
@@ -1052,7 +1091,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       visitor: visitor,
       visitor_token: visitor_session_token,
       client_id: "core-next-rp",
-      redirect_uri: com_client.redirect_uris.first,
+      redirect_uri: com_client.redirect_uris_by_realm.fetch("visitor").first,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
       nonce: "visitor_nonce",
@@ -1063,7 +1102,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       OidcTokenExchangeCoordinator.call(
         grant_type: "authorization_code",
         code: code_record.code,
-        redirect_uri: com_client.redirect_uris.first,
+        redirect_uri: com_client.redirect_uris_by_realm.fetch("visitor").first,
         client_id: "core-next-rp",
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: "test-visitor-client-assertion",
@@ -1242,64 +1281,35 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     assert_includes base_kids, id_header.fetch("kid")
   end
 
-  test "rejects malformed PKCE verifiers and plain method" do
-    code_record = issue_code!(scope: "openid profile")
+  test "token exchange rejects a 42 character PKCE verifier one below the RFC 7636 minimum" do
+    assert_exchange_rejects_verifier("a" * 42)
+  end
 
-    result =
-      with_authenticated_client do
-        OidcTokenExchangeCoordinator.call(
-          grant_type: "authorization_code",
-          code: code_record.code,
-          redirect_uri: @redirect_uri,
-          client_id: "core-next-rp",
-          client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
-          client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
-          code_verifier: "short",
-        )
-      end
+  test "token exchange rejects a 129 character PKCE verifier one above the RFC 7636 maximum" do
+    assert_exchange_rejects_verifier("a" * 129)
+  end
 
-    assert_not result.success?
-    assert_equal "invalid_request", result.error
+  test "token exchange rejects a PKCE verifier containing a space character" do
+    assert_exchange_rejects_verifier("#{"a" * 42} ")
+  end
 
-    code_record = issue_code!(scope: "openid profile")
+  test "token exchange rejects a PKCE verifier containing a slash character" do
+    assert_exchange_rejects_verifier("#{"a" * 42}/")
+  end
 
-    result =
-      with_authenticated_client do
-        OidcTokenExchangeCoordinator.call(
-          grant_type: "authorization_code",
-          code: code_record.code,
-          redirect_uri: @redirect_uri,
-          client_id: "core-next-rp",
-          client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
-          client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
-          code_verifier: "x" * 129,
-        )
-      end
+  test "token exchange rejects a PKCE verifier containing a plus character" do
+    assert_exchange_rejects_verifier("#{"a" * 42}+")
+  end
 
-    assert_not result.success?
-    assert_equal "invalid_request", result.error
+  test "token exchange rejects a PKCE verifier containing an equals character" do
+    assert_exchange_rejects_verifier("#{"a" * 42}=")
+  end
 
-    code_record = issue_code!(scope: "openid profile")
+  test "token exchange rejects a PKCE verifier containing a non ASCII character" do
+    assert_exchange_rejects_verifier("#{"a" * 42}é")
+  end
 
-    result =
-      with_authenticated_client do
-        OidcTokenExchangeCoordinator.call(
-          grant_type: "authorization_code",
-          code: code_record.code,
-          redirect_uri: @redirect_uri,
-          client_id: "core-next-rp",
-          client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
-          client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
-          code_verifier: "invalid*chars-invalid*chars-invalid*chars-invalid*chars",
-        )
-      end
-
-    assert_not result.success?
-    assert_equal "invalid_request", result.error
-
+  test "token exchange rejects a code_challenge_method of plain even with a matching verifier" do
     code_record = issue_code!(scope: "openid profile")
     code_record.update_columns(code_challenge_method: "plain")
 
@@ -1319,6 +1329,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     assert_not result.success?
     assert_equal "invalid_request", result.error
+    assert_not_predicate code_record.reload, :consumed?
   end
 
   test "public palm audience exchange issues access token accepted by palm resource server" do
@@ -1326,6 +1337,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       client_id: "app-ios-rp",
       aud: PalmAccessTokenAuthenticator::AUDIENCE,
       redirect_uris: ["https://palm-jp.umaxica.app/auth/callback"],
+      redirect_uris_by_realm: { "client" => ["https://palm-jp.umaxica.app/auth/callback"] },
       domains: ["palm-jp.umaxica.app"],
       allowed_scopes: OidcClientRegistry::PALM_ALLOWED_SCOPES,
     )
@@ -1371,6 +1383,28 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
   def build_dpop_proof(private_key, jwk, method:, uri:)
     payload = { "htm" => method, "htu" => uri, "iat" => Time.current.to_i, "jti" => SecureRandom.uuid }
     JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
+  end
+
+  def assert_exchange_rejects_verifier(verifier)
+    code_record = issue_code!(scope: "openid profile")
+
+    result =
+      with_authenticated_client do
+        OidcTokenExchangeCoordinator.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core-next-rp",
+          client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+          client_assertion: "test-client-assertion",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
+          code_verifier: verifier,
+        )
+      end
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+    assert_not_predicate code_record.reload, :consumed?
   end
 
   def issue_code!(client_id: "core-next-rp", redirect_uri: @redirect_uri, scope: "openid profile email")
@@ -1442,6 +1476,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       client_id: "test_client",
       client_secret: "secret",
       redirect_uris: ["https://client.example/auth/callback"],
+      redirect_uris_by_realm: { "client" => ["https://client.example/auth/callback"] },
       post_logout_redirect_uris: ["https://client.example/signed-out"],
       backchannel_logout_uris: [],
       backchannel_logout_session_required: false,

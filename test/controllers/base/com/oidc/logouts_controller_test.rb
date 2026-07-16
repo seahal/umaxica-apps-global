@@ -90,6 +90,22 @@ class Base::Com::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "xyz"
   end
 
+  test "post_logout_redirect_uri registered for another realm never redirects externally" do
+    service_host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+    cross_realm_uri = @client.post_logout_redirect_uris.find { |uri| URI.parse(uri).host == service_host }
+
+    assert_not_nil cross_realm_uri, "sign-rp should register an app-realm post_logout uri"
+
+    post base_com_oidc_logout_url(host: @host),
+         params: { id_token_hint: id_token, post_logout_redirect_uri: cross_realm_uri, state: "xyz", ri: "jp" },
+         headers: session_headers
+
+    assert_response :success
+    assert_not_predicate @token.reload, :revoked?
+    assert_nil response.location
+    assert_not_includes response.body, "xyz"
+  end
+
   private
 
   def session_headers

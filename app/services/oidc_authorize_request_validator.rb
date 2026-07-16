@@ -6,10 +6,11 @@ class OidcAuthorizeRequestValidator < ApplicationService
 
   ValidatedRequest = Data.define(:client, :scope)
 
-  def initialize(params:, resource:)
+  def initialize(params:, resource:, resource_type: nil)
     super()
     @params = params
     @resource = resource
+    @given_resource_type = resource_type
   end
 
   def call
@@ -24,7 +25,7 @@ class OidcAuthorizeRequestValidator < ApplicationService
 
   private
 
-  attr_reader :params, :resource
+  attr_reader :params, :resource, :given_resource_type
 
   def validate_required_params!
     raise ArgumentError, "response_type must be 'code'" unless params[:response_type] == "code"
@@ -60,10 +61,20 @@ class OidcAuthorizeRequestValidator < ApplicationService
   end
 
   def validate_redirect_uri!
-    return if OidcClientRegistry.valid_redirect_uri?(client_id, redirect_uri)
+    return if OidcClientRegistry.valid_redirect_uri?(client_id, redirect_uri, resource_type: resource_type)
 
     raise OidcClientRegistry::InvalidRedirectUri,
-          "redirect_uri is not registered for client #{client_id}"
+          "redirect_uri is not registered for client #{client_id} in realm #{resource_type}"
+  end
+
+  def resource_type
+    return given_resource_type.to_s if given_resource_type.present?
+
+    case resource
+    when ::Operator then "operator"
+    when ::Visitor then "visitor"
+    else "client"
+    end
   end
 
   def client_id

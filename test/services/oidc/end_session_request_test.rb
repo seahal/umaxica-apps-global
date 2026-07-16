@@ -134,6 +134,20 @@ class OidcEndSessionRequestTest < ActiveSupport::TestCase
     assert_nil result.post_logout_redirect_uri
   end
 
+  test "rejects post logout redirect uri registered for another realm" do
+    install_actor_context!
+    staff_host = Rails.configuration.x.boot_config.fetch(:hosts).sign_staff.host
+    cross_realm_uri = @client.post_logout_redirect_uris.find { |uri| URI.parse(uri).host == staff_host }
+
+    assert_not_nil cross_realm_uri, "sign-rp should register an org-realm post_logout uri"
+
+    result = call(id_token_hint: id_token, post_logout_redirect_uri: cross_realm_uri, state: "xyz")
+
+    assert_predicate result, :error?
+    assert_nil result.state
+    assert_nil result.post_logout_redirect_uri
+  end
+
   test "legacy logout_request verifies on post and preserves replay protection" do
     token = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
 

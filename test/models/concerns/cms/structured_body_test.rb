@@ -43,4 +43,44 @@ class CmsStructuredBodyTest < ActiveSupport::TestCase
     assert_includes record.errors[:body], "schema_version must match schema_version"
     assert_includes record.errors[:body], "contains an unsupported block type"
   end
+
+  test "rejects malformed structured body shapes and stale digests" do
+    record_class =
+      Class.new do
+        include ActiveModel::Model
+        include ActiveModel::Attributes
+        include ActiveModel::Validations
+        include ActiveModel::Validations::Callbacks
+        include Cms::StructuredBody::Validation
+
+        attribute :body
+        attribute :schema_version
+        attribute :content_digest
+      end
+
+    invalid_cases = [
+      ["not-an-object", 1, :body],
+      [{}, 1, :body],
+      [{ "schema_version" => 0, "blocks" => [] }, 0, :schema_version],
+      [{ "schema_version" => 1, "blocks" => "not-an-array" }, 1, :body],
+      [{ "schema_version" => 1, "blocks" => ["not-an-object"] }, 1, :body],
+      [{ "schema_version" => 1, "blocks" => [{}] }, 1, :body],
+    ]
+
+    invalid_cases.each do |body, schema_version, error_attribute|
+      record = record_class.new(body:, schema_version:)
+
+      assert_not record.valid?
+      assert_includes record.errors.attribute_names, error_attribute
+    end
+
+    stale = record_class.new(
+      body: { "schema_version" => 1, "blocks" => [{ "type" => "paragraph" }] },
+      schema_version: 1,
+      content_digest: "0" * 64,
+    )
+
+    assert_not stale.valid?
+    assert_includes stale.errors.attribute_names, :content_digest
+  end
 end
