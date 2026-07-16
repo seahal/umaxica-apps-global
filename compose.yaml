@@ -10,10 +10,10 @@ services:
         # DOCKER_UID/DOCKER_GID are host-shaped; they are supplied by the
         # devcontainer override (.devcontainer/compose.override.yml).
     entrypoint:
-    - "/bin/bash"
-    - "/home/global/workspace/docker/core/entrypoint.sh"
+      - "/bin/bash"
+      - "/home/global/workspace/docker/core/entrypoint.sh"
     command:
-    - bin/dev
+      - bin/dev
     environment:
       # --- Shell / productivity ---
       COLORTERM: truecolor
@@ -57,6 +57,8 @@ services:
       POSTGRESQL_CACHE_SUB: replica
       POSTGRESQL_STORAGE_PUB: primary
       POSTGRESQL_STORAGE_SUB: replica
+      POSTGRESQL_PUBLISHING_PUB: primary
+      POSTGRESQL_PUBLISHING_SUB: replica
       POSTGRESQL_QUEUE_PUB: primary
       POSTGRESQL_QUEUE_SUB: replica
       POSTGRESQL_OPERATOR_PUB: primary
@@ -128,7 +130,7 @@ services:
       PRIVATE_PALM_SERVICE_URL: palm.app.localhost
       # --- JWT leeway ---
       PREFERENCE_JWT_LEEWAY_SECONDS: "30"
-      AUTH_JWT_LEEWAY_SECONDS: '30'
+      AUTH_JWT_LEEWAY_SECONDS: "30"
       # --- Vite ---
       VITE_RUBY_PACKAGE_MANAGER: pnpm
       VITE_RUBY_HOST: "0.0.0.0"
@@ -140,14 +142,14 @@ services:
     # rootless podman's `userns_mode: keep-id` (set in the devcontainer
     # override) and the double mapping breaks bind-mount ownership.
     tmpfs:
-    # tmpfs uid=/gid= options are rejected by rootless podman. Mode 1777 +
-    # sticky bit lets the in-container user write under root-owned tmpfs.
-    # /tmp and tmp/pids are on tmpfs so stale server.pid never survives a
-    # container restart ("A server is already running" error).
-    - /tmp
-    - /home/global/workspace/tmp
-    - /home/global/workspace/tmp/pids
-    - /home/global/workspace/log
+      # tmpfs uid=/gid= options are rejected by rootless podman. Mode 1777 +
+      # sticky bit lets the in-container user write under root-owned tmpfs.
+      # /tmp and tmp/pids are on tmpfs so stale server.pid never survives a
+      # container restart ("A server is already running" error).
+      - /tmp
+      - /home/global/workspace/tmp
+      - /home/global/workspace/tmp/pids
+      - /home/global/workspace/log
     # Named volumes for high-write paths prevent rootless podman UID-mapping
     # from rewriting host file ownership on the bind-mounted workspace:
     #   - umaxica-home-cache  → pnpm / corepack / Vite+ / YJIT scratch
@@ -157,18 +159,18 @@ services:
     # Discard any of these with `podman volume rm <name>` to recover from
     # a corrupted cache without affecting credentials or workspace state.
     volumes:
-    - type: volume
-      source: umaxica-home-cache
-      target: "/home/global/.cache"
-    - type: volume
-      source: umaxica-home-share
-      target: "/home/global/.local/share"
-    - type: volume
-      source: umaxica-node-modules
-      target: "/home/global/workspace/node_modules"
-    - type: volume
-      source: umaxica-bundle
-      target: "/home/global/workspace/vendor/bundle"
+      - type: volume
+        source: umaxica-home-cache
+        target: "/home/global/.cache"
+      - type: volume
+        source: umaxica-home-share
+        target: "/home/global/.local/share"
+      - type: volume
+        source: umaxica-node-modules
+        target: "/home/global/workspace/node_modules"
+      - type: volume
+        source: umaxica-bundle
+        target: "/home/global/workspace/vendor/bundle"
     # Workspace bind mount, host-port publishing, and host-gateway alias are
     # host-shaped — see the devcontainer override.
     networks:
@@ -233,7 +235,7 @@ services:
       observability: {}
       outer:
         aliases:
-        - global
+          - global
     depends_on:
       primary:
         condition: service_healthy
@@ -246,10 +248,10 @@ services:
       context: ./docker/psql-pub
       dockerfile: Dockerfile
     command:
-    - "-c"
-    - config_file=/etc/postgresql/postgresql.conf
-    - "-c"
-    - hba_file=/etc/postgresql/pg_hba.conf
+      - "-c"
+      - config_file=/etc/postgresql/postgresql.conf
+      - "-c"
+      - hba_file=/etc/postgresql/pg_hba.conf
     environment:
       POSTGRES_USER: "${POSTGRESQL_USER:-root}"
       POSTGRES_PASSWORD: "${POSTGRESQL_PASSWORD:-development_password}"
@@ -266,24 +268,24 @@ services:
     # Override POSTGRES_PRIMARY_TMPFS_SIZE on memory-constrained hosts (rootless
     # podman bills tmpfs against the user memory cgroup).
     tmpfs:
-    - "/var/lib/postgresql/data:size=${POSTGRES_PRIMARY_TMPFS_SIZE:-64g}"
+      - "/var/lib/postgresql/data:size=${POSTGRES_PRIMARY_TMPFS_SIZE:-64g}"
     # PG allocates 32MB DSM segments from /dev/shm for parallel query and
     # column-metadata joins. The default 64MB container shm exhausts under
     # 32 Rails parallel workers; 4G covers worst-case fanout with margin.
     shm_size: 4gb
     volumes:
-    # `:z` adds an SELinux shared label so Fedora/RHEL hosts permit container
-    # reads. Harmless on non-SELinux hosts (Arch, Ubuntu).
-    - "./docker/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
-    - "./docker/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
-    - "./docker/psql-pub:/docker-entrypoint-initdb.d:ro,z"
+      # `:z` adds an SELinux shared label so Fedora/RHEL hosts permit container
+      # reads. Harmless on non-SELinux hosts (Arch, Ubuntu).
+      - "./docker/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
+      - "./docker/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
+      - "./docker/psql-pub:/docker-entrypoint-initdb.d:ro,z"
     networks:
-    - backend
+      - backend
     restart: unless-stopped
     healthcheck:
       test:
-      - CMD-SHELL
-      - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1
       interval: 3s
       timeout: 3s
       retries: 20
@@ -306,32 +308,32 @@ services:
     # the expected ~40G working set with margin. Override
     # POSTGRES_REPLICA_TMPFS_SIZE on memory-constrained hosts.
     tmpfs:
-    - "/var/lib/postgresql/data:size=${POSTGRES_REPLICA_TMPFS_SIZE:-48g}"
+      - "/var/lib/postgresql/data:size=${POSTGRES_REPLICA_TMPFS_SIZE:-48g}"
     # Match primary: parallel query + metadata-join DSM segments under 32 Rails
     # workers exceed the 64MB default container shm.
     shm_size: 4gb
     volumes:
-    - "./docker/psql-sub/entrypoint.sh:/entrypoint.sh:ro,z"
-    - "./docker/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
-    - "./docker/psql-sub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
+      - "./docker/psql-sub/entrypoint.sh:/entrypoint.sh:ro,z"
+      - "./docker/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
+      - "./docker/psql-sub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
     depends_on:
       primary:
         condition: service_healthy
     networks:
-    - backend
+      - backend
     restart: unless-stopped
   valkey:
     image: valkey/valkey:8.0-alpine3.22
     networks:
-    - backend
+      - backend
     volumes:
-    - valkey-volume:/data
+      - valkey-volume:/data
     restart: unless-stopped
     healthcheck:
       test:
-      - CMD
-      - valkey-cli
-      - ping
+        - CMD
+        - valkey-cli
+        - ping
       interval: 3s
       timeout: 2s
       retries: 20
@@ -357,15 +359,15 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       CLUSTER_ID: q1Sh-9_ISia_zwGINzRvyQ
     networks:
-    - backend
+      - backend
     restart: unless-stopped
     # Host port publishing lives in the devcontainer override.
     healthcheck:
       test:
-      - CMD
-      - kafka-broker-api-versions
-      - "--bootstrap-server"
-      - localhost:9092
+        - CMD
+        - kafka-broker-api-versions
+        - "--bootstrap-server"
+        - localhost:9092
       interval: 30s
       timeout: 10s
       retries: 5
@@ -377,12 +379,12 @@ services:
     # directories writable without changing host ownership.
     user: root
     profiles:
-    - observability
+      - observability
     command: "-config.file=/etc/loki/local-config.yaml"
     volumes:
-    - loki-volume:/tmp/loki
+      - loki-volume:/tmp/loki
     networks:
-    - observability
+      - observability
     restart: "no"
   tempo:
     image: grafana/tempo:2.10.5
@@ -390,15 +392,15 @@ services:
     # writer to map back to the host user.
     user: root
     profiles:
-    - observability
+      - observability
     command:
-    - "-config.file=/etc/tempo.yaml"
+      - "-config.file=/etc/tempo.yaml"
     # Host port publishing lives in the devcontainer override.
     volumes:
-    - "./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro,z"
-    - tempo-volume:/var/tempo
+      - "./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro,z"
+      - tempo-volume:/var/tempo
     networks:
-    - observability
+      - observability
     restart: "no"
   grafana:
     image: grafana/grafana:latest
@@ -406,31 +408,31 @@ services:
     # podman the named volume can otherwise appear read-only to Grafana's UID.
     user: root
     profiles:
-    - observability
+      - observability
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_PATHS_PROVISIONING: "/etc/grafana/provisioning"
     volumes:
-    - grafana-volume:/var/lib/grafana
-    - "./docker/grafana/provisioning:/etc/grafana/provisioning:z"
+      - grafana-volume:/var/lib/grafana
+      - "./docker/grafana/provisioning:/etc/grafana/provisioning:z"
     networks:
-    - observability
+      - observability
     depends_on:
-    - loki
-    - tempo
-    - prometheus
+      - loki
+      - tempo
+      - prometheus
     restart: "no"
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     profiles:
-    - observability
+      - observability
     volumes:
-    - "./docker/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro,z"
+      - "./docker/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro,z"
     networks:
-    - observability
+      - observability
     depends_on:
-    - tempo
+      - tempo
     restart: "no"
   prometheus:
     image: prom/prometheus:latest
@@ -438,12 +440,12 @@ services:
     # volumes writable when the observability profile is explicitly enabled.
     user: root
     profiles:
-    - observability
+      - observability
     volumes:
-    - "./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z"
-    - prometheus-volume:/prometheus
+      - "./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z"
+      - prometheus-volume:/prometheus
     networks:
-    - observability
+      - observability
     restart: "no"
   pgadmin:
     image: dpage/pgadmin4
@@ -454,9 +456,9 @@ services:
     # because the host user already owns it.
     user: root
     entrypoint:
-    - "/bin/sh"
-    - "-c"
-    - "chmod 600 /pgpass && /entrypoint.sh"
+      - "/bin/sh"
+      - "-c"
+      - "chmod 600 /pgpass && /entrypoint.sh"
     # Host port publishing lives in the devcontainer override.
     environment:
       PGADMIN_DEFAULT_EMAIL: root@example.com
@@ -464,10 +466,10 @@ services:
       # Auto-import the pub/sub server definitions on first launch.
       PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
     volumes:
-    - "./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro,z"
-    - "./docker/pgadmin/pgpass:/pgpass:z"
+      - "./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro,z"
+      - "./docker/pgadmin/pgpass:/pgpass:z"
     networks:
-    - backend
+      - backend
     depends_on:
       primary:
         condition: service_healthy
@@ -480,9 +482,9 @@ services:
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: change-me
     volumes:
-    - tinyrdm-volume:/app/tinyrdm
+      - tinyrdm-volume:/app/tinyrdm
     networks:
-    - backend
+      - backend
     depends_on:
       valkey:
         condition: service_healthy
@@ -491,15 +493,15 @@ services:
     # Workers VPC requires cloudflared 2025.7.0 or newer.
     image: cloudflare/cloudflared:2025.7.0
     depends_on:
-    - core
+      - core
     # Workers VPC DNS routing requires QUIC and outbound UDP 7844.
     command: tunnel --protocol quic run
     environment:
       TUNNEL_TOKEN: "${CLOUDFLARED_TOKEN}"
     networks:
-    - frontend
+      - frontend
     extra_hosts:
-    - host.docker.internal:host-gateway
+      - host.docker.internal:host-gateway
     restart: unless-stopped
 networks:
   backend: {}

@@ -236,8 +236,8 @@ jobs:
       POSTGRESQL_TOKEN_SUB: localhost
       POSTGRESQL_DOCUMENT_PUB: localhost
       POSTGRESQL_DOCUMENT_SUB: localhost
-      POSTGRESQL_PUBLICATION_PUB: localhost
-      POSTGRESQL_PUBLICATION_SUB: localhost
+      POSTGRESQL_PUBLISHING_PUB: localhost
+      POSTGRESQL_PUBLISHING_SUB: localhost
       POSTGRESQL_BILLING_PUB: localhost
       POSTGRESQL_BILLING_SUB: localhost
       POSTGRESQL_MESSAGE_PUB: localhost
@@ -366,8 +366,8 @@ jobs:
       POSTGRESQL_TOKEN_SUB: localhost
       POSTGRESQL_DOCUMENT_PUB: localhost
       POSTGRESQL_DOCUMENT_SUB: localhost
-      POSTGRESQL_PUBLICATION_PUB: localhost
-      POSTGRESQL_PUBLICATION_SUB: localhost
+      POSTGRESQL_PUBLISHING_PUB: localhost
+      POSTGRESQL_PUBLISHING_SUB: localhost
       POSTGRESQL_BILLING_PUB: localhost
       POSTGRESQL_BILLING_SUB: localhost
       POSTGRESQL_MESSAGE_PUB: localhost
