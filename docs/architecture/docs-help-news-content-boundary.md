@@ -4,13 +4,12 @@
 
 This document describes the current responsibility split for `docs`, `help`, and `news`.
 
-> **Persistence re-scoped (2026-07-16):** Per `adr/publishing-db-content-authority.md`, the content
-> authority for `info`, `docs`, `news`, and `help` moves to the central `publishing` database
-> (`Publishing::Entry` / `EntryRevision` / `EntryVersion` / `Publication` and media tables). All
-> four surfaces are global content surfaces; `app`/`com`/`org` are audience identifiers. The
-> "Persistence Direction" section below describes the superseded lean content-entry placement and is
-> kept for migration reference only. Frontend ownership, routing direction, and the controller
-> boundary in this document remain current.
+> **Persistence (2026-07-16, cutover complete):** Per `adr/publishing-db-content-authority.md`, the
+> content authority for `info`, `docs`, `news`, and `help` lives in the central `publishing`
+> database (`Publishing::Entry` / `EntryRevision` / `EntryVersion` / `Publication` and media
+> tables). All four surfaces are global content surfaces; `app`/`com`/`org` are audience
+> identifiers. The legacy lean content-entry and CMS tables have been dropped from the zenith
+> databases in development and test; production requires a separately approved migration run.
 
 ## Frontend Ownership
 
@@ -118,41 +117,25 @@ equivalent API-only base that does not depend on:
 org-scoped in the future, but that must reuse the existing authority boundary and must not make
 `docs`, `help`, or `news` a new identity, session, or authorization authority.
 
-## Persistence Direction (superseded — migration reference only)
+## Persistence Direction
 
-Use the lean content-entry direction. Do not restore the old `Document`, `Timeline`, `Contact`,
-taxonomy, status, revision, or version model families.
+Content persistence lives in the central `publishing` database. Controllers read through
+`PublishingContentRendering`, which resolves an edition by explicit per-controller
+`PUBLISHING_AUDIENCE` / `PUBLISHING_SURFACE` constants — never dynamically from a class name or
+request parameter.
 
-The minimum content entry shape is:
+The JSON read contract is preserved from the legacy read-only surfaces: `namespace` carries the
+content surface (`docs`/`news`/`help`/`info`) and `surface` carries the audience
+(`app`/`com`/`org`).
 
-- `slug`;
-- `locale`;
-- `title`;
-- `summary`;
-- `body`;
-- `status`;
-- `published_at`;
-- timestamps.
-
-Do not add category, tag, revision, version, publish workflow, `expires_at`, `redirect_url`,
-`response_mode`, authoring UI, or approval workflow in the current phase.
-
-Versions and revisions are future planned capabilities, but their boundary is not defined. A future
-design may use revision for internal editing history and version for public release history. Do not
-expose routes or schemas before that decision exists.
-
-Taxonomy is abandoned for now. Category or tag support may be reintroduced later only with a fresh
-product and API decision.
+Taxonomy (category/tag) is deferred to a future ADR. Do not add category, tag, publish workflow,
+authoring UI, or approval workflow without that decision.
 
 Mutation belongs to future base > org authoring or management work. Docs, help, and news remain
 read-only surfaces.
 
-The database is temporarily borrowed or colocated in the current Rails storage direction. Do not
-restore the old full global model stack or relocate ownership as part of the current content-surface
-cleanup.
-
 ## Related
 
-- `adr/read-only-content-surfaces-in-rails.md`
+- `adr/publishing-db-content-authority.md`
 - `docs/architecture/regional-content.md`
 - `docs/architecture/acme-sign-core-base-port.md`
