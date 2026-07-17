@@ -2,6 +2,7 @@
 
 SimpleCov.load_profile "rails"
 SimpleCov.cover "{app,lib}/**/*.rb"
+SimpleCov.source_in_json false
 
 SimpleCov.group "Services", "app/services"
 SimpleCov.group "Values", "app/values"
@@ -15,4 +16,6 @@ SimpleCov.coverage :line do
   minimum 91
 end
 
-SimpleCov.coverage :branch
+SimpleCov.coverage :branch do
+  minimum 70
+end

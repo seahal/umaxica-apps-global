@@ -20,6 +20,8 @@ gem "rack"
 gem "rack-timeout", group: %i(development production)
 # Rack CORS middleware.
 gem "rack-cors"
+# Rate Limit
+gem "rack-attack"
 # Puma application server.
 gem "puma"
 # PostgreSQL database adapter.
@@ -61,7 +63,6 @@ gem "shrine"
 gem "image_processing", require: false
 # AWS SNS client for SMS delivery.
 gem "aws-sdk-sns", require: false
-# Tailwind CSS integration.
 # HTML metadata helpers.
 gem "meta-tags"
 # OpenTelemetry SDK.
@@ -131,9 +132,7 @@ gem "mission_control-jobs"
 
 group :development, :test do
   # Test coverage reporting.
-  gem "simplecov"
-  # LCOV formatter for SimpleCov.
-  gem "simplecov-lcov"
+  gem "simplecov", "~> 1.0", ">= 1.0.1", require: false
   # Minitest mock extraction.
   gem "minitest-mock"
   # Slow test profiling.

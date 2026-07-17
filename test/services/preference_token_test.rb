@@ -116,6 +116,39 @@ class PreferenceTokenTest < ActiveSupport::TestCase
     end
   end
 
+  test "returns nil for a case-variant algorithm token" do
+    with_jwt_keys do
+      token = PreferenceToken.encode(
+        @prefs,
+        host: @host,
+        preference_type: @preference_type,
+        public_id: @public_id,
+        jti: @jti,
+      )
+      payload, header = JWT.decode(token, nil, false)
+      tampered = JWT.encode(payload, @private_key, "ES384", header.merge("alg" => "eS384"))
+
+      assert_nil PreferenceToken.decode(tampered, host: @host)
+    end
+  end
+
+  test "returns nil for a token missing iat" do
+    with_jwt_keys do
+      token = PreferenceToken.encode(
+        @prefs,
+        host: @host,
+        preference_type: @preference_type,
+        public_id: @public_id,
+        jti: @jti,
+      )
+      payload, header = JWT.decode(token, nil, false)
+      payload.delete("iat")
+      tampered = JWT.encode(payload, @private_key, "ES384", header)
+
+      assert_nil PreferenceToken.decode(tampered, host: @host)
+    end
+  end
+
   test "returns nil for unknown kid" do
     with_jwt_keys do
       token = PreferenceToken.encode(

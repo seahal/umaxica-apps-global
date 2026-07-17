@@ -16,7 +16,6 @@ RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
 require_relative "../config/environment"
 require "rails/test_help"
 require_relative "support/parallel_test_database_cloner"
-require_relative "support/parallel_test_configuration"
 
 module AuthenticationHarness
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " \
@@ -212,7 +211,13 @@ module ActiveSupport
   class TestCase
     include AuthenticationHarness
 
-    parallel_workers = ParallelTestConfiguration.workers
+    parallel_workers =
+      if ENV["COVERAGE"] == "true"
+        1
+      else
+        Integer(ENV.fetch("PARALLEL_WORKERS", "16"), 10)
+      end
+    raise ArgumentError, "PARALLEL_WORKERS must be positive" unless parallel_workers.positive?
 
     fixtures :all
     ParallelTestDatabaseCloner.install!(workers: parallel_workers)

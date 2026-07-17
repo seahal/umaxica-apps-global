@@ -70,6 +70,23 @@ class OidcIdTokenVerifierTest < ActiveSupport::TestCase
     assert_invalid none_token
   end
 
+  test "rejects a case-variant algorithm before key verification" do
+    JitSecurityJwtKeyring.stub(
+      :parse_header,
+      { "alg" => "eS384", "typ" => SecurityJwtOidcIdTokenCodec::TOKEN_TYPE, "kid" => "kid" },
+    ) do
+      assert_raises(JWT::DecodeError) do
+        SecurityJwtOidcIdTokenCodec.decode(
+          id_token: "not.a.jwt",
+          client_id: @client.client_id,
+          resource_type: "client",
+          jwt_issuer_id: @jwt_issuer_id,
+          issuer: @issuer,
+        )
+      end
+    end
+  end
+
   test "rejects missing nbf and invalid time ordering" do
     assert_invalid token_with_claims_without("nbf")
     assert_invalid token_with_claims("iat" => 5.minutes.from_now.to_i, "nbf" => 5.minutes.from_now.to_i)

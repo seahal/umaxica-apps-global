@@ -94,4 +94,59 @@ class SecurityJwtAuthAccessTokenCodecCoverageTest < ActiveSupport::TestCase
     assert_includes options.fetch(:required_claims), "nbf"
     assert options.fetch(:verify_nbf)
   end
+
+  test "decode options require iat" do
+    options = SecurityJwtAuthAccessTokenCodec.send(
+      :decode_options,
+      "client",
+      "issuer",
+      ["audience"],
+      verify_exp: true,
+    )
+
+    assert_includes options.fetch(:required_claims), "iat"
+  end
+
+  test "rejects a correctly signed token when iat is missing" do
+    private_key = OpenSSL::PKey::EC.generate("secp384r1")
+    payload = {
+      "iss" => "issuer",
+      "aud" => "audience",
+      "typ" => "access-token+jwt",
+      "exp" => 2.minutes.from_now.to_i,
+      "nbf" => Time.current.to_i,
+      "sub" => "subject",
+      "sid" => "session",
+      "act" => "client",
+      "jti" => "jti",
+      "acr" => "aal1",
+    }
+    token = JWT.encode(payload, private_key, "ES384", { "typ" => "access-token+jwt", "kid" => "kid" })
+
+    JitSecurityJwtKeyring.stub(:public_key_for, private_key.public_key) do
+      assert_nil SecurityJwtAuthAccessTokenCodec.decode(
+        token,
+        host: "app.example.test",
+        resource_type: "client",
+        issuer: "issuer",
+        audiences: ["audience"],
+      )
+    end
+  end
+
+  test "rejects a case-variant algorithm before JWT verification" do
+    refute SecurityJwtAuthAccessTokenCodec.send(
+      :valid_header?,
+      { "alg" => "eS384", "typ" => "access-token+jwt", "kid" => "kid" },
+      "client",
+    )
+  end
+
+  test "rejects an unsigned algorithm before JWT verification" do
+    refute SecurityJwtAuthAccessTokenCodec.send(
+      :valid_header?,
+      { "alg" => "none", "typ" => "access-token+jwt", "kid" => "kid" },
+      "client",
+    )
+  end
 end
