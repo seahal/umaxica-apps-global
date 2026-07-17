@@ -215,7 +215,9 @@ module ActiveSupport
       if ENV["COVERAGE"] == "true"
         1
       else
-        Integer(ENV.fetch("PARALLEL_WORKERS", "16"), 10)
+        # Physical cores, not logical: measured on a 16C/32T host — 32 workers
+        # lost more in fork + per-worker DB-clone overhead than they gained.
+        Integer(ENV.fetch("PARALLEL_WORKERS") { Concurrent.physical_processor_count.to_s }, 10)
       end
     raise ArgumentError, "PARALLEL_WORKERS must be positive" unless parallel_workers.positive?
 
@@ -231,5 +233,13 @@ module ActiveSupport
     # (mutate the same instance with #clear -- replacing it would not reach
     # controllers that captured the original store at class-load time).
     setup { Rails.configuration.x.rate_limit.fetch(:store).clear }
+
+    # I18n.locale is thread-local and is set by controller `set_locale`
+    # before_actions during integration/controller tests. Those tests share
+    # worker processes with model tests, so a request that leaves I18n.locale
+    # at, e.g., :en would make a later model test read English validation
+    # messages where it expects the default locale. Reset to the default after
+    # every test so locale never leaks across the shared process.
+    teardown { I18n.locale = I18n.default_locale }
   end
 end

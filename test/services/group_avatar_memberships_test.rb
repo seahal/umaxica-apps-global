@@ -56,4 +56,18 @@ class GroupAvatarMembershipsTest < ActiveSupport::TestCase
     assert_equal "removed", membership.reload.state
     assert_predicate membership.removed_at, :present?
   end
+
+  test "rejects a removal timestamp before assignment" do
+    assigned_at = Time.current
+    membership = GroupAvatarMembership.new(
+      role: "member",
+      position: 0,
+      state: "removed",
+      assigned_at: assigned_at,
+      removed_at: assigned_at - 1.second,
+    )
+
+    assert_not membership.valid?
+    assert membership.errors.of_kind?(:removed_at, :invalid)
+  end
 end

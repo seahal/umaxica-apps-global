@@ -97,5 +97,20 @@ module Publishing
         Publication.create!(entry:, entry_version: version, effective_from: 36.hours.ago)
       }
     end
+
+    test "media usage requires exactly one entry owner" do
+      usage = MediaUsage.new(entry_revision_id: 1, entry_version_id: 1)
+
+      assert_not usage.valid?
+      assert_includes usage.errors[:base], "must belong to exactly one of entry_revision or entry_version"
+    end
+
+    test "media usage accepts one entry owner" do
+      usage = MediaUsage.new(entry_revision_id: 1)
+
+      usage.valid?
+
+      assert_empty usage.errors[:base]
+    end
   end
 end

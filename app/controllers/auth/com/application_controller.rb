@@ -67,6 +67,7 @@ module Auth
       before_action :transparent_refresh_access_token, unless: -> { request.format.json? }
       before_action :set_current_actor
       before_action :apply_localization_preferences
+      before_action :set_locale
       before_action :set_color_theme
       before_action :enforce_withdrawal_gate!
       before_action :enforce_restricted_session_guard!

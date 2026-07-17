@@ -8,9 +8,6 @@ require "rails/all"
 
 Bundler.require(*Rails.groups)
 
-# Ensure custom middleware is loaded only if present
-surface_middleware_path = File.expand_path("../app/middleware/core/surface_middleware.rb", __dir__)
-require_relative "../app/middleware/core/surface_middleware" if File.exist?(surface_middleware_path)
 require_relative "../lib/jit_security_active_record_encryption_key_provider"
 require_relative "../lib/app_config_loader"
 

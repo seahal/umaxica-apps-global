@@ -4,69 +4,100 @@
 require "test_helper"
 
 class ParallelTestDatabaseClonerTest < ActiveSupport::TestCase
-  ReplicaConfig =
-    Struct.new(:name, :database, :replica, :configuration_hash, :schema_format) do
-      def replica?
-        replica
-      end
-    end
+  test "clone_task rebuilds a missing clone" do
+    stamped = { "test_com_principal_db" => nil }
 
-  test "creates a missing replica database from its base database" do
-    base = ReplicaConfig.new("com_principal", "test_com_principal_db", false, {}, :sql)
-    replica = ReplicaConfig.new("com_principal_replica", "test_com_principal_replica_db", true, {}, :sql)
-    existing = Set.new([base.database])
-    fingerprints = { base.database => "base-fingerprint" }
-    schema_shas = { base.database => "schema-sha" }
-    calls = []
+    task = ParallelTestDatabaseCloner.clone_task(
+      stamped,
+      source: "test_com_principal_db",
+      clone: "test_com_principal_replica_db",
+      sha: "schema-sha",
+    )
 
-    ParallelTestDatabaseCloner.stub(:database_fingerprint, ->(_config, database) { fingerprints.fetch(database) }) do
-      ParallelTestDatabaseCloner.stub(
-        :rebuild_clone,
-        lambda do |_admin_connection, _config, source:, clone:, schema_sha:, clone_exists:|
-          calls << [source, clone, schema_sha, clone_exists]
-          existing.add(clone)
-        end,
-      ) do
-        ParallelTestDatabaseCloner.ensure_replica_databases(
-          Object.new,
-          {},
-          [base, replica],
-          { "com_principal" => base },
-          existing,
-          fingerprints,
-          schema_shas,
-        )
-      end
-    end
-
-    assert_equal [["test_com_principal_db", "test_com_principal_replica_db", "schema-sha", false]], calls
-    assert_includes existing, replica.database
+    assert_equal(
+      { source: "test_com_principal_db", clone: "test_com_principal_replica_db",
+        sha: "schema-sha", clone_exists: false },
+      task,
+    )
   end
 
-  test "skips a replica database that already matches its base database" do
-    base = ReplicaConfig.new("com_principal", "test_com_principal_db", false, {}, :sql)
-    replica = ReplicaConfig.new("com_principal_replica", "test_com_principal_replica_db", true, {}, :sql)
-    existing = Set.new([base.database, replica.database])
-    fingerprints = {
-      base.database => "base-fingerprint",
-      replica.database => "base-fingerprint",
+  test "clone_task rebuilds an existing clone whose stamped sha differs" do
+    stamped = {
+      "test_com_principal_db" => nil,
+      "test_com_principal_replica_db" => "old-sha",
     }
-    schema_shas = { base.database => "schema-sha" }
 
-    ParallelTestDatabaseCloner.stub(:database_fingerprint, ->(_config, database) { fingerprints.fetch(database) }) do
-      ParallelTestDatabaseCloner.stub(:rebuild_clone, ->(*) { flunk("expected no rebuild") }) do
-        ParallelTestDatabaseCloner.ensure_replica_databases(
-          Object.new,
-          {},
-          [base, replica],
-          { "com_principal" => base },
-          existing,
-          fingerprints,
-          schema_shas,
-        )
+    task = ParallelTestDatabaseCloner.clone_task(
+      stamped,
+      source: "test_com_principal_db",
+      clone: "test_com_principal_replica_db",
+      sha: "schema-sha",
+    )
+
+    assert task
+    assert task.fetch(:clone_exists)
+  end
+
+  test "clone_task skips a clone whose stamped sha matches" do
+    stamped = {
+      "test_com_principal_db" => nil,
+      "test_com_principal_replica_db" => "schema-sha",
+    }
+
+    assert_nil ParallelTestDatabaseCloner.clone_task(
+      stamped,
+      source: "test_com_principal_db",
+      clone: "test_com_principal_replica_db",
+      sha: "schema-sha",
+    )
+  end
+
+  test "clone_task rebuilds every run when the schema dump sha is unavailable" do
+    stamped = {
+      "test_com_principal_db" => nil,
+      "test_com_principal_replica_db" => "anything",
+    }
+
+    task = ParallelTestDatabaseCloner.clone_task(
+      stamped,
+      source: "test_com_principal_db",
+      clone: "test_com_principal_replica_db",
+      sha: nil,
+    )
+
+    assert task
+    assert_nil task.fetch(:sha)
+  end
+
+  test "run_clone_tasks serializes clones sharing a template source" do
+    tasks = [
+      { source: "a", clone: "a_0", sha: "s", clone_exists: false },
+      { source: "a", clone: "a_1", sha: "s", clone_exists: false },
+      { source: "b", clone: "b_0", sha: "s", clone_exists: false },
+    ]
+    mutex = Mutex.new
+    active_by_source = Hash.new(0)
+    overlap = false
+    order = []
+
+    ParallelTestDatabaseCloner.stub(:connect, ->(*) { Struct.new(:closed).new.tap { |c| def c.close; end } }) do
+      ParallelTestDatabaseCloner.stub(
+        :rebuild_clone,
+        lambda do |_connection, source:, clone:, sha:, clone_exists:|
+          mutex.synchronize do
+            active_by_source[source] += 1
+            overlap ||= active_by_source[source] > 1
+            order << clone
+          end
+          sleep 0.01
+          mutex.synchronize { active_by_source[source] -= 1 }
+        end,
+      ) do
+        ParallelTestDatabaseCloner.run_clone_tasks({ host: "unused", username: "unused" }, tasks)
       end
     end
 
-    assert_includes existing, replica.database
+    refute overlap, "clones from the same template source must not run concurrently"
+    assert_equal %w[a_0 a_1 b_0].sort, order.sort
   end
 end

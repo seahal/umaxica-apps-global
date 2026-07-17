@@ -4,10 +4,6 @@
 module Finisher
   extend ActiveSupport::Concern
 
-  def purge_current
-    Actor.clear
-  end
-
   private
 
   def finish_request

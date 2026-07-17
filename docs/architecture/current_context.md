@@ -71,8 +71,8 @@ and preferences after authentication has had a chance to load or refresh the req
 legacy `set_current` method remains a compatibility alias for `set_current_actor`.
 
 `ActorSupport#with_actor_lifecycle` clears `Actor` in an `ensure` block for controller bases that
-use an around-action lifecycle. `Finisher#purge_current` remains a compatibility cleanup method for
-older after-action wiring.
+use an around-action lifecycle. `Finisher#purge_current` was a compatibility cleanup method for
+older after-action wiring with no remaining runtime callers; it has been removed.
 
 Use `Actor.clear` for application code that explicitly empties the current request context.
 `Actor.reset` remains the Rails `ActiveSupport::CurrentAttributes` lifecycle method and has the same

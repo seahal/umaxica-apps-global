@@ -94,8 +94,10 @@ module Dpop
 
     test "case-variant supported alg returns error" do
       private_key, jwk = generate_proof_jwk
-      payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i,
-                  "jti" => SecureRandom.uuid }
+      payload = { "htm" => "GET",
+                  "htu" => "http://example.com/api",
+                  "iat" => Time.current.to_i,
+                  "jti" => SecureRandom.uuid, }
       proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk, "alg" => "eS256" })
 
       result = DpopProofValidator.new(

@@ -20,8 +20,6 @@ gem "rack"
 gem "rack-timeout", group: %i(development production)
 # Rack CORS middleware.
 gem "rack-cors"
-# Rate Limit
-gem "rack-attack"
 # Puma application server.
 gem "puma"
 # PostgreSQL database adapter.

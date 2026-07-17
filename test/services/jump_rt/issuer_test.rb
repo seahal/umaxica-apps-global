@@ -49,7 +49,7 @@ class JumpRtIssuerTest < ActiveSupport::TestCase
   end
 
   test "rejects a case-variant algorithm header" do
-    refute SecurityJwtJumpRtTokenCodec.valid_header?(
+    assert_not SecurityJwtJumpRtTokenCodec.valid_header?(
       { "typ" => "JWT", "alg" => "eS384", "kid" => "kid-1" },
     )
   end

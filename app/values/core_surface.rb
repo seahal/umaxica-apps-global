@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 module CoreSurface
-  ENV_KEY = "jit.surface"
   DEFAULT = :com
   SURFACES = %i(app com org net dev).freeze
 

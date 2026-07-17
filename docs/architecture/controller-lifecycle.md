@@ -174,15 +174,13 @@ The theme key remains `ct` for request parameters, JWT payloads, and theme cooki
 
 ## Known Migration Gaps
 
-`Preference::Localization` must not register callbacks from an `included do` block. Controllers that
-need locale/timezone reflection must explicitly place
-`before_action :apply_localization_preferences` in their base class.
-
 Preference concerns must not register request callbacks or callback skips from `included do` blocks.
-Controller bases and endpoint controllers own callback order explicitly.
-
-Some controllers still call `set_color_theme` before `set_current_actor`, so theme reflection can
-come from params, cookies, JWT payload, or `@preferences` before `Actor.preferences` is complete.
+Controller bases and endpoint controllers own callback order explicitly. `PreferenceLocalization`
+registers no callbacks from `included do`; controllers that need locale/timezone reflection place
+`before_action :apply_localization_preferences` explicitly in their base class. All surface
+`ApplicationController`s now also run `set_color_theme` after `set_current_actor`, so theme
+reflection can rely on `Actor.preferences` being complete. These two gaps are resolved as of the
+2026-07-17 controller-layer audit (`memos/2026-07-17-controller-layer-problem-audit.md`).
 
 Some preference setup code still has deliberate side effects, including preference token reissue,
 cookie writes, refresh token lifetime updates, and login-time adoption. Those effects should remain

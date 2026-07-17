@@ -142,6 +142,7 @@ class DbscRegistrationServiceTest < ActiveSupport::TestCase
     assert_not result[:ok]
     assert_equal "invalid_proof", result[:error_code]
     token.reload
+
     assert_not_equal "dbsc-invalid-signature", token.dbsc_session_id
     assert_not_equal ClientTokenDbscStatus::ACTIVE, token.user_token_dbsc_status_id
   end

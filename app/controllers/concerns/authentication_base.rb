@@ -1725,7 +1725,7 @@ module AuthenticationBase
   end
 
   def administratively_locked_resource?(resource)
-    resource.respond_to?(:admin_locked?) && resource.admin_locked?
+    AuthenticationCurrentResourceResolver.administratively_locked?(resource)
   end
 
   def destroy_refresh_token_from_cookie

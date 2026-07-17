@@ -135,7 +135,7 @@ class SecurityJwtAuthAccessTokenCodecCoverageTest < ActiveSupport::TestCase
   end
 
   test "rejects a case-variant algorithm before JWT verification" do
-    refute SecurityJwtAuthAccessTokenCodec.send(
+    assert_not SecurityJwtAuthAccessTokenCodec.send(
       :valid_header?,
       { "alg" => "eS384", "typ" => "access-token+jwt", "kid" => "kid" },
       "client",
@@ -143,7 +143,7 @@ class SecurityJwtAuthAccessTokenCodecCoverageTest < ActiveSupport::TestCase
   end
 
   test "rejects an unsigned algorithm before JWT verification" do
-    refute SecurityJwtAuthAccessTokenCodec.send(
+    assert_not SecurityJwtAuthAccessTokenCodec.send(
       :valid_header?,
       { "alg" => "none", "typ" => "access-token+jwt", "kid" => "kid" },
       "client",
