@@ -36,6 +36,39 @@ class ProcessorErasureNotificationJobTest < ActiveJob::TestCase
     assert_equal VisitorProcessorErasureNotification.status_id_for("NOTIFIED"), notification.reload.status_id
   end
 
+  test "job marks an unsupported visitor processor failed and records the reason" do
+    visitor = create_visitor
+    privacy_request = VisitorPrivacyRequest.create!(visitor: visitor)
+    notification = VisitorProcessorErasureNotification.create!(
+      visitor_privacy_request: privacy_request,
+      processor_key: "payment",
+    )
+
+    ProcessorErasureNotificationJob.perform_now(surface: "com", public_id: notification.public_id)
+
+    assert_equal VisitorProcessorErasureNotification.status_id_for("FAILED"), notification.reload.status_id
+    occurrence = VisitorOccurrence.where(event_type: "processor_erasure.failed").order(:id).last
+
+    assert_equal "processor_unavailable", occurrence.context.fetch("reason_code")
+  end
+
+  test "job rejects unsupported surfaces" do
+    error =
+      assert_raises(ArgumentError) do
+        ProcessorErasureNotificationJob.perform_now(surface: "org", public_id: "missing")
+      end
+
+    assert_equal 'unsupported processor erasure surface: "org"', error.message
+  end
+
+  test "private mappings reject unsupported notification classes" do
+    job = ProcessorErasureNotificationJob.new
+    notification = Object.new
+
+    assert_raises(ArgumentError) { job.send(:subject_for, notification) }
+    assert_raises(ArgumentError) { job.send(:privacy_request_for, notification) }
+  end
+
   private
 
   def create_client

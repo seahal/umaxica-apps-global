@@ -70,4 +70,66 @@ class GroupAvatarMembershipsTest < ActiveSupport::TestCase
     assert_not membership.valid?
     assert membership.errors.of_kind?(:removed_at, :invalid)
   end
+
+  test "reorders an active membership" do
+    capability = avatar_capabilities(:normal)
+    handle = Handle.create!(handle: "group-reorder-#{SecureRandom.hex(4)}", cooldown_until: Time.current)
+    avatar = Avatar.create!(capability: capability, active_handle: handle, moniker: "Member")
+    group = AvatarGroup.create!(
+      account_surface: "app",
+      account_public_id: "account-public-id",
+      name: "Group",
+      state: "active",
+    )
+    membership = GroupAvatarMembership.create!(avatar_group: group, avatar: avatar, role: "member", position: 1)
+
+    result = GroupAvatarMemberships::Reorder.call(membership: membership, position: 3)
+
+    assert_same membership, result
+    assert_equal 3, membership.reload.position
+  end
+
+  test "does not reorder an inactive membership" do
+    capability = avatar_capabilities(:normal)
+    handle = Handle.create!(handle: "group-reorder-inactive-#{SecureRandom.hex(4)}", cooldown_until: Time.current)
+    avatar = Avatar.create!(capability: capability, active_handle: handle, moniker: "Member")
+    group = AvatarGroup.create!(
+      account_surface: "app",
+      account_public_id: "account-public-id",
+      name: "Group",
+      state: "active",
+    )
+    membership = GroupAvatarMembership.create!(avatar_group: group, avatar: avatar, role: "member", position: 1)
+    membership.update_columns(state: "removed", removed_at: Time.current)
+    membership.reload
+
+    error =
+      assert_raises(ArgumentError) do
+        GroupAvatarMemberships::Reorder.call(membership: membership, position: 3)
+      end
+
+    assert_equal "membership is not active", error.message
+    assert_equal 1, membership.reload.position
+  end
+
+  test "rejects a negative reorder position" do
+    capability = avatar_capabilities(:normal)
+    handle = Handle.create!(handle: "group-reorder-negative-#{SecureRandom.hex(4)}", cooldown_until: Time.current)
+    avatar = Avatar.create!(capability: capability, active_handle: handle, moniker: "Member")
+    group = AvatarGroup.create!(
+      account_surface: "app",
+      account_public_id: "account-public-id",
+      name: "Group",
+      state: "active",
+    )
+    membership = GroupAvatarMembership.create!(avatar_group: group, avatar: avatar, role: "member", position: 1)
+
+    error =
+      assert_raises(ArgumentError) do
+        GroupAvatarMemberships::Reorder.call(membership: membership, position: -1)
+      end
+
+    assert_equal "position must be non-negative", error.message
+    assert_equal 1, membership.reload.position
+  end
 end

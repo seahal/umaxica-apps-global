@@ -5,6 +5,9 @@ module Auth
   module App
     class ApplicationController < ActionController::Base
       include ::RateLimit
+      include ::WebauthnSurfaceDeclarable
+
+      webauthn_surface :app
       include ::JumpRtReturnVerification
       include ::Session
       include ::PreferenceGlobal

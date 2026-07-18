@@ -37,4 +37,25 @@ class PublishingMigrationAuditTest < ActiveSupport::TestCase
   ensure
     FileUtils.rm_f(absolute)
   end
+
+  test "rejects an unknown surface" do
+    error =
+      assert_raises(ArgumentError) do
+        PublishingMigrationAudit.new.send(:record_class_for, "unknown")
+      end
+
+    assert_equal 'unknown surface: "unknown"', error.message
+  end
+
+  test "reports an unavailable surface without aborting the audit" do
+    service = PublishingMigrationAudit.new
+    unavailable = -> { raise ActiveRecord::ConnectionNotEstablished, "offline" }
+
+    AppRpRecord.stub(:connection_pool, unavailable) do
+      result = service.send(:audit_surface, "app")
+
+      assert_match "ActiveRecord::ConnectionNotEstablished", result.fetch(:connection_error)
+      assert_match "offline", result.fetch(:connection_error)
+    end
+  end
 end

@@ -56,6 +56,7 @@ module Auth::App::In
       assert_select "h1", text: I18n.t("sign.app.in.mfa.totp.title")
       assert_select "label", text: I18n.t("sign.app.in.mfa.totp.token_label")
       assert_select "input[placeholder=?]", I18n.t("sign.app.in.mfa.totp.token_placeholder")
+      assert_select "input[name='totp_challenge_form[token]'][autocomplete='one-time-code']", count: 0
       assert_select "input[type=submit][value=?]", I18n.t("sign.app.in.mfa.totp.submit")
       assert_includes response.body, "認証アプリ"
       assert_includes response.body, I18n.t("sign.app.in.mfa.totp.help")

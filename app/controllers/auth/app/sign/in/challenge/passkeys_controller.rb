@@ -9,7 +9,7 @@ module Auth
       module In
         module Challenge
           class PasskeysController < ::Auth::App::ApplicationController
-            include SignWebauthn
+            include ::PasskeyCeremonyContext
 
             include SessionLimitGate
 
@@ -57,12 +57,8 @@ module Auth
               end
 
               @passkey_challenge_id, @passkey_request_options =
-                create_authentication_challenge(
-                  allow_credentials: passkeys.map { |pk|
-                    { id: pk.webauthn_id }
-                  }, user_verification: "discouraged",
-                )
-            rescue SignWebauthn::OriginValidationError => e
+                issue_passkey_authentication_challenge(allow_credentials: passkeys, actor: @mfa_user)
+            rescue Webauthn::RelyingPartyConfigResolver::MissingConfigurationError => e
               Rails.logger.error(JitLogEvent.format("webauthn.origin_validation_failed", error: e.message))
               redirect_to(
                 auth_app_sign_in_challenge_path,
@@ -79,11 +75,12 @@ module Auth
                 return
               end
 
-              with_challenge(passkey_params[:challenge_id], purpose: :authentication) do |challenge|
-                verify_passkey!(challenge)
-              end
-            rescue SignWebauthn::ChallengeNotFoundError, SignWebauthn::ChallengeExpiredError,
-                   SignWebauthn::ChallengePurposeMismatchError, WebAuthn::Error
+              challenge = consume_passkey_challenge!(
+                passkey_params[:challenge_id], purpose: :authentication, actor: pending_mfa_user,
+              )
+              verify_passkey!(challenge)
+            rescue Webauthn::ChallengeStore::ChallengeError,
+                   Webauthn::AssertionVerifier::VerificationError, WebAuthn::Error
               redirect_to(
                 auth_app_sign_in_challenge_path,
                 status: :see_other,
@@ -112,11 +109,7 @@ module Auth
 
             def verify_passkey!(challenge)
               credential_payload = JSON.parse(passkey_params[:credential_json].to_s)
-              credential = WebAuthn::Credential.from_get(
-                credential_payload,
-                relying_party: webauthn_relying_party,
-              )
-              passkey = ClientPasskey.find_by(webauthn_id: credential.id)
+              passkey = ClientPasskey.find_by(webauthn_id: credential_payload["id"])
 
               user = pending_mfa_user
               unless passkey && user && passkey.user_id == user.id
@@ -131,8 +124,14 @@ module Auth
                 return
               end
 
-              credential.verify(challenge, public_key: passkey.public_key, sign_count: passkey.sign_count)
-              passkey.update!(sign_count: credential.sign_count, last_used_at: Time.current)
+              context = Webauthn::AssertionVerifier.verify!(
+                credential_params: credential_payload,
+                challenge: challenge,
+                config: webauthn_relying_party_config,
+                public_key: passkey.public_key,
+                sign_count: passkey.sign_count,
+              )
+              passkey.update!(sign_count: context.sign_count, last_used_at: Time.current)
 
               complete_mfa_login!(user)
             rescue JSON::ParserError

@@ -18,19 +18,7 @@ module Auth
         # planned for a future phase. Currently, email is required to look up
         # the user's registered passkeys.
         class PasskeysController < ::Auth::App::ApplicationController
-          include SignWebauthn
-
-          include SignPasskeyAuthentication
-
-          include SignPasskeyAuthenticationHelpers
-
-          include SignPasskeyOptionsFlow
-
-          include SignPasskeyVerificationFlow
-
-          include SignPasskeySignInFlow
-
-          include SignPasskeyLoginResultFlow
+          include ::PasskeySignInFlow
 
           include EmailValidation
 
@@ -119,26 +107,6 @@ module Auth
             end
 
             true
-          end
-
-          def active_passkeys_for_actor(user)
-            user.client_passkeys.where(status_id: ClientPasskeyStatus::ACTIVE)
-          end
-
-          def passkey_challenge_actor_id_key
-            "user_id"
-          end
-
-          def passkey_sign_in_model
-            ClientPasskey
-          end
-
-          def passkey_belongs_to_challenge_actor?(passkey, actor_id)
-            passkey.user_id == actor_id
-          end
-
-          def passkey_owner_mismatch_log_message
-            "WebAuthn: Credential not found or user mismatch"
           end
 
           def allow_passkey_sign_in?(passkey)

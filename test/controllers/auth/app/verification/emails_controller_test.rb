@@ -55,6 +55,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
         assert_select "h1", text: I18n.t("sign.app.verification.edit.title")
         assert_select "label", text: I18n.t("sign.app.verification.edit.code_label")
         assert_select "input[placeholder=?]", I18n.t("sign.app.verification.edit.code_placeholder")
+        assert_select "input[name='verification[code]'][autocomplete='one-time-code']", count: 1
         assert_select "input[type=submit][value=?]", I18n.t("sign.app.verification.edit.submit")
         assert_includes response.body, "メールアドレス"
         assert_includes response.body, I18n.t("sign.app.verification.edit.email_delivery_help")

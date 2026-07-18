@@ -18,19 +18,7 @@ module Auth
         # planned for a future phase. Currently, identifier is required to look up
         # the operator's registered passkeys.
         class PasskeysController < ::Auth::Org::ApplicationController
-          include SignWebauthn
-
-          include SignPasskeyAuthentication
-
-          include SignPasskeyAuthenticationHelpers
-
-          include SignPasskeyOptionsFlow
-
-          include SignPasskeyVerificationFlow
-
-          include SignPasskeySignInFlow
-
-          include SignPasskeyLoginResultFlow
+          include ::PasskeySignInFlow
 
           include MinimumResponseBudget
 
@@ -117,26 +105,6 @@ module Auth
 
             staff = Operator.find_by(public_id: normalized_identifier)
             staff if staff&.login_allowed?
-          end
-
-          def active_passkeys_for_actor(staff)
-            staff.staff_passkeys.where(status_id: OperatorPasskeyStatus::ACTIVE)
-          end
-
-          def passkey_challenge_actor_id_key
-            "staff_id"
-          end
-
-          def passkey_sign_in_model
-            OperatorPasskey
-          end
-
-          def passkey_belongs_to_challenge_actor?(passkey, actor_id)
-            passkey.staff_id == actor_id
-          end
-
-          def passkey_owner_mismatch_log_message
-            "WebAuthn: Credential not found or staff mismatch"
           end
 
           def perform_passkey_sign_in(passkey)

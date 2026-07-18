@@ -40,21 +40,29 @@ class SignVerificationPasskeyChecksTest < ActiveSupport::TestCase
       "errors.webauthn.no_passkey"
     end
 
-    def create_authentication_challenge(allow_credentials:)
-      ["challenge-1", { allowCredentials: allow_credentials }]
+    def issue_passkey_authentication_challenge(allow_credentials:, actor:, purpose:)
+      raise "unexpected actor" unless actor == current_verification_actor
+      raise "unexpected purpose" unless purpose == :step_up
+
+      ["challenge-1", { allowCredentials: allow_credentials.map { |passkey| { id: passkey.webauthn_id } } }]
     end
 
     def verification_params
       verification_params_value.with_indifferent_access
     end
 
-    def with_challenge(_challenge_id, purpose:)
-      raise RuntimeError, "wrong purpose" unless purpose == :authentication
-
-      yield "challenge"
+    def current_verification_actor
+      @current_verification_actor ||= Struct.new(:id).new(123)
     end
 
-    def webauthn_relying_party
+    def consume_passkey_challenge!(_challenge_id, purpose:, actor:)
+      raise "unexpected purpose" unless purpose == :step_up
+      raise "unexpected actor" unless actor == current_verification_actor
+
+      "challenge"
+    end
+
+    def webauthn_relying_party_config
       "example.test"
     end
   end
@@ -79,13 +87,9 @@ class SignVerificationPasskeyChecksTest < ActiveSupport::TestCase
     harness = Harness.new
 
     assert_not harness.send(:verify_passkey!)
-    assert_equal ["パスキー認証データが不足しています"], harness.verification_errors
+    assert_equal [I18n.t("errors.webauthn.challenge_id_required")], harness.verification_errors
 
-    credential = Struct.new(:id, :sign_count) do
-      define_method(:verify) do |*|
-        true
-      end
-    end.new("cred-1", 7)
+    verification_context = Struct.new(:sign_count).new(7)
     passkey_model =
       Class.new do
         class << self
@@ -106,10 +110,8 @@ class SignVerificationPasskeyChecksTest < ActiveSupport::TestCase
     harness.passkey_model_class = passkey_model
     harness.verification_params_value = { challenge_id: "challenge-1", credential_json: { id: "cred-1" }.to_json }
 
-    WebAuthn::Credential.stub(:from_get, credential) do
-      assert_not harness.send(:verify_passkey!)
-      assert_equal [I18n.t("errors.webauthn.credential_not_found")], harness.verification_errors
-    end
+    assert_not harness.send(:verify_passkey!)
+    assert_equal [I18n.t("errors.webauthn.credential_not_found")], harness.verification_errors
 
     passkey = Struct.new(:webauthn_id, :public_key, :sign_count) do
       define_method(:update!) do |**kwargs|
@@ -123,7 +125,7 @@ class SignVerificationPasskeyChecksTest < ActiveSupport::TestCase
     end
     passkey.define_singleton_method(:updated_payload) { @updated_payload }
 
-    WebAuthn::Credential.stub(:from_get, credential) do
+    Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
       assert harness.send(:verify_passkey!)
     end
 

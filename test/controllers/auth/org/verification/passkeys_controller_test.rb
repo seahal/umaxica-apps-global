@@ -12,7 +12,15 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
     @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     @staff = operators(:one)
     @token = operator_tokens(:one)
-    trusted_origin_host = @host
+    @passkey = OperatorPasskey.create!(
+      staff: @staff,
+      webauthn_id: "org_verification_#{SecureRandom.hex(8)}",
+      external_id: SecureRandom.uuid,
+      public_key: "org-verification-public-key",
+      sign_count: 0,
+      name: "Org verification passkey",
+      status_id: OperatorPasskeyStatus::ACTIVE,
+    )
     @headers = {
       "Host" => @host,
       "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
@@ -21,12 +29,6 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
         jwt_access_token_for(@staff, host: @host, session_public_id: @token.public_id, resource_type: "operator")
       }",
     }
-    @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://auth.org.localhost", "http://#{trusted_origin_host}"] }
-  end
-
-  teardown do
-    Webauthn.define_singleton_method(:trusted_origins, &@original_trusted_origins.to_proc) if @original_trusted_origins
   end
 
   test "creates verification on success" do
@@ -38,7 +40,8 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
 
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
-        WebAuthn::Credential.stub(:from_get, passkey_credential_stub("webauthn_id_1")) do
+        verification_context = Struct.new(:sign_count, :verified_at).new(1, Time.current)
+        Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
           get auth_org_verification_url(scope: "settings_passkey", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
               headers: @headers
 
@@ -53,7 +56,12 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
           assert_response :success
 
           post auth_org_verification_passkey_url(ri: "jp"),
-               params: { verification: { challenge_id: "test", credential_json: '{"id":"webauthn_id_1"}' } },
+               params: {
+                 verification: {
+                   challenge_id: session[:passkey_challenges].keys.first,
+                   credential_json: { id: @passkey.webauthn_id }.to_json,
+                 },
+               },
                headers: @headers
 
           assert_response :success

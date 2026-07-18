@@ -10,7 +10,6 @@ module Auth
         include CommonOtp
         include ::AuthenticationOperator
         include ::VerificationOperator
-        include SignWebauthn
         include SignVerificationTiming
         include SignVerificationCommonBase
         include SignVerificationAuditAndCookie

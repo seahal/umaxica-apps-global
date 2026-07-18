@@ -5,6 +5,9 @@ module Auth
   module Org
     class ApplicationController < ActionController::Base
       include ::RateLimit
+      include ::WebauthnSurfaceDeclarable
+
+      webauthn_surface :org
       include ::Session
       include ::PreferenceGlobal
       include ::PreferenceAdoption

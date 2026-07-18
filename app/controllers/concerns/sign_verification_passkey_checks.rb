@@ -6,17 +6,21 @@ require "json"
 module SignVerificationPasskeyChecks
   extend ActiveSupport::Concern
 
+  include PasskeyCeremonyContext
+
   private
 
   def prepare_passkey_challenge!
-    allow_credentials = verification_passkeys_scope.active.map { |pk| { id: pk.webauthn_id } }
-    if allow_credentials.empty?
+    passkeys = verification_passkeys_scope.active
+    if passkeys.none?
       @verification_errors = [I18n.t(verification_no_passkey_i18n_key)]
       return false
     end
 
     @passkey_challenge_id, @passkey_request_options =
-      create_authentication_challenge(allow_credentials: allow_credentials)
+      issue_passkey_authentication_challenge(
+        allow_credentials: passkeys, actor: verification_passkey_actor, purpose: :step_up,
+      )
     true
   end
 
@@ -24,51 +28,40 @@ module SignVerificationPasskeyChecks
     challenge_id = verification_params[:challenge_id].to_s
     credential_json = verification_params[:credential_json].to_s
     if challenge_id.blank? || credential_json.blank?
-      @verification_errors = ["パスキー認証データが不足しています"]
+      @verification_errors = [I18n.t("errors.webauthn.challenge_id_required")]
       return false
     end
 
     credential_hash = JSON.parse(credential_json)
-    challenge_id = resolve_verification_challenge_id(challenge_id)
+    challenge = consume_passkey_challenge!(
+      challenge_id, purpose: :step_up, actor: verification_passkey_actor,
+    )
 
-    with_challenge(challenge_id, purpose: :authentication) do |challenge|
-      credential = WebAuthn::Credential.from_get(
-        credential_hash,
-        relying_party: webauthn_relying_party,
-      )
-      passkey = verification_passkey_model.find_by(webauthn_id: credential.id)
-      unless passkey && passkey_actor_matches?(passkey)
-        @verification_errors = [I18n.t("errors.webauthn.credential_not_found")]
-        next false
-      end
-
-      credential.verify(
-        challenge,
-        public_key: passkey.public_key,
-        sign_count: passkey.sign_count,
-      )
-      passkey.update!(sign_count: credential.sign_count)
-      true
+    passkey = verification_passkey_model.find_by(webauthn_id: credential_hash["id"])
+    unless passkey && passkey_actor_matches?(passkey)
+      @verification_errors = [I18n.t("errors.webauthn.credential_not_found")]
+      return false
     end
-  rescue SignWebauthn::ChallengeNotFoundError,
-         SignWebauthn::ChallengeExpiredError,
-         SignWebauthn::ChallengePurposeMismatchError
+
+    context = Webauthn::AssertionVerifier.verify!(
+      credential_params: credential_hash,
+      challenge: challenge,
+      config: webauthn_relying_party_config,
+      public_key: passkey.public_key,
+      sign_count: passkey.sign_count,
+    )
+    passkey.update!(sign_count: context.sign_count)
+    true
+  rescue Webauthn::ChallengeStore::ChallengeError
     @verification_errors = [I18n.t("errors.webauthn.challenge_invalid")]
     false
-  rescue WebAuthn::Error, JSON::ParserError
+  rescue Webauthn::AssertionVerifier::VerificationError, WebAuthn::Error, JSON::ParserError
     @verification_errors = [I18n.t("errors.webauthn.verification_failed")]
     false
   end
 
-  def resolve_verification_challenge_id(challenge_id)
-    return challenge_id unless respond_to?(:peek_challenge, true)
-    return challenge_id if peek_challenge(challenge_id).present?
-
-    challenges = session[SignWebauthn::CHALLENGE_SESSION_KEY] || {}
-    authentication_challenges = challenges.select { |_, data| data["purpose"] == "authentication" }
-    return authentication_challenges.keys.first if authentication_challenges.one?
-
-    challenge_id
+  def verification_passkey_actor
+    current_verification_actor
   end
 
   def verification_passkeys_scope

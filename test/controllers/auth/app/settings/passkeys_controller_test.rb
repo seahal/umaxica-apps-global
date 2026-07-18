@@ -30,17 +30,6 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     ).freeze
 
-    # Mock TRUSTED_ORIGINS
-    @original_trusted_origins = Webauthn.method(:trusted_origins)
-    allowed_origins = [
-      "http://auth.app.localhost",
-      "http://auth.org.localhost",
-      "http://www.example.com",
-      "http://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")}",
-      "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")}",
-    ].uniq
-    Webauthn.define_singleton_method(:trusted_origins) { allowed_origins }
-
     @passkey_webauthn_id = Base64.urlsafe_encode64("existing_credential", padding: false)
     @passkey =
       ClientPasskey.create!(
@@ -58,7 +47,6 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   teardown do
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
-    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
     @original_webauthn_env.each do |key, value|
       value.nil? ? ENV.delete(key) : ENV[key] = value
     end
@@ -160,24 +148,26 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "options uses configured app rp id" do
     ENV["WEBAUTHN_APP_RP_ID"] = "auth.app.localhost"
     ENV["WEBAUTHN_APP_ORIGIN"] = "http://auth.app.localhost"
-    Webauthn.stub(:trusted_origins, ["http://auth.app.localhost"]) do
-      post auth_app_settings_passkeys_options_path(ri: "jp"),
-           headers: @headers
-    end
+    post auth_app_settings_passkeys_options_path(ri: "jp"),
+         headers: @headers
 
     assert_response :ok
     assert_equal "auth.app.localhost", response.parsed_body.dig("options", "rp", "id")
   end
 
-  # Case D-3: Untrusted origin
-  test "options rejects untrusted origin" do
-    # Temporarily remove trusted origins
-    Webauthn.stub(:trusted_origins, []) do
-      post auth_app_settings_passkeys_options_path(ri: "jp"),
-           headers: @headers
+  test "options binds the challenge to the configured app origin" do
+    ENV["WEBAUTHN_APP_RP_ID"] = "auth.app.localhost"
+    ENV["WEBAUTHN_APP_ORIGIN"] = "https://auth.app.localhost"
 
-      assert_response :forbidden
-    end
+    post auth_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
+
+    assert_response :ok
+    challenge_id = response.parsed_body.fetch("challenge_id")
+    challenge = session[:passkey_challenges].fetch(challenge_id)
+
+    assert_equal "auth.app.localhost", challenge["rp_id"]
+    assert_equal "https://auth.app.localhost", challenge["origin"]
+    assert_equal "app:#{@user.id}", challenge["actor_global_key"]
   end
 
   # Case E-1: Unknown challenge
@@ -212,30 +202,33 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       true
     end
 
-    WebAuthn::Credential.stub(:from_create, mock_credential) do
-      params = {
-        challenge_id: challenge_id,
-        credential: {
-          id: "new_webauthn_id",
-          response: { clientDataJSON: "e30=", attestationObject: "e30=" },
-        },
-        description: "New Passkey",
-      }
+    registration_context = Struct.new(:webauthn_id, :sign_count).new("new_webauthn_id", 1)
+    Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+      WebAuthn::Credential.stub(:from_create, mock_credential) do
+        params = {
+          challenge_id: challenge_id,
+          credential: {
+            id: "new_webauthn_id",
+            response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+          },
+          description: "New Passkey",
+        }
 
-      step_up_before = Time.current
+        step_up_before = Time.current
 
-      assert_difference("ClientPasskey.count", 1) do
-        post auth_app_settings_passkeys_verification_path(ri: "jp"),
-             params: params,
-             headers: @headers
+        assert_difference("ClientPasskey.count", 1) do
+          post auth_app_settings_passkeys_verification_path(ri: "jp"),
+               params: params,
+               headers: @headers
+        end
+
+        assert_response :created
+        assert_equal "ok", response.parsed_body["status"]
+        # Skip checking exact path - just verify it returns a valid path
+        assert_predicate response.parsed_body["redirect_url"], :present?
+        assert_operator @token.reload.last_step_up_at, :<, step_up_before
+        assert_equal "settings_passkey", @token.last_step_up_scope
       end
-
-      assert_response :created
-      assert_equal "ok", response.parsed_body["status"]
-      # Skip checking exact path - just verify it returns a valid path
-      assert_predicate response.parsed_body["redirect_url"], :present?
-      assert_operator @token.reload.last_step_up_at, :<, step_up_before
-      assert_equal "settings_passkey", @token.last_step_up_scope
     end
   end
 
@@ -263,25 +256,28 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     mock_credential.define_singleton_method(:sign_count) { 1 }
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
-    WebAuthn::Credential.stub(:from_create, mock_credential) do
-      params = {
-        challenge_id: challenge_id,
-        credential: {
-          id: "bootstrap_webauthn_id",
-          response: { clientDataJSON: "e30=", attestationObject: "e30=" },
-        },
-        description: "Bootstrap Passkey",
-      }
+    registration_context = Struct.new(:webauthn_id, :sign_count).new("bootstrap_webauthn_id", 1)
+    Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+      WebAuthn::Credential.stub(:from_create, mock_credential) do
+        params = {
+          challenge_id: challenge_id,
+          credential: {
+            id: "bootstrap_webauthn_id",
+            response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+          },
+          description: "Bootstrap Passkey",
+        }
 
-      assert_difference("ClientPasskey.count", 1) do
-        assert_difference(
-          -> {
-            unverified_user.client_secret_credentials.where(user_secret_kind_id: ClientSecretCredentialKind::RECOVERY).count
-          }, 8,
-        ) do
-          post auth_app_settings_passkeys_verification_path(ri: "jp"),
-               params: params,
-               headers: headers
+        assert_difference("ClientPasskey.count", 1) do
+          assert_difference(
+            -> {
+              unverified_user.client_secret_credentials.where(user_secret_kind_id: ClientSecretCredentialKind::RECOVERY).count
+            }, 8,
+          ) do
+            post auth_app_settings_passkeys_verification_path(ri: "jp"),
+                 params: params,
+                 headers: headers
+          end
         end
       end
     end
@@ -305,20 +301,23 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       true
     end
 
-    WebAuthn::Credential.stub(:from_create, mock_credential) do
-      params = {
-        challenge_id: challenge_id,
-        credential: {
-          id: @passkey_webauthn_id,
-          response: { clientDataJSON: "e30=", attestationObject: "e30=" },
-        },
-        description: "Duplicate Passkey",
-      }
+    registration_context = Struct.new(:webauthn_id, :sign_count).new(duplicate_webauthn_id, 1)
+    Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+      WebAuthn::Credential.stub(:from_create, mock_credential) do
+        params = {
+          challenge_id: challenge_id,
+          credential: {
+            id: @passkey_webauthn_id,
+            response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+          },
+          description: "Duplicate Passkey",
+        }
 
-      assert_no_difference("ClientPasskey.count") do
-        post auth_app_settings_passkeys_verification_path(ri: "jp"),
-             params: params,
-             headers: @headers
+        assert_no_difference("ClientPasskey.count") do
+          post auth_app_settings_passkeys_verification_path(ri: "jp"),
+               params: params,
+               headers: @headers
+        end
       end
     end
 
@@ -333,14 +332,9 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
          headers: @headers
     challenge_id = response.parsed_body["challenge_id"]
 
-    # Mock WebAuthn failure using a plain object
-    mock_credential = Object.new
-    # Define dummy signature to accept any args
-    mock_credential.define_singleton_method(:verify) do |*_args|
-      raise WebAuthn::Error, "Verification failed"
-    end
-
-    WebAuthn::Credential.stub(:from_create, mock_credential) do
+    Webauthn::RegistrationVerifier.stub(
+      :verify!, ->(**) { raise WebAuthn::Error, "Verification failed" },
+    ) do
       params = {
         challenge_id: challenge_id,
         credential: { id: "id", response: {} },

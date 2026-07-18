@@ -16,9 +16,6 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     JitSecurityTurnstileVerifier.test_response = { "success" => true }
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
-    @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://auth.app.localhost", "http://#{host}"] }
-
     # Setup active staff with email and passkey
     @staff = operators(:one)
     @staff.update!(status_id: OperatorStatus::ACTIVE)
@@ -35,7 +32,6 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   teardown do
-    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
     JitSecurityTurnstileVerifier.test_mode = false
     JitSecurityTurnstileVerifier.test_response = nil
     CloudflareTurnstile.test_mode = false
@@ -116,7 +112,8 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     # Verify challenge saved with correct purpose
     assert_not_nil session[:passkey_challenges][json["challenge_id"]]
     assert_equal "authentication", session[:passkey_challenges][json["challenge_id"]]["purpose"]
-    assert_equal @staff.id, session[:passkey_challenges][json["challenge_id"]]["staff_id"]
+    assert_equal "org:#{@staff.id}",
+                 session[:passkey_challenges][json["challenge_id"]]["actor_global_key"]
   end
 
   test "options returns challenge and allowCredentials for staff public_id identifier" do
@@ -146,10 +143,13 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "verification returns bad request on challenge purpose mismatch" do
     post auth_org_sign_in_passkey_options_url(ri: "jp"), params: { identifier: @staff.public_id }
     challenge_id = response.parsed_body["challenge_id"]
-    mismatch_error = SignWebauthn::ChallengePurposeMismatchError.new("purpose mismatch")
+    mismatch_error = Webauthn::ChallengeStore::ChallengePurposeMismatchError.new("purpose mismatch")
 
-    original_method = Auth::Org::Sign::In::Passkey::VerificationsController.instance_method(:with_challenge)
-    Auth::Org::Sign::In::Passkey::VerificationsController.define_method(:with_challenge) do |*_args|
+    original_method =
+      Auth::Org::Sign::In::Passkey::VerificationsController
+        .instance_method(:consume_passkey_challenge_with_actor!)
+    Auth::Org::Sign::In::Passkey::VerificationsController
+      .define_method(:consume_passkey_challenge_with_actor!) do |*_args|
       raise mismatch_error
     end
 
@@ -164,7 +164,8 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
         },
       )
     ensure
-      Auth::Org::Sign::In::Passkey::VerificationsController.define_method(:with_challenge, original_method)
+      Auth::Org::Sign::In::Passkey::VerificationsController
+        .define_method(:consume_passkey_challenge_with_actor!, original_method)
     end
 
     assert_response :bad_request
@@ -177,14 +178,10 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     explanation = response.parsed_body
     challenge_id = explanation["challenge_id"]
 
-    # Mock WebAuthn verification
-    mock_credential = Object.new
-    passkey_id = @staff_passkey.webauthn_id
-    mock_credential.define_singleton_method(:id) { passkey_id }
-    mock_credential.define_singleton_method(:sign_count) { 1 }
-    mock_credential.define_singleton_method(:verify) { |*_args| true }
+    verified_at = Time.current
+    verification_context = Struct.new(:sign_count, :verified_at).new(1, verified_at)
 
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
+    Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
       params = {
         challenge_id: challenge_id,
         credential: {
@@ -215,25 +212,16 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     post auth_org_sign_in_passkey_options_url(ri: "jp"), params: { identifier: @staff.public_id }
     challenge_id = response.parsed_body["challenge_id"]
 
-    mock_credential = Object.new
-    mock_credential.define_singleton_method(:id) {
-      Base64.urlsafe_encode64("unknown_credential", padding: false)
+    post auth_org_sign_in_passkey_verification_url(ri: "jp"), params: {
+      challenge_id: challenge_id,
+      credential: {
+        id: Base64.urlsafe_encode64("unknown_credential", padding: false),
+        response: { clientDataJSON: "e30=", authenticatorData: "e30=", signature: "sig", userHandle: "h" },
+      },
     }
-    mock_credential.define_singleton_method(:sign_count) { 1 }
-    mock_credential.define_singleton_method(:verify) { |*_args| true }
 
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post auth_org_sign_in_passkey_verification_url(ri: "jp"), params: {
-        challenge_id: challenge_id,
-        credential: {
-          id: Base64.urlsafe_encode64("unknown_credential", padding: false),
-          response: { clientDataJSON: "e30=", authenticatorData: "e30=", signature: "sig", userHandle: "h" },
-        },
-      }
-
-      assert_response :unauthorized
-      assert_includes response.body, I18n.t("errors.webauthn.credential_not_found")
-    end
+    assert_response :unauthorized
+    assert_includes response.body, I18n.t("errors.webauthn.credential_not_found")
   end
 
   test "verification returns unauthorized when challenge actor and passkey owner mismatch" do
@@ -251,20 +239,13 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    mock_credential = Object.new
-    mock_credential.define_singleton_method(:id) { other_passkey.webauthn_id }
-    mock_credential.define_singleton_method(:sign_count) { 1 }
-    mock_credential.define_singleton_method(:verify) { |*_args| true }
-
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post auth_org_sign_in_passkey_verification_url(ri: "jp"), params: {
-        challenge_id: challenge_id,
-        credential: {
-          id: other_passkey.webauthn_id,
-          response: { clientDataJSON: "e30=", authenticatorData: "e30=", signature: "sig", userHandle: "h" },
-        },
-      }
-    end
+    post auth_org_sign_in_passkey_verification_url(ri: "jp"), params: {
+      challenge_id: challenge_id,
+      credential: {
+        id: other_passkey.webauthn_id,
+        response: { clientDataJSON: "e30=", authenticatorData: "e30=", signature: "sig", userHandle: "h" },
+      },
+    }
 
     assert_response :unauthorized
     assert_includes response.body, I18n.t("errors.webauthn.credential_not_found")
@@ -274,11 +255,7 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     post auth_org_sign_in_passkey_options_url(ri: "jp"), params: { identifier: @staff.public_id }
     challenge_id = response.parsed_body["challenge_id"]
 
-    passkey_id = @staff_passkey.webauthn_id
-    mock_credential = Object.new
-    mock_credential.define_singleton_method(:id) { passkey_id }
-    mock_credential.define_singleton_method(:sign_count) { 1 }
-    mock_credential.define_singleton_method(:verify) { |*_args| true }
+    verification_context = Struct.new(:sign_count, :verified_at).new(1, Time.current)
 
     original_method = Auth::Org::Sign::In::Passkey::VerificationsController.instance_method(:perform_passkey_sign_in)
     Auth::Org::Sign::In::Passkey::VerificationsController.define_method(:perform_passkey_sign_in) do |*_args|
@@ -286,7 +263,7 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     begin
-      WebAuthn::Credential.stub(:from_get, mock_credential) do
+      Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
         post(
           auth_org_sign_in_passkey_verification_url(ri: "jp"), params: {
             challenge_id: challenge_id,
@@ -314,13 +291,9 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     post auth_org_sign_in_passkey_options_url(ri: "jp"), params: { identifier: @staff.public_id }
     challenge_id = response.parsed_body["challenge_id"]
 
-    mock_credential = Object.new
-    passkey_id = @staff_passkey.webauthn_id
-    mock_credential.define_singleton_method(:id) { passkey_id }
-    mock_credential.define_singleton_method(:sign_count) { 1 }
-    mock_credential.define_singleton_method(:verify) { |*_args| true }
+    verification_context = Struct.new(:sign_count, :verified_at).new(1, Time.current)
 
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
+    Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
       params = {
         challenge_id: challenge_id,
         credential: {
@@ -344,13 +317,9 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     post auth_org_sign_in_passkey_options_url(ri: "jp"), params: { identifier: @staff.public_id }
     challenge_id = response.parsed_body["challenge_id"]
 
-    mock_credential = Object.new
-    passkey_id = @staff_passkey.webauthn_id
-    mock_credential.define_singleton_method(:id) { passkey_id }
-    mock_credential.define_singleton_method(:sign_count) { 1 }
-    mock_credential.define_singleton_method(:verify) { |*_args| true }
+    verification_context = Struct.new(:sign_count, :verified_at).new(1, Time.current)
 
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
+    Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
       post auth_org_sign_in_passkey_verification_url(ri: "jp"), params: {
         challenge_id: challenge_id,
         credential: {

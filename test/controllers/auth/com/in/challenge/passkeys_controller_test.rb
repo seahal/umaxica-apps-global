@@ -17,10 +17,6 @@ class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
-    host_value = @host
-    @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host_value}", "http://auth.app.localhost"] }
-
     @visitor = create_verified_visitor_with_email(email_address: "com_mfa_passkey_#{SecureRandom.hex(4)}@example.com")
     @visitor.update!(mfa_level_enabled: true)
     @visitor.visitor_telephones.create!(
@@ -46,7 +42,6 @@ class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
   end
 
   teardown do
-    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
   end
@@ -68,10 +63,9 @@ class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
 
     challenge_id = session[:passkey_challenges].keys.first
 
-    mock_credential = OpenStruct.new(id: @passkey.webauthn_id, sign_count: 6)
-    mock_credential.define_singleton_method(:verify) { |*_args| true }
+    verification_context = Struct.new(:sign_count).new(6)
 
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
+    Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
       post auth_com_sign_in_challenge_passkey_path(ri: "jp"),
            params: {
              mfa_passkey_form: {

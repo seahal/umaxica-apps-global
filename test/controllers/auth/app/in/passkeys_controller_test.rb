@@ -5,9 +5,12 @@ require "test_helper"
 # require "helpers/global_test_support"
 require "minitest/mock"
 require "base64"
+require "support/webauthn_fake_client_helper"
 
 module Auth::App::In
   class PasskeysControllerTest < ActionDispatch::IntegrationTest
+    include WebauthnFakeClientHelper
+
     fixtures :clients, :client_statuses, :client_email_statuses, :client_telephone_statuses
 
     setup do
@@ -25,25 +28,13 @@ module Auth::App::In
         user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
       ) unless ClientTelephone.find_by(user: @user)
 
-      # Setup user passkey for login
-      @passkey = ClientPasskey.create!(
-        user: @user,
-        webauthn_id: Base64.urlsafe_encode64("login_id_bytes_12345", padding: false),
-        external_id: SecureRandom.uuid,
-        public_key: "login_key",
-        description: "Login Key",
-        status_id: ClientPasskeyStatus::ACTIVE,
-      )
-
-      # Mock TRUSTED_ORIGINS
-      @original_trusted_origins = Webauthn.method(:trusted_origins)
-      Webauthn.define_singleton_method(:trusted_origins) { ["http://auth.app.localhost", "http://auth.org.localhost"] }
+      # Real-crypto passkey for login: registered via the gem's FakeClient so
+      # verification exercises the actual signature/RP ID/origin/UV path.
+      @fake_client = webauthn_fake_client
+      @passkey = register_fake_client_passkey!(client: @fake_client, user: @user, description: "Login Key")
     end
 
     teardown do
-      if defined?(@original_trusted_origins) && @original_trusted_origins
-        Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
-      end
       CloudflareTurnstile.test_mode = false
       CloudflareTurnstile.test_validation_response = nil
       JitSecurityTurnstileVerifier.test_mode = false
@@ -172,40 +163,41 @@ module Auth::App::In
       explanation = response.parsed_body
       challenge_id = explanation["challenge_id"]
 
-      # Mock WebAuthn verification
-      mock_credential = Object.new
-      passkey_id = @passkey.webauthn_id
-      mock_credential.define_singleton_method(:id) { passkey_id }
-      mock_credential.define_singleton_method(:sign_count) { 1 }
-      mock_credential.define_singleton_method(:verify) { |*_args| true }
+      params = assertion_params_for(
+        challenge_id: challenge_id,
+        challenge: explanation.dig("options", "challenge"),
+      )
 
-      WebAuthn::Credential.stub(:from_get, mock_credential) do
-        params = {
-          challenge_id: challenge_id,
-          credential: {
-            id: @passkey.webauthn_id,
-            response: { clientDataJSON: "e30=",
-                        authenticatorData: "e30=",
-                        signature: "sig",
-                        userHandle: "h", },
-          },
-        }
+      # Should log in
+      post auth_app_sign_in_passkey_verification_path(ri: "jp", pt: "/settings/emails"), params: params
 
-        # Should log in
-        post auth_app_sign_in_passkey_verification_path(ri: "jp", pt: "/settings/emails"), params: params
+      assert_response :ok
+      json = response.parsed_body
 
-        assert_response :ok
-        json = response.parsed_body
+      assert_equal "ok", json["status"]
+      assert_not_nil json["access_token"]
+      assert_equal "Bearer", json["token_type"]
+      assert_equal AuthenticationBase::ACCESS_TOKEN_TTL.to_i, json["expires_in"]
+      assert_equal auth_app_sign_in_check_path(ri: "jp"), json["redirect_url"]
 
-        assert_equal "ok", json["status"]
-        assert_not_nil json["access_token"]
-        assert_equal "Bearer", json["token_type"]
-        assert_equal AuthenticationBase::ACCESS_TOKEN_TTL.to_i, json["expires_in"]
-        assert_equal auth_app_sign_in_check_path(ri: "jp"), json["redirect_url"]
+      # Challenge verification updates sign count
+      assert_equal 1, @passkey.reload.sign_count
+    end
 
-        # Challenge verification updates sign count
-        assert_equal 1, @passkey.reload.sign_count
-      end
+    test "verification rejects a UV=false assertion even with a valid signature" do
+      post auth_app_sign_in_passkey_options_path(ri: "jp"),
+           params: options_params(identifier: @user_email.address)
+      body = response.parsed_body
+
+      post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
+        challenge_id: body["challenge_id"],
+        credential: fake_assertion(
+          @fake_client, challenge: body.dig("options", "challenge"), user_verified: false,
+        ),
+      }
+
+      assert_response :unauthorized
+      assert_includes response.body, I18n.t("errors.webauthn.verification_failed")
     end
 
     test "verification with session limit exceeded returns session_restricted" do
@@ -219,36 +211,18 @@ module Auth::App::In
       email = ClientEmail.find_by(user: @user).address
       post auth_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email)
       explanation = response.parsed_body
-      challenge_id = explanation["challenge_id"]
 
-      # Mock WebAuthn verification
-      mock_credential = Object.new
-      passkey_id = @passkey.webauthn_id
-      mock_credential.define_singleton_method(:id) { passkey_id }
-      mock_credential.define_singleton_method(:sign_count) { 1 }
-      mock_credential.define_singleton_method(:verify) { |*_args| true }
+      post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: assertion_params_for(
+        challenge_id: explanation["challenge_id"],
+        challenge: explanation.dig("options", "challenge"),
+      )
 
-      WebAuthn::Credential.stub(:from_get, mock_credential) do
-        params = {
-          challenge_id: challenge_id,
-          credential: {
-            id: @passkey.webauthn_id,
-            response: { clientDataJSON: "e30=",
-                        authenticatorData: "e30=",
-                        signature: "sig",
-                        userHandle: "h", },
-          },
-        }
+      assert_response :ok
+      json = response.parsed_body
 
-        post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: params
-
-        assert_response :ok
-        json = response.parsed_body
-
-        assert_equal "session_restricted", json["status"]
-        assert_equal auth_app_sign_in_session_path(ri: "jp"), json["redirect_url"]
-        assert_equal 0, ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED).count
-      end
+      assert_equal "session_restricted", json["status"]
+      assert_equal auth_app_sign_in_session_path(ri: "jp"), json["redirect_url"]
+      assert_equal 0, ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED).count
     end
 
     test "verification returns same response for credential mismatch and missing verified pii" do
@@ -287,23 +261,16 @@ module Auth::App::In
       post auth_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email.address)
       pii_challenge_id = response.parsed_body["challenge_id"]
 
-      mock_credential = Object.new
-      mock_credential.define_singleton_method(:id) { passkey.webauthn_id }
-      mock_credential.define_singleton_method(:sign_count) { 1 }
-      mock_credential.define_singleton_method(:verify) { |*_args| true }
-
-      WebAuthn::Credential.stub(:from_get, mock_credential) do
-        post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
-          challenge_id: pii_challenge_id,
-          credential: {
-            id: passkey.webauthn_id,
-            response: { clientDataJSON: "e30=",
-                        authenticatorData: "e30=",
-                        signature: "sig",
-                        userHandle: "h", },
-          },
-        }
-      end
+      post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
+        challenge_id: pii_challenge_id,
+        credential: {
+          id: passkey.webauthn_id,
+          response: { clientDataJSON: "e30=",
+                      authenticatorData: "e30=",
+                      signature: "sig",
+                      userHandle: "h", },
+        },
+      }
 
       assert_response :unauthorized
       assert_equal mismatch_body, response.body
@@ -324,23 +291,16 @@ module Auth::App::In
         status_id: ClientPasskeyStatus::ACTIVE,
       )
 
-      mock_credential = Object.new
-      mock_credential.define_singleton_method(:id) { other_passkey.webauthn_id }
-      mock_credential.define_singleton_method(:sign_count) { 1 }
-      mock_credential.define_singleton_method(:verify) { |*_args| true }
-
-      WebAuthn::Credential.stub(:from_get, mock_credential) do
-        post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
-          challenge_id: challenge_id,
-          credential: {
-            id: other_passkey.webauthn_id,
-            response: { clientDataJSON: "e30=",
-                        authenticatorData: "e30=",
-                        signature: "sig",
-                        userHandle: "h", },
-          },
-        }
-      end
+      post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
+        challenge_id: challenge_id,
+        credential: {
+          id: other_passkey.webauthn_id,
+          response: { clientDataJSON: "e30=",
+                      authenticatorData: "e30=",
+                      signature: "sig",
+                      userHandle: "h", },
+        },
+      }
 
       assert_response :unauthorized
       assert_includes response.body, I18n.t("errors.webauthn.credential_not_found")
@@ -349,33 +309,19 @@ module Auth::App::In
     test "verification returns 422 when login result status is unknown" do
       post auth_app_sign_in_passkey_options_path(ri: "jp"),
            params: options_params(identifier: @user_email.address)
-      challenge_id = response.parsed_body["challenge_id"]
-
-      passkey_id = @passkey.webauthn_id
-      mock_credential = Object.new
-      mock_credential.define_singleton_method(:id) { passkey_id }
-      mock_credential.define_singleton_method(:sign_count) { 1 }
-      mock_credential.define_singleton_method(:verify) { |*_args| true }
+      body = response.parsed_body
 
       original_method = Auth::App::Sign::In::Passkey::VerificationsController.instance_method(:perform_passkey_sign_in)
       Auth::App::Sign::In::Passkey::VerificationsController.define_method(:perform_passkey_sign_in) do |_passkey|
         { status: :unknown }
       end
       begin
-        WebAuthn::Credential.stub(:from_get, mock_credential) do
-          post(
-            auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
-              challenge_id: challenge_id,
-              credential: {
-                id: @passkey.webauthn_id,
-                response: { clientDataJSON: "e30=",
-                            authenticatorData: "e30=",
-                            signature: "sig",
-                            userHandle: "h", },
-              },
-            },
-          )
-        end
+        post(
+          auth_app_sign_in_passkey_verification_path(ri: "jp"), params: assertion_params_for(
+            challenge_id: body["challenge_id"],
+            challenge: body.dig("options", "challenge"),
+          ),
+        )
       ensure
         Auth::App::Sign::In::Passkey::VerificationsController.define_method(:perform_passkey_sign_in, original_method)
       end
@@ -384,32 +330,26 @@ module Auth::App::In
       assert_includes response.body, I18n.t("errors.login_failed")
     end
 
-    test "verification returns bad request on challenge purpose mismatch" do
+    test "verification rejects replaying a consumed challenge" do
       email = ClientEmail.find_by(user: @user).address
       post auth_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email)
-      challenge_id = response.parsed_body["challenge_id"]
-      mismatch_error = SignWebauthn::ChallengePurposeMismatchError.new("purpose mismatch")
+      body = response.parsed_body
 
-      original_method = Auth::App::Sign::In::Passkey::VerificationsController.instance_method(:with_challenge)
-      Auth::App::Sign::In::Passkey::VerificationsController.define_method(:with_challenge) do |*_args, &_block|
-        raise mismatch_error
-      end
-      begin
-        post(
-          auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
-            challenge_id: challenge_id,
-            credential: {
-              id: @passkey.webauthn_id,
-              response: { clientDataJSON: "e30=",
-                          authenticatorData: "e30=",
-                          signature: "sig",
-                          userHandle: "h", },
-            },
-          },
-        )
-      ensure
-        Auth::App::Sign::In::Passkey::VerificationsController.define_method(:with_challenge, original_method)
-      end
+      # First attempt fails UV policy but must still burn the challenge.
+      post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
+        challenge_id: body["challenge_id"],
+        credential: fake_assertion(
+          @fake_client, challenge: body.dig("options", "challenge"), user_verified: false,
+        ),
+      }
+
+      assert_response :unauthorized
+
+      # Replaying the same challenge with a valid assertion is rejected.
+      post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: assertion_params_for(
+        challenge_id: body["challenge_id"],
+        challenge: body.dig("options", "challenge"),
+      )
 
       assert_response :bad_request
       assert_includes response.body, I18n.t("errors.webauthn.challenge_invalid")
@@ -446,6 +386,23 @@ module Auth::App::In
     end
 
     private
+
+    def register_fake_client_passkey!(client:, user:, description:)
+      ClientPasskey.create!(
+        user: user,
+        external_id: SecureRandom.uuid,
+        description: description,
+        status_id: ClientPasskeyStatus::ACTIVE,
+        **fake_credential_record_attrs(client),
+      )
+    end
+
+    def assertion_params_for(challenge_id:, challenge:, client: @fake_client)
+      {
+        challenge_id: challenge_id,
+        credential: fake_assertion(client, challenge: challenge),
+      }
+    end
 
     def options_params(identifier:)
       {

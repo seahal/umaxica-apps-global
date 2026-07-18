@@ -18,10 +18,6 @@ module Auth::App::Sign::In::Passkey
       CloudflareTurnstile.test_validation_response = { "success" => true }
       JitSecurityTurnstileVerifier.test_mode = true
       JitSecurityTurnstileVerifier.test_response = { "success" => true }
-      # Mock TRUSTED_ORIGINS
-      @original_trusted_origins = Webauthn.method(:trusted_origins)
-      Webauthn.define_singleton_method(:trusted_origins) { ["http://auth.app.localhost", "http://auth.org.localhost"] }
-
       @user = clients(:one)
       ClientEmail.create!(
         user: @user,
@@ -50,7 +46,6 @@ module Auth::App::Sign::In::Passkey
     end
 
     teardown do
-      Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
       CloudflareTurnstile.test_mode = false
       CloudflareTurnstile.test_validation_response = nil
       JitSecurityTurnstileVerifier.test_mode = false
@@ -82,19 +77,10 @@ module Auth::App::Sign::In::Passkey
       challenge_id = json_response["challenge_id"]
       session[:passkey_challenges][challenge_id]["challenge"]
 
-      # 2. Mock WebAuthn verification
-      mock_credential = OpenStruct.new(
-        id: @encoded_credential_id,
-        sign_count: 11,
-      )
-
-      # We need to verify signature and return expected result
-      mock_credential.define_singleton_method(:verify) do |_challenge, **|
-        true
-      end
+      verification_context = Struct.new(:sign_count, :verified_at).new(11, Time.current)
 
       travel 31.seconds do
-        WebAuthn::Credential.stub(:from_get, mock_credential) do
+        Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
           post auth_app_sign_in_passkey_verification_url(ri: "jp"), params: {
             challenge_id: challenge_id,
             credential: {
@@ -140,16 +126,10 @@ module Auth::App::Sign::In::Passkey
       post auth_app_sign_in_passkey_options_url(ri: "jp"), params: options_params(identifier: email), as: :json
       challenge_id = response.parsed_body["challenge_id"]
 
-      mock_credential = OpenStruct.new(
-        id: @encoded_credential_id,
-        sign_count: 12,
-      )
-      mock_credential.define_singleton_method(:verify) do |_challenge, **|
-        true
-      end
+      verification_context = Struct.new(:sign_count, :verified_at).new(12, Time.current)
 
       travel 31.seconds do
-        WebAuthn::Credential.stub(:from_get, mock_credential) do
+        Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
           post auth_app_sign_in_passkey_verification_url(ri: "jp"), params: {
             challenge_id: challenge_id,
             credential: {

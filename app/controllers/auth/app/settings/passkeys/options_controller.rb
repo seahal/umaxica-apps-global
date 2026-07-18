@@ -3,11 +3,10 @@
 
 class Auth::App::Settings::Passkeys::OptionsController < ::Auth::App::ApplicationController
   include ::VerificationClient
-  include SignWebauthn
   include SignSettingsPasskeyRegistration
   include ::SignRequiresRecoveryPasscodes
   include ::CloudflareTurnstile
-  include ::SignSettingsPasskeyRegistrationEndpoint
+  include ::PasskeyRegistrationFlow
 
   AUTHENTICATION_MODE = :private
   declare_authentication_mode! :private
@@ -34,8 +33,6 @@ class Auth::App::Settings::Passkeys::OptionsController < ::Auth::App::Applicatio
   end
 
   def passkey_registration_actor = current_client
-
-  def passkey_registration_surface = "app"
 
   def passkey_registration_passkeys = current_client.client_passkeys
 

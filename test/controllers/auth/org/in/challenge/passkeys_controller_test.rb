@@ -18,9 +18,6 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
-    @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host}", "http://auth.app.localhost"] }
-
     @staff = operators(:one)
     @staff.update!(status_id: OperatorStatus::ACTIVE, mfa_level_enabled: true)
     @staff.staff_secret_credentials.destroy_all
@@ -53,7 +50,6 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
   end
 
   teardown do
-    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
   end
@@ -83,20 +79,16 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     assert_not_nil session[:passkey_challenges].keys.first
   end
 
-  test "new handles origin validation error" do
-    original_org_origin = ENV["WEBAUTHN_ORG_ORIGIN"]
-    original_origin = ENV["WEBAUTHN_ORIGIN"]
-    ENV.delete("WEBAUTHN_ORG_ORIGIN")
-    ENV.delete("WEBAUTHN_ORIGIN")
-    Webauthn.define_singleton_method(:trusted_origins) { [] }
-
+  test "new binds challenge to the configured org relying party" do
     establish_pending_mfa!
     get(new_auth_org_sign_in_challenge_passkey_path(ri: "jp"))
 
-    assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
-  ensure
-    ENV["WEBAUTHN_ORG_ORIGIN"] = original_org_origin if original_org_origin
-    ENV["WEBAUTHN_ORIGIN"] = original_origin if original_origin
+    assert_response :success
+    challenge = session[:passkey_challenges].values.first
+
+    assert_equal "org:#{@staff.id}", challenge["actor_global_key"]
+    assert_predicate challenge["rp_id"], :present?
+    assert_predicate challenge["origin"], :present?
   end
 
   test "create requires cloudflare turnstile validation" do
@@ -135,13 +127,9 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
-    mock_credential = OpenStruct.new(
-      id: @passkey.webauthn_id,
-      sign_count: 6,
-    )
-    mock_credential.define_singleton_method(:verify) { |*_args| true }
+    verification_context = Struct.new(:sign_count).new(6)
 
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
+    Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
       post auth_org_sign_in_challenge_passkey_path(ri: "jp"),
            headers: { "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new") },
            params: {
@@ -173,24 +161,16 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
-    mock_credential = OpenStruct.new(
-      id: Base64.urlsafe_encode64("wrong_credential", padding: false),
-      sign_count: 1,
-    )
-    mock_credential.define_singleton_method(:verify) { |*_args| true }
-
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post auth_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
-        mfa_passkey_form: {
-          challenge_id: challenge_id,
-          credential_json: {
-            id: Base64.urlsafe_encode64("wrong_credential", padding: false),
-            type: "public-key",
-            response: {},
-          }.to_json,
-        },
-      }
-    end
+    post auth_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
+      mfa_passkey_form: {
+        challenge_id: challenge_id,
+        credential_json: {
+          id: Base64.urlsafe_encode64("wrong_credential", padding: false),
+          type: "public-key",
+          response: {},
+        }.to_json,
+      },
+    }
 
     assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
   end
@@ -201,15 +181,9 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
-    mock_credential = OpenStruct.new(
-      id: @passkey.webauthn_id,
-      sign_count: 6,
-    )
-    mock_credential.define_singleton_method(:verify) do |*_args|
-      raise WebAuthn::SignCountVerificationError, "Sign count mismatch"
-    end
-
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
+    Webauthn::AssertionVerifier.stub(
+      :verify!, ->(**) { raise WebAuthn::SignCountVerificationError, "Sign count mismatch" },
+    ) do
       post auth_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
         mfa_passkey_form: {
           challenge_id: challenge_id,
@@ -231,15 +205,9 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
-    mock_credential = OpenStruct.new(
-      id: @passkey.webauthn_id,
-      sign_count: 6,
-    )
-    mock_credential.define_singleton_method(:verify) do |*_args|
-      raise WebAuthn::Error, "Generic verification error"
-    end
-
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
+    Webauthn::AssertionVerifier.stub(
+      :verify!, ->(**) { raise WebAuthn::Error, "Generic verification error" },
+    ) do
       post auth_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
         mfa_passkey_form: {
           challenge_id: challenge_id,
@@ -279,13 +247,9 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
-    mock_credential = OpenStruct.new(
-      id: @passkey.webauthn_id,
-      sign_count: 6,
-    )
-    mock_credential.define_singleton_method(:verify) { |*_args| true }
+    verification_context = Struct.new(:sign_count).new(6)
 
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
+    Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
       post auth_org_sign_in_challenge_passkey_path(ri: "jp"),
            headers: { "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new") },
            params: {
@@ -313,13 +277,9 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
-    mock_credential = OpenStruct.new(
-      id: @passkey.webauthn_id,
-      sign_count: 6,
-    )
-    mock_credential.define_singleton_method(:verify) { |*_args| true }
+    verification_context = Struct.new(:sign_count).new(6)
 
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
+    Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
       post auth_org_sign_in_challenge_passkey_path(ri: "jp"),
            headers: { "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new") },
            params: {
@@ -347,13 +307,9 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
-    mock_credential = OpenStruct.new(
-      id: @passkey.webauthn_id,
-      sign_count: 6,
-    )
-    mock_credential.define_singleton_method(:verify) { |*_args| true }
+    verification_context = Struct.new(:sign_count).new(6)
 
-    WebAuthn::Credential.stub(:from_get, mock_credential) do
+    Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
       post auth_org_sign_in_challenge_passkey_path(ri: "jp", pt: "/bulletin/path"),
            headers: { "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new") },
            params: {

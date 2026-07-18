@@ -1,13 +1,26 @@
 # typed: false
 # frozen_string_literal: true
 
-module SignSettingsPasskeyRegistrationEndpoint
+# Passkey registration ceremonies (sign-up checkpoint and settings).
+#
+# The challenge is bound to the registering actor, surface, RP ID, and origin
+# at issue time and consumed exactly once; verification runs through
+# Webauthn::RegistrationVerifier, so every stored credential was created with
+# userVerification=required and a UV=true attestation.
+#
+# Two verification entry points share the options path:
+# - verify_and_create_passkey_registration! persists directly (sign-up flow)
+# - verify_passkey_registration commits through the passkey ceremony contract
+#   and tops up recovery passcodes (settings flow)
+module PasskeyRegistrationFlow
   extend ActiveSupport::Concern
+
+  include PasskeyCeremonyContext
 
   private
 
   def render_passkey_registration_options
-    challenge_id, creation_options = create_registration_challenge(
+    challenge_id, creation_options = issue_passkey_registration_challenge(
       resource: passkey_registration_actor,
       exclude_credentials: passkey_registration_existing_credentials,
     )
@@ -16,15 +29,7 @@ module SignSettingsPasskeyRegistrationEndpoint
       challenge_id: challenge_id,
       options: creation_options,
     }, status: :ok
-  rescue SignWebauthn::OriginValidationError => e
-    Rails.logger.error(
-      JitLogEvent.format(
-        "#{passkey_registration_log_prefix}.origin_validation_failed",
-        message: e.message,
-      ),
-    )
-    render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
-  rescue SignWebauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
+  rescue WebAuthn::Error, ArgumentError, Webauthn::RelyingPartyConfigResolver::MissingConfigurationError => e
     Rails.logger.error(
       JitLogEvent.format(
         "#{passkey_registration_log_prefix}.options_failed",
@@ -35,31 +40,69 @@ module SignSettingsPasskeyRegistrationEndpoint
     render json: { error: I18n.t("errors.webauthn.options_failed") }, status: :unprocessable_content
   end
 
+  # Sign-up flow: verify and persist the credential directly.
+  def verify_and_create_passkey_registration!
+    challenge_id = params[:challenge_id]
+    if challenge_id.blank?
+      render_passkey_registration_missing_challenge_id
+      return false
+    end
+
+    challenge = consume_passkey_challenge!(
+      challenge_id, purpose: :registration, actor: passkey_registration_actor,
+    )
+    context = Webauthn::RegistrationVerifier.verify!(
+      credential_params: passkey_registration_credential_params.to_h,
+      challenge: challenge,
+      config: webauthn_relying_party_config,
+    )
+
+    passkey = passkey_registration_passkeys.new(
+      webauthn_id: context.webauthn_id,
+      public_key: registration_public_key,
+      sign_count: context.sign_count,
+      description: passkey_description,
+    )
+    save_passkey_registration!(passkey)
+    passkey
+  rescue Webauthn::ChallengeStore::ChallengeError => e
+    Rails.logger.warn(JitLogEvent.format("#{passkey_registration_log_prefix}.challenge_error", message: e.message))
+    render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
+    nil
+  rescue Webauthn::RegistrationVerifier::VerificationError, WebAuthn::Error => e
+    Rails.logger.warn(JitLogEvent.format("#{passkey_registration_log_prefix}.failed", message: e.message))
+    render json: { error: I18n.t("errors.webauthn.verification_failed") }, status: :unprocessable_content
+    nil
+  rescue ActiveRecord::RecordNotUnique
+    render json: { error: I18n.t("errors.webauthn.credential_already_registered") }, status: :conflict
+    nil
+  rescue ActiveRecord::RecordInvalid => e
+    Rails.logger.warn(JitLogEvent.format("#{passkey_registration_log_prefix}.persist_failed", message: e.message))
+    render json: { error: e.record.errors.full_messages.to_sentence }, status: :unprocessable_content
+    nil
+  end
+
+  # Settings flow: verify, then commit through the ceremony contract.
   def verify_passkey_registration
     challenge_id = params[:challenge_id]
     return render_missing_challenge_id if challenge_id.blank?
 
-    with_challenge(challenge_id, purpose: :registration) do |challenge|
-      credential = build_registration_credential
-      verify_registration_credential!(credential, challenge)
+    challenge = consume_passkey_challenge!(
+      challenge_id, purpose: :registration, actor: passkey_registration_actor,
+    )
+    context = Webauthn::RegistrationVerifier.verify!(
+      credential_params: credential_params.to_h,
+      challenge: challenge,
+      config: webauthn_relying_party_config,
+    )
 
-      passkey = commit_passkey_ceremony!(credential, challenge_id)
+    passkey = commit_passkey_ceremony!(context, challenge_id)
 
-      render_verification_success(passkey)
-    end
-  rescue SignWebauthn::ChallengeNotFoundError,
-         SignWebauthn::ChallengeExpiredError => e
+    render_verification_success(passkey)
+  rescue Webauthn::ChallengeStore::ChallengeError => e
     Rails.logger.warn(JitLogEvent.format("#{passkey_registration_log_prefix}.challenge_error", message: e.message))
     render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
-  rescue SignWebauthn::ChallengePurposeMismatchError => e
-    Rails.logger.warn(
-      JitLogEvent.format(
-        "#{passkey_registration_log_prefix}.challenge_purpose_mismatch",
-        message: e.message,
-      ),
-    )
-    render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
-  rescue WebAuthn::Error => e
+  rescue Webauthn::RegistrationVerifier::VerificationError, WebAuthn::Error => e
     Rails.logger.warn(JitLogEvent.format("#{passkey_registration_log_prefix}.failed", message: e.message))
     render json: { error: I18n.t("errors.webauthn.verification_failed") },
            status: :unprocessable_content
@@ -85,31 +128,34 @@ module SignSettingsPasskeyRegistrationEndpoint
       { clientExtensionResults: {} },
     )
   end
+  alias_method :passkey_registration_credential_params, :credential_params
+
+  # The COSE public key of the attested credential, in the storage encoding.
+  def registration_public_key
+    credential = WebAuthn::Credential.from_create(
+      credential_params.to_h,
+      relying_party: webauthn_relying_party_config.relying_party,
+    )
+    credential.public_key
+  end
 
   def render_missing_challenge_id
     render json: {
       error: I18n.t("errors.webauthn.challenge_id_required"),
     }, status: :bad_request
   end
+  alias_method :render_passkey_registration_missing_challenge_id, :render_missing_challenge_id
 
-  def build_registration_credential
-    WebAuthn::Credential.from_create(credential_params.to_h, relying_party: webauthn_relying_party)
-  end
-
-  def verify_registration_credential!(credential, challenge)
-    credential.verify(challenge)
-  end
-
-  def commit_passkey_ceremony!(credential, challenge_id)
+  def commit_passkey_ceremony!(context, challenge_id)
     candidate = IdentityPasskeyCeremonyResultIssuer::Candidate.new(
-      webauthn_id: credential.id,
-      public_key: credential.public_key,
-      sign_count: credential.sign_count,
+      webauthn_id: context.webauthn_id,
+      public_key: registration_public_key,
+      sign_count: context.sign_count,
       description: passkey_description,
       transports: credential_params[:transports],
     )
     commit = finish_passkey_ceremony!(
-      surface: passkey_registration_surface,
+      surface: webauthn_surface.key.to_s,
       actor: passkey_registration_actor,
       session_ref: current_session_public_id,
       candidate: candidate,
@@ -125,13 +171,13 @@ module SignSettingsPasskeyRegistrationEndpoint
       if recovery_passcode_top_up.raw_values.any?
         recovery_passcode_reveal_url(recovery_passcode_top_up.raw_values)
       else
-        passkey_registration_redirect_url
+        bootstrap_return_path(passkey_registration_redirect_url)
       end
 
     render json: {
       status: "ok",
       passkey_id: passkey.id,
-      redirect_url: bootstrap_return_path(redirect_url),
+      redirect_url: redirect_url,
     }, status: :created
   end
 
@@ -142,6 +188,7 @@ module SignSettingsPasskeyRegistrationEndpoint
   def passkey_description
     params[:description].presence || I18n.t("sign.default_passkey_description")
   end
+  alias_method :passkey_registration_description, :passkey_description
 
   def verification_required_action?
     step_up_bootstrap_active? && %w(new create options verification).include?(action_name)
@@ -153,6 +200,10 @@ module SignSettingsPasskeyRegistrationEndpoint
 
   def passkey_registration_existing_credentials
     passkey_registration_passkeys.map { |passkey| { id: passkey.webauthn_id } }
+  end
+
+  def save_passkey_registration!(passkey)
+    passkey.save!
   end
 
   def top_up_recovery_passcodes_after_passkey_registration
@@ -185,13 +236,13 @@ module SignSettingsPasskeyRegistrationEndpoint
   end
 
   def recovery_passcode_reveal_purpose
-    case passkey_registration_surface
-    when "app"
+    case webauthn_surface.key
+    when :app
       "client.recovery_secret_credential"
-    when "com"
+    when :com
       "visitor.recovery_secret_credential"
     else
-      "#{passkey_registration_surface}.recovery_passcodes"
+      "#{webauthn_surface.key}.recovery_passcodes"
     end
   end
 

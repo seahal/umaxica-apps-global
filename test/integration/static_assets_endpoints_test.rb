@@ -45,6 +45,18 @@ class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
       host: ENV.fetch("PUBLIC_PALM_SERVICE_URL"),
       controller: "palm/app/sitemaps",
     },
+    {
+      host: ENV.fetch("PUBLIC_SIDE_SERVICE_URL", "side.app.localhost"),
+      controller: "side/app/sitemaps",
+    },
+    {
+      host: ENV.fetch("PUBLIC_SIDE_CORPORATE_URL", "side.com.localhost"),
+      controller: "side/com/sitemaps",
+    },
+    {
+      host: ENV.fetch("PUBLIC_SIDE_STAFF_URL", "side.org.localhost"),
+      controller: "side/org/sitemaps",
+    },
   ].freeze
 
   test "robots.txt is served on every configured surface" do

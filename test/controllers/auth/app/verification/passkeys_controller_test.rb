@@ -32,7 +32,8 @@ class Auth::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
 
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
-        WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
+        verification_context = Struct.new(:sign_count, :verified_at).new(1, Time.current)
+        Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
           get auth_app_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
               headers: @headers
 

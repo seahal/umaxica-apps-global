@@ -130,6 +130,56 @@ module AvatarBackfill
       assert_equal Avatar.count, summary.fetch(:total_avatars_scanned)
     end
 
+    test "classifies ambiguous subjects" do
+      client = create_client
+      persona = create_persona(client)
+      avatar = create_avatar(client: client)
+      service = AuditLegacyClientBindings.new
+
+      service.stub(:resolve_subject, [persona, persona]) do
+        detail = service.call.details.find { |row| row[:avatar_id] == avatar.id }
+
+        assert_equal "ambiguous_subject", detail.fetch(:conflict_bucket)
+      end
+    end
+
+    test "reports repository and unexpected errors per avatar" do
+      avatar = create_avatar(client_id: 123)
+      service = AuditLegacyClientBindings.new
+
+      service.stub(:resolve_subject, ->(*) { raise ActiveRecord::StatementInvalid, "repository unavailable" }) do
+        detail = service.call.details.find { |row| row[:avatar_id] == avatar.id }
+
+        assert_equal "cross_db_reference_error", detail.fetch(:conflict_bucket)
+        assert_equal "repository unavailable", detail.fetch(:reason)
+      end
+
+      service.stub(:resolve_subject, ->(*) { raise ArgumentError, "unexpected value" }) do
+        detail = service.call.details.find { |row| row[:avatar_id] == avatar.id }
+
+        assert_equal "unknown", detail.fetch(:conflict_bucket)
+        assert_equal "ArgumentError: unexpected value", detail.fetch(:reason)
+      end
+    end
+
+    test "writes a json report" do
+      client = create_client
+      create_persona(client)
+      create_avatar(client: client)
+      path = "tmp/avatar-backfill-audit-test.json"
+      absolute = Rails.root.join(path)
+      FileUtils.rm_f(absolute)
+
+      AuditLegacyClientBindings.call(output_path: path)
+
+      report = JSON.parse(File.read(absolute))
+
+      assert_equal 1, report.dig("summary", "avatars_with_legacy_client_id")
+      assert_equal "safe_to_backfill", report.dig("details", 0, "conflict_bucket")
+    ensure
+      FileUtils.rm_f(absolute)
+    end
+
     private
 
     def create_client

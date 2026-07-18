@@ -7,7 +7,7 @@ module Auth
       module In
         module Passkey
           class OptionsController < ::Auth::Com::ApplicationController
-            include SignPasskeySignInEndpoint
+            include ::PasskeySignInFlow
             include EmailValidation
             include IdentifierDetection
 
@@ -69,26 +69,6 @@ module Auth
               end
 
               true
-            end
-
-            def active_passkeys_for_actor(visitor)
-              visitor.visitor_passkeys.where(status_id: VisitorPasskeyStatus::ACTIVE)
-            end
-
-            def passkey_challenge_actor_id_key
-              "visitor_id"
-            end
-
-            def passkey_sign_in_model
-              VisitorPasskey
-            end
-
-            def passkey_belongs_to_challenge_actor?(passkey, actor_id)
-              passkey.visitor_id == actor_id
-            end
-
-            def passkey_owner_mismatch_log_message
-              "WebAuthn: Credential not found or visitor mismatch"
             end
 
             def allow_passkey_sign_in?(passkey)

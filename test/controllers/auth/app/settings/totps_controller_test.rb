@@ -183,6 +183,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action=?]", auth_app_settings_totps_path(ri: "jp")
     assert_select "input[name='user_totp_credential[title]']"
     assert_select "input[name='user_totp_credential[first_token]'][pattern]", count: 0
+    assert_select "input[name='user_totp_credential[first_token]'][autocomplete='one-time-code']", count: 0
     assert_select "label", text: I18n.t("views.sign.app.settings.totps.new.first_token_label")
     assert_select "input[placeholder=?]", I18n.t("views.sign.app.settings.totps.new.first_token_placeholder")
     assert_select "input[type=submit][value=?]", I18n.t("views.sign.app.settings.totps.new.submit")

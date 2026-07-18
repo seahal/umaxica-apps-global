@@ -15,8 +15,10 @@ class ParallelTestDatabaseClonerTest < ActiveSupport::TestCase
     )
 
     assert_equal(
-      { source: "test_com_principal_db", clone: "test_com_principal_replica_db",
-        sha: "schema-sha", clone_exists: false },
+      { source: "test_com_principal_db",
+        clone: "test_com_principal_replica_db",
+        sha: "schema-sha",
+        clone_exists: false, },
       task,
     )
   end

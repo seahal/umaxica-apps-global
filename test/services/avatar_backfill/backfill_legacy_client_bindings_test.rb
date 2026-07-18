@@ -79,7 +79,56 @@ module AvatarBackfill
       end
     end
 
+    test "maps every non-writing audit outcome" do
+      candidates = [
+        candidate("deleted_avatar_skipped"),
+        candidate("missing_client"),
+        candidate("unresolved_subject"),
+        candidate("ambiguous_subject"),
+        candidate("already_bound_inconsistent"),
+      ]
+      audit = AuditLegacyClientBindings::Result.new(summary: {}, details: candidates)
+
+      AuditLegacyClientBindings.stub(:call, audit) do
+        result = BackfillLegacyClientBindings.call
+
+        assert_equal 1, result.summary.fetch(:skipped_deleted_count)
+        assert_equal 1, result.summary.fetch(:skipped_missing_subject_count)
+        assert_equal 2, result.summary.fetch(:skipped_unresolved_count)
+        assert_equal 1, result.summary.fetch(:skipped_conflict_count)
+      end
+    end
+
+    test "writes a json report" do
+      audit = AuditLegacyClientBindings::Result.new(
+        summary: {},
+        details: [candidate("already_bound_consistent")],
+      )
+      path = "tmp/avatar-backfill-test.json"
+      absolute = Rails.root.join(path)
+      FileUtils.rm_f(absolute)
+
+      AuditLegacyClientBindings.stub(:call, audit) do
+        BackfillLegacyClientBindings.call(output_path: path)
+      end
+
+      report = JSON.parse(File.read(absolute))
+
+      assert_equal 1, report.dig("summary", "skipped_already_bound_consistent_count")
+    ensure
+      FileUtils.rm_f(absolute)
+    end
+
     private
+
+    def candidate(bucket)
+      {
+        avatar_id: 1,
+        resolved_subject_id: 1,
+        conflict_bucket: bucket,
+        reason: "audit reason",
+      }
+    end
 
     def create_client
       Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)

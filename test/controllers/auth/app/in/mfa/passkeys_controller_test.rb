@@ -46,22 +46,9 @@ module Auth::App::In
         description: "MFA passkey",
         status_id: ClientPasskeyStatus::ACTIVE,
       )
-
-      @original_trusted_origins = Webauthn.method(:trusted_origins)
-      sign_host = configured_host(:sign_service)
-      staff_host = configured_host(:sign_staff)
-      public_sign_host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-      public_staff_host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
-      Webauthn.define_singleton_method(:trusted_origins) do
-        ["http://#{sign_host}", "http://#{staff_host}", "http://#{public_sign_host}", "http://#{public_staff_host}"].uniq
-      end
     end
 
     teardown do
-      Webauthn.define_singleton_method(
-        :trusted_origins,
-        @original_trusted_origins,
-      ) if @original_trusted_origins
       CloudflareTurnstile.test_mode = false
       CloudflareTurnstile.test_validation_response = nil
     end
@@ -86,15 +73,9 @@ module Auth::App::In
 
       assert_not_nil challenge_id
 
-      mock_credential = OpenStruct.new(
-        id: @passkey.webauthn_id,
-        sign_count: 11,
-      )
-      mock_credential.define_singleton_method(:verify) do |_challenge, **|
-        true
-      end
+      verification_context = Struct.new(:sign_count).new(11)
 
-      WebAuthn::Credential.stub(:from_get, mock_credential) do
+      Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
         post auth_app_sign_in_challenge_passkey_path(ri: "jp"), params: {
           mfa_passkey_form: {
             challenge_id: challenge_id,

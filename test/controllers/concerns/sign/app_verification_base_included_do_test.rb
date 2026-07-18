@@ -9,7 +9,7 @@ class SignAppVerificationBaseIncludedDoTest < ActiveSupport::TestCase
     include PreferenceGlobal
     include CommonOtp
     include VerificationClient
-    include SignWebauthn
+    include PasskeyCeremonyContext
     include SignVerificationTiming
     include SignVerificationCommonBase
     include SignVerificationAuditAndCookie
@@ -32,8 +32,8 @@ class SignAppVerificationBaseIncludedDoTest < ActiveSupport::TestCase
     assert_includes Harness.included_modules, VerificationClient
   end
 
-  test "included do includes SignWebauthn module" do
-    assert_includes Harness.included_modules, SignWebauthn
+  test "included do includes PasskeyCeremonyContext module" do
+    assert_includes Harness.included_modules, PasskeyCeremonyContext
   end
 
   test "included do includes SignVerificationTiming module" do
