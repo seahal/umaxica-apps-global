@@ -265,7 +265,7 @@ RUN if [ -z "${GITHUB_ACTIONS}" ]; then \
     fi
 
 # Install pnpm for development use only (available by default on PATH).
-RUN npm install -g pnpm@11.1.3 \
+RUN npm install -g pnpm@latest \
     && rm -rf "${HOME}/.cache" "${HOME}/.local"
 
 # Final ownership fix for the home directory and workspace

@@ -80,8 +80,17 @@ class PreferenceResourceSyncTest < ActiveSupport::TestCase
     assert_equal "Client", harness.invoke(:resource_preference_registry_prefix, ClientPreference.new)
     assert_equal "Operator", harness.invoke(:resource_preference_registry_prefix, OperatorPreference.new)
     assert_equal "Visitor", harness.invoke(:resource_preference_registry_prefix, VisitorPreference.new)
-    assert_equal "client_preference", harness.invoke(:resource_preference_association_prefix, ClientPreference.new)
-    assert_equal "operator_preference", harness.invoke(:resource_preference_association_prefix, OperatorPreference.new)
+    # Must match the real has_one association names declared on each mirror
+    # model (client_preference.rb: `user_preference_language` etc.;
+    # operator_preference.rb: `staff_preference_language` etc.), not each
+    # model's own class-name prefix -- see the 2026-07-21 fix and comment on
+    # PreferenceResourceSync#resource_preference_association_prefix. The
+    # previous "client_preference"/"operator_preference" expectations here
+    # were themselves the bug: they locked in a prefix that never matched a
+    # real association, so `load_or_create_resource_preference_child!`
+    # silently no-opped for app/org.
+    assert_equal "user_preference", harness.invoke(:resource_preference_association_prefix, ClientPreference.new)
+    assert_equal "staff_preference", harness.invoke(:resource_preference_association_prefix, OperatorPreference.new)
     assert_equal "visitor_preference", harness.invoke(:resource_preference_association_prefix, VisitorPreference.new)
   end
 

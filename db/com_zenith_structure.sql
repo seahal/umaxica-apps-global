@@ -1464,7 +1464,8 @@ CREATE UNLOGGED TABLE public.visitor_preferences (
     page_size character varying DEFAULT 'infinity'::character varying NOT NULL,
     public_id character varying(21),
     created_at timestamp(6) with time zone NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
+    updated_at timestamp(6) with time zone NOT NULL,
+    explicit_fields jsonb DEFAULT '[]'::jsonb
 );
 
 
@@ -4662,6 +4663,7 @@ ALTER TABLE ONLY public.company_unit_closures
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260721090000'),
 ('20260719100001'),
 ('20260719100000'),
 ('20260716200601'),

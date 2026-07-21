@@ -1,0 +1,27 @@
+# Dependency Review Action
+#
+# Scans dependency manifest files changed in a Pull Request for known-vulnerable package
+# versions. If this workflow is marked as a required check, PRs introducing known-vulnerable
+# packages are blocked from merging.
+#
+# https://github.com/actions/dependency-review-action
+name: "Dependency Review"
+on:
+  pull_request:
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.1
+        with:
+          persist-credentials: false
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4.8.2
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: true

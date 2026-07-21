@@ -35,3 +35,20 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: "no"
+
+  # Disposable, pinned S3 client used only for bucket creation and independent
+  # post-write verification against RustFS. Never given host ports; invoked only via
+  # `podman compose ... run --rm fdw-poc-awscli <args>`. Credentials are passed at
+  # invocation time (`-e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY`, sourced from the
+  # invoking shell's environment) and are never baked into this file. Keeping this
+  # container on the host means the Linux host itself never needs an `aws` CLI install.
+  fdw-poc-awscli:
+    image: public.ecr.aws/aws-cli/aws-cli:2.31.16
+    profiles:
+      - fdw-poc
+    entrypoint: ["aws"]
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"

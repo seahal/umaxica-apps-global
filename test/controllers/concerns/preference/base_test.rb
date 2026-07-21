@@ -944,19 +944,28 @@ module Preference
       roles = []
       @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
 
+      # The lookup is `preference_class.active.unconsumed.includes(...).find_by(...)`
+      # (scoped to reject a retired/expired row -- see
+      # app/controllers/concerns/preference_access_token_transport.rb), so
+      # `.active`/`.unconsumed` must resolve back to the class itself here
+      # for the `.includes` stub below to still intercept the chain.
       PreferenceToken.stub(:decode, payload) do
         PreferenceToken.stub(:extract_preference_type, AppPreference.name) do
           PreferenceToken.stub(:extract_public_id, "existing-public") do
-            AppPreference.stub(:includes, relation) do
-              @controller.define_singleton_method(:with_preference_connection) do |role, &block|
-                roles << role
-                block.call
-              end
+            AppPreference.stub(:active, AppPreference) do
+              AppPreference.stub(:unconsumed, AppPreference) do
+                AppPreference.stub(:includes, relation) do
+                  @controller.define_singleton_method(:with_preference_connection) do |role, &block|
+                    roles << role
+                    block.call
+                  end
 
-              assert @controller.send(:load_access_token_payload)
-              assert_equal preference, @controller.send(:load_access_token_preference_record!)
-              assert_equal preference, @controller.instance_variable_get(:@preferences)
-              assert_equal [:writing], roles
+                  assert @controller.send(:load_access_token_payload)
+                  assert_equal preference, @controller.send(:load_access_token_preference_record!)
+                  assert_equal preference, @controller.instance_variable_get(:@preferences)
+                  assert_equal [:writing], roles
+                end
+              end
             end
           end
         end

@@ -5,6 +5,7 @@ module PreferenceGlobal
   extend ActiveSupport::Concern
   include PreferenceBase
   include PreferenceLocalization
+  include PreferenceSignOutRotation
 
   PUBLIC_CONTEXT_KEYS = RequestContextContract.public_keys
   PARAM_CONTEXT_KEYS = (RequestContextContract.required_keys + RequestContextContract.optional_overlay_keys).freeze

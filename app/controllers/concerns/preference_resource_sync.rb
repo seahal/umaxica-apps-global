@@ -111,6 +111,12 @@ module PreferenceResourceSync
         child&.update!(option_id: resource_option_id)
       end
       resource_pref.update!(attrs.slice(*resource_pref.attribute_names.map(&:to_sym)))
+      # Dual-write must land the same explicit state on both sides (target
+      # semantics section 6.5): the token side was just marked explicit for `type`
+      # by the caller (preference_core.rb#mark_preference_field_explicit!),
+      # so the mirror must record the same explicit choice, not silently stay
+      # "auto-seeded" forever.
+      resource_pref.mark_field_explicit!(type) if resource_pref.respond_to?(:mark_field_explicit!)
     end
   end
 
@@ -207,10 +213,23 @@ module PreferenceResourceSync
     end
   end
 
+  # Must match the actual has_one association names declared on each mirror
+  # model (client_preference.rb: `user_preference_language` etc.;
+  # operator_preference.rb: `staff_preference_language` etc.;
+  # visitor_preference.rb: `visitor_preference_language` etc.) -- NOT the
+  # model's own class-name prefix. "client_preference"/"operator_preference"
+  # were wrong (found 2026-07-21 while measuring signed-in dual-write query
+  # counts: `load_or_create_resource_preference_child!` silently returned nil
+  # for App/Org because `respond_to?("client_preference_language")` /
+  # `respond_to?("operator_preference_language")` are both false, so the
+  # per-key mirror child option row was never created/updated -- only the
+  # flat string column was, via a separate code path that does not depend on
+  # this prefix). VisitorPreference's real prefix happens to equal its class
+  # name, which is why Com was unaffected.
   def resource_preference_association_prefix(resource_pref)
     case resource_pref
-    when ClientPreference then "client_preference"
-    when OperatorPreference then "operator_preference"
+    when ClientPreference then "user_preference"
+    when OperatorPreference then "staff_preference"
     when VisitorPreference then "visitor_preference"
     else
       resource_pref.class.name.underscore

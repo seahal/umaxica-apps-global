@@ -38,6 +38,8 @@
 #  fk_rails_...  (visitor_id => visitors.id)
 #
 class VisitorPreference < ComPrincipalRecord
+  include ::PreferenceExplicitFields
+
   belongs_to :visitor, inverse_of: :visitor_preference
 
   has_one :visitor_preference_language,

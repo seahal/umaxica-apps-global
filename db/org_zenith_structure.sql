@@ -1830,7 +1830,8 @@ CREATE UNLOGGED TABLE public.operator_preferences (
     time_format character varying DEFAULT '24'::character varying NOT NULL,
     motion character varying DEFAULT 'standard'::character varying NOT NULL,
     density character varying DEFAULT 'standard'::character varying NOT NULL,
-    page_size character varying DEFAULT 'infinity'::character varying NOT NULL
+    page_size character varying DEFAULT 'infinity'::character varying NOT NULL,
+    explicit_fields jsonb DEFAULT '[]'::jsonb
 );
 
 
@@ -5542,6 +5543,7 @@ ALTER TABLE ONLY public.operator_secret_credentials
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260721090000'),
 ('20260719100001'),
 ('20260719100000'),
 ('20260716200602'),

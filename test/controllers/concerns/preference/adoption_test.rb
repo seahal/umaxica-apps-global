@@ -174,26 +174,32 @@ module Preference
       end
     end
 
-    test "adopt_preference_for! syncs preferences on subsequent login" do
+    test "adopt_preference_for! syncs an explicitly-set browser value to a non-explicit principal default" do
       create_child_record!(@preference, :language, AppPreferenceLanguageOption::EN)
+      @preference.mark_field_explicit!(:language)
 
-      # Simulate first login and create ClientPreference.
+      # Simulate first login and create ClientPreference (its language stays
+      # at the auto-seeded default, never marked explicit).
       user_pref = create_user_preference!(@user)
       @user.reload
 
-      # Touch app preference to make it newer
-      ComSettingRecord.connected_to(role: :writing) { @preference.touch }
+      # Whole-record `updated_at` must no longer decide the winner: make the
+      # principal side newer and confirm the browser's explicit choice still
+      # wins because it, not the timestamp, is the merge authority now.
+      ComSettingRecord.connected_to(role: :writing) { user_pref.touch }
 
-      # Now adopt and sync AppPreference to ClientPreference.
       adoption = build_adoption_context(@preference)
       adoption.send(:adopt_preference_for!, @user)
 
       user_pref.user_preference_language.reload
+      user_pref.reload
 
       assert_equal ClientPreferenceLanguageOption::EN, user_pref.user_preference_language.option_id
+      assert user_pref.explicit_field?(:language),
+             "principal side must inherit the explicit flag along with the value"
     end
 
-    test "sync_preferences! treats newer resource preference as whole-record winner" do
+    test "sync_preferences! per-key: neither side explicit favors the principal, independent of updated_at" do
       create_child_record!(@preference, :language, AppPreferenceLanguageOption::EN)
       create_child_record!(@preference, :region, AppPreferenceRegionOption::US)
       user_pref = create_user_preference!(@user)
@@ -211,6 +217,84 @@ module Preference
 
       assert_equal AppPreferenceLanguageOption::JA, @preference.app_preference_language.option_id
       assert_equal AppPreferenceRegionOption::JP, @preference.app_preference_region.option_id
+    end
+
+    test "sync_preferences! per-key: an unrelated explicit principal key is not clobbered by a browser-wins key" do
+      create_child_record!(@preference, :language, AppPreferenceLanguageOption::EN)
+      @preference.mark_field_explicit!(:language)
+      user_pref = create_user_preference!(@user)
+      @user.reload
+      user_pref.user_preference_timezone.update!(option_id: ClientPreferenceTimezoneOption::ASIA_TOKYO)
+      user_pref.mark_field_explicit!(:timezone)
+
+      @adoption.send(:sync_preferences!, user_pref)
+
+      user_pref.user_preference_language.reload
+      user_pref.user_preference_timezone.reload
+
+      assert_equal ClientPreferenceLanguageOption::EN, user_pref.user_preference_language.option_id
+      assert_equal ClientPreferenceTimezoneOption::ASIA_TOKYO, user_pref.user_preference_timezone.option_id
+    end
+
+    # --- legacy (explicit_fields IS NULL) principal compatibility ---
+
+    test "sync_preferences! never overwrites a legacy (pre-migration) principal value even when browser is explicit" do
+      create_child_record!(@preference, :language, AppPreferenceLanguageOption::EN)
+      @preference.mark_field_explicit!(:language)
+
+      user_pref = create_user_preference!(@user)
+      # Simulate a row that existed before the explicit_fields column was
+      # added: AppPrincipalRecord.connected_to since this write bypasses the
+      # ordinary writing-role guard used elsewhere in this file.
+      AppPrincipalRecord.connected_to(role: :writing) { user_pref.update_column(:explicit_fields, nil) }
+      user_pref.reload
+      @user.reload
+
+      assert_predicate user_pref, :legacy_unknown_explicit_state?
+
+      @adoption.send(:sync_preferences!, user_pref)
+
+      user_pref.user_preference_language.reload
+      user_pref.reload
+
+      assert_equal ClientPreferenceLanguageOption::JA, user_pref.user_preference_language.option_id,
+                   "a legacy principal value must never be overwritten merely because the browser has an explicit marker"
+      assert_predicate user_pref, :legacy_unknown_explicit_state?,
+                       "sync must not write to the principal side while it stays legacy, so the row stays legacy"
+    end
+
+    test "sync_preferences! leaves a legacy principal untouched even when the browser side is non-explicit too" do
+      user_pref = create_user_preference!(@user)
+      AppPrincipalRecord.connected_to(role: :writing) { user_pref.update_column(:explicit_fields, nil) }
+      user_pref.reload
+      @user.reload
+
+      @adoption.send(:sync_preferences!, user_pref)
+
+      user_pref.user_preference_language.reload
+
+      assert_equal ClientPreferenceLanguageOption::JA, user_pref.user_preference_language.option_id
+      assert_predicate user_pref.reload, :legacy_unknown_explicit_state?
+    end
+
+    test "a freshly created principal row is known-non-explicit, not legacy" do
+      user_pref = create_user_preference!(@user)
+
+      assert_not user_pref.legacy_unknown_explicit_state?
+      assert_equal [], user_pref.explicit_field_names
+    end
+
+    test "an explicit user action on a legacy principal row transitions it to known" do
+      user_pref = create_user_preference!(@user)
+      AppPrincipalRecord.connected_to(role: :writing) { user_pref.update_column(:explicit_fields, nil) }
+      user_pref.reload
+
+      assert_predicate user_pref, :legacy_unknown_explicit_state?
+
+      user_pref.mark_field_explicit!(:timezone)
+
+      assert_not user_pref.reload.legacy_unknown_explicit_state?
+      assert user_pref.explicit_field?(:timezone)
     end
 
     test "sync_preferences! forces r18 stopper through canonical age calculation for underage resource" do
