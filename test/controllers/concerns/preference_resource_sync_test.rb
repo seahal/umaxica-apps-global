@@ -6,11 +6,13 @@ require "test_helper"
 class PreferenceResourceSyncTest < ActiveSupport::TestCase
   class FakeConnection
     class << self
+      # rubocop:disable ThreadSafety/ClassAndModuleAttributes -- single-threaded test double, reset per test
       attr_accessor :transactions, :writes
+      # rubocop:enable ThreadSafety/ClassAndModuleAttributes
 
       def connected_to(role:)
         self.writes = writes.to_i + 1
-        raise "wrong role" unless role == :writing
+        raise RuntimeError, "wrong role" unless role == :writing
 
         yield
       end
@@ -220,7 +222,7 @@ class PreferenceResourceSyncTest < ActiveSupport::TestCase
     connection =
       Class.new do
         def self.connected_to(role:)
-          raise "wrong role" unless role == :writing
+          raise RuntimeError, "wrong role" unless role == :writing
 
           yield
         end

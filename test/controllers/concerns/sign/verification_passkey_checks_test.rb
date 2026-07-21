@@ -41,8 +41,8 @@ class SignVerificationPasskeyChecksTest < ActiveSupport::TestCase
     end
 
     def issue_passkey_authentication_challenge(allow_credentials:, actor:, purpose:)
-      raise "unexpected actor" unless actor == current_verification_actor
-      raise "unexpected purpose" unless purpose == :step_up
+      raise ArgumentError, "unexpected actor" unless actor == current_verification_actor
+      raise ArgumentError, "unexpected purpose" unless purpose == :step_up
 
       ["challenge-1", { allowCredentials: allow_credentials.map { |passkey| { id: passkey.webauthn_id } } }]
     end
@@ -56,8 +56,8 @@ class SignVerificationPasskeyChecksTest < ActiveSupport::TestCase
     end
 
     def consume_passkey_challenge!(_challenge_id, purpose:, actor:)
-      raise "unexpected purpose" unless purpose == :step_up
-      raise "unexpected actor" unless actor == current_verification_actor
+      raise ArgumentError, "unexpected purpose" unless purpose == :step_up
+      raise ArgumentError, "unexpected actor" unless actor == current_verification_actor
 
       "challenge"
     end

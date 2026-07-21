@@ -53,7 +53,10 @@ Reviewの重複コピーに過ぎない。ファイル名と役割を一致さ�
     Valkeyサービス。Kafkaサービスは削除 — 下記参照。libvipsインストールステップを追加)
   - `coverage` (`COVERAGE=true bin/rails test test/`を独立ジョブに分離。line
     91%運用中/spec要求95%の相違はユーザー確認事項、下記参照)
-  - `database-consistency` (`bin/rails db:prepare`, `bundle exec database_consistency`)
+  - `database-consistency` は削除(`database_consistency` gemが非推奨`ActiveRecord::Base.connection`
+    を呼び出しており、このアプリのRails `8.2.0.alpha`では`ActiveSupport::DeprecationException`で
+    即座に落ちる。gem側の非互換でありCI設定側では直せないため、ジョブごと除去する。ユーザー指示により
+    確定)
   - `lint-js` / `test-js` (`pnpm -s run ci` 相当。package.jsonの`ci`スクリプトを利用)
   - Docker Buildx/image-scan/SBOMジョブは削除
 - **`dependency-review.yml`**: 1本化。重複する`ci.yml`(旧)側のdependency reviewは削除。
@@ -108,3 +111,85 @@ Actions側はCoverageジョブを独立させつつ、それ以外は`bin/ci`相
 - ローカルでのRailsテスト・カバレッジ・lint・security系コマンドの実行結果で確認する。
 - `actionlint`でworkflow構文を検証する。
 - push許可が出た場合のみ、専用ブランチにpushし`gh run watch`で実際のActions結果を確認する。
+
+## フォローアップ(ユーザーが`.github/workflows/`へ適用後に判明した事項)
+
+`.github/workflows/`はこの実行環境からは書き込めない(読み取り専用mount)ため、Claudeは修正版ファイル
+をスクラッチ領域に書き出し、ユーザー側で`.github/workflows/`へ上書き適用してもらう運用を継続する。
+
+1. **YAMLアンカー/エイリアスの撤去**: `test-rails`ジョブの`env: &rails-test-env`を`coverage`ジョブが
+   `env: *rails-test-env`で参照していたが、`devops-actions/actionlint@v0.1.10`が使うactionlint
+   1.7.9のパーサーがこのエイリアスを"mapping"として認識できず`syntax-check`エラーになった
+   (`.github/workflows/ci.yml:280: env is alias node but mapping node is expected`)。
+   アンカー参照をやめ、`coverage`ジョブに`test-rails`と同じ`env:`ブロックを直接展開する。適用済み。
+2. **`database-consistency`ジョブの削除が未反映**: 前回「gemがもう使えないので外して」との指示を受け
+   削除版を提示したが、現在のリポジトリの`.github/workflows/ci.yml`には`database-consistency`
+   ジョブ(422〜497行目)がまだ残っている。改めて削除版を作成し提示する。
+3. **`lint-js`ステップの分割**: `pnpm -s run ci`を1ステップで実行していたため、GitHub Actions UI上で
+   `format:check` / `lint` / `typecheck` / `test:coverage`の個別の成否・実行履歴が見えなかった。
+   ユーザー確認の上、4つの個別ステップ(`pnpm -s run format:check`, `pnpm -s run lint`,
+   `pnpm -s run typecheck`, `pnpm -s run test:coverage`)に分割する。
+4. **`coverage`ジョブの実行範囲**: PRでも毎回実行する現状維持を確認済み(push/pull_request両方の
+   トリガーに変更なし)。
+5. **`test-rails`と`coverage`の2ジョブ構成**: そのまま維持することを確認済み(Coverage計測時は
+   `test/test_helper.rb`側の設定で並列ワーカーが1本に強制され通常テストよりはるかに遅いため、速い
+   フィードバックループを妨げないよう分離する、という元の監査方針どおり)。
+
+## 「クレデンシャル取得失敗」の調査結果(2026-07-21)
+
+ユーザーから「Rails Testsがクレデンシャルを取れず失敗しているようだ。CIはローカルの認証情報をそのまま
+使いたくないので別途採用したいが、そもそもこのエラー自体が問題かもしれない」との指摘があり、
+`gh run view 29813758744 --log-failed`(develop push, `Rails Tests`ジョブ)を調査した。
+
+**結論: GitHub Actions Secrets(`RAILS_MASTER_KEY`等)の取得失敗ではない。** ログ中に"Credentials"という
+文字列が頻出するのは、直前に走っているマイグレーション名(`ConsolidateRetentionOnCredentialsSymbol`,
+`CreateClientSecretCredentialCeremonyTransactions`等 — アプリケーションドメインの「認証情報
+(secret credential)」を表すテーブル名)であり、CIのシークレット機構とは無関係。
+
+実際の失敗は`bin/rails db:prepare`内の`db:seed`ステップで、`db/seeds.rb:38`
+(`staff.save!`)が`ActiveRecord::RecordInvalid`で落ちている:
+
+```
+バリデーションに失敗しました: ステータスを入力してください, MFAレベルを入力してください,
+MFAステータスを入力してください, 公開範囲を入力してください
+```
+
+`app/models/operator.rb:86,88,91,94`に`belongs_to :staff_status`, `:mfa_level`, `:mfa_status`,
+`:visibility`があり(Rails既定でbelongs_toは必須)、`db/seeds.rb:36-38`のOperator(staff)生成では
+`status_id`しかセットしておらず、`mfa_level_id` / `mfa_status_id` / `visibility_id`が未設定のまま
+`save!`している。同じseeds.rbの直前のClientブロック(17-22行目)は4項目とも正しくセットしている
+(`ClientStatus::ACTIVE`, `ClientVisibility::USER`, `ClientMfaLevel::NOTHING`,
+`ClientMfaStatus::UNCONFIGURED`)ため対称的に欠落が分かる。Operator側の対応する定数は
+`OperatorStatus::ACTIVE`, `OperatorVisibility::USER`, `OperatorMfaLevel::NOTHING`,
+`OperatorMfaStatus::UNCONFIGURED`(`app/models/operator_mfa_level.rb`,
+`operator_mfa_status.rb`, `operator_visibility.rb`で確認済み)。
+
+**このバグはCI固有ではない**: ローカルでも新規DBに対して`bin/rails db:prepare`を実行すれば同じ理由で
+必ず落ちる(既存DBでは`find_or_initialize_by`が既存レコードを拾うため気づかれていなかった可能性が高い)。
+CIのRails Testsジョブが毎回まっさらなPostgresサービスコンテナで`db:prepare`するようになったことで
+表面化した。
+
+**対応方針**: `db/seeds.rb:38`の前に、Client側と同様に`staff.mfa_level_id = OperatorMfaLevel::NOTHING`,
+`staff.mfa_status_id = OperatorMfaStatus::UNCONFIGURED`, `staff.visibility_id =
+OperatorVisibility::USER`を追加する。CI設定(secrets/認証情報)側の変更は不要。
+
+**「CIではローカルの認証情報を使いたくない」という別件について**: ユーザー確認済み。現状の`ci.yml`は
+既にGitHub Actions Secretsの`RAILS_MASTER_KEY`と使い捨てのPostgres/Valkeyサービスコンテナを使ってお
+り、ローカルの`config/master.key`や実データは使っていない設計で問題ない。追加のCI専用credentials発
+行作業は不要。
+
+## db/seeds.rb 修正(ユーザー承認済み)
+
+`db/seeds.rb`のOperator(staff)生成部分(36〜38行目)に、Client側(17〜22行目)と対称になるよう
+`mfa_level_id` / `mfa_status_id` / `visibility_id`を追加する:
+
+```ruby
+staff = Operator.find_or_initialize_by(public_id: sample_staff_public_id)
+staff.status_id = OperatorStatus::ACTIVE
+staff.visibility_id = OperatorVisibility::USER
+staff.mfa_level_id = OperatorMfaLevel::NOTHING
+staff.mfa_status_id = OperatorMfaStatus::UNCONFIGURED
+staff.save!
+```
+
+修正後、`bin/rails db:prepare`(新規DB)がRails Testsジョブと同条件で成功することをローカルで確認する。

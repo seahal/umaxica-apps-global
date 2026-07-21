@@ -18,7 +18,7 @@ module ObjectStorageTasks
     values =
       REQUIRED_ENVIRONMENT.to_h do |name|
         value = ENV.fetch(name)
-        raise "#{name} must not be blank" if value.empty?
+        raise ArgumentError, "#{name} must not be blank" if value.empty?
 
         [name, value]
       end
@@ -69,7 +69,7 @@ module ObjectStorageTasks
 
       head = client.head_object(bucket: bucket, key: key)
       unless head.content_length == expected_body.bytesize
-        raise "Object size mismatch: expected #{expected_body.bytesize}, got #{head.content_length}"
+        raise RuntimeError, "Object size mismatch: expected #{expected_body.bytesize}, got #{head.content_length}"
       end
 
       response = client.get_object(bucket: bucket, key: key)
@@ -78,7 +78,7 @@ module ObjectStorageTasks
       ensure
         response.body.close
       end
-      raise "Object body mismatch for #{key}" unless actual_body == expected_body
+      raise RuntimeError, "Object body mismatch for #{key}" unless actual_body == expected_body
 
       puts "Object storage PUT, HEAD, and GET succeeded: #{key}"
     ensure
@@ -90,7 +90,7 @@ module ObjectStorageTasks
 
     begin
       client.head_object(bucket: bucket, key: key)
-      raise "Smoke-test object still exists after DELETE: #{key}"
+      raise RuntimeError, "Smoke-test object still exists after DELETE: #{key}"
     rescue Aws::S3::Errors::NotFound
       puts "Object storage DELETE verified: #{key}"
     end
@@ -100,7 +100,7 @@ module ObjectStorageTasks
     return true if value == "true"
     return false if value == "false"
 
-    raise "#{name} must be exactly true or false"
+    raise ArgumentError, "#{name} must be exactly true or false"
   end
 end
 
