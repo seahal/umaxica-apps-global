@@ -49,6 +49,7 @@ module SignVerificationPasskeyChecks
       config: webauthn_relying_party_config,
       public_key: passkey.public_key,
       sign_count: passkey.sign_count,
+      purpose: :ordinary_step_up,
     )
     passkey.update!(sign_count: context.sign_count)
     true

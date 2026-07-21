@@ -264,11 +264,13 @@ ja:
         last_used_at: 最終使用日
       user_passkey:
         description: 名前
+        provider_name: プロバイダ
         created_at: 登録日時
         last_used_at: 最終使用日
         sign_count: 使用回数
       staff_passkey:
         description: 名前
+        provider_name: プロバイダ
         created_at: 登録日時
         sign_count: 使用回数
       user_token:
@@ -336,6 +338,7 @@ ja:
         last_otp_at: 最終使用日
       visitor_passkey:
         description: 名前
+        provider_name: プロバイダ
         created_at: 登録日時
         last_used_at: 最終使用日
         sign_count: 使用回数
@@ -1995,6 +1998,7 @@ ja:
         month: 月
         day: 日
     default_passkey_description: パスキー
+    unknown_authenticator: 不明な認証器
     registration:
       email:
         destroy:

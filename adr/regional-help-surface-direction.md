@@ -6,10 +6,10 @@ Superseded by `adr/publishing-db-content-authority.md` (2026-07-16)
 
 Accepted (2026-04-16)
 
-> **Superseded:** help の「Regional content database
-> group 帰属」は廃止され、help は info/docs/news と同じく global content surface として中央
-> `publishing` DB に帰属する。help が inquiry/contact 実装面ではないこと、document-like
-> (entry + 編集履歴 + 公開スナップショット)であることは新設計でも維持される。
+> **Superseded:** Help no longer belongs to the Regional content database group. Like
+> info/docs/news, it is a global content surface owned by the central `publishing` database. The new
+> design preserves the decisions that help is not the inquiry/contact implementation surface and
+> that its data is document-like: an entry, edit history, and published snapshots.
 
 ## Context
 

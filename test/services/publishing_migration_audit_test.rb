@@ -58,4 +58,26 @@ class PublishingMigrationAuditTest < ActiveSupport::TestCase
       assert_match "offline", result.fetch(:connection_error)
     end
   end
+
+  test "audits existing lean and CMS tables through read-only queries" do
+    latest_updated_at = Time.zone.parse("2026-07-19 12:00:00")
+    connection = Object.new
+    connection.define_singleton_method(:table_exists?) { |_table| true }
+    connection.define_singleton_method(:quote_table_name) { |table| "\"#{table}\"" }
+    connection.define_singleton_method(:select_value) do |sql|
+      sql.include?("MAX(updated_at)") ? latest_updated_at : 2
+    end
+    connection.define_singleton_method(:select_rows) { |_sql| [["published", 2]] }
+    service = PublishingMigrationAudit.new
+
+    lean = service.send(:audit_lean_table, connection, "docs_content_entries")
+    cms = service.send(:audit_cms_tables, connection, "app")
+
+    assert lean[:exists]
+    assert_equal 2, lean[:row_count]
+    assert_equal({ "published" => 2 }, lean[:status_counts])
+    assert_equal latest_updated_at.to_s, lean[:latest_updated_at]
+    assert_equal PublishingMigrationAudit::CMS_TABLE_SUFFIXES.length,
+                 cms.fetch("docs").fetch(:tables_present)
+  end
 end

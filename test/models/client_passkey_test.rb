@@ -4,22 +4,29 @@
 # == Schema Information
 #
 # Table name: client_passkeys
-# Database name: app_principal
+# Database name: app_zenith
 #
-#  id           :bigint           not null, primary key
-#  description  :string           default(""), not null
-#  discarded_at :datetime         default(Infinity), not null
-#  last_used_at :datetime
-#  public_key   :text             not null
-#  purged_at    :datetime         default(Infinity), not null
-#  sign_count   :bigint           default(0), not null
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
-#  external_id  :uuid             not null
-#  public_id    :string(21)       not null
-#  status_id    :bigint           default(1), not null
-#  user_id      :bigint           not null
-#  webauthn_id  :string           default(""), not null
+#  id                       :bigint           not null, primary key
+#  aaguid                   :uuid
+#  authenticator_attachment :string
+#  backup_eligible          :boolean
+#  backup_state             :boolean
+#  description              :string           default(""), not null
+#  discarded_at             :datetime         default(Infinity), not null
+#  last_used_at             :datetime
+#  metadata_source          :string
+#  provider_name            :string
+#  public_key               :text             not null
+#  purged_at                :datetime         default(Infinity), not null
+#  sign_count               :bigint           default(0), not null
+#  transports               :jsonb
+#  created_at               :datetime         not null
+#  updated_at               :datetime         not null
+#  external_id              :uuid             not null
+#  public_id                :string(21)
+#  status_id                :bigint           default(1), not null
+#  user_id                  :bigint           not null
+#  webauthn_id              :string           default(""), not null
 #
 # Indexes
 #

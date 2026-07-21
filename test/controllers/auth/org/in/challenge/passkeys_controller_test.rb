@@ -28,7 +28,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
       external_id: SecureRandom.uuid,
       public_key: "mfa-passkey-public",
       sign_count: 5,
-      name: "MFA Passkey",
+      description: "MFA Passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 

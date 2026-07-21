@@ -13,10 +13,10 @@ Accepted
 
 ## Temporary Exception
 
-2026-06-02: `adr/google-social-temporary-gateway-exception.md` は Google social temporary
-gateway 作業の QA-only 例外を追加する。この ADR の production target は変更しない。 `org` public
-signup は恒久的な self-service operator creation path ではなく、`com` は production
-cleanup 前に social-free へ戻す。この例外の実装 plan は
+2026-06-02: `adr/google-social-temporary-gateway-exception.md` adds a QA-only exception for the
+Google social temporary gateway. It does not change this ADR's production target. Public `org`
+signup is not a permanent self-service operator creation path, and `com` returns to a social-free
+state before production cleanup. The implementation plan for this exception is
 `plans/active/org-com-google-social-temporary-gateway-plan.md`.
 
 ## Context

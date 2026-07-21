@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: visitor_passkey_statuses
-# Database name: com_principal
+# Database name: com_zenith
 #
 #  id :bigint           not null, primary key
 #

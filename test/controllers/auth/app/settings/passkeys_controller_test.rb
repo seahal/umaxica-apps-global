@@ -202,7 +202,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       true
     end
 
-    registration_context = Struct.new(:webauthn_id, :sign_count).new("new_webauthn_id", 1)
+    registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("new_webauthn_id", 1)
     Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
       WebAuthn::Credential.stub(:from_create, mock_credential) do
         params = {
@@ -256,7 +256,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     mock_credential.define_singleton_method(:sign_count) { 1 }
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
-    registration_context = Struct.new(:webauthn_id, :sign_count).new("bootstrap_webauthn_id", 1)
+    registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("bootstrap_webauthn_id", 1)
     Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
       WebAuthn::Credential.stub(:from_create, mock_credential) do
         params = {
@@ -301,7 +301,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       true
     end
 
-    registration_context = Struct.new(:webauthn_id, :sign_count).new(duplicate_webauthn_id, 1)
+    registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new(duplicate_webauthn_id, 1)
     Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
       WebAuthn::Credential.stub(:from_create, mock_credential) do
         params = {

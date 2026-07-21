@@ -175,7 +175,10 @@ class IdentityPasskeyCeremonyResultIssuerTest < ActiveSupport::TestCase
     )
   end
 
-  PasskeyCandidate = Data.define(:webauthn_id, :public_key, :sign_count, :description, :transports)
+  PasskeyCandidate =
+    Data.define(:webauthn_id, :public_key, :sign_count, :description, :transports, :metadata) do
+      def initialize(metadata: {}, **rest) = super
+    end
 
   class FakeStore
     def initialize(transaction)

@@ -62,15 +62,6 @@ module Auth
               visitor if visitor&.active?
             end
 
-            def allow_passkey_options_for_actor?(visitor)
-              if session_limit_hard_reject_for?(visitor)
-                render_session_limit_hard_reject
-                return false
-              end
-
-              true
-            end
-
             def allow_passkey_sign_in?(passkey)
               return true if passkey.visitor.has_verified_pii?
 

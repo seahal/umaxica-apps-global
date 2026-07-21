@@ -99,6 +99,29 @@ class IdentityPasskeyCeremonyContractTest < ActiveSupport::TestCase
     end
   end
 
+  test "contract validators reject malformed timestamps and navigation metadata" do
+    assert_passkey_ceremony_error("iat must be an integer timestamp") do
+      IdentityPasskeyCeremonyContract.validate_timestamp!({ "iat" => "invalid" }, "iat")
+    end
+    assert_passkey_ceremony_error("exp must be an integer timestamp") do
+      IdentityPasskeyCeremonyContract.validate_future_timestamp!(
+        { "exp" => "invalid" }, "exp", now: @now,
+      )
+    end
+    assert_passkey_ceremony_error("return_to must be relative navigation metadata") do
+      IdentityPasskeyCeremonyContract.validate_return_to!({ "return_to" => "https://evil.example" })
+    end
+    assert_passkey_ceremony_error("return_to must be relative navigation metadata") do
+      IdentityPasskeyCeremonyContract.validate_return_to!({ "return_to" => "//evil.example" })
+    end
+  end
+
+  test "unverified payload decoding wraps malformed token errors" do
+    assert_passkey_ceremony_error("token is invalid") do
+      IdentityPasskeyCeremonyContract.decode_unverified_payload("not-a-token")
+    end
+  end
+
   private
 
   def acme_issuer_id = IdentityPasskeyCeremonyContract.acme_issuer_id("app")

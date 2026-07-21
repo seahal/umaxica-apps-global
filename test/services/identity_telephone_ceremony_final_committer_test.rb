@@ -130,6 +130,50 @@ class IdentityTelephoneCeremonyFinalCommitterTest < ActiveSupport::TestCase
     end
   end
 
+  test "commits through the locked record and writes the app audit" do
+    committer = IdentityTelephoneCeremonyFinalCommitter.new(
+      result_token: "token", actor: @actor, session_ref: "session-1", surface: "app", now: @now,
+    )
+    result = {
+      "surface" => "app",
+      "actor_ref" => "actor-1",
+      "session_ref" => "session-1",
+      "transaction_id" => "txn-1",
+      "telephone_candidate_ref" => "candidate-1",
+      "normalized_number_digest" => "number-digest",
+    }
+    committer.instance_variable_set(:@result, result)
+    committer.instance_variable_set(:@transaction, @transaction)
+    committer.instance_variable_set(:@telephone, @telephone)
+    lock = Object.new
+    locked_telephone = @telephone
+    lock.define_singleton_method(:find) { |_id| locked_telephone }
+    audit = nil
+    consumer = FakeConsumer.new
+
+    IdentityTelephoneCeremonyResultConsumer.stub(:new, ->(**) { consumer }) do
+      ClientTelephone.stub(:transaction, ->(&block) { block.call }) do
+        ClientTelephone.stub(:lock, lock) do
+          ChronicleRecord.stub(:connected_to, ->(**, &block) { block.call }) do
+            ClientChronicleEvent.stub(:find_or_create_by!, true) do
+              ClientChronicleLevel.stub(:find_or_create_by!, true) do
+                ClientChronicle.stub(:create!, ->(**attrs) { audit = attrs }) do
+                  commit = committer.call!
+
+                  assert_same @telephone, commit.telephone
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+    assert_equal ClientTelephoneStatus::VERIFIED, @telephone.updated_status
+    assert_equal ClientChronicleEvent::TELEPHONE_REGISTERED, audit.fetch(:event_id)
+    assert_equal @actor.id.to_s, audit.fetch(:subject_id)
+  end
+
   private
 
   def build_committer(actor: @actor, session_ref: "session-1", surface: "app")
@@ -240,6 +284,11 @@ class IdentityTelephoneCeremonyFinalCommitterTest < ActiveSupport::TestCase
       return 7 if key == :user_id
 
       super
+    end
+
+    def update!(attrs)
+      @updated_status = attrs[:user_telephone_status_id]
+      true
     end
   end
 

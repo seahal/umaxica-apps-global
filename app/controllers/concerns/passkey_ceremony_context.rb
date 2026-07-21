@@ -37,7 +37,7 @@ module PasskeyCeremonyContext
     config = webauthn_relying_party_config
     options = Webauthn::RegistrationVerifier.options_for(
       config: config,
-      user_id: resource.id.to_s.b,
+      user_id: resource.webauthn_user_handle,
       user_name: passkey_resource_display_name(resource),
       exclude_ids: webauthn_credential_ids(exclude_credentials),
     )
@@ -54,12 +54,18 @@ module PasskeyCeremonyContext
     [challenge_id, Webauthn::OptionsSerializer.as_json(options)]
   end
 
+  # Maps the challenge-store purpose to the UV policy purpose when the caller
+  # does not name one explicitly (MFA passes uv_purpose: :mfa_challenge, since
+  # its challenge purpose is :authentication).
+  DEFAULT_UV_PURPOSES = { authentication: :direct_sign_in, step_up: :ordinary_step_up }.freeze
+
   # @return [Array(String, Hash)] challenge id and JSON-ready request options
-  def issue_passkey_authentication_challenge(allow_credentials:, actor:, purpose: :authentication)
+  def issue_passkey_authentication_challenge(allow_credentials:, actor:, purpose: :authentication, uv_purpose: nil)
     config = webauthn_relying_party_config
     options = Webauthn::AssertionVerifier.options_for(
       config: config,
       allow_ids: webauthn_credential_ids(allow_credentials),
+      purpose: uv_purpose || DEFAULT_UV_PURPOSES.fetch(purpose),
     )
 
     challenge_id = passkey_challenge_store.issue!(

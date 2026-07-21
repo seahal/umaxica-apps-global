@@ -62,6 +62,8 @@ Read these files when the task touches the corresponding area:
   `.agents/harnesses/rules/generic/no-flash-messages.mdc`
 - External technical sources:
   `.agents/harnesses/rules/generic/source-policy.mdc`
+- Documentation, ADRs, plans, notes, memos, harnesses, code comments, or test names:
+  `.agents/harnesses/rules/generic/repository-language.mdc`
 - Logging, audit records, telemetry, or product analytics:
   `adr/application-logging-boundary.md` and `docs/security/observability-boundary.md`
 - Non-trivial decisions, plan deviations, or handoff context:
@@ -97,6 +99,8 @@ Do not:
 - use silent configuration, workflow, or migration fallbacks
 - perform destructive database operations without the user's explicit approval of the risk and
   migration plan
+- write repository prose in a non-English language merely because the conversation, requested
+  report, or handoff is in that language
 
 Required Ruby environment variables must use one-argument `ENV.fetch("NAME")`. For exact security,
 routing, migration, and fallback constraints, follow the task-specific rules above.
@@ -106,6 +110,9 @@ routing, migration, and fallback constraints, follow the task-specific rules abo
 Repository files must be written in English except explicit localization content, translation
 fixtures, non-English customer copy, or necessary quotations. Follow
 `docs/reference/repository-language-policy.md` when adding or substantially editing prose.
+Conversation language does not override this repository rule. If a user requests a non-English
+report without explicitly requesting a repository policy change, provide that report in chat and
+keep committed repository material in English.
 
 Agent assets live under `.agents/`:
 

@@ -26,7 +26,7 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: Base64.urlsafe_encode64("staff_login_id_bytes_12345", padding: false),
       external_id: SecureRandom.uuid,
       public_key: "staff_login_key",
-      name: "Staff Login Key",
+      description: "Staff Login Key",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
   end
@@ -76,14 +76,23 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_includes response.body, I18n.t("errors.webauthn.identifier_invalid")
   end
 
-  test "options returns error if staff has no passkeys" do
+  test "options returns an indistinguishable padded challenge if staff has no passkeys" do
     staff_no_passkey = operators(:two)
     staff_no_passkey.update!(status_id: OperatorStatus::ACTIVE)
 
     post auth_org_sign_in_passkey_options_url(ri: "jp"), params: { identifier: staff_no_passkey.public_id }
 
-    assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("errors.webauthn.no_passkeys_available")
+    assert_response :ok
+    assert_predicate response.parsed_body["challenge_id"], :present?
+    assert_equal 4, response.parsed_body.dig("options", "allowCredentials").size
+  end
+
+  test "options returns an indistinguishable padded challenge for an unknown valid staff identifier" do
+    post auth_org_sign_in_passkey_options_url(ri: "jp"), params: { identifier: "0000000000000000" }
+
+    assert_response :ok
+    assert_predicate response.parsed_body["challenge_id"], :present?
+    assert_equal 4, response.parsed_body.dig("options", "allowCredentials").size
   end
 
   test "options rejects email identifier" do
@@ -235,7 +244,7 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: Base64.urlsafe_encode64("other_staff_key_#{SecureRandom.hex(4)}", padding: false),
       external_id: SecureRandom.uuid,
       public_key: "other_staff_key",
-      name: "Other Staff Key",
+      description: "Other Staff Key",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 

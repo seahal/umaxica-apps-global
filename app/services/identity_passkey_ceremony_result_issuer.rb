@@ -2,7 +2,10 @@
 # frozen_string_literal: true
 
 class IdentityPasskeyCeremonyResultIssuer
-  Candidate = Data.define(:webauthn_id, :public_key, :sign_count, :description, :transports)
+  Candidate =
+    Data.define(:webauthn_id, :public_key, :sign_count, :description, :transports, :metadata) do
+      def initialize(metadata: {}, **rest) = super
+    end
 
   def self.issue!(grant_token:, candidate:, surface:, actor_ref:, session_ref:, operation:, challenge_id: nil,
                   now: Time.current)
@@ -101,6 +104,7 @@ class IdentityPasskeyCeremonyResultIssuer
       "sign_count" => candidate.sign_count.to_i,
       "description" => candidate.description,
       "transports" => candidate.transports,
+      "authenticator_metadata" => candidate.metadata.presence&.stringify_keys,
     }.compact
   end
 end

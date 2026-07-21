@@ -122,7 +122,7 @@ module Auth::App::Up
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
-      registration_context = Struct.new(:webauthn_id, :sign_count).new("new_webauthn_id", 1)
+      registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("new_webauthn_id", 1)
       Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
         WebAuthn::Credential.stub(:from_create, mock_credential) do
           assert_difference("ClientPasskey.count", 1) do
@@ -178,7 +178,7 @@ module Auth::App::Up
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
-      registration_context = Struct.new(:webauthn_id, :sign_count).new("login_webauthn_id", 1)
+      registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("login_webauthn_id", 1)
       Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
         WebAuthn::Credential.stub(:from_create, mock_credential) do
           patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
@@ -222,7 +222,7 @@ module Auth::App::Up
 
       pt = "/welcome?ri=jp"
 
-      registration_context = Struct.new(:webauthn_id, :sign_count).new("rt_webauthn_id", 1)
+      registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("rt_webauthn_id", 1)
       Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
         WebAuthn::Credential.stub(:from_create, mock_credential) do
           patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
@@ -256,7 +256,7 @@ module Auth::App::Up
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
-      registration_context = Struct.new(:webauthn_id, :sign_count).new("audit_webauthn_id", 1)
+      registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("audit_webauthn_id", 1)
       Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
         WebAuthn::Credential.stub(:from_create, mock_credential) do
           assert_no_difference("ClientChronicle.count") do
@@ -366,7 +366,7 @@ module Auth::App::Up
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
-      registration_context = Struct.new(:webauthn_id, :sign_count).new("failure_webauthn_id", 1)
+      registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("failure_webauthn_id", 1)
       Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
         WebAuthn::Credential.stub(:from_create, mock_credential) do
           patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
@@ -510,7 +510,7 @@ module Auth::App::Up
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
-      registration_context = Struct.new(:webauthn_id, :sign_count).new("#{webauthn_suffix}_webauthn_id", 1)
+      registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("#{webauthn_suffix}_webauthn_id", 1)
       Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
         WebAuthn::Credential.stub(:from_create, mock_credential) do
           patch(

@@ -95,7 +95,7 @@ class MfaStatusTrackableTest < ActiveSupport::TestCase
 
     OperatorPasskey.create!(
       staff: operator,
-      name: "Security key",
+      description: "Security key",
       public_key: "public-key",
       webauthn_id: SecureRandom.hex(16),
       status_id: OperatorPasskeyStatus::ACTIVE,

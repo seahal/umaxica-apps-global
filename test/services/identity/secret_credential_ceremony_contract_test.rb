@@ -118,6 +118,77 @@ class IdentitySecretCredentialCeremonyContractTest < ActiveSupport::TestCase
     end
   end
 
+  test "secret credential candidate store persists fetches and consumes a one-shot candidate" do
+    travel_to @now do
+      candidate = IdentitySecretCredentialCeremonyCandidateStore.store!(
+        surface: "app",
+        actor_ref: "actor-1",
+        session_ref: "session-1",
+        transaction_id: "txn-1",
+        operation: "enrollment",
+        password_digest: "password-digest",
+        name: "API Key",
+        enabled: "false",
+        expires_at: @now + 5.minutes,
+      )
+
+      fetched = IdentitySecretCredentialCeremonyCandidateStore.fetch!(candidate.ref)
+
+      assert_equal candidate.ref, fetched.ref
+      assert_equal candidate.digest, fetched.digest
+      assert_equal "password-digest", fetched.password_digest
+      assert_equal "API Key", fetched.name
+      assert_not fetched.enabled
+
+      consumed = IdentitySecretCredentialCeremonyCandidateStore.consume!(candidate.ref)
+
+      assert_equal candidate.ref, consumed.ref
+      assert_not_nil IdentitySecretCredentialCeremonyCandidate.find_by!(ref: candidate.ref).consumed_at
+      error =
+        assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
+          IdentitySecretCredentialCeremonyCandidateStore.fetch!(candidate.ref)
+        end
+      assert_includes error.message, "candidate is not found"
+    end
+  end
+
+  test "secret credential candidate store rejects missing secrets and expires deleted candidates" do
+    travel_to @now do
+      missing_error =
+        assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
+          IdentitySecretCredentialCeremonyCandidateStore.store!(
+            surface: "app", actor_ref: "actor-1", session_ref: "session-1",
+            transaction_id: "txn-missing", operation: "enrollment", password_digest: nil,
+            name: "Missing", enabled: true, expires_at: @now + 5.minutes,
+          )
+        end
+      assert_includes missing_error.message, "password digest is required"
+
+      expired = IdentitySecretCredentialCeremonyCandidateStore.store!(
+        surface: "app", actor_ref: "actor-1", session_ref: "session-expired",
+        transaction_id: "txn-expired", operation: "enrollment", password_digest: "digest",
+        name: "Expired", enabled: true, expires_at: @now - 1.second,
+      )
+      expired_error =
+        assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
+          IdentitySecretCredentialCeremonyCandidateStore.fetch!(expired.ref)
+        end
+      assert_includes expired_error.message, "candidate is expired"
+
+      deleted = IdentitySecretCredentialCeremonyCandidateStore.store!(
+        surface: "app", actor_ref: "actor-1", session_ref: "session-deleted",
+        transaction_id: "txn-deleted", operation: "enrollment", password_digest: "digest",
+        name: "Deleted", enabled: true, expires_at: @now + 5.minutes,
+      )
+      IdentitySecretCredentialCeremonyCandidateStore.delete(deleted.ref)
+      deleted_error =
+        assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
+          IdentitySecretCredentialCeremonyCandidateStore.fetch!(deleted.ref)
+        end
+      assert_includes deleted_error.message, "candidate is not found"
+    end
+  end
+
   private
 
   def acme_issuer_id = IdentitySecretCredentialCeremonyContract.acme_issuer_id("app")

@@ -16,12 +16,14 @@
 #  grant_jti                   :string           not null
 #  lock_version                :bigint           default(0), not null
 #  operation                   :string           not null
+#  origin                      :string           not null
 #  result_jti                  :string
 #  session_ref                 :string           not null
 #  status                      :string           default("pending"), not null
 #  surface                     :string           not null
 #  created_at                  :datetime         not null
 #  updated_at                  :datetime         not null
+#  rp_id                       :string           not null
 #  transaction_id              :string           not null
 #
 # Indexes

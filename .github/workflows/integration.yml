@@ -263,9 +263,6 @@ jobs:
       # Email
       RESEND_SMTP_ENDPOINT: smtp.resend.com
       RESEND_SMTP_USER_NAME: resend
-      # Object Storage
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
       # HMAC Secret
       OCCURRENCE_HMAC_SECRET: ${{ secrets.OCCURRENCE_HMAC_SECRET }}
     services:

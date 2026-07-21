@@ -10,6 +10,8 @@
 module PasskeySignInFlow
   extend ActiveSupport::Concern
 
+  ANONYMIZED_ALLOW_CREDENTIALS_COUNT = 4
+
   include PasskeyCeremonyContext
   include MinimumResponseBudget
   include CloudflareTurnstile
@@ -26,14 +28,10 @@ module PasskeySignInFlow
     ) unless valid_passkey_identifier?(identifier)
 
     actor = find_active_passkey_actor(identifier)
-    return render_error("errors.webauthn.no_passkeys_available", :unprocessable_content) unless actor
-    return unless allow_passkey_options_for_actor?(actor)
-
-    passkeys = active_passkeys_for_actor(actor)
-    return render_error("errors.webauthn.no_passkeys_available", :unprocessable_content) if passkeys.empty?
+    passkeys = actor ? active_passkeys_for_actor(actor).to_a : []
 
     challenge_id, request_options = issue_passkey_authentication_challenge(
-      allow_credentials: passkeys, actor: actor,
+      allow_credentials: anonymized_passkey_allow_credentials(passkeys), actor: actor,
     )
 
     render json: {
@@ -107,6 +105,7 @@ module PasskeySignInFlow
       config: webauthn_relying_party_config,
       public_key: passkey.public_key,
       sign_count: passkey.sign_count,
+      purpose: :direct_sign_in,
     )
 
     attrs = { sign_count: context.sign_count }
@@ -178,19 +177,21 @@ module PasskeySignInFlow
     raise NotImplementedError, "#{self.class} must define #find_active_passkey_actor"
   end
 
-  def allow_passkey_options_for_actor?(actor)
-    if session_limit_hard_reject_for?(actor)
-      render_session_limit_hard_reject
-      return false
-    end
-
-    true
-  end
-
   def active_passkeys_for_actor(actor)
     webauthn_surface.passkey_class
       .where(webauthn_surface.actor_foreign_key => actor.id)
       .where(status_id: webauthn_surface.passkey_status_class::ACTIVE)
+  end
+
+  # Username-first WebAuthn must not reveal whether an account exists, has a
+  # passkey, or is currently session-saturated. Every syntactically valid
+  # identifier receives the same number of opaque credential descriptors.
+  # Persisted model limits cap real credentials at this count.
+  def anonymized_passkey_allow_credentials(passkeys)
+    padding_count = [ANONYMIZED_ALLOW_CREDENTIALS_COUNT - passkeys.size, 0].max
+    dummy_credentials = Array.new(padding_count) { { id: SecureRandom.urlsafe_base64(32) } }
+
+    (passkeys + dummy_credentials).shuffle
   end
 
   def minimum_response_budget_enabled?

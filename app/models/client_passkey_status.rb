@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: client_passkey_statuses
-# Database name: app_principal
+# Database name: app_zenith
 #
 #  id :bigint           not null, primary key
 #

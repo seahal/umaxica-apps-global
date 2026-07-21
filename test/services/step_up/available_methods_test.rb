@@ -185,7 +185,7 @@ class StepUpAvailableMethodsTest < ActiveSupport::TestCase
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
-      name: "staff lockout passkey",
+      description: "staff lockout passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
     passkey.save!(validate: false)

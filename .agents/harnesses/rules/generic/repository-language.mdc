@@ -1,0 +1,27 @@
+---
+name: repository-language
+description: Keep repository-authored prose in English and make non-English exceptions explicit.
+---
+
+# Repository Language
+
+Repository-authored prose must be written in English. This applies to documentation, ADRs, plans,
+notes, memos, harnesses, code comments, and test names.
+
+The language used in conversation does not change the repository language. A request for a
+Japanese or other non-English report authorizes a chat response in that language, not a committed
+repository artifact in that language. Only an explicit request to change the repository language
+policy can change this boundary.
+
+Non-English text is allowed only when the artifact requires the original text, such as localization
+documentation, translation data or fixtures, customer-visible localized copy, a relevant quotation,
+or Unicode and locale test data. Explain an exception next to the affected text.
+
+Before finishing prose work, run:
+
+```bash
+bin/repository-language-check
+```
+
+Do not weaken the checker, add a broad exception, or relabel ordinary prose as localization to make
+a violation pass. Translate the prose or document the narrow, genuine exception.

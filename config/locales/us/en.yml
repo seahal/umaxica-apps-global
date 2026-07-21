@@ -229,6 +229,7 @@ en:
         month: MM
         day: DD
     default_passkey_description: My Passkey
+    unknown_authenticator: Unknown authenticator
     com:
       layout:
         nav:
@@ -1404,11 +1405,13 @@ en:
         muted_avatar_id: Muted avatar
       user_passkey:
         description: Name
+        provider_name: Provider
         created_at: Registered
         last_used_at: Last used
         sign_count: Usage count
       staff_passkey:
         description: Name
+        provider_name: Provider
         created_at: Registered
         sign_count: Usage count
       user_token:

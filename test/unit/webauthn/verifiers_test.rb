@@ -25,7 +25,7 @@ module Webauthn
     end
 
     test "authentication options demand required user verification" do
-      options = AssertionVerifier.options_for(config: APP_CONFIG, allow_ids: ["abc"])
+      options = AssertionVerifier.options_for(config: APP_CONFIG, allow_ids: ["abc"], purpose: :direct_sign_in)
 
       assert_equal "required", options.user_verification
     end
@@ -63,7 +63,7 @@ module Webauthn
 
       context = AssertionVerifier.verify!(
         credential_params: params, challenge: challenge, config: APP_CONFIG,
-        public_key: passkey[:public_key], sign_count: passkey[:sign_count],
+        public_key: passkey[:public_key], sign_count: passkey[:sign_count], purpose: :direct_sign_in,
       )
 
       assert context.user_verified
@@ -79,7 +79,7 @@ module Webauthn
       assert_raises(AssertionVerifier::UserVerificationRequiredError, WebAuthn::UserVerifiedVerificationError) do
         AssertionVerifier.verify!(
           credential_params: params, challenge: challenge, config: APP_CONFIG,
-          public_key: passkey[:public_key], sign_count: passkey[:sign_count],
+          public_key: passkey[:public_key], sign_count: passkey[:sign_count], purpose: :direct_sign_in,
         )
       end
     end
@@ -92,7 +92,7 @@ module Webauthn
       assert_raises(WebAuthn::SignCountVerificationError) do
         AssertionVerifier.verify!(
           credential_params: params, challenge: challenge, config: APP_CONFIG,
-          public_key: passkey[:public_key], sign_count: 10,
+          public_key: passkey[:public_key], sign_count: 10, purpose: :direct_sign_in,
         )
       end
     end
@@ -105,7 +105,7 @@ module Webauthn
       assert_raises(WebAuthn::Error) do
         AssertionVerifier.verify!(
           credential_params: params, challenge: challenge, config: COM_CONFIG,
-          public_key: passkey[:public_key], sign_count: passkey[:sign_count],
+          public_key: passkey[:public_key], sign_count: passkey[:sign_count], purpose: :direct_sign_in,
         )
       end
     end
@@ -125,7 +125,7 @@ module Webauthn
       assert_raises(WebAuthn::Error) do
         AssertionVerifier.verify!(
           credential_params: params, challenge: challenge, config: APP_CONFIG,
-          public_key: passkey[:public_key], sign_count: passkey[:sign_count],
+          public_key: passkey[:public_key], sign_count: passkey[:sign_count], purpose: :direct_sign_in,
         )
       end
     end
@@ -137,7 +137,7 @@ module Webauthn
     end
 
     def authentication_challenge
-      AssertionVerifier.options_for(config: APP_CONFIG, allow_ids: []).challenge
+      AssertionVerifier.options_for(config: APP_CONFIG, allow_ids: [], purpose: :direct_sign_in).challenge
     end
 
     # Registers a credential on the fake client's authenticator and returns

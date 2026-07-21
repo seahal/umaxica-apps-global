@@ -57,11 +57,13 @@ module PasskeyRegistrationFlow
       config: webauthn_relying_party_config,
     )
 
+    metadata = Webauthn::AuthenticatorMetadata.attributes_from(context)
     passkey = passkey_registration_passkeys.new(
       webauthn_id: context.webauthn_id,
       public_key: registration_public_key,
       sign_count: context.sign_count,
-      description: passkey_description,
+      description: passkey_description(provider_name: metadata[:provider_name]),
+      **metadata,
     )
     save_passkey_registration!(passkey)
     passkey
@@ -124,7 +126,7 @@ module PasskeyRegistrationFlow
       :type,
       :authenticatorAttachment,
       { transports: [] },
-      { response: %i(clientDataJSON attestationObject) },
+      { response: [:clientDataJSON, :attestationObject, { transports: [] }] },
       { clientExtensionResults: {} },
     )
   end
@@ -147,12 +149,14 @@ module PasskeyRegistrationFlow
   alias_method :render_passkey_registration_missing_challenge_id, :render_missing_challenge_id
 
   def commit_passkey_ceremony!(context, challenge_id)
+    metadata = Webauthn::AuthenticatorMetadata.attributes_from(context)
     candidate = IdentityPasskeyCeremonyResultIssuer::Candidate.new(
       webauthn_id: context.webauthn_id,
       public_key: registration_public_key,
       sign_count: context.sign_count,
-      description: passkey_description,
-      transports: credential_params[:transports],
+      description: passkey_description(provider_name: metadata[:provider_name]),
+      transports: context.transports,
+      metadata: metadata,
     )
     commit = finish_passkey_ceremony!(
       surface: webauthn_surface.key.to_s,
@@ -185,8 +189,12 @@ module PasskeyRegistrationFlow
     render json: { error: record.errors.full_messages.to_sentence }, status: :unprocessable_content
   end
 
-  def passkey_description
-    params[:description].presence || I18n.t("sign.default_passkey_description")
+  # Initial-value policy: the user's own label wins; otherwise the resolved
+  # provider friendly name seeds the description; the generic default is the
+  # last resort. The user can rename freely afterwards and metadata never
+  # overwrites their label.
+  def passkey_description(provider_name: nil)
+    params[:description].presence || provider_name.presence || I18n.t("sign.default_passkey_description")
   end
   alias_method :passkey_registration_description, :passkey_description
 

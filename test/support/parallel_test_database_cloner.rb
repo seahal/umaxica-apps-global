@@ -142,8 +142,8 @@ module ParallelTestDatabaseCloner
           while (group = queue.pop)
             group.each { |task| rebuild_clone(connection, **task) }
           end
-        rescue => error
-          errors << error
+        rescue => e
+          errors << e
         ensure
           connection.close
         end

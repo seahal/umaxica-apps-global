@@ -75,11 +75,59 @@ class SecurityJwtAuthAccessTokenCodecCoverageTest < ActiveSupport::TestCase
     end
   end
 
+  test "decode reports a payload actor mismatch" do
+    header = { "kid" => "kid-1" }
+    payload = { "sub" => "123", "act" => "operator" }
+
+    JitSecurityJwtKeyring.stub(:parse_header, header) do
+      JitSecurityJwtKeyring.stub(:public_key_for, "public-key") do
+        JWT.stub(:decode, [payload, header]) do
+          SecurityJwtAuthAccessTokenCodec.stub(:valid_header?, true) do
+            assert_nil SecurityJwtAuthAccessTokenCodec.decode_allow_expired(
+              "token", host: "app.example.test", resource_type: "client",
+            )
+          end
+        end
+      end
+    end
+  end
+
   test "validate_actor_claim! accepts valid actors and rejects invalid ones" do
     assert_not SecurityJwtAuthAccessTokenCodec.validate_actor_claim!(nil, "client")
     assert_not SecurityJwtAuthAccessTokenCodec.validate_actor_claim!({}, "client")
     assert_not SecurityJwtAuthAccessTokenCodec.validate_actor_claim!({ "act" => "invalid" }, "client")
     assert SecurityJwtAuthAccessTokenCodec.validate_actor_claim!({ "act" => "client" }, "client")
+  end
+
+  test "claim extraction helpers delegate to authorization claims" do
+    payload = {
+      "sub" => "subject-1",
+      "act" => "client",
+      "sid" => "session-1",
+      "jti" => "token-1",
+      "scp" => %w(openid profile),
+    }
+
+    assert_equal "subject-1", SecurityJwtAuthAccessTokenCodec.extract_subject(payload)
+    assert_equal "client", SecurityJwtAuthAccessTokenCodec.extract_type(payload)
+    assert_equal "session-1", SecurityJwtAuthAccessTokenCodec.extract_session_id(payload)
+    assert_equal "token-1", SecurityJwtAuthAccessTokenCodec.extract_jti(payload)
+    assert_equal %w(openid profile), SecurityJwtAuthAccessTokenCodec.extract_scopes(payload)
+    assert SecurityJwtAuthAccessTokenCodec.has_scope?(payload, :profile)
+    assert_not SecurityJwtAuthAccessTokenCodec.has_scope?(payload, :email)
+  end
+
+  test "issuer inference distinguishes service and surface hosts" do
+    infer =
+      ->(host, type = "client") {
+        SecurityJwtAuthAccessTokenCodec.send(
+          :inferred_surface_jwt_issuer_id, host: host, resource_type: type,
+        )
+      }
+
+    assert_equal "surface:ACME_ORG", infer.call("acme.umaxica.org")
+    assert_equal "surface:CORE_COM", infer.call("core.umaxica.com")
+    assert_equal "surface:ACME_APP", infer.call("acme.app.localhost")
   end
 
   test "decode options require and verify nbf" do

@@ -95,8 +95,10 @@
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
     "ghcr.io/devcontainers-extra/features/opencode:1": {}
   },
-  // Host bind mounts that hold general config remain readonly so in-container
-  // writes cannot re-own them to a subuid on the host under rootless podman.
+  // Host bind mounts that must be readonly live in compose.override.yml. The
+  // Dev Container string-form `readonly` option is not effective with the
+  // current rootless Podman provider, so it must not guard host credentials or
+  // supply-chain paths. Host ~/.ssh is deliberately not mounted into core.
   // Tool auth/state directories are mounted narrowly:
   //   - ~/.claude.json  rw  (ClaudeCode rewrites this on every auth refresh)
   //   - ~/.claude       rw  (project settings, CLAUDE.md, credentials sub-dir)
@@ -106,29 +108,15 @@
   // Executable tool binaries come from devcontainer features or the image, not
   // host .local/bin, so host-only symlinks cannot shadow container installs.
   //
-  // Workspace write-guards: critical supply-chain paths are overlaid as
-  // readonly bind mounts on top of the rw workspace bind mount. A compromised
-  // in-container process cannot rewrite CI workflows, bin scripts, or the
-  // dependency manifests used by the frozen-install workflow. pnpm-lock.yaml
-  // remains on the workspace mount because dependency updates replace it
-  // atomically; CI protects reproducibility with pnpm install --frozen-lockfile.
+  // Workspace write-guards are also declared in compose.override.yml. The
+  // pnpm-lock.yaml remains on the writable workspace mount because dependency
+  // updates replace it atomically; CI protects reproducibility with
+  // pnpm install --frozen-lockfile.
   "mounts": [
     "source=${localEnv:HOME}/.codex,target=/home/global/.codex,type=bind",
     "source=${localEnv:HOME}/.claude,target=/home/global/.claude,type=bind",
     "source=${localEnv:HOME}/.claude.json,target=/home/global/.claude.json,type=bind",
-    "source=${localEnv:HOME}/.config/git,target=/home/global/.config/git,type=bind,readonly",
-    "source=${localEnv:HOME}/.gitconfig,target=/home/global/.gitconfig,type=bind,readonly",
-    "source=${localEnv:HOME}/.ssh,target=/home/global/.ssh,type=bind,readonly",
-    "source=${localEnv:HOME}/.config/opencode,target=/home/global/.config/opencode,type=bind,readonly",
-    "source=${localEnv:HOME}/.config/gh,target=/home/global/.config/gh,type=bind,readonly",
     "source=${localWorkspaceFolder}/.devcontainer/dotfiles/bashrc,target=/home/global/.bashrc,type=bind",
-    "source=${localWorkspaceFolder}/.devcontainer/dotfiles/irbrc,target=/home/global/.irbrc,type=bind",
-    "type=bind,source=/etc/timezone,target=/etc/timezone,readonly",
-    "source=${localWorkspaceFolder}/.github,target=/home/global/workspace/.github,type=bind,readonly",
-    "source=${localWorkspaceFolder}/bin,target=/home/global/workspace/bin,type=bind,readonly",
-    "source=${localWorkspaceFolder}/Gemfile,target=/home/global/workspace/Gemfile,type=bind,readonly",
-    "source=${localWorkspaceFolder}/Gemfile.lock,target=/home/global/workspace/Gemfile.lock,type=bind,readonly",
-    "source=${localWorkspaceFolder}/package.json,target=/home/global/workspace/package.json,type=bind,readonly",
-    "source=${localWorkspaceFolder}/.devcontainer,target=/home/global/workspace/.devcontainer,type=bind,readonly"
+    "source=${localWorkspaceFolder}/.devcontainer/dotfiles/irbrc,target=/home/global/.irbrc,type=bind"
   ]
 }

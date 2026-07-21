@@ -82,7 +82,14 @@ class ParallelTestDatabaseClonerTest < ActiveSupport::TestCase
     overlap = false
     order = []
 
-    ParallelTestDatabaseCloner.stub(:connect, ->(*) { Struct.new(:closed).new.tap { |c| def c.close; end } }) do
+    ParallelTestDatabaseCloner.stub(
+      :connect, ->(*) {
+                  Struct.new(:closed).new.tap { |c|
+                    def c.close
+                    end
+                  }
+                },
+    ) do
       ParallelTestDatabaseCloner.stub(
         :rebuild_clone,
         lambda do |_connection, source:, clone:, sha:, clone_exists:|
@@ -99,7 +106,7 @@ class ParallelTestDatabaseClonerTest < ActiveSupport::TestCase
       end
     end
 
-    refute overlap, "clones from the same template source must not run concurrently"
-    assert_equal %w[a_0 a_1 b_0].sort, order.sort
+    assert_not overlap, "clones from the same template source must not run concurrently"
+    assert_equal %w(a_0 a_1 b_0).sort, order.sort
   end
 end

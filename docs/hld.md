@@ -20,8 +20,9 @@ host—marketing, authentication, docs/news, help/support, BFF, and API—consis
 - Namespaced controllers for `Top`, `Sign`, `Help`, `Docs`, `News`, `Bff`, and `Api` surfaces
 - Turbo/React front-end with pnpm-managed tooling (`src/**`)
 - Multi-database Active Record setup (`app_principal`, `org_ticket`, `com_setting`, etc.)
-- Supporting infrastructure: PostgreSQL primary/replica pairs, Valkey, MinIO, Grafana/Loki/Tempo
-- CI/CD automation (GitHub Actions, Lefthook) and local workflows (Foreman + Docker Compose)
+- Supporting infrastructure: PostgreSQL primary/replica pairs, Valkey, Grafana/Loki/Tempo, and an
+  opt-in RustFS object-storage profile
+- CI/CD automation (GitHub Actions, Lefthook) and local workflows (Foreman + Podman Compose)
 
 ### 1.3 References
 
@@ -222,9 +223,9 @@ Sensitive columns leverage Active Record encryption.
 
 ### 6.1 Local development
 
-- `compose.yml` launches: Postgres primaries/replicas for each logical DB, Valkey, MinIO, Loki,
-  Tempo, Grafana. Ports default to `5435-5436` (Postgres), `56379` (Valkey), `9000/9001` (MinIO),
-  `33100/3200/4317` (observability), `8000` (Grafana).
+- `compose.yaml` launches the normal development dependencies. The `object-storage` profile adds
+  RustFS; its devcontainer override publishes the S3 API and console on loopback ports `9000` and
+  `9001` by default.
 - `bin/dev` is the unified local entrypoint; it wraps `foreman start -f Procfile.dev` to orchestrate
   Rails, Vite, and jobs. JavaScript tooling runs via Vite Plus when linting/formatting.
 
@@ -276,7 +277,7 @@ Sensitive columns leverage Active Record encryption.
 | SMS            | HTTPS         | `Outbound::Sms` sends OTP codes through the configured provider. SMS job arguments carry encrypted message bodies.                          |
 | Redis/Valkey   | RESP          | Sessions, rate limiting, Memorize store.                                                                                                    |
 | OTLP           | HTTP/gRPC     | OpenTelemetry exporter pushes spans to Tempo (`http://tempo:4318/v1/traces`).                                                               |
-| Object storage | S3-compatible | MinIO (dev) / Google Cloud Storage (prod) for uploads.                                                                                      |
+| Object storage | S3-compatible | Opt-in RustFS smoke-test integration for local development; production storage is deferred.                                                |
 
 ---
 

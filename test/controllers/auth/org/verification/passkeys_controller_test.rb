@@ -18,7 +18,7 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
       external_id: SecureRandom.uuid,
       public_key: "org-verification-public-key",
       sign_count: 0,
-      name: "Org verification passkey",
+      description: "Org verification passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
     @headers = {

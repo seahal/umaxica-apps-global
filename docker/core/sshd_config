@@ -1,0 +1,38 @@
+# OpenSSH server configuration for the development container's remote-access
+# path (Mac Codex App -> tailscale-codex sidecar -> core:22). Loaded only when
+# REMOTE_SSHD=1 (docker/core/entrypoint.sh); the production image has no sshd.
+# See docs/operations/remote-codex-over-tailscale.md.
+
+Port 22
+AddressFamily inet
+HostKey /var/lib/remote-sshd/ssh_host_ed25519_key
+PidFile /run/sshd/sshd.pid
+
+# Authentication: public key only, single user.
+AllowUsers global
+PermitRootLogin no
+PubkeyAuthentication yes
+AuthenticationMethods publickey
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+UsePAM no
+# Host-managed file (bind-mounted read-only), outside $HOME on purpose so the
+# workspace or home mounts can never grant access.
+AuthorizedKeysFile /etc/ssh/authorized_keys.d/global
+StrictModes yes
+
+# Surface reduction.
+AllowAgentForwarding no
+AllowTcpForwarding no
+AllowStreamLocalForwarding no
+X11Forwarding no
+PermitTunnel no
+GatewayPorts no
+PermitUserEnvironment no
+# Kept yes until the Codex App is verified to work without a PTY; tightening
+# to no is a documented follow-up in the operations doc.
+PermitTTY yes
+
+LogLevel VERBOSE
+ClientAliveInterval 60
+ClientAliveCountMax 3

@@ -143,6 +143,50 @@ class IdentityEmailCeremonyFinalCommitterTest < ActiveSupport::TestCase
     end
   end
 
+  test "commits through the locked record and writes the app audit" do
+    committer = IdentityEmailCeremonyFinalCommitter.new(
+      result_token: "token", actor: @actor, session_ref: "session-1", surface: "app", now: @now,
+    )
+    result = {
+      "surface" => "app",
+      "actor_ref" => "actor-1",
+      "session_ref" => "session-1",
+      "transaction_id" => "txn-1",
+      "email_candidate_ref" => "candidate-1",
+      "normalized_email_digest" => "email-digest",
+    }
+    committer.instance_variable_set(:@result, result)
+    committer.instance_variable_set(:@transaction, @transaction)
+    committer.instance_variable_set(:@email, @email)
+    lock = Object.new
+    locked_email = @email
+    lock.define_singleton_method(:find) { |_id| locked_email }
+    audit = nil
+    consumer = FakeConsumer.new
+
+    IdentityEmailCeremonyResultConsumer.stub(:new, ->(**) { consumer }) do
+      ClientEmail.stub(:transaction, ->(&block) { block.call }) do
+        ClientEmail.stub(:lock, lock) do
+          ChronicleRecord.stub(:connected_to, ->(**, &block) { block.call }) do
+            ClientChronicleEvent.stub(:find_or_create_by!, true) do
+              ClientChronicleLevel.stub(:find_or_create_by!, true) do
+                ClientChronicle.stub(:create!, ->(**attrs) { audit = attrs }) do
+                  commit = committer.call!
+
+                  assert_same @email, commit.email
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+    assert_equal ClientEmailStatus::VERIFIED, @email.updated_status
+    assert_equal ClientChronicleEvent::EMAIL_REGISTERED, audit.fetch(:event_id)
+    assert_equal @actor.id.to_s, audit.fetch(:subject_id)
+  end
+
   private
 
   def build_committer(actor: @actor, session_ref: "session-1", surface: "app")

@@ -57,13 +57,14 @@ class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
                  session[:passkey_challenges][json["challenge_id"]]["actor_global_key"]
   end
 
-  test "options returns error when identifier is unknown" do
+  test "options returns an indistinguishable padded challenge when identifier is unknown" do
     post auth_com_sign_in_passkey_options_path(ri: "jp"),
          params: { identifier: "missing@example.com" },
          headers: @origin_headers
 
-    assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("errors.webauthn.no_passkeys_available")
+    assert_response :ok
+    assert_predicate response.parsed_body["challenge_id"], :present?
+    assert_equal 4, response.parsed_body.dig("options", "allowCredentials").size
   end
 
   test "options returns error when identifier is missing" do

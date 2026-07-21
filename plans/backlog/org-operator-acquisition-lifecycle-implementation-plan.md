@@ -4,12 +4,12 @@ Status: deprecated
 
 Deprecated: 2026-06-02
 
-Deprecated 理由: この backlog plan は、未知の `org` social
-identity を必ず non-provisioning とし、operator acquisition を public social
-signup の外側に置く。これは production target としては維持するが、明示的な ENV flag 配下で
-`org Google signup` を QA temporary gateway として許可する今回方針とは一時的に衝突する。
+Deprecation reason: This backlog plan makes an unknown `org` social identity non-provisioning and
+keeps operator acquisition outside public social signup. That remains the production target, but it
+temporarily conflicts with the current decision to permit `org` Google signup as a QA-only temporary
+gateway behind an explicit environment flag.
 
-後継 plan: `plans/active/org-com-google-social-temporary-gateway-plan.md`.
+Successor plan: `plans/active/org-com-google-social-temporary-gateway-plan.md`.
 
 ## Purpose
 

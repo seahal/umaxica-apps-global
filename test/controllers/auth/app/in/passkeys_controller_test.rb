@@ -52,12 +52,13 @@ module Auth::App::In
     end
 
     # Case F-1: Identifier does not exist
-    test "options returns error if identifier not found" do
+    test "options returns an indistinguishable padded challenge if identifier is not found" do
       post auth_app_sign_in_passkey_options_path(ri: "jp"),
            params: options_params(identifier: "unknown@example.com")
 
-      assert_response :unprocessable_content
-      assert_includes response.body, I18n.t("errors.webauthn.no_passkeys_available")
+      assert_response :ok
+      assert_predicate response.parsed_body["challenge_id"], :present?
+      assert_equal 4, response.parsed_body.dig("options", "allowCredentials").size
     end
 
     test "options returns error if identifier missing" do
@@ -68,15 +69,16 @@ module Auth::App::In
     end
 
     # Case F-2: Identifier exists but no passkey
-    test "options returns error if no passkeys" do
+    test "options returns an indistinguishable padded challenge if the account has no passkeys" do
       user_no_passkey = clients(:two)
       user_no_passkey_email = ClientEmail.create!(user: user_no_passkey, address: "nopasskey@example.com")
 
       post auth_app_sign_in_passkey_options_path(ri: "jp"),
            params: options_params(identifier: user_no_passkey_email.address)
 
-      assert_response :unprocessable_content
-      assert_includes response.body, I18n.t("errors.webauthn.no_passkeys_available")
+      assert_response :ok
+      assert_predicate response.parsed_body["challenge_id"], :present?
+      assert_equal 4, response.parsed_body.dig("options", "allowCredentials").size
     end
 
     test "options returns challenge and allowCredentials for email identifier" do
@@ -90,7 +92,7 @@ module Auth::App::In
       assert_not_nil json["challenge_id"]
       options = json["options"]
 
-      assert_not_empty options["allowCredentials"]
+      assert_equal 4, options["allowCredentials"].size
 
       Rails.logger.debug { "DEBUG: allowCredentials = #{options["allowCredentials"].inspect}" }
       Rails.logger.debug { "DEBUG: allowCredentials = #{options["allowCredentials"].inspect}" }
@@ -355,7 +357,7 @@ module Auth::App::In
       assert_includes response.body, I18n.t("errors.webauthn.challenge_invalid")
     end
 
-    test "options returns 403 when user is at session hard_reject limit" do
+    test "options does not disclose that the user is at the session hard reject limit" do
       # Create 2 active + 1 restricted to hit the hard limit
       ClientToken.where(user_id: @user.id).delete_all
       2.times do
@@ -368,10 +370,9 @@ module Auth::App::In
            params: options_params(identifier: @user_email.address),
            as: :json
 
-      assert_response :forbidden
-      json = response.parsed_body
-
-      assert_equal "session_limit_hard_reject", json["error_code"]
+      assert_response :ok
+      assert_predicate response.parsed_body["challenge_id"], :present?
+      assert_equal 4, response.parsed_body.dig("options", "allowCredentials").size
     end
 
     test "options returns turnstile error when response token is missing" do

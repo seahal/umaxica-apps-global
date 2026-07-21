@@ -77,6 +77,13 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       # --- Mail ---
       AWS_SES_REGION: ap-northeast-1
+      # --- Local object storage (optional profile) ---
+      OBJECT_STORAGE_ENDPOINT: "http://rustfs:9000"
+      OBJECT_STORAGE_REGION: "us-east-1"
+      OBJECT_STORAGE_BUCKET: "${OBJECT_STORAGE_BUCKET:-}"
+      OBJECT_STORAGE_ACCESS_KEY_ID: "${OBJECT_STORAGE_ACCESS_KEY_ID:-}"
+      OBJECT_STORAGE_SECRET_ACCESS_KEY: "${OBJECT_STORAGE_SECRET_ACCESS_KEY:-}"
+      OBJECT_STORAGE_FORCE_PATH_STYLE: "true"
       # --- Public hosts (browser-visible) ---
       PUBLIC_AUTH_CORPORATE_URL: auth.umaxica.com
       PUBLIC_AUTH_SERVICE_URL: auth.umaxica.app
@@ -243,6 +250,78 @@ services:
         condition: service_started
       valkey:
         condition: service_healthy
+  rustfs-permissions:
+    image: alpine:3.24.1
+    profiles:
+      - object-storage
+    user: root
+    read_only: true
+    network_mode: none
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        for directory in /data/rustfs0 /data/rustfs1 /data/rustfs2 /data/rustfs3; do
+          chown 10001:10001 "$${directory}"
+          chmod 0750 "$${directory}"
+        done
+    volumes:
+      - rustfs-data0:/data/rustfs0
+      - rustfs-data1:/data/rustfs1
+      - rustfs-data2:/data/rustfs2
+      - rustfs-data3:/data/rustfs3
+  rustfs:
+    image: rustfs/rustfs:1.0.0-beta.10
+    profiles:
+      - object-storage
+    depends_on:
+      rustfs-permissions:
+        condition: service_completed_successfully
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        : "$${RUSTFS_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY_ID must be set}"
+        : "$${RUSTFS_SECRET_KEY:?OBJECT_STORAGE_SECRET_ACCESS_KEY must be set}"
+        : "$${RUSTFS_RPC_SECRET:?RUSTFS_RPC_SECRET must be set}"
+        if [ "$${RUSTFS_RPC_SECRET}" = "$${RUSTFS_SECRET_KEY}" ]; then
+          echo "RUSTFS_RPC_SECRET must differ from OBJECT_STORAGE_SECRET_ACCESS_KEY" >&2
+          exit 1
+        fi
+        exec /entrypoint.sh rustfs
+    environment:
+      RUSTFS_VOLUMES: "/data/rustfs{0...3}"
+      RUSTFS_ADDRESS: "0.0.0.0:9000"
+      RUSTFS_CONSOLE_ADDRESS: "0.0.0.0:9001"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_REGION: "us-east-1"
+      RUSTFS_ACCESS_KEY: "${OBJECT_STORAGE_ACCESS_KEY_ID:-}"
+      RUSTFS_SECRET_KEY: "${OBJECT_STORAGE_SECRET_ACCESS_KEY:-}"
+      RUSTFS_RPC_SECRET: "${RUSTFS_RPC_SECRET:-}"
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -fsS
+        - http://127.0.0.1:9000/health/ready
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    volumes:
+      - rustfs-data0:/data/rustfs0
+      - rustfs-data1:/data/rustfs1
+      - rustfs-data2:/data/rustfs2
+      - rustfs-data3:/data/rustfs3
+    networks:
+      - backend
   primary:
     build:
       context: ./docker/psql-pub
@@ -510,6 +589,11 @@ networks:
   outer:
     name: "${OUTER_DOCKER_NETWORK:-umaxica-apps-global_outer}"
     external: "${OUTER_DOCKER_NETWORK_EXTERNAL:-false}"
+  # NOTE: the `remote-access` network and the `tailscale-codex` service live
+  # entirely in .devcontainer/compose.override.yml — Remote Codex over
+  # Tailscale is a devcontainer-only feature and must not be created, started,
+  # or pulled when this base compose.yaml is used standalone. See
+  # docs/operations/remote-codex-over-tailscale.md.
 volumes:
   valkey-volume: {}
   loki-volume: {}
@@ -521,3 +605,10 @@ volumes:
   umaxica-home-share: {}
   umaxica-node-modules: {}
   umaxica-bundle: {}
+  rustfs-data0: {}
+  rustfs-data1: {}
+  rustfs-data2: {}
+  rustfs-data3: {}
+  # NOTE: tailscale-codex-state and remote-sshd (Remote Codex host-key /
+  # tailnet-state volumes) live in .devcontainer/compose.override.yml, not
+  # here — see the networks: section note above.

@@ -61,6 +61,8 @@ gem "shrine"
 gem "image_processing", require: false
 # AWS SNS client for SMS delivery.
 gem "aws-sdk-sns", require: false
+# AWS S3 client for explicit object-storage integration tasks.
+gem "aws-sdk-s3", require: false
 # HTML metadata helpers.
 gem "meta-tags"
 # OpenTelemetry SDK.
@@ -125,8 +127,8 @@ gem "ruby-vips"
 gem "lograge"
 # json
 gem "json-canonicalization"
-# Solid Queue operations UI.
-gem "mission_control-jobs"
+# SAML for to use AWS IAM Identity center
+gem "ruby-saml", ">= 1.18.1"
 
 group :development, :test do
   # Test coverage reporting.
@@ -236,4 +238,9 @@ group :development do
   gem "flay", require: false
   # Code smell detector.
   gem "reek", require: false
+end
+
+group :development, :production do
+  # Solid Queue operations UI.
+  gem "mission_control-jobs"
 end

@@ -52,15 +52,6 @@ module Auth
               verify_turnstile_stealth!
             end
 
-            def allow_passkey_options_for_actor?(user)
-              if session_limit_hard_reject_for?(user)
-                render_session_limit_hard_reject
-                return false
-              end
-
-              true
-            end
-
             def allow_passkey_sign_in?(passkey)
               return true if passkey.user.has_verified_pii?
 

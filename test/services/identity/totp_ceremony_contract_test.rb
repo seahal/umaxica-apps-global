@@ -119,6 +119,74 @@ class IdentityTotpCeremonyContractTest < ActiveSupport::TestCase
     end
   end
 
+  test "TOTP candidate store persists fetches and consumes a one-shot candidate" do
+    travel_to @now do
+      candidate = IdentityTotpCeremonyCandidateStore.store!(
+        surface: "app",
+        actor_ref: "actor-1",
+        session_ref: "session-1",
+        private_key: "totp-private-key",
+        title: "Authenticator",
+        last_otp_at: @now.to_i,
+        expires_at: @now + 5.minutes,
+      )
+
+      fetched = IdentityTotpCeremonyCandidateStore.fetch!(candidate.ref)
+
+      assert_equal candidate.ref, fetched.ref
+      assert_equal candidate.digest, fetched.digest
+      assert_equal "totp-private-key", fetched.private_key
+      assert_equal "Authenticator", fetched.title
+      assert_equal @now.to_i, fetched.last_otp_at.to_i
+
+      consumed = IdentityTotpCeremonyCandidateStore.consume!(candidate.ref)
+
+      assert_equal candidate.ref, consumed.ref
+      assert_not_nil IdentityTotpCeremonyCandidate.find_by!(ref: candidate.ref).consumed_at
+      error =
+        assert_raises(IdentityTotpCeremonyContract::Error) do
+          IdentityTotpCeremonyCandidateStore.fetch!(candidate.ref)
+        end
+      assert_includes error.message, "candidate is not found"
+    end
+  end
+
+  test "TOTP candidate store rejects missing secrets and expires deleted candidates" do
+    travel_to @now do
+      missing_error =
+        assert_raises(IdentityTotpCeremonyContract::Error) do
+          IdentityTotpCeremonyCandidateStore.store!(
+            surface: "app", actor_ref: "actor-1", session_ref: "session-1", private_key: nil,
+            title: "Missing", last_otp_at: @now.to_i, expires_at: @now + 5.minutes,
+          )
+        end
+      assert_includes missing_error.message, "secret is required"
+
+      expired = IdentityTotpCeremonyCandidateStore.store!(
+        surface: "app", actor_ref: "actor-1", session_ref: "session-expired",
+        private_key: "expired-key", title: "Expired", last_otp_at: @now.to_i,
+        expires_at: @now - 1.second,
+      )
+      expired_error =
+        assert_raises(IdentityTotpCeremonyContract::Error) do
+          IdentityTotpCeremonyCandidateStore.fetch!(expired.ref)
+        end
+      assert_includes expired_error.message, "candidate is expired"
+
+      deleted = IdentityTotpCeremonyCandidateStore.store!(
+        surface: "app", actor_ref: "actor-1", session_ref: "session-deleted",
+        private_key: "deleted-key", title: "Deleted", last_otp_at: @now.to_i,
+        expires_at: @now + 5.minutes,
+      )
+      IdentityTotpCeremonyCandidateStore.delete(deleted.ref)
+      deleted_error =
+        assert_raises(IdentityTotpCeremonyContract::Error) do
+          IdentityTotpCeremonyCandidateStore.fetch!(deleted.ref)
+        end
+      assert_includes deleted_error.message, "candidate is not found"
+    end
+  end
+
   private
 
   def acme_issuer_id = IdentityTotpCeremonyContract.acme_issuer_id("app")

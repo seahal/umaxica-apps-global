@@ -211,12 +211,17 @@ OmniAuth.config.on_failure =
     message = env["omniauth.error.type"]&.to_s || "unknown_error"
     strategy = env["omniauth.error.strategy"]&.name || "unknown"
 
-    # Log the actual error for debugging (not exposed to user)
+    # Provider exception messages can contain response bodies or credentials;
+    # retain only allowlisted classification metadata.
     error = env["omniauth.error"]
     if error
       Rails.logger.error(
-        "[OmniAuth] Failure: strategy=#{strategy} type=#{message} " \
-        "error_class=#{error.class.name} error_message=#{error.message}",
+        JitLogEvent.format(
+          "social_auth.failure",
+          strategy: strategy,
+          type: message,
+          error_class: error.class.name,
+        ),
       )
     end
 

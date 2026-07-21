@@ -25,6 +25,33 @@ class WebauthnInvariantsTest < ActiveSupport::TestCase
                  "AAL2-aligned paths require userVerification=required; found weakened UV policy in:\n#{offenders.join("\n")}"
   end
 
+  test "user_verification strings appear only in the UvPolicy registry" do
+    offenders = []
+
+    each_source_file do |path, source|
+      next if path == "app/values/webauthn/uv_policy.rb"
+
+      source.each_line.with_index(1) do |line, number|
+        next unless line.match?(/user_verification.{0,20}["'](required|preferred|discouraged)["']/i)
+        next if line.strip.start_with?("#")
+
+        offenders << "#{path}:#{number}: #{line.strip}"
+      end
+    end
+
+    assert_empty offenders,
+                 "UV policy values must come from Webauthn::UvPolicy, never raw strings at call sites:\n#{offenders.join("\n")}"
+  end
+
+  test "assertion and registration verifiers resolve UV through UvPolicy" do
+    %w(app/services/webauthn/registration_verifier.rb app/services/webauthn/assertion_verifier.rb).each do |path|
+      source = Rails.root.join(path).read
+
+      assert_includes source, "UvPolicy.for(",
+                      "#{path} must resolve its user-verification requirement via Webauthn::UvPolicy"
+    end
+  end
+
   test "no request.host or request.base_url fallback in WebAuthn code" do
     offenders = scan(/request\.(host|base_url)/, only_webauthn_files: true)
 

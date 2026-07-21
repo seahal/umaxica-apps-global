@@ -55,7 +55,7 @@ module Auth
               end
 
               @passkey_challenge_id, @passkey_request_options =
-                issue_passkey_authentication_challenge(allow_credentials: passkeys, actor: @mfa_user)
+                issue_passkey_authentication_challenge(allow_credentials: passkeys, actor: @mfa_user, uv_purpose: :mfa_challenge)
             rescue Webauthn::RelyingPartyConfigResolver::MissingConfigurationError => e
               Rails.logger.error(JitLogEvent.format("webauthn.origin_validation_failed", message: e.message))
               redirect_to(
@@ -130,6 +130,7 @@ module Auth
                 config: webauthn_relying_party_config,
                 public_key: passkey.public_key,
                 sign_count: passkey.sign_count,
+                purpose: :mfa_challenge,
               )
               passkey.update!(sign_count: context.sign_count, last_used_at: Time.current)
 

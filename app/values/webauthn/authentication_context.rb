@@ -16,9 +16,10 @@ module Webauthn
       :backup_state,
       :aaguid,
       :transports,
+      :authenticator_attachment,
       :verified_at,
     ) do
-      def self.from_credential(credential, transports: nil, verified_at: Time.current)
+      def self.from_credential(credential, transports: nil, authenticator_attachment: nil, verified_at: Time.current)
         authenticator_data = credential.response.authenticator_data
 
         new(
@@ -30,6 +31,7 @@ module Webauthn
           backup_state: authenticator_data.credential_backed_up?,
           aaguid: extract_aaguid(authenticator_data),
           transports: transports,
+          authenticator_attachment: authenticator_attachment,
           verified_at: verified_at,
         )
       end

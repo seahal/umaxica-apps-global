@@ -30,7 +30,7 @@ class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
 
     OperatorPasskey.create!(
       staff: @staff,
-      name: "verify i18n passkey",
+      description: "verify i18n passkey",
       webauthn_id: "org-verify-i18n-#{SecureRandom.hex(4)}",
       external_id: SecureRandom.uuid,
       public_key: "public_key",

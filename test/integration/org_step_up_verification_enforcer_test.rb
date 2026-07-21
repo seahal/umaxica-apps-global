@@ -64,7 +64,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
-      name: "stepup passkey",
+      description: "stepup passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
@@ -83,7 +83,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
-      name: "stepup passkey",
+      description: "stepup passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
@@ -101,7 +101,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
-      name: "stepup passkey",
+      description: "stepup passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
