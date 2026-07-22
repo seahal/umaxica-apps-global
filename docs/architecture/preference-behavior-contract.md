@@ -225,11 +225,13 @@ side effect that necessarily comes after):
 
 1. Snapshot the current (about-to-be-abandoned) token-scoped preference's safe display values.
 2. Create a new guest preference row (fresh `jti`, fresh refresh token, default consent/adult-gate
-   state) via the existing `PreferenceRefreshTokenTransport#create_new_preference_record!`.
+   state) via `PreferenceRefreshTokenTransport#persist_new_preference_record!`, without issuing
+   response cookies or headers.
 3. Seed only the safe-copy allowlist onto the new row, marked non-explicit (browser continuity seed,
    not the new guest's own choice), and retire the old row server-side (`used_at`/`discarded_at` set
    to now).
-4. Issue the new access-token cookie.
+4. After the transaction commits, issue the new refresh cookie, any DBSC cookie and registration
+   header, and the new access-token cookie.
 
 ### Safe-copy allowlist
 

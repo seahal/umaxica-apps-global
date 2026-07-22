@@ -228,11 +228,13 @@ development:
     migrations_paths: db/caches_migrate
   queue:
     !!merge <<: *development_default
+    pool: 5
     database: development_queue_db
     host: <%= ENV["POSTGRESQL_QUEUE_PUB"] || default_host %>
     migrations_paths: db/queues_migrate
   queue_replica:
     !!merge <<: *development_default
+    pool: 5
     replica: true
     database: development_queue_db
     host: <%= ENV["POSTGRESQL_QUEUE_SUB"] || default_host %>

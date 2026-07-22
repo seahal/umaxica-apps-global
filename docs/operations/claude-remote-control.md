@@ -42,10 +42,11 @@ systemd unit in this document does not depend on the `tailscale-codex` service.
   exits and is not restarted, the session ends. This is the entire reason for the
   systemd unit in this gate.
 
-OAuth credential state persists across container recreation because `~/.claude` and
-`~/.claude.json` are already bind-mounted read-write from the host into `core` (see
-`.devcontainer/devcontainer.json`) — no additional credential wiring was added for
-this gate.
+OAuth credential state persists across container recreation because `~/.claude` is
+a writable persistent named volume (see `.devcontainer/devcontainer.json`). The
+host's Claude state directory is not mounted into `core`. The auxiliary
+`~/.claude.json` file is container-local and may be regenerated after recreation;
+it is not the persistent OAuth credential store.
 
 ## Architecture
 
@@ -155,5 +156,4 @@ single "does it come back" check, per the repository's engagement rules.
 - This gate does not change the Tailscale/Codex (WS3A) reboot-autostart gap, which
   remains open and undocumented-as-fixed unless separately scoped.
 - No secrets are stored in the unit file or helper script; authentication relies
-  entirely on the OAuth session already persisted via the existing bind-mounted
-  `~/.claude` / `~/.claude.json` paths.
+  entirely on the OAuth session persisted in the `~/.claude` named volume.

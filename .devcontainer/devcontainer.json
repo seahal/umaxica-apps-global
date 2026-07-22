@@ -1,11 +1,11 @@
 {
   "name": "umaxica-apps-global-dc",
-  "dockerComposeFile": ["../compose.yaml", "./compose.override.yml"],
+  "dockerComposeFile": ["../compose.yaml", "./compose.override.yml", "../compose.custom.yaml"],
   "service": "core",
   "remoteUser": "global",
   "containerUser": "global",
   "workspaceFolder": "/home/global/workspace",
-  "overrideCommand": true,
+  "overrideCommand": false,
   "forwardPorts": [3000, 3036, 5050],
   "remoteEnv": {
     "EDITOR": "code --wait --reuse-window",
@@ -99,23 +99,23 @@
   // Dev Container string-form `readonly` option is not effective with the
   // current rootless Podman provider, so it must not guard host credentials or
   // supply-chain paths. Host ~/.ssh is deliberately not mounted into core.
-  // Tool auth/state directories are mounted narrowly:
-  //   - ~/.claude.json  rw  (ClaudeCode rewrites this on every auth refresh)
-  //   - ~/.claude       rw  (project settings, CLAUDE.md, credentials sub-dir)
-  //   - ~/.codex        rw  (Codex auth and project state)
+  // Writable Claude and Codex auth/state use persistent named volumes. This
+  // keeps login refreshes working without allowing core to rewrite the host's
+  // ~/.claude or ~/.codex trees. Claude's home-level ~/.claude.json is not a
+  // host bind; it is container-local auxiliary state and may be regenerated
+  // when the container is recreated. Authentication persists in ~/.claude.
   // Heavy-write cache directories route through the umaxica-home-cache named
   // volume mounted at /home/global/.cache — they never churn host ownership.
   // Executable tool binaries come from devcontainer features or the image, not
   // host .local/bin, so host-only symlinks cannot shadow container installs.
   //
-  // Workspace write-guards are also declared in compose.override.yml. The
-  // pnpm-lock.yaml remains on the writable workspace mount because dependency
-  // updates replace it atomically; CI protects reproducibility with
-  // pnpm install --frozen-lockfile.
+  // Workspace write-guards are also declared in compose.override.yml.
+  // Dependency manifests and lockfiles inherit the writable workspace mount
+  // because Bundler and pnpm replace them during explicit update commands; CI
+  // protects reproducibility with frozen install modes.
   "mounts": [
-    "source=${localEnv:HOME}/.codex,target=/home/global/.codex,type=bind",
-    "source=${localEnv:HOME}/.claude,target=/home/global/.claude,type=bind",
-    "source=${localEnv:HOME}/.claude.json,target=/home/global/.claude.json,type=bind",
+    "source=global-codex,target=/home/global/.codex,type=volume",
+    "source=global-claude,target=/home/global/.claude,type=volume",
     "source=${localWorkspaceFolder}/.devcontainer/dotfiles/bashrc,target=/home/global/.bashrc,type=bind",
     "source=${localWorkspaceFolder}/.devcontainer/dotfiles/irbrc,target=/home/global/.irbrc,type=bind"
   ]

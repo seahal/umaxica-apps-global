@@ -79,7 +79,7 @@ class PreferenceSignOutRotationContractTest < ActiveSupport::TestCase
     test "#{surface}: auth logout completes even when the optional guest bootstrap fails entirely" do
       old_pref = PreferenceLifecycleSurfaces.new_token_preference(surface)
       ctx = build_rotation_context(surface, old_pref)
-      ctx.define_singleton_method(:create_new_preference_record!) { |**_kwargs| raise StandardError, "guest bootstrap boom" }
+      ctx.define_singleton_method(:persist_new_preference_record!) { |**_kwargs| raise StandardError, "guest bootstrap boom" }
 
       # rotate_preference_after_sign_out! itself must never raise -- this is
       # the exact call site AuthenticationLogoutable#logout_current_session!
@@ -105,10 +105,11 @@ class PreferenceSignOutRotationContractTest < ActiveSupport::TestCase
       end
     ctx.define_singleton_method(:preference_connection_class) { |_record| owner_class }
     ctx.define_singleton_method(:issue_access_token_from) { |_pref| nil }
-    ctx.define_singleton_method(:create_new_preference_record!) do |params_hash: nil|
+    ctx.define_singleton_method(:persist_new_preference_record!) do |params_hash: nil|
       _ = params_hash
       PreferenceLifecycleSurfaces.new_token_preference(surface, with_default_children: true)
     end
+    ctx.define_singleton_method(:issue_new_preference_transport!) { |_pref| nil }
     ctx
   end
 end

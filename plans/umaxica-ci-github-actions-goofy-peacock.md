@@ -178,6 +178,41 @@ OperatorVisibility::USER`を追加する。CI設定(secrets/認証情報)側の�
 り、ローカルの`config/master.key`や実データは使っていない設計で問題ない。追加のCI専用credentials発
 行作業は不要。
 
+## 実CI再チェック結果(2026-07-21、run 29817342379)
+
+ユーザー依頼により、coverageジョブを除外して`Rails Tests`と`Ruby Linting`の失敗が設定ミスかどうかを
+`gh run view --log-failed`で再調査した。
+
+**`Rails Tests`失敗 — 設定ミス(CI側のバグ)と確認**:
+```
+app/controllers/base/app/application_controller.rb:93:in 'fetch': key not found: "PUBLIC_BASE_SERVICE_URL" (KeyError)
+```
+アプリのコントローラ群(`app/controllers/**/application_controller.rb`ほか多数)は
+`PUBLIC_BASE_SERVICE_URL` / `PUBLIC_BASE_CORPORATE_URL` / `PUBLIC_BASE_STAFF_URL` /
+`PUBLIC_CORE_SERVICE_URL` / `PUBLIC_CORE_CORPORATE_URL` / `PUBLIC_CORE_STAFF_URL` /
+`PUBLIC_SIDE_SERVICE_URL` / `PUBLIC_SIDE_CORPORATE_URL` / `PUBLIC_SIDE_STAFF_URL` /
+`PUBLIC_PALM_SERVICE_URL` / `PUBLIC_AUTH_SERVICE_URL` / `PUBLIC_AUTH_CORPORATE_URL` /
+`PUBLIC_AUTH_STAFF_URL`(ENV.fetch必須)に依存しているが、`ci.yml`の`test-rails`/`coverage`
+ジョブの`env:`にはこれらが1つも設定されていない。ローカルdevcontainerでは`PUBLIC_*`系が
+devcontainer環境変数として既に約24個定義されており(`env | grep '^PUBLIC_'`で確認済み)、
+`test/test_helper.rb`は`PUBLIC_AUTH_*`3つだけをテスト用に上書きするに留まる(それ以外は
+devcontainer側の値に依存)。つまりローカルでは気づかれず、CIのまっさらな環境で初めて欠落が
+表面化した。→ `ci.yml`の`test-rails`/`coverage`ジョブの`env:`に上記`PUBLIC_*`変数を追加する
+必要がある(値はテスト用ダミーホスト名でよい。他のドメインURL変数と同じ命名パターンに揃える)。
+
+**`Ruby Linting`失敗 — 設定ミスではなく既知の残存offenseと確認**:
+```
+##[error]ThreadSafety/ClassAndModuleAttributes: Avoid mutating class and module attributes.
+```
+これは前回「rubocopは今の段階で止めてくれていい」と合意した残り23件のoffenseのうちの1つ
+(`--fail-fast`のため最初に踏んだファイルで停止しているだけ)。CI設定側の問題ではない。
+
+**`lint-js`(vitest)の分割について確認**: 依頼のあった分割は「別ジョブに分ける」ではなく
+「`pnpm -s run ci`という1コマンドをジョブ内の4ステップ(format:check/lint/typecheck/
+test:coverage)に分割する」だった。現在の`ci.yml`(422〜446行目)は既にこの4ステップ構成に
+なっており、対応済み。今回のrunでも`JavaScript Checks (oxlint, oxfmt, typecheck, vitest)`
+ジョブはsuccess。
+
 ## db/seeds.rb 修正(ユーザー承認済み)
 
 `db/seeds.rb`のOperator(staff)生成部分(36〜38行目)に、Client側(17〜22行目)と対称になるよう

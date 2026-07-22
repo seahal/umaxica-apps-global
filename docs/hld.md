@@ -315,5 +315,7 @@ Sensitive columns leverage Active Record encryption.
 ## 11. Appendices
 
 - Sequence diagrams and state flows live in `docs/uml/` (to be updated alongside DDS).
-- Environment variable catalog referenced in `.env.example` (future addition).
+- Environment variable catalog: RustFS/object-storage variables are documented inline as
+  comments in the ignored `.env` file (see `docs/operations/local-object-storage-rustfs.md`);
+  there is no committed `.env.example` template.
 - Testing strategy captured in `docs/test.md`.

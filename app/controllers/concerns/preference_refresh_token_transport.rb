@@ -111,6 +111,12 @@ module PreferenceRefreshTokenTransport
   end
 
   def create_new_preference_record!(params_hash: nil)
+    preference = persist_new_preference_record!(params_hash: params_hash)
+    issue_new_preference_transport!(preference)
+    preference
+  end
+
+  def persist_new_preference_record!(params_hash: nil)
     expires_at = refresh_token_expiry
     generated_token = nil
 
@@ -150,15 +156,21 @@ module PreferenceRefreshTokenTransport
 
     defined?(Prosopite) ? Prosopite.pause(&preference_creation) : preference_creation.call
 
-    @refresh_token_value = generated_token
-    set_refresh_token_cookie(generated_token, expires_at)
-    set_preference_dbsc_cookie!(
-      @preferences.dbsc_session_id,
-      expires_at: preference_dbsc_cookie_expires_at(@preferences),
-    ) if @preferences.binding_method_dbsc?
-    issue_preference_dbsc_registration_header_for(@preferences)
-
+    @preferences.issued_refresh_token = generated_token
     @preferences
+  end
+
+  def issue_new_preference_transport!(preference)
+    generated_token = preference.issued_refresh_token
+    raise PreferenceBase::ResolutionError, "new preference refresh token is missing" if generated_token.blank?
+
+    @refresh_token_value = generated_token
+    set_refresh_token_cookie(generated_token, preference.expires_at)
+    set_preference_dbsc_cookie!(
+      preference.dbsc_session_id,
+      expires_at: preference_dbsc_cookie_expires_at(preference),
+    ) if preference.binding_method_dbsc?
+    issue_preference_dbsc_registration_header_for(preference)
   end
 
   def preference_creation_context_params(params_hash)

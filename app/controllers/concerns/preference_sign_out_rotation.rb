@@ -17,7 +17,7 @@
 #      (about-to-be-abandoned) token-scoped preference row,
 #   2. creates a brand-new guest preference row (fresh jti, fresh refresh
 #      token, default consent/adult-gate state) via the existing
-#      PreferenceRefreshTokenTransport#create_new_preference_record!,
+#      PreferenceRefreshTokenTransport#persist_new_preference_record!,
 #   3. seeds only the safe keys onto the new row *without* marking them
 #      explicit -- they are browser-continuity seed values, not the new
 #      guest's own explicit choice (target semantics section 6.1/section 6.4),
@@ -35,16 +35,10 @@
 # and know the old preference_access/preference_refresh/preference_dbsc
 # credential family may still be valid.
 #
-# Staging is intentionally sequential rather than one large transaction:
-# `create_new_preference_record!` already opens and commits its own
-# writing-role transaction (see PreferenceRefreshTokenTransport), and
-# wrapping unrelated multi-database preference writes in a further outer
-# transaction here would extend lock hold time across a JWT/cookie-issuing
-# step for no correctness gain (the three DB writes -- new row create, safe
-# seed, old row retire -- are all on the *same* connection/class, so
-# wrapping only those in one transaction, done below, is safe; issuing
-# cookies is a non-transactional side effect that must come after the DB
-# state is durable, not before).
+# The three DB writes -- new row create, safe seed, and old row retirement --
+# use one connection and one transaction. Refresh, DBSC, and access transport
+# issuance is deliberately separate because response side effects cannot be
+# rolled back with the database transaction.
 module PreferenceSignOutRotation
   extend ActiveSupport::Concern
 
@@ -60,7 +54,8 @@ module PreferenceSignOutRotation
 
   def rotate_preference_after_sign_out!
     return unless respond_to?(:preference_class, true)
-    return unless respond_to?(:create_new_preference_record!, true)
+    return unless respond_to?(:persist_new_preference_record!, true)
+    return unless respond_to?(:issue_new_preference_transport!, true)
     return if @preferences.blank?
 
     old_preference = @preferences
@@ -68,6 +63,7 @@ module PreferenceSignOutRotation
     return if new_preference.blank?
 
     @preferences = new_preference
+    issue_new_preference_transport!(new_preference)
     issue_access_token_from(new_preference) if respond_to?(:issue_access_token_from, true)
   rescue StandardError => e
     log_preference_sign_out_event!(
@@ -93,7 +89,7 @@ module PreferenceSignOutRotation
 
     rotation =
       proc do
-        new_preference = create_new_preference_record!(params_hash: {})
+        new_preference = persist_new_preference_record!(params_hash: {})
         stage = :safe_value_seed
         seed_guest_preference_from_sign_out!(new_preference, old_preference)
         stage = :old_credential_retirement
@@ -108,6 +104,7 @@ module PreferenceSignOutRotation
 
     new_preference
   rescue StandardError => e
+    @preferences = old_preference
     # Whatever stage failed, the transaction above rolled the whole rotation
     # back -- there is no partially-applied DB state to worry about, but the
     # old credential is, as a direct consequence, still exactly as valid as

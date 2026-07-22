@@ -33,7 +33,16 @@ readonly ORIGIN_HOSTS=(
   palm.app.localhost
 )
 
-cloudflared_container="$(podman compose ps -q cloudflare-tunnel)"
+# cloudflare-tunnel is defined only in compose.custom.yaml (see
+# docs/operations/cloudflare-private-origin.md); it does not exist in
+# compose.yaml alone.
+cloudflared_container="$(
+  podman compose \
+    -f compose.yaml \
+    -f .devcontainer/compose.override.yml \
+    -f compose.custom.yaml \
+    ps -q cloudflare-tunnel
+)"
 if [[ -z "${cloudflared_container}" ]]; then
   echo "cloudflare-tunnel is not running; start the compose service before probing" >&2
   exit 1

@@ -526,62 +526,6 @@ services:
     networks:
       - observability
     restart: "no"
-  pgadmin:
-    image: dpage/pgadmin4
-    # `user: root` lets the entrypoint chmod the bind-mounted pgpass to 0600
-    # before pgAdmin de-escalates to the pgadmin user. Under rootless podman
-    # "root" inside the container is the host user via userns mapping (not
-    # real root), but the chmod still succeeds on the bind-mounted file
-    # because the host user already owns it.
-    user: root
-    entrypoint:
-      - "/bin/sh"
-      - "-c"
-      - "chmod 600 /pgpass && /entrypoint.sh"
-    # Host port publishing lives in the devcontainer override.
-    environment:
-      PGADMIN_DEFAULT_EMAIL: root@example.com
-      PGADMIN_DEFAULT_PASSWORD: password
-      # Auto-import the pub/sub server definitions on first launch.
-      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
-    volumes:
-      - "./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro,z"
-      - "./docker/pgadmin/pgpass:/pgpass:z"
-    networks:
-      - backend
-    depends_on:
-      primary:
-        condition: service_healthy
-      replica:
-        condition: service_started
-  tinyrdm:
-    image: ghcr.io/tiny-craft/tiny-rdm:latest
-    # Host port publishing lives in the devcontainer override.
-    environment:
-      ADMIN_USERNAME: admin
-      ADMIN_PASSWORD: change-me
-    volumes:
-      - tinyrdm-volume:/app/tinyrdm
-    networks:
-      - backend
-    depends_on:
-      valkey:
-        condition: service_healthy
-    restart: unless-stopped
-  cloudflare-tunnel:
-    # Workers VPC requires cloudflared 2025.7.0 or newer.
-    image: cloudflare/cloudflared:2025.7.0
-    depends_on:
-      - core
-    # Workers VPC DNS routing requires QUIC and outbound UDP 7844.
-    command: tunnel --protocol quic run
-    environment:
-      TUNNEL_TOKEN: "${CLOUDFLARED_TOKEN}"
-    networks:
-      - frontend
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    restart: unless-stopped
 networks:
   backend: {}
   frontend: {}
@@ -589,18 +533,20 @@ networks:
   outer:
     name: "${OUTER_DOCKER_NETWORK:-umaxica-apps-global_outer}"
     external: "${OUTER_DOCKER_NETWORK_EXTERNAL:-false}"
-  # NOTE: the `remote-access` network and the `tailscale-codex` service live
-  # entirely in .devcontainer/compose.override.yml — Remote Codex over
-  # Tailscale is a devcontainer-only feature and must not be created, started,
-  # or pulled when this base compose.yaml is used standalone. See
-  # docs/operations/remote-codex-over-tailscale.md.
+  # NOTE: `remote-access`, `tailscale-codex`, and `cloudflare-tunnel` live
+  # entirely in compose.custom.yaml (repo root) -- an always-on, unprofiled
+  # overlay that is included unconditionally via
+  # .devcontainer/devcontainer.json's dockerComposeFile array. This base
+  # compose.yaml alone must never create, start, or pull them. Likewise
+  # `pgadmin`/`tinyrdm` (admin GUIs) are defined entirely in
+  # compose.custom.yaml, not here. See docs/operations/remote-codex-over-tailscale.md
+  # and docs/operations/cloudflare-private-origin.md.
 volumes:
   valkey-volume: {}
   loki-volume: {}
   tempo-volume: {}
   grafana-volume: {}
   prometheus-volume: {}
-  tinyrdm-volume: {}
   umaxica-home-cache: {}
   umaxica-home-share: {}
   umaxica-node-modules: {}

@@ -17,15 +17,20 @@ class PublishingPublishedEntriesQuery < ApplicationService
     edition.entries
       .joins(:publications)
       .merge(Publishing::Publication.active)
+      .preload(:canonical_slug, active_publication: :entry_version)
+      .strict_loading
       .order(Arel.sql("publishing_publications.effective_from DESC"), "publishing_entries.id DESC")
   end
 
   def find_by(slug:)
     return unless edition
 
-    entry = edition.entry_slugs.canonical.includes(:entry).find_by(slug:)&.entry
+    entry =
+      edition.entry_slugs.canonical
+        .includes(entry: [:canonical_slug, { active_publication: :entry_version }])
+        .find_by(slug:)&.entry
     return unless entry
-    return unless entry.publications.merge(Publishing::Publication.active).exists?
+    return unless entry.active_publication
 
     entry
   end

@@ -22,8 +22,9 @@ layout.
 
 ## Configure
 
-Copy the development examples from `.env.example` into the ignored `.env` file. Replace both
-secret examples and keep `RUSTFS_RPC_SECRET` different from
+Add `OBJECT_STORAGE_BUCKET`, `OBJECT_STORAGE_ACCESS_KEY_ID`, `OBJECT_STORAGE_SECRET_ACCESS_KEY`,
+`RUSTFS_RPC_SECRET`, `RUSTFS_API_HOST_PORT`, and `RUSTFS_CONSOLE_HOST_PORT` directly to the
+ignored `.env` file; there is no committed template. Keep `RUSTFS_RPC_SECRET` different from
 `OBJECT_STORAGE_SECRET_ACCESS_KEY`. These values are only for local development; production must
 use its platform credential provider and must not set a RustFS endpoint override.
 

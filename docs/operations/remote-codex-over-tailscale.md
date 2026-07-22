@@ -1,5 +1,10 @@
 # Remote Codex over Tailscale
 
+> The existing sidecar and OpenSSH route remains the supported compatibility
+> path. The separate in-core Tailscale SSH userspace proof of concept is
+> documented in [Core Tailscale SSH Userspace PoC](core-tailscale-ssh-userspace-poc.md)
+> and must not replace this route until its external and rebuild gates pass.
+
 This runbook connects the macOS Codex App to the `core` Rails development
 container without installing OpenSSH, Tailscale, or Codex on the Linux host.
 It does not publish SSH on the host and does not mount a Podman or Docker
@@ -27,8 +32,8 @@ Tailscale SSH is not enabled. The setup does not attach to an existing Codex
 CLI TUI. The Codex App starts and manages a remote Codex App Server through
 the SSH connection.
 
-The remote components are declared only in
-`.devcontainer/compose.override.yml`. Base `compose.yaml` does not declare the
+The remote components are declared only in `compose.custom.yaml`. Base
+`compose.yaml` and `.devcontainer/compose.override.yml` do not declare the
 sidecar, `remote-access` network, or remote state volumes. Only the Dockerfile
 development target installs `openssh-server`; production targets do not
 inherit the development target.
@@ -45,12 +50,17 @@ inherit the development target.
 - The Mac private key remains on the Mac. The Linux host file
   `agent-authorized-keys` contains public keys only.
 - The Linux host's `~/.ssh` directory is not mounted into `core`.
-- General host configuration and guarded workspace paths use Compose
-  long-syntax read-only bind mounts. Gate C must verify that the selected
-  Podman Compose provider preserves the effective read-only flags.
-- `~/.codex`, `~/.claude`, and `~/.claude.json` remain writable host bind
-  mounts because those tools update authentication and state. A compromised
-  `core` process can read or modify those files and the writable workspace.
+- General host configuration and guarded workspace control directories use
+  Compose long-syntax read-only bind mounts. Gate C must verify that the
+  selected Podman Compose provider preserves the effective read-only flags.
+- `~/.codex` and `~/.claude` are writable persistent named volumes because the
+  tools update authentication and state. A compromised `core` process can read
+  or modify their credentials and the writable workspace, but cannot directly
+  rewrite the host's corresponding tool-state directories. Named volumes
+  reduce host mutation; they do not prevent credential theft from `core`.
+- `~/.claude.json` is not mounted from the host. It is auxiliary state in the
+  container writable layer and can be regenerated after container recreation;
+  Claude authentication persists in the `~/.claude` named volume.
 - A compromised sidecar can connect to any listener in `core` on the shared
   `remote-access` bridge, including Rails or Vite when they listen on all
   interfaces. The bridge does not provide per-port filtering. The sidecar is
@@ -69,46 +79,65 @@ Repository files:
 
 | Path | Purpose |
 |---|---|
-| `.devcontainer/compose.override.yml` | Dev-only SSH mounts, `remote-access`, named volumes, and the profile-gated sidecar |
-| `.devcontainer/devcontainer.json` | Dev Container Features and intentionally writable tool state mounts |
+| `compose.custom.yaml` | Always-on overlay (no profile): `remote-access`, named volumes, `tailscale-codex`, and `cloudflare-tunnel` |
+| `.devcontainer/compose.override.yml` | Dev-only SSH mounts and `core`'s `REMOTE_SSHD=1` wiring |
+| `.devcontainer/devcontainer.json` | Dev Container Features, persistent Claude/Codex state volumes, and the `dockerComposeFile` array (includes `compose.custom.yaml` unconditionally) |
 | `Dockerfile` | OpenSSH package and mount-point directories in the development target only |
 | `docker/core/entrypoint.sh` | Fail-fast SSH prerequisites, persistent host-key creation, validation, and startup |
 | `docker/core/sshd_config` | Complete custom OpenSSH server policy |
-| `docker/tailscale/serve/serve.json` | Tailnet TCP 22 to `core:22` forwarding spike |
+| `docker/tailscale/serve/serve.json` | Tailnet SSH (`core:22`) and HTTPS (`core:3000`) Serve routes |
+| `.env` (gitignored, see `.env.example`) | `TS_AUTHKEY` and `CLOUDFLARED_TOKEN`, loaded by Compose's built-in `.env` interpolation |
 
-Operator-managed Linux host files:
+Operator-managed Linux host file:
 
 ```text
-~/.config/umaxica/tailscale.env
 ~/.config/umaxica/agent-authorized-keys
 ```
 
-The first file temporarily contains `TS_AUTHKEY` and must be mode 0600. The
-second contains only Mac public keys, but is also mode 0600 to satisfy a
-conservative OpenSSH policy. These paths are outside the repository, so this
-repository's `.gitignore` does not and cannot protect them.
+Contains only Mac public keys, mode 0600 to satisfy a conservative OpenSSH
+policy. This path is outside the repository, so this repository's
+`.gitignore` does not and cannot protect it. `TS_AUTHKEY` previously lived in
+a second external file (`~/.config/umaxica/tailscale.env`); it now lives in
+the project's own gitignored `.env` instead (see `.env.example`), loaded via
+`compose.custom.yaml`'s `TS_AUTHKEY: "${TS_AUTHKEY:?...}"` interpolation —
+the same mechanism `cloudflare-tunnel`'s `TUNNEL_TOKEN` already used.
 
 Persistent Podman volumes:
 
 ```text
+global-claude
+global-codex
 tailscale-codex-state
 remote-sshd
 ```
 
-Compose scopes the actual volume names by project. Discover their final names
-with `podman volume ls`; do not assume the unscoped names when removing them.
+The Dev Container CLI creates `global-claude` and `global-codex`; Compose scopes
+the remote-access volume names by project. Discover actual names with
+`podman volume ls` before inspecting or removing them.
 
 ## Enablement model
 
-The Dev Container override sets `REMOTE_SSHD=1`, mounts the authorized keys
-and SSH configuration, and attaches `core` to `remote-access`. Therefore the
-external authorized-keys file must exist before every Dev Container rebuild.
+The Dev Container override sets `REMOTE_SSHD=1` and mounts the authorized
+keys and SSH configuration on `core`. Therefore the external
+authorized-keys file must exist before every Dev Container rebuild.
+`compose.custom.yaml` attaches `core` to `remote-access` and defines
+`tailscale-codex` itself.
 
-The `tailscale-codex` service has the `remote` profile and does not start with
-an ordinary Dev Container launch. With no sidecar attached, there is no
-tailnet ingress path to the internal SSH listener. Enabling the `remote`
-profile starts only the sidecar; disabling or stopping that service removes
-tailnet ingress without recreating `core`.
+`tailscale-codex` carries **no Compose profile** — `compose.custom.yaml`'s
+mere presence in the merge (unconditional via `devcontainer.json`'s
+`dockerComposeFile` array, or an explicit `-f compose.custom.yaml` on the CLI)
+is the opt-in. This means an ordinary `devcontainer up` starts the sidecar
+automatically and, if `.env` has a valid `TS_AUTHKEY`, attempts tailnet
+registration on every launch — there is no separate flag to prevent this.
+`TS_AUTHKEY` is deliberately **not** required at the Compose level
+(`${TS_AUTHKEY:-}`, defaults to empty): a blank value is the expected
+steady state after the one-time bootstrap key is revoked (see "Auth-key
+removal" below), and the sidecar keeps running against its already-registered
+state-volume identity without erroring. Verify actual registration status
+with `tailscale status`, not by relying on a startup error. To disable
+ingress without removing the file, stop or remove the `tailscale-codex`
+service (see Rollback) or omit `compose.custom.yaml` from a manual,
+non-devcontainer `podman compose` invocation.
 
 ## Prerequisites
 
@@ -158,7 +187,7 @@ pre-authorized auth key tagged with `tag:umaxica-core`. Verify that the tag
 owner permits the key to assign that tag.
 
 An auth key is a bootstrap credential, not the node's persistent identity.
-After registration, revoke the key, remove it from the env file, recreate the
+After registration, revoke the key, blank `TS_AUTHKEY` in `.env`, recreate the
 sidecar to remove it from container inspect data, and retain the state volume.
 
 ## Mac SSH key
@@ -178,34 +207,35 @@ container.
 
 ## Linux host files
 
-Create the external directory and files on the Linux host:
+Create the external authorized-keys file on the Linux host:
 
 ```sh
 install -d -m 0700 "$HOME/.config/umaxica"
-install -m 0600 /dev/null "$HOME/.config/umaxica/tailscale.env"
 install -m 0600 /dev/null "$HOME/.config/umaxica/agent-authorized-keys"
 ```
 
-Open `tailscale.env` in an editor and add the bootstrap key:
+Put the Mac public key line in `agent-authorized-keys`, then verify metadata
+without printing it:
+
+```sh
+chmod 0600 "$HOME/.config/umaxica/agent-authorized-keys"
+test -s "$HOME/.config/umaxica/agent-authorized-keys"
+stat -c '%n %U:%G %a' "$HOME/.config/umaxica/agent-authorized-keys"
+```
+
+Add the bootstrap key to the repository's own `.env` (copy from
+`.env.example` if `.env` does not exist yet; `.env` is gitignored):
 
 ```text
 TS_AUTHKEY=<one-time-pre-authorized-tagged-key>
 ```
 
-Do not put the key directly in a shell command, shell history, Compose YAML,
-or repository file. Put the Mac public key line in
-`agent-authorized-keys`, then verify metadata without printing either file:
+Do not put the key directly in a shell command, shell history, or Compose
+YAML. Verify without printing the value:
 
 ```sh
-chmod 0600 \
-  "$HOME/.config/umaxica/tailscale.env" \
-  "$HOME/.config/umaxica/agent-authorized-keys"
-
-test -s "$HOME/.config/umaxica/tailscale.env"
-test -s "$HOME/.config/umaxica/agent-authorized-keys"
-stat -c '%n %U:%G %a' \
-  "$HOME/.config/umaxica/tailscale.env" \
-  "$HOME/.config/umaxica/agent-authorized-keys"
+test -f .env
+grep -q '^TS_AUTHKEY=.' .env
 ```
 
 ## Build and start
@@ -219,26 +249,38 @@ For VS Code, run **Dev Containers: Rebuild Container**. Confirm that the
 rebuilt container is named `global-devcontainer-core` before continuing.
 
 From a Linux host terminal in the repository root, identify the provider and
-validate both the default and remote-profile models:
+validate both the base and `compose.custom.yaml`-merged models:
 
 ```sh
 podman compose version
 podman info --format '{{.Host.OCIRuntime.Name}}'
 printf 'PODMAN_COMPOSE_PROVIDER=%s\n' "${PODMAN_COMPOSE_PROVIDER:-<unset>}"
 
-remote_compose=(
+base_compose=(
   podman compose
   -f compose.yaml
   -f .devcontainer/compose.override.yml
 )
+remote_compose=(
+  podman compose
+  -f compose.yaml
+  -f .devcontainer/compose.override.yml
+  -f compose.custom.yaml
+)
 
+"${base_compose[@]}" config
 "${remote_compose[@]}" config
-"${remote_compose[@]}" --profile remote config
 
 if podman compose -f compose.yaml config --services |
   grep -Fxq tailscale-codex
 then
   echo "ERROR: tailscale-codex entered base Compose" >&2
+  exit 1
+fi
+
+if ! "${remote_compose[@]}" config --services | grep -Fxq tailscale-codex
+then
+  echo "ERROR: tailscale-codex did not enter the merged (custom-file) Compose" >&2
   exit 1
 fi
 ```
@@ -260,10 +302,10 @@ Start only the sidecar. `--no-deps` prevents Compose from recreating the
 Dev-Container-Feature-built `core` service:
 
 ```sh
-"${remote_compose[@]}" --profile remote \
+"${remote_compose[@]}" \
   up -d --no-deps tailscale-codex
 
-"${remote_compose[@]}" --profile remote ps
+"${remote_compose[@]}" ps
 ```
 
 ## Gate C: Linux host verification
@@ -285,7 +327,7 @@ podman exec global-devcontainer-core \
   sh -lc 'command -v sshd && command -v codex && codex --version'
 
 podman inspect global-devcontainer-core \
-  --format '{{range .Mounts}}{{println .Destination .RW}}{{end}}'
+  --format '{{range .Mounts}}{{println .Type .Destination .RW .Name}}{{end}}'
 
 podman exec global-devcontainer-core \
   sh -c '
@@ -296,16 +338,22 @@ podman exec global-devcontainer-core \
     test ! -w /home/global/.config/opencode &&
     test ! -w /home/global/workspace/.github &&
     test ! -w /home/global/workspace/bin &&
-    test ! -w /home/global/workspace/Gemfile &&
-    test ! -w /home/global/workspace/Gemfile.lock &&
-    test ! -w /home/global/workspace/package.json &&
-    test ! -w /home/global/workspace/.devcontainer
+    test ! -w /home/global/workspace/.devcontainer &&
+    test -w /home/global/.claude &&
+    test -w /home/global/.codex &&
+    test -w /home/global/workspace/Gemfile &&
+    test -w /home/global/workspace/Gemfile.lock &&
+    test -w /home/global/workspace/package.json &&
+    test -w /home/global/workspace/pnpm-lock.yaml
   '
 ```
 
-The workspace and `~/.codex` are intentionally writable. The listed guarded
-paths must not be writable. If `/home/global/.ssh` is present as a host bind
-mount or any guarded path is writable, do not enable the sidecar.
+The dependency files and the Claude/Codex named volumes are intentionally
+writable. The three listed workspace control directories and host configuration
+paths must not be writable. Inspect output must show `volume` for
+`/home/global/.claude` and `/home/global/.codex`, and no host bind for
+`/home/global/.claude.json`. If `/home/global/.ssh` is present as a host bind or
+any guarded path is writable, do not enable the sidecar.
 
 ### SSH server state
 
@@ -333,7 +381,7 @@ Resolve the sidecar name without assuming a generated container name:
 
 ```sh
 tailscale_container="$(
-  "${remote_compose[@]}" --profile remote ps -q tailscale-codex
+  "${remote_compose[@]}" ps -q tailscale-codex
 )"
 test -n "$tailscale_container"
 ```
@@ -396,21 +444,23 @@ After the node appears in the Tailscale admin console:
 
 1. Record the node ID and DNS name.
 2. Revoke the bootstrap auth key in the admin console.
-3. Empty the host env file without deleting it.
+3. Blank `TS_AUTHKEY` in `.env` without deleting the line (leaves the
+   `:?`-guarded interpolation in `compose.custom.yaml` failing loudly on the
+   next `up` until a fresh key is added, rather than silently reusing a
+   revoked one).
 4. Recreate only the sidecar.
 
 ```sh
 podman exec "$tailscale_container" tailscale status --json |
   jq -r '.Self.ID, .Self.DNSName'
 
-: > "$HOME/.config/umaxica/tailscale.env"
-chmod 0600 "$HOME/.config/umaxica/tailscale.env"
+sed -i 's/^TS_AUTHKEY=.*/TS_AUTHKEY=/' .env
 
-"${remote_compose[@]}" --profile remote \
+"${remote_compose[@]}" \
   up -d --no-deps --force-recreate tailscale-codex
 
 tailscale_container="$(
-  "${remote_compose[@]}" --profile remote ps -q tailscale-codex
+  "${remote_compose[@]}" ps -q tailscale-codex
 )"
 
 podman inspect "$tailscale_container" |
@@ -563,9 +613,10 @@ narrowest allowlisted relaxation. Do not enable unrestricted forwarding.
   file; do not disable `StrictModes` or relax the entrypoint checks.
 - **`sshd -t` fails:** inspect only the configuration error. Do not replace the
   custom configuration with distribution defaults.
-- **Sidecar restart-loops before registration:** confirm the env file contains
-  a valid, unexpired key and the tag owner permits `tag:umaxica-core`. Do not
-  paste the key or unredacted inspect output into an issue.
+- **Sidecar restart-loops before registration:** confirm `.env`'s
+  `TS_AUTHKEY` is a valid, unexpired key and the tag owner permits
+  `tag:umaxica-core`. Do not paste the key or unredacted inspect output into
+  an issue.
 - **Sidecar restart-loops after key removal:** stop and preserve the state
   volume; do not issue another key until state persistence is diagnosed.
 - **MagicDNS fails:** use `tailscale ip -4` as the SSH `HostName` fallback.
@@ -581,7 +632,7 @@ narrowest allowlisted relaxation. Do not enable unrestricted forwarding.
 1. Disable ingress without touching `core`:
 
    ```sh
-   "${remote_compose[@]}" --profile remote stop tailscale-codex
+   "${remote_compose[@]}" stop tailscale-codex
    ```
 
 2. Remove the SSH connection entry and dedicated key from the Mac when they
@@ -589,7 +640,8 @@ narrowest allowlisted relaxation. Do not enable unrestricted forwarding.
 3. Remove the Tailscale machine from the admin console.
 4. Revert only the Remote Codex repository changes and rebuild with Dev
    Containers.
-5. Remove the external Linux files when they are no longer required.
+5. Remove `~/.config/umaxica/agent-authorized-keys` and blank `TS_AUTHKEY` in
+   `.env` when they are no longer required.
 
 Deleting the Tailscale state or SSH host-key volume destroys persistent
 identity and invalidates the Mac's recorded SSH host key. Only after explicit

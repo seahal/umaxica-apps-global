@@ -84,7 +84,7 @@ module PreferenceLifecycleSurfaces
     pref
   end
 
-  # Mirrors what the real PreferenceRefreshTokenTransport#create_new_preference_record!
+  # Mirrors what the real PreferenceRefreshTokenTransport#persist_new_preference_record!
   # does (create every CHILD_RECORD_TYPES default), scoped to the two types
   # the shared contract tests actually assert on.
   def create_default_children!(preference)

@@ -79,51 +79,11 @@ services:
         bind:
           selinux: Z
       - type: bind
-        source: "./Gemfile"
-        target: "/home/global/workspace/Gemfile"
-        read_only: true
-        bind:
-          selinux: Z
-      - type: bind
-        source: "./Gemfile.lock"
-        target: "/home/global/workspace/Gemfile.lock"
-        read_only: true
-        bind:
-          selinux: Z
-      - type: bind
-        source: "./package.json"
-        target: "/home/global/workspace/package.json"
-        read_only: true
-        bind:
-          selinux: Z
-      - type: bind
         source: "./.devcontainer"
         target: "/home/global/workspace/.devcontainer"
         read_only: true
         bind:
           selinux: Z
-      # --- Remote SSH for the Mac Codex App (devcontainer-only; see
-      # docs/operations/remote-codex-over-tailscale.md). No host port is
-      # published for sshd: it is reachable only from the remote-access
-      # network (tailscale-codex sidecar). ---
-      # Persistent SSH host key location used by docker/core/entrypoint.sh.
-      - type: volume
-        source: remote-sshd
-        target: "/var/lib/remote-sshd"
-      # Authorized keys are host-managed and never enter the repo. The file
-      # must exist on the host before `compose up` (operator-created).
-      - type: bind
-        source: "${HOME:?HOME must be set}/.config/umaxica/agent-authorized-keys"
-        target: "/etc/ssh/authorized_keys.d/global"
-        read_only: true
-        bind:
-          selinux: z
-      - type: bind
-        source: "./docker/core/sshd_config"
-        target: "/etc/umaxica/sshd_config"
-        read_only: true
-        bind:
-          selinux: z
     ports:
       - "3000:3000"
       - "3036:3036"
@@ -135,12 +95,9 @@ services:
       - RUBY_DEBUG_OPEN=false
       - VITE_RUBY_HOST=0.0.0.0
       - VITE_RUBY_PORT=3036
-      # Opt-in switch for the sshd block in docker/core/entrypoint.sh.
-      - REMOTE_SSHD=1
-    networks:
-      # Adds to (does not replace) the four networks declared in the base
-      # compose file; aliases there are unchanged.
-      remote-access: {}
+    # `remote-access` network attachment lives in compose.custom.yaml, not
+    # here -- it's only defined when that file is loaded. See
+    # docs/operations/remote-codex-over-tailscale.md.
   rustfs:
     ports:
       - "127.0.0.1:${RUSTFS_API_HOST_PORT:-9000}:9000"
@@ -165,65 +122,7 @@ services:
       - "9411:9411"
   grafana:
     container_name: global-devcontainer-grafana
-  # pgadmin and tinyrdm are admin GUIs that don't need to run for normal
-  # devcontainer work. Gate them behind an opt-in profile so they only start
-  # when explicitly requested (e.g. `--profile tools`).
-  pgadmin:
-    profiles:
-      - tools
-    ports:
-      - "5050:80"
-  tinyrdm:
-    profiles:
-      - tools
-    ports:
-      - "8086:8086"
-  tailscale-codex:
-    # Remote-access ingress for the Mac Codex App: joins the tailnet in
-    # userspace mode (no TUN device, requested capability additions, or host
-    # ports) and only TCP-forwards tailnet port 22 to core:22. SSH itself
-    # terminates at the OpenSSH server inside core (REMOTE_SSHD=1 above).
-    # Defined only here (not in base compose.yaml) because Remote Codex is
-    # devcontainer-only: base compose.yaml alone must never create, start, or
-    # pull this service.
-    # See docs/operations/remote-codex-over-tailscale.md.
-    image: tailscale/tailscale:v1.98.9
-    profiles:
-      - remote
-    environment:
-      TS_USERSPACE: "true"
-      TS_AUTH_ONCE: "true"
-      TS_STATE_DIR: /var/lib/tailscale
-      TS_HOSTNAME: umaxica-global-core
-      TS_EXTRA_ARGS: "--advertise-tags=tag:umaxica-core"
-      TS_SERVE_CONFIG: /etc/tailscale/serve/serve.json
-    # TS_AUTHKEY comes from an untracked host file (chmod 600); it is needed
-    # only until the node registers into the state volume, after which the
-    # operator revokes the key, blanks the file, and recreates the sidecar.
-    # The service is profile-gated, so explicitly enabling Remote Codex fails
-    # loudly if this operator-managed file has not been prepared.
-    env_file:
-      - "${HOME:?HOME must be set}/.config/umaxica/tailscale.env"
-    volumes:
-      - type: volume
-        source: tailscale-codex-state
-        target: /var/lib/tailscale
-      - "./docker/tailscale/serve:/etc/tailscale/serve:ro,z"
-    networks:
-      - remote-access
-    restart: unless-stopped
-networks:
-  # Dedicated path between tailscale-codex and core:22 only. Defined here
-  # (not in base compose.yaml) so a standalone `compose.yaml` never creates
-  # it. Kept a plain bridge (not `internal: true`) because it is the
-  # sidecar's sole network, so its control-plane/DERP egress also travels
-  # here; making it internal would force the sidecar onto a shared network
-  # and widen exposure instead of narrowing it.
-  remote-access: {}
-volumes:
-  # Tailscale node identity; survives sidecar recreation so the auth key can
-  # be revoked after first registration. Deleting it deregisters the node.
-  tailscale-codex-state: {}
-  # SSH host key for core's opt-in sshd; persistence keeps the Mac client's
-  # known_hosts entry valid across container recreation.
-  remote-sshd: {}
+  # pgadmin, tinyrdm, tailscale-codex, and cloudflare-tunnel are defined
+  # entirely in compose.custom.yaml (repo root), not here -- see
+  # docs/operations/remote-codex-over-tailscale.md and
+  # docs/operations/cloudflare-private-origin.md.

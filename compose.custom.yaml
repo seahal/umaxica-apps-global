@@ -1,0 +1,128 @@
+name: umaxica-apps-global-dc
+# Always-on overlay: unconditionally referenced by .devcontainer/devcontainer.json's
+# dockerComposeFile array, and merged manually with `-f compose.custom.yaml` for
+# non-devcontainer `podman compose` invocations. None of the services below carry a
+# `profiles:` key -- this file's presence in the merge is itself the opt-in, so a plain
+# `devcontainer up` (or `podman compose -f compose.yaml -f .devcontainer/compose.override.yml
+# -f compose.custom.yaml up`) starts all of them with no extra flags. Starting
+# tailscale-codex for real (i.e. an actual `up`, not just `config`) immediately attempts
+# tailnet registration -- see docs/operations/remote-codex-over-tailscale.md.
+services:
+  cloudflare-tunnel:
+    # Workers VPC requires cloudflared 2025.7.0 or newer.
+    image: cloudflare/cloudflared:2025.7.0
+    depends_on:
+      - core
+    # Workers VPC DNS routing requires QUIC and outbound UDP 7844.
+    command: tunnel --protocol quic run
+    environment:
+      TUNNEL_TOKEN: "${CLOUDFLARED_TOKEN:?CLOUDFLARED_TOKEN must be set in .env}"
+    networks:
+      - frontend
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped
+  tailscale-codex:
+    # Existing compatibility sidecar retained during the direct-core PoC. Its
+    # userspace node and state remain untouched, but core OpenSSH is disabled;
+    # the TCP 22 forward is therefore not an active login path in this gate.
+    # The tailnet-only HTTPS route to core:3000 remains unchanged.
+    image: tailscale/tailscale:v1.98.9
+    environment:
+      TS_USERSPACE: "true"
+      TS_AUTH_ONCE: "true"
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_HOSTNAME: umaxica-global-core
+      TS_EXTRA_ARGS: "--advertise-tags=tag:umaxica-core"
+      TS_SERVE_CONFIG: /etc/tailscale/serve/serve.json
+      # Sourced from the project's own gitignored .env (see .env.example),
+      # not an external host path. Needed only for first-time registration;
+      # after registration the operator revokes the key and blanks
+      # TS_AUTHKEY in .env, and the sidecar keeps running unregistered
+      # against the persisted state volume identity (TS_AUTH_ONCE=true).
+      # Deliberately NOT `:?`-guarded: a blank value must not fail Compose
+      # resolution, since recreating the sidecar with a blank TS_AUTHKEY is
+      # the documented post-revocation verification step.
+      TS_AUTHKEY: "${TS_AUTHKEY:-}"
+    volumes:
+      - type: volume
+        source: tailscale-codex-state
+        target: /var/lib/tailscale
+      - "./docker/tailscale/serve:/etc/tailscale/serve:ro,z"
+    networks:
+      - remote-access
+    restart: unless-stopped
+  pgadmin:
+    image: dpage/pgadmin4
+    # `user: root` lets the entrypoint chmod the bind-mounted pgpass to 0600
+    # before pgAdmin de-escalates to the pgadmin user. Under rootless podman
+    # "root" inside the container is the host user via userns mapping (not
+    # real root), but the chmod still succeeds on the bind-mounted file
+    # because the host user already owns it.
+    user: root
+    entrypoint:
+      - "/bin/sh"
+      - "-c"
+      - "chmod 600 /pgpass && /entrypoint.sh"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: root@example.com
+      PGADMIN_DEFAULT_PASSWORD: password
+      # Auto-import the pub/sub server definitions on first launch.
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+    volumes:
+      - "./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro,z"
+      - "./docker/pgadmin/pgpass:/pgpass:z"
+    ports:
+      - "5050:80"
+    networks:
+      - backend
+    depends_on:
+      primary:
+        condition: service_healthy
+      replica:
+        condition: service_started
+  tinyrdm:
+    image: ghcr.io/tiny-craft/tiny-rdm:latest
+    environment:
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: change-me
+    volumes:
+      - tinyrdm-volume:/app/tinyrdm
+    ports:
+      - "8086:8086"
+    networks:
+      - backend
+    depends_on:
+      valkey:
+        condition: service_healthy
+    restart: unless-stopped
+  core:
+    # Additional network attachment so core is reachable from tailscale-codex.
+    # Must live here (not .devcontainer/compose.override.yml) because
+    # remote-access is only defined when this file is loaded.
+    command:
+      - /home/global/workspace/.devcontainer/tailscale-core-supervisor.sh
+      - bin/dev
+    volumes:
+      - type: volume
+        source: tailscale-core-state
+        target: /var/lib/tailscale-core
+    networks:
+      remote-access: {}
+networks:
+  # Dedicated path between tailscale-codex and core:22/core:3000 only. Defined
+  # here (not compose.yaml or the devcontainer override) so neither of those
+  # ever creates it without this file. Kept a plain bridge (not
+  # `internal: true`) because it is the sidecar's sole network, so its
+  # control-plane/DERP egress also travels here; making it internal would
+  # force the sidecar onto a shared network and widen exposure instead of
+  # narrowing it.
+  remote-access: {}
+volumes:
+  # Independent identity for the direct-core Tailscale SSH PoC. Never share
+  # this state with tailscale-codex.
+  tailscale-core-state: {}
+  # Tailscale node identity; survives sidecar recreation so the auth key can
+  # be revoked after first registration. Deleting it deregisters the node.
+  tailscale-codex-state: {}
+  tinyrdm-volume: {}

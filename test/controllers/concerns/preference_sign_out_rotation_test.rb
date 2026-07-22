@@ -62,7 +62,7 @@ class PreferenceSignOutRotationTest < ActiveSupport::TestCase
 
   test "failure before the new guest row is created: old row is untouched, logged at error, auth logout unaffected" do
     ctx = build_context(@old_preference)
-    ctx.define_singleton_method(:create_new_preference_record!) do |**_kwargs|
+    ctx.define_singleton_method(:persist_new_preference_record!) do |**_kwargs|
       raise ActiveRecord::RecordInvalid, AppPreference.new
     end
 
@@ -105,6 +105,52 @@ class PreferenceSignOutRotationTest < ActiveSupport::TestCase
     assert_old_row_still_valid!
   end
 
+  test "failure after guest persistence does not issue replacement transport or retain rolled-back controller state" do
+    ctx = build_context(@old_preference)
+    issued_transport = []
+
+    ctx.define_singleton_method(:create_new_preference_record!) do |params_hash: nil|
+      _ = params_hash
+      created =
+        AppPreference.create!(
+          status_id: AppPreferenceStatus::NOTHING,
+          binding_method_id: AppPreferenceBindingMethod::NOTHING,
+          dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
+          discarded_at: 20.years.from_now,
+          purged_at: 20.years.from_now,
+          jti: JitSecurityJwtJtiGenerator.generate,
+        ).tap { |pref| PreferenceSignOutRotationTestSupport.create_default_children!(pref) }
+      @preferences = created
+      @refresh_token_value = "rolled-back-refresh-token"
+      issued_transport << created.public_id
+      created
+    end
+    ctx.define_singleton_method(:persist_new_preference_record!) do |params_hash: nil|
+      _ = params_hash
+      AppPreference.create!(
+        status_id: AppPreferenceStatus::NOTHING,
+        binding_method_id: AppPreferenceBindingMethod::NOTHING,
+        dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
+        discarded_at: 20.years.from_now,
+        purged_at: 20.years.from_now,
+        jti: JitSecurityJwtJtiGenerator.generate,
+      ).tap { |pref| PreferenceSignOutRotationTestSupport.create_default_children!(pref) }
+    end
+    ctx.define_singleton_method(:issue_new_preference_transport!) do |preference|
+      issued_transport << preference.public_id
+    end
+    ctx.define_singleton_method(:seed_guest_preference_from_sign_out!) { |*_args| raise StandardError, "seed boom" }
+
+    assert_no_difference "AppPreference.count" do
+      ctx.send(:rotate_preference_after_sign_out!)
+    end
+
+    assert_empty issued_transport
+    assert_equal @old_preference, ctx.instance_variable_get(:@preferences)
+    assert_nil ctx.instance_variable_get(:@refresh_token_value)
+    assert_old_row_still_valid!
+  end
+
   test "failure while issuing the new cookie: DB rotation already committed, distinct warn-level event, no raise" do
     ctx = build_context(@old_preference)
     ctx.define_singleton_method(:issue_access_token_from) { |_pref| raise StandardError, "cookie boom" }
@@ -119,6 +165,20 @@ class PreferenceSignOutRotationTest < ActiveSupport::TestCase
     # The DB-side rotation already succeeded (this failure is purely in
     # cookie issuance), so the old row IS retired here -- unlike the DB-stage
     # failures above, which roll back and leave it valid.
+    assert_predicate @old_preference.reload, :replay?
+  end
+
+  test "replacement transport is issued only after the database rotation commits" do
+    ctx = build_context(@old_preference)
+    baseline_open_transactions = AppSettingRecord.connection.open_transactions
+    transaction_depths = []
+    ctx.define_singleton_method(:issue_new_preference_transport!) do |_preference|
+      transaction_depths << AppSettingRecord.connection.open_transactions
+    end
+
+    ctx.send(:rotate_preference_after_sign_out!)
+
+    assert_equal [baseline_open_transactions], transaction_depths
     assert_predicate @old_preference.reload, :replay?
   end
 
@@ -137,7 +197,7 @@ class PreferenceSignOutRotationTest < ActiveSupport::TestCase
 
   test "failure logs never include the raw refresh token, digest, or cookie value" do
     ctx = build_context(@old_preference)
-    ctx.define_singleton_method(:create_new_preference_record!) do |**_kwargs|
+    ctx.define_singleton_method(:persist_new_preference_record!) do |**_kwargs|
       raise StandardError, "boom"
     end
 
@@ -172,7 +232,7 @@ class PreferenceSignOutRotationTest < ActiveSupport::TestCase
     ctx.define_singleton_method(:preference_class) { AppPreference }
     ctx.define_singleton_method(:preference_connection_class) { |_record| AppSettingRecord }
     ctx.define_singleton_method(:issue_access_token_from) { |_pref| nil }
-    ctx.define_singleton_method(:create_new_preference_record!) do |params_hash: nil|
+    ctx.define_singleton_method(:persist_new_preference_record!) do |params_hash: nil|
       _ = params_hash
       AppPreference.create!(
         status_id: AppPreferenceStatus::NOTHING,
@@ -183,6 +243,7 @@ class PreferenceSignOutRotationTest < ActiveSupport::TestCase
         jti: JitSecurityJwtJtiGenerator.generate,
       ).tap { |pref| PreferenceSignOutRotationTestSupport.create_default_children!(pref) }
     end
+    ctx.define_singleton_method(:issue_new_preference_transport!) { |_pref| nil }
     ctx
   end
 end

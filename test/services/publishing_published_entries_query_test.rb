@@ -27,6 +27,50 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
     assert_nil query.find_by(slug: "no-publication")
   end
 
+  test "serializing a published index uses a fixed number of queries" do
+    edition = Publishing::Edition.create!(audience: "app", surface: "info", locale: "ja")
+
+    3.times do |index|
+      entry = Publishing::Entry.create!(edition:, locale: "ja")
+      Publishing::EntrySlug.create!(
+        entry:, edition:, locale: "ja", slug: "query-count-#{index}", state: "canonical", canonicalized_at: Time.current,
+      )
+      revision =
+        Publishing::EntryRevision.create!(
+          entry:, locale: "ja", title: "Title #{index}", body: { "text" => "body" }, schema_version: 1,
+          content_digest: index.to_s.rjust(64, "0"), sequence: 1,
+        )
+      entry.update!(current_revision: revision)
+      version =
+        Publishing::EntryVersion.create!(
+          entry:, entry_revision: revision, locale: "ja", title: "Title #{index}", body: { "text" => "body" },
+          schema_version: 1, content_digest: (index + 10).to_s.rjust(64, "0"), sequence: 1,
+        )
+      Publishing::Publication.create!(entry:, entry_version: version, effective_from: 1.hour.ago)
+    end
+
+    queries = []
+    subscriber =
+      lambda do |*, payload|
+        sql = payload[:sql]
+        next if payload[:cached] || payload[:name] == "SCHEMA"
+        next if sql.match?(/\A(?:BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE SAVEPOINT)/)
+
+        queries << sql
+      end
+
+    entries = nil
+    ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
+      entries =
+        PublishingPublishedEntriesQuery.call(edition:).map { |entry|
+          PublishingEntrySerializer.call(entry:, namespace: :info, surface: :app)
+        }
+    end
+
+    assert_equal 3, entries.size
+    assert_operator queries.size, :<=, 4, queries.join("\n")
+  end
+
   private
 
   def build_published_entry(edition:, slug:)

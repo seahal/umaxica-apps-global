@@ -17,11 +17,16 @@ not an incidental side effect of a routine deploy.
 | `db/com_zenith_migrate/20260716200601_drop_publishing_migration_source_tables.rb` | com | Same, `com_*` |
 | `db/org_zenith_migrate/20260716200602_drop_publishing_migration_source_tables.rb` | org | Same, `org_*` |
 
-All three are `if_exists: true, force: :cascade` (idempotent against
-already-missing tables) and explicitly `raise ActiveRecord::IrreversibleMigration`
-on `down` — there is no code-level rollback. Restoration after an incorrect run
-means restoring from a database backup (see "Recovery Procedure" below), not
-reverting the migration.
+All three call the shared migration-only `PublishingLegacyTableDrop` guard. The
+guard fails before any DROP unless every expected table exists and every row
+count is zero. In production it also requires the exact approval value documented
+below. DROP runs in known foreign-key dependency order without `CASCADE`; an
+unexpected dependency stops the migration instead of being deleted implicitly.
+
+All three explicitly `raise ActiveRecord::IrreversibleMigration` on `down` —
+there is no code-level rollback. Restoration after an incorrect run means
+restoring from a database backup (see "Recovery Procedure" below), not reverting
+the migration.
 
 ## Pre-Deployment Checklist
 
@@ -64,12 +69,24 @@ current one is satisfied.
    per this repository's constraint that destructive database operations require
    the user's explicit approval of the risk and migration plan.
 
+   After that approval is recorded, set the executable gate for the migration
+   process only:
+   ```sh
+   export PUBLISHING_LEGACY_TABLE_DROP_APPROVAL='drop-empty-legacy-publishing-tables:production:app,com,org'
+   ```
+   A missing or different value stops a production migration before table
+   inspection or DROP. The value is an accidental-execution guard; it does not
+   replace the backup, audit, or human approval recorded in steps 1–4.
+
 5. **Run the migrations** (only after 1–4 are all satisfied and approved):
    ```sh
    RAILS_ENV=production bin/rails db:migrate:app_zenith
    RAILS_ENV=production bin/rails db:migrate:com_zenith
    RAILS_ENV=production bin/rails db:migrate:org_zenith
    ```
+   Each command rechecks that its surface's complete expected table set is present
+   and empty. Any missing table, non-zero count, or unknown dependent object stops
+   the migration. Unset `PUBLISHING_LEGACY_TABLE_DROP_APPROVAL` after the run.
 
 6. **Post-migration validation.**
    - Re-run the audit; confirm `lean_tables` report `exists: false` and
