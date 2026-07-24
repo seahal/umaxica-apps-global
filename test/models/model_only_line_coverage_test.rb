@@ -9,7 +9,9 @@ class ModelOnlyLineCoverageTest < ActiveSupport::TestCase
     configuration = Actor::Configuration.new(feature: "enabled")
     same = Actor::Configuration.new(feature: "enabled")
 
-    assert_nil null_value
+    # rubocop:disable Minitest/AssertNil,Minitest/AssertPredicate
+    assert null_value.nil?
+    # rubocop:enable Minitest/AssertNil,Minitest/AssertPredicate
     assert_equal null_value, Actor::Configuration::NullValue.new
     assert_respond_to null_value, :anything
     assert_same null_value, null_value.anything.deeply.missing

@@ -127,8 +127,7 @@ gem "ruby-vips"
 gem "lograge"
 # json
 gem "json-canonicalization"
-# SAML for to use AWS IAM Identity center
-gem "ruby-saml", ">= 1.18.1"
+gem "svix"
 
 group :development, :test do
   # Test coverage reporting.

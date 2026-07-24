@@ -65,7 +65,10 @@ class RepositoryLanguageCheckTest < Minitest::Test
 
       assert_equal 1, status.exitstatus
       assert_includes stdout, "#{path}:2"
-      assert_not_includes stdout, "#{path}:1"
+      # Plain Minitest does not provide Rails' assert_not_includes assertion.
+      # rubocop:disable Rails/RefuteMethods
+      refute_includes stdout, "#{path}:1"
+      # rubocop:enable Rails/RefuteMethods
     end
   end
 
@@ -78,7 +81,10 @@ class RepositoryLanguageCheckTest < Minitest::Test
 
       assert_equal 1, status.exitstatus
       assert_includes stdout, "#{path}:1"
-      assert_not_includes stdout, "#{path}:2"
+      # Plain Minitest does not provide Rails' assert_not_includes assertion.
+      # rubocop:disable Rails/RefuteMethods
+      refute_includes stdout, "#{path}:2"
+      # rubocop:enable Rails/RefuteMethods
     end
   end
 end

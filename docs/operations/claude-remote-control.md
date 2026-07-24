@@ -6,7 +6,7 @@ filesystem access stay entirely on the host machine; only outbound HTTPS traffic
 `api.anthropic.com` is required. This is **separate from** the existing Tailscale +
 SSH path used by the macOS Codex app (WS3A, see
 `docs/operations/remote-codex-over-tailscale.md`). Remote Control needs neither
-inbound SSH nor the Tailscale sidecar.
+inbound SSH nor a separate Tailscale service.
 
 ## Relationship to WS3A (Tailscale/Codex)
 
@@ -14,12 +14,12 @@ inbound SSH nor the Tailscale sidecar.
 |---|---|---|
 | Transport | Tailscale + inbound SSH into `core` | Outbound HTTPS only, no inbound ports |
 | Client | macOS Codex app | claude.ai/code, Claude mobile app |
-| Auth | Tailscale auth key + host SSH keys | `claude.ai` OAuth session inside `core` |
+| Auth | Tailnet identity + Tailscale SSH policy | `claude.ai` OAuth session inside `core` |
 | Dependency on the other | None | None |
 
 They share only: host reboot recovery, rootless Podman availability, `core`
 container lifecycle, persistent development volumes, and logging conventions. The
-systemd unit in this document does not depend on the `tailscale-codex` service.
+systemd unit in this document does not depend on the direct-core Tailscale daemon.
 
 ## Requirements (from Anthropic's official documentation)
 

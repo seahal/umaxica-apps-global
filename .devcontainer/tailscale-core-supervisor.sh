@@ -5,6 +5,8 @@ readonly TAILSCALE_BIN=/usr/local/bin/tailscale
 readonly TAILSCALED_BIN=/usr/local/bin/tailscaled
 readonly TAILSCALE_SOCKET=/run/tailscale/tailscaled.sock
 readonly TAILSCALE_STATE_DIR=/var/lib/tailscale-core
+readonly LOGIN_ENVIRONMENT_SOURCE=/home/global/workspace/.devcontainer/tailscale-core-login-environment.sh
+readonly LOGIN_ENVIRONMENT_TARGET=/etc/profile.d/umaxica-core-development.sh
 readonly MAX_TAILSCALED_RESTARTS=3
 
 workload_pid=""
@@ -143,10 +145,20 @@ start_tailscaled() {
   return 1
 }
 
+install_login_environment() {
+  if ! sudo -n install -m 0644 -o root -g root \
+    "${LOGIN_ENVIRONMENT_SOURCE}" "${LOGIN_ENVIRONMENT_TARGET}"; then
+    log "failed to install the remote development login environment; local development remains available"
+    return 1
+  fi
+}
+
 if (( $# == 0 )); then
   log "development workload command is required"
   exit 64
 fi
+
+install_login_environment || true
 
 # Foreman signals its complete process group when any Procfile process exits.
 # Keep that group separate from PID 1 so Foreman's shutdown cannot terminate

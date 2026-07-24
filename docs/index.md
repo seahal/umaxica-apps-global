@@ -79,6 +79,7 @@ Current content-model references:
 - `docs/security/db-write-allowlist.md`
 - `docs/security/security-headers.md`
 - `docs/operations/health-check.md`
+- `docs/operations/search-engine-webmaster-tools.md`
 - `docs/architecture/controller-boundaries.md`
 - `docs/security/turnstile.md`
 - `docs/security/authentication-assurance-levels.md`

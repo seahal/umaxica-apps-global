@@ -242,7 +242,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     lsb-release \
     ncdu \
     netcat-openbsd \
-    openssh-server \
+    openssh-client \
     openssl \
     ripgrep \
     silversearcher-ag \
@@ -255,13 +255,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     yq \
     zip \
     && rm -rf /tmp/* /var/tmp/* "/home/${DOCKER_USER}/"
-
-# File bind mounts for the optional development sshd require their parent
-# directories to exist before the container is created. No keys or sshd
-# configuration are copied into the image.
-RUN install -d -m 0755 -o root -g root \
-    /etc/ssh/authorized_keys.d \
-    /etc/umaxica
 
 RUN if [ -z "${GITHUB_ACTIONS}" ]; then \
     groupadd -g "${DOCKER_GID}" "${DOCKER_GROUP}"; \

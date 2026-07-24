@@ -13,12 +13,12 @@ class DatabasePasswordConfigTest < ActiveSupport::TestCase
   end
 
   test "development queue pools can serve every Solid Queue worker thread" do
-    configurations = ActiveRecord::Base.configurations
+    configurations = Rails.application.config.database_configuration.fetch("development")
 
-    %w[queue queue_replica].each do |name|
-      configuration = configurations.configs_for(env_name: "development", name: name)
+    %w(queue queue_replica).each do |name|
+      configuration = configurations.fetch(name)
 
-      assert_operator configuration.configuration_hash.fetch(:pool), :>=, 5, name
+      assert_operator configuration.fetch("pool"), :>=, 5, name
     end
   end
 end

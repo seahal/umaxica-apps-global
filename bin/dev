@@ -4,4 +4,12 @@ set -e
 
 rm -f tmp/pids/server.pid
 
+if [ "${SKIP_DB_PREPARE:-}" = "" ]; then
+echo "Preparing database..."
+bundle exec foreman run bin/rails db:prepare || {
+    echo "Database preparation failed. Try running: bin/setup" >&2
+exit 1
+}
+fi
+
 exec bundle exec foreman start -f Procfile.dev "$@"

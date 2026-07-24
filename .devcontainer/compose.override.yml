@@ -95,9 +95,6 @@ services:
       - RUBY_DEBUG_OPEN=false
       - VITE_RUBY_HOST=0.0.0.0
       - VITE_RUBY_PORT=3036
-    # `remote-access` network attachment lives in compose.custom.yaml, not
-    # here -- it's only defined when that file is loaded. See
-    # docs/operations/remote-codex-over-tailscale.md.
   rustfs:
     ports:
       - "127.0.0.1:${RUSTFS_API_HOST_PORT:-9000}:9000"
@@ -122,7 +119,7 @@ services:
       - "9411:9411"
   grafana:
     container_name: global-devcontainer-grafana
-  # pgadmin, tinyrdm, tailscale-codex, and cloudflare-tunnel are defined
+  # pgadmin, tinyrdm, and cloudflare-tunnel are defined
   # entirely in compose.custom.yaml (repo root), not here -- see
   # docs/operations/remote-codex-over-tailscale.md and
   # docs/operations/cloudflare-private-origin.md.

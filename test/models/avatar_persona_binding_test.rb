@@ -5,6 +5,7 @@ require "test_helper"
 
 class AvatarPersonaBindingTest < ActiveSupport::TestCase
   test "defaults public id and assigned timestamp" do
+    ClientIdentityState.ensure_defaults!
     persona = build_persona
     avatar = build_avatar
 
@@ -18,6 +19,7 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
   end
 
   test "enforces one active avatar per persona and one active persona per avatar" do
+    ClientIdentityState.ensure_defaults!
     persona = build_persona
     avatar = build_avatar
 
@@ -35,6 +37,7 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
   end
 
   test "database enforces one active avatar persona pair" do
+    ClientIdentityState.ensure_defaults!
     persona = build_persona
     avatar = build_avatar
 
@@ -51,6 +54,7 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
   end
 
   test "revoked binding keeps history and allows a new active binding" do
+    ClientIdentityState.ensure_defaults!
     persona = build_persona
     avatar = build_avatar
     original = AvatarPersonaBinding.create!(avatar: avatar, persona: persona)
@@ -64,6 +68,7 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
   end
 
   test "avatar reads current active binding and persona" do
+    ClientIdentityState.ensure_defaults!
     persona = build_persona
     avatar = build_avatar
     binding = AvatarPersonaBinding.create!(avatar: avatar, persona: persona)
@@ -73,6 +78,7 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
   end
 
   test "persona reads current active binding and avatar" do
+    ClientIdentityState.ensure_defaults!
     persona = build_persona
     avatar = build_avatar
     binding = AvatarPersonaBinding.create!(avatar: avatar, persona: persona)
@@ -82,6 +88,7 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
   end
 
   test "current read paths ignore revoked bindings" do
+    ClientIdentityState.ensure_defaults!
     persona = build_persona
     avatar = build_avatar
     binding = AvatarPersonaBinding.create!(avatar: avatar, persona: persona)
@@ -95,6 +102,7 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
   end
 
   test "current read paths return nil when binding is missing" do
+    ClientIdentityState.ensure_defaults!
     persona = build_persona
     avatar = build_avatar
 
@@ -105,6 +113,7 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
   end
 
   test "revoke! denies active binding revocation by default" do
+    ClientIdentityState.ensure_defaults!
     persona = build_persona
     avatar = build_avatar
     binding = AvatarPersonaBinding.create!(avatar: avatar, persona: persona)
@@ -119,6 +128,7 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
   end
 
   test "revoke! with force revokes active binding and removes current persona" do
+    ClientIdentityState.ensure_defaults!
     persona = build_persona
     avatar = build_avatar
     binding = AvatarPersonaBinding.create!(avatar: avatar, persona: persona)
@@ -132,6 +142,7 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
   end
 
   test "revoke! is idempotent for already revoked bindings" do
+    ClientIdentityState.ensure_defaults!
     persona = build_persona
     avatar = build_avatar
     binding = AvatarPersonaBinding.create!(avatar: avatar, persona: persona)

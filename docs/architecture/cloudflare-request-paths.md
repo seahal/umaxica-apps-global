@@ -103,15 +103,16 @@ Cloudflare Worker (fetch()) --(Workers VPC binding)--> VPC Service (bound to a T
 ### 4. Tailscale development access
 
 ```text
-Mac (Tailscale client) --(Tailscale network)--> tailscale-codex sidecar
-  --(devcontainer-only network)--> core (SSH, port 22)
+Mac (Tailscale client) --(Tailscale network)--> core userspace tailscaled
+  +-- built-in Tailscale SSH --> global
+  `-- HTTPS Serve --> Rails on 127.0.0.1:3000
 ```
 
-- Defined entirely in `.devcontainer/compose.override.yml`; deliberately absent
-  from the base `compose.yaml` (comment at `compose.yaml:592-596`). Never used for
-  production traffic. See `docs/operations/remote-codex-over-tailscale.md` and
-  `docs/operations/claude-remote-control.md` (which explicitly does not depend on
-  this sidecar).
+- The binaries, supervisor, and state volume exist only in the development
+  target and Dev Container overlay; they are absent from production. This path
+  uses Tailscale SSH rather than OpenSSH or TCP port 22 forwarding. See
+  `docs/operations/remote-codex-over-tailscale.md` and
+  `docs/operations/claude-remote-control.md` (which remains independent).
 
 ## Header Trust Summary
 

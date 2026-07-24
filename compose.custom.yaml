@@ -5,8 +5,8 @@ name: umaxica-apps-global-dc
 # `profiles:` key -- this file's presence in the merge is itself the opt-in, so a plain
 # `devcontainer up` (or `podman compose -f compose.yaml -f .devcontainer/compose.override.yml
 # -f compose.custom.yaml up`) starts all of them with no extra flags. Starting
-# tailscale-codex for real (i.e. an actual `up`, not just `config`) immediately attempts
-# tailnet registration -- see docs/operations/remote-codex-over-tailscale.md.
+# cloudflare-tunnel requires its token at Compose resolution time. Direct-core
+# Tailscale uses persisted interactive-login state instead of a Compose secret.
 services:
   cloudflare-tunnel:
     # Workers VPC requires cloudflared 2025.7.0 or newer.
@@ -21,36 +21,6 @@ services:
       - frontend
     extra_hosts:
       - host.docker.internal:host-gateway
-    restart: unless-stopped
-  tailscale-codex:
-    # Existing compatibility sidecar retained during the direct-core PoC. Its
-    # userspace node and state remain untouched, but core OpenSSH is disabled;
-    # the TCP 22 forward is therefore not an active login path in this gate.
-    # The tailnet-only HTTPS route to core:3000 remains unchanged.
-    image: tailscale/tailscale:v1.98.9
-    environment:
-      TS_USERSPACE: "true"
-      TS_AUTH_ONCE: "true"
-      TS_STATE_DIR: /var/lib/tailscale
-      TS_HOSTNAME: umaxica-global-core
-      TS_EXTRA_ARGS: "--advertise-tags=tag:umaxica-core"
-      TS_SERVE_CONFIG: /etc/tailscale/serve/serve.json
-      # Sourced from the project's own gitignored .env (see .env.example),
-      # not an external host path. Needed only for first-time registration;
-      # after registration the operator revokes the key and blanks
-      # TS_AUTHKEY in .env, and the sidecar keeps running unregistered
-      # against the persisted state volume identity (TS_AUTH_ONCE=true).
-      # Deliberately NOT `:?`-guarded: a blank value must not fail Compose
-      # resolution, since recreating the sidecar with a blank TS_AUTHKEY is
-      # the documented post-revocation verification step.
-      TS_AUTHKEY: "${TS_AUTHKEY:-}"
-    volumes:
-      - type: volume
-        source: tailscale-codex-state
-        target: /var/lib/tailscale
-      - "./docker/tailscale/serve:/etc/tailscale/serve:ro,z"
-    networks:
-      - remote-access
     restart: unless-stopped
   pgadmin:
     image: dpage/pgadmin4
@@ -97,32 +67,19 @@ services:
         condition: service_healthy
     restart: unless-stopped
   core:
-    # Additional network attachment so core is reachable from tailscale-codex.
-    # Must live here (not .devcontainer/compose.override.yml) because
-    # remote-access is only defined when this file is loaded.
     command:
       - /home/global/workspace/.devcontainer/tailscale-core-supervisor.sh
       - bin/dev
+    environment:
+      # Optional exact Rails Host Authorization entry for Tailscale Serve.
+      # The value is a hostname, not a credential; unset keeps normal startup
+      # independent from Tailscale.
+      TAILSCALE_SERVE_HOST: "${TAILSCALE_SERVE_HOST:-}"
     volumes:
       - type: volume
         source: tailscale-core-state
         target: /var/lib/tailscale-core
-    networks:
-      remote-access: {}
-networks:
-  # Dedicated path between tailscale-codex and core:22/core:3000 only. Defined
-  # here (not compose.yaml or the devcontainer override) so neither of those
-  # ever creates it without this file. Kept a plain bridge (not
-  # `internal: true`) because it is the sidecar's sole network, so its
-  # control-plane/DERP egress also travels here; making it internal would
-  # force the sidecar onto a shared network and widen exposure instead of
-  # narrowing it.
-  remote-access: {}
 volumes:
-  # Independent identity for the direct-core Tailscale SSH PoC. Never share
-  # this state with tailscale-codex.
+  # Persistent identity for direct-core Tailscale SSH and HTTPS Serve.
   tailscale-core-state: {}
-  # Tailscale node identity; survives sidecar recreation so the auth key can
-  # be revoked after first registration. Deleting it deregisters the node.
-  tailscale-codex-state: {}
   tinyrdm-volume: {}
