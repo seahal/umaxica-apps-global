@@ -35,6 +35,14 @@
 #
 # =============================================================================
 
+require Rails.root.join(
+  "lib/external_authentication/infrastructure/omniauth_apple_nonce_enforcement",
+)
+
+OmniAuth::Strategies::Apple.prepend(
+  ExternalAuthentication::Infrastructure::OmniauthAppleNonceEnforcement,
+)
+
 # Load credentials early
 # App (user) Google credentials
 google_client_id = Rails.app.creds.option(:OMNI_AUTH_GOOGLE_APP_CLIENT_ID)
