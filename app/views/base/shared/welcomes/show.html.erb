@@ -3,4 +3,8 @@
 
 <h1><%= title "Welcome!" %></h1>
 
+<% if surface == "app" && apple_only_credential? %>
+  <%= render "base/shared/identities/apple_only_credential_warning" %>
+<% end %>
+
 <p><%= link_to "Next", @welcome_next_path || dashboard_path %></p>

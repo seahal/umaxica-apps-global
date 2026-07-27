@@ -24,6 +24,19 @@ module SignEmailRegistrationFlow
     confirm_policy = email_params[:confirm_policy]
     email_address = email_params[:raw_address] || email_params[:address]
 
+    # adr/unified-enforcement.md, Identifier attachment enforcement: an in-force
+    # Identifier Effect with attachment_blocked rejects attaching this identifier to
+    # an existing account, at the same enumeration-resistance discipline as the
+    # ordinary validation failure.
+    if email_address.present? && enforcement_blocks_email_attachment?(
+      effect_class: AppEnforcementIdentifierEffect, realm: "app", email: email_address,
+    )
+      @user_email = ClientEmail.new
+      @user_email.errors.add(:address, :blank)
+      render :new, status: :unprocessable_content
+      return
+    end
+
     unless initiate_email_verification!(
       email_address,
       confirm_policy: confirm_policy || "1",

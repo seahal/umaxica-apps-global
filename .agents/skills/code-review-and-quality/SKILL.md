@@ -226,8 +226,23 @@ This catches issues that a single model might miss — different models have dif
 ```
 Review this code change for correctness, security, and adherence to
 our project conventions. The spec says [X]. The change should [Y].
-Flag any issues as Critical, Important, or Suggestion.
+
+Report every issue you find, including ones you are uncertain about
+or consider low-severity. Do not filter for importance or confidence
+at this stage — a separate pass will rank and filter. Coverage is the
+goal here: surfacing a finding that later gets filtered out is better
+than silently dropping a real bug. For each finding, give your
+confidence level and an estimated severity.
 ```
+
+**Ask for coverage first and filter in a separate pass.** A prompt that says "only report
+high-severity issues", "be conservative", or "don't nitpick" is followed literally: the review
+investigates just as thoroughly, finds the bugs, then declines to report the ones it judges below the
+stated bar. Precision rises while real bugs go unreported. Move the filtering downstream instead.
+
+If you do want single-pass filtering, be concrete about where the bar sits rather than using
+qualitative words like "important" — for example, "report any bug that could cause incorrect
+behavior, a test failure, or a misleading result; omit pure style and naming preferences."
 
 ## Dead Code Hygiene
 

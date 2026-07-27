@@ -396,7 +396,18 @@ class ModelOnlyLineCoverageTest < ActiveSupport::TestCase
     assert_kind_of ActiveRecord::Relation, VisitorEmail.with_address("visitor@example.test")
     assert_kind_of ActiveRecord::Relation, VisitorEmail.with_address(nil)
 
-    valid = IdentitySocialCeremonyCandidate.new(auth_hash: { "provider" => "google", "uid" => "uid" })
+    valid = IdentitySocialCeremonyCandidate.new(
+      auth_hash: {
+        "principal" => {
+          "provider" => "google",
+          "subject" => "uid",
+          "issuer" => "https://accounts.google.com",
+          "audience" => "client-id",
+          "verified_at" => Time.current.iso8601,
+          "verification_authority" => "google",
+        },
+      },
+    )
     valid.valid?
 
     assert_empty valid.errors.details[:auth_hash]

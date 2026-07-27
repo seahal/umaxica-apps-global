@@ -12,6 +12,7 @@ module Base
           include SignEmailRegistrable
           include SignEmailRegistrationFlow
           include SignSettingsEmailRegistration
+          include EnforcementIdentifierGate
           include VerificationClient
 
           AUTHENTICATION_MODE = :private

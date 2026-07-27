@@ -11,24 +11,22 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
     ClientGoogleIdentityStatus.find_or_create_by!(id: ClientGoogleIdentityStatus::ACTIVE)
     ClientGoogleIdentityStatus.find_or_create_by!(id: ClientGoogleIdentityStatus::REVOKED)
 
-    @auth_hash =
-      OmniAuth::AuthHash.new(
-        {
-          "provider" => "google",
-          "uid" => "google-coverage-uid",
-          "credentials" => {
-            "token" => "token",
-            "refresh_token" => "refresh",
-            "expires_at" => 1.hour.from_now.to_i,
-          },
-        },
-      )
+    @principal = ExternalAuthentication::VerifiedPrincipal.new(
+      provider: "google",
+      subject: "google-coverage-uid",
+      issuer: "https://accounts.google.com",
+      audience: "google-client-id",
+      verified_at: Time.current,
+      verification_authority: "omniauth-google-oauth2/contract",
+    )
+    @repository = ExternalAuthentication::LegacyIdentityRepositoryFactory.build("google")
   end
 
   test "call returns pending signup for unknown identity" do
     handler = SocialAuthLoginHandler.new(
-      auth_hash: @auth_hash,
-      identity_class: ClientGoogleIdentity,
+      principal: @principal,
+      credential_candidate: nil,
+      repository: @repository,
       provider: "google",
       uid: "missing-google-uid",
     )
@@ -60,8 +58,9 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
       token_expires_at: 1.day.from_now.to_i,
     )
     handler = SocialAuthLoginHandler.new(
-      auth_hash: @auth_hash,
-      identity_class: ClientGoogleIdentity,
+      principal: @principal,
+      credential_candidate: nil,
+      repository: @repository,
       provider: "google",
       uid: identity.uid,
     )
@@ -84,8 +83,9 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
       token_expires_at: 1.day.from_now.to_i,
     )
     handler = SocialAuthLoginHandler.new(
-      auth_hash: @auth_hash,
-      identity_class: ClientGoogleIdentity,
+      principal: @principal,
+      credential_candidate: nil,
+      repository: @repository,
       provider: "google",
       uid: identity.uid,
     )
@@ -107,27 +107,26 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
   end
 
   test "call maps duplicate identity creation to conflict error" do
+    repository = Object.new
+    repository.define_singleton_method(:find_by_subject) do |*, **|
+      raise ActiveRecord::RecordNotUnique, "duplicate"
+    end
     handler = SocialAuthLoginHandler.new(
-      auth_hash: @auth_hash,
-      identity_class: ClientGoogleIdentity,
+      principal: @principal,
+      credential_candidate: nil,
+      repository: repository,
       provider: "google",
       uid: "google-race-uid",
     )
 
-    relation = Object.new
-    relation.define_singleton_method(:find_by) do |**|
-      raise ActiveRecord::RecordNotUnique, "duplicate"
-    end
-
-    ClientGoogleIdentity.stub(:lock, relation) do
-      assert_raises(SocialAuth::ConflictError) { handler.call }
-    end
+    assert_raises(SocialAuth::ConflictError) { handler.call }
   end
 
   test "build_login_user wires reference records through the fallback helpers" do
     handler = SocialAuthLoginHandler.new(
-      auth_hash: @auth_hash,
-      identity_class: ClientGoogleIdentity,
+      principal: @principal,
+      credential_candidate: nil,
+      repository: @repository,
       provider: "google",
       uid: "google-build-user",
     )
@@ -144,10 +143,11 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
     assert_equal %i(status visibility mfa_level mfa_status), calls.map(&:first)
   end
 
-  test "create_user_for_identity persists and links the new identity" do
+  test "create_user_for_identity delegates identity assignment to the repository" do
     handler = SocialAuthLoginHandler.new(
-      auth_hash: @auth_hash,
-      identity_class: ClientGoogleIdentity,
+      principal: @principal,
+      credential_candidate: nil,
+      repository: @repository,
       provider: "google",
       uid: "google-create-user",
     )
@@ -157,7 +157,7 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
 
     handler.define_singleton_method(:build_login_user) { user }
     handler.define_singleton_method(:persist_user!) { |_user, context:| updates << [:persist, context] }
-    handler.define_singleton_method(:assign_identity_to_user) do |assigned_user, assigned_identity|
+    @repository.define_singleton_method(:assign_to_user) do |assigned_identity, assigned_user|
       updates << [:assign, assigned_user, assigned_identity]
     end
     identity.define_singleton_method(:update!) { |attrs| updates << [:update, attrs] }
@@ -171,8 +171,9 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
 
   test "reference helpers create missing records and swallow active record failures" do
     handler = SocialAuthLoginHandler.new(
-      auth_hash: @auth_hash,
-      identity_class: ClientGoogleIdentity,
+      principal: @principal,
+      credential_candidate: nil,
+      repository: @repository,
       provider: "google",
       uid: "google-ref-helper",
     )
@@ -195,8 +196,9 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
 
   test "create_user_social_audit! and social_signup_event_id handle provider branches" do
     handler = SocialAuthLoginHandler.new(
-      auth_hash: @auth_hash,
-      identity_class: ClientGoogleIdentity,
+      principal: @principal,
+      credential_candidate: nil,
+      repository: @repository,
       provider: "google",
       uid: "google-audit",
     )
@@ -219,18 +221,11 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
     assert_equal user.id.to_s, events.first[:subject_id]
   end
 
-  test "build_identity_for_user copies credential payloads and assign_identity_to_user only links supported models" do
+  test "build_identity_for_user uses non-secret legacy attributes" do
     handler = SocialAuthLoginHandler.new(
-      auth_hash: {
-        "provider" => "google",
-        "uid" => "google-identity",
-        "credentials" => {
-          "token" => "token-1",
-          "refresh_token" => "refresh-1",
-          "expires_at" => 123,
-        },
-      },
-      identity_class: ClientGoogleIdentity,
+      principal: @principal.with(subject: "google-identity"),
+      credential_candidate: nil,
+      repository: @repository,
       provider: "google",
       uid: "google-identity",
     )
@@ -239,24 +234,9 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
     identity = handler.send(:build_identity_for_user, user)
 
     assert_equal "google-identity", identity.uid
-    assert_equal "token-1", identity.token
-    assert_equal "refresh-1", identity.refresh_token
-    assert_equal 123, identity.expires_at
+    assert_equal ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED, identity.token
+    assert_equal "", identity.refresh_token
+    assert_equal 0, identity.expires_at
     assert_equal user.id, identity.user_id
-
-    other_handler = SocialAuthLoginHandler.new(
-      auth_hash: @auth_hash,
-      identity_class: Class.new do
-        def self.name = "OtherIdentity"
-
-        attr_accessor :user_id
-      end,
-      provider: "google",
-      uid: "google-identity",
-    )
-    other_identity = Struct.new(:user_id).new(nil)
-    other_handler.send(:assign_identity_to_user, user, other_identity)
-
-    assert_nil other_identity.user_id
   end
 end

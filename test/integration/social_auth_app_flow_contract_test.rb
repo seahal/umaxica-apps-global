@@ -132,7 +132,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     assert_equal user.id, relinked_identity.user_id
     assert_equal ClientAppleIdentityStatus::ACTIVE, relinked_identity.status_id
-    assert_equal "relinked_apple_token", relinked_identity.token
+    assert_equal ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED, relinked_identity.token
     assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
   end
 
@@ -271,7 +271,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, user.status_id
     assert_equal config.fetch(:active_status), identity.status_id
     assert_equal config.fetch(:provider), identity.provider
-    assert_equal "new_signup_token", identity.token
+    assert_equal ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED, identity.token
     assert_not_nil identity.last_authenticated_at
     assert_nil ClientEmail.find_by(user: user)
   end
@@ -298,7 +298,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     identity.reload
 
     assert_equal user.id, identity.user_id
-    assert_equal "fresh_token", identity.token
+    assert_equal ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED, identity.token
     assert_not_nil identity.last_authenticated_at
   end
 
@@ -325,7 +325,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     assert_equal user.id, identity.user_id
     assert_equal config.fetch(:active_status), identity.status_id
-    assert_equal "linked_token", identity.token
+    assert_equal ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED, identity.token
     assert_not_nil identity.last_authenticated_at
   end
 
@@ -361,7 +361,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   def perform_social_callback(config, params:, headers:)
     if config.fetch(:provider) == "apple"
-      post(auth_app_social_apple_callback_url(provider: "apple", ri: "jp"), params: params, headers: headers)
+      get(auth_app_social_apple_callback_url(provider: "apple", ri: "jp"), params: params, headers: headers)
     else
       get(
         auth_app_social_google_callback_url(provider: config.fetch(:provider), ri: "jp"),
@@ -375,7 +375,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   def setup_mock_auth(config, uid:, token:)
     normalized = config.fetch(:normalized)
     credentials = { token: token, expires_at: 1.week.from_now.to_i }
-    credentials[:refresh_token] = "refresh_#{token}" if normalized == "google"
+    credentials[:refresh_token] = "refresh_#{token}" if normalized == "apple"
 
     extra = {}
     extra[:id_info] = { nonce: session[:social_auth_nonce] } if normalized == "apple"

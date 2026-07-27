@@ -13,6 +13,10 @@ module PublishingLegacyTableDrop
   SURFACES = %i(app com org).freeze
   LEAN_TABLES = %w(docs_content_entries news_content_entries help_content_entries).freeze
   CMS_FAMILIES = %w(docs news info help).freeze
+  # No drop order alone can satisfy these tables: post_versions and
+  # post_revisions reference each other (fk_<surface>_<family>_restore_version_post
+  # and fk_<surface>_<family>_version_revision_post), so the dependency graph has
+  # a cycle. The foreign keys are removed before any drop instead; see #call.
   CMS_TABLE_SUFFIXES = %w(
     post_version_tags post_version_categories post_revision_tags post_revision_categories
     tags categories media_usages media_files post_publications post_versions
@@ -29,9 +33,27 @@ module PublishingLegacyTableDrop
     verify_tables_empty!(migration.connection, tables)
 
     migration.safety_assured do
+      remove_foreign_keys_between!(migration, tables)
       tables.each { |table| migration.drop_table(table) }
     end
   end
+
+  # Detaches the legacy tables from each other before dropping any of them.
+  # Every table here is being removed, so its foreign keys are removed too; only
+  # constraints pointing inside the drop set are touched, and a foreign key from
+  # a surviving table would still raise on drop rather than be silently deleted.
+  def remove_foreign_keys_between!(migration, tables)
+    drop_set = tables.to_set
+
+    tables.each do |table|
+      migration.connection.foreign_keys(table).each do |foreign_key|
+        next unless drop_set.include?(foreign_key.to_table)
+
+        migration.remove_foreign_key(table, name: foreign_key.name)
+      end
+    end
+  end
+  private_class_method :remove_foreign_keys_between!
 
   def tables_for(surface:)
     surface = surface.to_sym

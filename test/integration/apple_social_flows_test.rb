@@ -25,9 +25,9 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-             params: { state: state },
-             headers: @callback_headers
+        get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+            params: { state: state },
+            headers: @callback_headers
       end
     end
 
@@ -73,9 +73,9 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     state = start_social_auth_flow(intent: "login")
     setup_apple_mock_auth(uid: "apple_flow_cancel")
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: @callback_headers
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: @callback_headers
 
     assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
 
@@ -104,9 +104,9 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     state = start_social_auth_flow(intent: "login")
     setup_apple_mock_auth(uid: "apple_flow_existing", token: "token_new")
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: @callback_headers
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: @callback_headers
 
     submit_social_completion_if_present!
 
@@ -127,6 +127,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
       info: {},
       credentials: {
         token: token,
+        refresh_token: "apple_refresh_token",
         expires_at: 1.week.from_now.to_i,
       },
       extra: { id_info: { nonce: session[:social_auth_nonce] } },

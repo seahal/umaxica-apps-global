@@ -32,6 +32,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
         info: {},
         credentials: {
           token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
@@ -40,8 +41,8 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
-             headers: browser_headers.merge(@callback_headers)
+        get auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+            headers: browser_headers.merge(@callback_headers)
       end
     end
 
@@ -88,14 +89,15 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
         info: {},
         credentials: {
           token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
-         headers: browser_headers.merge(@callback_headers)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+        headers: browser_headers.merge(@callback_headers)
 
     assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
 
@@ -124,14 +126,15 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
         info: {},
         credentials: {
           token: "new_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
-         headers: browser_headers.merge(@callback_headers)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+        headers: browser_headers.merge(@callback_headers)
 
     assert_redirected_to sign_app_sign_in_url(ri: "jp")
     assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before login completion"
@@ -154,6 +157,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
         info: {}, # Deliberately empty - no email provided
         credentials: {
           token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
@@ -162,8 +166,8 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
-             headers: browser_headers.merge(@callback_headers)
+        get auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+            headers: browser_headers.merge(@callback_headers)
       end
     end
 
@@ -205,14 +209,15 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
         info: {}, # No email in auth hash
         credentials: {
           token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
-         headers: browser_headers.merge(@callback_headers)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+        headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
     follow_redirect!

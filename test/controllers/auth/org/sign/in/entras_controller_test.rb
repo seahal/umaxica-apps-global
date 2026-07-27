@@ -13,10 +13,17 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
   setup do
     host! ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     Rails.configuration.x.rate_limit.fetch(:store).clear
+    @entra_social_ceremony_enabled = ENV["ENTRA_SOCIAL_CEREMONY_ENABLED"]
+    ENV["ENTRA_SOCIAL_CEREMONY_ENABLED"] = "true"
   end
 
   teardown do
     Rails.configuration.x.rate_limit.fetch(:store).clear
+    if @entra_social_ceremony_enabled.nil?
+      ENV.delete("ENTRA_SOCIAL_CEREMONY_ENABLED")
+    else
+      ENV["ENTRA_SOCIAL_CEREMONY_ENABLED"] = @entra_social_ceremony_enabled
+    end
   end
 
   setup do
@@ -122,14 +129,14 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
     assert_predicate query["redirect_uri"], :present?
   end
 
-  test "authorization stores state nonce and connection in session" do
+  test "authorization stores only an opaque ceremony reference in session" do
     post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
 
-    assert_predicate session[:entra_state], :present?
-    assert_predicate session[:entra_nonce], :present?
-    assert_predicate session[:entra_code_verifier], :present?
-    assert_equal @active_connection.public_id, session[:entra_connection_public_id]
+    assert_predicate session[:external_authentication_ceremony_reference], :present?
+    assert_nil session[:entra_state]
+    assert_nil session[:entra_nonce]
+    assert_nil session[:entra_code_verifier]
   end
 
   test "authorization renders error when connection_public_id is missing" do
@@ -137,6 +144,16 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
          params: { entra: { connection_public_id: "" } }
 
     assert_response :unprocessable_content
+  end
+
+  test "authorization stops before issuing a ceremony when Entra is disabled" do
+    ENV["ENTRA_SOCIAL_CEREMONY_ENABLED"] = "false"
+
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
+         params: { entra: { connection_public_id: @active_connection.public_id } }
+
+    assert_response :unprocessable_content
+    assert_nil session[:external_authentication_ceremony_reference]
   end
 
   test "authorization renders error when connection is not active" do
@@ -158,7 +175,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
     post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
 
-    session_state = session[:entra_state]
+    session_state = entra_ceremony_payload.fetch("state")
     redirect_state = Rack::Utils.parse_nested_query(URI.parse(response.location).query)["state"]
 
     assert_equal session_state, redirect_state
@@ -175,27 +192,31 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
   test "callback renders error when state does not match session" do
     post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
+    reference = session.fetch(:external_authentication_ceremony_reference)
 
     get auth_org_sign_in_entra_callback_path(ri: RI), params: { state: "wrong-state", code: "auth-code" }
 
     assert_response :unprocessable_content
+    assert_nil session[:external_authentication_ceremony_reference]
+    assert_nil Rails.cache.read("external-authentication/org-entra-ceremony/#{reference}")
   end
 
   test "callback renders error when Entra returns an error param" do
     post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
-    state = session[:entra_state]
+    state = entra_ceremony_payload.fetch("state")
 
     get auth_org_sign_in_entra_callback_path(ri: RI),
         params: { state: state, error: "access_denied", error_description: "User denied consent" }
 
     assert_response :unprocessable_content
+    assert_nil session[:external_authentication_ceremony_reference]
   end
 
   test "callback clears state from session to prevent replay" do
     post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
-    state = session[:entra_state]
+    state = entra_ceremony_payload.fetch("state")
 
     get auth_org_sign_in_entra_callback_path(ri: RI), params: { state: state, code: "code" }
 
@@ -210,7 +231,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
   test "callback renders error when token exchange fails" do
     post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
-    state = session[:entra_state]
+    state = entra_ceremony_payload.fetch("state")
 
     failed_result = OidcRpTokenClient::Result.new(success: false, token_response: nil, error: "invalid_grant")
     OidcRpTokenClient.stub(:call, failed_result) do
@@ -218,6 +239,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :unprocessable_content
+    assert_nil session[:external_authentication_ceremony_reference]
   end
 
   # --- callback action: token verification failure ---
@@ -225,7 +247,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
   test "callback renders error when id_token is not a valid JWT" do
     post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
-    state = session[:entra_state]
+    state = entra_ceremony_payload.fetch("state")
 
     token_result = OidcRpTokenClient::Result.new(
       success: true,
@@ -249,8 +271,8 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
 
     post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
-    nonce = session[:entra_nonce]
-    state = session[:entra_state]
+    nonce = entra_ceremony_payload.fetch("nonce")
+    state = entra_ceremony_payload.fetch("state")
 
     now = Time.now.to_i
     id_token = JWT.encode(
@@ -299,8 +321,8 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
 
     post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
-    nonce = session[:entra_nonce]
-    state = session[:entra_state]
+    nonce = entra_ceremony_payload.fetch("nonce")
+    state = entra_ceremony_payload.fetch("state")
 
     now = Time.now.to_i
     id_token = JWT.encode(
@@ -401,5 +423,14 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
         "https://#{com_host}/sign/in/entra/callback", method: :get,
       )
     end
+  end
+
+  private
+
+  def entra_ceremony_payload
+    {
+      "state" => Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("state"),
+      "nonce" => "test-nonce-not-used-for-controller-failure-path",
+    }
   end
 end

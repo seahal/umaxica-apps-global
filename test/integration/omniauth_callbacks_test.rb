@@ -99,6 +99,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         info: {},
         credentials: {
           token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
@@ -107,9 +108,9 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-             params: { state: state },
-             headers: social_callback_headers(@host)
+        get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+            params: { state: state },
+            headers: social_callback_headers(@host)
       end
     end
 
@@ -132,6 +133,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         info: {},
         credentials: {
           token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
@@ -181,15 +183,16 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         info: {},
         credentials: {
           token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: social_callback_headers(@host)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: social_callback_headers(@host)
 
     # The sign callback must not establish an MFA challenge or sign-side session
     # for an established social login; it emits the base completion form only.

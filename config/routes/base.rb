@@ -120,8 +120,7 @@ scope(module: :base, as: :base) do
           resource :completion, only: :create
         end
 
-        # Non-resourceful exception: OmniAuth middleware owns these paths, and
-        # Apple's form_post response mode requires the POST variant.
+        # Non-resourceful exception: OmniAuth middleware owns these fixed provider callback paths.
         get(
           "google/callback",
           to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
@@ -129,10 +128,9 @@ scope(module: :base, as: :base) do
           defaults: { provider: "google" },
         )
 
-        match(
+        get(
           "apple/callback",
           to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
-          via: %i(get post),
           as: :apple_callback,
           defaults: { provider: "apple" },
         )
@@ -450,6 +448,18 @@ scope(module: :base, as: :base) do
             controller: "visitors/sessions/emergency_revocations",
             path: "sessions/emergency_revocation",
           )
+        end
+
+        # adr/unified-enforcement.md, Approval: realm-scoped noun resources, per
+        # .agents/harnesses/rules/generic/routing.mdc (no verb actions such as
+        # `approve`/`release`; each is its own nested resource with only `create`).
+        %i(app com org).each do |enforcement_realm|
+          scope(path: enforcement_realm, as: enforcement_realm, defaults: { realm: enforcement_realm }) do
+            resources :enforcement_cases, only: %i(index show create) do
+              resource :approval, only: :create, controller: "enforcement_cases/approvals"
+              resource :release, only: :create, controller: "enforcement_cases/releases"
+            end
+          end
         end
       end
       resources :billing, only: :index

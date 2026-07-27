@@ -9,10 +9,11 @@ class SocialAuthLinkHandler
     new(...).call
   end
 
-  def initialize(auth_hash:, current_client:, identity_class:, provider:, uid:)
-    @auth_hash = auth_hash
+  def initialize(principal:, credential_candidate:, current_client:, repository:, provider:, uid:)
+    @principal = principal
+    @credential_candidate = credential_candidate
     @current_client = current_client
-    @identity_class = identity_class
+    @repository = repository
     @provider = provider
     @uid = uid
   end
@@ -25,7 +26,7 @@ class SocialAuthLinkHandler
     existing_for_user = identity_for_current_user
     return handle_existing_for_current_user(existing_for_user) if existing_for_user
 
-    identity = identity_class.lock.find_by(uid: uid, provider: provider)
+    identity = repository.find_by_subject(uid, lock: true)
     Rails.logger.debug do
       "[SocialAuth] Identity with uid exists: #{identity.present?}, " \
         "belongs_to_current_user: #{identity&.user_id == current_client_id}"
@@ -47,7 +48,7 @@ class SocialAuthLinkHandler
 
   private
 
-  attr_reader :auth_hash, :current_client, :identity_class, :provider, :uid
+  attr_reader :principal, :credential_candidate, :current_client, :repository, :provider, :uid
 
   def current_client_id
     current_client.id
@@ -67,8 +68,12 @@ class SocialAuthLinkHandler
 
   def reactivate_current_identity(identity)
     was_active = identity.active?
-    identity.update_from_auth_hash!(auth_hash)
-    identity.update!(identity_class.status_column => active_status_id)
+    repository.refresh_credentials!(
+      identity,
+      principal: principal,
+      credential_candidate: credential_candidate,
+    )
+    repository.activate!(identity)
     create_social_link_audit(identity) unless was_active
     Rails.logger.debug { "[SocialAuth] Reactivated existing identity" }
   end
@@ -86,7 +91,11 @@ class SocialAuthLinkHandler
 
     Rails.logger.debug { "[SocialAuth] Identity already belongs to current user, updating" }
     was_active = identity.active?
-    identity.update_from_auth_hash!(auth_hash)
+    repository.refresh_credentials!(
+      identity,
+      principal: principal,
+      credential_candidate: credential_candidate,
+    )
     create_social_link_audit(identity) unless was_active
     build_result(identity)
   end
@@ -121,12 +130,7 @@ class SocialAuthLinkHandler
   end
 
   def identity_for_current_user
-    case identity_class.name
-    when "ClientGoogleIdentity"
-      current_client.user_google_identity
-    when "ClientAppleIdentity"
-      current_client.user_apple_identity
-    end
+    repository.find_for_user(current_client)
   end
 
   def same_social_identity?(identity)
@@ -135,19 +139,11 @@ class SocialAuthLinkHandler
   end
 
   def build_identity_for_current_user
-    identity_class.new(
-      uid: uid,
-      provider: provider,
-      token: auth_hash.dig("credentials", "token") || auth_hash.dig(:credentials, :token) || "",
-      refresh_token: auth_hash.dig("credentials", "refresh_token") ||
-        auth_hash.dig(:credentials, :refresh_token) || "",
-      expires_at: auth_hash.dig("credentials", "expires_at") || auth_hash.dig(:credentials, :expires_at) || 0,
+    repository.build_for_user(
       user: current_client,
+      principal: principal,
+      credential_candidate: credential_candidate,
     )
-  end
-
-  def active_status_id
-    identity_class.status_class::ACTIVE
   end
 
   def create_social_link_audit(identity)

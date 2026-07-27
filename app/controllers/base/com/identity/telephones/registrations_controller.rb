@@ -11,6 +11,8 @@ module Base
           include CommonOtp
           include SignSettingsTelephoneRegistration
 
+          include EnforcementIdentifierGate
+
           include ::VerificationVisitor
 
           AUTHENTICATION_MODE = :private
@@ -51,6 +53,19 @@ module Base
 
             tel_params = params(user_telephone: [:raw_number, :number])
             number = tel_params[:raw_number] || tel_params[:number]
+
+            # adr/unified-enforcement.md, Identifier attachment enforcement: an in-force
+            # Identifier Effect with attachment_blocked rejects attaching this identifier to
+            # an existing account, at the same enumeration-resistance discipline as the
+            # ordinary validation failure.
+            if number.present? && enforcement_blocks_telephone_attachment?(
+              effect_class: ComEnforcementIdentifierEffect, realm: "com", telephone: number,
+            )
+              @user_telephone = VisitorTelephone.new
+              @user_telephone.errors.add(:raw_number, :blank)
+              render :new, status: :unprocessable_content
+              return
+            end
 
             unless initiate_visitor_telephone_verification(visitor, number, auto_accept_confirmations: true)
               render :new, status: :unprocessable_content

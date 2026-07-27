@@ -94,6 +94,21 @@ Current audit / chronicle decisions:
 - `adr/chronicle-audit-db-consolidation.md`
 - `adr/chronicle-audit-implementation-guidance.md`
 
+Current account enforcement decisions:
+
+- `adr/administrative-access-lock.md` — accepted `admin_locked` account-wide runtime access gate
+  for `Client`, `Visitor`, `Operator`; unchanged and reused, not superseded, by Unified
+  Enforcement.
+- `adr/unified-enforcement.md` — current source of truth for Identity BAN, Identity Freeze, and
+  Authentication Method Lock as one Enforcement Case substrate with independently combinable
+  Principal / Authentication Method / Identifier effects, per-surface `*_zenith` storage, and
+  no dedicated enforcement database.
+- `adr/authentication-method-lock.md` — superseded by `adr/unified-enforcement.md`; retained for
+  traceability of the 2026-07-26 decision.
+- `adr/database-trigger-usage-boundary.md` — accepted narrow trigger-usage policy; Context
+  corrected 2026-07-27 (five orphaned functions, not eight; no credential-table
+  `ON DELETE CASCADE`), Decision unchanged.
+
 Preference decisions:
 
 - `adr/app-actor-client-naming.md`

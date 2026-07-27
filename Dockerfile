@@ -207,7 +207,9 @@ ARG DOCKER_GID
 ARG DOCKER_USER
 ARG DOCKER_GROUP
 ARG GITHUB_ACTIONS
-ENV HOME=/home/${DOCKER_USER}
+ENV HOME=/home/${DOCKER_USER} \
+    CORE_WORKLOAD_USER=${DOCKER_USER} \
+    CORE_WORKLOAD_GROUP=${DOCKER_GROUP}
 WORKDIR ${HOME}/workspace
 
 COPY --from=node-toolchain /usr/local/bin/node /usr/local/bin/node
@@ -247,9 +249,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     ripgrep \
     silversearcher-ag \
     socat \
-    sudo \
     tig \
     tree \
+    util-linux \
     watch \
     wget \
     yq \
@@ -259,8 +261,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 RUN if [ -z "${GITHUB_ACTIONS}" ]; then \
     groupadd -g "${DOCKER_GID}" "${DOCKER_GROUP}"; \
     useradd -l -u "${DOCKER_UID}" -g "${DOCKER_GROUP}" -m -s /bin/bash "${DOCKER_USER}"; \
-    echo "${DOCKER_USER}:${DOCKER_USER_PASSWORD:-devpassword}" | chpasswd; \
-    echo "${DOCKER_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers; \
+    usermod -L "${DOCKER_USER}"; \
     else \
     mkdir -p "${HOME}"; \
     fi
@@ -273,4 +274,68 @@ RUN npm install -g pnpm@latest \
 RUN mkdir -p "${HOME}/workspace" \
     && chown -R "${DOCKER_UID}:${DOCKER_GID}" "${HOME}"
 
+COPY --chown=0:0 docker/core/entrypoint.sh /usr/local/bin/core-entrypoint
+COPY --chown=0:0 .devcontainer/tailscale-core-supervisor.sh /usr/local/bin/tailscale-core-supervisor
+COPY --chown=0:0 .devcontainer/tailscale-core-status.sh /usr/local/bin/tailscale-core-status
+COPY --chown=0:0 .devcontainer/tailscale-core-login-environment.sh /etc/profile.d/umaxica-core-development.sh
+
+RUN chmod 0555 \
+    /usr/local/bin/core-entrypoint \
+    /usr/local/bin/tailscale-core-supervisor \
+    /usr/local/bin/tailscale-core-status \
+    && chmod 0444 /etc/profile.d/umaxica-core-development.sh
+
 USER ${DOCKER_USER}
+
+# ============================================================================
+# Persistent coding workspace — development plus nested rootless Podman
+# ============================================================================
+FROM development AS workspace
+SHELL ["/bin/bash", "-eu", "-o", "pipefail", "-c"]
+ARG DOCKER_UID
+ARG DOCKER_GID
+ARG DOCKER_USER
+
+USER root
+
+# hadolint ignore=DL3008
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update -qq \
+    && apt-get install --no-install-recommends -y \
+    fuse-overlayfs \
+    passt \
+    podman \
+    slirp4netns \
+    uidmap \
+    && rm -rf /tmp/* /var/tmp/*
+
+# The outer rootless user namespace exposes IDs 1..65536. Reserve all IDs
+# except the baked development UID/GID for the inner rootless Podman user.
+RUN configure_subids() { \
+      local name=$1 value=$2 file=$3; \
+      sed -i "/^${name}:/d" "${file}"; \
+      if (( value >= 1 && value <= 65536 )); then \
+        if (( value > 1 )); then \
+          printf '%s:1:%s\n' "${name}" "$((value - 1))" >> "${file}"; \
+        fi; \
+        if (( value < 65536 )); then \
+          printf '%s:%s:%s\n' "${name}" "$((value + 1))" "$((65536 - value))" >> "${file}"; \
+        fi; \
+      else \
+        printf '%s:1:65536\n' "${name}" >> "${file}"; \
+      fi; \
+    }; \
+    configure_subids "${DOCKER_USER}" "${DOCKER_UID}" /etc/subuid; \
+    configure_subids "${DOCKER_USER}" "${DOCKER_GID}" /etc/subgid; \
+    install -d -m 0700 -o "${DOCKER_UID}" -g "${DOCKER_GID}" \
+      "/run/user/${DOCKER_UID}" \
+      "/home/${DOCKER_USER}/.local/share/containers"
+
+ENV XDG_RUNTIME_DIR=/run/user/${DOCKER_UID}
+
+USER ${DOCKER_USER}
+
+# Omitting --target must always produce the deployable runtime image.
+FROM production AS final

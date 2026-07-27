@@ -288,9 +288,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     state = start_social_auth_flow(provider: "apple", intent: "login")
     setup_apple_mock_auth(uid: existing_uid)
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: browser_headers.merge(@callback_headers)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
     assert_equal user_count_before, Client.count
@@ -321,9 +321,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal "apple", sign_up_cycle.entry_method
     assert_equal "social_callback", sign_up_cycle.step
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: browser_headers.merge(@callback_headers)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
     assert_response :redirect
@@ -501,9 +501,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
           assert_no_difference("Organization.count") do
             assert_no_difference("Avatar.count") do
               assert_no_difference("ClientToken.count") do
-                post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-                     params: { state: state },
-                     headers: browser_headers.merge(@callback_headers)
+                get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+                    params: { state: state },
+                    headers: browser_headers.merge(@callback_headers)
                 submit_social_completion_if_present!
               end
             end
@@ -648,6 +648,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
       info: {}, # Apple may not provide any info when email scope is not requested
       credentials: {
         token: "apple_token_#{SecureRandom.hex(8)}",
+        refresh_token: "apple_refresh_token",
         expires_at: 1.week.from_now.to_i,
       },
       extra: { id_info: { nonce: session[:social_auth_nonce] } },

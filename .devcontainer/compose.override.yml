@@ -9,12 +9,9 @@ services:
         DOCKER_UID: "${UID:-1000}"
         DOCKER_GID: "${GID:-1000}"
     userns_mode: keep-id
-    # `userns_mode: keep-id` already maps the host UID to the in-container
-    # UID baked by the Dockerfile. Specifying `user:` on top double-maps and
-    # breaks bind-mount ownership under rootless podman. Clear the inherited
-    # value so the image's USER (provisioned at build time from DOCKER_UID/
-    # DOCKER_GID) wins.
-    user: !reset null
+    # The Compose service keeps a root control-plane PID 1. devcontainer.json
+    # selects `global` for interactive sessions, and core-entrypoint drops the
+    # development workload to the host-shaped UID/GID.
     # Reset the base tmpfs list and keep only the entries that are safe in
     # devcontainer: workspace/tmp and workspace/log caused lost state and
     # sporadic write failures so those fall back to the bind-mounted dirs.

@@ -33,9 +33,9 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     setup_apple_mock_auth(uid: apple_uid)
 
     # Callback without login (no headers)
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: browser_headers.merge(@callback_headers)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
 

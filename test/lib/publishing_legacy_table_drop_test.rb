@@ -18,14 +18,21 @@ class PublishingLegacyTableDropTest < ActiveSupport::TestCase
         table = sql.match(/FROM "([^"]+)"/)[1]
         row_counts.fetch(table, 0)
       end
+
+      # None of the fake tables carry real foreign keys; the fixtures only
+      # need to exercise the drop/empty-check paths above.
+      def foreign_keys(_table)
+        []
+      end
     end
 
   class FakeMigration
-    attr_reader :connection, :drops
+    attr_reader :connection, :drops, :removed_foreign_keys
 
     def initialize(existing_tables:, row_counts: {})
       @connection = FakeConnection.new(existing_tables.map(&:to_s), row_counts.transform_keys(&:to_s))
       @drops = []
+      @removed_foreign_keys = []
     end
 
     def safety_assured
@@ -34,6 +41,10 @@ class PublishingLegacyTableDropTest < ActiveSupport::TestCase
 
     def drop_table(table, **options)
       drops << [table.to_s, options]
+    end
+
+    def remove_foreign_key(table, **options)
+      removed_foreign_keys << [table.to_s, options]
     end
   end
 

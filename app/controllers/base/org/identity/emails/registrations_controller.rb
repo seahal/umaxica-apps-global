@@ -11,6 +11,8 @@ module Base
           include ::CommonOtp
           include SignSettingsEmailRegistration
 
+          include EnforcementIdentifierGate
+
           include ::VerificationOperator
 
           AUTHENTICATION_MODE = :private
@@ -45,6 +47,18 @@ module Base
               { raw_address: email_address, confirm_policy: "1" }.merge(email_preferences),
             )
             @staff_email.staff_email_status_id = OperatorEmailStatus::UNVERIFIED
+
+            # adr/unified-enforcement.md, Identifier attachment enforcement: an in-force
+            # Identifier Effect with attachment_blocked rejects attaching this identifier to
+            # an existing account, at the same enumeration-resistance discipline as the
+            # ordinary validation failure.
+            if email_address.present? && enforcement_blocks_email_attachment?(
+              effect_class: OrgEnforcementIdentifierEffect, realm: "org", email: email_address,
+            )
+              @staff_email.errors.add(:address, :blank)
+              render :new, status: :unprocessable_content
+              return
+            end
 
             unless cloudflare_turnstile_stealth_validation["success"]
               @staff_email.errors.add(:base, t("sign.org.registration.email.create.turnstile_validation_failed"))

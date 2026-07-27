@@ -16,7 +16,7 @@ module WebauthnSurfaceDeclarable
   class SurfaceNotDeclaredError < StandardError; end
 
   included do
-    class_attribute :declared_webauthn_surface_key, instance_writer: false, default: nil
+    class_attribute :declared_webauthn_surface_key, instance_writer: false, default: nil # rubocop:disable ThreadSafety/ClassAndModuleAttributes
   end
 
   class_methods do

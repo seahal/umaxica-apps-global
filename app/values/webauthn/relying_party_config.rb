@@ -6,7 +6,7 @@ module Webauthn
   #
   # Invariants enforced here (see docs/security/webauthn-security-invariants.md):
   # - the origin is an absolute http(s) origin without path/query/fragment
-  # - the RP ID equals the origin host exactly — parent-domain RP IDs are
+  # - the RP ID equals the origin host exactly -- parent-domain RP IDs are
   #   forbidden so credentials can never be shared across surfaces
   # - origin comparison is exact on scheme, host, and effective port
   class RelyingPartyConfig

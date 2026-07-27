@@ -1,21 +1,74 @@
-#!/usr/bin/env bash
+#!/bin/bash -p
 set -euo pipefail
 
-USER_ID=$(id -u)
-GROUP_ID=$(id -g)
+readonly PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+unset BASH_ENV ENV CDPATH
 
-# tmpfs mounts come up root-owned on each boot; only those need normalization.
-# Do NOT chown ${HOME} or its dotfile subdirs: under rootless podman without
-# `userns_mode: keep-id` honored at runtime, that rewrites bind-mounted host
-# files (~/.ssh, ~/.gitconfig, ~/.codex, ...) to a subuid the host user can no
-# longer access.
-# In devcontainer mode workspace/tmp and workspace/log are bind-mounted (not
-# tmpfs) so they are already owned correctly; the chown is a no-op but safe.
-# /tmp and workspace/tmp/pids are always tmpfs so they always need normalization.
-sudo chown "${USER_ID}:${GROUP_ID}" \
-  /tmp \
-  "${HOME}/workspace/tmp" \
-  "${HOME}/workspace/tmp/pids" \
-  "${HOME}/workspace/log"
+readonly SUPERVISOR_BIN=/usr/local/bin/tailscale-core-supervisor
+readonly LOGIN_ENVIRONMENT=/run/core-development-environment
 
-exec "$@"
+if (( EUID != 0 )); then
+  echo "core-entrypoint: effective UID 0 is required" >&2
+  exit 77
+fi
+
+readonly WORKLOAD_USER=${CORE_WORKLOAD_USER:?CORE_WORKLOAD_USER must be set}
+readonly WORKLOAD_GROUP=${CORE_WORKLOAD_GROUP:?CORE_WORKLOAD_GROUP must be set}
+
+if ! WORKLOAD_UID=$(id -u "${WORKLOAD_USER}"); then
+  echo "core-entrypoint: workload user ${WORKLOAD_USER} does not exist" >&2
+  exit 78
+fi
+readonly WORKLOAD_UID
+
+if ! WORKLOAD_GID=$(getent group "${WORKLOAD_GROUP}" | cut -d: -f3) ||
+   [[ -z "${WORKLOAD_GID}" ]]
+then
+  echo "core-entrypoint: workload group ${WORKLOAD_GROUP} does not exist" >&2
+  exit 78
+fi
+readonly WORKLOAD_GID
+
+normalize_runtime_directory() {
+  local path=$1
+
+  if [[ ! -d "${path}" || -L "${path}" ]]; then
+    echo "core-entrypoint: runtime path must be a directory, not a symlink: ${path}" >&2
+    exit 79
+  fi
+
+  chown --no-dereference "${WORKLOAD_UID}:${WORKLOAD_GID}" "${path}"
+}
+
+# Only normalize fixed runtime paths. The explicit symlink rejection prevents
+# a writable workspace from redirecting a root chown to another location.
+normalize_runtime_directory /tmp
+normalize_runtime_directory "/home/${WORKLOAD_USER}/workspace/tmp"
+normalize_runtime_directory "/home/${WORKLOAD_USER}/workspace/tmp/pids"
+normalize_runtime_directory "/home/${WORKLOAD_USER}/workspace/log"
+
+install -m 0400 -o "${WORKLOAD_UID}" -g "${WORKLOAD_GID}" /dev/null "${LOGIN_ENVIRONMENT}"
+while IFS= read -r -d '' assignment; do
+  name=${assignment%%=*}
+
+  [[ "${name}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+
+  case "${name}" in
+    TS_AUTH* | TAILSCALE_AUTH* | TUNNEL_TOKEN* | CLOUDFLARED_TOKEN*)
+      continue
+      ;;
+  esac
+
+  printf '%s\0' "${assignment}"
+done < /proc/self/environ > "${LOGIN_ENVIRONMENT}"
+
+if [[ "${1:-}" == "${SUPERVISOR_BIN}" ]]; then
+  exec "$@"
+fi
+
+exec /usr/bin/setpriv \
+  --reuid="${WORKLOAD_UID}" \
+  --regid="${WORKLOAD_GID}" \
+  --init-groups \
+  -- "$@"

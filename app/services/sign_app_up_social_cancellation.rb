@@ -30,7 +30,7 @@ class SignAppUpSocialCancellation
       errors: ["pending actor is required"],
     ) unless pending_actor?(actor)
 
-    identity = identity_class.find_by(id: cycle.pending_contact_id)
+    identity = pending_identity_for(actor)
     return SignUpResult.build(
       status: :blocked, ticket: cycle,
       errors: ["pending social identity is required"],
@@ -62,6 +62,17 @@ class SignAppUpSocialCancellation
 
   def identity_class
     SUPPORTED_PROVIDERS.fetch(normalized_provider)
+  end
+
+  def pending_identity_for(actor)
+    if ExternalAuthentication::IdentityRepositoryFactory.common_storage?
+      identity = ExternalAuthentication::IdentityRepositoryFactory.current.build(normalized_provider).find_for_user(actor)
+      return identity if identity && identity.id.to_s == cycle.pending_contact_id.to_s
+
+      return nil
+    end
+
+    identity_class.find_by(id: cycle.pending_contact_id)
   end
 
   def pending_actor?(actor)

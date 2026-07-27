@@ -1,15 +1,43 @@
-#!/usr/bin/env bash
+#!/bin/bash -p
 set -uo pipefail
+
+readonly PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+unset BASH_ENV ENV CDPATH
 
 readonly TAILSCALE_BIN=/usr/local/bin/tailscale
 readonly TAILSCALED_BIN=/usr/local/bin/tailscaled
 readonly TAILSCALE_SOCKET=/run/tailscale/tailscaled.sock
 readonly TAILSCALE_STATE_DIR=/var/lib/tailscale-core
-readonly LOGIN_ENVIRONMENT_SOURCE=/home/global/workspace/.devcontainer/tailscale-core-login-environment.sh
-readonly LOGIN_ENVIRONMENT_TARGET=/etc/profile.d/umaxica-core-development.sh
 readonly MAX_TAILSCALED_RESTARTS=3
+readonly WORKLOAD_MAX_BACKOFF_SECONDS=30
+readonly WORKLOAD_BACKOFF_RESET_SECONDS=30
+
+if (( EUID != 0 )); then
+  echo "tailscale-core: effective UID 0 is required" >&2
+  exit 77
+fi
+
+readonly WORKLOAD_USER=${CORE_WORKLOAD_USER:?CORE_WORKLOAD_USER must be set}
+readonly WORKLOAD_GROUP=${CORE_WORKLOAD_GROUP:?CORE_WORKLOAD_GROUP must be set}
+
+if ! workload_uid=$(id -u "${WORKLOAD_USER}"); then
+  echo "tailscale-core: workload user ${WORKLOAD_USER} does not exist" >&2
+  exit 78
+fi
+readonly workload_uid
+
+if ! workload_gid=$(getent group "${WORKLOAD_GROUP}" | cut -d: -f3) ||
+   [[ -z "${workload_gid}" ]]
+then
+  echo "tailscale-core: workload group ${WORKLOAD_GROUP} does not exist" >&2
+  exit 78
+fi
+readonly workload_gid
 
 workload_pid=""
+workload_started_at=0
+workload_restarts=0
 tailscaled_pid=""
 tailscaled_restarts=0
 stop_requested=0
@@ -21,7 +49,7 @@ log() {
 process_is_running() {
   local pid=$1
 
-  [[ "${pid}" =~ ^[0-9]+$ ]] && sudo -n kill -0 "${pid}" 2>/dev/null
+  [[ "${pid}" =~ ^[0-9]+$ ]] && kill -0 "${pid}" 2>/dev/null
 }
 
 terminate_process() {
@@ -34,7 +62,7 @@ terminate_process() {
   fi
 
   log "stopping ${name} process ${pid}"
-  if ! sudo -n kill -TERM "${pid}"; then
+  if ! kill -TERM "${pid}"; then
     log "failed to send TERM to ${name} process ${pid}"
     return 1
   fi
@@ -46,7 +74,7 @@ terminate_process() {
 
   if process_is_running "${pid}"; then
     log "${name} process ${pid} did not stop after 10 seconds; sending KILL"
-    sudo -n kill -KILL "${pid}" || log "failed to send KILL to ${name} process ${pid}"
+    kill -KILL "${pid}" || log "failed to send KILL to ${name} process ${pid}"
   fi
 }
 
@@ -108,16 +136,16 @@ start_tailscaled() {
     log "Tailscale tools are unavailable; local development remains available"
     return 1
   fi
-  if ! sudo -n install -d -m 0755 -o root -g root /run/tailscale; then
+  if ! install -d -m 0755 -o root -g root /run/tailscale; then
     log "failed to prepare /run/tailscale; local development remains available"
     return 1
   fi
-  if ! sudo -n install -d -m 0700 -o root -g root "${TAILSCALE_STATE_DIR}"; then
+  if ! install -d -m 0700 -o root -g root "${TAILSCALE_STATE_DIR}"; then
     log "failed to secure ${TAILSCALE_STATE_DIR}; local development remains available"
     return 1
   fi
 
-  sudo -n "${TAILSCALED_BIN}" \
+  "${TAILSCALED_BIN}" \
     --tun=userspace-networking \
     --socket="${TAILSCALE_SOCKET}" \
     --statedir="${TAILSCALE_STATE_DIR}" &
@@ -132,7 +160,7 @@ start_tailscaled() {
       tailscaled_pid=""
       return 1
     fi
-    if sudo -n test -S "${TAILSCALE_SOCKET}"; then
+    if test -S "${TAILSCALE_SOCKET}"; then
       log "tailscaled is ready; authenticate interactively with the documented tailscale up command"
       return 0
     fi
@@ -145,12 +173,18 @@ start_tailscaled() {
   return 1
 }
 
-install_login_environment() {
-  if ! sudo -n install -m 0644 -o root -g root \
-    "${LOGIN_ENVIRONMENT_SOURCE}" "${LOGIN_ENVIRONMENT_TARGET}"; then
-    log "failed to install the remote development login environment; local development remains available"
-    return 1
-  fi
+start_workload() {
+  # Foreman signals its complete process group when any Procfile process
+  # exits. Keep that group separate from PID 1 so Foreman's shutdown cannot
+  # terminate this supervisor before it has reaped the workload.
+  setsid /usr/bin/setpriv \
+    --reuid="${workload_uid}" \
+    --regid="${workload_gid}" \
+    --init-groups \
+    -- "$@" &
+  workload_pid=$!
+  workload_started_at=$(date +%s)
+  log "started development workload process ${workload_pid}: $*"
 }
 
 if (( $# == 0 )); then
@@ -158,14 +192,7 @@ if (( $# == 0 )); then
   exit 64
 fi
 
-install_login_environment || true
-
-# Foreman signals its complete process group when any Procfile process exits.
-# Keep that group separate from PID 1 so Foreman's shutdown cannot terminate
-# this supervisor before it has reaped the workload and stopped tailscaled.
-setsid "$@" &
-workload_pid=$!
-log "started development workload process ${workload_pid}: $*"
+start_workload "$@"
 
 if ! start_tailscaled; then
   tailscaled_restarts=1
@@ -175,12 +202,32 @@ while (( stop_requested == 0 )); do
   if ! process_is_running "${workload_pid}"; then
     wait "${workload_pid}"
     workload_status=$?
-    log "development workload exited with status ${workload_status}; stopping Tailscale"
-    stop_tailscaled
-    if (( workload_status == 0 )); then
-      exit 1
+
+    workload_uptime=$(( $(date +%s) - workload_started_at ))
+    if (( workload_uptime >= WORKLOAD_BACKOFF_RESET_SECONDS )); then
+      workload_restarts=0
     fi
-    exit "${workload_status}"
+    workload_restarts=$((workload_restarts + 1))
+
+    workload_backoff=$(( 1 << (workload_restarts - 1) ))
+    if (( workload_backoff > WORKLOAD_MAX_BACKOFF_SECONDS )); then
+      workload_backoff=${WORKLOAD_MAX_BACKOFF_SECONDS}
+    fi
+
+    # The workload's failure does not tear down Tailscale or this supervisor:
+    # remote access must stay available to diagnose a workload that cannot
+    # start (e.g. missing gems, database not ready yet), and the container's
+    # own liveness must not depend on the workload's success.
+    log "development workload exited with status ${workload_status} (restart #${workload_restarts}); retrying in ${workload_backoff}s"
+
+    sleep "${workload_backoff}" &
+    wait $!
+
+    if (( stop_requested == 1 )); then
+      break
+    fi
+
+    start_workload "$@"
   fi
 
   if [[ -n "${tailscaled_pid}" ]] && ! process_is_running "${tailscaled_pid}"; then

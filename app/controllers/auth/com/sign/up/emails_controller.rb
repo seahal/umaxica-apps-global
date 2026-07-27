@@ -14,6 +14,8 @@ module Auth
 
           include CommonOtp
 
+          include EnforcementIdentifierGate
+
           AUTHENTICATION_MODE = :guest
 
           SESSION_KEY = :auth_com_up_email_flow_state
@@ -99,6 +101,22 @@ module Auth
             email_address = email_params&.[](:raw_address).presence || email_params&.[](:address).presence
 
             if email_address.blank?
+              @user_email = VisitorEmail.new
+              @user_email.errors.add(
+                :base,
+                t("sign.com.registration.email.create.address_required"),
+              )
+              render :new, status: :unprocessable_content
+              return
+            end
+
+            # adr/unified-enforcement.md, Signup enforcement: an in-force Identifier
+            # Effect with registration_blocked rejects signup before any OTP is sent,
+            # at the same enumeration-resistance discipline as an ordinary validation
+            # failure -- same render call, same error copy, no distinguishing signal.
+            if enforcement_blocks_email_registration?(
+              effect_class: ComEnforcementIdentifierEffect, realm: "com", email: email_address,
+            )
               @user_email = VisitorEmail.new
               @user_email.errors.add(
                 :base,

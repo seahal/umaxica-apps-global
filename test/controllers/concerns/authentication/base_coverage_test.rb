@@ -395,6 +395,36 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal [], @controller.normalize_amr("unknown")
   end
 
+  test "normalize_amr prefers established_authentication_method on the token record" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+
+    token_record = Struct.new(:established_authentication_method).new("telephone")
+
+    assert_equal ["sms"], @controller.normalize_amr("BROWSER_WEB", token_record: token_record)
+
+    token_record = Struct.new(:established_authentication_method).new("totp")
+
+    assert_equal ["otp"], @controller.normalize_amr("BROWSER_WEB", token_record: token_record)
+
+    token_record = Struct.new(:established_authentication_method).new("entra")
+
+    assert_equal ["entra_id"], @controller.normalize_amr("BROWSER_WEB", token_record: token_record)
+
+    token_record = Struct.new(:established_authentication_method).new("secret")
+
+    assert_equal ["passcode"], @controller.normalize_amr("BROWSER_WEB", token_record: token_record)
+  end
+
+  test "normalize_amr falls back to token_kind_id when the token record has no recorded method" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+
+    token_record = Struct.new(:established_authentication_method).new(nil)
+
+    assert_equal ["email_otp"], @controller.normalize_amr("email", token_record: token_record)
+    assert_equal [], @controller.normalize_amr("BROWSER_WEB", token_record: token_record)
+    assert_equal ["passkey"], @controller.normalize_amr("passkey", token_record: nil)
+  end
+
   test "path and token expiry helpers" do
     @controller.define_singleton_method(:resource_type) { "client" }
 

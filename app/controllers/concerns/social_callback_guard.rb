@@ -13,12 +13,12 @@ module SocialCallbackGuard
   SOCIAL_STATE_PROVIDER_SESSION_KEY = :social_auth_state_provider
 
   REQUEST_ALLOWED_METHODS_BY_PROVIDER = {
-    "apple" => %w(POST GET).freeze,
-    "google" => %w(POST GET).freeze,
+    "apple" => %w(POST).freeze,
+    "google" => %w(POST).freeze,
   }.freeze
 
   CALLBACK_ALLOWED_METHODS_BY_PROVIDER = {
-    "apple" => %w(POST GET).freeze,
+    "apple" => %w(GET).freeze,
     "google" => %w(GET).freeze,
   }.freeze
 

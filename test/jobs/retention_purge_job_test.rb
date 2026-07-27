@@ -163,4 +163,64 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
                  "Models include Retainable but are absent from RetentionPurgeJob::RETAINABLE_MODELS -- " \
                  "rows in these tables will never be physically purged: #{missing.map(&:name).sort.join(", ")}"
   end
+
+  test "purge skips a client blocked by an in-force principal_hard_delete_blocked Principal Effect" do
+    client = Client.create!(public_id: "block_#{SecureRandom.uuid}".chars.first(16).join, status_id: ClientStatus::ACTIVE)
+    operator = operators(:one)
+    client.update_columns(discarded_at: 1.hour.ago, purged_at: 1.hour.ago)
+
+    the_case = AppEnforcementCase.new(
+      kind: "permanent_ban",
+      duration_mode: "permanent",
+      visibility: "visible",
+      release_mode: "break_glass_only",
+      effective_at: Time.current,
+      reason_code: "abuse",
+      principal_public_id: client.public_id,
+      applied_by_operator_public_id: operator.public_id,
+    )
+    the_case.build_principal_effect(
+      principal_public_id: client.public_id,
+      principal_hard_delete_blocked: true,
+      effective_at: Time.current,
+    )
+    the_case.apply!
+
+    assert_no_difference -> { Client.count } do
+      RetentionPurgeJob.perform_now
+    end
+
+    assert Client.exists?(client.id)
+    assert_nil client.reload.terminated_at
+  end
+
+  test "purge excludes an operator blocked by an in-force withdrawal_purge_blocked Principal Effect from the batch delete" do
+    blocked_operator = Operator.create!
+    applying_operator = operators(:one)
+    blocked_operator.update_columns(discarded_at: 1.hour.ago, purged_at: 1.hour.ago)
+
+    the_case = OrgEnforcementCase.new(
+      kind: "permanent_ban",
+      duration_mode: "permanent",
+      visibility: "visible",
+      release_mode: "break_glass_only",
+      effective_at: Time.current,
+      reason_code: "abuse",
+      principal_public_id: blocked_operator.public_id,
+      applied_by_operator_public_id: applying_operator.public_id,
+      approved_by_operator_public_id: operators(:two).public_id,
+    )
+    the_case.build_principal_effect(
+      principal_public_id: blocked_operator.public_id,
+      withdrawal_purge_blocked: true,
+      effective_at: Time.current,
+    )
+    the_case.apply!
+
+    assert_no_difference -> { Operator.count } do
+      RetentionPurgeJob.perform_now
+    end
+
+    assert Operator.exists?(blocked_operator.id)
+  end
 end

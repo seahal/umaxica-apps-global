@@ -89,6 +89,8 @@ gem "omniauth"
 gem "omniauth-apple"
 # OmniAuth Google OAuth2 strategy.
 gem "omniauth-google-oauth2"
+# OmniAuth OpenID Connect strategy. Used by the org surface Microsoft Entra ID ceremony.
+gem "omniauth_openid_connect"
 # OmniAuth CSRF protection for Rails.
 gem "omniauth-rails_csrf_protection"
 # JSON Web Token support.

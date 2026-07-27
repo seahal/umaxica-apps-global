@@ -2,12 +2,12 @@
 # frozen_string_literal: true
 
 class IdentitySocialCeremonyResultIssuer
-  def self.issue!(grant_token:, auth_hash:, surface:, actor_ref:, session_ref:, operation:, challenge_id: nil,
+  def self.issue!(grant_token:, callback_result:, surface:, actor_ref:, session_ref:, operation:, challenge_id: nil,
                   candidate: nil, birthdate: nil,
                   now: Time.current)
     new(
       grant_token: grant_token,
-      auth_hash: auth_hash,
+      callback_result: callback_result,
       surface: surface,
       actor_ref: actor_ref,
       session_ref: session_ref,
@@ -19,11 +19,11 @@ class IdentitySocialCeremonyResultIssuer
     ).issue!
   end
 
-  def initialize(grant_token:, auth_hash:, surface:, actor_ref:, session_ref:, operation:, challenge_id: nil,
+  def initialize(grant_token:, callback_result:, surface:, actor_ref:, session_ref:, operation:, challenge_id: nil,
                  candidate: nil, birthdate: nil,
                  now: Time.current)
     @grant_token = grant_token
-    @auth_hash = auth_hash
+    @callback_result = callback_result
     @surface = surface.to_s
     @actor_ref = actor_ref.to_s
     @session_ref = session_ref.to_s
@@ -44,7 +44,7 @@ class IdentitySocialCeremonyResultIssuer
 
   private
 
-  attr_reader :grant_token, :auth_hash, :surface, :actor_ref, :session_ref, :operation, :challenge_id,
+  attr_reader :grant_token, :callback_result, :surface, :actor_ref, :session_ref, :operation, :challenge_id,
               :provided_candidate, :birthdate, :now
 
   def validate_grant!
@@ -78,11 +78,11 @@ class IdentitySocialCeremonyResultIssuer
   end
 
   def provider
-    @provider ||= auth_hash_value(:provider).to_s
+    @provider ||= principal.provider
   end
 
   def provider_subject
-    @provider_subject ||= SocialAuthUidExtractor.call(auth_hash: auth_hash).to_s
+    @provider_subject ||= principal.subject
   end
 
   def provider_subject_digest
@@ -102,33 +102,17 @@ class IdentitySocialCeremonyResultIssuer
       transaction_id: transaction.transaction_id,
       operation: operation,
       provider: provider,
-      auth_hash: auth_hash,
+      callback_result: callback_result,
       expires_at: transaction.expires_at,
     )
   end
 
-  def email_digest
-    email = auth_hash.dig("info", "email").presence || auth_hash.dig(:info, :email).presence
-    return if email.blank?
+  def principal
+    unless callback_result.is_a?(ExternalAuthentication::CallbackResult) && callback_result.verified?
+      raise IdentitySocialCeremonyContract::Error, "verified callback result is required"
+    end
 
-    Digest::SHA256.hexdigest(email.to_s.downcase.strip)
-  end
-
-  def email_verified
-    value = auth_hash.dig("extra", "raw_info", "email_verified")
-    value = auth_hash.dig(:extra, :raw_info, :email_verified) if value.nil?
-    return if value.nil?
-
-    !!value
-  end
-
-  def auth_hash_value(key)
-    return auth_hash[key] || auth_hash[key.to_s] if auth_hash.respond_to?(:[])
-    return auth_hash.public_send(key) if auth_hash.respond_to?(key)
-
-    nil
-  rescue NoMethodError
-    nil
+    callback_result.principal
   end
 
   def result_claims
@@ -143,8 +127,6 @@ class IdentitySocialCeremonyResultIssuer
       "provider" => provider,
       "provider_subject_ref" => provider_subject_digest,
       "provider_subject_digest" => provider_subject_digest,
-      "email_digest" => email_digest,
-      "email_verified" => email_verified,
       "candidate_ref" => candidate&.ref,
       "candidate_digest" => candidate&.digest,
       "birthdate" => birthdate,

@@ -11,6 +11,8 @@ module Base
           include SignOperatorTelephoneRegistrable
           include SignSettingsTelephoneRegistration
 
+          include EnforcementIdentifierGate
+
           include ::VerificationOperator
 
           AUTHENTICATION_MODE = :private
@@ -46,6 +48,19 @@ module Base
 
             tel_params = params(staff_telephone: [:raw_number, :number])
             number = tel_params[:raw_number] || tel_params[:number]
+
+            # adr/unified-enforcement.md, Identifier attachment enforcement: an in-force
+            # Identifier Effect with attachment_blocked rejects attaching this identifier to
+            # an existing account, at the same enumeration-resistance discipline as the
+            # ordinary validation failure.
+            if number.present? && enforcement_blocks_telephone_attachment?(
+              effect_class: OrgEnforcementIdentifierEffect, realm: "org", telephone: number,
+            )
+              @staff_telephone = OperatorTelephone.new
+              @staff_telephone.errors.add(:raw_number, :blank)
+              render :new, status: :unprocessable_content
+              return
+            end
 
             unless initiate_staff_telephone_verification(current_operator, number)
               render :new, status: :unprocessable_content

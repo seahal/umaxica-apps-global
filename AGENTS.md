@@ -33,6 +33,10 @@ code provides an explicit shared abstraction. For any surface-related work, read
 
 ## Required Task Context
 
+Read `.agents/harnesses/rules/generic/model-behavior-calibration.mdc` on every task. It corrects
+output length, narration, correction, scope, verification, and delegation defaults, and is not scoped
+to one area of the codebase.
+
 Read these files when the task touches the corresponding area:
 
 - Controllers or endpoints:
@@ -117,7 +121,9 @@ keep committed repository material in English.
 Agent assets live under `.agents/`:
 
 - `.agents/skills/` is reserved for Codex skills, each with `SKILL.md` as its entry point.
-- `.agents/harnesses/` contains rules and review, evaluation, audit, and grill-me harnesses.
+- `.agents/harnesses/rules/` contains the generic and project rules loaded per task. No other
+  harness directories exist yet; do not reference review, evaluation, audit, or grill-me harnesses
+  as though they do.
 - Do not place arbitrary files directly under `.agents/skills/`.
 - Do not add repository goal files under `.agents/goals/`; keep task scope in the conversation or
   the Codex goal surface.
@@ -131,6 +137,22 @@ Agent assets live under `.agents/`:
 
 Comments must remain factual and maintainable. Do not add comments that restate code. Update any
 nearby comment made stale by a change.
+
+### Output Calibration
+
+- Lead with the outcome. Keep responses short by being selective about what to include, not by
+  compressing the writing into fragments or shorthand.
+- Match a written deliverable's length to its substance. Omit template sections with nothing to
+  record instead of padding them.
+- Deliver at the scope asked. Finish the whole task and report completion only when it is done;
+  state plainly what was left out and why.
+- Do not add self-verification scaffolding — no "double-check your answer" instructions and no
+  separate verifier pass or subagent over completed work. Testing obligations are unchanged.
+- Delegate to a subagent only when the payoff exceeds the cost of re-establishing context, never for
+  work finishable in a handful of tool calls, and never to verify.
+
+For the reasoning behind each of these, see
+`.agents/harnesses/rules/generic/model-behavior-calibration.mdc`.
 
 ## Verification
 

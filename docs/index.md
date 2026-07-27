@@ -101,6 +101,8 @@ Current content-model references:
 - `docs/operations/core-nextjs-zero-cookie-edge-contract.md`
 - `docs/operations/jump-rt-key-rotation.md`
 - `docs/operations/jwt-key-rotation.md`
+- `docs/operations/apple-second-key-runbook.md`
+- `docs/operations/entra-org-login-runbook.md`
 - `docs/runbooks/chain_seal_key_rotation.md`
 - `docs/dictionary/README.md`
 - `docs/dictionary/access-terms.md`

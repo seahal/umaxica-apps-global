@@ -97,13 +97,17 @@ module Base
             # sign-up finalization. The final durable state is still written
             # through the app-side selector bootstrap after provider proof.
             IdentityGraphProvisioner.call!(surface: :app, principal: commit.user)
+            normalized_provider = SocialIdentifiable.normalize_provider(provider)
             result = AuthenticationSessionCommitter.call(
               controller: self,
               resource: commit.user,
               pt: commit.pt,
               ri: params[:ri],
               auth_method: "social",
-              audit_context: { auth_method: "social", provider: SocialIdentifiable.normalize_provider(provider) },
+              audit_context: { auth_method: "social", provider: normalized_provider },
+              # "social" cannot distinguish google from apple; the provider is
+              # known here (adr/unified-enforcement.md, Session attribution).
+              established_authentication_method: normalized_provider,
             )
             sign_in_result = sign_in_result_from_session_result(result, actor: commit.user)
 

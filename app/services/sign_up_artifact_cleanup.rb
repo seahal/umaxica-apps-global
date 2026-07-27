@@ -128,6 +128,13 @@ class SignUpArtifactCleanup
 
       record.class.transaction do
         record.lock!
+
+        if record.is_a?(ClientExternalIdentity)
+          revoke_pending_apple_credential(record)
+          record.destroy!
+          next
+        end
+
         status_column = deleted_status_column(record)
         deleted_id = deleted_status_id(record)
 
@@ -176,7 +183,17 @@ class SignUpArtifactCleanup
   end
 
   def client_social_identity(actor)
-    case cycle.social_provider.presence || cycle.entry_method
+    provider = cycle.social_provider.presence || cycle.entry_method
+    return unless %w(apple google).include?(provider)
+
+    if ExternalAuthentication::IdentityRepositoryFactory.common_storage?
+      identity = ExternalAuthentication::IdentityRepositoryFactory.current.build(provider).find_for_user(actor)
+      return identity if identity && identity.id.to_s == cycle.pending_contact_id.to_s
+
+      return
+    end
+
+    case provider
     when "google"
       ClientGoogleIdentity.find_by(id: cycle.pending_contact_id, user_id: actor.id)
     when "apple"
@@ -198,7 +215,7 @@ class SignUpArtifactCleanup
       contact.user_email_status_id == ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP
     when ClientTelephone
       contact.user_telephone_status_id == ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP
-    when ClientGoogleIdentity, ClientAppleIdentity
+    when ClientGoogleIdentity, ClientAppleIdentity, ClientExternalIdentity
       true
     else
       false
@@ -259,6 +276,19 @@ class SignUpArtifactCleanup
     when VisitorTelephone then deleted_status_id_for(VisitorTelephoneStatus)
     when VisitorPasskey then deleted_status_id_for(VisitorPasskeyStatus)
     end
+  end
+
+  def revoke_pending_apple_credential(identity)
+    return unless identity.provider == "apple"
+
+    refresh_token = identity.client_apple_identity_credential&.refresh_token.presence
+    return unless refresh_token
+
+    ExternalAuthenticationAppleCredentialRevocationRequestIssuer.call(
+      client: identity.client,
+      refresh_token: refresh_token,
+      reason: "signup_cleanup",
+    )
   end
 
   def deleted_status_id_for(status_class)

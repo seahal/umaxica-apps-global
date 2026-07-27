@@ -6,6 +6,7 @@
   "containerUser": "global",
   "workspaceFolder": "/home/global/workspace",
   "overrideCommand": false,
+  "postCreateCommand": "bundle install && pnpm install",
   "forwardPorts": [3000, 3036, 5050],
   "remoteEnv": {
     "EDITOR": "code --wait --reuse-window",
@@ -84,7 +85,7 @@
       "remoteId": "intellij",
       "backend": "intellij",
       "plugins": ["org.jetbrains.plugins.ruby"],
-      "containerEnv": { "DEVCONTAINER_IDE": "jetbrains", "DEVCONTAINER_AUTO_START_BIN_DEV": "0" }
+      "containerEnv": { "DEVCONTAINER_IDE": "jetbrains" }
     }
   },
   "shutdownAction": "stopCompose",
@@ -94,7 +95,7 @@
     "ghcr.io/jsburckhardt/devcontainer-features/codex:1": {},
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
     "ghcr.io/devcontainers-extra/features/opencode:1": {}
-  },
+  }
   // Host bind mounts that must be readonly live in compose.override.yml. The
   // Dev Container string-form `readonly` option is not effective with the
   // current rootless Podman provider, so it must not guard host credentials or
@@ -113,10 +114,4 @@
   // Dependency manifests and lockfiles inherit the writable workspace mount
   // because Bundler and pnpm replace them during explicit update commands; CI
   // protects reproducibility with frozen install modes.
-  "mounts": [
-    "source=global-codex,target=/home/global/.codex,type=volume",
-    "source=global-claude,target=/home/global/.claude,type=volume",
-    "source=${localWorkspaceFolder}/.devcontainer/dotfiles/bashrc,target=/home/global/.bashrc,type=bind",
-    "source=${localWorkspaceFolder}/.devcontainer/dotfiles/irbrc,target=/home/global/.irbrc,type=bind"
-  ]
 }

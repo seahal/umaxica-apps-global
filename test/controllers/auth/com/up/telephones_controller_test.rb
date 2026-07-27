@@ -129,6 +129,40 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
     assert_includes response.body, I18n.t("sign.app.registration.telephone.edit.delivery_help")
   end
 
+  test "create rejects signup for a telephone number blocked by an in-force registration_blocked Identifier Effect, sending no OTP" do
+    operator = operators(:one)
+    the_case = ComEnforcementCase.new(
+      kind: "permanent_ban",
+      duration_mode: "permanent",
+      visibility: "visible",
+      release_mode: "break_glass_only",
+      effective_at: Time.current,
+      reason_code: "abuse",
+      principal_public_id: "some_prior_visitor_public_id",
+      applied_by_operator_public_id: operator.public_id,
+    )
+    digest = EnforcementIdentifierDigest.for_telephone(realm: "com", value: "+819099999999")
+    the_case.identifier_effects.build(**digest, registration_blocked: true, effective_at: Time.current)
+    the_case.apply!
+
+    assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
+      assert_no_difference("VisitorTelephone.count") do
+        post auth_com_sign_up_telephone_url(ri: "jp"),
+             params: {
+               visitor_telephone: {
+                 raw_number: "+819099999999",
+                 confirm_policy: "1",
+                 confirm_using_mfa: "1",
+               },
+               "cf-turnstile-response": "test",
+             },
+             headers: default_headers
+      end
+    end
+
+    assert_response :unprocessable_content
+  end
+
   test "create with invalid telephone fails" do
     post auth_com_sign_up_telephone_url(ri: "jp"),
          params: {

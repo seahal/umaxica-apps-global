@@ -17,7 +17,16 @@ class IdentitySocialCeremonyCandidate < AppTicketRecord
   private
 
   def auth_hash_shape
-    return if auth_hash.is_a?(Hash) && auth_hash["provider"].present? && auth_hash["uid"].present?
+    principal = auth_hash["principal"] if auth_hash.is_a?(Hash)
+    return if principal.is_a?(Hash) &&
+      principal.values_at(
+        "provider",
+        "subject",
+        "issuer",
+        "audience",
+        "verified_at",
+        "verification_authority",
+      ).all?(&:present?)
 
     errors.add(:auth_hash, "is invalid")
   end

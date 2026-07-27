@@ -1,0 +1,13 @@
+services:
+  core:
+    build:
+      target: workspace
+    devices:
+      - /dev/fuse:/dev/fuse
+    volumes:
+      - type: volume
+        source: workspace-podman-storage
+        target: /home/global/.local/share/containers
+
+volumes:
+  workspace-podman-storage: {}

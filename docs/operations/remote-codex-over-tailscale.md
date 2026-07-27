@@ -11,8 +11,8 @@ Tailnet client
   +-- Tailscale SSH --> core built-in Tailscale SSH --> global
   `-- HTTPS Serve --> core userspace tailscaled --> 127.0.0.1:3000
 
-core PID 1: tailscale-core-supervisor.sh
-  +-- bin/dev --> Foreman --> Rails, Vite, jobs
+core PID 1 (root): tailscale-core-supervisor
+  +-- setpriv --> global --> bin/dev --> Foreman --> Rails, Vite, jobs
   `-- tailscaled --tun=userspace-networking
 ```
 
@@ -38,25 +38,32 @@ it with another node, copy it into an image, or delete it during ordinary
 rebuilds. The interactive bootstrap credential is not stored in Compose or in
 the repository.
 
-The `global` development user has passwordless sudo. Tailscale state and other
-development credentials therefore are not a security boundary from Rails,
-Claude Code, or arbitrary code already executing as that user. Direct placement
-accepts this development-container trust boundary; it is not a production
-design.
+The image does not install `sudo` or assign a password to `global`. A
+root-owned entrypoint performs fixed tmpfs initialization, and the root-owned
+supervisor runs `tailscaled`; both launch the development workload as `global`
+with `setpriv`. The installed control-plane scripts are not loaded from the
+writable workspace.
+
+This prevents Rails, Claude Code, Codex, or arbitrary development code running
+as `global` from using a general-purpose privilege-escalation command. It does
+not protect the container from the host account that owns rootless Podman:
+that operator can deliberately enter the container namespace as UID 0 with
+`podman exec --user 0`. Credentials mounted for `global` also remain readable
+by that user.
 
 ## Bootstrap and recovery
 
 An empty state volume requires an explicit interactive login:
 
 ```sh
-podman exec -it global-devcontainer-core \
-  sudo /usr/local/bin/tailscale \
+podman exec -it --user 0 global-devcontainer-core \
+  /usr/local/bin/tailscale \
   --socket=/run/tailscale/tailscaled.sock login \
   --hostname=umaxica-global-core \
   --accept-dns=false
 
-podman exec global-devcontainer-core \
-  sudo /usr/local/bin/tailscale \
+podman exec --user 0 global-devcontainer-core \
+  /usr/local/bin/tailscale \
   --socket=/run/tailscale/tailscaled.sock set \
   --accept-dns=false \
   --ssh
@@ -69,8 +76,8 @@ Configure the tailnet-only Rails proxy once; `--bg` stores the configuration in
 the persistent state:
 
 ```sh
-podman exec global-devcontainer-core \
-  sudo /usr/local/bin/tailscale \
+podman exec --user 0 global-devcontainer-core \
+  /usr/local/bin/tailscale \
   --socket=/run/tailscale/tailscaled.sock serve \
   --bg http://127.0.0.1:3000
 ```
@@ -91,11 +98,11 @@ development boot fail rather than silently widening Host Authorization.
 Check daemon and SSH readiness without printing full Tailnet metadata:
 
 ```sh
-podman exec global-devcontainer-core \
-  sudo /home/global/workspace/.devcontainer/tailscale-core-status.sh
+podman exec --user 0 global-devcontainer-core \
+  /usr/local/bin/tailscale-core-status
 
-podman exec global-devcontainer-core \
-  sudo /usr/local/bin/tailscale \
+podman exec --user 0 global-devcontainer-core \
+  /usr/local/bin/tailscale \
   --socket=/run/tailscale/tailscaled.sock serve status
 ```
 
@@ -104,6 +111,10 @@ Connect from an enrolled client:
 ```sh
 ssh global@umaxica-global-core
 ```
+
+Tailnet SSH policy must allow this node only as `global`; no matching rule may
+allow `root`. Tailscale grants are additive, so check broad existing rules as
+well as the rule written for this node.
 
 Verify that the session is the real development container:
 
@@ -118,9 +129,17 @@ bin/rails runner 'puts Rails.version'
 
 The supervisor retries an independently failed `tailscaled` with bounded
 backoff. Exhausting that budget degrades remote access but leaves Rails, Vite,
-jobs, Claude Code, and the local Dev Container running. If `bin/dev` exits, PID
-1 terminates the daemon and exits nonzero. TERM and INT are fanned out and child
-processes are reaped.
+jobs, Claude Code, and the local Dev Container running.
+
+If the development workload (`bin/dev`) exits for any reason, the supervisor
+does not tear down Tailscale or terminate itself. It restarts the workload with
+exponential backoff (capped at 30 seconds, resetting after 30 seconds of
+uptime) and retries indefinitely, so a transient failure -- missing gems,
+Postgres not ready yet -- recovers automatically once the underlying cause is
+fixed, without needing to recreate the container. Remote SSH access stays
+available throughout so a failing workload can be diagnosed in place. TERM and
+INT are fanned out and child processes are reaped only on an intentional
+shutdown (container stop/recreate), not on a workload crash.
 
 ## Cloudflare independence
 
@@ -161,7 +180,8 @@ separate destructive deregistration decision.
 - The Cloudflare Tunnel sidecar remained running throughout the cutover.
 
 Host-reboot recovery and deliberate tailscaled failure-injection remain
-unverified.
+unverified. The sudo-less control-plane/workload split also remains unverified
+against the live host until `core` is explicitly rebuilt and recreated.
 
 ## Official references
 

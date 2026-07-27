@@ -600,6 +600,10 @@ module SignUpSequenceControllerSupport
       auth_method: sign_up_auth_method,
       audit_context: { flow: "sign_up", sign_up_flow_id: @sign_up_ticket.public_id },
       bootstrap_actor: true,
+      # sign_up_auth_method collapses google/apple to "social" for the MFA-gating
+      # value; the sign-up ticket's entry_method still carries the precise
+      # provider (adr/unified-enforcement.md, Session attribution).
+      established_authentication_method: established_authentication_method_for(@sign_up_ticket.entry_method),
     )
     reset_current_db_sign_in_flow_for_sequence!
     sign_in_result_from_session_result(result, actor: actor)

@@ -39,6 +39,8 @@ class ClientAppleIdentity < AppPrincipalRecord
   include Retainable
   include SocialIdentifiable
 
+  encrypts :refresh_token
+
   self.filter_attributes += %w(token refresh_token uid)
 
   alias_attribute :expires_at, :token_expires_at
@@ -48,6 +50,9 @@ class ClientAppleIdentity < AppPrincipalRecord
   belongs_to :user_apple_identity_status, class_name: "ClientAppleIdentityStatus",
                                           inverse_of: :client_apple_identities,
                                           foreign_key: :status_id
+  has_many :client_apple_notification_events,
+           dependent: :nullify,
+           inverse_of: :client_apple_identity
 
   validates :token, presence: true
   validates :user_id, uniqueness: { conditions: -> { where.not(user_id: nil) } }

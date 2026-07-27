@@ -12,7 +12,6 @@ module Auth
         # 2. POST /sign/in/entra/authorization - Entra::AuthorizationsController#create
         # 3. GET  /sign/in/entra/callback      - Entra::CallbacksController#show
         #
-        # Shared ceremony invariants live in OrgEntraCeremony.
         # See adr/org-entra-id-sign-in-boundary.md.
         class EntrasController < ::Auth::Org::ApplicationController
           AUTHENTICATION_MODE = :guest

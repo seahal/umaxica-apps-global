@@ -43,7 +43,8 @@ module Base
       rescue_from ActionController::InvalidCrossOriginRequest, with: :handle_csrf_failure
       rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error
       helper_method :current_actor, :current_account, :current_session_public_id, :current_session_restricted?,
-                    :signed_pt_param, :current_client, :logged_in?, :active_client?, :logged_in_client?
+                    :signed_pt_param, :current_client, :logged_in?, :active_client?, :logged_in_client?,
+                    :apple_only_credential?
 
       allow_browser versions: :modern
 
@@ -119,6 +120,10 @@ module Base
       end
 
       private
+
+      def apple_only_credential?
+        AppleOnlyCredentialStatus.call(current_client)
+      end
 
       def actor_verification_path(**args)
         base_app_verification_path(**args)

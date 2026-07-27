@@ -114,6 +114,10 @@ class Auth::App::SignUpCompensationTest < ActiveSupport::TestCase
       { status: :success, redirect_path: "/dashboard" }
     end
 
+    def established_authentication_method_for(auth_method)
+      AuthenticationBase::ESTABLISHED_AUTHENTICATION_METHOD_MAP[auth_method.to_s]
+    end
+
     def reset_current_db_sign_in_flow_for_sequence!
       true
     end
@@ -151,6 +155,26 @@ class Auth::App::SignUpCompensationTest < ActiveSupport::TestCase
     assert_equal actor, harness.establish_kwargs.first
     assert harness.establish_kwargs.last[:bootstrap_actor]
     assert_equal "email", harness.establish_kwargs.last[:auth_method]
+    assert_equal "email", harness.establish_kwargs.last[:established_authentication_method]
+  end
+
+  test "handoff_to_sign_in_flow! resolves established_authentication_method from entry_method for social entry" do
+    harness = Harness.new
+    actor = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
+    harness.instance_variable_set(
+      :@sign_up_ticket,
+      Struct.new(:public_id, :entry_method, :pending_contact_type, :return_to).new(
+        "flow-2",
+        "google",
+        "email",
+        nil,
+      ),
+    )
+
+    harness.send(:handoff_to_sign_in_flow!, actor)
+
+    assert_equal "social", harness.establish_kwargs.last[:auth_method]
+    assert_equal "google", harness.establish_kwargs.last[:established_authentication_method]
   end
 
   test "finalize_sign_up_from_checkpoint! stops before handoff when graph provisioning fails" do

@@ -90,9 +90,9 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     grant_session = seed_app_social_link_grant_session(provider: "apple", user: @user_two, ri: "jp")
     setup_apple_mock_auth(uid: existing_uid)
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: grant_session.state },
-         headers: @callback_headers.merge(grant_session.user_headers)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: grant_session.state },
+        headers: @callback_headers.merge(grant_session.user_headers)
 
     assert_response :redirect
     follow_redirect!
@@ -109,9 +109,9 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     # Do not call /social/auth/:provider/continue to simulate missing link context
     # Use X-STRICT-SOCIAL-STATE to prevent test-mode state bypass
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
-           .merge("X-STRICT-SOCIAL-STATE" => "1")
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
+          .merge("X-STRICT-SOCIAL-STATE" => "1")
 
     assert_response :forbidden
 
@@ -126,15 +126,16 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     post auth_app_settings_apple_url(ri: "jp"),
          headers: social_link_headers(@user_one)
 
-    assert_response :redirect
+    assert_response :success
+    assert_select "form#social-authorization-form[action='/social/apple'][method='post']"
 
     # Set up mock after connection POST so session nonce is available.
     setup_apple_mock_auth(uid: uid, nonce: session[:social_auth_nonce])
 
     travel_to 6.minutes.from_now do
-      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-           params: { state: social_auth_state_from_response },
-           headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
+      get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+          params: { state: social_auth_state_from_response },
+          headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
     end
 
     assert_response :forbidden
@@ -335,7 +336,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
   def perform_grant_backed_link(provider:, grant_session:)
     if provider == "apple"
-      post(
+      get(
         auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
         params: { state: grant_session.state },
         headers: @callback_headers.merge(grant_session.user_headers),
@@ -379,6 +380,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
       info: {},
       credentials: {
         token: "apple_token_#{SecureRandom.hex(8)}",
+        refresh_token: "apple_refresh_token",
         expires_at: 1.week.from_now.to_i,
       },
       extra: { id_info: { nonce: nonce } },

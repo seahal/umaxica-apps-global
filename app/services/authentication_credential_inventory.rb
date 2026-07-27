@@ -152,10 +152,20 @@ class AuthenticationCredentialInventory
   end
 
   def client_social_login_methods
+    return common_client_social_login_methods if ExternalAuthentication::IdentityRepositoryFactory.common_storage?
+
     methods = []
     methods << :google if active_client_google?
     methods << :apple if active_client_apple?
     methods
+  end
+
+  def common_client_social_login_methods
+    return [] unless actor.respond_to?(:client_external_identities)
+
+    scope = actor.client_external_identities.where(state: "active")
+    scope = scope.where.not(id: excluding.id) if excluding.is_a?(ClientExternalIdentity)
+    scope.pluck(:provider).map(&:to_sym)
   end
 
   def active_client_google?

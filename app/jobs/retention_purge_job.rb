@@ -70,10 +70,37 @@ class RetentionPurgeJob < ApplicationJob
 
   # Operator rows are removed set-based (no callbacks/`dependent:`), so their
   # non-audit cross-DB children must be purged explicitly before deletion.
+  # Enforcement-blocked rows (D3 principal_hard_delete_blocked /
+  # withdrawal_purge_blocked) are excluded from the batch delete entirely.
   def purge_operators(now:, batch_size:)
     Operator.where(purged_at: ..now).in_batches(of: batch_size) do |batch|
-      batch.find_each { |operator| RetentionCrossDatabaseChildPurge.call(actor: operator) }
-      batch.delete_all
+      blocked_ids = []
+      batch.find_each do |operator|
+        if enforcement_blocks_purge?(operator)
+          blocked_ids << operator.id
+          next
+        end
+
+        RetentionCrossDatabaseChildPurge.call(actor: operator)
+      end
+      batch.where.not(id: blocked_ids).delete_all
+    end
+  end
+
+  # adr/unified-enforcement.md, Retention interaction / Purge protection.
+  def enforcement_blocks_purge?(actor)
+    case_class = enforcement_case_class_for(actor)
+    return false unless case_class
+
+    case_class.principal_effect_blocking?(actor.public_id, :withdrawal_purge_blocked) ||
+      case_class.principal_effect_blocking?(actor.public_id, :principal_hard_delete_blocked)
+  end
+
+  def enforcement_case_class_for(actor)
+    case actor
+    when Client then AppEnforcementCase
+    when Visitor then ComEnforcementCase
+    when Operator then OrgEnforcementCase
     end
   end
 
@@ -86,6 +113,16 @@ class RetentionPurgeJob < ApplicationJob
       batch.find_each do |actor|
         if active_retention_hold_for(actor, now: now)
           handle_actor_purge_skipped_by_hold(actor, now: now)
+          next
+        end
+
+        # adr/unified-enforcement.md, Retention interaction: a Principal
+        # Effect with withdrawal_purge_blocked or principal_hard_delete_blocked
+        # skips purge the same way a retention hold does. No FK is involved
+        # (Purge protection) -- this is the model-layer half of the guard;
+        # the database trigger (D20) is the other half.
+        if enforcement_blocks_purge?(actor)
+          WithdrawalOccurrenceRecording.record!(subject: actor, event_type: "withdrawal.purge_skipped_by_enforcement")
           next
         end
 

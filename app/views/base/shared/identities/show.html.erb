@@ -4,6 +4,10 @@
 
 <p>Signed in</p>
 
+<% if surface == :app && apple_only_credential? %>
+  <%= render "base/shared/identities/apple_only_credential_warning" %>
+<% end %>
+
 <section>
   <h2>Account</h2>
   <ul>

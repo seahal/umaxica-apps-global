@@ -10,6 +10,9 @@ ENV["PUBLIC_AUTH_STAFF_URL"] = "auth.org.localhost"
 ENV["PRIVATE_AUTH_SERVICE_URL"] = "auth.app.localhost"
 ENV["PRIVATE_AUTH_CORPORATE_URL"] = "auth.com.localhost"
 ENV["PRIVATE_AUTH_STAFF_URL"] = "auth.org.localhost"
+ENV["APPLE_SOCIAL_CEREMONY_ENABLED"] = "true"
+ENV["GOOGLE_SOCIAL_CEREMONY_ENABLED"] = "true"
+ENV["ENTRA_SOCIAL_CEREMONY_ENABLED"] = "true"
 ENV["SMTP_FROM_ADDRESS_APP"] = "from@umaxica.app"
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
 
@@ -215,7 +218,7 @@ module ActiveSupport
       if ENV["COVERAGE"] == "true"
         1
       else
-        # Physical cores, not logical: measured on a 16C/32T host — 32 workers
+        # Physical cores, not logical: measured on a 16C/32T host -- 32 workers
         # lost more in fork + per-worker DB-clone overhead than they gained.
         Integer(ENV.fetch("PARALLEL_WORKERS") { Concurrent.physical_processor_count.to_s }, 10)
       end
@@ -240,6 +243,6 @@ module ActiveSupport
     # at, e.g., :en would make a later model test read English validation
     # messages where it expects the default locale. Reset to the default after
     # every test so locale never leaks across the shared process.
-    teardown { I18n.locale = I18n.default_locale }
+    teardown { I18n.locale = I18n.default_locale } # rubocop:disable Rails/I18nLocaleAssignment
   end
 end

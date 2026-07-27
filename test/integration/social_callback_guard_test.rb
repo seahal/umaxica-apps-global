@@ -134,8 +134,9 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
   end
 
   test "module helpers normalize methods, hosts, and origins" do
-    assert SocialCallbackGuard.allowed_request_method?("google", "GET")
-    assert SocialCallbackGuard.allowed_callback_method?("apple", "POST")
+    assert SocialCallbackGuard.allowed_request_method?("google", "POST")
+    assert_not SocialCallbackGuard.allowed_request_method?("google", "GET")
+    assert_not SocialCallbackGuard.allowed_callback_method?("apple", "POST")
     assert SocialCallbackGuard.allowed_callback_method?("apple", "GET")
     assert_equal "id.app.localhost", SocialCallbackGuard.normalize_host_port("https://id.app.localhost")
     assert_equal "id.app.localhost:444", SocialCallbackGuard.normalize_host_port("https://id.app.localhost:444")
@@ -164,7 +165,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
   test "request phase helpers derive source, enforce state, and reject bad methods" do
     env = Rack::MockRequest.env_for(
       "https://#{@host}/social/google?foo=bar",
-      "REQUEST_METHOD" => "GET",
+      "REQUEST_METHOD" => "POST",
       "HTTP_ORIGIN" => "https://#{@host}",
       "rack.session" => {},
     )
@@ -181,7 +182,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
 
     env_with_state = Rack::MockRequest.env_for(
       "https://#{@host}/social/google?state=known",
-      "REQUEST_METHOD" => "GET",
+      "REQUEST_METHOD" => "POST",
       "HTTP_ORIGIN" => "https://#{@host}",
       "rack.session" => {},
     )

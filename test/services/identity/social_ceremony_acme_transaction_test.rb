@@ -46,7 +46,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_difference -> { ClientGoogleIdentity.where(user: @client).count }, 1 do
         commit = IdentitySocialCeremonyFinalCommitter.call!(
           result_token: result_token,
-          auth_hash: auth_hash,
           actor: @client,
           session_ref: @session_ref,
           surface: "app",
@@ -63,7 +62,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_raises(IdentitySocialCeremonyContract::Error) do
         IdentitySocialCeremonyFinalCommitter.call!(
           result_token: result_token,
-          auth_hash: auth_hash,
           actor: @client,
           session_ref: @session_ref,
           surface: "app",
@@ -122,7 +120,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_difference -> { Client.count }, 1 do
         commit = IdentitySocialCeremonyFinalCommitter.call!(
           result_token: result_token,
-          auth_hash: nil,
           actor: nil,
           session_ref: @session_ref,
           surface: "app",
@@ -175,7 +172,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         assert_raises(SocialAuth::ProviderError) do
           IdentitySocialCeremonyFinalCommitter.call!(
             result_token: result_token,
-            auth_hash: nil,
             actor: nil,
             session_ref: @session_ref,
             surface: "app",
@@ -224,7 +220,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     end
   end
 
-  test "wrong actor, session, and provider subject are rejected before link commit" do
+  test "wrong actor and session are rejected before link commit" do
     travel_to @now do
       issuance = issue_grant
       result_token = issue_result(issuance.grant)
@@ -235,7 +231,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
             assert_raises(IdentitySocialCeremonyContract::Error) do
               IdentitySocialCeremonyFinalCommitter.call!(
                 result_token: result_token,
-                auth_hash: auth_hash,
                 actor: clients(:two),
                 session_ref: @session_ref,
                 surface: "app",
@@ -245,20 +240,8 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
             assert_raises(IdentitySocialCeremonyContract::Error) do
               IdentitySocialCeremonyFinalCommitter.call!(
                 result_token: result_token,
-                auth_hash: auth_hash,
                 actor: @client,
                 session_ref: "wrong-session",
-                surface: "app",
-                now: @now,
-              )
-            end
-            wrong_auth_hash = auth_hash.merge("uid" => "different-subject")
-            assert_raises(IdentitySocialCeremonyContract::Error) do
-              IdentitySocialCeremonyFinalCommitter.call!(
-                result_token: result_token,
-                auth_hash: wrong_auth_hash,
-                actor: @client,
-                session_ref: @session_ref,
                 surface: "app",
                 now: @now,
               )
@@ -332,7 +315,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_raises(IdentitySocialCeremonyContract::Error) do
         IdentitySocialCeremonyFinalCommitter.call!(
           result_token: tampered,
-          auth_hash: auth_hash,
           actor: @client,
           session_ref: @session_ref,
           surface: "app",
@@ -359,7 +341,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         assert_raises(IdentitySocialCeremonyContract::Error) do
           IdentitySocialCeremonyFinalCommitter.call!(
             result_token: result_token,
-            auth_hash: auth_hash,
             actor: nil,
             session_ref: @session_ref,
             surface: "app",
@@ -417,7 +398,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
           assert_raises(IdentitySocialCeremonyContract::Error) do
             IdentitySocialCeremonyFinalCommitter.call!(
               result_token: result_token,
-              auth_hash: nil,
               actor: nil,
               session_ref: @session_ref,
               surface: "app",
@@ -444,9 +424,21 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   end
 
   def issue_result(grant_token)
+    provider_auth = auth_hash
+    callback_result = ExternalAuthentication::CallbackResult.verified(
+      principal: ExternalAuthentication::VerifiedPrincipal.new(
+        provider: provider_auth.fetch("provider"),
+        subject: provider_auth.fetch("uid"),
+        issuer: "https://accounts.google.com",
+        audience: "google-client-id",
+        verified_at: @now,
+        verification_authority: "omniauth-google-oauth2/contract",
+      ),
+      credential_candidate: nil,
+    )
     IdentitySocialCeremonyResultIssuer.issue!(
       grant_token: grant_token,
-      auth_hash: auth_hash,
+      callback_result: callback_result,
       surface: "app",
       actor_ref: @client.public_id,
       session_ref: @session_ref,
@@ -456,9 +448,24 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   end
 
   def issue_signup_result(grant_token, auth_hash:, birthdate:)
+    provider = auth_hash.fetch("provider")
+    callback_result = ExternalAuthentication::CallbackResult.verified(
+      principal: ExternalAuthentication::VerifiedPrincipal.new(
+        provider: provider,
+        subject: auth_hash.fetch("uid"),
+        issuer: ((provider == "apple") ? "https://appleid.apple.com" : "https://accounts.google.com"),
+        audience: "#{provider}-client-id",
+        verified_at: @now,
+        verification_authority: "test-provider-contract",
+      ),
+      credential_candidate: ((provider == "apple") ?
+        ExternalAuthentication::AppleCredentialCandidate.new(
+          refresh_token: auth_hash.fetch("credentials").fetch("refresh_token"),
+        ) : nil),
+    )
     IdentitySocialCeremonyResultIssuer.issue!(
       grant_token: grant_token,
-      auth_hash: auth_hash,
+      callback_result: callback_result,
       surface: "app",
       actor_ref: @client.public_id,
       session_ref: @session_ref,

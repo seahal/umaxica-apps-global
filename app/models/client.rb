@@ -122,6 +122,15 @@ class Client < AppPrincipalRecord
                                  foreign_key: :user_id,
                                  dependent: :destroy,
                                  inverse_of: :user
+  has_many :client_external_identities,
+           dependent: :destroy,
+           inverse_of: :client
+  has_many :client_apple_notification_events,
+           dependent: :nullify,
+           inverse_of: :client
+  has_many :client_apple_credential_revocations,
+           dependent: :destroy,
+           inverse_of: :client
   has_many :client_emails,
            foreign_key: :user_id,
            dependent: :destroy,
@@ -284,6 +293,11 @@ class Client < AppPrincipalRecord
   # Compatibility shim for legacy pluralized callers.
   # Association remains has_one.
   def client_google_identities
+    if ExternalAuthentication::IdentityRepositoryFactory.common_storage?
+      identity = client_external_identities.find_by(provider: "google")
+      return identity ? [identity] : []
+    end
+
     user_google_identity ? [user_google_identity] : []
   end
 
@@ -324,6 +338,10 @@ class Client < AppPrincipalRecord
 
   def active_social_provider?(provider)
     normalized = SocialIdentifiable.normalize_provider(provider)
+    if ExternalAuthentication::IdentityRepositoryFactory.common_storage?
+      return client_external_identities.exists?(provider: normalized, state: "active")
+    end
+
     case normalized
     when "google"
       user_google_identity&.status_id == ClientGoogleIdentityStatus::ACTIVE
@@ -335,10 +353,16 @@ class Client < AppPrincipalRecord
   end
 
   def active_google_identity_exists?
+    return client_external_identities.exists?(provider: "google", state: "active") if
+      ExternalAuthentication::IdentityRepositoryFactory.common_storage?
+
     ClientGoogleIdentity.exists?(user_id: id, status_id: ClientGoogleIdentityStatus::ACTIVE)
   end
 
   def active_apple_identity_exists?
+    return client_external_identities.exists?(provider: "apple", state: "active") if
+      ExternalAuthentication::IdentityRepositoryFactory.common_storage?
+
     ClientAppleIdentity.exists?(user_id: id, status_id: ClientAppleIdentityStatus::ACTIVE)
   end
 

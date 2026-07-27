@@ -108,6 +108,11 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "auth/app/apple/notifications", action: "create" },
+      { path: "http://#{SIGN_APP_HOST}/apple/notifications", method: :post },
+    )
+
+    assert_recognizes(
       { controller: "auth/app/dashboards", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/dashboard", method: :get },
     )
@@ -312,10 +317,12 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "auth/app/omniauth/omniauth_callbacks", action: "omniauth" },
-      { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :post },
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_APP_HOST}/social/apple/callback",
+        method: :post,
+      )
+    end
 
     assert_recognizes(
       { controller: "auth/app/omniauth/omniauth_callbacks", action: "failure" },
@@ -367,10 +374,12 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "auth/app/omniauth/omniauth_callbacks", action: "omniauth" },
-      { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :post },
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_APP_HOST}/social/apple/callback",
+        method: :post,
+      )
+    end
 
     assert_recognizes(
       { controller: "auth/app/settings/totps", action: "index" },

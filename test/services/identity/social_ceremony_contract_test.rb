@@ -59,15 +59,18 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
     end
   end
 
-  test "candidate store is one-shot and keeps provider tokens server-side in database records" do
+  test "candidate store is one-shot and persists only a verified principal" do
     travel_to(@now) do
-      auth_hash = OmniAuth::AuthHash.new(
-        provider: "google",
-        uid: "candidate-google",
-        credentials: {
-          token: "candidate-access-token",
-          refresh_token: "candidate-refresh-token",
-        },
+      callback_result = ExternalAuthentication::CallbackResult.verified(
+        principal: ExternalAuthentication::VerifiedPrincipal.new(
+          provider: "google",
+          subject: "candidate-google",
+          issuer: "https://accounts.google.com",
+          audience: "google-client-id",
+          verified_at: @now,
+          verification_authority: "omniauth-google-oauth2/contract",
+        ),
+        credential_candidate: nil,
       )
       candidate = IdentitySocialCeremonyCandidateStore.store!(
         surface: "app",
@@ -76,17 +79,17 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
         transaction_id: "txn-1",
         operation: "login",
         provider: "google",
-        auth_hash: auth_hash,
+        callback_result: callback_result,
         expires_at: @now + 5.minutes,
       )
 
       fetched = IdentitySocialCeremonyCandidateStore.fetch!(candidate.ref)
 
-      assert_equal "candidate-access-token", fetched.auth_hash.dig("credentials", "token")
+      assert_equal "candidate-google", fetched.callback_result.principal.subject
+      assert_nil fetched.callback_result.credential_candidate
       assert_equal candidate.digest, fetched.digest
       assert_equal candidate.ref, IdentitySocialCeremonyCandidate.find_by!(ref: candidate.ref).ref
-      assert_not_includes encrypted_social_candidate_auth_hash(candidate.ref), "candidate-access-token"
-      assert_not_includes encrypted_social_candidate_auth_hash(candidate.ref), "candidate-refresh-token"
+      assert_not_includes encrypted_social_candidate_auth_hash(candidate.ref), "candidate-google"
 
       consumed = IdentitySocialCeremonyCandidateStore.consume!(candidate.ref)
 
@@ -101,7 +104,17 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
   test "candidate store rejects expired deleted malformed records and does not call Rails cache" do
     travel_to(@now) do
       cache = Minitest::Mock.new
-      auth_hash = OmniAuth::AuthHash.new(provider: "google", uid: "candidate-google")
+      callback_result = ExternalAuthentication::CallbackResult.verified(
+        principal: ExternalAuthentication::VerifiedPrincipal.new(
+          provider: "google",
+          subject: "candidate-google",
+          issuer: "https://accounts.google.com",
+          audience: "google-client-id",
+          verified_at: @now,
+          verification_authority: "omniauth-google-oauth2/contract",
+        ),
+        credential_candidate: nil,
+      )
 
       Rails.stub(:cache, cache) do
         expired = IdentitySocialCeremonyCandidateStore.store!(
@@ -111,7 +124,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
           transaction_id: "txn-expired",
           operation: "login",
           provider: "google",
-          auth_hash: auth_hash,
+          callback_result: callback_result,
           expires_at: @now - 1.second,
         )
         deleted = IdentitySocialCeremonyCandidateStore.store!(
@@ -121,7 +134,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
           transaction_id: "txn-deleted",
           operation: "login",
           provider: "google",
-          auth_hash: auth_hash,
+          callback_result: callback_result,
           expires_at: @now + 5.minutes,
         )
         IdentitySocialCeremonyCandidateStore.delete(deleted.ref)
@@ -135,10 +148,19 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
           transaction_id: "txn-malformed",
           operation: "login",
           provider: "google",
-          auth_hash: { "provider" => "google", "uid" => "candidate-google" },
+          auth_hash: {
+            "principal" => {
+              "provider" => "google",
+              "subject" => "candidate-google",
+              "issuer" => "https://accounts.google.com",
+              "audience" => "google-client-id",
+              "verified_at" => @now.iso8601,
+              "verification_authority" => "omniauth-google-oauth2/contract",
+            },
+          },
           expires_at: @now + 5.minutes,
         )
-        malformed.auth_hash = { "provider" => "google" }
+        malformed.auth_hash = { "principal" => { "provider" => "google" } }
         malformed.save!(validate: false)
 
         assert_social_ceremony_error("candidate is expired") {

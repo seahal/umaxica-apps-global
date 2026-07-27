@@ -14,6 +14,8 @@ module Auth
 
           include CommonOtp
 
+          include EnforcementIdentifierGate
+
           AUTHENTICATION_MODE = :guest
 
           def new
@@ -36,6 +38,20 @@ module Auth
               :raw_number, :number, :confirm_policy, :confirm_using_mfa,
             )
             if telephone_params.blank?
+              @visitor_telephone = VisitorTelephone.new
+              @visitor_telephone.errors.add(:raw_number, :blank)
+              render :new, status: :unprocessable_content
+              return
+            end
+
+            # adr/unified-enforcement.md, Signup enforcement: an in-force Identifier
+            # Effect with registration_blocked rejects signup before turnstile/OTP
+            # work happens, at the same enumeration-resistance discipline as an
+            # ordinary validation failure.
+            raw_number = telephone_params[:raw_number].presence || telephone_params[:number].presence
+            if raw_number.present? && enforcement_blocks_telephone_registration?(
+              effect_class: ComEnforcementIdentifierEffect, realm: "com", telephone: raw_number,
+            )
               @visitor_telephone = VisitorTelephone.new
               @visitor_telephone.errors.add(:raw_number, :blank)
               render :new, status: :unprocessable_content

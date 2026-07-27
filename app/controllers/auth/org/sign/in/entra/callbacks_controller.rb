@@ -12,13 +12,12 @@ module Auth
           # Called by Entra after the operator authenticates. Receives `code`
           # and `state`, exchanges the code, verifies the ID token, and
           # establishes the operator session.
-          # Shared ceremony invariants live in OrgEntraCeremony.
           #
           # MFA bypass: `entra_id` is not bypassed (auth_method "entra_id" -> mfa_bypassed? = false).
           # amr claim: "entra_id" written into the access token amr array.
           class CallbacksController < ::Auth::Org::ApplicationController
             include SessionLimitGate
-            include OrgEntraCeremony
+            include ExternalAuthenticationEndpoint
 
             AUTHENTICATION_MODE = :guest
 
@@ -36,25 +35,41 @@ module Auth
             )
 
             def show
-              expected_state = session.delete(:entra_state)
-              return render_entra_error(:state_mismatch) unless secure_equal?(params[:state], expected_state)
+              ceremony = ExternalAuthenticationOrgEntraCeremonyStore.new.consume!(
+                reference: consume_external_authentication_ceremony_reference,
+                callback_state: params[:state].to_s,
+                surface: "org",
+                provider: "entra",
+                operation: "login",
+              )
+              return render_entra_error(:state_mismatch) if ceremony.nil?
+              unless external_authentication_allowed?(surface: "org", provider: "entra", operation: "login") &&
+                  external_authentication_callback_available?(provider: "entra", ceremony: ceremony, context: {})
+                return render_entra_error(:provider_unavailable)
+              end
 
               if params[:error].present?
-                cleanup_entra_session!
-                log_entra_failure("entra_error", error: params[:error])
                 return render_entra_error(:entra_error)
               end
 
-              ceremony = consume_entra_session
-              return render_entra_error(:connection_not_found) if ceremony[:connection].nil?
+              connection = active_connection(ceremony.connection_public_id)
+              return render_entra_error(:connection_not_found) if connection.nil?
 
-              token_result = exchange_code_for_token(ceremony)
-              unless token_result.success?
-                log_entra_failure("token_exchange_failed", error: token_result.error)
-                return render_entra_error(:token_exchange_failed)
-              end
+              adapter = ExternalAuthentication::ProviderAdapterFactory.build(
+                provider: "entra",
+                connection: connection,
+                redirect_uri: ExternalAuthenticationEntraRedirectUri.call,
+              )
+              callback_result = adapter.call(
+                code: params[:code].to_s,
+                expected_nonce: ceremony.nonce,
+                code_verifier: ceremony.code_verifier,
+              )
+              return render_entra_callback_failure(callback_result.failure) if callback_result.failed?
 
-              identity, operator = resolve_identity_and_operator(token_result, ceremony, ceremony[:connection])
+              resolution = adapter.resolve_existing_identity(principal: callback_result.principal)
+              identity = resolution.identity
+              operator = resolution.operator
 
               unless operator&.login_allowed?
                 log_entra_failure("operator_not_allowed", operator_id: identity.operator_id)
@@ -63,56 +78,43 @@ module Auth
 
               result = establish_signed_in_session!(
                 operator,
-                pt: ceremony[:pt],
+                pt: ceremony.return_target,
                 ri: current_region_identifier,
                 auth_method: "entra_id",
               )
               sign_in_result = sign_in_result_from_session_result(result, actor: operator)
               record_authentication_timestamp(identity, sign_in_result)
-              handle_sign_in_result(sign_in_result, pt: ceremony[:pt])
-            rescue ExternalSignIn::Providers::EntraId::VerificationError => e
-              log_entra_failure("token_verification_failed", reason: e.reason)
-              render_entra_error(:token_verification_failed)
-            rescue ExternalSignIn::IdentityNotFoundError => e
-              log_entra_failure("identity_not_found", message: e.message)
+              handle_sign_in_result(sign_in_result, pt: ceremony.return_target)
+            rescue ExternalSignIn::IdentityNotFoundError
               render_entra_error(:identity_not_found)
-            rescue StandardError => e
-              log_entra_failure("internal_error", error_class: e.class.name, message: e.message, exception: e)
+            rescue StandardError
               render_entra_error(:internal_error)
             end
 
             private
 
-            def consume_entra_session
-              {
-                connection: find_active_connection_from_session,
-                nonce: session.delete(:entra_nonce),
-                code_verifier: session.delete(:entra_code_verifier),
-                pt: session.delete(:entra_pt),
-              }.tap { session.delete(:entra_connection_public_id) }
-            end
-
-            def exchange_code_for_token(ceremony)
-              OidcRpTokenClient.call(
-                token_url: format(OrgEntraCeremony::ENTRA_TOKEN_TEMPLATE, ceremony[:connection].entra_tenant_id),
-                client_id: ceremony[:connection].entra_client_id,
-                client_secret: ceremony[:connection].entra_client_secret,
-                code: params[:code].to_s,
-                redirect_uri: auth_org_sign_in_entra_callback_url,
-                code_verifier: ceremony[:code_verifier],
+            def active_connection(public_id)
+              OrganizationEntraConnection.find_by(
+                public_id: public_id,
+                status_id: OrganizationEntraConnectionState::ACTIVE,
               )
             end
 
-            def resolve_identity_and_operator(token_result, ceremony, connection)
-              auth_result = ExternalSignIn::Providers::EntraId.new(
-                id_token: token_result.token_response["id_token"].to_s,
-                expected_nonce: ceremony[:nonce],
-                expected_tenant_id: connection.entra_tenant_id,
-                client_id: connection.entra_client_id,
-              ).call
+            def render_entra_error(reason)
+              @error_reason = reason
+              render "auth/org/sign/in/entras/new", status: :unprocessable_content, formats: :html
+            end
 
-              resolution = ExternalSignIn::OrgEntraResolver.new(auth_result: auth_result, connection: connection).call
-              [resolution.identity, resolution.operator]
+            def render_entra_callback_failure(failure)
+              reason =
+                case failure.code
+                when :tenant_not_allowed then :tenant_not_allowed
+                when :tenant_mismatch then :tenant_mismatch
+                when :token_exchange_failed then :token_exchange_failed
+                when :invalid_callback then :invalid_callback
+                else :token_verification_failed
+                end
+              render_entra_error(reason)
             end
 
             def record_authentication_timestamp(identity, sign_in_result)

@@ -3,6 +3,7 @@
 
 module SignSocialAuthenticationEndpoint
   extend ActiveSupport::Concern
+  include ExternalAuthenticationEndpoint
 
   SUPPORTED_PROVIDERS = %w(google apple).freeze
   SOCIAL_LINK_SCOPE = SocialAuth::SOCIAL_LINK_SCOPE
@@ -17,6 +18,12 @@ module SignSocialAuthenticationEndpoint
         auth_app_sign_in_path,
         alert: I18n.t("sign.app.social.sessions.invalid_provider"),
       )
+    end
+
+    operation = (social_auth_entry == "auth_up") ? "signup" : intent.to_s
+    unless external_authentication_allowed?(surface: "app", provider: provider, operation: operation) &&
+        external_authentication_start_available?(provider: provider, operation: operation, context: {})
+      return redirect_to(auth_app_sign_in_path, status: :see_other)
     end
 
     state = prepare_social_auth_intent!(
@@ -42,10 +49,7 @@ module SignSocialAuthenticationEndpoint
       store_social_ceremony_grant!(issuance.grant)
     end
 
-    safe_redirect_to(
-      omniauth_authorize_path(provider, state: state),
-      fallback: auth_app_sign_in_path,
-    )
+    render_social_authorization_form(provider)
   rescue SocialAuth::BaseError => e
     handle_social_auth_error(e)
   end
@@ -53,7 +57,7 @@ module SignSocialAuthenticationEndpoint
   def disconnect_social_authentication(provider:)
     return redirect_social_unlink_turnstile_failure(provider) unless cloudflare_turnstile_stealth_validation["success"]
 
-    SocialAuthCoordinator.unlink(provider: provider, client: current_client)
+    ExternalAuthenticationUnlinkUseCase.call(provider: provider, user: current_client)
     redirect_to(
       social_unlink_success_path(provider),
       notice: I18n.t(
@@ -154,12 +158,8 @@ module SignSocialAuthenticationEndpoint
   end
 
   def social_identity_for_provider(provider)
-    case SocialIdentifiable.normalize_provider(provider)
-    when "apple"
-      current_client.user_apple_identity
-    when "google"
-      current_client.user_google_identity
-    end
+    normalized_provider = SocialIdentifiable.normalize_provider(provider)
+    ExternalAuthentication::IdentityRepositoryFactory.current.build(normalized_provider).find_for_user(current_client)
   end
 
   def redirect_social_unlink_turnstile_failure(provider)

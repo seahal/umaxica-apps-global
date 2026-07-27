@@ -6,12 +6,12 @@ module Webauthn
   #
   # production: values MUST be injected per surface by the deployment
   # environment (WEBAUTHN_<APP|COM|ORG>_RP_ID / _ORIGIN). One-argument
-  # ENV.fetch makes a missing value a boot/request failure — there is no
+  # ENV.fetch makes a missing value a boot/request failure -- there is no
   # request-derived, shared-key, or credentials fallback in production.
   #
   # non-production: per-surface env values take precedence (test harnesses set
   # them explicitly); otherwise Rails encrypted credentials
-  # (webauthn.<surface>.rp_id / origin) supply them. A missing value raises —
+  # (webauthn.<surface>.rp_id / origin) supply them. A missing value raises --
   # never silently defaults.
   class RelyingPartyConfigResolver
     class MissingConfigurationError < StandardError; end

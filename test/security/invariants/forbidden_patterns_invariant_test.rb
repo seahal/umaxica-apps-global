@@ -201,6 +201,13 @@ module Security
           reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
         },
         {
+          pattern: "csrf null_session",
+          path: "app/controllers/auth/app/apple/notifications_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "Apple Server Notifications is a server-to-server webhook verified by JWS signature " \
+                  "and does not use browser session CSRF.",
+        },
+        {
           pattern: "cross-host redirect escape hatch",
           path: "app/controllers/base/app/oidc/authorizations_controller.rb",
           line: /redirect_to\(url, allow_other_host: true\)/,

@@ -11,7 +11,7 @@ class IdentitySocialCeremonyCandidateStore
     :transaction_id,
     :operation,
     :provider,
-    :auth_hash,
+    :callback_result,
     :expires_at,
   )
 
@@ -31,17 +31,22 @@ class IdentitySocialCeremonyCandidateStore
     new.delete(ref)
   end
 
-  def store!(surface:, actor_ref:, session_ref:, transaction_id:, operation:, provider:, auth_hash:, expires_at:)
-    raise IdentitySocialCeremonyContract::Error, "social auth candidate is required" if auth_hash.blank?
+  def store!(surface:, actor_ref:, session_ref:, transaction_id:, operation:, provider:, callback_result:, expires_at:)
+    unless callback_result.is_a?(ExternalAuthentication::CallbackResult) && callback_result.verified?
+      raise IdentitySocialCeremonyContract::Error, "social auth candidate is required"
+    end
+    unless callback_result.principal.provider == provider.to_s
+      raise IdentitySocialCeremonyContract::Error, "social auth candidate provider does not match"
+    end
 
-    sanitized_auth_hash = auth_hash.to_h.deep_stringify_keys
+    payload = payload_for(callback_result)
     record =
       IdentitySocialCeremonyCandidate.connection_owner.connected_to(role: :writing) do
         IdentitySocialCeremonyCandidate.create!(
           ref: SecureRandom.uuid,
           digest: digest_for(
             surface, actor_ref, session_ref, transaction_id, operation, provider,
-            sanitized_auth_hash,
+            callback_result.principal,
           ),
           surface: surface.to_s,
           actor_ref: actor_ref.to_s,
@@ -49,7 +54,7 @@ class IdentitySocialCeremonyCandidateStore
           transaction_id: transaction_id.to_s,
           operation: operation.to_s,
           provider: provider.to_s,
-          auth_hash: sanitized_auth_hash,
+          auth_hash: payload,
           expires_at: expires_at,
         )
       end
@@ -104,14 +109,68 @@ class IdentitySocialCeremonyCandidateStore
       transaction_id: record.transaction_id,
       operation: record.operation,
       provider: record.provider,
-      auth_hash: OmniAuth::AuthHash.new(record.auth_hash),
+      callback_result: callback_result_from(record.auth_hash),
       expires_at: record.expires_at,
     )
   end
 
-  def digest_for(surface, actor_ref, session_ref, transaction_id, operation, provider, auth_hash)
-    uid = SocialAuthUidExtractor.call(auth_hash: auth_hash)
-    data = [surface, actor_ref, session_ref, transaction_id, operation, provider, uid].map(&:to_s).join(":")
+  def digest_for(surface, actor_ref, session_ref, transaction_id, operation, provider, principal)
+    data = [
+      surface,
+      actor_ref,
+      session_ref,
+      transaction_id,
+      operation,
+      provider,
+      principal.issuer,
+      principal.subject,
+    ].map(&:to_s).join(":")
     OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, data)
+  end
+
+  def payload_for(callback_result)
+    principal = callback_result.principal
+    payload = {
+      "principal" => {
+        "provider" => principal.provider,
+        "subject" => principal.subject,
+        "issuer" => principal.issuer,
+        "audience" => principal.audience,
+        "verified_at" => principal.verified_at.iso8601(6),
+        "verification_authority" => principal.verification_authority,
+      },
+    }
+    candidate = callback_result.credential_candidate
+    payload["apple_refresh_token"] = candidate.refresh_token if candidate.is_a?(
+      ExternalAuthentication::AppleCredentialCandidate,
+    )
+    payload
+  end
+
+  def callback_result_from(payload)
+    principal_payload = payload.fetch("principal")
+    principal = ExternalAuthentication::VerifiedPrincipal.new(
+      provider: principal_payload.fetch("provider"),
+      subject: principal_payload.fetch("subject"),
+      issuer: principal_payload.fetch("issuer"),
+      audience: principal_payload.fetch("audience"),
+      verified_at: Time.iso8601(principal_payload.fetch("verified_at")),
+      verification_authority: principal_payload.fetch("verification_authority"),
+    )
+    refresh_token = payload["apple_refresh_token"]
+    credential_candidate =
+      if principal.provider == "apple"
+        ExternalAuthentication::AppleCredentialCandidate.new(refresh_token: refresh_token)
+      elsif principal.provider == "google"
+        nil
+      else
+        raise IdentitySocialCeremonyContract::Error, "social auth candidate is invalid"
+      end
+    ExternalAuthentication::CallbackResult.verified(
+      principal: principal,
+      credential_candidate: credential_candidate,
+    )
+  rescue ArgumentError, KeyError, TypeError
+    raise IdentitySocialCeremonyContract::Error, "social auth candidate is invalid"
   end
 end

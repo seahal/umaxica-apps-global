@@ -637,6 +637,38 @@ module Auth::App::Up
       end
     end
 
+    test "create rejects signup for a telephone number blocked by an in-force registration_blocked Identifier Effect, sending no OTP" do
+      operator = operators(:one)
+      the_case = AppEnforcementCase.new(
+        kind: "permanent_ban",
+        duration_mode: "permanent",
+        visibility: "visible",
+        release_mode: "break_glass_only",
+        effective_at: Time.current,
+        reason_code: "abuse",
+        principal_public_id: "some_prior_client_public_id",
+        applied_by_operator_public_id: operator.public_id,
+      )
+      digest = EnforcementIdentifierDigest.for_telephone(realm: "app", value: "+15551234567")
+      the_case.identifier_effects.build(**digest, registration_blocked: true, effective_at: Time.current)
+      the_case.apply!
+
+      assert_no_enqueued_jobs only: Outbound::SmsDeliveryJob do
+        assert_no_difference("ClientTelephone.count") do
+          post auth_app_sign_up_telephone_url, params: {
+            client_telephone: {
+              raw_number: "+15551234567",
+              confirm_policy: "1",
+              confirm_using_mfa: "1",
+            },
+            "cf-turnstile-response": "test",
+          }
+        end
+      end
+
+      assert_response :unprocessable_content
+    end
+
     private
 
     def regional_defaults

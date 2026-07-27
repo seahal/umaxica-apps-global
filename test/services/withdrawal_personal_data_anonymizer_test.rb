@@ -85,6 +85,37 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
     assert_equal ClientGoogleIdentityStatus::REVOKED, google_identity.updated_attrs.fetch(:status_id)
   end
 
+  test "issues an Apple revocation request before anonymizing the Apple credential" do
+    client = Client.allocate
+    apple_identity = AnonymizedRecord.new(17, nil, nil, ClientAppleIdentity)
+    apple_identity.define_singleton_method(:refresh_token) { "apple-refresh-token" }
+    issued = []
+
+    define_client_actor(
+      client,
+      emails: [],
+      telephones: [],
+      passkeys: [],
+      secrets: [],
+      totps: [],
+      google_identity: nil,
+      apple_identity: apple_identity,
+    )
+
+    ExternalAuthenticationAppleCredentialRevocationRequestIssuer.stub(
+      :call,
+      ->(**attributes) { issued << attributes },
+    ) do
+      RetentionCrossDatabaseChildPurge.stub(:call, ->(actor:) { }) do
+        WithdrawalPersonalDataAnonymizer.call(actor: client)
+      end
+    end
+
+    assert_equal [{ client: client, refresh_token: "apple-refresh-token", reason: "withdrawal" }], issued
+    assert_equal "", apple_identity.updated_attrs.fetch(:refresh_token)
+    assert_equal ClientAppleIdentityStatus::REVOKED, apple_identity.updated_attrs.fetch(:status_id)
+  end
+
   test "anonymizes a visitor actor" do
     visitor = Visitor.allocate
     purge_calls = []

@@ -98,6 +98,10 @@ class AuthMethodGuard
   end
 
   def self.active_social_count(actor)
+    if ExternalAuthentication::IdentityRepositoryFactory.common_storage?
+      return (AuthenticationCredentialInventory.call(actor, reload: true).aal1_methods & %i(apple google)).count
+    end
+
     count = 0
     if actor.respond_to?(:user_google_identity) &&
         actor.user_google_identity&.status_id == ClientGoogleIdentityStatus::ACTIVE

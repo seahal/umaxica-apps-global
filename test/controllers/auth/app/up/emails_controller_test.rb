@@ -1642,6 +1642,39 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_not_nil I18n.t("sign.app.registration.email.create.otp_resend_too_soon", locale: :en, default: nil)
   end
 
+  test "create rejects signup for an email blocked by an in-force registration_blocked Identifier Effect, sending no OTP" do
+    operator = operators(:one)
+    the_case = AppEnforcementCase.new(
+      kind: "permanent_ban",
+      duration_mode: "permanent",
+      visibility: "visible",
+      release_mode: "break_glass_only",
+      effective_at: Time.current,
+      reason_code: "abuse",
+      principal_public_id: "some_prior_client_public_id",
+      applied_by_operator_public_id: operator.public_id,
+    )
+    digest = EnforcementIdentifierDigest.for_email(realm: "app", value: "enforcement_blocked@example.com")
+    the_case.identifier_effects.build(**digest, registration_blocked: true, effective_at: Time.current)
+    the_case.apply!
+
+    assert_enqueued_emails 0 do
+      post auth_app_sign_up_email_url(ri: "jp"),
+           params: {
+             user_email: {
+               raw_address: "Enforcement_Blocked@Example.com",
+               confirm_policy: "1",
+             },
+             "cf-turnstile-response": "test",
+           },
+           headers: default_headers
+    end
+
+    assert_response :unprocessable_content
+    assert_select "*", text: I18n.t("sign.app.registration.email.create.address_required")
+    assert_not ClientEmail.exists?(address_digest: IdentifierBlindIndex.bidx_for_email("enforcement_blocked@example.com"))
+  end
+
   private
 
   def default_headers

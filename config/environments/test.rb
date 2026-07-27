@@ -98,7 +98,7 @@ Rails.application.configure do
   config.sms_provider = "test"
   config.x.security.allow_turnstile_validation_override = true
 
-  # Unlogged tables skip WAL entirely — less write work per test and less
+  # Unlogged tables skip WAL entirely -- less write work per test and less
   # pg_wal pressure on the tmpfs-backed primary. The old shared-memory concern
   # no longer applies: the postgres container now runs with shm_size 4gb.
   ActiveSupport.on_load(:active_record_postgresqladapter) do

@@ -19,4 +19,21 @@ class AuthenticationSessionRevoker
       raise ArgumentError, "Unsupported resource type: #{resource.class}"
     end
   end
+
+  # adr/unified-enforcement.md, Session revocation: the union of sessions
+  # established by `method`, sessions with no recorded establishing method
+  # (always -- not only on the first Authentication Method Effect applied to a
+  # principal, so a second effect never behaves differently from the first),
+  # and -- only when `method` is "totp" -- every session carrying a TOTP
+  # step-up, revoked in full. A session whose elevation rests on a
+  # compromised authenticator is itself suspect; effects on other methods
+  # never propagate through step-up.
+  def self.tokens_for_method(resource, method)
+    scope = tokens_for(resource)
+    method = method.to_s
+    matching_or_unattributed = scope.where(established_authentication_method: [method, nil])
+    return matching_or_unattributed unless method == "totp"
+
+    matching_or_unattributed.or(scope.where(last_step_up_method: "totp"))
+  end
 end

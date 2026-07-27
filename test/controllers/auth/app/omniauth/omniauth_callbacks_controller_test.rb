@@ -5,15 +5,11 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
-  test "callback routes keep google GET and apple GET or POST separate" do
+  test "callback routes accept GET only" do
     host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     google_route = Rails.application.routes.recognize_path(
       "http://#{host}/social/google/callback",
       method: :get,
-    )
-    apple_route = Rails.application.routes.recognize_path(
-      "http://#{host}/social/apple/callback",
-      method: :post,
     )
     apple_get_route = Rails.application.routes.recognize_path(
       "http://#{host}/social/apple/callback",
@@ -23,15 +19,16 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     assert_equal "auth/app/omniauth/omniauth_callbacks", google_route[:controller]
     assert_equal "omniauth", google_route[:action]
     assert_equal "google", google_route[:provider]
-    assert_equal "auth/app/omniauth/omniauth_callbacks", apple_route[:controller]
-    assert_equal "omniauth", apple_route[:action]
-    assert_equal "apple", apple_route[:provider]
     assert_equal "auth/app/omniauth/omniauth_callbacks", apple_get_route[:controller]
     assert_equal "omniauth", apple_get_route[:action]
     assert_equal "apple", apple_get_route[:provider]
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{host}/social/google/callback", method: :post)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{host}/social/apple/callback", method: :post)
     end
   end
 
@@ -652,6 +649,22 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "log.umaxica.app")
     controller.response = ActionDispatch::TestResponse.new
     controller.request.env["omniauth.auth"] = auth
+    controller.instance_variable_set(
+      :@external_authentication_callback_result,
+      ExternalAuthentication::CallbackResult.verified(
+        principal: ExternalAuthentication::VerifiedPrincipal.new(
+          provider: "apple",
+          subject: auth.uid,
+          issuer: "https://appleid.apple.com",
+          audience: "apple-client-id",
+          verified_at: Time.current,
+          verification_authority: "omniauth-apple/contract",
+        ),
+        credential_candidate: ExternalAuthentication::AppleCredentialCandidate.new(
+          refresh_token: "apple-refresh-token",
+        ),
+      ),
+    )
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
     controller.define_singleton_method(:session) { {} }
     controller.define_singleton_method(:auth_app_up_sequence_id) { cycle.public_id }

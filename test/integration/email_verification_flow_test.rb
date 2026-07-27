@@ -25,7 +25,7 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
         provider: "apple",
         uid: "flow_uid",
         info: {},
-        credentials: { token: "token", expires_at: 1.week.from_now.to_i },
+        credentials: { token: "token", refresh_token: "apple_refresh_token", expires_at: 1.week.from_now.to_i },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
@@ -33,9 +33,9 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
     # 1. Auth callback
     # We expect NO emails to be sent
     assert_no_emails do
-      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-           params: { state: state },
-           headers: social_callback_headers(@host)
+      get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+          params: { state: state },
+          headers: social_callback_headers(@host)
     end
 
     assert_response :redirect

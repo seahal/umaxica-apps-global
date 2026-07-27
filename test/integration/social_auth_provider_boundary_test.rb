@@ -53,6 +53,7 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
       info: {},
       credentials: {
         token: "apple-token",
+        refresh_token: "apple-refresh-token",
         expires_at: 1.week.from_now.to_i,
       },
     )
@@ -102,6 +103,7 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
       info: {},
       credentials: {
         token: "apple-token",
+        refresh_token: "apple-refresh-token",
         expires_at: 1.week.from_now.to_i,
       },
       extra: {

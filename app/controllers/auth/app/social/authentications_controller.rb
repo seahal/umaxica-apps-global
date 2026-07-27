@@ -33,7 +33,7 @@ module Auth
 
           return redirect_social_unlink_turnstile_failure unless cloudflare_turnstile_stealth_validation["success"]
 
-          SocialAuthCoordinator.unlink(provider: provider, client: current_client)
+          ExternalAuthenticationUnlinkUseCase.call(provider: provider, user: current_client)
           redirect_to(
             social_unlink_success_path(provider),
             status: :see_other,
@@ -108,12 +108,8 @@ module Auth
         end
 
         def social_identity_for_provider(provider)
-          case SocialIdentifiable.normalize_provider(provider)
-          when "apple"
-            current_client.user_apple_identity
-          when "google"
-            current_client.user_google_identity
-          end
+          normalized_provider = SocialIdentifiable.normalize_provider(provider)
+          ExternalAuthentication::IdentityRepositoryFactory.current.build(normalized_provider).find_for_user(current_client)
         end
 
         def redirect_social_unlink_turnstile_failure
@@ -180,7 +176,7 @@ module Auth
         end
 
         # Shared entry point for the ceremony start subclasses.
-        # Prepares session with intent/state, then redirects to OmniAuth.
+        # Prepares session context, then renders the CSRF-protected OmniAuth POST form.
         #
         # Params:
         #   - provider: "google" or "apple" (route default)
@@ -191,7 +187,7 @@ module Auth
         # Flow:
         #   1. Validate provider
         #   2. Prepare intent in session (generates state)
-        #   3. Redirect to /social/google or /social/apple with the state query param
+        #   3. Submit POST /social/google or POST /social/apple with a Rails authenticity token
         def start_social_ceremony!
           provider = params[:provider]
           intent = params[:intent] || "login"
@@ -226,10 +222,7 @@ module Auth
           end
           issue_sign_up_flow!(provider) if social_auth_entry == "sign_up"
 
-          safe_redirect_to(
-            omniauth_authorize_path(provider, state: state),
-            fallback: auth_app_sign_in_path,
-          )
+          render_social_authorization_form(provider)
         rescue SocialAuth::BaseError => e
           handle_social_auth_error(e)
         end

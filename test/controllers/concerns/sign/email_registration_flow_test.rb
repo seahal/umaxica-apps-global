@@ -14,6 +14,7 @@ class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
 
     include SignEmailRegistrable
     include SignEmailRegistrationFlow
+    include EnforcementIdentifierGate
 
     attr_accessor :session_hash, :flash_hash, :reset_called, :target_user, :params_hash, :render_args, :redirect_args
 

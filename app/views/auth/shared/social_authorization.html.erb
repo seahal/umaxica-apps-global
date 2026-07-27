@@ -1,0 +1,12 @@
+<% content_for :page_title, I18n.t("sign.app.social.sessions.continue", default: "Continue") %>
+
+<%= form_with url: authorization_path, method: :post, local: true, authenticity_token: false, data: { turbo: false }, html: { id: "social-authorization-form" } do %>
+  <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+  <noscript>
+    <%= submit_tag I18n.t("sign.app.social.sessions.continue", default: "Continue") %>
+  </noscript>
+<% end %>
+
+<script nonce="<%= content_security_policy_nonce %>">
+  document.getElementById("social-authorization-form").submit();
+</script>

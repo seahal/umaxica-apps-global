@@ -90,11 +90,27 @@ without changing the `tid + oid` auth contract.
 (`encrypts :entra_client_secret`). The plaintext is never stored in the database column. Encryption
 keys live in Rails credentials.
 
+### Callback boundary
+
+The callback remains `GET /sign/in/entra/callback`. The redirect URI is built from the configured
+Org authentication origin and this fixed path; it is never derived from request host, forwarded
+host, or referer. The ceremony session holds only an opaque reference. State, nonce, PKCE verifier,
+connection reference, and return target are stored server-side, consumed once, and deleted on every
+callback outcome, including state mismatch and provider error.
+
+The controller is Rails glue only. `ExternalAuthentication::EntraProviderAdapter` owns code exchange
+and token verification. It returns a typed principal containing only verified issuer, pairwise
+subject, audience, and typed `tid + oid` context. ID token, access token, token response, raw
+claims, profile claims, and AuthHash are discarded at the adapter boundary.
+
+`ExternalAuthenticationOrgEntraCeremonyStore` owns the server-side ceremony reference. `ENTRA_SOCIAL_CEREMONY_ENABLED` is read only by the provider-availability environment adapter. It
+blocks new Org Entra ceremonies when false while allowing already-issued callbacks to drain.
+
 ### Scope of this ADR
 
-This ADR covers the data model boundary, identity key decisions, database placement, and the
-no-provisioning guarantee. Controller, callback, OIDC flow, and MFA bypass policy decisions are
-deferred to a subsequent ADR when Slice 2 (callback controller) is planned.
+This ADR covers the data model boundary, identity key decisions, callback boundary, and the
+no-provisioning guarantee. MFA bypass policy remains governed by the existing operator session
+contract.
 
 ## Consequences
 
@@ -104,5 +120,6 @@ deferred to a subsequent ADR when Slice 2 (callback controller) is planned.
 - The callback resolver must be deny-by-default: raise on any miss, never create.
 - App Google/Apple social login is unaffected.
 - `OmniAuthNonAppSocialGuard` is unmodified.
-- A future ADR must cover: MFA bypass policy for Entra (`mfa_bypassed_for_auth_method?`), `amr`
-  claim value for Entra-originated sessions, and the full callback controller lifecycle.
+- `omniauth_openid_connect` remains outside the production Entra path until its real-strategy
+  contract tests prove PKCE, state, nonce, signature, issuer, audience, time claims, tenant
+  discovery, unknown key handling, token exchange failure, and provider mix-up behavior.

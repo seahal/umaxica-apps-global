@@ -46,6 +46,7 @@ updating this document and the test together.
 | `PUBLIC_PALM_API`                 | Palm `GET /api/v0/profile`                                                                                                                | Native bearer-token API entrypoint; actor login cookie is not required.                                               |
 | `PUBLIC_AUTH_ORG_REDIRECTS`       | Auth org redirect-only compatibility paths such as `/accounts`, `/audit`, `/billing`, `/configuration`, `/iam`, `/support`, and `/system` | Redirect-only compatibility endpoints. Base owns authority.                                                           |
 | `PUBLIC_SIDE_SETTINGS`            | Side `GET /settings`                                                                                                                      | Current Side settings shell entrypoint.                                                                               |
+| `PUBLIC_APPLE_NOTIFICATIONS`      | `POST /apple/notifications`                                                                                                               | Apple Server Notifications V2 webhook; JWS-signature verified, not session-authenticated.                             |
 
 ## Default Rule
 

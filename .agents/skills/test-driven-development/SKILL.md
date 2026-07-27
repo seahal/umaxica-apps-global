@@ -349,7 +349,13 @@ For detailed DevTools setup instructions and workflows, see `browser-testing-wit
 
 ## When to Use Subagents for Testing
 
-For complex bug fixes, spawn a subagent to write the reproduction test:
+Write reproduction tests directly in the main loop. Delegation is worth its cost only in the narrow
+case below — see the subagent budget in
+`.agents/harnesses/rules/generic/model-behavior-calibration.mdc`.
+
+The one case that justifies it: a bug whose fix you have already worked out in enough detail that you
+cannot write the reproduction test without unconsciously shaping it around that fix. The value is
+**information isolation**, not parallelism.
 
 ```
 Main agent: "Spawn a subagent to write a test that reproduces this bug:
@@ -361,7 +367,12 @@ Main agent: Verifies the test fails, then implements the fix,
 then verifies the test passes.
 ```
 
-This separation ensures the test is written without knowledge of the fix, making it more robust.
+Pass the bug description and the failure symptom only — withhold your diagnosis and your intended
+fix, since handing those over defeats the isolation you delegated for.
+
+Do not delegate when you have not yet diagnosed the bug (there is no fix to be biased by), for
+straightforward regressions, or to add ordinary coverage for new behavior. Write those tests
+yourself.
 
 ## See Also
 

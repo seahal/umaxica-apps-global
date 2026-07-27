@@ -39,6 +39,7 @@ module Security
       PUBLIC_PALM_API
       PUBLIC_AUTH_ORG_REDIRECTS
       PUBLIC_SIDE_SETTINGS
+      PUBLIC_APPLE_NOTIFICATIONS
     ).freeze
 
     RouteEntry = Struct.new(:verb, :path, :controller_path, :action, :controller_class, :mode, keyword_init: true)
@@ -158,7 +159,8 @@ module Security
         public_core_api?(entry) ||
         public_palm_api?(entry) ||
         public_auth_org_redirect?(entry) ||
-        public_side_settings?(entry)
+        public_side_settings?(entry) ||
+        public_apple_notification?(entry)
     end
 
     def public_root?(entry) = get?(entry) && entry.path == "/"
@@ -233,6 +235,8 @@ module Security
     def public_side_settings?(entry)
       get?(entry) && entry.controller_path.start_with?("side/") && entry.path == "/settings"
     end
+
+    def public_apple_notification?(entry) = post?(entry) && entry.path == "/apple/notifications"
 
     def get?(entry) = route_allows?(entry, "GET")
 

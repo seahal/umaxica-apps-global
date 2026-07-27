@@ -5,13 +5,13 @@ services:
     build:
       context: "."
       dockerfile: "./Dockerfile"
+      target: development
       args:
         COMMIT_HASH: abcdef
         # DOCKER_UID/DOCKER_GID are host-shaped; they are supplied by the
         # devcontainer override (.devcontainer/compose.override.yml).
     entrypoint:
-      - "/bin/bash"
-      - "/home/global/workspace/docker/core/entrypoint.sh"
+      - "/usr/local/bin/core-entrypoint"
     command:
       - bin/dev
     environment:
@@ -33,6 +33,13 @@ services:
       # --- Identifier HMAC salts (dev-only fixed values; differ from production) ---
       EMAIL_ADDRESS_HMAC_SALT: "${EMAIL_ADDRESS_HMAC_SALT:-development_email_address_hmac_salt}"
       TELEPHONE_NUMBER_HMAC_SALT: "${TELEPHONE_NUMBER_HMAC_SALT:-development_telephone_number_hmac_salt}"
+      # --- Unified Enforcement identifier HMAC keys (adr/unified-enforcement.md,
+      #     D6) -- dedicated per-realm keys, deliberately distinct from the
+      #     credential-lookup salts above; dev-only fixed values, differ from
+      #     production. ---
+      ENFORCEMENT_APP_IDENTIFIER_HMAC_KEY: "${ENFORCEMENT_APP_IDENTIFIER_HMAC_KEY:-development_enforcement_app_identifier_hmac_key}"
+      ENFORCEMENT_COM_IDENTIFIER_HMAC_KEY: "${ENFORCEMENT_COM_IDENTIFIER_HMAC_KEY:-development_enforcement_com_identifier_hmac_key}"
+      ENFORCEMENT_ORG_IDENTIFIER_HMAC_KEY: "${ENFORCEMENT_ORG_IDENTIFIER_HMAC_KEY:-development_enforcement_org_identifier_hmac_key}"
       # --- PostgreSQL topology ---
       POSTGRESQL_HOST: primary
       POSTGRESQL_PORT: "5432"
@@ -147,10 +154,10 @@ services:
       VITE_RUBY_PORT: "3036"
       VITE_GIT_HOOKS: "0"
     restart: always
-    # The image's USER is baked from DOCKER_UID/DOCKER_GID at build time, so
-    # we do not also pin `user:` in compose — pinning here conflicts with
-    # rootless podman's `userns_mode: keep-id` (set in the devcontainer
-    # override) and the double mapping breaks bind-mount ownership.
+    # PID 1 owns only fixed initialization and Tailscale responsibilities.
+    # core-entrypoint drops the application workload to CORE_WORKLOAD_USER;
+    # Dev Container shells also use the non-root containerUser.
+    user: root
     tmpfs:
       # tmpfs uid=/gid= options are rejected by rootless podman. Mode 1777 +
       # sticky bit lets the in-container user write under root-owned tmpfs.

@@ -68,7 +68,7 @@ services:
     restart: unless-stopped
   core:
     command:
-      - /home/global/workspace/.devcontainer/tailscale-core-supervisor.sh
+      - /usr/local/bin/tailscale-core-supervisor
       - bin/dev
     environment:
       # Optional exact Rails Host Authorization entry for Tailscale Serve.

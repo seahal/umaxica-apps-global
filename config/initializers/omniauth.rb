@@ -15,7 +15,7 @@
 # - Failure:  GET /social/failure
 #
 # Our custom entry point:
-# - GET /social/:provider/sign/in and /social/:provider/sign/up -> prepares intent, redirects to provider callback
+# - GET /social/:provider/session/new and /social/:provider/registration/new -> prepares intent, renders a POST form
 #
 # State Parameter:
 # - SocialCallbackGuard validates callback state through CallbackStateStore for all app providers.
@@ -36,11 +36,11 @@
 # =============================================================================
 
 require Rails.root.join(
-  "lib/external_authentication/infrastructure/omniauth_apple_nonce_enforcement",
+  "lib/external_authentication_infrastructure_omniauth_apple_nonce_enforcement",
 )
 
 OmniAuth::Strategies::Apple.prepend(
-  ExternalAuthentication::Infrastructure::OmniauthAppleNonceEnforcement,
+  ExternalAuthenticationInfrastructureOmniauthAppleNonceEnforcement,
 )
 
 # Load credentials early
@@ -55,27 +55,25 @@ apple_pem = Rails.app.creds.option(:OMNI_AUTH_APPLE_PRIVATE_KEY)
 module OmniAuthCallbackOrigin
   module_function
 
-  def call(env)
-    request = Rack::Request.new(env)
-    scheme = public_sign_host?(request.host) ? "https" : request.scheme
+  CALLBACK_ORIGIN_VALUE = ConfigValues.build(
+    ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+    allow_localhost: !Rails.env.production?,
+  )
+  CALLBACK_ORIGIN = CALLBACK_ORIGIN_VALUE.to_s.freeze
 
-    "#{scheme}://#{request.host_with_port}"
+  def call(_env)
+    callback_origin
   end
 
-  # Compared against request.host (a bare hostname). Use OriginValue#host, not #to_s
-  # which is a full "https://..." origin and would never match.
-  PUBLIC_SIGN_HOSTS =
-    [
-      Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host,
-      Rails.configuration.x.boot_config.fetch(:hosts).sign_staff.host,
-    ].map(&:downcase).freeze
-
-  def public_sign_host?(host)
-    public_sign_hosts.include?(host.to_s.downcase)
+  def callback_origin
+    CALLBACK_ORIGIN
   end
 
-  def public_sign_hosts
-    PUBLIC_SIGN_HOSTS
+  def callback_host
+    uri = CALLBACK_ORIGIN_VALUE.uri
+    return uri.host if uri.port == uri.default_port
+
+    "#{uri.host}:#{uri.port}"
   end
 end
 
@@ -162,7 +160,7 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
              name: "google",
              callback_path: "/social/google/callback",
              scope: "openid",
-             access_type: "offline",
+             access_type: "online",
              prompt: "select_account",
            }
 
@@ -200,12 +198,9 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
            }
 end
 
-# Allow both GET and POST for initiating OAuth
-# - GET: Used after our custom /social/:provider/sign/in entry point redirects to OmniAuth
-# - POST: Traditional form submission (CSRF protected by Rails token)
+# OmniAuth request phase accepts only the Rails authenticity-token-protected form submission.
 # Callback state validation is enforced by SocialCallbackGuard and CallbackStateStore.
-OmniAuth.config.silence_get_warning = true
-OmniAuth.config.allowed_request_methods = %i(get post)
+OmniAuth.config.allowed_request_methods = [:post]
 OmniAuth.config.after_request_phase = proc { |env| SocialCallbackGuard.capture_request_state!(env) }
 
 # =============================================================================

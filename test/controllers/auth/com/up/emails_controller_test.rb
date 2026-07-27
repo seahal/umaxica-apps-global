@@ -319,6 +319,38 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert VisitorEmail.exists?(public_id: new_public_id)
   end
 
+  test "create rejects signup for an email blocked by an in-force registration_blocked Identifier Effect, sending no OTP" do
+    operator = operators(:one)
+    the_case = ComEnforcementCase.new(
+      kind: "permanent_ban",
+      duration_mode: "permanent",
+      visibility: "visible",
+      release_mode: "break_glass_only",
+      effective_at: Time.current,
+      reason_code: "abuse",
+      principal_public_id: "some_prior_visitor_public_id",
+      applied_by_operator_public_id: operator.public_id,
+    )
+    digest = EnforcementIdentifierDigest.for_email(realm: "com", value: "com_enforcement_blocked@example.com")
+    the_case.identifier_effects.build(**digest, registration_blocked: true, effective_at: Time.current)
+    the_case.apply!
+
+    assert_enqueued_emails 0 do
+      post auth_com_sign_up_email_url(ri: "jp"),
+           params: {
+             visitor_email: {
+               raw_address: "Com_Enforcement_Blocked@Example.com",
+               confirm_policy: "1",
+             },
+             "cf-turnstile-response": "test",
+           },
+           headers: default_headers
+    end
+
+    assert_response :unprocessable_content
+    assert_select "*", text: I18n.t("sign.com.registration.email.create.address_required")
+  end
+
   def default_headers
     { "Host" => host, "HTTPS" => "on", "X-CSRF-Token" => csrf_token_value }
   end

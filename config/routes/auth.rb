@@ -30,6 +30,10 @@ scope(module: :auth, as: :auth) do
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
 
+      namespace :apple do
+        resources :notifications, only: :create
+      end
+
       # Canonical ceremony entrypoints and authed-out confirmation/cleanup.
       namespace :sign do
         resource :registration, only: :show, path: "up", controller: :ups, as: :up
@@ -140,8 +144,7 @@ scope(module: :auth, as: :auth) do
       end
 
       namespace(:social) do
-        # Non-resourceful exception: OmniAuth middleware owns these paths, and
-        # Apple's form_post response mode requires the POST variant.
+        # Non-resourceful exception: OmniAuth middleware owns these fixed provider callback paths.
         get(
           "google/callback",
           to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
@@ -149,10 +152,9 @@ scope(module: :auth, as: :auth) do
           defaults: { provider: "google" },
         )
 
-        match(
+        get(
           "apple/callback",
           to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
-          via: %i(get post),
           as: :apple_callback,
           defaults: { provider: "apple" },
         )

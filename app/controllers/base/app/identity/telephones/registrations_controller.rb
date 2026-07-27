@@ -11,6 +11,7 @@ module Base
           include CommonOtp
           include SignTelephoneRegistrable
           include SignSettingsTelephoneRegistration
+          include EnforcementIdentifierGate
           include VerificationClient
 
           AUTHENTICATION_MODE = :private
@@ -44,6 +45,19 @@ module Base
             end
             tel_params = params.expect(user_telephone: [:raw_number, :number])
             number = tel_params[:raw_number] || tel_params[:number]
+
+            # adr/unified-enforcement.md, Identifier attachment enforcement: an in-force
+            # Identifier Effect with attachment_blocked rejects attaching this identifier to
+            # an existing account, at the same enumeration-resistance discipline as the
+            # ordinary validation failure.
+            if number.present? && enforcement_blocks_telephone_attachment?(
+              effect_class: AppEnforcementIdentifierEffect, realm: "app", telephone: number,
+            )
+              @user_telephone = ClientTelephone.new
+              @user_telephone.errors.add(:raw_number, :blank)
+              return render(:new, status: :unprocessable_content)
+            end
+
             return render(:new, status: :unprocessable_content) unless initiate_telephone_verification(
               current_client,
               number, auto_accept_confirmations: true,

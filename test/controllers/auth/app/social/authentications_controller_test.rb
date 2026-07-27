@@ -9,17 +9,18 @@ class Auth::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
   end
 
-  test "continue redirects to google oauth with valid provider" do
+  test "continue renders a CSRF-protected POST form for Google authorization" do
     get new_auth_app_social_google_session_path(provider: "google", ri: "jp")
 
-    assert_response :redirect
-    assert_match %r{/social/google\?state=}, response.location
+    assert_response :success
+    assert_select "form#social-authorization-form[action='/social/google'][method='post'][data-turbo='false']", count: 1
+    assert_select "form#social-authorization-form input[name='authenticity_token']", count: 1
   end
 
   test "continue stores only social ceremony transaction id in cookie session" do
     get new_auth_app_social_google_session_path(provider: "google", ri: "jp")
 
-    assert_response :redirect
+    assert_response :success
 
     stored_value = session[SocialAuth::SOCIAL_CEREMONY_GRANT_SESSION_KEY]
 
@@ -39,8 +40,8 @@ class Auth::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
       get new_auth_app_social_google_registration_path(provider: "google", ri: "jp")
     end
 
-    assert_response :redirect
-    assert_match %r{/social/google\?state=}, response.location
+    assert_response :success
+    assert_select "form#social-authorization-form[action='/social/google'][method='post']", count: 1
 
     cycle = ClientSignUpFlow.order(:created_at).last
 
@@ -55,8 +56,8 @@ class Auth::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
       get new_auth_app_social_apple_registration_path(provider: "apple", ri: "jp")
     end
 
-    assert_response :redirect
-    assert_match %r{/social/apple\?state=}, response.location
+    assert_response :success
+    assert_select "form#social-authorization-form[action='/social/apple'][method='post']", count: 1
 
     cycle = ClientSignUpFlow.order(:created_at).last
 
@@ -66,11 +67,12 @@ class Auth::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     assert_equal cycle.public_id, session[:auth_app_up_sequence_id]
   end
 
-  test "continue redirects to apple oauth with valid provider" do
+  test "continue renders a CSRF-protected POST form for Apple authorization" do
     get new_auth_app_social_apple_session_path(provider: "apple", ri: "jp")
 
-    assert_response :redirect
-    assert_match %r{/social/apple\?state=}, response.location
+    assert_response :success
+    assert_select "form#social-authorization-form[action='/social/apple'][method='post'][data-turbo='false']", count: 1
+    assert_select "form#social-authorization-form input[name='authenticity_token']", count: 1
   end
 
   test "start path is not routable" do

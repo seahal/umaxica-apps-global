@@ -107,7 +107,8 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
     get new_auth_app_social_google_session_url(intent: "step_up", ri: "jp"),
         headers: as_user_headers(user, host: @host)
 
-    assert_response :redirect
+    assert_response :success
+    assert_select "form#social-authorization-form[action='/social/google'][method='post']"
     user.reload
     if original_step_up_at
       assert_equal original_step_up_at, user.last_step_up_at
@@ -176,7 +177,8 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
     )
 
     assert_predicate state, :present?
-    assert_response :redirect
+    assert_response :success
+    assert_select "form#social-authorization-form[action='/social/google'][method='post']"
     assert_nil session["omniauth.origin"]
   end
 

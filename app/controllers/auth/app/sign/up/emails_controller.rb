@@ -10,6 +10,7 @@ module Auth
           include CommonRedirect
           include CommonOtp
           include SignEmailRegistrable
+          include EnforcementIdentifierGate
 
           AUTHENTICATION_MODE = :guest
           REGISTRATION_EMAIL_PERMITTED_KEYS = %i(raw_address address confirm_policy promotional notifiable).freeze
@@ -90,16 +91,11 @@ module Auth
             email_params = registration_email_params
             email_address = email_params&.[](:raw_address).presence || email_params&.[](:address).presence
 
-            if email_address.blank?
-              @user_email = ClientEmail.new
-              @user_email.errors.add(
-                :base, t("sign.app.registration.email.create.address_required"),
-              )
-              log_sign_signup_event(
-                "sign.signup.email.create.rejected",
-                sign_signup_request_flags.merge(step: "email_otp", reason: "email_blank").compact,
-              )
-              render :new, status: :unprocessable_content
+            if render_blank_registration_email!(email_address)
+              return
+            end
+
+            if render_enforcement_blocked_registration!(email_address)
               return
             end
 
@@ -135,6 +131,35 @@ module Auth
           end
 
           private
+
+          def render_blank_registration_email!(email_address)
+            return false if email_address.present?
+
+            @user_email = ClientEmail.new
+            @user_email.errors.add(:base, t("sign.app.registration.email.create.address_required"))
+            log_sign_signup_event(
+              "sign.signup.email.create.rejected",
+              sign_signup_request_flags.merge(step: "email_otp", reason: "email_blank").compact,
+            )
+            render :new, status: :unprocessable_content
+            true
+          end
+
+          # adr/unified-enforcement.md, Signup enforcement: an in-force Identifier
+          # Effect with registration_blocked rejects signup before any OTP is sent,
+          # at the same enumeration-resistance discipline as an ordinary validation
+          # failure -- same render call, same error copy, no distinguishing signal
+          # or log event. Returns true when the request was rejected and handled.
+          def render_enforcement_blocked_registration!(email_address)
+            return false unless enforcement_blocks_email_registration?(
+              effect_class: AppEnforcementIdentifierEffect, realm: "app", email: email_address,
+            )
+
+            @user_email = ClientEmail.new
+            @user_email.errors.add(:base, t("sign.app.registration.email.create.address_required"))
+            render :new, status: :unprocessable_content
+            true
+          end
 
           def redirect_invalid_session
             reset_email_flow!

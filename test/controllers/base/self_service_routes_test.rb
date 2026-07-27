@@ -8,7 +8,7 @@ require "test_helper"
 class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
   # include AuthHelpers
 
-  fixtures :clients, :client_statuses, :operators
+  fixtures :clients, :client_statuses, :client_apple_identity_statuses, :operators
 
   setup do
     hosts = Rails.configuration.x.boot_config.fetch(:hosts)
@@ -29,6 +29,47 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
   # identity self-service page remains here. Org/com entity pages are plural resources too.
   test "app self service identity page requires authentication" do
     assert_requires_authentication(base_app_identity_url(ri: "jp", host: @app_host), host: @app_host)
+  end
+
+  test "app identity settings permanently guide an Apple-only client to alternative credentials" do
+    client = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "n#{SecureRandom.hex(8)}")
+    ClientAppleIdentity.create!(
+      user: client,
+      provider: "apple",
+      uid: "apple-only-settings-#{SecureRandom.hex(8)}",
+      token: ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED,
+      refresh_token: "",
+      token_expires_at: 0,
+      status_id: ClientAppleIdentityStatus::ACTIVE,
+    )
+    token = ClientToken.create!(user: client, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    select_token!(surface: :app, principal: client, token: token)
+
+    get(
+      base_app_identity_url(ri: "jp", host: @app_host),
+      headers: as_user_headers(client, host: @app_host, session_public_id: token.public_id),
+    )
+
+    assert_response :success
+    assert_select "#apple-only-credential-warning", "Add another sign-in method"
+    assert_select(
+      "a[href=?]",
+      new_auth_app_settings_passkey_url(
+        ri: "jp",
+        host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+        protocol: "https",
+      ),
+      text: "Add a passkey",
+    )
+    assert_select(
+      "a[href=?]",
+      edit_auth_app_settings_google_url(
+        ri: "jp",
+        host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+        protocol: "https",
+      ),
+      text: "Link Google",
+    )
   end
 
   test "org self service pages require authentication" do

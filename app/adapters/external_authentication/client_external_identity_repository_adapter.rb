@@ -1,0 +1,127 @@
+# typed: false
+# frozen_string_literal: true
+
+module ExternalAuthentication
+  class ClientExternalIdentityRepositoryAdapter
+    include ExternalIdentityRepositoryPort
+
+    attr_reader :provider
+
+    def initialize(provider:)
+      @provider = ProviderRegistry.fetch(provider).provider.freeze
+    end
+
+    def find_by_subject(subject, lock:)
+      scope = ClientExternalIdentity.where(provider: provider, issuer: issuer, subject: subject.to_s)
+      scope = scope.lock if lock
+      scope.first
+    end
+
+    def find_for_user(user)
+      user.client_external_identities.find_by(provider: provider)
+    end
+
+    def build_for_user(user:, principal:, credential_candidate:)
+      validate_principal!(principal)
+      identity = ClientExternalIdentity.new(
+        client: user,
+        provider: provider,
+        issuer: principal.issuer,
+        subject: principal.subject,
+        audience: principal.audience,
+        verification_authority: principal.verification_authority,
+        verified_at: principal.verified_at,
+      )
+      assign_credential!(identity, credential_candidate)
+      identity
+    end
+
+    def refresh_credentials!(identity, principal:, credential_candidate:)
+      validate_identity!(identity)
+      validate_principal!(principal)
+      identity.assign_attributes(
+        issuer: principal.issuer,
+        subject: principal.subject,
+        audience: principal.audience,
+        verification_authority: principal.verification_authority,
+        verified_at: principal.verified_at,
+        last_authenticated_at: Time.current,
+      )
+      credential = assign_credential!(identity, credential_candidate)
+      identity.save!
+      credential&.save!
+      identity
+    end
+
+    def assign_to_user(identity, user)
+      validate_identity!(identity)
+      identity.client = user
+      identity
+    end
+
+    def activate!(identity)
+      validate_identity!(identity)
+      raise ArgumentError, "account-deleted identity cannot be reactivated" if identity.state == "account_deleted"
+
+      identity.update!(state: "active")
+      identity.client_apple_identity_credential&.update!(state: "active") if provider == "apple"
+      identity
+    end
+
+    def destroy!(identity)
+      validate_identity!(identity)
+      identity.destroy!
+    end
+
+    def ensure_active_status!
+      true
+    end
+
+    def refresh_token_for(identity)
+      validate_identity!(identity)
+      return nil unless provider == "apple"
+
+      identity.client_apple_identity_credential&.refresh_token.presence
+    end
+
+    private
+
+    def issuer
+      ProviderRegistry.fetch(provider).issuer
+    end
+
+    def assign_credential!(identity, credential_candidate)
+      return validate_google_candidate!(credential_candidate) if provider == "google"
+
+      candidate = validate_apple_candidate!(credential_candidate)
+      credential = identity.client_apple_identity_credential || identity.build_client_apple_identity_credential
+      credential.refresh_token = candidate.refresh_token
+      credential.state = "active"
+      credential
+    end
+
+    def validate_principal!(principal)
+      return if principal.is_a?(VerifiedPrincipal) && principal.provider == provider && principal.issuer == issuer
+
+      raise ArgumentError, "principal does not match repository provider"
+    end
+
+    def validate_identity!(identity)
+      return if identity.is_a?(ClientExternalIdentity) && identity.provider == provider
+
+      raise ArgumentError, "identity does not match repository provider"
+    end
+
+    def validate_apple_candidate!(candidate)
+      return candidate if candidate.is_a?(AppleCredentialCandidate)
+
+      raise ArgumentError, "Apple credential candidate is required"
+    end
+
+    def validate_google_candidate!(candidate)
+      return if candidate.nil?
+
+      raise ArgumentError, "Google credential candidate must be absent"
+    end
+  end
+end

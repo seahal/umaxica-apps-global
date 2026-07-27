@@ -75,7 +75,7 @@ module SignUpSocialBirthdateSupport
           "candidate operation mismatch" unless candidate.operation.to_s == "signup"
 
     provider = SocialIdentifiable.normalize_provider(candidate.provider)
-    uid = SocialAuthUidExtractor.call(auth_hash: candidate.auth_hash)
+    uid = candidate.callback_result.principal.subject
     raise IdentitySocialCeremonyContract::Error,
           "candidate provider mismatch" unless provider == @sign_up_ticket.social_provider
     raise IdentitySocialCeremonyContract::Error,
@@ -83,10 +83,6 @@ module SignUpSocialBirthdateSupport
     raise IdentitySocialCeremonyContract::Error, "candidate uid mismatch" unless
       pending_social_signup_uid_digest(provider: provider, uid: uid) == evidence.fetch("uid_digest")
 
-    SocialAuthVerifiedProviderAssertion.call(
-      auth_hash: candidate.auth_hash,
-      expected_provider: candidate.provider,
-    )
     candidate
   end
 
@@ -94,7 +90,7 @@ module SignUpSocialBirthdateSupport
     grant = social_signup_ceremony_grant
     result_token = IdentitySocialCeremonyResultIssuer.issue!(
       grant_token: social_signup_ceremony_grant_token(grant),
-      auth_hash: candidate.auth_hash,
+      callback_result: candidate.callback_result,
       surface: "app",
       actor_ref: grant["actor_ref"],
       session_ref: grant["session_ref"],

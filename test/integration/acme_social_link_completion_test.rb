@@ -44,7 +44,7 @@ class BaseSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     identity = ClientGoogleIdentity.find_by!(uid: uid)
 
     assert_equal user.id, identity.user_id
-    assert_equal "completion_token", identity.token
+    assert_equal ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED, identity.token
   end
 
   test "base completion rejects a malformed social result without committing" do
