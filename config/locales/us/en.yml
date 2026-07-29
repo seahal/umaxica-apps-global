@@ -291,6 +291,9 @@ en:
             secret_credential: Secret
             registration: Need an account?
       in:
+        checkpoints:
+          show:
+            title: Sign-in check
         bulletins:
           show:
             title: Bulletin

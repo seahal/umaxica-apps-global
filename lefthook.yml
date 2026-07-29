@@ -20,7 +20,7 @@ pre-commit:
     - name: rubocop
       glob:
         - "*.{rb,rake}"
-      run: bundle exec rubocop -A --force-exclusion {staged_files}
+      run: bundle exec rubocop -a --force-exclusion {staged_files}
       stage_fixed: true
 
 pre-push:

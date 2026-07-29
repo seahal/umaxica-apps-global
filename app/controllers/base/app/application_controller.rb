@@ -88,11 +88,11 @@ module Base
       before_action :set_current_observability
       prepend_around_action :with_actor_lifecycle
 
-      # Base app accepts browser POSTs only from its own Base host and the Auth authority.
+      # Base app accepts ordinary browser POSTs only from its own Base host.
+      # Cross-surface protocol endpoints declare their trusted origins locally.
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
                              ENV.fetch("PUBLIC_BASE_SERVICE_URL"),
-                             ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
                            ),
                            with: :exception
 

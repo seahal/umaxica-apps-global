@@ -1,5 +1,9 @@
 # Logout State Machine Implementation Plan
 
+> **Superseded by GitHub issue #833 (2026-07-29):** This plan is deactivated. The GitHub issue is
+> authoritative for current status and scope. This file is retained under `plans/archive/` for
+> historical context only.
+
 > **Superseded by implementation (2026-06-21):** The browser logout ceremony now uses per-surface
 > `/sign/out/new|edit|complete` with Acme-only `/oidc/logout`, session-bound completion markers, and
 > no `/sign/out/edit?sot=` flow. Keep this file for historical context only; follow

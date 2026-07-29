@@ -172,6 +172,31 @@ class Base::Org::Support::EnforcementCasesControllerTest < ActionDispatch::Integ
     assert_not_predicate client, :admin_locked?
   end
 
+  test "a separate operator can reject an appeal through the review resource" do
+    client = clients(:one)
+    the_case = AppEnforcementCase.create!(
+      kind: "security_lock", state: "draft", duration_mode: "indefinite", visibility: "visible",
+      release_mode: "verification_required", effective_at: Time.current, reason_code: "security_incident",
+      principal_public_id: client.public_id, applied_by_operator_public_id: @operator.public_id,
+    )
+    appeal = AppEnforcementAppeal.create!(
+      enforcement_case: the_case, reason_code: "incorrect_decision", statement: "Please review this decision.",
+      submitted_at: Time.current,
+    )
+    mark_token_step_up_satisfied_for_test(@approver_token, scope: "enforcement_case_review_appeal")
+
+    post(
+      base_org_support_app_enforcement_case_appeal_review_url(the_case.public_id, host: @host),
+      params: { resolution_code: "rejected" },
+      headers: as_staff_headers(@approver, host: @host, session_public_id: @approver_token.public_id),
+      as: :json,
+    )
+
+    assert_response :ok
+    assert_equal "rejected", appeal.reload.state
+    assert_equal @approver.public_id, appeal.reviewer_operator_public_id
+  end
+
   test "index scopes strictly to the app realm and never returns com or org cases" do
     app_client = clients(:one)
     com_visitor = visitors(:reserved_visitor)

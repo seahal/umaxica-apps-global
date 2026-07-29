@@ -177,6 +177,14 @@ scope(module: :base, as: :base) do
       end
 
       namespace :identity do
+        resource :standing, only: :show
+        resource :recovery, only: :show do
+          resource :completion, only: :create, module: :recovery
+        end
+        namespace :recovery do
+          resource :session, only: %i(new create)
+          resources :appeals, only: :create
+        end
         namespace :mfa do
           resource :reset, only: %i(show create)
           resource :challenge, only: %i(show update)
@@ -335,6 +343,14 @@ scope(module: :base, as: :base) do
 
       resource :identity, only: :show
       namespace :identity do
+        resource :standing, only: :show
+        resource :recovery, only: :show do
+          resource :completion, only: :create, module: :recovery
+        end
+        namespace :recovery do
+          resource :session, only: %i(new create)
+          resources :appeals, only: :create
+        end
         namespace :emails do
           resource :registration, only: %i(new create edit update)
         end
@@ -458,6 +474,7 @@ scope(module: :base, as: :base) do
             resources :enforcement_cases, only: %i(index show create) do
               resource :approval, only: :create, controller: "enforcement_cases/approvals"
               resource :release, only: :create, controller: "enforcement_cases/releases"
+              resource :appeal_review, only: :create, controller: "enforcement_cases/appeal_reviews"
             end
           end
         end
@@ -515,6 +532,7 @@ scope(module: :base, as: :base) do
 
       resource :identity, only: :show
       namespace :identity do
+        resource :standing, only: :show
         namespace :emails do
           resource :registration, only: %i(new create edit update)
         end

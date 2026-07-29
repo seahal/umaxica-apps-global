@@ -4,7 +4,9 @@ This directory stores future-facing material.
 
 - Write plans in English. Do not add Japanese or other non-English prose unless the plan explicitly
   covers localization, translation fixtures, or a quoted source whose original language matters.
-- `active/` holds current implementation work and near-term plans.
+- `active/` holds current implementation work and near-term plans. As of 2026-07-29, prior active
+  plans were filed as GitHub issues and moved to `archive/`; GitHub issues are now the source of
+  truth for active-work tracking.
 - `backlog/` holds proposals, ideas, and follow-up items that are not active yet.
 - `archive/` holds older planning and work-log material kept for traceability.
 
@@ -22,7 +24,8 @@ Current identity authority implementation plan:
   IdP / Authorization Server, Sign as a special RP, Core as the Next.js web RP/BFF, Base as the
   Rails foundation/control-plane subdomain, and Palm as the native bearer-token API Resource Server
   formerly tracked as Port.
-- `plans/active/acme-sign-core-base-port-implementation.md` tracks current implementation follow-up.
+- GH issue #829 (`plans/archive/acme-sign-core-base-port-implementation.md`, deactivated) tracks
+  current implementation follow-up.
 - `adr/sign-residual-idp-surface-retirement.md`,
   `plans/identity-authority-inversion-implementation.md`, and
   `plans/active/identity-authority-inversion-first-slice.md` are superseded where they conflict with

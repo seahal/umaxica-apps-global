@@ -15,6 +15,7 @@ class OrgEnforcementCase < OrgPrincipalRecord
                                 inverse_of: :enforcement_case
   has_many :principal_links, class_name: "OrgEnforcementPrincipalLink", dependent: :destroy,
                              inverse_of: :enforcement_case
+  has_one :appeal, class_name: "OrgEnforcementAppeal", dependent: :destroy, inverse_of: :enforcement_case
 
   def self.principal_class
     ::Operator

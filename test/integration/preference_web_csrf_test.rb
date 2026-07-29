@@ -114,6 +114,32 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
     ActionController::Base.allow_forgery_protection = original
   end
 
+  test "same-site POST without an Origin is forbidden on base surfaces" do
+    original = ActionController::Base.allow_forgery_protection
+    ActionController::Base.allow_forgery_protection = true
+
+    [
+      [ENV.fetch("PUBLIC_BASE_SERVICE_URL"), base_app_web_v0_theme_path],
+      [ENV.fetch("PUBLIC_BASE_CORPORATE_URL"), base_com_web_v0_theme_path],
+      [ENV.fetch("PUBLIC_BASE_STAFF_URL"), base_org_web_v0_theme_path],
+    ].each do |host, path|
+      host!(host)
+      patch(
+        path,
+        params: { theme: "dark" },
+        headers: {
+          "Accept" => "application/json",
+          "Sec-Fetch-Site" => "same-site",
+        },
+        as: :json,
+      )
+
+      assert_response :forbidden
+    end
+  ensure
+    ActionController::Base.allow_forgery_protection = original
+  end
+
   test "cross-site POST from untrusted origin is forbidden" do
     original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
@@ -172,7 +198,7 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
     Base::App::ApplicationController.forgery_protection_trusted_origins = original_trusted_origins
   end
 
-  test "cross-site POST from trusted auth origin is allowed" do
+  test "ordinary base app endpoint rejects cross-site POST from auth origin" do
     original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
 
@@ -184,19 +210,18 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
       params: { theme: "dark" },
       headers: {
         "Accept" => "application/json",
-        "Origin" => Base::App::ApplicationController.forgery_protection_trusted_origins.grep(/auth/).first,
+        "Origin" => "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL")}",
         "Sec-Fetch-Site" => "cross-site",
       },
       as: :json,
     )
 
-    assert_not_equal 403, response.status
-    assert_not_equal I18n.t("errors.invalid_authenticity_token"), response.parsed_body["error"]
+    assert_response :forbidden
   ensure
     ActionController::Base.allow_forgery_protection = original
   end
 
-  test "trusted app auth origin cross-site POST passes with a real session-bound token" do
+  test "ordinary base app endpoint rejects auth origin even with a real session-bound token" do
     original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
 
@@ -232,15 +257,14 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
       params: { theme: "dark" },
       headers: {
         "Accept" => "application/json",
-        "Origin" => Base::App::ApplicationController.forgery_protection_trusted_origins.grep(/auth/).first,
+        "Origin" => "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL")}",
         "Sec-Fetch-Site" => "cross-site",
         "X-CSRF-Token" => token,
       },
       as: :json,
     )
 
-    assert_not_equal I18n.t("errors.invalid_authenticity_token"), response.parsed_body["error"]
-    assert_not_equal 403, response.status
+    assert_response :forbidden
   ensure
     ActionController::Base.allow_forgery_protection = original
   end

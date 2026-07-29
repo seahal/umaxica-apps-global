@@ -133,7 +133,7 @@ scope(module: :auth, as: :auth) do
           resource :session, only: %i(show update destroy)
 
           resource :guard, only: :show
-          resource :check, only: %i(show update destroy)
+          resource :check, only: :show
 
           resource :challenge, only: :show
           namespace :challenge do
@@ -325,7 +325,7 @@ scope(module: :auth, as: :auth) do
           resource :session, only: %i(show update destroy)
 
           resource :guard, only: :show
-          resource :check, only: %i(show update destroy)
+          resource :check, only: :show
 
           resource :challenge, only: :show
 
@@ -453,7 +453,7 @@ scope(module: :auth, as: :auth) do
           resource :session, only: %i(show update destroy)
 
           resource :guard, only: :show
-          resource :check, only: %i(show update destroy)
+          resource :check, only: :show
 
           resource :challenge, only: :show
 

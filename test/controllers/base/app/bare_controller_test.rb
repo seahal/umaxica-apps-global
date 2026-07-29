@@ -23,9 +23,7 @@ module Base
         Base::App::Health::StartupsController
         Base::App::HealthsController
         Base::App::Oauth::JwksController
-        Base::App::Oauth::ProtocolController
         Base::App::Oauth::RevocationsController
-        Base::App::Oauth::TokensController
         Base::App::Oauth::UserinfosController
         Base::App::WellKnown::DiscoveriesController
         Base::App::WellKnown::JwksController

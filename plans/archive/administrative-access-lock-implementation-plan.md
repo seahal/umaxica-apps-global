@@ -1,5 +1,9 @@
 # Administrative Access Lock Implementation Plan
 
+> **Superseded by GitHub issue #830 (2026-07-29):** This plan is deactivated. The GitHub issue is
+> authoritative for current status and scope. This file is retained under `plans/archive/` for
+> historical context only.
+
 ## Summary
 
 Implement service-only Administrative Access Lock for `Client`, `Visitor`, and `Operator`.

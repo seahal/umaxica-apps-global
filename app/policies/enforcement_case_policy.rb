@@ -35,6 +35,10 @@ class EnforcementCasePolicy < ApplicationPolicy
     operator?
   end
 
+  def review_appeal?
+    operator?
+  end
+
   private
 
   def operator?

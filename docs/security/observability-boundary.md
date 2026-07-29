@@ -89,6 +89,11 @@ Current event:
 | --------------------------------- | -------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `security.csp_violation.reported` | `CspViolationReportIntake` | `CspViolationSubscriber` | `surface`, `host`, `category`, `disposition`, `document_uri`, `blocked_uri`, `source_file`, `effective_directive`, `violated_directive`, `original_policy`, `status_code`, `line_number`, `column_number`, `aggregation_key`, `user_agent_family` |
 
+Rails CSRF notifications are operational application logs rather than durable audit records.
+`CsrfNotificationSubscriber` subscribes in-process and writes these allowlisted fields through
+`Rails.logger`: `controller`, `action`, and normalized `sec_fetch_site`. It must not log the request
+object, notification message, Origin, cookies, authorization values, or authenticity tokens.
+
 The CSP report payload is allowlisted and scrubbed before emission. Raw CSP report bodies,
 `script-sample`, cookies, authorization values, query strings, fragments, and unknown report keys
 must not be emitted.

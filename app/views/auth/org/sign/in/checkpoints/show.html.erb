@@ -1,15 +1,6 @@
-<% content_for :page_title, @bulletin&.title || t("sign.org.in.bulletins.show.title") %>
+<% content_for :page_title, t("sign.org.in.checkpoints.show.title") %>
 
-<h1><%= @bulletin&.title || t("sign.org.in.bulletins.show.title") %></h1>
-<p><%= @bulletin&.body || t("sign.org.in.bulletins.show.body") %></p>
-<% pt = signed_pt_param %>
-
-<%= form_with url: auth_org_sign_in_check_path(ri: params[:ri]), method: :patch do %>
-  <%= hidden_field_tag :pt, pt %>
-  <%= submit_tag t("sign.org.in.bulletins.show.actions.update") %>
-<% end %>
-
-<%= form_with url: auth_org_sign_in_check_path(ri: params[:ri]), method: :delete do %>
-  <%= hidden_field_tag :pt, pt %>
-  <%= submit_tag t("sign.org.in.bulletins.show.actions.continue") %>
+<h1><%= t("sign.org.in.checkpoints.show.title") %></h1>
+<% @checkpoint_items.each do |item| %>
+  <p><%= item.message || item.key.to_s.humanize %></p>
 <% end %>

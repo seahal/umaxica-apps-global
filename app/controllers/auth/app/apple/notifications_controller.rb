@@ -6,10 +6,11 @@ require "json"
 module Auth
   module App
     module Apple
-      class NotificationsController < ::Auth::App::BareController
-        AUTHENTICATION_MODE = :bare
+      class NotificationsController < ActionController::API
+        include ActionController::MimeResponds
+        include ::RateLimit
 
-        protect_from_forgery with: :null_session
+        AUTHENTICATION_MODE = :bare
 
         MAXIMUM_BODY_BYTES = 32.kilobytes
 

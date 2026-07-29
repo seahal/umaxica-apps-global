@@ -31,7 +31,7 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
     assert_response :bad_request
   end
 
-  test "show with checkpoint notice state without sequence authorization is rejected" do
+  test "legacy bulletin state does not bypass checkpoint authorization" do
     start_checkpoint_sequence
 
     get auth_com_sign_in_check_url(ri: "jp"),
@@ -42,7 +42,7 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
     assert_response :bad_request
   end
 
-  test "update with checkpoint notice state without sequence authorization is rejected" do
+  test "update is not routed" do
     start_checkpoint_sequence
     previous_issued_at = 10.minutes.ago.to_i
 
@@ -51,10 +51,10 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
             "X-TEST-BULLETIN" => checkpoint_json(issued_at: previous_issued_at, state: "new"),
           )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
-  test "destroy is rejected by routing" do
+  test "destroy is not routed" do
     start_checkpoint_sequence
     pt = Base64.urlsafe_encode64("/settings?ri=jp")
 
@@ -63,10 +63,10 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
              "X-TEST-BULLETIN" => checkpoint_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
-  test "destroy without pt is rejected by routing" do
+  test "destroy without return target is not routed" do
     start_checkpoint_sequence
 
     delete auth_com_sign_in_check_url(ri: "jp"),
@@ -74,10 +74,10 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
              "X-TEST-BULLETIN" => checkpoint_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
-  test "expired checkpoint returns timeout" do
+  test "legacy expired bulletin state does not bypass checkpoint authorization" do
     start_checkpoint_sequence
 
     get auth_com_sign_in_check_url(ri: "jp"),

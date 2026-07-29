@@ -1,5 +1,9 @@
 # Coverage Expansion via Test-Only Additions
 
+> **Superseded by GitHub issue #832 (2026-07-29):** This plan is deactivated. The GitHub issue is
+> authoritative for current status and scope. This file is retained under `plans/archive/` for
+> historical context only.
+
 ## Summary
 
 Use explicit-path coverage runs to identify under-covered executable lines, then add focused

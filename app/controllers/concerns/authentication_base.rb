@@ -81,6 +81,8 @@ module AuthenticationBase
   ACCESS_COOKIE_KEY = AuthenticationCookieName.access
   REFRESH_COOKIE_KEY = AuthenticationCookieName.refresh
   DBSC_COOKIE_KEY = AuthenticationCookieName.dbsc
+  BULLETIN_SESSION_KEY = :sign_in_checkpoint
+  BULLETIN_TIMEOUT = 2.hours
   OIDC_RP_SESSION_KEYS = %i(
     oidc_code_verifier
     oidc_state
@@ -216,13 +218,6 @@ module AuthenticationBase
   # Default session key for storing return-to parameter.
   DEFAULT_PT_SESSION_KEY = AuthIoKeys::Session::DEFAULT_PT
   CHECKPOINT_SESSION_KEY = AuthIoKeys::Session::CHECKPOINT
-  BULLETIN_SESSION_KEY = AuthIoKeys::Session::BULLETIN
-  BULLETIN_TIMEOUT = 2.hours
-
-  # ======================================================================
-  # 3-1) Checkpoint notice flow (Session I/O boundary)
-  # ======================================================================
-
   # ======================================================================
   # 4) Session auth lifecycle (public API, Cookie/session/request I/O boundary)
   # ======================================================================

@@ -1,5 +1,9 @@
 # Sign Up State Machine Implementation Plan
 
+> **Superseded by GitHub issue #834 (2026-07-29):** This plan is deactivated. The GitHub issue is
+> authoritative for current status and scope. This file is retained under `plans/archive/` for
+> historical context only.
+
 > **Updated by the current Identity Authority boundary:** `acme/www` is the Session, Token, Account,
 > Preference, Authorization, and downstream-token Authority. `sign/id` owns the credential ceremony
 > and sign-up sequence progression only. Existing sign-side ticket, credential, and callback records

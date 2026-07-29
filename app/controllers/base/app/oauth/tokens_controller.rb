@@ -4,16 +4,13 @@
 module Base
   module App
     module Oauth
-      class TokensController < Base::App::BareController
+      class TokensController < ActionController::API
+        include ActionController::MimeResponds
         include ::RateLimit
         include BaseOauthEndpoint
         include BaseOauthTokenEndpoint
 
         AUTHENTICATION_MODE = :open
-
-        protect_from_forgery using: :header_or_legacy_token,
-                             trusted_origins: Base::App::Oauth::ProtocolController::TRUSTED_BROWSER_ORIGINS,
-                             with: :null_session
 
         before_action :skip_oauth_session!
         after_action :set_oauth_cache_headers

@@ -2,8 +2,10 @@
 
 This document is the operational reference for `adr/unified-enforcement.md`. The ADR is the
 source of truth for rationale and rejected alternatives; this document is the quick-reference
-contract for anyone implementing against or operating Unified Enforcement. It describes the
-target contract, not yet-implemented behavior — see the ADR's Rollout section for phase status.
+contract for anyone implementing against or operating Unified Enforcement. The Case and Effect
+substrate, Account Standing, appeal persistence and review, and the verified-email recovery
+ceremony are implemented. Content moderation and richer notification delivery remain separate
+follow-up work.
 
 ## What this replaces
 
@@ -108,6 +110,27 @@ Lifecycle events (`created`, `approved`, `applied`, `ended`, `expired`, `break_g
 etc.) go to `enforcement_events` in `chronicle`, keyed on `case_public_id` /
 `principal_public_id` strings. High-volume denial events (`login_denied`, `mutation_denied`, etc.)
 go to `occurrence` as counters, never to `chronicle`.
+
+## Account Standing, appeal, and recovery
+
+`/identity/standing` is available independently on the `app`, `com`, and `org` Base surfaces.
+It derives `Good`, `Notice`, `Limited`, or `Locked` from visible, in-force Cases and their Effects.
+It deliberately excludes operator notes, reporter data, ticket identifiers, and internal signals.
+
+An appeal is text-only, has one row per Case, and has no filing deadline or attachment support.
+The current self-service entry is the verified recovery ceremony for eligible visible security
+locks; broader Case entry points remain follow-up work. Submission writes the `appeal_submitted`
+chronicle event without the appeal statement. An org
+appeal-review resource requires step-up and rejects self-review by the applying or approving
+operator. An approved review ends the Case through the normal refcounted release path; rejection
+leaves it in force. Redaction clears the encrypted statement while preserving the decision record.
+
+For a visible `security_lock` with `release_mode = verification_required`, `app` and `com` expose
+an open recovery entry backed by a short-lived, opaque recovery-ceremony cookie. A verified email
+OTP may issue that cookie; it does not issue an access token, refresh token, DBSC state, or device
+binding. The recovery status only resolves Cases for the cookie's subject and can complete only
+that subject's eligible Case. Unknown, active, hidden, and otherwise ineligible subjects use the
+same email-OTP entry response. Passkey, TOTP, and telephone proofs are tracked as follow-up work.
 
 ## Related
 

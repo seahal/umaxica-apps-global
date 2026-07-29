@@ -190,7 +190,7 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
 
     def sign_in_sequence_required_for_participant?(_participant) = true
 
-    def bulletin_state = nil
+    def bulletin_state = session[:sign_in_checkpoint]
 
     def controller_path = "sign/app/checkpoints"
 
@@ -228,6 +228,15 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     fallback = FallbackHarness.new
 
     assert_equal "/in/session?pt=pt%3Atarget&ri=jp", fallback.sign_in_session_limit_path(pt: "target")
+  end
+
+  test "legacy bulletin session state does not hold an otherwise clear checkpoint" do
+    @harness.cycle = FakeCycle.new(states: { checkpoint: true })
+    @harness.session[:sign_in_checkpoint] = { "kind" => "checkpoint", "state" => "new" }
+
+    @harness.continue_checkpoint_sequence_without_content!
+
+    assert_equal ["/welcome?pt=/return", { allow_other_host: false }], @harness.redirected
   end
 
   test "sign_in_selector_path falls back to the generic selector path" do

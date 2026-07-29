@@ -1,5 +1,9 @@
 # Acme Account / Organization Bootstrap Implementation Plan
 
+> **Superseded by GitHub issue #828 (2026-07-29):** This plan is deactivated. The GitHub issue is
+> authoritative for current status and scope. This file is retained under `plans/archive/` for
+> historical context only.
+
 Status: active implementation
 
 ## Goal

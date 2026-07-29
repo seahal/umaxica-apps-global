@@ -660,6 +660,9 @@ ja:
             secret_credential: シークレット
             registration: アカウント登録はこちら
       in:
+        checkpoints:
+          show:
+            title: サインインの確認
         bulletins:
           show:
             title: ブリテン
@@ -740,6 +743,9 @@ ja:
             authenticate: パスキーで認証
             back: 認証方法の選択に戻る
             success: パスキーでの確認が完了しました。
+        checkpoints:
+          show:
+            title: サインインの確認
         bulletins:
           show:
             title: ブリテン
@@ -1357,6 +1363,9 @@ ja:
             authenticate: パスキーで認証する
             back: 戻る
             success: パスキー認証に成功しました
+        checkpoints:
+          show:
+            title: サインインの確認
         bulletins:
           show:
             title: ブリテン

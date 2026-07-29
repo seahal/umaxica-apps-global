@@ -92,13 +92,15 @@ module AuthenticationSequenceGate
     if cycle
       return reject_invalid_sign_in_sequence! unless cycle.sign_in_checkpoint_pending?
       return reject_invalid_sign_in_sequence! unless allowed_to?(:show_checkpoint?, cycle)
-      return if bulletin_state.present?
 
       result =
         with_sign_in_flow_writing(cycle) do
           sign_in_checkpoint_participant(cycle).advance_if_clear!
         end
-      return if result.blocking?
+      if result.blocking?
+        @checkpoint_items = result.stack
+        return
+      end
 
       with_sign_in_flow_writing(cycle) do
         changes = {
@@ -129,8 +131,6 @@ module AuthenticationSequenceGate
         policy_rule: :show_checkpoint?,
       )
     end
-
-    return if bulletin_state.present?
 
     redirect_after_checkpoint_sequence!(pt: signed_pt_param)
   end

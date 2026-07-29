@@ -28,17 +28,16 @@ class Auth::App::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
     assert_includes response.body, I18n.t("errors.messages.not_authorized")
   end
 
-  test "update without sign in sequence is rejected" do
+  test "update is not routed" do
     patch auth_app_sign_in_check_url(ri: "jp"),
           headers: as_user_headers(@user, host: @host).merge(
             "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new"),
           )
 
-    assert_response :bad_request
-    assert_includes response.body, I18n.t("errors.messages.not_authorized")
+    assert_response :not_found
   end
 
-  test "destroy is rejected by routing" do
+  test "destroy is not routed" do
     pt = Base64.urlsafe_encode64("/settings")
 
     delete auth_app_sign_in_check_url(ri: "jp", pt: pt),
@@ -46,7 +45,7 @@ class Auth::App::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
   private

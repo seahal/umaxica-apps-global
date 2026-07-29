@@ -13,6 +13,7 @@ class AppEnforcementCase < AppPrincipalRecord
                                            inverse_of: :enforcement_case
   has_many :identifier_effects, class_name: "AppEnforcementIdentifierEffect", dependent: :destroy, inverse_of: :enforcement_case
   has_many :principal_links, class_name: "AppEnforcementPrincipalLink", dependent: :destroy, inverse_of: :enforcement_case
+  has_one :appeal, class_name: "AppEnforcementAppeal", dependent: :destroy, inverse_of: :enforcement_case
 
   def self.principal_class
     ::Client
