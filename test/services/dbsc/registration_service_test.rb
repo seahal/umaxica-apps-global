@@ -146,6 +146,41 @@ class DbscRegistrationServiceTest < ActiveSupport::TestCase
     assert_not_equal "dbsc-invalid-signature", token.dbsc_session_id
     assert_not_equal ClientTokenDbscStatus::ACTIVE, token.user_token_dbsc_status_id
   end
+
+  # The registration JWK comes from the client's own proof header. A symmetric
+  # ("oct") JWK would make the stored verification key identical to the signing
+  # secret, so whoever registered it could mint valid proofs from any device and
+  # the session would no longer be device-bound.
+  #
+  # Two independent checks reject this today: DbscProofValidator::ALLOWED_ALGORITHMS
+  # excludes HMAC, and DbscRecordAdapter::ASYMMETRIC_KEY_TYPES excludes "oct".
+  # The algorithm gate runs first, so that is the code asserted here; the
+  # key-type contract is covered directly in the record adapter test. Both are
+  # kept because either one alone would leave the invariant implicit.
+  test "refuses to bind a session to a symmetric registration JWK" do
+    user = create_verified_user_with_email(email_address: "dbsc-registration-oct-#{SecureRandom.hex(4)}@example.com")
+    token = ClientToken.create!(user: user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
+    token.update!(dbsc_challenge: "oct-challenge", dbsc_challenge_issued_at: Time.current)
+    shared_secret = "attacker-known-secret"
+
+    proof = JWT.encode(
+      { "jti" => "oct-challenge", "aud" => "https://test.host/registration", "iat" => Time.current.to_i },
+      shared_secret,
+      "HS256",
+      { typ: "dbsc+jwt", jwk: { "kty" => "oct", "k" => Base64.urlsafe_encode64(shared_secret, padding: false) } },
+    )
+
+    result = DbscRegistrationService.call(record: token, proof: proof, session_id: "dbsc-oct-session")
+
+    assert_not result[:ok]
+    assert_equal "invalid_algorithm", result[:error_code]
+
+    token.reload
+
+    assert_nil token.dbsc_public_key
+    assert_not_equal "dbsc-oct-session", token.dbsc_session_id
+    assert_not_equal ClientTokenDbscStatus::ACTIVE, token.user_token_dbsc_status_id
+  end
 end
 
 # DAMP local helper copy for former shared test support.

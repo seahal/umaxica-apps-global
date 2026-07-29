@@ -67,9 +67,12 @@ services:
         condition: service_healthy
     restart: unless-stopped
   core:
-    command:
-      - /usr/local/bin/tailscale-core-supervisor
-      - bin/dev
+    # Tailscale is not in use right now. tailscale-core-supervisor needs a
+    # real root control-plane PID 1 (see .devcontainer/compose.override.yml),
+    # which conflicts with `userns_mode: keep-id` there. Falling back to the
+    # base compose.yaml `command: [bin/dev]` (by not overriding it here) lets
+    # core-entrypoint run the workload directly as the keep-id-mapped user.
+    # Re-enable by restoring this override and reverting the override file.
     environment:
       # Optional exact Rails Host Authorization entry for Tailscale Serve.
       # The value is a hostname, not a credential; unset keeps normal startup

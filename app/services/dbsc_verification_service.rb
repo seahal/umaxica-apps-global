@@ -32,6 +32,11 @@ class DbscVerificationService < ApplicationService
     return failure("invalid_proof", message: signature.message) unless signature.ok
 
     { ok: true, record: record }
+  rescue DbscRecordAdapter::PublicKeyError => e
+    # The stored key is unusable: server-side state, not a client-supplied
+    # proof. Reported separately so operations does not read data corruption as
+    # a hijack attempt (this path revokes the session and forces a sign-out).
+    failure("invalid_public_key", message: e.message)
   rescue JWT::JWKError, JSON::ParserError, ArgumentError => e
     failure("invalid_proof", message: e.message)
   end

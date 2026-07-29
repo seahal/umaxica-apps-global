@@ -15,6 +15,11 @@ docs/
 
 # Development files
 .devcontainer/
+!.devcontainer/
+.devcontainer/*
+!.devcontainer/tailscale-core-supervisor.sh
+!.devcontainer/tailscale-core-status.sh
+!.devcontainer/tailscale-core-login-environment.sh
 .vscode/
 .idea/
 
@@ -121,6 +126,12 @@ docker-compose*
 compose.yaml
 compose.yaml
 docker/
+!docker/
+docker/*
+!docker/core/
+docker/core/*
+!docker/core/entrypoint.sh
+!docker/core/dev-supervisor.sh
 gke/
 
 # CI/CD

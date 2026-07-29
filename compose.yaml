@@ -12,7 +12,12 @@ services:
         # devcontainer override (.devcontainer/compose.override.yml).
     entrypoint:
       - "/usr/local/bin/core-entrypoint"
+    # core-dev-supervisor keeps PID 1 alive across a single Procfile.dev
+    # process (web/vite/jobs) dying -- foreman's default behavior is to
+    # SIGTERM/SIGKILL its whole group and exit when any one of them exits,
+    # which would otherwise take the container down with it.
     command:
+      - /usr/local/bin/core-dev-supervisor
       - bin/dev
     environment:
       # --- Shell / productivity ---

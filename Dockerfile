@@ -275,12 +275,14 @@ RUN mkdir -p "${HOME}/workspace" \
     && chown -R "${DOCKER_UID}:${DOCKER_GID}" "${HOME}"
 
 COPY --chown=0:0 docker/core/entrypoint.sh /usr/local/bin/core-entrypoint
+COPY --chown=0:0 docker/core/dev-supervisor.sh /usr/local/bin/core-dev-supervisor
 COPY --chown=0:0 .devcontainer/tailscale-core-supervisor.sh /usr/local/bin/tailscale-core-supervisor
 COPY --chown=0:0 .devcontainer/tailscale-core-status.sh /usr/local/bin/tailscale-core-status
 COPY --chown=0:0 .devcontainer/tailscale-core-login-environment.sh /etc/profile.d/umaxica-core-development.sh
 
 RUN chmod 0555 \
     /usr/local/bin/core-entrypoint \
+    /usr/local/bin/core-dev-supervisor \
     /usr/local/bin/tailscale-core-supervisor \
     /usr/local/bin/tailscale-core-status \
     && chmod 0444 /etc/profile.d/umaxica-core-development.sh

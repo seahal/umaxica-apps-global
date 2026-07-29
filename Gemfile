@@ -51,8 +51,12 @@ gem "ostruct"
 gem "tzinfo-data", platforms: %i(windows jruby)
 # Bootsnap boot cache.
 gem "bootsnap", require: false
-# Password hashing with Argon2.
-gem "argon2"
+# Password hashing with Argon2. The version is constrained because
+# ActiveModel::SecurePassword::Argon2Password calls Argon2::Password.create
+# without a profile, so the gem default is the effective cost parameter set.
+# A major bump could change it silently; test/unit/security/argon2_parameters_test.rb
+# guards the values themselves.
+gem "argon2", "~> 2.3"
 # SHA-3 digest implementation.
 gem "sha3", require: false
 # File upload toolkit.

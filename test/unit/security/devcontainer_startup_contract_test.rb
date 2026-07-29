@@ -148,6 +148,17 @@ module Security
                       "/usr/local/bin/tailscale-core-supervisor"
     end
 
+    test "development startup assets remain available to the Docker build context" do
+      dockerignore = Rails.root.join(".dockerignore").read
+
+      assert_includes dockerignore, "!docker/core/"
+      assert_includes dockerignore, "!docker/core/entrypoint.sh"
+      assert_includes dockerignore, "!.devcontainer/"
+      assert_includes dockerignore, "!.devcontainer/tailscale-core-supervisor.sh"
+      assert_includes dockerignore, "!.devcontainer/tailscale-core-status.sh"
+      assert_includes dockerignore, "!.devcontainer/tailscale-core-login-environment.sh"
+    end
+
     test "workspace is an explicit rootless Podman target and production remains the default" do
       dockerfile = Rails.root.join("Dockerfile").read
       base_compose = YAML.unsafe_load_file(Rails.root.join("compose.yaml"))

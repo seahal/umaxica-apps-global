@@ -120,4 +120,38 @@ class DbscRecordAdapterTest < ActiveSupport::TestCase
 
     assert_equal "key1", result["kid"]
   end
+
+  # DBSC binds a session to a key only the device holds. A symmetric JWK would
+  # make the verification key equal to the signing secret, so the resolver must
+  # refuse it outright rather than leaving the invariant to the caller.
+  test "verification_key_from_jwk rejects symmetric key types" do
+    error =
+      assert_raises(DbscRecordAdapter::PublicKeyError) do
+        DbscRecordAdapter.verification_key_from_jwk(
+          { "kty" => "oct", "k" => "c2VjcmV0" }, source: "test JWK",
+        )
+      end
+
+    assert_match(/asymmetric/, error.message)
+  end
+
+  test "verification_key_from_jwk resolves an asymmetric JWK to a private-key-free verifier" do
+    private_key = OpenSSL::PKey::EC.generate("prime256v1")
+    jwk = JWT::JWK.new(private_key).export.deep_stringify_keys
+
+    key = DbscRecordAdapter.verification_key_from_jwk(jwk, source: "test JWK")
+
+    # Never a String: that is the shape an HMAC secret would take, and it is
+    # what keeps JWT.decode from treating the key as a shared secret.
+    assert_kind_of OpenSSL::PKey::PKey, key
+    assert_not key.private?
+  end
+
+  test "verification_key_from_jwk raises instead of returning nil for unusable input" do
+    ["", nil, {}, { "kty" => "bogus" }].each do |raw_key|
+      assert_raises(DbscRecordAdapter::PublicKeyError, raw_key.inspect) do
+        DbscRecordAdapter.verification_key_from_jwk(raw_key, source: "test JWK")
+      end
+    end
+  end
 end
