@@ -35,7 +35,7 @@ class RetentionPurgeJob < ApplicationJob
     Avatar Member OperatorWorkspaceAccount
     AppPreference OrgPreference ComPreference
     ClientEmail VisitorEmail ClientTelephone VisitorTelephone
-    ClientPasskey VisitorPasskey ClientGoogleIdentity ClientAppleIdentity
+    ClientPasskey VisitorPasskey
     ClientToken OperatorToken VisitorToken
     ClientVerification OperatorVerification VisitorVerification
     ClientAuthorizationCode OperatorAuthorizationCode VisitorAuthorizationCode

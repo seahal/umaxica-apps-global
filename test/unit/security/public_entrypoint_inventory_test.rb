@@ -32,6 +32,7 @@ module Security
       PUBLIC_SIGN_IN_UP
       PUBLIC_SIGN_OUT
       PUBLIC_WITHDRAWAL
+      PUBLIC_IDENTITY_RECOVERY
       PUBLIC_SOCIAL
       PUBLIC_AUTH_APP_REDIRECTS
       PUBLIC_AUTH_APP_SETTINGS_COMPAT
@@ -153,6 +154,7 @@ module Security
         public_sign_in_or_up?(entry) ||
         public_sign_out?(entry) ||
         public_withdrawal?(entry) ||
+        public_identity_recovery?(entry) ||
         public_social?(entry) ||
         public_auth_app_redirect?(entry) ||
         public_auth_app_settings_compat?(entry) ||
@@ -201,6 +203,11 @@ module Security
         entry.controller_path.match?(%r{\Abase/(app|com)/identity/withdrawal(?:s|/sessions)\z})) ||
         (entry.path.start_with?("/identity/privacy/erasure") &&
           entry.controller_path.match?(%r{\Abase/(app|com)/identity/privacy/erasure(?:s|/statuses)\z}))
+    end
+
+    def public_identity_recovery?(entry)
+      entry.path.start_with?("/identity/recovery") &&
+        entry.controller_path.match?(%r{\Abase/(app|com)/identity/(?:recoveries|recovery/)})
     end
 
     def public_social?(entry)

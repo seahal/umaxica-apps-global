@@ -25,7 +25,6 @@ class ExternalAuthenticationUnlinkUseCase
       end
 
       record_audit!(identity)
-      request_apple_revocation!(identity, repository: repository)
       repository.destroy!(identity)
     end
     Rails.logger.info(JitLogEvent.format("social_auth.unlinked", user_id: user.id, provider: provider))
@@ -54,16 +53,6 @@ class ExternalAuthenticationUnlinkUseCase
         provider: provider,
         social_identity_type: identity.class.name,
       },
-    )
-  end
-
-  def request_apple_revocation!(identity, repository:)
-    return nil unless provider == "apple"
-
-    ExternalAuthenticationAppleCredentialRevocationRequestIssuer.call(
-      client: user,
-      refresh_token: repository.refresh_token_for(identity),
-      reason: "unlink",
     )
   end
 end

@@ -12,7 +12,7 @@ require "base64"
 # - Successful unlink removes identity
 # - Unlink requires authentication
 class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
-  fixtures :client_google_identity_statuses, :client_apple_identity_statuses, :client_email_statuses,
+  fixtures :client_email_statuses,
            :client_statuses, :client_totp_credential_statuses
 
   setup do

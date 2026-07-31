@@ -186,19 +186,8 @@ class SignUpArtifactCleanup
     provider = cycle.social_provider.presence || cycle.entry_method
     return unless %w(apple google).include?(provider)
 
-    if ExternalAuthentication::IdentityRepositoryFactory.common_storage?
-      identity = ExternalAuthentication::IdentityRepositoryFactory.current.build(provider).find_for_user(actor)
-      return identity if identity && identity.id.to_s == cycle.pending_contact_id.to_s
-
-      return
-    end
-
-    case provider
-    when "google"
-      ClientGoogleIdentity.find_by(id: cycle.pending_contact_id, user_id: actor.id)
-    when "apple"
-      ClientAppleIdentity.find_by(id: cycle.pending_contact_id, user_id: actor.id)
-    end
+    identity = ExternalAuthentication::IdentityRepositoryFactory.current.build(provider).find_for_user(actor)
+    identity if identity && identity.id.to_s == cycle.pending_contact_id.to_s
   end
 
   def client_pending_passkey(actor)
@@ -215,7 +204,7 @@ class SignUpArtifactCleanup
       contact.user_email_status_id == ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP
     when ClientTelephone
       contact.user_telephone_status_id == ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP
-    when ClientGoogleIdentity, ClientAppleIdentity, ClientExternalIdentity
+    when ClientExternalIdentity
       true
     else
       false
@@ -270,25 +259,14 @@ class SignUpArtifactCleanup
     when ClientEmail then deleted_status_id_for(ClientEmailStatus)
     when ClientTelephone then deleted_status_id_for(ClientTelephoneStatus)
     when ClientPasskey then deleted_status_id_for(ClientPasskeyStatus)
-    when ClientGoogleIdentity then deleted_status_id_for(ClientGoogleIdentityStatus)
-    when ClientAppleIdentity then deleted_status_id_for(ClientAppleIdentityStatus)
     when VisitorEmail then deleted_status_id_for(VisitorEmailStatus)
     when VisitorTelephone then deleted_status_id_for(VisitorTelephoneStatus)
     when VisitorPasskey then deleted_status_id_for(VisitorPasskeyStatus)
     end
   end
 
-  def revoke_pending_apple_credential(identity)
-    return unless identity.provider == "apple"
-
-    refresh_token = identity.client_apple_identity_credential&.refresh_token.presence
-    return unless refresh_token
-
-    ExternalAuthenticationAppleCredentialRevocationRequestIssuer.call(
-      client: identity.client,
-      refresh_token: refresh_token,
-      reason: "signup_cleanup",
-    )
+  def revoke_pending_apple_credential(_identity)
+    nil
   end
 
   def deleted_status_id_for(status_class)

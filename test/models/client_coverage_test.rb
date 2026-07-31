@@ -2,16 +2,17 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 
 class ClientCoverageTest < ActiveSupport::TestCase
+  include ExternalIdentityTestHelper
+
   setup do
     ClientStatus.find_or_create_by!(id: 1)
     ClientVisibility.find_or_create_by!(id: 1)
     @user = Client.create!(status_id: 1, visibility_id: 1)
     ClientEmailStatus.find_or_create_by!(id: ClientEmailStatus::VERIFIED)
     ClientTelephoneStatus.find_or_create_by!(id: ClientTelephoneStatus::VERIFIED)
-    ClientGoogleIdentityStatus.find_or_create_by!(id: ClientGoogleIdentityStatus::ACTIVE)
-    ClientAppleIdentityStatus.find_or_create_by!(id: ClientAppleIdentityStatus::ACTIVE)
     ClientTotpCredentialStatus.find_or_create_by!(id: ClientTotpCredentialStatus::ACTIVE)
   end
 
@@ -33,10 +34,7 @@ class ClientCoverageTest < ActiveSupport::TestCase
 
   test "client_google_identities shim" do
     assert_empty @user.client_google_identities
-    google = ClientGoogleIdentity.create!(
-      user: @user, uid: "u", provider: "google",
-      status_id: ClientGoogleIdentityStatus::ACTIVE, token: "t", expires_at: 0,
-    )
+    google = create_active_external_identity(client: @user, provider: "google", subject: "u")
 
     assert_equal [google], @user.client_google_identities
   end
@@ -71,18 +69,12 @@ class ClientCoverageTest < ActiveSupport::TestCase
 
   test "active_social_provider?" do
     assert_not @user.active_social_provider?("google")
-    ClientGoogleIdentity.create!(
-      user: @user, uid: "g", provider: "google", status_id: ClientGoogleIdentityStatus::ACTIVE,
-      token: "t", expires_at: 0,
-    )
+    create_active_external_identity(client: @user, provider: "google", subject: "g")
 
     assert @user.active_social_provider?("google")
 
     assert_not @user.active_social_provider?("apple")
-    ClientAppleIdentity.create!(
-      user: @user, uid: "a", provider: "apple", status_id: ClientAppleIdentityStatus::ACTIVE,
-      token: "t", expires_at: 0,
-    )
+    create_active_external_identity(client: @user, provider: "apple", subject: "a")
 
     assert @user.active_social_provider?("apple")
 

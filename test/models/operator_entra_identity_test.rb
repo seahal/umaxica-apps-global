@@ -16,7 +16,7 @@ class OperatorEntraIdentityTest < ActiveSupport::TestCase
       organization_id: 1,
       entra_tenant_id: VALID_TENANT_ID,
       entra_client_id: "client-id-for-identity-tests",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
       status_id: OrganizationEntraConnectionState::ACTIVE,
     )
   end

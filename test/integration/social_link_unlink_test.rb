@@ -5,8 +5,7 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :client_statuses, :client_secret_credential_kinds, :client_secret_credential_statuses,
-           :client_apple_identity_statuses
+  fixtures :clients, :client_statuses, :client_secret_credential_kinds, :client_secret_credential_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -18,8 +17,6 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     # Note: ClientSecretCredentialKind should be seeded. If validation fails, check seeded values.
     ClientSecretCredentialKind.find_or_create_by!(id: ClientSecretCredentialKind::LOGIN)
     ClientSecretCredentialStatus.find_or_create_by!(id: ClientSecretCredentialStatus::ACTIVE)
-    ClientAppleIdentityStatus.find_or_create_by!(id: ClientAppleIdentityStatus::ACTIVE)
-    ClientAppleIdentityStatus.find_or_create_by!(id: ClientAppleIdentityStatus::REVOKED)
     ClientTotpCredentialStatus.find_or_create_by!(id: ClientTotpCredentialStatus::ACTIVE)
 
     ClientSecretCredential.create!(

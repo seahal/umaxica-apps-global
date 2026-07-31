@@ -37,7 +37,6 @@ class ExternalAuthenticationAppleNotificationIngress
       occurred_at: notification.occurred_at,
     }
     attributes[:client_external_identity] = identity if identity.is_a?(ClientExternalIdentity)
-    attributes[:client_apple_identity] = identity if identity.is_a?(ClientAppleIdentity)
 
     [ClientAppleNotificationEvent.create!(**attributes), true]
   rescue ActiveRecord::RecordNotUnique

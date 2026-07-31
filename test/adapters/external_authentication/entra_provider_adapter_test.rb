@@ -4,17 +4,19 @@
 require "test_helper"
 
 class ExternalAuthenticationEntraProviderAdapterTest < ActiveSupport::TestCase
-  Connection = Data.define(:entra_tenant_id, :entra_client_id, :entra_client_secret)
+  Connection = Data.define(:entra_tenant_id, :entra_client_id, :entra_credential_key)
+  CLIENT_ASSERTION_PROVIDER = ->(**) { "signed-client-assertion" }
 
   test "builds an authorization code request with PKCE and the approved scope" do
     connection = Connection.new(
       entra_tenant_id: "11111111-2222-3333-4444-555555555555",
       entra_client_id: "client-id",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
     )
     adapter = ExternalAuthentication::EntraProviderAdapter.new(
       connection: connection,
       redirect_uri: "https://auth.example.test/sign/in/entra/callback",
+      client_assertion_provider: CLIENT_ASSERTION_PROVIDER,
     )
 
     uri = URI.parse(adapter.authorization_url(state: "state", nonce: "nonce", code_challenge: "challenge"))
@@ -32,10 +34,12 @@ class ExternalAuthenticationEntraProviderAdapterTest < ActiveSupport::TestCase
     connection = Connection.new(
       entra_tenant_id: "11111111-2222-3333-4444-555555555555",
       entra_client_id: "client-id",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
     )
     token_client =
-      lambda do |**|
+      lambda do |**arguments|
+        assert_equal "signed-client-assertion", arguments.fetch(:client_assertion)
+        assert_nil arguments.fetch(:client_secret)
         OidcRpTokenClient::Result.new(success: true, token_response: { "id_token" => "discarded" }, error: nil)
       end
     verifier =
@@ -57,6 +61,7 @@ class ExternalAuthenticationEntraProviderAdapterTest < ActiveSupport::TestCase
       redirect_uri: "https://auth.example.test/sign/in/entra/callback",
       token_client: token_client,
       verifier_class: verifier,
+      client_assertion_provider: CLIENT_ASSERTION_PROVIDER,
     )
 
     result = adapter.call(code: "code", expected_nonce: "nonce", code_verifier: "verifier")
@@ -73,7 +78,7 @@ class ExternalAuthenticationEntraProviderAdapterTest < ActiveSupport::TestCase
     connection = Connection.new(
       entra_tenant_id: "11111111-2222-3333-4444-555555555555",
       entra_client_id: "client-id",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
     )
     token_client =
       lambda do |**|
@@ -83,6 +88,7 @@ class ExternalAuthenticationEntraProviderAdapterTest < ActiveSupport::TestCase
       connection: connection,
       redirect_uri: "https://auth.example.test/sign/in/entra/callback",
       token_client: token_client,
+      client_assertion_provider: CLIENT_ASSERTION_PROVIDER,
     )
 
     result = adapter.call(code: "code", expected_nonce: "nonce", code_verifier: "verifier")
@@ -96,7 +102,7 @@ class ExternalAuthenticationEntraProviderAdapterTest < ActiveSupport::TestCase
     connection = Connection.new(
       entra_tenant_id: "11111111-2222-3333-4444-555555555555",
       entra_client_id: "client-id",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
     )
     token_client =
       lambda do |**arguments|
@@ -108,6 +114,7 @@ class ExternalAuthenticationEntraProviderAdapterTest < ActiveSupport::TestCase
       connection: connection,
       redirect_uri: "https://auth.example.test/sign/in/entra/callback",
       token_client: token_client,
+      client_assertion_provider: CLIENT_ASSERTION_PROVIDER,
     )
 
     result = adapter.call(code: "authorization-code", expected_nonce: "nonce", code_verifier: "pkce-verifier")
@@ -119,7 +126,7 @@ class ExternalAuthenticationEntraProviderAdapterTest < ActiveSupport::TestCase
     connection = Connection.new(
       entra_tenant_id: "11111111-2222-3333-4444-555555555555",
       entra_client_id: "client-id",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
     )
     token_client =
       lambda do |**|
@@ -139,6 +146,7 @@ class ExternalAuthenticationEntraProviderAdapterTest < ActiveSupport::TestCase
       redirect_uri: "https://auth.example.test/sign/in/entra/callback",
       token_client: token_client,
       verifier_class: verifier,
+      client_assertion_provider: CLIENT_ASSERTION_PROVIDER,
     )
 
     result = adapter.call(code: "code", expected_nonce: "nonce", code_verifier: "verifier")
@@ -152,11 +160,12 @@ class ExternalAuthenticationEntraProviderAdapterTest < ActiveSupport::TestCase
     connection = Connection.new(
       entra_tenant_id: "11111111-2222-3333-4444-555555555555",
       entra_client_id: "client-id",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
     )
     adapter = ExternalAuthentication::EntraProviderAdapter.new(
       connection: connection,
       redirect_uri: "https://auth.example.test/sign/in/entra/callback",
+      client_assertion_provider: CLIENT_ASSERTION_PROVIDER,
     )
     principal = ExternalAuthentication::VerifiedPrincipal.new(
       provider: "google",

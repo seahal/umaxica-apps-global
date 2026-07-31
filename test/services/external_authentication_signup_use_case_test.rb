@@ -2,9 +2,10 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 
 class ExternalAuthenticationSignupUseCaseTest < ActiveSupport::TestCase
-  fixtures :client_google_identity_statuses
+  include ExternalIdentityTestHelper
 
   test "creates an account and returns a typed signup result" do
     principal = ExternalAuthentication::VerifiedPrincipal.new(
@@ -18,7 +19,7 @@ class ExternalAuthenticationSignupUseCaseTest < ActiveSupport::TestCase
 
     result = nil
     assert_difference("Client.count", 1) do
-      assert_difference("ClientGoogleIdentity.count", 1) do
+      assert_difference("ClientExternalIdentity.count", 1) do
         result = ExternalAuthenticationSignupUseCase.call(
           principal: principal,
           credential_candidate: nil,
@@ -35,18 +36,10 @@ class ExternalAuthenticationSignupUseCaseTest < ActiveSupport::TestCase
 
   test "rejects a subject already bound to an account" do
     client = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "signup_uc_#{SecureRandom.hex(4)}")
-    identity = ClientGoogleIdentity.create!(
-      user: client,
-      provider: "google",
-      uid: "signup-use-case-conflict",
-      token: ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED,
-      refresh_token: "",
-      token_expires_at: 0,
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-    )
+    identity = create_active_external_identity(client: client, provider: "google", subject: "signup-use-case-conflict")
     principal = ExternalAuthentication::VerifiedPrincipal.new(
       provider: "google",
-      subject: identity.uid,
+      subject: identity.subject,
       issuer: "https://accounts.google.com",
       audience: "google-client-id",
       verified_at: Time.current,

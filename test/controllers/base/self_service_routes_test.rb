@@ -2,13 +2,15 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 # require "helpers/global_test_support"
 # require "helpers/auth_helpers"
 
 class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
   # include AuthHelpers
+  include ExternalIdentityTestHelper
 
-  fixtures :clients, :client_statuses, :client_apple_identity_statuses, :operators
+  fixtures :clients, :client_statuses, :operators
 
   setup do
     hosts = Rails.configuration.x.boot_config.fetch(:hosts)
@@ -33,15 +35,7 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
 
   test "app identity settings permanently guide an Apple-only client to alternative credentials" do
     client = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "n#{SecureRandom.hex(8)}")
-    ClientAppleIdentity.create!(
-      user: client,
-      provider: "apple",
-      uid: "apple-only-settings-#{SecureRandom.hex(8)}",
-      token: ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED,
-      refresh_token: "",
-      token_expires_at: 0,
-      status_id: ClientAppleIdentityStatus::ACTIVE,
-    )
+    create_active_external_identity(client: client, provider: "apple")
     token = ClientToken.create!(user: client, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     select_token!(surface: :app, principal: client, token: token)
 

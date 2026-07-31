@@ -4,13 +4,14 @@
 require "test_helper"
 
 class OmniauthGoogleStrategyContractTest < ActiveSupport::TestCase
-  test "pinned strategy preserves explicitly configured online access" do
+  test "pinned strategy uses online access, PKCE, nonce, and only the openid scope" do
     strategy = OmniAuth::Strategies::GoogleOauth2.new(
       ->(_env) { [200, {}, ["ok"]] },
       "contract-client",
       "contract-secret",
       access_type: "online",
-      scope: "openid profile",
+      scope: "openid",
+      pkce: true,
     )
     env = Rack::MockRequest.env_for("/social/google")
     env["rack.session"] = {}
@@ -19,49 +20,29 @@ class OmniauthGoogleStrategyContractTest < ActiveSupport::TestCase
     params = strategy.authorize_params
 
     assert_equal "online", params[:access_type]
-    assert_equal "openid profile", params[:scope]
+    assert_equal "openid", params[:scope]
+    assert_equal "S256", params[:code_challenge_method]
+    assert_predicate params[:code_challenge], :present?
+    assert_predicate params[:nonce], :present?
+    assert_equal params[:nonce], env.fetch("rack.session").fetch("omniauth.nonce")
   end
 
-  test "top-level uid is established by the UserInfo subject" do
-    strategy = OmniAuth::Strategies::GoogleOauth2.new(
-      ->(_env) { [200, {}, ["ok"]] },
-      "contract-client",
-      "contract-secret",
-    )
-    env = Rack::MockRequest.env_for("/social/google/callback")
-    env["rack.session"] = {}
-    strategy.instance_variable_set(:@env, env)
-    oauth_client = OAuth2::Client.new("contract-client", "contract-secret")
-    access_token = OAuth2::AccessToken.new(oauth_client, "callback-access-token")
-    strategy.access_token = access_token
-    user_info_response = Struct.new(:parsed).new(
-      {
-        "sub" => "userinfo-subject",
-        "name" => "Discarded Profile Name",
-        "picture" => "https://example.test/discarded.png",
-      },
-    )
-
-    uid =
-      access_token.stub(:get, user_info_response) do
-        strategy.uid
-      end
-
-    assert_equal "userinfo-subject", uid
-  end
-
-  test "unsigned id_info subject does not replace the UserInfo subject" do
+  test "verified ID token subject is authoritative and UserInfo is never called" do
     travel_to Time.zone.local(2026, 7, 24, 12, 0, 0) do
-      unsigned_id_token = JWT.encode(
+      nonce = "contract-nonce"
+      signing_key = OpenSSL::PKey::RSA.generate(2048)
+      id_token = JWT.encode(
         {
           "iss" => "https://accounts.google.com",
           "aud" => "contract-client",
-          "sub" => "forged-id-info-subject",
+          "sub" => "verified-id-token-subject",
+          "nonce" => nonce,
+          "iat" => Time.current.to_i,
           "exp" => 5.minutes.from_now.to_i,
-          "nbf" => 1.minute.ago.to_i,
         },
-        nil,
-        "none",
+        signing_key,
+        "RS256",
+        { kid: "contract-key" },
       )
       strategy = OmniAuth::Strategies::GoogleOauth2.new(
         ->(_env) { [200, {}, ["ok"]] },
@@ -69,57 +50,57 @@ class OmniauthGoogleStrategyContractTest < ActiveSupport::TestCase
         "contract-secret",
       )
       env = Rack::MockRequest.env_for("/social/google/callback")
-      env["rack.session"] = {}
+      env["rack.session"] = { "omniauth.nonce" => nonce }
       strategy.instance_variable_set(:@env, env)
       oauth_client = OAuth2::Client.new("contract-client", "contract-secret")
       access_token = OAuth2::AccessToken.new(
         oauth_client,
         "callback-access-token",
-        "id_token" => unsigned_id_token,
+        "id_token" => id_token,
       )
       strategy.access_token = access_token
-      user_info_response = Struct.new(:parsed).new({ "sub" => "userinfo-subject" })
+      access_token.define_singleton_method(:get) { |_| raise "UserInfo must not be called" }
+      jwks = { "keys" => [JWT::JWK.new(signing_key.public_key, kid: "contract-key").export] }
 
-      uid =
-        access_token.stub(:get, user_info_response) do
-          strategy.uid
-        end
-      extra =
-        access_token.stub(:get, user_info_response) do
-          strategy.extra
-        end
-
-      assert_equal "userinfo-subject", uid
-      assert_equal "forged-id-info-subject", extra.fetch(:id_info).fetch("sub")
-      assert_equal "userinfo-subject", strategy.uid
+      strategy.stub(:google_jwks_loader, ->(_options = {}) { jwks }) do
+        assert_equal "verified-id-token-subject", strategy.uid
+        assert_empty strategy.info
+        assert_empty strategy.extra
+      end
+      assert_nil env.fetch("rack.session")["omniauth.nonce"]
     end
   end
 
-  test "UserInfo failure cannot establish a uid" do
+  test "unsigned ID token cannot establish a uid" do
     strategy = OmniAuth::Strategies::GoogleOauth2.new(
       ->(_env) { [200, {}, ["ok"]] },
       "contract-client",
       "contract-secret",
     )
     env = Rack::MockRequest.env_for("/social/google/callback")
-    env["rack.session"] = {}
+    env["rack.session"] = { "omniauth.nonce" => "contract-nonce" }
     strategy.instance_variable_set(:@env, env)
     oauth_client = OAuth2::Client.new("contract-client", "contract-secret")
-    access_token = OAuth2::AccessToken.new(oauth_client, "callback-access-token")
-    strategy.access_token = access_token
-    user_info_error = OAuth2::Error.new(
-      "error" => "userinfo_unavailable",
-      "error_description" => "contract boundary failure",
+    unsigned_id_token = JWT.encode(
+      {
+        "iss" => "https://accounts.google.com",
+        "aud" => "contract-client",
+        "sub" => "forged-subject",
+        "nonce" => "contract-nonce",
+        "iat" => Time.current.to_i,
+        "exp" => 5.minutes.from_now.to_i,
+      },
+      nil,
+      "none",
     )
+    access_token = OAuth2::AccessToken.new(
+      oauth_client,
+      "callback-access-token",
+      "id_token" => unsigned_id_token,
+    )
+    strategy.access_token = access_token
 
-    error =
-      assert_raises(OAuth2::Error) do
-        access_token.stub(:get, ->(*) { raise user_info_error }) do
-          strategy.uid
-        end
-      end
-
-    assert_equal "userinfo_unavailable", error.code
+    assert_raises(OmniAuth::Strategies::OAuth2::CallbackError) { strategy.uid }
   end
 
   test "authorization code exchange failure returns an OmniAuth failure without auth" do

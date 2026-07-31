@@ -9,11 +9,12 @@ class OidcRpTokenClient < ApplicationService
       def success? = success
     end
 
-  def initialize(token_url:, client_id:, client_secret:, code:, redirect_uri:, code_verifier:)
+  def initialize(token_url:, client_id:, client_secret:, code:, redirect_uri:, code_verifier:, client_assertion: nil)
     super()
     @token_url = token_url
     @client_id = client_id
     @client_secret = client_secret
+    @client_assertion = client_assertion
     @code = code
     @redirect_uri = redirect_uri
     @code_verifier = code_verifier
@@ -37,7 +38,7 @@ class OidcRpTokenClient < ApplicationService
 
   private
 
-  attr_reader :token_url, :client_id, :client_secret, :code, :redirect_uri, :code_verifier
+  attr_reader :token_url, :client_id, :client_secret, :client_assertion, :code, :redirect_uri, :code_verifier
 
   def request_params
     params = {
@@ -47,6 +48,12 @@ class OidcRpTokenClient < ApplicationService
       client_id: client_id,
       code_verifier: code_verifier,
     }
+    if client_assertion.present?
+      return params.merge(
+        client_assertion_type: ExternalAuthentication::EntraClientAssertionAdapter::ASSERTION_TYPE,
+        client_assertion: client_assertion,
+      )
+    end
     client = OidcClientRegistry.find(client_id)
     if client&.private_key_jwt_client?
       assertion = OidcClientAssertionJwt.issue(client_id: client_id, token_url: token_url)

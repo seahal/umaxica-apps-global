@@ -4,7 +4,7 @@
 require "test_helper"
 
 class ExternalAuthenticationAppleProviderAdapterTest < ActiveSupport::TestCase
-  test "translates strategy output into a minimal principal and Apple credential candidate" do
+  test "translates strategy output into a minimal principal without retaining provider tokens" do
     auth_hash = OmniAuth::AuthHash.new(
       provider: "apple",
       uid: "verified-apple-subject",
@@ -39,9 +39,9 @@ class ExternalAuthenticationAppleProviderAdapterTest < ActiveSupport::TestCase
     assert_equal "configured-apple-client-id", result.principal.audience
     assert_equal verified_at, result.principal.verified_at
     assert_equal "omniauth-apple/1.4.0", result.principal.verification_authority
-    assert_equal "stored-refresh-token", result.credential_candidate.refresh_token
+    assert_nil result.credential_candidate
     assert_equal(
-      %i(provider subject issuer audience verified_at verification_authority),
+      %i(provider subject issuer audience verified_at verification_authority tenant_context),
       result.principal.to_h.keys,
     )
   end
@@ -87,7 +87,7 @@ class ExternalAuthenticationAppleProviderAdapterTest < ActiveSupport::TestCase
     assert_equal :assertion_invalid, result.failure.safe_reason
   end
 
-  test "rejects missing refresh token" do
+  test "accepts a verified subject when the provider returns no refresh token" do
     auth_hash = OmniAuth::AuthHash.new(
       provider: "apple",
       uid: "verified-apple-subject",
@@ -102,8 +102,9 @@ class ExternalAuthenticationAppleProviderAdapterTest < ActiveSupport::TestCase
       verified_at: Time.zone.local(2026, 7, 24, 12, 0, 0),
     )
 
-    assert_predicate result, :failed?
-    assert_equal :assertion_invalid, result.failure.safe_reason
+    assert_predicate result, :verified?
+    assert_equal "verified-apple-subject", result.principal.subject
+    assert_nil result.credential_candidate
   end
 
   test "rejects an ordinary Hash that did not cross the OmniAuth boundary" do

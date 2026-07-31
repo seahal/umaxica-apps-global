@@ -2,9 +2,12 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 # require "helpers/global_test_support"
 
 class SocialAuthConcernTest < ActiveSupport::TestCase
+  include ExternalIdentityTestHelper
+
   StepUpToken =
     Struct.new(
       :currently_usable,
@@ -189,14 +192,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
       birthdate: "2000-02-03",
     )
     uid = "established_google_#{SecureRandom.hex(4)}"
-    ClientGoogleIdentity.create!(
-      user: user,
-      uid: uid,
-      provider: "google_app",
-      token: "tok",
-      expires_at: 1.week.from_now.to_i,
-      user_google_identity_status: client_google_identity_statuses(:active),
-    )
+    create_active_external_identity(client: user, provider: "google", subject: uid)
 
     harness = Harness.new
     harness.send(:prepare_social_auth_intent!, "login", provider: "google_app")

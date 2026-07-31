@@ -25,6 +25,18 @@ podman build --target production \
 
 ## Start normal development
 
+`.devcontainer/compose.override.yml` maps the image's `DOCKER_UID`/`DOCKER_GID`
+build args from `${UID:-1000}`/`${GID:-1000}`. `$UID`/`$GID` are bash builtins,
+not exported environment variables, so Compose only sees real values if
+something writes them into the environment first. The Dev Containers CLI does
+this automatically via `initializeCommand` (`.devcontainer/write-host-ids.sh`,
+which writes the repo-root `.env` that Compose auto-loads). Manual
+`podman compose` runs must run that script once first:
+
+```sh
+.devcontainer/write-host-ids.sh
+```
+
 The base Compose file explicitly selects `development`:
 
 ```sh

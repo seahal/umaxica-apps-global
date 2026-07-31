@@ -62,14 +62,14 @@ module EnforcementAppeal
   def reviewer_is_separate_from_case_operators
     return if reviewer_operator_public_id.blank?
     return if reviewer_operator_public_id != enforcement_case.applied_by_operator_public_id &&
-              reviewer_operator_public_id != enforcement_case.approved_by_operator_public_id
+      reviewer_operator_public_id != enforcement_case.approved_by_operator_public_id
 
     errors.add(:reviewer_operator_public_id, "must differ from the applying and approving operators")
   end
 
   def validate_reviewer_separation!
     return if reviewer_operator_public_id != enforcement_case.applied_by_operator_public_id &&
-              reviewer_operator_public_id != enforcement_case.approved_by_operator_public_id
+      reviewer_operator_public_id != enforcement_case.approved_by_operator_public_id
 
     raise ReviewerSeparationError, "appeal reviewer must differ from the applying and approving operators"
   end

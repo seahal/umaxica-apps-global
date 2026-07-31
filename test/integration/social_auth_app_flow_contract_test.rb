@@ -6,22 +6,20 @@ require "test_helper"
 
 class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   fixtures :client_statuses, :client_email_statuses, :client_totp_credential_statuses,
-           :client_google_identity_statuses, :client_apple_identity_statuses
+           :client_secret_credential_statuses
 
   PROVIDERS = {
     google: {
       provider: "google",
       normalized: "google",
-      model: ClientGoogleIdentity,
-      active_status: ClientGoogleIdentityStatus::ACTIVE,
+      model: ClientExternalIdentity,
       config_path: :auth_app_settings_path,
       token_prefix: "google",
     },
     apple: {
       provider: "apple",
       normalized: "apple",
-      model: ClientAppleIdentity,
-      active_status: ClientAppleIdentityStatus::ACTIVE,
+      model: ClientExternalIdentity,
       config_path: :auth_app_settings_apple_path,
       token_prefix: "apple",
     },
@@ -118,7 +116,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     # Settings link commits on Sign after the Sign-owned OAuth state and step-up checks.
     assert_no_difference("Client.count") do
-      assert_difference("ClientAppleIdentity.count", 1) do
+      assert_difference("ClientExternalIdentity.count", 1) do
         perform_social_callback(
           PROVIDERS.fetch(:apple),
           params: { state: grant_session.state },
@@ -128,11 +126,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to auth_app_settings_path(ri: "jp")
-    relinked_identity = ClientAppleIdentity.find_by!(uid: new_uid)
+    relinked_identity = ClientExternalIdentity.find_by!(provider: "apple", subject: new_uid)
 
     assert_equal user.id, relinked_identity.user_id
-    assert_equal ClientAppleIdentityStatus::ACTIVE, relinked_identity.status_id
-    assert_equal ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED, relinked_identity.token
+    assert_equal "active", relinked_identity.state
     assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
   end
 
@@ -261,7 +258,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    identity = config.fetch(:model).find_by!(uid: uid)
+    identity = config.fetch(:model).find_by!(provider: config.fetch(:provider), subject: uid)
     user = identity.user
 
     assert_response :redirect
@@ -269,9 +266,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert ClientToken.exists?(user_id: user.id)
 
     assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, user.status_id
-    assert_equal config.fetch(:active_status), identity.status_id
+    assert_equal "active", identity.state
     assert_equal config.fetch(:provider), identity.provider
-    assert_equal ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED, identity.token
     assert_not_nil identity.last_authenticated_at
     assert_nil ClientEmail.find_by(user: user)
   end
@@ -298,7 +294,6 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     identity.reload
 
     assert_equal user.id, identity.user_id
-    assert_equal ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED, identity.token
     assert_not_nil identity.last_authenticated_at
   end
 
@@ -321,11 +316,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to auth_app_settings_path(ri: "jp")
-    identity = config.fetch(:model).find_by!(uid: uid)
+    identity = config.fetch(:model).find_by!(provider: config.fetch(:provider), subject: uid)
 
     assert_equal user.id, identity.user_id
-    assert_equal config.fetch(:active_status), identity.status_id
-    assert_equal ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED, identity.token
+    assert_equal "active", identity.state
     assert_not_nil identity.last_authenticated_at
   end
 
@@ -345,8 +339,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     existing.reload
 
     assert_equal "existing_#{config.fetch(:normalized)}", existing.uid
-    assert_equal "keep_token", existing.token
-    assert_nil config.fetch(:model).find_by(uid: "different_#{config.fetch(:normalized)}")
+    assert_nil config.fetch(:model).find_by(
+      provider: config.fetch(:provider),
+      subject: "different_#{config.fetch(:normalized)}",
+    )
   end
 
   def assert_last_social_unlink_rejected(config)
@@ -412,12 +408,14 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   def create_social_identity(config, user:, uid:, token: "token")
     config.fetch(:model).create!(
-      user: user,
-      uid: uid,
+      client: user,
+      subject: uid,
       provider: config.fetch(:provider),
-      token: token,
-      expires_at: 1.week.from_now.to_i,
-      status_id: config.fetch(:active_status),
+      issuer: ExternalAuthentication::ProviderRegistry.fetch(config.fetch(:provider)).issuer,
+      audience: "#{config.fetch(:provider)}-test-client-id",
+      verification_authority: "test",
+      verified_at: Time.current,
+      state: "active",
     )
   end
 

@@ -11,7 +11,7 @@ require "test_helper"
 # - New user creation via social login
 # - JWT/session tokens are issued on success
 class SocialAuthLoginTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
+  fixtures :client_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -225,7 +225,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert form.at_css("input[name='social_ceremony_result']")
     assert_nil form.at_css("input[name='return_to']")
 
-    assert_equal "old_token", identity.reload.token
+    assert_not_respond_to identity.reload, :token
   end
 
   test "Google sign up entry with existing identity falls through to sign in flow" do

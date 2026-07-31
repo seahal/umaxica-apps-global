@@ -34,7 +34,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
       organization_id: 1,
       entra_tenant_id: TENANT_ID,
       entra_client_id: "entra-controller-test-client",
-      entra_client_secret: "controller-test-secret",
+      entra_credential_key: "controller-test-secret",
       status_id: OrganizationEntraConnectionState::ACTIVE,
     )
   end
@@ -83,7 +83,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
       organization_id: 2,
       entra_tenant_id: "22222222-3333-4444-5555-666666666666",
       entra_client_id: "inactive-client",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
       status_id: OrganizationEntraConnectionState::NOTHING,
     )
 
@@ -161,7 +161,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
       organization_id: 3,
       entra_tenant_id: "33333333-4444-5555-6666-777777777777",
       entra_client_id: "inactive-client-2",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
       status_id: OrganizationEntraConnectionState::NOTHING,
     )
 

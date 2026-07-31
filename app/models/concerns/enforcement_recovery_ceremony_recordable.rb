@@ -29,8 +29,8 @@ module EnforcementRecoveryCeremonyRecordable
     def issue!(subject:, request:)
       create!(
         subject_association_name => subject,
-        ip_digest: digest_optional(request.remote_ip),
-        user_agent_digest: digest_optional(request.user_agent),
+        :ip_digest => digest_optional(request.remote_ip),
+        :user_agent_digest => digest_optional(request.user_agent),
       )
     end
 

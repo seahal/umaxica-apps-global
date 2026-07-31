@@ -11,7 +11,7 @@
 #  organization_id     :bigint           not null
 #  entra_tenant_id     :string(36)       not null
 #  entra_client_id     :string(255)      not null
-#  entra_client_secret :text             not null (encrypted at rest)
+#  entra_credential_key :string           not null
 #  status_id           :bigint           not null, default: 0
 #  last_used_at        :datetime
 #  revoked_at          :datetime
@@ -34,8 +34,6 @@
 class OrganizationEntraConnection < OrgRpRecord
   include ::PublicId
 
-  encrypts :entra_client_secret
-
   ENTRA_TENANT_ID_FORMAT = /\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i
   private_constant :ENTRA_TENANT_ID_FORMAT
 
@@ -49,8 +47,9 @@ class OrganizationEntraConnection < OrgRpRecord
            inverse_of: :connection,
            dependent: :restrict_with_error
 
-  validates :organization_id, :entra_tenant_id, :entra_client_id, :entra_client_secret,
+  validates :organization_id, :entra_tenant_id, :entra_client_id, :entra_credential_key,
             presence: true
+  validates :entra_credential_key, format: { with: /\A[A-Za-z][A-Za-z0-9_-]*\z/ }
   validates :entra_tenant_id, uniqueness: { scope: :organization_id }
   validates :entra_client_id, uniqueness: { scope: :entra_tenant_id }
   validates :entra_tenant_id, format: { with: ENTRA_TENANT_ID_FORMAT, message: :uuid_format }

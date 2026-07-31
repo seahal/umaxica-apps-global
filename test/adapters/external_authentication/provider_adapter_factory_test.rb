@@ -23,10 +23,10 @@ class ExternalAuthenticationProviderAdapterFactoryTest < ActiveSupport::TestCase
   end
 
   test "builds the Entra adapter from the fixed registry" do
-    connection = Data.define(:entra_tenant_id, :entra_client_id, :entra_client_secret).new(
+    connection = Data.define(:entra_tenant_id, :entra_client_id, :entra_credential_key).new(
       entra_tenant_id: "11111111-2222-3333-4444-555555555555",
       entra_client_id: "configured-entra-client-id",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
     )
 
     adapter = ExternalAuthentication::ProviderAdapterFactory.build(

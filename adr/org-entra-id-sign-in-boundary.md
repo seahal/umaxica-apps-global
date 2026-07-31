@@ -39,6 +39,10 @@ identity-determining fields, must not be used as lookup keys or fallback keys, a
 requested from Entra. The scope is `"openid profile"` only. `"email"` scope is not requested. The
 UserInfo endpoint is never called.
 
+The application registration must emit the optional `acct` claim in ID tokens. Authentication
+accepts only `acct = 0`; guest accounts, missing account-type evidence, and personal Microsoft
+accounts fail closed.
+
 ### Database placement: `org_zenith`
 
 Both `OrganizationEntraConnection` and `OperatorEntraIdentity` are placed in the `org_zenith`
@@ -84,11 +88,12 @@ one Entra identity mapping. This is intentionally strict. If multi-tenant or mul
 mappings are needed in the future, the unique constraint can be loosened and the lookup key adjusted
 without changing the `tid + oid` auth contract.
 
-### Client secret storage
+### Certificate credential reference
 
-`OrganizationEntraConnection#entra_client_secret` is encrypted using Rails Active Record Encryption
-(`encrypts :entra_client_secret`). The plaintext is never stored in the database column. Encryption
-keys live in Rails credentials.
+`OrganizationEntraConnection#entra_credential_key` stores only the name of a Rails credential. The
+referenced value contains the certificate and private key PEM. Token exchange uses a short-lived
+PS256 `private_key_jwt` assertion with an `x5t#S256` certificate thumbprint. Neither private key nor
+client secret is stored in the database.
 
 ### Callback boundary
 

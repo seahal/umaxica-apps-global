@@ -21,8 +21,10 @@ module Base
               submitted_at: Time.current,
             )
             appeal.submit!
-            safe_redirect_to(base_app_identity_recovery_path, fallback: new_base_app_identity_recovery_session_path,
-                             status: :see_other)
+            safe_redirect_to(
+              base_app_identity_recovery_path, fallback: new_base_app_identity_recovery_session_path,
+                                               status: :see_other,
+            )
           rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
             @appeal_error = e.message
             @enforcement_cases = appealable_cases

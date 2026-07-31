@@ -5,7 +5,7 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :client_statuses, :client_apple_identity_statuses, :app_preference_chronicle_levels
+  fixtures :clients, :client_statuses, :app_preference_chronicle_levels
 
   setup do
     OmniAuth.config.test_mode = true

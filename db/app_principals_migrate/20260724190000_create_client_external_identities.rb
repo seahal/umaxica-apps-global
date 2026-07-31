@@ -24,31 +24,13 @@ class CreateClientExternalIdentities < ActiveRecord::Migration[8.2]
       )
     end
 
-    create_table(:client_apple_identity_credentials) do |t|
-      t.references(:client_external_identity, null: false, foreign_key: false)
-      t.text(:refresh_token, null: false, default: "")
-      t.string(:state, limit: 32, null: false, default: "active")
-      t.datetime(:last_validated_at)
-      t.timestamps
-
-      t.index(:client_external_identity_id, unique: true, name: "idx_client_apple_credentials_identity")
-      t.index(:state)
-      t.check_constraint(
-        "state IN ('active', 'revoked', 'consent_revoked', 'account_deleted')",
-        name: "chk_client_apple_credentials_state",
-      )
-    end
-
     safety_assured do
       execute("ALTER TABLE client_external_identities SET UNLOGGED")
-      execute("ALTER TABLE client_apple_identity_credentials SET UNLOGGED")
     end
     add_foreign_key(:client_external_identities, :clients, validate: false)
-    add_foreign_key(:client_apple_identity_credentials, :client_external_identities, validate: false)
   end
 
   def down
-    drop_table(:client_apple_identity_credentials)
     remove_column(:client_external_identities, :last_provider_event_at) if
       column_exists?(:client_external_identities, :last_provider_event_at)
     drop_table(:client_external_identities)

@@ -7,7 +7,7 @@ require "test_helper"
 class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
-  fixtures :clients, :client_statuses, :client_google_identity_statuses
+  fixtures :clients, :client_statuses
 
   setup do
     OmniAuth.config.test_mode = true

@@ -152,12 +152,7 @@ class AuthenticationCredentialInventory
   end
 
   def client_social_login_methods
-    return common_client_social_login_methods if ExternalAuthentication::IdentityRepositoryFactory.common_storage?
-
-    methods = []
-    methods << :google if active_client_google?
-    methods << :apple if active_client_apple?
-    methods
+    common_client_social_login_methods
   end
 
   def common_client_social_login_methods
@@ -166,20 +161,6 @@ class AuthenticationCredentialInventory
     scope = actor.client_external_identities.where(state: "active")
     scope = scope.where.not(id: excluding.id) if excluding.is_a?(ClientExternalIdentity)
     scope.pluck(:provider).map(&:to_sym)
-  end
-
-  def active_client_google?
-    return false unless actor.respond_to?(:user_google_identity)
-
-    identity = actor.user_google_identity
-    identity&.status_id == ClientGoogleIdentityStatus::ACTIVE && !excluded?(identity)
-  end
-
-  def active_client_apple?
-    return false unless actor.respond_to?(:user_apple_identity)
-
-    identity = actor.user_apple_identity
-    identity&.status_id == ClientAppleIdentityStatus::ACTIVE && !excluded?(identity)
   end
 
   def aal1_email_count

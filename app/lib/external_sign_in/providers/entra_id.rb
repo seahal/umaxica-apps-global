@@ -52,6 +52,8 @@ module ExternalSignIn
         verify_tid!(payload)
         verify_oid!(payload)
         verify_sub!(payload)
+        verify_token_version!(payload)
+        verify_member_account!(payload)
         verify_time_claims!(payload)
 
         NormalizedAuthResult.new(
@@ -109,6 +111,15 @@ module ExternalSignIn
 
       def verify_sub!(payload)
         fail!("sub_missing") if payload["sub"].to_s.blank?
+      end
+
+      def verify_token_version!(payload)
+        fail!("token_version_invalid") unless payload["ver"] == "2.0"
+      end
+
+      def verify_member_account!(payload)
+        fail!("account_type_missing") unless payload.key?("acct")
+        fail!("guest_account_not_allowed") unless payload["acct"].to_s == "0"
       end
 
       def verify_time_claims!(payload)

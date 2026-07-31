@@ -17,10 +17,8 @@ class AuthenticationCredentialInventoryCommonIdentityTest < ActiveSupport::TestC
       verified_at: Time.current,
     )
 
-    ExternalAuthentication::IdentityRepositoryFactory.stub(:common_storage?, true) do
-      inventory = AuthenticationCredentialInventory.call(client)
+    inventory = AuthenticationCredentialInventory.call(client)
 
-      assert_equal [:apple], inventory.aal1_methods
-    end
+    assert_equal [:apple], inventory.aal1_methods
   end
 end

@@ -36,10 +36,9 @@ class FilterParameterLoggingTest < ActiveSupport::TestCase
   end
 
   test "filters social identity tokens from Active Record inspection and SQL logs" do
-    sensitive_attributes = %w(token refresh_token uid)
-
-    assert_empty sensitive_attributes - ClientAppleIdentity.filter_attributes
-    assert_empty sensitive_attributes - ClientGoogleIdentity.filter_attributes
+    assert_not_includes ClientExternalIdentity.column_names, "token"
+    assert_not_includes ClientExternalIdentity.column_names, "refresh_token"
+    assert_includes ClientExternalIdentity.filter_attributes.map(&:to_s), "subject"
   end
 
   test "does not emit oauth credential values in active record sql logs" do

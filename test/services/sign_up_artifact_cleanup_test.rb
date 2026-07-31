@@ -2,8 +2,11 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 
 class SignUpArtifactCleanupTest < ActiveSupport::TestCase
+  include ExternalIdentityTestHelper
+
   setup do
     ClientStatus.ensure_defaults!
     ClientMfaLevel.ensure_defaults!
@@ -14,8 +17,6 @@ class SignUpArtifactCleanupTest < ActiveSupport::TestCase
     ClientEmailStatus.ensure_defaults!
     ClientTelephoneStatus.ensure_defaults!
     ClientPasskeyStatus.ensure_defaults!
-    ClientGoogleIdentityStatus.ensure_defaults!
-    ClientAppleIdentityStatus.ensure_defaults!
 
     VisitorStatus.ensure_defaults!
     VisitorMfaLevel.ensure_defaults!
@@ -57,38 +58,9 @@ class SignUpArtifactCleanupTest < ActiveSupport::TestCase
   test "schedules client social identity cleanup for google and apple" do
     now = Time.current.change(usec: 0)
 
-    [
-      [
-        "google",
-        ClientGoogleIdentityStatus::DELETED,
-        ->(user) do
-          ClientGoogleIdentity.create!(
-            user: user,
-            uid: "cleanup-google-#{SecureRandom.hex(4)}",
-            provider: "google_app",
-            token: "token",
-            token_expires_at: 1.week.from_now.to_i,
-            status_id: ClientGoogleIdentityStatus::ACTIVE,
-          )
-        end,
-      ],
-      [
-        "apple",
-        ClientAppleIdentityStatus::DELETED,
-        ->(user) do
-          ClientAppleIdentity.create!(
-            user: user,
-            uid: "cleanup-apple-#{SecureRandom.hex(4)}",
-            provider: "apple",
-            token: "token",
-            token_expires_at: 1.week.from_now.to_i,
-            status_id: ClientAppleIdentityStatus::ACTIVE,
-          )
-        end,
-      ],
-    ].each do |provider, deleted_status_id, build_identity|
+    %w(google apple).each do |provider|
       user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-      identity = build_identity.call(user)
+      identity = create_active_external_identity(client: user, provider: provider, subject: "cleanup-#{provider}-#{SecureRandom.hex(4)}")
       cycle = build_client_cycle(
         principal_id: user.id,
         status_id: ClientSignUpFlowStatus::CANCELLED,
@@ -102,9 +74,7 @@ class SignUpArtifactCleanupTest < ActiveSupport::TestCase
       SignUpArtifactCleanup.call(cycle: cycle, now: now)
 
       assert_equal ClientSignUpFlowCleanupStatus::COMPLETED, cycle.reload.cleanup_status_id
-      assert_equal deleted_status_id, identity.reload.status_id
-      assert_operator identity.reload.discarded_at, :>=, now
-      assert_operator identity.reload.purged_at, :>, identity.reload.discarded_at
+      assert_not ClientExternalIdentity.exists?(identity.id)
       assert_operator user.reload.discarded_at, :>=, now
     end
   end

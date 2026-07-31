@@ -6,6 +6,12 @@ Treat this file as the always-loaded entry point. Detailed rules live under
 `.agents/harnesses/rules/`; load only the rules relevant to the current task before editing. Detailed
 behavior rules are canonical within their area.
 
+## Implementation Principles
+
+- Do not preserve backward compatibility unless it is necessary for a safe deployment.
+- Choose the simplest implementation that fully meets the current requirements.
+- Prefer established, well-maintained libraries over custom implementations.
+
 ## Working Method
 
 For every task:

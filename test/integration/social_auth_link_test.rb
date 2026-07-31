@@ -16,8 +16,6 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   SOCIAL_FLOW_ID_SESSION_KEY = :social_auth_flow_id
   fixtures :clients,
            :client_statuses,
-           :client_google_identity_statuses,
-           :client_apple_identity_statuses,
            :app_preference_chronicle_levels
 
   setup do

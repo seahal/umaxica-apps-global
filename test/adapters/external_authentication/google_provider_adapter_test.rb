@@ -4,10 +4,10 @@
 require "test_helper"
 
 class ExternalAuthenticationGoogleProviderAdapterTest < ActiveSupport::TestCase
-  test "translates UserInfo-backed top-level uid into a minimal principal" do
+  test "translates the strategy-verified ID token subject into a minimal principal" do
     auth_hash = OmniAuth::AuthHash.new(
       provider: "google",
-      uid: "userinfo-subject",
+      uid: "verified-id-token-subject",
       info: {
         email: "discarded@example.test",
         name: "Discarded Name",
@@ -19,10 +19,10 @@ class ExternalAuthenticationGoogleProviderAdapterTest < ActiveSupport::TestCase
       },
       extra: {
         id_info: {
-          sub: "forged-id-info-subject",
+          sub: "verified-id-token-subject",
         },
         raw_info: {
-          sub: "userinfo-subject",
+          sub: "discarded-userinfo-subject",
           email: "discarded@example.test",
         },
       },
@@ -36,14 +36,14 @@ class ExternalAuthenticationGoogleProviderAdapterTest < ActiveSupport::TestCase
 
     assert_predicate result, :verified?
     assert_equal "google", result.principal.provider
-    assert_equal "userinfo-subject", result.principal.subject
+    assert_equal "verified-id-token-subject", result.principal.subject
     assert_equal "https://accounts.google.com", result.principal.issuer
     assert_equal "configured-google-client-id", result.principal.audience
     assert_equal verified_at, result.principal.verified_at
     assert_equal "omniauth-google-oauth2/1.2.2", result.principal.verification_authority
     assert_nil result.credential_candidate
     assert_equal(
-      %i(provider subject issuer audience verified_at verification_authority),
+      %i(provider subject issuer audience verified_at verification_authority tenant_context),
       result.principal.to_h.keys,
     )
   end

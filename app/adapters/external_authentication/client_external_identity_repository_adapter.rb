@@ -32,7 +32,7 @@ module ExternalAuthentication
         verification_authority: principal.verification_authority,
         verified_at: principal.verified_at,
       )
-      assign_credential!(identity, credential_candidate)
+      validate_candidate!(credential_candidate)
       identity
     end
 
@@ -47,9 +47,8 @@ module ExternalAuthentication
         verified_at: principal.verified_at,
         last_authenticated_at: Time.current,
       )
-      credential = assign_credential!(identity, credential_candidate)
+      validate_candidate!(credential_candidate)
       identity.save!
-      credential&.save!
       identity
     end
 
@@ -64,7 +63,6 @@ module ExternalAuthentication
       raise ArgumentError, "account-deleted identity cannot be reactivated" if identity.state == "account_deleted"
 
       identity.update!(state: "active")
-      identity.client_apple_identity_credential&.update!(state: "active") if provider == "apple"
       identity
     end
 
@@ -79,25 +77,13 @@ module ExternalAuthentication
 
     def refresh_token_for(identity)
       validate_identity!(identity)
-      return nil unless provider == "apple"
-
-      identity.client_apple_identity_credential&.refresh_token.presence
+      nil
     end
 
     private
 
     def issuer
       ProviderRegistry.fetch(provider).issuer
-    end
-
-    def assign_credential!(identity, credential_candidate)
-      return validate_google_candidate!(credential_candidate) if provider == "google"
-
-      candidate = validate_apple_candidate!(credential_candidate)
-      credential = identity.client_apple_identity_credential || identity.build_client_apple_identity_credential
-      credential.refresh_token = candidate.refresh_token
-      credential.state = "active"
-      credential
     end
 
     def validate_principal!(principal)
@@ -112,16 +98,10 @@ module ExternalAuthentication
       raise ArgumentError, "identity does not match repository provider"
     end
 
-    def validate_apple_candidate!(candidate)
-      return candidate if candidate.is_a?(AppleCredentialCandidate)
-
-      raise ArgumentError, "Apple credential candidate is required"
-    end
-
-    def validate_google_candidate!(candidate)
+    def validate_candidate!(candidate)
       return if candidate.nil?
 
-      raise ArgumentError, "Google credential candidate must be absent"
+      raise ArgumentError, "provider credential candidate must be absent"
     end
   end
 end

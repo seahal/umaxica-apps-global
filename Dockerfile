@@ -270,9 +270,11 @@ RUN if [ -z "${GITHUB_ACTIONS}" ]; then \
 RUN npm install -g pnpm@latest \
     && rm -rf "${HOME}/.cache" "${HOME}/.local"
 
-# Final ownership fix for the home directory and workspace
+# Final ownership fix for the home directory, workspace, and bundler's own
+# GEM_HOME (gem install bundler above runs as root; production handles this
+# via COPY --chown, development has no equivalent step).
 RUN mkdir -p "${HOME}/workspace" \
-    && chown -R "${DOCKER_UID}:${DOCKER_GID}" "${HOME}"
+    && chown -R "${DOCKER_UID}:${DOCKER_GID}" "${HOME}" /usr/local/bundle
 
 COPY --chown=0:0 docker/core/entrypoint.sh /usr/local/bin/core-entrypoint
 COPY --chown=0:0 docker/core/dev-supervisor.sh /usr/local/bin/core-dev-supervisor

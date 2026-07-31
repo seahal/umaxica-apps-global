@@ -33,8 +33,9 @@ module EnforcementRecoveryCeremonyFlow
     if recovery_subject_eligible?(subject) && recovery_email_verified?(email) && !email.locked? && !otp_request_rate_limited?(email)
       otp_code = generate_otp_for(email)
       OtpAdapter.for(surface: recovery_surface, channel: :email).deliver(record: email, otp_code: otp_code)
-      session[REENTRY_SESSION_KEY] = { "email_public_id" => email.public_id, "dummy" => false,
-                                      "expires_at" => CommonOtp::OTP_EXPIRATION_MINUTES.minutes.from_now.to_i }
+      session[REENTRY_SESSION_KEY] = { "email_public_id" => email.public_id,
+                                       "dummy" => false,
+                                       "expires_at" => CommonOtp::OTP_EXPIRATION_MINUTES.minutes.from_now.to_i, }
     else
       perform_dummy_otp_generation
       session[REENTRY_SESSION_KEY] = { "dummy" => true, "expires_at" => CommonOtp::OTP_EXPIRATION_MINUTES.minutes.from_now.to_i }
@@ -87,9 +88,7 @@ module EnforcementRecoveryCeremonyFlow
   def recovery_reentry_address = params.dig(:recovery_reentry, :address).to_s
 
   def recovery_subject_eligible?(subject)
-    subject.present? && recovery_case_class.in_force.where(
-      principal_public_id: subject.public_id, kind: "security_lock", visibility: "visible", release_mode: "verification_required",
-    ).exists?
+    subject.present? && recovery_case_class.in_force.exists?(principal_public_id: subject.public_id, kind: "security_lock", visibility: "visible", release_mode: "verification_required")
   end
 
   def recovery_email_verified?(email)

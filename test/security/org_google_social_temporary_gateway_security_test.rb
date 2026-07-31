@@ -85,8 +85,8 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
   test "social identifiable maps only app provider scope" do
     source = read("app/models/concerns/social_identifiable.rb")
 
-    assert_match(/"google_app" => "google"/, source)
-    assert_match(/"apple" => "apple"/, source)
+    assert_match(/google_app google_oauth2/, source)
+    assert_match(/normalized/, source)
     assert_no_match(/google_(?:org|com)|microsoft/i, source)
   end
 

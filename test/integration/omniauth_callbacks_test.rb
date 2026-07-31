@@ -5,7 +5,7 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
-  fixtures :client_google_identity_statuses, :client_apple_identity_statuses, :client_statuses,
+  fixtures :client_statuses,
            :client_totp_credential_statuses
 
   setup do

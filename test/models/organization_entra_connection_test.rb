@@ -43,23 +43,20 @@ class OrganizationEntraConnectionTest < ActiveSupport::TestCase
     assert_equal OrganizationEntraConnectionState::NOTHING, connection.status_id
   end
 
-  # --- client secret is encrypted at rest ---
-
-  test "client secret is not stored in plaintext" do
+  test "stores only a credential reference" do
     connection = OrganizationEntraConnection.create!(
       organization_id: 1,
       entra_tenant_id: VALID_TENANT_ID,
       entra_client_id: VALID_CLIENT_ID,
-      entra_client_secret: "super-secret-value",
+      entra_credential_key: "ENTRA_TEST_CERTIFICATE",
       status_id: OrganizationEntraConnectionState::NOTHING,
     )
 
     raw = OrganizationEntraConnection.connection.select_one(
-      "SELECT entra_client_secret FROM organization_entra_connections WHERE id = #{connection.id}",
+      "SELECT entra_credential_key FROM organization_entra_connections WHERE id = #{connection.id}",
     )
 
-    assert_not_equal "super-secret-value", raw["entra_client_secret"],
-                     "entra_client_secret must not be stored in plaintext"
+    assert_equal "ENTRA_TEST_CERTIFICATE", raw["entra_credential_key"]
   end
 
   # --- valid record ---
@@ -69,7 +66,7 @@ class OrganizationEntraConnectionTest < ActiveSupport::TestCase
       organization_id: 1,
       entra_tenant_id: VALID_TENANT_ID,
       entra_client_id: VALID_CLIENT_ID,
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
       status_id: OrganizationEntraConnectionState::NOTHING,
     )
 
@@ -100,11 +97,11 @@ class OrganizationEntraConnectionTest < ActiveSupport::TestCase
     assert connection.errors.of_kind?(:entra_client_id, :blank)
   end
 
-  test "requires entra_client_secret" do
-    connection = build_connection(entra_client_secret: nil)
+  test "requires entra_credential_key" do
+    connection = build_connection(entra_credential_key: nil)
 
     assert_not connection.valid?
-    assert connection.errors.of_kind?(:entra_client_secret, :blank)
+    assert connection.errors.of_kind?(:entra_credential_key, :blank)
   end
 
   # --- UUID format validation ---
@@ -136,7 +133,7 @@ class OrganizationEntraConnectionTest < ActiveSupport::TestCase
       organization_id: 1,
       entra_tenant_id: VALID_TENANT_ID,
       entra_client_id: VALID_CLIENT_ID,
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
       status_id: OrganizationEntraConnectionState::NOTHING,
     )
 
@@ -154,7 +151,7 @@ class OrganizationEntraConnectionTest < ActiveSupport::TestCase
       organization_id: 1,
       entra_tenant_id: VALID_TENANT_ID,
       entra_client_id: VALID_CLIENT_ID,
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
       status_id: OrganizationEntraConnectionState::NOTHING,
     )
 
@@ -171,7 +168,7 @@ class OrganizationEntraConnectionTest < ActiveSupport::TestCase
       organization_id: 1,
       entra_tenant_id: VALID_TENANT_ID,
       entra_client_id: VALID_CLIENT_ID,
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
       status_id: OrganizationEntraConnectionState::NOTHING,
     )
 
@@ -202,7 +199,7 @@ class OrganizationEntraConnectionTest < ActiveSupport::TestCase
         organization_id: 1,
         entra_tenant_id: VALID_TENANT_ID,
         entra_client_id: VALID_CLIENT_ID,
-        entra_client_secret: "secret",
+        entra_credential_key: "secret",
         status_id: OrganizationEntraConnectionState::NOTHING,
       }.merge(overrides),
     )

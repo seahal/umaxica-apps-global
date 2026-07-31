@@ -5,7 +5,7 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
+  fixtures :client_statuses
 
   setup do
     OmniAuth.config.test_mode = true

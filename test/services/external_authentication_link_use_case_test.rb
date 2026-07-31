@@ -4,7 +4,7 @@
 require "test_helper"
 
 class ExternalAuthenticationLinkUseCaseTest < ActiveSupport::TestCase
-  fixtures :client_google_identity_statuses
+  fixtures
 
   test "links a verified principal and returns a typed result" do
     client = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "link_uc_#{SecureRandom.hex(4)}")

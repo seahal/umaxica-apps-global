@@ -24,7 +24,7 @@ class ExternalAuthenticationProviderRegistryTest < ActiveSupport::TestCase
     %i(login signup link).each do |operation|
       policy = entry.authorization_policies.fetch(operation)
 
-      assert_equal "openid profile", policy.scope
+      assert_equal "openid", policy.scope
       assert_equal "online", policy.access_type
       assert_equal "select_account", policy.prompt
     end

@@ -9,10 +9,11 @@ module ExternalAuthentication
     :audience,
     :verified_at,
     :verification_authority,
+    :tenant_context,
   )
-    PROVIDERS = %w(apple google).freeze
+    PROVIDERS = %w(apple google entra).freeze
 
-    def initialize(provider:, subject:, issuer:, audience:, verified_at:, verification_authority:)
+    def initialize(provider:, subject:, issuer:, audience:, verified_at:, verification_authority:, tenant_context: nil)
       raise ArgumentError, "provider is unsupported" unless PROVIDERS.include?(provider)
       raise ArgumentError, "subject is required" unless subject.is_a?(String) && subject.present?
       raise ArgumentError, "issuer is required" unless issuer.is_a?(String) && issuer.present?
@@ -24,6 +25,12 @@ module ExternalAuthentication
         raise ArgumentError, "verification_authority is required"
       end
 
+      if provider == "entra"
+        raise ArgumentError, "Entra tenant context is required" unless tenant_context.is_a?(EntraTenantContext)
+      elsif tenant_context
+        raise ArgumentError, "tenant context is only supported for Entra"
+      end
+
       super(
         provider: provider.dup.freeze,
         subject: subject.dup.freeze,
@@ -31,6 +38,7 @@ module ExternalAuthentication
         audience: audience.dup.freeze,
         verified_at: verified_at.dup.freeze,
         verification_authority: verification_authority.dup.freeze,
+        tenant_context: tenant_context,
       )
     end
   end

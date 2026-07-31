@@ -73,9 +73,10 @@ class EnforcementAppealTest < ActiveSupport::TestCase
       state: "submitted",
     )
 
-    error = assert_raises(EnforcementAppeal::ReviewerSeparationError) do
-      appeal.resolve!(reviewer_operator_public_id: "operator-applying", resolution_code: "rejected")
-    end
+    error =
+      assert_raises(EnforcementAppeal::ReviewerSeparationError) do
+        appeal.resolve!(reviewer_operator_public_id: "operator-applying", resolution_code: "rejected")
+      end
 
     assert_match(/must differ/, error.message)
     assert_equal "submitted", appeal.reload.state

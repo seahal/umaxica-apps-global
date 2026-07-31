@@ -2,10 +2,7 @@
 # frozen_string_literal: true
 
 class SignAppUpSocialCancellation
-  SUPPORTED_PROVIDERS = {
-    "apple" => ClientAppleIdentity,
-    "google" => ClientGoogleIdentity,
-  }.freeze
+  SUPPORTED_PROVIDERS = %w(apple google).freeze
 
   def self.call(...)
     new(...).call
@@ -46,7 +43,7 @@ class SignAppUpSocialCancellation
   attr_reader :cycle
 
   def social_cycle?
-    SUPPORTED_PROVIDERS.key?(normalized_provider) &&
+    SUPPORTED_PROVIDERS.include?(normalized_provider) &&
       cycle.social_entry_method?
   end
 
@@ -60,19 +57,9 @@ class SignAppUpSocialCancellation
     cycle.social_provider.presence || cycle.entry_method
   end
 
-  def identity_class
-    SUPPORTED_PROVIDERS.fetch(normalized_provider)
-  end
-
   def pending_identity_for(actor)
-    if ExternalAuthentication::IdentityRepositoryFactory.common_storage?
-      identity = ExternalAuthentication::IdentityRepositoryFactory.current.build(normalized_provider).find_for_user(actor)
-      return identity if identity && identity.id.to_s == cycle.pending_contact_id.to_s
-
-      return nil
-    end
-
-    identity_class.find_by(id: cycle.pending_contact_id)
+    identity = ExternalAuthentication::IdentityRepositoryFactory.current.build(normalized_provider).find_for_user(actor)
+    identity if identity && identity.id.to_s == cycle.pending_contact_id.to_s
   end
 
   def pending_actor?(actor)

@@ -1,6 +1,7 @@
 {
   "name": "umaxica-apps-global-dc",
   "dockerComposeFile": ["../compose.yaml", "./compose.override.yml", "../compose.custom.yaml"],
+  "initializeCommand": ".devcontainer/write-host-ids.sh",
   "service": "core",
   "remoteUser": "global",
   "containerUser": "global",

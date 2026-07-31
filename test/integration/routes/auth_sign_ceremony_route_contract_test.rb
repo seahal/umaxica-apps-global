@@ -230,15 +230,11 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_APP_HOST}/sign/in/check", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "auth/app/sign/in/checks", action: "update" },
-      { path: "http://#{SIGN_APP_HOST}/sign/in/check", method: :patch },
-    )
-
-    assert_recognizes(
-      { controller: "auth/app/sign/in/checks", action: "destroy" },
-      { path: "http://#{SIGN_APP_HOST}/sign/in/check", method: :delete },
-    )
+    %i(patch delete).each do |method|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/in/check", method: method)
+      end
+    end
 
     assert_recognizes(
       { controller: "auth/app/sign/in/sessions", action: "destroy" },
@@ -623,15 +619,11 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_COM_HOST}/sign/in/check", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "auth/com/sign/in/checks", action: "update" },
-      { path: "http://#{SIGN_COM_HOST}/sign/in/check", method: :patch },
-    )
-
-    assert_recognizes(
-      { controller: "auth/com/sign/in/checks", action: "destroy" },
-      { path: "http://#{SIGN_COM_HOST}/sign/in/check", method: :delete },
-    )
+    %i(patch delete).each do |method|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/sign/in/check", method: method)
+      end
+    end
 
     assert_recognizes(
       { controller: "auth/com/sign/in/sessions", action: "destroy" },
@@ -829,15 +821,11 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_ORG_HOST}/sign/in/check", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "auth/org/sign/in/checks", action: "update" },
-      { path: "http://#{SIGN_ORG_HOST}/sign/in/check", method: :patch },
-    )
-
-    assert_recognizes(
-      { controller: "auth/org/sign/in/checks", action: "destroy" },
-      { path: "http://#{SIGN_ORG_HOST}/sign/in/check", method: :delete },
-    )
+    %i(patch delete).each do |method|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}/sign/in/check", method: method)
+      end
+    end
 
     assert_recognizes(
       { controller: "auth/org/sign/in/sessions", action: "destroy" },

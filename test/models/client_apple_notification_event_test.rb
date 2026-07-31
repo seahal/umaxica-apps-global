@@ -33,8 +33,6 @@ class ClientAppleNotificationEventTest < ActiveSupport::TestCase
       user: client,
       provider: "apple",
       uid: "notification-removal-#{SecureRandom.hex(8)}",
-      token: ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED,
-      refresh_token: "",
       token_expires_at: 0,
       status_id: ClientAppleIdentityStatus::ACTIVE,
     )
@@ -42,14 +40,14 @@ class ClientAppleNotificationEventTest < ActiveSupport::TestCase
       jti: "notification-removal-#{SecureRandom.hex(8)}",
       event_type: "consent-revoked",
       client: client,
-      client_apple_identity: identity,
+      client_external_identity: identity,
       received_at: Time.current,
       occurred_at: Time.current,
     )
 
     identity.destroy!
 
-    assert_nil event.reload.client_apple_identity_id
+    assert_nil event.reload.client_external_identity_id
     assert_equal client.id, event.client_id
   end
 end

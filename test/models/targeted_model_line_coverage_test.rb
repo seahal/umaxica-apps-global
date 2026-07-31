@@ -204,10 +204,6 @@ class TargetedModelLineCoverageTest < ActiveSupport::TestCase
     assert_predicate sign_out, :sign_out_nothing?
   end
 
-  test "social identity missing source capability returns nil" do
-    assert_nil AbstractSocialIdentity.auth_value(Object.new, :uid)
-  end
-
   test "unknown oidc and step up stores use the base connection owner" do
     assert_equal ActiveRecord::Base, AbstractOidcAuthorization.connection_owner
     assert_equal ActiveRecord::Base, AbstractStepUpCeremony.connection_owner

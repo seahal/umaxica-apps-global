@@ -10,7 +10,7 @@ require "test_helper"
 # `intent=link` flow. Unauthenticated login callbacks for unknown identities stay
 # pending-confirmation and must not create durable identities at callback time.
 class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
+  fixtures :client_statuses
 
   setup do
     OmniAuth.config.test_mode = true

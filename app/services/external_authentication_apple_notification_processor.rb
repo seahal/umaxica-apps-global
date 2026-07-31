@@ -33,27 +33,14 @@ class ExternalAuthenticationAppleNotificationProcessor
 
   def apply_consent_revocation!
     return apply_common_transition!("consent_revoked") if event.client_external_identity
-    return false unless event.client_apple_identity
-    return false if event.client_apple_identity.status_id == ClientAppleIdentityStatus::DELETED
-    return false if legacy_event_is_stale?
 
-    event.client_apple_identity.update!(
-      status_id: ClientAppleIdentityStatus::REVOKED,
-      refresh_token: "",
-    )
-    true
+    false
   end
 
   def apply_account_deletion!
     return apply_common_transition!("account_deleted") if event.client_external_identity
-    return false unless event.client_apple_identity
-    return false if legacy_event_is_stale?
 
-    event.client_apple_identity.update!(
-      status_id: ClientAppleIdentityStatus::DELETED,
-      refresh_token: "",
-    )
-    true
+    false
   end
 
   def apply_common_transition!(target_state)
@@ -62,16 +49,7 @@ class ExternalAuthenticationAppleNotificationProcessor
     return false if identity.last_provider_event_at && identity.last_provider_event_at >= event.occurred_at
 
     identity.update!(state: target_state, last_provider_event_at: event.occurred_at)
-    identity.client_apple_identity_credential&.update!(state: target_state, refresh_token: "")
     true
-  end
-
-  def legacy_event_is_stale?
-    ClientAppleNotificationEvent
-      .where(client_apple_identity: event.client_apple_identity)
-      .where(event_type: %w(consent-revoked account-deleted), status: "completed")
-      .where.not(id: event.id)
-      .exists?(occurred_at: event.occurred_at..)
   end
 
   def revoke_sessions!

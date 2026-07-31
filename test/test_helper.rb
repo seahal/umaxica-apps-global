@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+if ENV["COVERAGE"] == "true"
+  require "simplecov"
+  SimpleCov.start("rails")
+end
+
 ENV["RAILS_ENV"] ||= "test"
 ENV["AUTH_SERVICE_URL"] = "auth.app.localhost"
 ENV["AUTH_CORPORATE_URL"] = "auth.com.localhost"
@@ -13,12 +18,14 @@ ENV["PRIVATE_AUTH_STAFF_URL"] = "auth.org.localhost"
 ENV["APPLE_SOCIAL_CEREMONY_ENABLED"] = "true"
 ENV["GOOGLE_SOCIAL_CEREMONY_ENABLED"] = "true"
 ENV["ENTRA_SOCIAL_CEREMONY_ENABLED"] = "true"
+ENV["SOCIAL_AUTH_CEREMONY_HMAC_KEY"] = "test-social-auth-ceremony-hmac-key"
 ENV["SMTP_FROM_ADDRESS_APP"] = "from@umaxica.app"
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
 
 require_relative "../config/environment"
 require "rails/test_help"
 require_relative "support/parallel_test_database_cloner"
+require_relative "support/external_identity_test_helper"
 
 module AuthenticationHarness
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " \
@@ -213,6 +220,7 @@ end
 module ActiveSupport
   class TestCase
     include AuthenticationHarness
+    include ExternalIdentityTestHelper
 
     parallel_workers =
       if ENV["COVERAGE"] == "true"

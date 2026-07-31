@@ -24,7 +24,7 @@ module ExternalAuthentication
 
     GOOGLE_AUTHORIZATION_POLICIES = %i(login signup link).index_with do
       AuthorizationPolicy.new(
-        scope: "openid profile",
+        scope: "openid",
         access_type: "online",
         prompt: "select_account",
       )

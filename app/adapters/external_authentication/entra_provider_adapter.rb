@@ -16,7 +16,8 @@ module ExternalAuthentication
       token_client: OidcRpTokenClient,
       verifier_class: ExternalSignIn::Providers::EntraId,
       jwks_loader: nil,
-      clock: -> { Time.current }
+      clock: -> { Time.current },
+      client_assertion_provider: nil
     )
       @connection = connection
       @redirect_uri = redirect_uri
@@ -24,6 +25,9 @@ module ExternalAuthentication
       @verifier_class = verifier_class
       @jwks_loader = jwks_loader
       @clock = clock
+      @client_assertion_provider = client_assertion_provider || lambda do |connection:, token_url:, clock:|
+        EntraClientAssertionAdapter.new(connection: connection, token_url: token_url, clock: clock).call
+      end
     end
 
     def authorization_url(state:, nonce:, code_challenge:)
@@ -43,10 +47,17 @@ module ExternalAuthentication
     end
 
     def call(code:, expected_nonce:, code_verifier:)
+      token_url = format(TOKEN_ENDPOINT, connection.entra_tenant_id)
+      client_assertion = @client_assertion_provider.call(
+        connection: connection,
+        token_url: token_url,
+        clock: @clock,
+      )
       token_result = token_client.call(
-        token_url: format(TOKEN_ENDPOINT, connection.entra_tenant_id),
+        token_url: token_url,
         client_id: connection.entra_client_id,
-        client_secret: connection.entra_client_secret,
+        client_secret: nil,
+        client_assertion: client_assertion,
         code: code,
         redirect_uri: redirect_uri,
         code_verifier: code_verifier,
@@ -63,7 +74,7 @@ module ExternalAuthentication
       ).call
 
       CallbackResult.verified(
-        principal: VerifiedEntraPrincipal.new(
+        principal: VerifiedPrincipal.new(
           provider: "entra",
           subject: normalized.evidence_subject,
           issuer: normalized.evidence_issuer,
@@ -78,12 +89,16 @@ module ExternalAuthentication
       )
     rescue ExternalSignIn::Providers::EntraId::VerificationError => e
       verification_failure(e.reason)
-    rescue KeyError, ArgumentError, TypeError
+    rescue EntraClientAssertionAdapter::ConfigurationError
+      raise
+    rescue KeyError, ArgumentError, TypeError, OpenSSL::PKey::PKeyError, OpenSSL::X509::CertificateError
       failed(:invalid_callback, :callback_invalid, false)
     end
 
     def resolve_existing_identity(principal:)
-      raise ArgumentError, "Entra principal is required" unless principal.is_a?(VerifiedEntraPrincipal)
+      unless principal.is_a?(VerifiedPrincipal) && principal.provider == "entra"
+        raise ArgumentError, "Entra principal is required"
+      end
 
       auth_result = ExternalSignIn::NormalizedAuthResult.new(
         tenant_id: principal.tenant_context.tenant_id,
@@ -112,7 +127,7 @@ module ExternalAuthentication
 
     def verification_failure(reason)
       case reason
-      when "personal_account_tenant"
+      when "personal_account_tenant", "guest_account_not_allowed", "account_type_missing"
         failed(:tenant_not_allowed, :tenant_not_allowed, false)
       when "tid_mismatch"
         failed(:tenant_mismatch, :tenant_mismatch, false)

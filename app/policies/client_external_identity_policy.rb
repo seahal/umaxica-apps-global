@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class ClientGoogleIdentityPolicy < ApplicationPolicy
+class ClientExternalIdentityPolicy < ApplicationPolicy
   def destroy?
     owner?
   end

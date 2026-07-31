@@ -38,9 +38,15 @@
 require Rails.root.join(
   "lib/external_authentication_infrastructure_omniauth_apple_nonce_enforcement",
 )
+require Rails.root.join(
+  "lib/external_authentication_infrastructure_omniauth_google_oidc_enforcement",
+)
 
 OmniAuth::Strategies::Apple.prepend(
   ExternalAuthenticationInfrastructureOmniauthAppleNonceEnforcement,
+)
+OmniAuth::Strategies::GoogleOauth2.prepend(
+  ExternalAuthenticationInfrastructureOmniauthGoogleOidcEnforcement,
 )
 
 # Load credentials early
@@ -162,6 +168,8 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
              scope: "openid",
              access_type: "online",
              prompt: "select_account",
+             pkce: true,
+             skip_info: true,
            }
 
   # ---------------------------------------------------------------------------
@@ -189,6 +197,7 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
              # Required: omniauth-apple's client_id method returns nil during callback
              # unless the aud from id_token is listed in authorized_client_ids
              authorized_client_ids: [apple_client_id],
+             pkce: true,
              # The app validates its own social state in the callback controller.
              provider_ignores_state: true,
              authorize_params: {

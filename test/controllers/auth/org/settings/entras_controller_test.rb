@@ -86,7 +86,7 @@ class Auth::Org::Settings::EntrasControllerTest < ActionDispatch::IntegrationTes
       organization_id: 1,
       entra_tenant_id: "11111111-2222-3333-4444-555555555555",
       entra_client_id: "settings-entras-controller-test-client",
-      entra_client_secret: "settings-entras-controller-test-secret",
+      entra_credential_key: "settings-entras-controller-test-secret",
       status_id: OrganizationEntraConnectionState::ACTIVE,
     )
   end

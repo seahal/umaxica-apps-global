@@ -12,7 +12,7 @@ require "test_helper"
 #   - malformed Base completion posts do not commit
 #   - com/org sign surfaces expose no social link routes at all
 class BaseSocialLinkCompletionTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
+  fixtures :client_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -44,7 +44,7 @@ class BaseSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     identity = ClientGoogleIdentity.find_by!(uid: uid)
 
     assert_equal user.id, identity.user_id
-    assert_equal ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED, identity.token
+    assert_not_respond_to identity, :token
   end
 
   test "base completion rejects a malformed social result without committing" do

@@ -4,12 +4,13 @@
 require "test_helper"
 
 class OmniauthAppleStrategyContractTest < ActiveSupport::TestCase
-  test "authorization request generates one nonce and stores the value for callback verification" do
+  test "authorization request generates one nonce and a PKCE S256 challenge" do
     strategy = OmniAuth::Strategies::Apple.new(
       ->(_env) { [200, {}, ["ok"]] },
       "contract-client",
       "",
       authorized_client_ids: ["contract-client"],
+      pkce: true,
     )
     env = Rack::MockRequest.env_for("/social/apple")
     env["rack.session"] = {}
@@ -19,6 +20,8 @@ class OmniauthAppleStrategyContractTest < ActiveSupport::TestCase
 
     assert_predicate params[:nonce], :present?
     assert_equal params[:nonce], env.fetch("rack.session").fetch("omniauth.nonce")
+    assert_equal "S256", params[:code_challenge_method]
+    assert_predicate params[:code_challenge], :present?
   end
 
   test "signed ID token with the stored nonce succeeds through the pinned strategy" do

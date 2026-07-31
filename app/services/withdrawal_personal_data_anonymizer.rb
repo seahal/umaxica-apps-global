@@ -33,22 +33,7 @@ class WithdrawalPersonalDataAnonymizer
       actor.client_totp_credentials, status_column: :user_identity_totp_credential_status_id,
                                      revoked_status: ClientTotpCredentialStatus::REVOKED,
     )
-    if ExternalAuthentication::IdentityRepositoryFactory.common_storage?
-      remove_common_social_identities
-    else
-      anonymize_social(actor.user_google_identity, revoked_status: ClientGoogleIdentityStatus::REVOKED)
-      anonymize_social(
-        actor.user_apple_identity,
-        revoked_status: ClientAppleIdentityStatus::REVOKED,
-        before_anonymize: ->(identity) {
-          ExternalAuthenticationAppleCredentialRevocationRequestIssuer.call(
-            client: actor,
-            refresh_token: identity.refresh_token,
-            reason: "withdrawal",
-          )
-        },
-      )
-    end
+    remove_common_social_identities
   end
 
   def anonymize_visitor
@@ -113,13 +98,6 @@ class WithdrawalPersonalDataAnonymizer
 
   def remove_common_social_identities
     actor.client_external_identities.find_each do |identity|
-      if identity.provider == "apple"
-        ExternalAuthenticationAppleCredentialRevocationRequestIssuer.call(
-          client: actor,
-          refresh_token: identity.client_apple_identity_credential&.refresh_token,
-          reason: "withdrawal",
-        )
-      end
       identity.destroy!
     end
   end

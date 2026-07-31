@@ -6,7 +6,7 @@ require "test_helper"
 
 module Auth::App::Settings
   class GooglesControllerTest < ActionDispatch::IntegrationTest
-    fixtures :clients, :client_statuses, :client_google_identity_statuses
+    fixtures :clients, :client_statuses
 
     setup do
       host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
@@ -60,13 +60,11 @@ module Auth::App::Settings
     end
 
     test "show treats revoked google identity as unlinked" do
-      ClientGoogleIdentity.create!(
-        user: @user,
-        uid: "revoked-google-config",
-        provider: "google_app",
-        token: "token",
-        expires_at: 1.hour.from_now.to_i,
-        user_google_identity_status: client_google_identity_statuses(:revoked),
+      create_active_external_identity(
+        client: @user,
+        provider: "google",
+        subject: "revoked-google-config",
+        state: "consent_revoked",
       )
 
       get auth_app_settings_google_url(ri: "jp"), headers: @headers

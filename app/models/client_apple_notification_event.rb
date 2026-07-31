@@ -9,7 +9,6 @@ class ClientAppleNotificationEvent < AppPrincipalRecord
 
   belongs_to :client, optional: true, inverse_of: :client_apple_notification_events
   belongs_to :client_external_identity, optional: true, inverse_of: :client_apple_notification_events
-  belongs_to :client_apple_identity, optional: true, inverse_of: :client_apple_notification_events
 
   validates :jti, presence: true, uniqueness: true
   validates :event_type, inclusion: { in: EVENT_TYPES }

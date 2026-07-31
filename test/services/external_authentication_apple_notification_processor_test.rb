@@ -3,7 +3,7 @@
 require "test_helper"
 
 class ExternalAuthenticationAppleNotificationProcessorTest < ActiveSupport::TestCase
-  fixtures :client_statuses, :client_apple_identity_statuses
+  fixtures :client_statuses
 
   test "consent revocation disables the legacy Apple credential and every app session" do
     client = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "n#{SecureRandom.hex(8)}")
@@ -11,8 +11,6 @@ class ExternalAuthenticationAppleNotificationProcessorTest < ActiveSupport::Test
       user: client,
       provider: "apple",
       uid: "notification-legacy-subject",
-      token: ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED,
-      refresh_token: "apple-refresh-token",
       token_expires_at: 0,
       status_id: ClientAppleIdentityStatus::ACTIVE,
     )
@@ -20,7 +18,7 @@ class ExternalAuthenticationAppleNotificationProcessorTest < ActiveSupport::Test
       jti: "consent-#{SecureRandom.hex(8)}",
       event_type: "consent-revoked",
       client: client,
-      client_apple_identity: identity,
+      client_external_identity: identity,
       received_at: Time.current,
       occurred_at: Time.current,
     )
@@ -32,7 +30,7 @@ class ExternalAuthenticationAppleNotificationProcessorTest < ActiveSupport::Test
 
     assert_equal "completed", event.reload.status
     assert_equal ClientAppleIdentityStatus::REVOKED, identity.reload.status_id
-    assert_equal "", identity.refresh_token
+    assert_not_respond_to identity, :refresh_token
     assert_equal [{ resource: client, reason: "apple_consent_revoked" }], calls
   end
 
@@ -42,8 +40,6 @@ class ExternalAuthenticationAppleNotificationProcessorTest < ActiveSupport::Test
       user: client,
       provider: "apple",
       uid: "notification-terminal-subject",
-      token: ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED,
-      refresh_token: "apple-refresh-token",
       token_expires_at: 0,
       status_id: ClientAppleIdentityStatus::ACTIVE,
     )
@@ -51,7 +47,7 @@ class ExternalAuthenticationAppleNotificationProcessorTest < ActiveSupport::Test
       jti: "deleted-#{SecureRandom.hex(8)}",
       event_type: "account-deleted",
       client: client,
-      client_apple_identity: identity,
+      client_external_identity: identity,
       received_at: Time.current,
       occurred_at: Time.current,
     )
@@ -59,7 +55,7 @@ class ExternalAuthenticationAppleNotificationProcessorTest < ActiveSupport::Test
       jti: "consent-#{SecureRandom.hex(8)}",
       event_type: "consent-revoked",
       client: client,
-      client_apple_identity: identity,
+      client_external_identity: identity,
       received_at: Time.current,
       occurred_at: 1.minute.ago,
     )
@@ -93,8 +89,6 @@ class ExternalAuthenticationAppleNotificationProcessorTest < ActiveSupport::Test
       user: client,
       provider: "apple",
       uid: "notification-stale-subject",
-      token: ExternalAuthentication::LegacyIdentityCredentialAttributes::NOT_STORED,
-      refresh_token: "apple-refresh-token",
       token_expires_at: 0,
       status_id: ClientAppleIdentityStatus::ACTIVE,
     )
@@ -102,7 +96,7 @@ class ExternalAuthenticationAppleNotificationProcessorTest < ActiveSupport::Test
       jti: "consent-newer-#{SecureRandom.hex(8)}",
       event_type: "consent-revoked",
       client: client,
-      client_apple_identity: identity,
+      client_external_identity: identity,
       received_at: Time.current,
       occurred_at: Time.current,
     )
@@ -110,7 +104,7 @@ class ExternalAuthenticationAppleNotificationProcessorTest < ActiveSupport::Test
       jti: "deleted-older-#{SecureRandom.hex(8)}",
       event_type: "account-deleted",
       client: client,
-      client_apple_identity: identity,
+      client_external_identity: identity,
       received_at: Time.current,
       occurred_at: 1.minute.ago,
     )

@@ -2,9 +2,12 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 # require "helpers/global_test_support"
 
 class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
+  include ExternalIdentityTestHelper
+
   test "callback routes accept GET only" do
     host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     google_route = Rails.application.routes.recognize_path(
@@ -398,14 +401,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     ClientSignUpFlowStatus.ensure_defaults!
     ClientSignUpFlowCleanupStatus.ensure_defaults!
     user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-    identity = ClientGoogleIdentity.create!(
-      user: user,
-      uid: "social-signup-guardrail",
-      provider: "google",
-      token: "token",
-      token_expires_at: 1.week.from_now.to_i,
-      user_google_identity_status: client_google_identity_statuses(:active),
-    )
+    identity = create_active_external_identity(client: user, provider: "google", subject: "social-signup-guardrail")
     cycle = ClientSignUpFlow.create!(
       principal_id: nil,
       status_id: ClientSignUpFlowStatus::SOCIAL_CALLBACK_PENDING,
@@ -461,14 +457,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     ClientSignUpFlowStatus.ensure_defaults!
     ClientSignUpFlowCleanupStatus.ensure_defaults!
     user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-    identity = ClientGoogleIdentity.create!(
-      user: user,
-      uid: "social-signup-return-to",
-      provider: "google",
-      token: "token",
-      token_expires_at: 1.week.from_now.to_i,
-      user_google_identity_status: client_google_identity_statuses(:active),
-    )
+    identity = create_active_external_identity(client: user, provider: "google", subject: "social-signup-return-to")
     issued_cycles = []
     controller = Auth::App::Omniauth::OmniauthCallbacksController.new
     session_hash = {}
@@ -524,14 +513,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
 
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
-    identity = ClientGoogleIdentity.create!(
-      user: user,
-      uid: "social-signup-existing",
-      provider: "google",
-      token: "token",
-      token_expires_at: 1.week.from_now.to_i,
-      user_google_identity_status: client_google_identity_statuses(:active),
-    )
+    identity = create_active_external_identity(client: user, provider: "google", subject: "social-signup-existing")
 
     controller.send(
       :handle_successful_auth,
@@ -549,14 +531,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
   test "rejected established social sign in keeps account records" do
     controller = Auth::App::Omniauth::OmniauthCallbacksController.new
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
-    identity = ClientGoogleIdentity.create!(
-      user: user,
-      uid: "social-signin-keep-existing",
-      provider: "google",
-      token: "token",
-      token_expires_at: 1.week.from_now.to_i,
-      user_google_identity_status: client_google_identity_statuses(:active),
-    )
+    identity = create_active_external_identity(client: user, provider: "google", subject: "social-signin-keep-existing")
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
     controller.define_singleton_method(:auth_app_sign_in_path) { |ri: nil|
       "/sign/in#{ri ? "?ri=#{ri}" : ""}"
@@ -567,7 +542,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.send(:handle_login_intent, user, "Google", true)
 
     assert Client.exists?(user.id)
-    assert ClientGoogleIdentity.exists?(identity.id)
+    assert ClientExternalIdentity.exists?(identity.id)
   end
 
   test "direct action early exits and csrf helpers" do
@@ -717,9 +692,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
           verified_at: Time.current,
           verification_authority: "omniauth-apple/contract",
         ),
-        credential_candidate: ExternalAuthentication::AppleCredentialCandidate.new(
-          refresh_token: "apple-refresh-token",
-        ),
+        credential_candidate: nil,
       ),
     )
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }

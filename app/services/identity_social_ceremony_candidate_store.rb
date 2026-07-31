@@ -125,7 +125,12 @@ class IdentitySocialCeremonyCandidateStore
       principal.issuer,
       principal.subject,
     ].map(&:to_s).join(":")
-    OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, data)
+    OpenSSL::HMAC.hexdigest("SHA256", social_ceremony_hmac_key, data)
+  end
+
+  def social_ceremony_hmac_key
+    Rails.app.creds.option(:SOCIAL_AUTH_CEREMONY_HMAC_KEY).presence ||
+      ENV.fetch("SOCIAL_AUTH_CEREMONY_HMAC_KEY")
   end
 
   def payload_for(callback_result)
@@ -140,10 +145,6 @@ class IdentitySocialCeremonyCandidateStore
         "verification_authority" => principal.verification_authority,
       },
     }
-    candidate = callback_result.credential_candidate
-    payload["apple_refresh_token"] = candidate.refresh_token if candidate.is_a?(
-      ExternalAuthentication::AppleCredentialCandidate,
-    )
     payload
   end
 
@@ -157,18 +158,13 @@ class IdentitySocialCeremonyCandidateStore
       verified_at: Time.iso8601(principal_payload.fetch("verified_at")),
       verification_authority: principal_payload.fetch("verification_authority"),
     )
-    refresh_token = payload["apple_refresh_token"]
-    credential_candidate =
-      if principal.provider == "apple"
-        ExternalAuthentication::AppleCredentialCandidate.new(refresh_token: refresh_token)
-      elsif principal.provider == "google"
-        nil
-      else
-        raise IdentitySocialCeremonyContract::Error, "social auth candidate is invalid"
-      end
+    unless %w(apple google).include?(principal.provider)
+      raise IdentitySocialCeremonyContract::Error, "social auth candidate is invalid"
+    end
+
     ExternalAuthentication::CallbackResult.verified(
       principal: principal,
-      credential_candidate: credential_candidate,
+      credential_candidate: nil,
     )
   rescue ArgumentError, KeyError, TypeError
     raise IdentitySocialCeremonyContract::Error, "social auth candidate is invalid"

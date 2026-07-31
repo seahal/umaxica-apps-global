@@ -276,6 +276,33 @@ class ExternalSignIn::Providers::EntraIdTest < ActiveSupport::TestCase
     assert_equal "personal_account_tenant", error.reason
   end
 
+  test "rejects a guest account" do
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: build_token("acct" => 1))
+      end
+
+    assert_equal "guest_account_not_allowed", error.reason
+  end
+
+  test "rejects a token without the configured account-type claim" do
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: build_token("acct" => nil))
+      end
+
+    assert_equal "account_type_missing", error.reason
+  end
+
+  test "rejects a v1 token" do
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: build_token("ver" => "1.0"))
+      end
+
+    assert_equal "token_version_invalid", error.reason
+  end
+
   private
 
   def build_token(overrides = {})
@@ -287,6 +314,8 @@ class ExternalSignIn::Providers::EntraIdTest < ActiveSupport::TestCase
       "oid" => VALID_OID,
       "sub" => "pairwise-sub-value",
       "nonce" => NONCE,
+      "ver" => "2.0",
+      "acct" => 0,
       "iat" => now,
       "exp" => now + 3600,
     }.merge(overrides).compact

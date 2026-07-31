@@ -15,7 +15,7 @@ class ExternalSignIn::OrgEntraResolverTest < ActiveSupport::TestCase
       organization_id: 1,
       entra_tenant_id: TENANT_ID,
       entra_client_id: "resolver-test-client-id",
-      entra_client_secret: "resolver-test-secret",
+      entra_credential_key: "resolver-test-secret",
       status_id: OrganizationEntraConnectionState::ACTIVE,
     )
 
@@ -71,7 +71,7 @@ class ExternalSignIn::OrgEntraResolverTest < ActiveSupport::TestCase
       organization_id: 2,
       entra_tenant_id: TENANT_ID,
       entra_client_id: "resolver-test-other-client-id",
-      entra_client_secret: "resolver-test-other-secret",
+      entra_credential_key: "resolver-test-other-secret",
       status_id: OrganizationEntraConnectionState::ACTIVE,
     )
 
@@ -137,7 +137,7 @@ class ExternalSignIn::OrgEntraResolverTest < ActiveSupport::TestCase
       organization_id: 2,
       entra_tenant_id: "22222222-3333-4444-5555-666666666666",
       entra_client_id: "inactive-conn-client",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
       status_id: OrganizationEntraConnectionState::NOTHING,
     )
 
@@ -160,7 +160,7 @@ class ExternalSignIn::OrgEntraResolverTest < ActiveSupport::TestCase
       organization_id: 3,
       entra_tenant_id: "33333333-4444-5555-6666-777777777777",
       entra_client_id: "suspended-conn-client",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
       status_id: OrganizationEntraConnectionState::SUSPENDED,
     )
 

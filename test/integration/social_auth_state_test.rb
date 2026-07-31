@@ -8,7 +8,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
   SOCIAL_FLOW_ID_SESSION_KEY = :social_auth_flow_id
-  fixtures :clients, :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
+  fixtures :clients, :client_statuses
 
   setup do
     OmniAuth.config.test_mode = true

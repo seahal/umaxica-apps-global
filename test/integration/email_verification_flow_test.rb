@@ -5,7 +5,7 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_apple_identity_statuses, :client_visibilities, :client_mfa_levels,
+  fixtures :client_statuses, :client_visibilities, :client_mfa_levels,
            :client_mfa_statuses
 
   setup do

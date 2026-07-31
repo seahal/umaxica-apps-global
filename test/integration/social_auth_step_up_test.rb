@@ -5,7 +5,7 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class SocialAuthStepUpTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_google_identity_statuses
+  fixtures :client_statuses
 
   setup do
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")

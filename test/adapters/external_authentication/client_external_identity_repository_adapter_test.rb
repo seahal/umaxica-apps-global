@@ -5,7 +5,7 @@ require "test_helper"
 class ClientExternalIdentityRepositoryAdapterTest < ActiveSupport::TestCase
   fixtures :client_statuses
 
-  test "persists Apple binding metadata separately from its encrypted credential" do
+  test "persists only Apple binding metadata" do
     client = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "r#{SecureRandom.hex(8)}")
     principal = ExternalAuthentication::VerifiedPrincipal.new(
       provider: "apple",
@@ -20,18 +20,18 @@ class ClientExternalIdentityRepositoryAdapterTest < ActiveSupport::TestCase
     identity = repository.build_for_user(
       user: client,
       principal: principal,
-      credential_candidate: ExternalAuthentication::AppleCredentialCandidate.new(refresh_token: "refresh-one"),
+      credential_candidate: nil,
     )
     identity.save!
 
     assert_equal identity, repository.find_by_subject("repository-apple-subject", lock: false)
     assert_equal client, identity.user
     assert_equal "repository-apple-subject", identity.uid
-    assert_equal "refresh-one", repository.refresh_token_for(identity)
+    assert_nil repository.refresh_token_for(identity)
     assert_equal "omniauth-apple/1.4.0", identity.verification_authority
   end
 
-  test "refreshes an Apple credential without accepting a Google candidate" do
+  test "refreshes Apple verification metadata without a provider credential" do
     client = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "r#{SecureRandom.hex(8)}")
     principal = ExternalAuthentication::VerifiedPrincipal.new(
       provider: "apple",
@@ -45,20 +45,20 @@ class ClientExternalIdentityRepositoryAdapterTest < ActiveSupport::TestCase
     identity = repository.build_for_user(
       user: client,
       principal: principal,
-      credential_candidate: ExternalAuthentication::AppleCredentialCandidate.new(refresh_token: "refresh-one"),
+      credential_candidate: nil,
     )
     identity.save!
 
     repository.refresh_credentials!(
       identity,
       principal: principal,
-      credential_candidate: ExternalAuthentication::AppleCredentialCandidate.new(refresh_token: "refresh-two"),
+      credential_candidate: nil,
     )
 
-    assert_equal "refresh-two", repository.refresh_token_for(identity.reload)
+    assert_nil repository.refresh_token_for(identity.reload)
     assert_predicate identity.last_authenticated_at, :present?
     assert_raises(ArgumentError) do
-      repository.refresh_credentials!(identity, principal: principal, credential_candidate: nil)
+      repository.refresh_credentials!(identity, principal: principal, credential_candidate: Object.new)
     end
   end
 
@@ -77,6 +77,5 @@ class ClientExternalIdentityRepositoryAdapterTest < ActiveSupport::TestCase
     identity.save!
 
     assert_nil repository.refresh_token_for(identity)
-    assert_nil identity.client_apple_identity_credential
   end
 end

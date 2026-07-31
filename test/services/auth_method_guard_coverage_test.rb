@@ -112,9 +112,18 @@ class AuthMethodGuardCoverageTest < ActiveSupport::TestCase
     assert_equal 1, AuthMethodGuard.send(:active_passkeys_count, visitor_actor)
     assert_equal 0, AuthMethodGuard.send(:active_passkeys_count, Object.new)
 
-    assert_equal 1, AuthMethodGuard.send(:active_social_count, client_actor)
-    assert_equal 1, AuthMethodGuard.send(:active_social_count, apple_only_actor)
-    assert_equal 0, AuthMethodGuard.send(:active_social_count, Object.new)
+    google_inventory = Struct.new(:aal1_methods).new([:google])
+    apple_inventory = Struct.new(:aal1_methods).new([:apple])
+    empty_inventory = Struct.new(:aal1_methods).new([])
+    AuthenticationCredentialInventory.stub(
+      :call, ->(actor, **) {
+               { client_actor => google_inventory, apple_only_actor => apple_inventory }.fetch(actor, empty_inventory)
+             },
+    ) do
+      assert_equal 1, AuthMethodGuard.send(:active_social_count, client_actor)
+      assert_equal 1, AuthMethodGuard.send(:active_social_count, apple_only_actor)
+      assert_equal 0, AuthMethodGuard.send(:active_social_count, Object.new)
+    end
     assert AuthMethodGuard.send(:excluding_record?, ClientEmail.new(id: 1), "ClientEmail")
     assert_not AuthMethodGuard.send(:excluding_record?, VisitorEmail.new(id: 1), "ClientEmail")
   end

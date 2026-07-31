@@ -18,11 +18,6 @@ module ExternalAuthentication
       return failed(code: :invalid_callback, safe_reason: :provider_mismatch) unless auth_hash.provider == PROVIDER
       return failed(code: :verification_failed, safe_reason: :assertion_invalid) unless auth_hash.uid.is_a?(String) && auth_hash.uid.present?
 
-      refresh_token = auth_hash.credentials&.refresh_token
-      unless refresh_token.is_a?(String) && refresh_token.present?
-        return failed(code: :verification_failed, safe_reason: :assertion_invalid)
-      end
-
       CallbackResult.verified(
         principal: VerifiedPrincipal.new(
           provider: PROVIDER,
@@ -32,7 +27,7 @@ module ExternalAuthentication
           verified_at: verified_at,
           verification_authority: VERIFICATION_AUTHORITY,
         ),
-        credential_candidate: AppleCredentialCandidate.new(refresh_token: refresh_token),
+        credential_candidate: nil,
       )
     end
 

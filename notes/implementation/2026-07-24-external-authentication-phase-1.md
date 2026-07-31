@@ -1,5 +1,9 @@
 # External Authentication Phase 1 Implementation Notes
 
+> Superseded on 2026-07-31 by
+> `notes/implementation/2026-07-31-three-provider-authentication-hardening.md` for Google identity
+> authority and provider-token retention.
+
 ## Context
 
 - Original plan: `plans/apple-google-external-authentication-architecture-audit.md`

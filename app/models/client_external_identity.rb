@@ -8,9 +8,6 @@ class ClientExternalIdentity < AppPrincipalRecord
   encrypts :subject, deterministic: true
 
   belongs_to :client, inverse_of: :client_external_identities
-  has_one :client_apple_identity_credential,
-          dependent: :destroy,
-          inverse_of: :client_external_identity
   has_many :client_apple_notification_events,
            dependent: :nullify,
            inverse_of: :client_external_identity

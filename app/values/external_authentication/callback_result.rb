@@ -28,7 +28,7 @@ module ExternalAuthentication
 
       case status
       when :verified
-        unless principal.is_a?(VerifiedPrincipal) || principal.is_a?(VerifiedEntraPrincipal)
+        unless principal.is_a?(VerifiedPrincipal)
           raise ArgumentError, "verified result requires a principal and no failure"
         end
         unless failure.nil?

@@ -2,10 +2,13 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 # require "helpers/global_test_support"
 
 class AppleAuthTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_apple_identity_statuses
+  include ExternalIdentityTestHelper
+
+  fixtures :client_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -40,7 +43,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     )
 
     assert_no_difference("Client.count") do
-      assert_no_difference("ClientAppleIdentity.count") do
+      assert_no_difference("ClientExternalIdentity.count") do
         get auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
             headers: browser_headers.merge(@callback_headers)
       end
@@ -55,12 +58,12 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     assert_select "input[name=confirm_new_social_identity][required]"
 
     assert_difference("Client.count", 1) do
-      assert_difference("ClientAppleIdentity.count", 1) do
+      assert_difference("ClientExternalIdentity.count", 1) do
         confirm_social_signup
       end
     end
 
-    user = ClientAppleIdentity.find_by(uid: "apple_uid_new").user
+    user = ClientExternalIdentity.find_by(provider: "apple", subject: "apple_uid_new").user
 
     assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, user.status_id
     assert_nil ClientEmail.find_by(user: user)
@@ -165,7 +168,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     )
 
     assert_no_difference("Client.count") do
-      assert_no_difference("ClientAppleIdentity.count") do
+      assert_no_difference("ClientExternalIdentity.count") do
         get auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
             headers: browser_headers.merge(@callback_headers)
       end
@@ -180,12 +183,12 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     assert_select "input[name=confirm_new_social_identity][required]"
 
     assert_difference("Client.count", 1) do
-      assert_difference("ClientAppleIdentity.count", 1) do
+      assert_difference("ClientExternalIdentity.count", 1) do
         confirm_social_signup
       end
     end
 
-    identity = ClientAppleIdentity.find_by(uid: uid)
+    identity = ClientExternalIdentity.find_by(provider: "apple", subject: uid)
 
     assert_not_nil identity, "ClientAppleIdentity identity should exist"
     assert_not_nil identity.user, "Client should be associated with identity"
@@ -224,12 +227,12 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_difference("Client.count", 1) do
-      assert_difference("ClientAppleIdentity.count", 1) do
+      assert_difference("ClientExternalIdentity.count", 1) do
         confirm_social_signup
       end
     end
 
-    identity = ClientAppleIdentity.find_by(uid: uid)
+    identity = ClientExternalIdentity.find_by(provider: "apple", subject: uid)
 
     assert_not_nil identity
 
@@ -261,7 +264,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     )
 
     assert_no_difference("Client.count") do
-      assert_no_difference("ClientGoogleIdentity.count") do
+      assert_no_difference("ClientExternalIdentity.count") do
         get auth_app_social_google_callback_url(ri: "jp", state: @social_state),
             headers: browser_headers.merge(@callback_headers)
       end
@@ -276,12 +279,12 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     assert_select "input[name=confirm_new_social_identity][required]"
 
     assert_difference("Client.count", 1) do
-      assert_difference("ClientGoogleIdentity.count", 1) do
+      assert_difference("ClientExternalIdentity.count", 1) do
         confirm_social_signup
       end
     end
 
-    identity = ClientGoogleIdentity.find_by(uid: uid)
+    identity = ClientExternalIdentity.find_by(provider: "google", subject: uid)
 
     assert_not_nil identity
     assert_nil ClientEmail.find_by(user: identity.user), "NO ClientEmail for Google login user"
