@@ -65,6 +65,22 @@ module EnforcementCaseApplicable
         .merge(reflect_on_association(:principal_effect).klass.where(flag => true))
         .exists?
     end
+
+    # Sign-in-path counterpart to principal_effect_blocking?: is this specific
+    # authentication method (not the whole principal) currently revoked.
+    # Independent of login_allowed? (BAN), which only sees principal-level
+    # status, not per-method effects.
+    def authentication_method_effect_blocking?(principal_public_id, authentication_method)
+      in_force
+        .where(principal_public_id: principal_public_id)
+        .joins(:authentication_method_effects)
+        .merge(
+          reflect_on_association(:authentication_method_effects).klass
+            .where(authentication_method: authentication_method)
+            .where(effect: METHOD_REVOKING_EFFECTS),
+        )
+        .exists?
+    end
   end
 
   def in_force?

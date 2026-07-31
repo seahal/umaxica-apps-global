@@ -454,6 +454,16 @@ module Auth
             )
           end
 
+          if external_authentication_method_locked?(
+            enforcement_case_class: AppEnforcementCase,
+            principal_public_id: user.public_id,
+            authentication_method: SocialIdentifiable.normalize_provider(provider_name),
+          )
+            return redirect_to(
+              auth_app_sign_in_path,
+            )
+          end
+
           login_result = sign_in(user, pt: pt, provider_name: provider_name)
 
           if login_result.is_a?(Hash) && login_result[:status] != :success

@@ -214,6 +214,63 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     assert_grantless_established_social_login_rejected(provider: "apple", provider_name: "Apple")
   end
 
+  test "login is rejected when google is locked by an in-force method_protection case" do
+    assert_locked_authentication_method_login_rejected(provider: "google", provider_name: "Google", effect: "unusable")
+  end
+
+  test "login is rejected when apple is locked by an in-force method_protection case" do
+    assert_locked_authentication_method_login_rejected(provider: "apple", provider_name: "Apple", effect: "unusable")
+  end
+
+  test "login proceeds when the locked method_protection case targets a different provider" do
+    controller = Auth::App::Omniauth::OmniauthCallbacksController.new
+    redirects = []
+    sign_in_sequence_redirects = []
+
+    user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
+    admin_operator = operators(:one)
+    the_case = AppEnforcementCase.new(
+      kind: "method_protection",
+      duration_mode: "indefinite",
+      visibility: "visible",
+      release_mode: "operator",
+      effective_at: Time.current,
+      reason_code: "security_incident",
+      principal_public_id: user.public_id,
+      applied_by_operator_public_id: admin_operator.public_id,
+    )
+    the_case.authentication_method_effects.build(
+      principal_public_id: user.public_id,
+      authentication_method: "apple",
+      effect: "unusable",
+      effective_at: Time.current,
+    )
+    the_case.apply!
+
+    request = ActionDispatch::TestRequest.create(
+      "REQUEST_METHOD" => "GET",
+      "HTTP_HOST" => ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
+    )
+    request.env["omniauth.auth"] = OpenStruct.new(provider: "google")
+    controller.request = request
+    controller.response = ActionDispatch::TestResponse.new
+
+    session_hash = {}
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
+    controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
+    controller.define_singleton_method(:auth_app_sign_in_path) { |ri: nil| "/sign/in#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) do |**kwargs|
+      sign_in_sequence_redirects << kwargs
+      "/dashboard"
+    end
+    controller.define_singleton_method(:establish_signed_in_session!) { |*, **| { status: :success } }
+
+    assert_equal "/dashboard", controller.send(:handle_login_intent, user, "Google", false, pt: "/after-social")
+    assert_equal({ pt: "/after-social" }, sign_in_sequence_redirects.last)
+    assert_empty redirects
+  end
+
   test "social login result log payload excludes bearer credentials" do
     controller = Auth::App::Omniauth::OmniauthCallbacksController.new
     payload = controller.send(
@@ -691,6 +748,53 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
   end
 
   private
+
+  def assert_locked_authentication_method_login_rejected(provider:, provider_name:, effect:)
+    controller = Auth::App::Omniauth::OmniauthCallbacksController.new
+    redirects = []
+
+    request = ActionDispatch::TestRequest.create(
+      "REQUEST_METHOD" => "GET",
+      "HTTP_HOST" => ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
+    )
+    request.env["omniauth.auth"] = OpenStruct.new(provider: provider)
+    controller.request = request
+    controller.response = ActionDispatch::TestResponse.new
+
+    session_hash = {}
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: provider) }
+    controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
+    controller.define_singleton_method(:auth_app_sign_in_path) { |ri: nil|
+      "/sign/in#{ri ? "?ri=#{ri}" : ""}"
+    }
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**_kwargs| "/dashboard" }
+    controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
+
+    user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
+    admin_operator = operators(:one)
+    the_case = AppEnforcementCase.new(
+      kind: "method_protection",
+      duration_mode: "indefinite",
+      visibility: "visible",
+      release_mode: "operator",
+      effective_at: Time.current,
+      reason_code: "security_incident",
+      principal_public_id: user.public_id,
+      applied_by_operator_public_id: admin_operator.public_id,
+    )
+    the_case.authentication_method_effects.build(
+      principal_public_id: user.public_id,
+      authentication_method: provider,
+      effect: effect,
+      effective_at: Time.current,
+    )
+    the_case.apply!
+
+    controller.send(:handle_login_intent, user, provider_name, false, pt: "encoded-pt")
+
+    assert_match "/sign/in", redirects.last.first.first
+  end
 
   def assert_grantless_established_social_login_rejected(provider:, provider_name:)
     controller = Auth::App::Omniauth::OmniauthCallbacksController.new

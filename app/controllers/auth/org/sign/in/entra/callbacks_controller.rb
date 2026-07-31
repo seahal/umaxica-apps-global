@@ -35,22 +35,8 @@ module Auth
             )
 
             def show
-              ceremony = ExternalAuthenticationOrgEntraCeremonyStore.new.consume!(
-                reference: consume_external_authentication_ceremony_reference,
-                callback_state: params[:state].to_s,
-                surface: "org",
-                provider: "entra",
-                operation: "login",
-              )
-              return render_entra_error(:state_mismatch) if ceremony.nil?
-              unless external_authentication_allowed?(surface: "org", provider: "entra", operation: "login") &&
-                  external_authentication_callback_available?(provider: "entra", ceremony: ceremony, context: {})
-                return render_entra_error(:provider_unavailable)
-              end
-
-              if params[:error].present?
-                return render_entra_error(:entra_error)
-              end
+              ceremony = consume_ceremony_or_render_error
+              return if performed?
 
               connection = active_connection(ceremony.connection_public_id)
               return render_entra_error(:connection_not_found) if connection.nil?
@@ -76,6 +62,8 @@ module Auth
                 return render_entra_error(:operator_not_found)
               end
 
+              return if reject_locked_authentication_method!(identity: identity, operator: operator)
+
               result = establish_signed_in_session!(
                 operator,
                 pt: ceremony.return_target,
@@ -87,16 +75,48 @@ module Auth
               handle_sign_in_result(sign_in_result, pt: ceremony.return_target)
             rescue ExternalSignIn::IdentityNotFoundError
               render_entra_error(:identity_not_found)
-            rescue StandardError
+            rescue StandardError => e
+              log_entra_failure("internal_error", error_class: e.class.name)
               render_entra_error(:internal_error)
             end
 
             private
 
+            def consume_ceremony_or_render_error
+              ceremony = ExternalAuthenticationOrgEntraCeremonyStore.new.consume!(
+                reference: consume_external_authentication_ceremony_reference,
+                callback_state: params[:state].to_s,
+                surface: "org",
+                provider: "entra",
+                operation: "login",
+              )
+              return render_entra_error(:state_mismatch) if ceremony.nil?
+              unless external_authentication_allowed?(surface: "org", provider: "entra", operation: "login") &&
+                  external_authentication_callback_available?(provider: "entra", ceremony: ceremony, context: {})
+                return render_entra_error(:provider_unavailable)
+              end
+              return render_entra_error(:entra_error) if params[:error].present?
+
+              ceremony
+            end
+
             def active_connection(public_id)
               OrganizationEntraConnection.find_by(
                 public_id: public_id,
                 status_id: OrganizationEntraConnectionState::ACTIVE,
+              )
+            end
+
+            # Provider exception messages can contain response bodies or claim
+            # payloads; retain only allowlisted classification metadata
+            # (adr/application-logging-boundary.md).
+            def log_entra_failure(reason, **payload)
+              Rails.logger.warn(
+                JitLogEvent.format(
+                  "sign.org.authentication.entra.callback_failure",
+                  reason: reason,
+                  **payload,
+                ),
               )
             end
 
@@ -115,6 +135,19 @@ module Auth
                 else :token_verification_failed
                 end
               render_entra_error(reason)
+            end
+
+            def reject_locked_authentication_method!(identity:, operator:)
+              locked = external_authentication_method_locked?(
+                enforcement_case_class: OrgEnforcementCase,
+                principal_public_id: operator.public_id,
+                authentication_method: "entra",
+              )
+              return false unless locked
+
+              log_entra_failure("authentication_method_locked", operator_id: identity.operator_id)
+              render_entra_error(:authentication_method_locked)
+              true
             end
 
             def record_authentication_timestamp(identity, sign_in_result)

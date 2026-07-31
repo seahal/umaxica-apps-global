@@ -369,6 +369,99 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
     assert_response :unprocessable_content
   end
 
+  # --- callback action: authentication method lock ---
+
+  # Rails.cache is :null_store in the test environment (config/environments/test.rb),
+  # so the ceremony store's real cache.write/read is a no-op across the two
+  # requests below. Sharing one in-memory-backed store instance across both
+  # requests is required for consume! to see what issue! wrote, which in turn
+  # is required for a genuinely matching state/nonce to reach the code under
+  # test instead of failing earlier at state_mismatch.
+  def stub_ceremony_store_with_shared_memory_cache(&)
+    shared_store = ExternalAuthenticationOrgEntraCeremonyStore.new(cache: ActiveSupport::Cache::MemoryStore.new)
+    ExternalAuthenticationOrgEntraCeremonyStore.stub(:new, shared_store, &)
+  end
+
+  test "callback renders error when the operator's entra method is locked by an in-force method_protection case" do
+    private_key = OpenSSL::PKey::RSA.generate(2048)
+    jwk = JWT::JWK.new(private_key, { "kid" => "test-kid-locked" })
+    jwks = { "keys" => [jwk.export] }
+    jwks_loader = ->(_opts) { jwks }
+
+    operator = operators(:one)
+    admin_operator = operators(:two)
+    OperatorEntraIdentity.create!(
+      operator_id: operator.id,
+      connection_id: @active_connection.id,
+      entra_tenant_id: TENANT_ID,
+      entra_object_id: OBJECT_ID,
+      status_id: OperatorEntraIdentityState::ACTIVE,
+    )
+    the_case = OrgEnforcementCase.new(
+      kind: "method_protection",
+      duration_mode: "indefinite",
+      visibility: "visible",
+      release_mode: "operator",
+      effective_at: Time.current,
+      reason_code: "security_incident",
+      principal_public_id: operator.public_id,
+      applied_by_operator_public_id: admin_operator.public_id,
+    )
+    the_case.authentication_method_effects.build(
+      principal_public_id: operator.public_id,
+      authentication_method: "entra",
+      effect: "unusable",
+      effective_at: Time.current,
+    )
+    the_case.apply!
+
+    stub_ceremony_store_with_shared_memory_cache do
+      post auth_org_sign_in_entra_authorization_path(ri: RI),
+           params: { entra: { connection_public_id: @active_connection.public_id } }
+      redirect_query = Rack::Utils.parse_nested_query(URI.parse(response.location).query)
+      state = redirect_query.fetch("state")
+      nonce = redirect_query.fetch("nonce")
+
+      now = Time.now.to_i
+      id_token = JWT.encode(
+        {
+          "iss" => "https://login.microsoftonline.com/#{TENANT_ID}/v2.0",
+          "aud" => @active_connection.entra_client_id,
+          "tid" => TENANT_ID,
+          "oid" => OBJECT_ID,
+          "sub" => "pairwise-sub",
+          "nonce" => nonce,
+          "iat" => now,
+          "exp" => now + 3600,
+        },
+        private_key, "RS256", { "kid" => "test-kid-locked" },
+      )
+
+      token_result = OidcRpTokenClient::Result.new(
+        success: true,
+        token_response: { "id_token" => id_token },
+        error: nil,
+      )
+
+      # With a matching state and nonce, and an active identity + active operator,
+      # this would otherwise succeed -- the 422 here proves the authentication
+      # method lock check fires, not an earlier verification failure.
+      OidcRpTokenClient.stub(:call, token_result) do
+        ExternalSignIn::EntraJwksCache.stub(
+          :new, ->(**) {
+                  stub_loader = Object.new
+                  stub_loader.define_singleton_method(:loader) { jwks_loader }
+                  stub_loader
+                },
+        ) do
+          get auth_org_sign_in_entra_callback_path(ri: RI), params: { state: state, code: "code" }
+        end
+      end
+
+      assert_response :unprocessable_content
+    end
+  end
+
   # --- surface isolation ---
 
   test "new is unreachable from the app surface host" do

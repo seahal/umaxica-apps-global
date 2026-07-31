@@ -70,20 +70,21 @@ reason (`render_entra_error` / `render_entra_callback_failure`,
 `app/controllers/auth/org/sign/in/entra/callbacks_controller.rb`). No failure falls through to a
 generic success response.
 
-| Reason                      | Trigger                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------------- |
-| `state_mismatch`            | Ceremony reference missing, expired, replayed, or state comparison fails              |
-| `provider_unavailable`      | `ENTRA_SOCIAL_CEREMONY_ENABLED` kill switch disabled for this operation               |
-| `entra_error`               | Entra returned an `error` callback parameter                                          |
-| `connection_not_found`      | `connection_public_id` does not resolve to an active `OrganizationEntraConnection`    |
-| `tenant_not_allowed`        | ID token issued by the Microsoft personal-account consumer tenant                     |
-| `tenant_mismatch`           | ID token `tid` does not match the connection's configured tenant                      |
-| `token_exchange_failed`     | Authorization-code-for-token exchange with Entra failed                               |
-| `invalid_callback`          | Malformed callback input (`KeyError`/`ArgumentError`/`TypeError`)                     |
-| `token_verification_failed` | Any other ID token verification failure (nonce, signature, claims, JWKS fetch)        |
-| `identity_not_found`        | No pre-provisioned, active `OperatorEntraIdentity` for the verified `(tid, oid)` pair |
-| `operator_not_found`        | Resolved operator is nil or not allowed to log in                                     |
-| `sign_in_failed`            | Session establishment failed after a successful identity resolution                   |
+| Reason                         | Trigger                                                                                                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `state_mismatch`               | Ceremony reference missing, expired, replayed, or state comparison fails                                                                                                           |
+| `provider_unavailable`         | `ENTRA_SOCIAL_CEREMONY_ENABLED` kill switch disabled for this operation                                                                                                            |
+| `entra_error`                  | Entra returned an `error` callback parameter                                                                                                                                       |
+| `connection_not_found`         | `connection_public_id` does not resolve to an active `OrganizationEntraConnection`                                                                                                 |
+| `tenant_not_allowed`           | ID token issued by the Microsoft personal-account consumer tenant                                                                                                                  |
+| `tenant_mismatch`              | ID token `tid` does not match the connection's configured tenant                                                                                                                   |
+| `token_exchange_failed`        | Authorization-code-for-token exchange with Entra failed                                                                                                                            |
+| `invalid_callback`             | Malformed callback input (`KeyError`/`ArgumentError`/`TypeError`)                                                                                                                  |
+| `token_verification_failed`    | Any other ID token verification failure (nonce, signature, claims, JWKS fetch)                                                                                                     |
+| `identity_not_found`           | No pre-provisioned, active `OperatorEntraIdentity` for the verified `(tid, oid)` pair                                                                                              |
+| `operator_not_found`           | Resolved operator is nil or not allowed to log in                                                                                                                                  |
+| `authentication_method_locked` | Operator has an in-force `unusable`/`permanently_frozen` effect on the `entra` method (checked after `login_allowed?`, before session establishment; `adr/unified-enforcement.md`) |
+| `sign_in_failed`               | Session establishment failed after a successful identity resolution                                                                                                                |
 
 ## Related
 

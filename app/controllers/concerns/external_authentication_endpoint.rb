@@ -28,6 +28,14 @@ module ExternalAuthenticationEndpoint
     false
   end
 
+  def external_authentication_method_locked?(enforcement_case_class:, principal_public_id:, authentication_method:)
+    ExternalAuthentication::AuthenticationMethodLockPolicy.new.locked?(
+      enforcement_case_class: enforcement_case_class,
+      principal_public_id: principal_public_id,
+      authentication_method: authentication_method,
+    )
+  end
+
   def store_external_authentication_ceremony_reference(reference)
     session[CEREMONY_REFERENCE_SESSION_KEY] = reference
   end
