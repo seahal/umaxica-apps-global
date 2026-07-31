@@ -65,7 +65,7 @@ module ExternalSignIn
       rescue JWT::DecodeError, JWT::VerificationError, OpenSSL::PKey::PKeyError,
              ArgumentError, TypeError, KeyError
         raise VerificationError.new("token_decode_failed")
-      rescue Net::OpenTimeout, SocketError, SystemCallError
+      rescue EntraJwksCache::FetchError
         raise VerificationError.new("jwks_fetch_failed")
       end
 

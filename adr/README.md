@@ -10,6 +10,13 @@ This directory stores accepted architecture and design decisions.
 - Keep non-authoritative decision notes and implementation handoff notes in `notes/`, not under
   `adr/`.
 
+Current org federated sign-in decision:
+
+- `adr/org-entra-id-sign-in-boundary.md` — accepted decision for org-surface Microsoft Entra ID SSO:
+  sign-in only with no JIT provisioning, `tid + oid` as the sole lookup key, `email`/`upn` never
+  requested or stored, records placed in `org_zenith`, and OmniAuth left untouched on the org
+  surface.
+
 Current identity authority decision:
 
 - `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md` — current source of
@@ -96,18 +103,17 @@ Current audit / chronicle decisions:
 
 Current account enforcement decisions:
 
-- `adr/administrative-access-lock.md` — accepted `admin_locked` account-wide runtime access gate
-  for `Client`, `Visitor`, `Operator`; unchanged and reused, not superseded, by Unified
-  Enforcement.
+- `adr/administrative-access-lock.md` — accepted `admin_locked` account-wide runtime access gate for
+  `Client`, `Visitor`, `Operator`; unchanged and reused, not superseded, by Unified Enforcement.
 - `adr/unified-enforcement.md` — current source of truth for Identity BAN, Identity Freeze, and
   Authentication Method Lock as one Enforcement Case substrate with independently combinable
-  Principal / Authentication Method / Identifier effects, per-surface `*_zenith` storage, and
-  no dedicated enforcement database.
+  Principal / Authentication Method / Identifier effects, per-surface `*_zenith` storage, and no
+  dedicated enforcement database.
 - `adr/authentication-method-lock.md` — superseded by `adr/unified-enforcement.md`; retained for
   traceability of the 2026-07-26 decision.
-- `adr/database-trigger-usage-boundary.md` — accepted narrow trigger-usage policy; Context
-  corrected 2026-07-27 (five orphaned functions, not eight; no credential-table
-  `ON DELETE CASCADE`), Decision unchanged.
+- `adr/database-trigger-usage-boundary.md` — accepted narrow trigger-usage policy; Context corrected
+  2026-07-27 (five orphaned functions, not eight; no credential-table `ON DELETE CASCADE`), Decision
+  unchanged.
 
 Preference decisions:
 

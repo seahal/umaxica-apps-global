@@ -103,14 +103,28 @@ and token verification. It returns a typed principal containing only verified is
 subject, audience, and typed `tid + oid` context. ID token, access token, token response, raw
 claims, profile claims, and AuthHash are discarded at the adapter boundary.
 
-`ExternalAuthenticationOrgEntraCeremonyStore` owns the server-side ceremony reference. `ENTRA_SOCIAL_CEREMONY_ENABLED` is read only by the provider-availability environment adapter. It
+`ExternalAuthenticationOrgEntraCeremonyStore` owns the server-side ceremony reference.
+`ENTRA_SOCIAL_CEREMONY_ENABLED` is read only by the provider-availability environment adapter. It
 blocks new Org Entra ceremonies when false while allowing already-issued callbacks to drain.
+
+### MFA bypass policy: `entra_id` is not bypassed
+
+Entra ID sign-in does not bypass local MFA. `AuthenticationBase#mfa_bypassed_for_auth_method?`
+(`app/controllers/concerns/authentication_base.rb:2858-2860`) returns `true` only for `"passkey"`;
+`"entra_id"` falls through to `false`, matching `"secret_credential"`. An external IdP assertion is
+not treated as equivalent to local strong evidence of presence. An operator who signs in via Entra
+ID and has TOTP enrolled is still required to complete the TOTP step-up before the session is
+established. `Auth::Org::Sign::In::Entra::CallbacksController#show`
+(`app/controllers/auth/org/sign/in/entra/callbacks_controller.rb:79-84`) calls
+`establish_signed_in_session!` with `auth_method: "entra_id"`, which writes `"entra_id"` into the
+access token `amr` array and routes through the same session-establishment and MFA-required path as
+passkey and secret-credential sign-in. This keeps Entra ID at AAL1 unless and until an explicit
+trust policy is introduced for it.
 
 ### Scope of this ADR
 
-This ADR covers the data model boundary, identity key decisions, callback boundary, and the
-no-provisioning guarantee. MFA bypass policy remains governed by the existing operator session
-contract.
+This ADR covers the data model boundary, identity key decisions, callback boundary, the
+no-provisioning guarantee, and the MFA bypass policy above.
 
 ## Consequences
 

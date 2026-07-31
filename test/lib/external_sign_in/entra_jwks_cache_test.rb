@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class EntraJwksCacheTest < ActiveSupport::TestCase
+class ExternalSignIn::EntraJwksCacheTest < ActiveSupport::TestCase
   TENANT_ID = "11111111-2222-3333-4444-555555555555"
 
   test "returns and caches a valid JWKS document" do
@@ -15,7 +15,7 @@ class EntraJwksCacheTest < ActiveSupport::TestCase
 
     Rails.stub(:cache, cache) do
       Net::HTTP.stub(:get_response, ->(*) { requests += 1; response }) do
-        loader = EntraJwksCache.new(tenant_id: TENANT_ID)
+        loader = ExternalSignIn::EntraJwksCache.new(tenant_id: TENANT_ID).loader
 
         assert_equal({ "keys" => [{ "kid" => "key-1" }] }, loader.call({}))
         assert_equal({ "keys" => [{ "kid" => "key-1" }] }, loader.call({}))
@@ -39,7 +39,7 @@ class EntraJwksCacheTest < ActiveSupport::TestCase
           response
         },
       ) do
-        loader = EntraJwksCache.new(tenant_id: TENANT_ID)
+        loader = ExternalSignIn::EntraJwksCache.new(tenant_id: TENANT_ID).loader
 
         assert_equal "key-1", loader.call({}).fetch("keys").first.fetch("kid")
         assert_equal "key-2", loader.call(kid_not_found: true).fetch("keys").first.fetch("kid")
@@ -55,8 +55,8 @@ class EntraJwksCacheTest < ActiveSupport::TestCase
     response.body = "upstream unavailable"
 
     Net::HTTP.stub(:get_response, response) do
-      assert_raises(EntraJwksCache::FetchError) do
-        EntraJwksCache.new(tenant_id: TENANT_ID).call({})
+      assert_raises(ExternalSignIn::EntraJwksCache::FetchError) do
+        ExternalSignIn::EntraJwksCache.new(tenant_id: TENANT_ID).loader.call({})
       end
     end
   end
@@ -67,8 +67,8 @@ class EntraJwksCacheTest < ActiveSupport::TestCase
     invalid_json.body = "not-json"
 
     Net::HTTP.stub(:get_response, invalid_json) do
-      assert_raises(EntraJwksCache::FetchError) do
-        EntraJwksCache.new(tenant_id: TENANT_ID).call({})
+      assert_raises(ExternalSignIn::EntraJwksCache::FetchError) do
+        ExternalSignIn::EntraJwksCache.new(tenant_id: TENANT_ID).loader.call({})
       end
     end
 
@@ -77,8 +77,8 @@ class EntraJwksCacheTest < ActiveSupport::TestCase
     invalid_shape.body = JSON.generate("keys" => "not-an-array")
 
     Net::HTTP.stub(:get_response, invalid_shape) do
-      assert_raises(EntraJwksCache::FetchError) do
-        EntraJwksCache.new(tenant_id: TENANT_ID).call({})
+      assert_raises(ExternalSignIn::EntraJwksCache::FetchError) do
+        ExternalSignIn::EntraJwksCache.new(tenant_id: TENANT_ID).loader.call({})
       end
     end
   end
@@ -89,16 +89,16 @@ class EntraJwksCacheTest < ActiveSupport::TestCase
     response.body = nil
 
     Net::HTTP.stub(:get_response, response) do
-      assert_raises(EntraJwksCache::FetchError) do
-        EntraJwksCache.new(tenant_id: TENANT_ID).call({})
+      assert_raises(ExternalSignIn::EntraJwksCache::FetchError) do
+        ExternalSignIn::EntraJwksCache.new(tenant_id: TENANT_ID).loader.call({})
       end
     end
   end
 
   test "raises FetchError for transport failures" do
     Net::HTTP.stub(:get_response, ->(*) { raise Net::ReadTimeout }) do
-      assert_raises(EntraJwksCache::FetchError) do
-        EntraJwksCache.new(tenant_id: TENANT_ID).call({})
+      assert_raises(ExternalSignIn::EntraJwksCache::FetchError) do
+        ExternalSignIn::EntraJwksCache.new(tenant_id: TENANT_ID).loader.call({})
       end
     end
   end
