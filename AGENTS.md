@@ -2,94 +2,78 @@
 
 This repository is a Ruby on Rails application, not the Rails framework monorepo.
 
-Treat this file as the always-loaded entry point. Detailed rules live under
-`.agents/harnesses/rules/`; load only the rules relevant to the current task before editing. Detailed
-behavior rules are canonical within their area.
+`AGENTS.md` contains only guidance needed across the repository. Detailed rules live under
+`.agents/harnesses/rules/` and are loaded only for matching tasks. Read the applicable rules before
+editing; each rule is canonical within its area.
 
-## Implementation Principles
+## Authorization and Scope
 
-- Do not preserve backward compatibility unless it is necessary for a safe deployment.
-- Choose the simplest implementation that fully meets the current requirements.
-- Prefer established, well-maintained libraries over custom implementations.
+- For requests to answer, explain, review, diagnose, or plan, inspect the relevant material and
+  report the result without changing repository files or external state.
+- For requests to change, build, or fix, make the requested in-scope local changes and run relevant
+  non-destructive verification without asking first.
+- Ask before destructive or irreversible actions, external writes, purchases, material scope
+  expansion, or work that requires information only the user can provide.
+- Preserve unrelated staged, unstaged, and untracked changes. Never reset or clean the worktree to
+  simplify a task.
 
-## Working Method
+## Implementation Method
 
-For every task:
-
-1. Confirm the requested scope and inspect the current worktree. Preserve unrelated changes.
-2. Read the files to be changed, their tests, one nearby precedent, and the task-specific rules
-   listed below.
+1. Confirm the requested scope and inspect the current worktree.
+2. Read the files to change, their tests, one nearby precedent, and the applicable task rules.
 3. For non-trivial work, inspect relevant current decisions and plans before choosing an approach.
-4. Make the smallest coherent change. Do not broaden the task without explicit approval.
-5. Run the narrowest relevant verification first, then broaden only when the affected boundary
+4. Make the smallest coherent change. Prefer direct edits over compatibility shims unless a safe
+   deployment requires compatibility.
+5. Use established, well-maintained libraries instead of custom implementations when practical.
+6. Run the narrowest relevant verification first, then broaden only when the affected boundary
    warrants it.
-6. Report what changed, what was verified, and any remaining blocker or documentation gap.
+7. Report the outcome, verification evidence, and anything blocked or unverified.
+
+Do not add unrelated cleanup, speculative abstractions, or support for hypothetical requirements.
 
 ## Application Boundaries
 
-The application has three independent user-facing surfaces:
+The application has three independent user-facing trust boundaries:
 
 - `app` — end-user application
 - `org` — staff and organization surface
 - `com` — public and corporate surface
 
-Do not mix controllers, routes, views, policies, sessions, or state across surfaces unless current
-code provides an explicit shared abstraction. For any surface-related work, read
-`.agents/harnesses/rules/project/surfaces.mdc` before editing.
+Keep each surface's controllers, routes, views, policies, sessions, and state separate unless current
+code provides an explicit shared abstraction. Cross-surface leakage is a security defect. Read
+`.agents/harnesses/rules/project/surfaces.mdc` for any surface-related work.
 
 ## Required Task Context
 
-Read `.agents/harnesses/rules/generic/model-behavior-calibration.mdc` on every task. It corrects
-output length, narration, correction, scope, verification, and delegation defaults, and is not scoped
-to one area of the codebase.
+Rule paths below are relative to `.agents/harnesses/rules/`; documentation paths are relative to the
+repository root. Load only the entries that match the task.
 
-Read these files when the task touches the corresponding area:
-
-- Controllers or endpoints:
-  `.agents/harnesses/rules/generic/controllers.mdc`,
-  `.agents/harnesses/rules/generic/routing.mdc`,
-  `.agents/harnesses/rules/project/surfaces.mdc`,
-  `.agents/harnesses/rules/project/controller-inheritance.mdc`, and
+- Controllers or endpoints: `generic/controllers.mdc`, `generic/routing.mdc`,
+  `project/surfaces.mdc`, `project/controller-inheritance.mdc`,
   `docs/architecture/controller-lifecycle.md`
-- Minitest or behavior changes:
-  `.agents/harnesses/rules/generic/testing.mdc` and
-  `.agents/harnesses/rules/generic/no-test-only-code.mdc`
+- Minitest or behavior changes: `generic/testing.mdc`, `generic/no-test-only-code.mdc`
 - Value objects, services, resolvers, policies, queries, or commands:
-  `.agents/harnesses/rules/project/value-object-boundaries.mdc`
-- Migrations: `.agents/harnesses/rules/generic/migrations.mdc`
-- Security-sensitive work or broad refactors:
-  `.agents/harnesses/rules/generic/absolute-rules.mdc`,
-  `.agents/harnesses/rules/generic/no-silent-fallback.mdc`, and
-  `.agents/harnesses/rules/project/regression-guards.mdc`
-- Configuration or environment variables:
-  `.agents/harnesses/rules/generic/no-silent-fallback.mdc`
-- Routing or authentication workflows:
-  `.agents/harnesses/rules/project/surfaces.mdc`,
-  `.agents/harnesses/rules/generic/routing.mdc`,
-  `.agents/harnesses/rules/generic/no-workflow-drift.mdc`, and
-  `docs/architecture/controller-lifecycle.md`
-- User-facing notices, alerts, or feedback:
-  `.agents/harnesses/rules/generic/no-flash-messages.mdc`
-- External technical sources:
-  `.agents/harnesses/rules/generic/source-policy.mdc`
-- Documentation, ADRs, plans, notes, memos, harnesses, code comments, or test names:
-  `.agents/harnesses/rules/generic/repository-language.mdc`
-- Logging, audit records, telemetry, or product analytics:
-  `adr/application-logging-boundary.md` and `docs/security/observability-boundary.md`
-- Non-trivial decisions, plan deviations, or handoff context:
-  `.agents/harnesses/rules/generic/implementation-notes.mdc` and
-  `.agents/harnesses/rules/project/repository-knowledge-tree.mdc`
+  `project/value-object-boundaries.mdc`
+- Migrations: `generic/migrations.mdc`
+- Persistent data or API shape, including JSON and database schemas: `generic/data-shape-design.mdc`
+- Security-sensitive work or broad refactors: `generic/absolute-rules.mdc`,
+  `generic/no-silent-fallback.mdc`, `project/regression-guards.mdc`
+- Configuration or environment variables: `generic/no-silent-fallback.mdc`
+- Routing or authentication workflows: `project/surfaces.mdc`, `generic/routing.mdc`,
+  `generic/no-workflow-drift.mdc`, `docs/architecture/controller-lifecycle.md`
+- User-facing notices, alerts, or feedback: `generic/no-flash-messages.mdc`
+- External technical sources: `generic/source-policy.mdc`
+- Documentation, ADRs, plans, notes, memos, harnesses, comments, or test names:
+  `generic/repository-language.mdc`
+- Logging, audit records, telemetry, or product analytics: `adr/application-logging-boundary.md`,
+  `docs/security/observability-boundary.md`
+- Non-trivial decisions, plan deviations, or handoff context: `generic/implementation-notes.mdc`,
+  `project/repository-knowledge-tree.mdc`
 
-## Decision Sources
-
-For non-trivial architecture, routing, authentication, authorization, database, preference,
-surface, or service-layer work, read the relevant material under `memos/`, `notes/`, `adr/`,
-`plans/`, and `docs/`. Use `.agents/harnesses/rules/project/repository-knowledge-tree.mdc` for the
-exact loading, authority, conflict, and promotion rules.
-
-In brief, current user instructions come first, followed by current code and tests, accepted ADRs,
-stable docs, active plans, backlog notes, notes, and archived plans. Call out conflicts between
-current code and an ADR or stable doc before choosing an implementation path.
+For non-trivial architecture, routing, authentication, authorization, database, preference, surface,
+or service-layer work, use `project/repository-knowledge-tree.mdc` to load and prioritize relevant
+material under `memos/`, `notes/`, `adr/`, `plans/`, and `docs/`. Call out conflicts between current
+code and an accepted ADR or stable document before choosing an implementation path.
 
 ## Non-Negotiable Boundaries
 
@@ -97,70 +81,37 @@ Do not:
 
 - mix the `app`, `org`, and `com` surfaces
 - skip or reorder authentication, authorization, verification, CSRF, or rate-limit protections
-- put business logic in controllers
+- put business logic in controllers; use a service, query, policy, or value object
 - use `permit!`, `skip_before_action`, `skip_authorization`, `skip_forgery_protection`, `html_safe`,
   `raw(...)`, `VERIFY_NONE`, `rescue nil`, or ignored rescues
-- use Rails flash; render feedback inline instead
-- log tokens, cookies, authorization headers, full request parameters, or secrets
+- use Rails flash; render feedback inline in the response
+- log tokens, cookies, authorization headers, full request parameters, or secrets; log identifiers
+  and outcomes instead
 - use application logs as the authoritative record for audit, security, compliance, or purchase
-  events
-- store request state in class variables, globals, or `Thread.current`
-- introduce test-only behavior into application code
-- use silent configuration, workflow, or migration fallbacks
-- perform destructive database operations without the user's explicit approval of the risk and
-  migration plan
-- write repository prose in a non-English language merely because the conversation, requested
-  report, or handoff is in that language
+  events; persist those events as data
+- store request state in class variables, globals, or `Thread.current`; pass it explicitly
+- introduce test-only behavior into application code; change the test instead
+- use silent configuration, workflow, or migration fallbacks; fail loudly and name what is missing
+- perform destructive database operations without explicit approval of the risk and migration plan
 
-Required Ruby environment variables must use one-argument `ENV.fetch("NAME")`. For exact security,
-routing, migration, and fallback constraints, follow the task-specific rules above.
+Required Ruby environment variables must use one-argument `ENV.fetch("NAME")` in application and
+configuration code so missing configuration fails at boot.
 
 ## Repository Content
 
-Repository files must be written in English except explicit localization content, translation
-fixtures, non-English customer copy, or necessary quotations. Follow
-`docs/reference/repository-language-policy.md` when adding or substantially editing prose.
-Conversation language does not override this repository rule. If a user requests a non-English
-report without explicitly requesting a repository policy change, provide that report in chat and
-keep committed repository material in English.
+Write repository prose in English except explicit localization content, translation fixtures,
+non-English customer copy, or necessary quotations. Conversation language does not override this
+rule. Follow `docs/reference/repository-language-policy.md` for prose changes.
 
-Agent assets live under `.agents/`:
+- `.agents/skills/` contains Codex skills, each within its own directory with a `SKILL.md` entrypoint.
+- `.agents/harnesses/rules/` is the only harness directory; do not invent other harness locations.
+- Keep task scope in the conversation or Codex goal surface. Do not add `.agents/goals/` files.
 
-- `.agents/skills/` is reserved for Codex skills, each with `SKILL.md` as its entry point.
-- `.agents/harnesses/rules/` contains the generic and project rules loaded per task. No other
-  harness directories exist yet; do not reference review, evaluation, audit, or grill-me harnesses
-  as though they do.
-- Do not place arbitrary files directly under `.agents/skills/`.
-- Do not add repository goal files under `.agents/goals/`; keep task scope in the conversation or
-  the Codex goal surface.
+Code explains implementation, tests explain expected behavior, commit messages explain why, and
+comments explain why a non-obvious implementation is necessary. Keep comments factual and update
+comments made stale by a change.
 
-## Communication Principles
-
-- Code explains how the behavior is implemented.
-- Tests explain what behavior is expected.
-- Commit messages explain why the change was made.
-- Code comments explain why this implementation is necessary instead of an obvious alternative.
-
-Comments must remain factual and maintainable. Do not add comments that restate code. Update any
-nearby comment made stale by a change.
-
-### Output Calibration
-
-- Lead with the outcome. Keep responses short by being selective about what to include, not by
-  compressing the writing into fragments or shorthand.
-- Match a written deliverable's length to its substance. Omit template sections with nothing to
-  record instead of padding them.
-- Deliver at the scope asked. Finish the whole task and report completion only when it is done;
-  state plainly what was left out and why.
-- Do not add self-verification scaffolding — no "double-check your answer" instructions and no
-  separate verifier pass or subagent over completed work. Testing obligations are unchanged.
-- Delegate to a subagent only when the payoff exceeds the cost of re-establishing context, never for
-  work finishable in a handful of tool calls, and never to verify.
-
-For the reasoning behind each of these, see
-`.agents/harnesses/rules/generic/model-behavior-calibration.mdc`.
-
-## Verification
+## Verification and Reporting
 
 Use Minitest for Ruby code:
 
@@ -176,8 +127,15 @@ Use Vitest for JavaScript code:
 pnpm test
 ```
 
-All meaningful behavior changes need risk-appropriate tests. Cover success, failure, authorization,
-and relevant boundary cases. Do not add placeholder, skipped, TODO, or behavior-mocking tests.
+All meaningful behavior changes need risk-appropriate tests covering success, failure,
+authorization, and relevant boundary cases. Do not add placeholder, skipped, TODO, or
+behavior-mocking tests.
 
-Before finishing, run the narrowest relevant checks, review touched comments and documentation,
-and state clearly which checks could not be run.
+Before finishing, run the narrowest relevant checks and review touched comments and documentation.
+Report only claims supported by results from the current session. State failed, skipped, blocked,
+and unverified checks plainly.
+
+Lead with the outcome and keep responses proportional to the task. Preserve required facts,
+decisions, caveats, and next actions; remove repetition and optional background first. Do not add a
+separate verifier pass or delegate verification. Delegate only independent, substantial work whose
+parallel execution outweighs the cost of re-establishing context.

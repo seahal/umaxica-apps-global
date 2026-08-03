@@ -41,6 +41,7 @@ require Rails.root.join(
 require Rails.root.join(
   "lib/external_authentication_infrastructure_omniauth_google_oidc_enforcement",
 )
+require Rails.root.join("lib/omniauth/strategies/umaxica_entra")
 
 OmniAuth::Strategies::Apple.prepend(
   ExternalAuthenticationInfrastructureOmniauthAppleNonceEnforcement,
@@ -87,19 +88,49 @@ OmniAuth.config.full_host = ->(env) { OmniAuthCallbackOrigin.call(env) }
 OmniAuth.config.path_prefix = "/social"
 
 # =============================================================================
-# Non-App Social Login Guard
+# Social Login Provider/Host Allow Matrix
 # =============================================================================
-# Rejects /social/... requests on non-app sign hosts to prevent social login bypass.
-class OmniAuthNonAppSocialGuard
+# Replaces a blanket "block /social/* on every non-app host" rule with an
+# explicit provider allow-list per surface. Only Apple/Google are allowed on
+# the app surface; only Entra is allowed on the org (staff) surface; com
+# (corporate/public) hosts allow no external OmniAuth strategy at all.
+#
+# `entra` is allowed ONLY on the specific staff auth host that owns
+# /social/entra/callback (ExternalAuthenticationEntraRedirectUri), never on
+# sign/base/core hosts, and never on corporate (com) hosts.
+class OmniAuthSocialProviderHostMatrix
+  # Every OmniAuth provider mounted under /social/*. A path segment outside
+  # this set (e.g. "authentication" in /social/authentication/completion,
+  # the app-surface social sign-up continuation/completion endpoints) is not
+  # a provider at all and is handled by the non-provider branch below,
+  # matching the pre-existing app-surface-only behavior for those paths.
+  KNOWN_PROVIDERS = %w(google apple entra).freeze
+  APP_ALLOWED_PROVIDERS = %w(google apple).freeze
+  ORG_ALLOWED_PROVIDERS = %w(entra).freeze
+
+  ENTRA_ALLOWED_PATHS = %w(
+    /social/entra
+    /social/entra/callback
+    /social/entra/failure
+  ).freeze
+
   def initialize(app)
     @app = app
   end
 
   def call(env)
-    return @app.call(env) unless env["PATH_INFO"].start_with?("/social/")
+    path = env["PATH_INFO"].to_s
+    return @app.call(env) unless path.start_with?("/social/")
 
-    if blocked_host?(env)
-      return [404, { "Content-Type" => "text/plain" }, ["Not Found"]]
+    surface = surface_for_host(Rack::Request.new(env).host)
+    segment = path.delete_prefix("/social/").split("/", 2).first.presence
+
+    if KNOWN_PROVIDERS.include?(segment)
+      return not_found unless allowed?(surface: surface, provider: segment, path: path)
+    else
+      # Non-provider /social/* paths existed before this guard and are not
+      # provider-specific; preserve the app-only behavior for them.
+      return not_found unless surface == :app
     end
 
     @app.call(env)
@@ -107,31 +138,53 @@ class OmniAuthNonAppSocialGuard
 
   private
 
-  def blocked_host?(env)
+  def allowed?(surface:, provider:, path:)
+    case surface
+    when :app
+      APP_ALLOWED_PROVIDERS.include?(provider)
+    when :org
+      return false unless ORG_ALLOWED_PROVIDERS.include?(provider)
+
+      ENTRA_ALLOWED_PATHS.any? { |allowed_path| path == allowed_path || path.start_with?("#{allowed_path}/") }
+    else
+      false
+    end
+  end
+
+  ORG_HOST_ENV_KEYS = %w(PUBLIC_AUTH_STAFF_URL PRIVATE_AUTH_STAFF_URL).freeze
+  COM_HOST_ENV_KEYS = %w(
+    PUBLIC_AUTH_CORPORATE_URL PRIVATE_AUTH_CORPORATE_URL
+    PUBLIC_BASE_CORPORATE_URL PRIVATE_BASE_CORPORATE_URL
+  ).freeze
+
+  def surface_for_host(host)
     boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
-    blocked_hosts = [
-      boot_hosts.sign_corporate.host,
-      boot_hosts.sign_staff.host,
-      boot_hosts.auth_corporate.host,
-      boot_hosts.auth_staff.host,
-      boot_hosts.base_corporate.host,
-      boot_hosts.base_staff.host,
-    ] + %w(
-      PUBLIC_AUTH_CORPORATE_URL
-      PRIVATE_AUTH_CORPORATE_URL
-      PUBLIC_AUTH_STAFF_URL
-      PRIVATE_AUTH_STAFF_URL
-      PUBLIC_BASE_CORPORATE_URL
-      PRIVATE_BASE_CORPORATE_URL
-      PUBLIC_BASE_STAFF_URL
-      PRIVATE_BASE_STAFF_URL
-    ).filter_map { |key| ENV.fetch(key, nil).presence }
-    blocked_hosts.include?(Rack::Request.new(env).host)
+    return :org if host == boot_hosts.auth_staff.host || env_host_match?(ORG_HOST_ENV_KEYS, host)
+
+    com_hosts = [boot_hosts.sign_corporate.host, boot_hosts.auth_corporate.host, boot_hosts.base_corporate.host]
+    return :com if com_hosts.include?(host) || env_host_match?(COM_HOST_ENV_KEYS, host)
+
+    :app
+  end
+
+  def env_host_match?(keys, host)
+    keys.any? do |key|
+      value = ENV.fetch(key, nil)
+      next false if value.blank?
+
+      ConfigValues.build(value, allow_localhost: !Rails.env.production?).uri&.host == host
+    end
+  rescue StandardError
+    false
+  end
+
+  def not_found
+    [404, { "Content-Type" => "text/plain" }, ["Not Found"]]
   end
 end
 
 class OmniAuthSocialOriginSanitizer
-  AUTH_PATH_PREFIXES = %w(/social/google /social/apple).freeze
+  AUTH_PATH_PREFIXES = %w(/social/google /social/apple /social/entra).freeze
 
   def initialize(app)
     @app = app
@@ -153,7 +206,7 @@ class OmniAuthSocialOriginSanitizer
 end
 
 Rails.application.config.middleware.use(OmniAuthSocialOriginSanitizer)
-Rails.application.config.middleware.use(OmniAuthNonAppSocialGuard)
+Rails.application.config.middleware.use(OmniAuthSocialProviderHostMatrix)
 Rails.application.config.middleware.use(OmniAuth::Builder) do
   # ---------------------------------------------------------------------------
   # Google OAuth2 - App (user sign-in/sign-up)
@@ -205,6 +258,26 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
                response_type: "code",
              },
            }
+
+  # ---------------------------------------------------------------------------
+  # Microsoft Entra ID - Org (staff) sign-in only, no JIT provisioning
+  # ---------------------------------------------------------------------------
+  # Umaxica-specific subclass of omniauth_openid_connect
+  # (lib/omniauth/strategies/umaxica_entra.rb). Tenant/client are resolved
+  # per-request from an OrganizationEntraConnection; nothing tenant-specific
+  # is configured here. Callback: GET /social/entra/callback.
+  # See adr/org-entra-id-sign-in-boundary.md.
+  provider :umaxica_entra,
+           {
+             name: "entra",
+             callback_path: "/social/entra/callback",
+             response_type: "code",
+             response_mode: "query",
+             scope: %i(openid profile),
+             send_nonce: true,
+             pkce: true,
+             discovery: false,
+           }
 end
 
 # OmniAuth request phase accepts only the Rails authenticity-token-protected form submission.
@@ -250,8 +323,15 @@ OmniAuth.config.on_failure =
       )
     end
 
-    # Build failure URL with query parameters (OmniAuth standard path)
-    failure_path = "/social/failure?message=#{CGI.escape(message)}&strategy=#{CGI.escape(strategy)}"
+    # Build failure URL with query parameters (OmniAuth standard path).
+    # Entra (org surface) has its own failure endpoint; it must never redirect
+    # to the app-surface /social/failure path.
+    failure_path =
+      if strategy == "entra"
+        "/social/entra/failure?message=#{CGI.escape(message)}"
+      else
+        "/social/failure?message=#{CGI.escape(message)}&strategy=#{CGI.escape(strategy)}"
+      end
 
     Rack::Response.new(["302 Found"], 302, "Location" => failure_path).finish
   end

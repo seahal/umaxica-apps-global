@@ -102,21 +102,14 @@ class DocsRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "docs/app/api/v0/entries", recognized[:controller]
     assert_equal "show", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{DOCS_APP_HOST}/api/v0/entries/example/revisions",
-      method: :get,
-    )
-
-    assert_equal "docs/app/api/v0/entries/revisions", recognized[:controller]
-    assert_equal "index", recognized[:action]
-
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{DOCS_APP_HOST}/api/v0/entries/example/revisions/rev-1",
-      method: :get,
-    )
-
-    assert_equal "docs/app/api/v0/entries/revisions", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    # The nested revision endpoints were removed: revisions are an internal
+    # lifecycle concept, never a public contract.
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{DOCS_APP_HOST}/api/v0/entries/example/revisions",
+        method: :get,
+      )
+    end
   end
 
   test "docs com route contract" do
@@ -184,21 +177,14 @@ class DocsRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "docs/com/api/v0/entries", recognized[:controller]
     assert_equal "show", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{DOCS_COM_HOST}/api/v0/entries/example/revisions",
-      method: :get,
-    )
-
-    assert_equal "docs/com/api/v0/entries/revisions", recognized[:controller]
-    assert_equal "index", recognized[:action]
-
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{DOCS_COM_HOST}/api/v0/entries/example/revisions/rev-1",
-      method: :get,
-    )
-
-    assert_equal "docs/com/api/v0/entries/revisions", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    # The nested revision endpoints were removed: revisions are an internal
+    # lifecycle concept, never a public contract.
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{DOCS_COM_HOST}/api/v0/entries/example/revisions",
+        method: :get,
+      )
+    end
   end
 
   test "docs org route contract" do
@@ -266,20 +252,13 @@ class DocsRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "docs/org/api/v0/entries", recognized[:controller]
     assert_equal "show", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{DOCS_ORG_HOST}/api/v0/entries/example/revisions",
-      method: :get,
-    )
-
-    assert_equal "docs/org/api/v0/entries/revisions", recognized[:controller]
-    assert_equal "index", recognized[:action]
-
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{DOCS_ORG_HOST}/api/v0/entries/example/revisions/rev-1",
-      method: :get,
-    )
-
-    assert_equal "docs/org/api/v0/entries/revisions", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    # The nested revision endpoints were removed: revisions are an internal
+    # lifecycle concept, never a public contract.
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{DOCS_ORG_HOST}/api/v0/entries/example/revisions",
+        method: :get,
+      )
+    end
   end
 end

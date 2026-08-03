@@ -185,11 +185,11 @@ class Auth::App::SignUpCompensationTest < ActiveSupport::TestCase
 
     events = []
     harness.define_singleton_method(:finalize_sign_up_side_effect!) { :accepted }
-    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
+    harness.define_singleton_method(:perform_sign_up_event) do |event, **_|
       events << event
       Struct.new(:success?, :status, :next_event).new(true, :ok, nil)
     end
-    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, json: false|
+    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, **_|
       raise StandardError, "should not redirect"
     end
 
@@ -213,7 +213,7 @@ class Auth::App::SignUpCompensationTest < ActiveSupport::TestCase
     graph_provisioned = false
     events = []
     harness.define_singleton_method(:finalize_sign_up_side_effect!) { :accepted }
-    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
+    harness.define_singleton_method(:perform_sign_up_event) do |event, **_|
       events << event
       Struct.new(:success?, :status, :next_event).new(true, :ok, nil)
     end
@@ -222,7 +222,7 @@ class Auth::App::SignUpCompensationTest < ActiveSupport::TestCase
 
       raise RuntimeError, "graph was not provisioned"
     end
-    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, json: false|
+    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, **_|
       raise StandardError, "should not redirect"
     end
 

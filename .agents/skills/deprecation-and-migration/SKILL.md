@@ -1,31 +1,18 @@
 ---
 name: deprecation-and-migration
 description:
-  Manages deprecation and migration. Use when removing old systems, APIs, or features. Use when
-  migrating users from one implementation to another. Use when deciding whether to maintain or
-  sunset existing code.
+  Retires old systems and moves their users safely to the replacement. Use when replacing a system
+  or API or library, sunsetting a feature, consolidating duplicate implementations, removing
+  unowned code that things still depend on, planning a new system's lifecycle, or deciding between
+  maintaining a legacy system and investing in migration.
 ---
 
 # Deprecation and Migration
 
-## Overview
-
-Code is a liability, not an asset. Every line of code has ongoing maintenance cost — bugs to fix,
-dependencies to update, security patches to apply, and new engineers to onboard. Deprecation is the
-discipline of removing code that no longer earns its keep, and migration is the process of moving
-users safely from the old to the new.
-
-Most engineering organizations are good at building things. Few are good at removing them. This
-skill addresses that gap.
-
-## When to Use
-
-- Replacing an old system, API, or library with a new one
-- Sunsetting a feature that's no longer needed
-- Consolidating duplicate implementations
-- Removing dead code that nobody owns but everybody depends on
-- Planning the lifecycle of a new system (deprecation planning starts at design time)
-- Deciding whether to maintain a legacy system or invest in migration
+Code is a liability, not an asset: every line carries ongoing cost in bugs, dependency updates,
+security patches, and onboarding. Deprecation removes code that no longer earns its keep; migration
+moves users safely from the old to the new. Most organizations are good at the building and poor at
+the removing, which is the gap this skill covers.
 
 ## Core Principles
 
@@ -194,17 +181,6 @@ clear owner, and accumulates security vulnerabilities and compatibility issues. 
 
 **Response:** Either assign an owner and maintain it properly, or deprecate it with a concrete
 migration plan. Zombie code cannot stay in limbo — it either gets investment or removal.
-
-## Common Rationalizations
-
-| Rationalization                                     | Reality                                                                                                               |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| "It still works, why remove it?"                    | Working code that nobody maintains accumulates security debt and complexity. Maintenance cost grows silently.         |
-| "Someone might need it later"                       | If it's needed later, it can be rebuilt. Keeping unused code "just in case" costs more than rebuilding.               |
-| "The migration is too expensive"                    | Compare migration cost to ongoing maintenance cost over 2-3 years. Migration is usually cheaper long-term.            |
-| "We'll deprecate it after we finish the new system" | Deprecation planning starts at design time. By the time the new system is done, you'll have new priorities. Plan now. |
-| "Users will migrate on their own"                   | They won't. Provide tooling, documentation, and incentives — or do the migration yourself (the Churn Rule).           |
-| "We can maintain both systems indefinitely"         | Two systems doing the same thing is double the maintenance, testing, documentation, and onboarding cost.              |
 
 ## Red Flags
 

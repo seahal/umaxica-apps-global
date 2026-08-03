@@ -121,6 +121,9 @@ class RedisInitializerTest < ActiveSupport::TestCase
   def stub_const(name, value)
     existed = Object.const_defined?(name, false)
     old_value = Object.const_get(name) if existed
+    # Remove before assigning: a plain const_set over an existing constant
+    # makes Ruby warn about reinitialization.
+    Object.send(:remove_const, name) if existed
     Object.const_set(name, value)
     yield
   ensure

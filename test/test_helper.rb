@@ -26,6 +26,7 @@ require_relative "../config/environment"
 require "rails/test_help"
 require_relative "support/parallel_test_database_cloner"
 require_relative "support/external_identity_test_helper"
+require_relative "support/publishing_content_helper"
 
 module AuthenticationHarness
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " \
@@ -221,6 +222,7 @@ module ActiveSupport
   class TestCase
     include AuthenticationHarness
     include ExternalIdentityTestHelper
+    include PublishingContentHelper
 
     parallel_workers =
       if ENV["COVERAGE"] == "true"

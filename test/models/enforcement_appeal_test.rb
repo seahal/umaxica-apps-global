@@ -3,6 +3,7 @@
 
 require "test_helper"
 
+# rubocop:disable I18n/RailsI18n/DecorateString -- appeal statements are stored user content, not UI copy
 class EnforcementAppealTest < ActiveSupport::TestCase
   test "app appeal requires a fixed reason category and a bounded statement" do
     appeal = AppEnforcementAppeal.new(

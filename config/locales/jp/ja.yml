@@ -724,6 +724,7 @@ ja:
             session_expired: セッションの有効期限が切れました。最初からやり直してください。
           update:
             success: 電話番号が確認されました。
+            passkey_required: 電話番号が確認されました。パスキーを登録してください。
         checkpoint:
           age_restricted: この登録方法ではアカウントを作成できません。13歳の誕生日以降にもう一度お試しください。
           show:
@@ -1873,6 +1874,14 @@ ja:
             operator_not_found: このアカウントでのサインインは許可されていません。
             sign_in_failed: サインインに失敗しました。もう一度お試しください。
             internal_error: 内部エラーが発生しました。もう一度お試しください。
+            provider_unavailable: 現在 Microsoft サインインはご利用いただけません。時間をおいてお試しください。
+            authentication_method_locked: このアカウントの Microsoft サインインはロックされています。管理者にお問い合わせください。
+            invalid_callback: 認証応答が不正でした。最初からやり直してください。
+            missing_id_token: 認証応答が不完全でした。最初からやり直してください。
+            pkce_verifier_missing: サインインセッションの有効期限が切れました。最初からやり直してください。
+            client_assertion_unavailable: Microsoft サインインの設定が正しくありません。管理者にお問い合わせください。
+            tenant_not_allowed: この種類のアカウントではサインインできません。組織のアカウントをご利用ください。
+            tenant_mismatch: このアカウントは別の組織に属しています。
             generic: エラーが発生しました。もう一度お試しください。
       ups:
         new:

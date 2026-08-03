@@ -17,7 +17,6 @@ class AuthCredentialTimingProtectionContractTest < ActiveSupport::TestCase
     Auth::Org::Sign::In::Passkey::OptionsController,
     Auth::Org::Sign::In::Passkey::VerificationsController,
     Auth::Org::Sign::In::SecretCredentialsController,
-    Auth::Org::Sign::In::Entra::AuthorizationsController,
   ].freeze
 
   DUMMY_WORK_CONTROLLERS = [
@@ -49,7 +48,6 @@ class AuthCredentialTimingProtectionContractTest < ActiveSupport::TestCase
       Auth::Org::Sign::In::Passkey::OptionsController,
       Auth::Org::Sign::In::Passkey::VerificationsController,
       Auth::Org::Sign::In::SecretCredentialsController,
-      Auth::Org::Sign::In::Entra::AuthorizationsController,
     ]
 
     assert_equal expected.map(&:name).sort, protected_controllers.map(&:name).sort
@@ -60,5 +58,25 @@ class AuthCredentialTimingProtectionContractTest < ActiveSupport::TestCase
 
     assert_includes controller.private_methods, :perform_dummy_otp_generation
     assert_includes controller.private_methods, :ensure_min_elapsed
+  end
+
+  # Entra ID's connection-lookup timing protection moved out of a Rails
+  # controller and into the OmniAuth strategy itself
+  # (lib/omniauth/strategies/umaxica_entra.rb#request_phase) when the legacy
+  # Auth::Org::Sign::In::Entra::AuthorizationsController was retired (see
+  # adr/org-entra-omniauth-strategy-migration.md). A Rack/OmniAuth::Strategy
+  # is not an ActionController and cannot include MinimumResponseBudget, so
+  # this checks the inlined equivalent instead of a registered callback.
+  test "Entra OmniAuth strategy's request phase applies the same minimum response budget" do
+    strategy_class = OmniAuth::Strategies::UmaxicaEntra
+
+    assert_in_delta(150.0, strategy_class::MINIMUM_RESPONSE_BUDGET_MS)
+    assert_in_delta(250.0, strategy_class::MAXIMUM_RESPONSE_BUDGET_SLEEP_MS)
+    assert_includes strategy_class.private_instance_methods, :pad_to_minimum_response_budget!
+
+    source = strategy_class.instance_method(:request_phase).source_location
+    body = File.read(source.first)
+
+    assert_match(/pad_to_minimum_response_budget!/, body)
   end
 end

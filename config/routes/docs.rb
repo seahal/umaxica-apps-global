@@ -34,9 +34,7 @@ scope module: :docs, as: :docs do
         namespace :v0 do
           # Published documentation entries. `param: :slug` only renames the path
           # segment to the public identifier; the route stays fully resourceful.
-          resources :entries, only: %i(index show), param: :slug do
-            resources :revisions, only: %i(index show), module: :entries
-          end
+          resources :entries, only: %i(index show), param: :slug
         end
       end
     end
@@ -72,9 +70,7 @@ scope module: :docs, as: :docs do
         # Versioned documentation API.
         namespace :v0 do
           # Published documentation entries.
-          resources :entries, only: %i(index show), param: :slug do
-            resources :revisions, only: %i(index show), module: :entries
-          end
+          resources :entries, only: %i(index show), param: :slug
         end
       end
     end
@@ -110,9 +106,7 @@ scope module: :docs, as: :docs do
         # Versioned documentation API.
         namespace :v0 do
           # Published documentation entries.
-          resources :entries, only: %i(index show), param: :slug do
-            resources :revisions, only: %i(index show), module: :entries
-          end
+          resources :entries, only: %i(index show), param: :slug
         end
       end
     end

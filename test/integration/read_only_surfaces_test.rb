@@ -180,25 +180,16 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
 
   private
 
+  # "archived" publishes the entry and then archives it, so the case genuinely
+  # exercises the archived-entry exclusion rather than merely skipping
+  # publication the way a draft does.
   def create_publishing_entry(audience:, surface:, slug:, title:, locale: "jp", status: "published", published_at: 1.hour.ago)
-    edition = Publishing::Edition.find_or_create_by!(audience:, surface:, locale:)
-    entry = Publishing::Entry.create!(edition:, locale:)
-    Publishing::EntrySlug.create!(entry:, edition:, locale:, slug:, state: "canonical", canonicalized_at: Time.current)
-    digest = Digest::SHA256.hexdigest(slug)
-    revision =
-      Publishing::EntryRevision.create!(
-        entry:, locale:, title:, summary: "#{title} summary", body: { "text" => "#{title} body" },
-        schema_version: 1, content_digest: digest, sequence: 1,
-      )
-    entry.update!(current_revision: revision)
-    return entry unless status == "published"
+    edition = publishing_edition(audience:, surface:, locale:)
+    entry = publishing_draft(edition:, slug:, title:, locale:)
+    return entry if status == "draft"
 
-    version =
-      Publishing::EntryVersion.create!(
-        entry:, entry_revision: revision, locale:, title:, summary: revision.summary, body: revision.body,
-        schema_version: 1, content_digest: digest, sequence: 1,
-      )
-    Publishing::Publication.create!(entry:, entry_version: version, effective_from: published_at)
+    publishing_publish(entry:, published_at:)
+    entry.update!(archived_at: Time.current, archive_reason: "test fixture") if status == "archived"
     entry
   end
 end

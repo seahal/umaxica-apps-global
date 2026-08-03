@@ -49,8 +49,8 @@ class ExternalAuthenticationProviderRegistryTest < ActiveSupport::TestCase
     assert_equal :oidc, entry.protocol
     assert_nil entry.issuer
     assert_equal "https://login.microsoftonline.com/%s/v2.0", entry.issuer_template
-    assert_equal "/sign/in/entra/authorization", entry.request_path
-    assert_equal "/sign/in/entra/callback", entry.callback_path
+    assert_equal "/social/entra", entry.request_path
+    assert_equal "/social/entra/callback", entry.callback_path
     assert_equal :auth_staff, entry.callback_origin_key
     assert_equal :entra_oidc, entry.adapter_key
     assert_equal "openid profile", policy.scope

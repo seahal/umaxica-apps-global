@@ -1,22 +1,16 @@
 ---
 name: git-workflow-and-versioning
 description:
-  Structures git workflow practices. Use when making any code change. Use when committing,
-  branching, resolving conflicts, or when you need to organize work across multiple parallel
-  streams.
+  Structures commits, branches, and history so changes stay reviewable and reversible. Use when
+  committing, branching, resolving conflicts, splitting a change that grew too large, or organizing
+  work across parallel streams.
 ---
 
 # Git Workflow and Versioning
 
-## Overview
-
-Git is your safety net. Treat commits as save points, branches as sandboxes, and history as
-documentation. With AI agents generating code at high speed, disciplined version control is the
-mechanism that keeps changes manageable, reviewable, and reversible.
-
-## When to Use
-
-Always. Every code change flows through git.
+Commits are save points, branches are sandboxes, and history is documentation. When code is
+generated fast, version-control discipline is what keeps the result manageable, reviewable, and
+reversible.
 
 ## Core Principles
 
@@ -293,17 +287,6 @@ git blame src/services/task.ts
 # Search commit messages for a keyword
 git log --grep="validation" --oneline
 ```
-
-## Common Rationalizations
-
-| Rationalization                        | Reality                                                                                                                                 |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| "I'll commit when the feature is done" | One giant commit is impossible to review, debug, or revert. Commit each slice.                                                          |
-| "The message doesn't matter"           | Messages are documentation. Future you (and future agents) will need to understand what changed and why.                                |
-| "I'll squash it all later"             | Squashing destroys the development narrative. Prefer clean incremental commits from the start.                                          |
-| "Branches add overhead"                | Short-lived branches are free and prevent conflicting work from colliding. Long-lived branches are the problem — merge within 1-3 days. |
-| "I'll split this change later"         | Large changes are harder to review, riskier to deploy, and harder to revert. Split before submitting, not after.                        |
-| "I don't need a .gitignore"            | Until `.env` with production secrets gets committed. Set it up immediately.                                                             |
 
 ## Red Flags
 

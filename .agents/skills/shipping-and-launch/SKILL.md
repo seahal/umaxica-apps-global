@@ -1,26 +1,23 @@
 ---
 name: shipping-and-launch
 description:
-  Prepares production launches. Use when preparing to deploy to production. Use when you need a
-  pre-launch checklist, when setting up monitoring, when planning a staged rollout, or when you need
-  a rollback strategy.
+  Prepares a production launch with a pre-launch checklist, monitoring, staged rollout, and a
+  rollback plan. Use when deploying a feature to production, releasing a significant user-facing
+  change, migrating data or infrastructure, or opening a beta or early-access program.
 ---
 
 # Shipping and Launch
 
-## Overview
+Every launch should be reversible, observable, and incremental. The deliverable is not the deploy
+itself but the deploy plus the means to tell whether it worked and undo it if it did not.
 
-Ship with confidence. The goal is not just to deploy — it's to deploy safely, with monitoring in
-place, a rollback plan ready, and a clear understanding of what success looks like. Every launch
-should be reversible, observable, and incremental.
+**Pre-launch checklists:**
 
-## When to Use
-
-- Deploying a feature to production for the first time
-- Releasing a significant change to users
-- Migrating data or infrastructure
-- Opening a beta or early access program
-- Any deployment that carries risk (all of them)
+- Security: [security-checklist.md](../security-and-hardening/references/security-checklist.md)
+- Performance:
+  [performance-checklist.md](../performance-optimization/references/performance-checklist.md)
+- Accessibility:
+  [accessibility-checklist.md](../frontend-ui-engineering/references/accessibility-checklist.md)
 
 ## The Pre-Launch Checklist
 
@@ -273,22 +270,6 @@ Every deployment needs a rollback plan before it happens:
 - Redeploy previous version: < 5 minutes
 - Database rollback: < 15 minutes
 ```
-
-## See Also
-
-- For security pre-launch checks, see `references/security-checklist.md`
-- For performance pre-launch checklist, see `references/performance-checklist.md`
-- For accessibility verification before launch, see `references/accessibility-checklist.md`
-
-## Common Rationalizations
-
-| Rationalization                                 | Reality                                                                                       |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| "It works in staging, it'll work in production" | Production has different data, traffic patterns, and edge cases. Monitor after deploy.        |
-| "We don't need feature flags for this"          | Every feature benefits from a kill switch. Even "simple" changes can break things.            |
-| "Monitoring is overhead"                        | Not having monitoring means you discover problems from user complaints instead of dashboards. |
-| "We'll add monitoring later"                    | Add it before launch. You can't debug what you can't see.                                     |
-| "Rolling back is admitting failure"             | Rolling back is responsible engineering. Shipping a broken feature is the failure.            |
 
 ## Red Flags
 

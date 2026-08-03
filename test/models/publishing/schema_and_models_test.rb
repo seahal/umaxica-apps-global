@@ -19,9 +19,21 @@ module Publishing
       end
     end
 
-    test "no taxonomy tables exist in the publishing schema" do
+    test "taxonomy is one generic table family, not one table per vocabulary" do
+      %w(
+        publishing_vocabularies
+        publishing_taxonomy_terms
+        publishing_revision_single_taxonomy_assignments
+        publishing_revision_multiple_taxonomy_assignments
+        publishing_version_single_taxonomy_assignments
+        publishing_version_multiple_taxonomy_assignments
+      ).each do |table|
+        assert PublishingRecord.connection.table_exists?(table), "expected #{table} to exist"
+      end
+
+      # Adding a vocabulary is a row, never a table.
       %w(publishing_categories publishing_tags).each do |table|
-        assert_not PublishingRecord.connection.table_exists?(table), "expected #{table} to not exist yet"
+        assert_not PublishingRecord.connection.table_exists?(table), "expected #{table} to not exist"
       end
     end
 
@@ -63,7 +75,7 @@ module Publishing
     end
 
     test "entry versions are immutable after creation" do
-      edition = Edition.create!(audience: "com", surface: "docs", locale: "ja")
+      edition = Edition.create!(audience: "com", surface: "docs", locale: "ja", region_code: "jp")
       entry = Entry.create!(edition:, locale: "ja")
       revision =
         EntryRevision.create!(
@@ -80,7 +92,7 @@ module Publishing
     end
 
     test "publications reject overlapping windows for the same entry" do
-      edition = Edition.create!(audience: "org", surface: "help", locale: "ja")
+      edition = Edition.create!(audience: "org", surface: "help", locale: "ja", region_code: "jp")
       entry = Entry.create!(edition:, locale: "ja")
       revision =
         EntryRevision.create!(

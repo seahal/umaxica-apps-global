@@ -8,23 +8,17 @@ description:
 
 # Doubt-Driven Development
 
-## Overview
-
 A confident answer is not a correct one. Long sessions accumulate context that quietly turns
-assumptions into "facts" without anyone noticing. Doubt-driven development is the discipline of
-adversarial re-examination — biased to **disprove**, not approve — before a high-stakes output
-stands.
-
-This is not `/review`. `/review` is a verdict on a finished artifact. This is an in-flight posture:
-high-stakes decisions get cross-examined while course-correction is still cheap.
+assumptions into facts. This skill is adversarial re-examination — biased to **disprove**, not
+approve — applied while course-correction is still cheap, unlike a post-hoc review that delivers a
+verdict on a finished artifact.
 
 ## When to Use
 
 Ordinary work does not need this skill. Correctness checking already happens inside the main working
-loop, and adding a second pass over work the loop has already checked produces redundant effort
-rather than better outcomes — see
-`.agents/harnesses/rules/generic/model-behavior-calibration.mdc`. This skill exists for the narrower
-case where being wrong is expensive *and* hard to undo.
+loop, and a second pass over work the loop has already checked produces redundant effort rather than
+better outcomes — see `.agents/harnesses/rules/generic/model-behavior-calibration.mdc`. This skill
+exists for the narrower case where being wrong is expensive *and* hard to undo.
 
 A decision is **high-stakes** when at least one of these is true:
 
@@ -61,18 +55,14 @@ defined above.
 
 ## Loading Constraints
 
-This skill is designed for the **main-session orchestrator**, which is where Step 3 (DOUBT, detailed
-below) can escalate to a spawned fresh-context reviewer when a decision is irreversible.
+This skill is written for the main session, which is where Step 3 (DOUBT) can escalate to a spawned
+fresh-context reviewer when a decision is irreversible.
 
-- **Do NOT add this skill to a persona's `skills:` frontmatter.** A persona that escalated in Step 3
-  would spawn another persona — the orchestration anti-pattern explicitly forbidden by
-  `references/orchestration-patterns.md` ("personas do not invoke other personas").
-- **If you find yourself applying this skill from inside a subagent context** (where Claude Code
-  prevents nested subagent spawn): the in-loop review that Step 3 makes the default works here
-  unchanged — rewrite ARTIFACT + CONTRACT as a fresh self-prompt with a hard mental separator from
-  your prior reasoning, and walk Steps 1–5. If the decision meets the irreversible bar that calls
-  for a *spawned* reviewer, surface to the user that doubt-driven cannot escalate from a nested
-  context, flag the in-loop result as un-escalated, and let the main session handle it.
+Applied from inside a subagent, where nested spawning is unavailable, the in-loop review that Step 3
+makes the default still works: rewrite ARTIFACT + CONTRACT as a fresh self-prompt separated from the
+prior reasoning, and walk Steps 1–5. If the decision meets the irreversible bar that calls for a
+*spawned* reviewer, say so, flag the in-loop result as un-escalated, and leave the escalation to the
+main session.
 
 ## The Process
 
@@ -149,15 +139,9 @@ biases it toward agreement. The review must independently determine whether the 
 the contract. Working in-loop, this means holding the CLAIM aside and reading the artifact text as
 written rather than as intended.
 
-When escalating to a spawned reviewer in Claude Code, the role-based reviewers in `agents/` start
-with isolated context by design and are usable here — see `agents/` for the roster and per-domain
-match.
-
-**The adversarial prompt above takes precedence over the persona's default response shape.**
-Personas like `code-reviewer` are written to produce balanced verdicts with both strengths and
-weaknesses; doubt-driven needs issues-only output. Paste the adversarial prompt verbatim into the
-invocation so it overrides the persona's default. If a persona's response shape can't be overridden
-cleanly, fall back to a generic subagent with the adversarial prompt.
+A spawned reviewer starts with isolated context by design, which is the property this step needs.
+Pass the adversarial prompt verbatim: a general-purpose reviewer defaults to a balanced verdict with
+both strengths and weaknesses, and this step needs issues-only output.
 
 #### Cross-model escalation
 
@@ -276,21 +260,6 @@ to keep looping.
 If 3 cycles is "obviously insufficient" because the artifact is large: the artifact is too big —
 return to Step 2 and decompose. Do not lift the bound.
 
-## Common Rationalizations
-
-| Rationalization                                      | Reality                                                                                                                                                                                                                                                       |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "I'm confident, skip the doubt step"                 | Confidence correlates poorly with correctness on novel problems. Moments of certainty are exactly when blind spots hide.                                                                                                                                      |
-| "Spawning a reviewer is expensive"                   | Debugging a wrong commit in production is more expensive. The check is bounded; the bug isn't.                                                                                                                                                                |
-| "The reviewer will just nitpick"                     | Only if unscoped. Constrain the prompt to "issues that would make this fail under the contract."                                                                                                                                                              |
-| "I'll do doubt at the end with `/review`"            | `/review` is a final gate. Doubt-driven catches wrong directions early when course-correction is cheap. By PR time it's too late.                                                                                                                             |
-| "If I doubt every step I'll never ship"              | The skill applies to high-stakes decisions, not every keystroke. Re-read "When NOT to Use."                                                                                                                                                                   |
-| "Two opinions are always better than one"            | Not when the second has less context and produces noise. Reconcile, don't defer.                                                                                                                                                                              |
-| "The reviewer disagreed so I was wrong"              | The reviewer lacks your context — disagreement is information, not verdict. Re-read the artifact, classify, then decide.                                                                                                                                      |
-| "Cross-model is always better"                       | Cross-model catches blind spots a single model shares with itself, but it adds cost and tool fragility. Offer it when the decision is irreversible, when findings stayed unresolved, or when the user asks — not on every cycle. An offer on every cycle trains reflexive declines.                                                        |
-| "Spawn a reviewer, that's what the skill is for"     | The spawned reviewer is the escalation, not the default. In-loop adversarial review is the default; delegating routine verification produces redundant work rather than better findings. Escalate when the blast radius is irreversible.                                                        |
-| "User said yes once, so I can keep invoking the CLI" | Each invocation is its own authorization. The artifact, the prompt, and the flags change between calls — re-confirm the exact command with the user before every run.                                                                                         |
-
 ## Red Flags
 
 - Spawning a fresh-context reviewer for a one-line rename or formatting change
@@ -324,9 +293,9 @@ return to Step 2 and decompose. Do not lift the bound.
   disproof attempt. When TDD applies, that failing test _is_ the doubt step for behavioral claims.
 - **`debugging-and-error-recovery`**: when the reviewer surfaces a real failure mode, drop into the
   debugging skill to localize and fix.
-- **Repo orchestration rules** (`references/orchestration-patterns.md`): this skill orchestrates
-  from the main session. A persona calling another persona is anti-pattern B — see Loading
-  Constraints above.
+- **Subagent budget** (`.agents/harnesses/rules/generic/model-behavior-calibration.mdc`): the
+  spawned reviewer in Step 3 is the one delegation this repository's budget allows for verification,
+  and only at the irreversible bar. See Loading Constraints above.
 
 ## Verification
 

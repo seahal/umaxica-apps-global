@@ -56,7 +56,7 @@ class Auth::Org::Settings::EntrasControllerTest < ActionDispatch::IntegrationTes
 
     assert_response :see_other
     assert_equal(
-      new_auth_org_sign_in_entra_url(ri: "jp", connection: connection.public_id),
+      new_auth_org_social_entra_session_url(ri: "jp", connection: connection.public_id),
       response.location,
     )
   end

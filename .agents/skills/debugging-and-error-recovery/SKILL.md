@@ -1,27 +1,17 @@
 ---
 name: debugging-and-error-recovery
 description:
-  Guides systematic root-cause debugging. Use when tests fail, builds break, behavior doesn't match
-  expectations, or you encounter any unexpected error. Use when you need a systematic approach to
-  finding and fixing the root cause rather than guessing.
+  Finds and fixes root causes through structured triage — reproduce, localize, reduce, fix, guard.
+  Use when tests fail, when the build breaks, when runtime behavior does not match expectations,
+  when a bug report arrives, when an error appears in logs, or when something that worked has
+  stopped working.
 ---
 
 # Debugging and Error Recovery
 
-## Overview
-
-Systematic debugging with structured triage. When something breaks, stop adding features, preserve
-evidence, and follow a structured process to find and fix the root cause. Guessing wastes time. The
-triage checklist works for test failures, build errors, runtime bugs, and production incidents.
-
-## When to Use
-
-- Tests fail after a code change
-- The build breaks
-- Runtime behavior doesn't match expectations
-- A bug report arrives
-- An error appears in logs or console
-- Something worked before and stopped working
+The triage checklist below works for test failures, build errors, runtime bugs, and production
+incidents alike. Guessing at a fix without reproducing the failure is right often enough to be
+tempting and wrong often enough to be expensive.
 
 ## The Stop-the-Line Rule
 
@@ -269,16 +259,6 @@ Add logging only when it helps. Remove it when done.
 - Error boundaries with error reporting
 - API error logging with request context
 - Performance metrics at key user flows
-
-## Common Rationalizations
-
-| Rationalization                            | Reality                                                                            |
-| ------------------------------------------ | ---------------------------------------------------------------------------------- |
-| "I know what the bug is, I'll just fix it" | You might be right 70% of the time. The other 30% costs hours. Reproduce first.    |
-| "The failing test is probably wrong"       | Verify that assumption. If the test is wrong, fix the test. Don't just skip it.    |
-| "It works on my machine"                   | Environments differ. Check CI, check config, check dependencies.                   |
-| "I'll fix it in the next commit"           | Fix it now. The next commit will introduce new bugs on top of this one.            |
-| "This is a flaky test, ignore it"          | Flaky tests mask real bugs. Fix the flakiness or understand why it's intermittent. |
 
 ## Treating Error Output as Untrusted Data
 

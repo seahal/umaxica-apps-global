@@ -59,10 +59,6 @@ scope(module: :auth, as: :auth) do
             namespace :email do
               resource :otp, only: :create
             end
-
-            namespace :telephone do
-              resource :otp, only: :create
-            end
           end
 
           resource :theme, only: %i(show update)
@@ -263,10 +259,6 @@ scope(module: :auth, as: :auth) do
             namespace :email do
               resource :otp, only: :create
             end
-
-            namespace :telephone do
-              resource :otp, only: :create
-            end
           end
 
           resource :theme, only: %i(show update)
@@ -460,15 +452,31 @@ scope(module: :auth, as: :auth) do
           namespace :challenge do
             resource :passkey, only: %i(new create)
           end
-
-          # Entra ID (Microsoft) sign-in ceremony.
-          # The callback path is fixed in the Entra app registration.
-          resource :entra, only: :new
-          namespace :entra do
-            resource :authorization, only: :create
-            resource :callback, only: :show
-          end
         end
+      end
+
+      # OmniAuth-based Entra ID (Microsoft) sign-in.
+      # See adr/org-entra-omniauth-strategy-migration.md.
+      namespace(:social) do
+        scope :entra, as: :entra, defaults: { provider: "entra" } do
+          resource :session, only: :new, controller: :sessions
+        end
+
+        # Non-resourceful exception: OmniAuth middleware owns these fixed
+        # provider paths (see config/routes/auth.rb:146-160 for the app-side
+        # equivalent, and config/initializers/omniauth.rb for the strategy).
+        get(
+          "entra/callback",
+          to: "/auth/org/omniauth/omniauth_callbacks#omniauth",
+          as: :entra_callback,
+          defaults: { provider: "entra" },
+        )
+
+        get(
+          "entra/failure",
+          to: "/auth/org/omniauth/omniauth_callbacks#failure",
+          as: :entra_failure,
+        )
       end
 
       # Step-up verification.

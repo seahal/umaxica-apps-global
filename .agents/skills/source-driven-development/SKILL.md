@@ -1,35 +1,22 @@
 ---
 name: source-driven-development
 description:
-  Grounds every implementation decision in official documentation. Use when you want authoritative,
-  source-cited code free from outdated patterns. Use when building with any framework or library
-  where correctness matters.
+  Grounds framework-specific implementation decisions in official documentation and cites the
+  source. Use before writing framework or library code from memory, when building boilerplate that
+  will be copied across a project, when the framework's recommended approach matters (forms,
+  routing, data fetching, state management, auth), or when the user asks for verified or documented
+  implementation.
 ---
 
 # Source-Driven Development
 
-## Overview
+Training data goes stale: APIs get deprecated and recommended patterns change, so a remembered
+signature can look correct and still be wrong for the installed version. Verify against the
+official docs, then cite the source so the user can check it.
 
-Every framework-specific code decision must be backed by official documentation. Don't implement
-from memory — verify, cite, and let the user see your sources. Training data goes stale, APIs get
-deprecated, best practices evolve. This skill ensures the user gets code they can trust because
-every pattern traces back to an authoritative source they can check.
-
-## When to Use
-
-- The user wants code that follows current best practices for a given framework
-- Building boilerplate, starter code, or patterns that will be copied across a project
-- The user explicitly asks for documented, verified, or "correct" implementation
-- Implementing features where the framework's recommended approach matters (forms, routing, data
-  fetching, state management, auth)
-- Reviewing or improving code that uses framework-specific patterns
-- Any time you are about to write framework-specific code from memory
-
-**When NOT to use:**
-
-- Correctness does not depend on a specific version (renaming variables, fixing typos, moving files)
-- Pure logic that works the same across all versions (loops, conditionals, data structures)
-- The user explicitly wants speed over verification ("just do it quickly")
+**When NOT to use:** correctness that does not depend on a version (renames, typos, file moves),
+pure logic that behaves the same across versions, or when the user has asked for speed over
+verification.
 
 ## The Process
 
@@ -170,16 +157,6 @@ Verify before using in production.
 ```
 
 Honesty about what you couldn't verify is more valuable than false confidence.
-
-## Common Rationalizations
-
-| Rationalization                           | Reality                                                                                                                                                            |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| "I'm confident about this API"            | Confidence is not evidence. Training data contains outdated patterns that look correct but break against current versions. Verify.                                 |
-| "Fetching docs wastes tokens"             | Hallucinating an API wastes more. The user debugs for an hour, then discovers the function signature changed. One fetch prevents hours of rework.                  |
-| "The docs won't have what I need"         | If the docs don't cover it, that's valuable information — the pattern may not be officially recommended.                                                           |
-| "I'll just mention it might be outdated"  | A disclaimer doesn't help. Either verify and cite, or clearly flag it as unverified. Hedging is the worst option.                                                  |
-| "This is a simple task, no need to check" | Simple tasks with wrong patterns become templates. The user copies your deprecated form handler into ten components before discovering the modern approach exists. |
 
 ## Red Flags
 

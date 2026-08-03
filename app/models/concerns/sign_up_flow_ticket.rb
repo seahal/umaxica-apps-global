@@ -127,6 +127,13 @@ module SignUpFlowTicket
     errors.add(:return_to, "must be a safe internal path")
   end
 
+  # Top-level keys are exempt because they are requirement names chosen by
+  # SignUpRequirementRegistry, and two of them ("otp", "passcode") match the
+  # patterns by design. Everything nested under them is payload written by a
+  # controller, which is where secret material could realistically leak in, so
+  # that is what gets inspected. See the `social_signup` evidence blob in
+  # Auth::App::Omniauth::OmniauthCallbacksController for a non-requirement key
+  # that also relies on this rule.
   def completed_requirements_exclude_secret_credential_material
     return unless completed_requirements.is_a?(Hash)
 

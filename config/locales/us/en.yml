@@ -255,8 +255,11 @@ en:
             address_required: Please enter an email address.
         telephone:
           success: Telephone number verified.
+          edit:
+            session_expired: Your session has expired. Please start over.
           update:
             success: Telephone number verified.
+            passkey_required: Phone verified. Please register a passkey to continue.
         checkpoint:
           age_restricted: This sign-up method cannot create an account. Please try again after your 16th birthday.
           show:

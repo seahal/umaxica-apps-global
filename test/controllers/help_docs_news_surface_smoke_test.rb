@@ -112,24 +112,11 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
   end
 
   def create_publishing_entry(audience:, surface:, namespace:)
-    locale = "test-smoke"
-    slug = "#{namespace}-surface-smoke"
-    edition = Publishing::Edition.find_or_create_by!(audience:, surface:, locale:)
-    entry = Publishing::Entry.create!(edition:, locale:)
-    Publishing::EntrySlug.create!(entry:, edition:, locale:, slug:, state: "canonical", canonicalized_at: Time.current)
-    digest = Digest::SHA256.hexdigest(slug)
-    revision =
-      Publishing::EntryRevision.create!(
-        entry:, locale:, title: "#{namespace.titleize} Surface Smoke", summary: "#{namespace.titleize} summary",
-        body: { "text" => "#{namespace.titleize} body" }, schema_version: 1, content_digest: digest, sequence: 1,
+    entry =
+      publishing_published_entry(
+        audience:, surface:, locale: "test-smoke", slug: "#{namespace}-surface-smoke",
+        title: "#{namespace.titleize} Surface Smoke", published_at: 1.minute.ago,
       )
-    entry.update!(current_revision: revision)
-    version =
-      Publishing::EntryVersion.create!(
-        entry:, entry_revision: revision, locale:, title: revision.title, summary: revision.summary,
-        body: revision.body, schema_version: 1, content_digest: digest, sequence: 1,
-      )
-    Publishing::Publication.create!(entry:, entry_version: version, effective_from: 1.minute.ago)
     entry.slugs.canonical.first
   end
 end

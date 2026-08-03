@@ -23,14 +23,13 @@ class ContentSurfaceBoundaryTest < ActionDispatch::IntegrationTest
       assert_equal({ "entries" => [] }, response.parsed_body)
       assert_empty response_set_cookie_lines
 
+      # Revisions are an internal lifecycle concept; the nested endpoints that
+      # once returned an empty array were removed rather than kept as a contract.
       get "/api/v0/entries/example/revisions"
 
-      assert_response :success
-      assert_equal [], response.parsed_body
-      assert_empty response_set_cookie_lines
+      assert_response :not_found
 
       assert_mutation_verbs_rejected(host, "/api/v0/entries")
-      assert_mutation_verbs_rejected(host, "/api/v0/entries/example/revisions")
     end
   end
 

@@ -9,6 +9,7 @@ module Auth
           module Telephone
             class OtpsController < ::Auth::App::Sign::Up::TelephonesController
               include SignUpExplicitStepControllerSupport
+              include SignUpContactOtpControllerSupport
 
               AUTHENTICATION_MODE = :guest
 
@@ -78,8 +79,9 @@ module Auth
 
                 verify_telephone_ownership!
 
-                flow_result = advance_sign_up_flow_after_telephone_otp!
+                flow_result = advance_sign_up_after_contact_otp!
                 return render_sign_up_result(flow_result) unless flow_result.success?
+                return finalize_sign_up_from_checkpoint! if flow_result.next_event == :finalize
 
                 complete_update_and_redirect
               end
@@ -157,48 +159,6 @@ module Auth
 
               def complete_update_and_redirect
                 redirect_to(auth_app_sign_up_guard_telephone_path(ri: params[:ri], pt: signed_pt_param))
-              end
-
-              def advance_sign_up_flow_after_telephone_otp!
-                result = perform_sign_up_event(:verify_contact)
-                return unexpected_telephone_otp_transition(result, :enter_guardrail) unless result.success? &&
-                  result.next_event == :enter_guardrail
-
-                result = perform_sign_up_event(:enter_guardrail)
-                return unexpected_telephone_otp_transition(result, :enter_checkpoint) unless result.success? &&
-                  result.next_event == :enter_checkpoint
-
-                result = perform_sign_up_event(:enter_checkpoint)
-                return unexpected_telephone_otp_transition(result, :clear_requirement) unless result.success? &&
-                  result.next_event == :clear_requirement
-
-                mark_telephone_otp_requirement_cleared!
-                result
-              end
-
-              def unexpected_telephone_otp_transition(result, expected_next_event)
-                Rails.logger.warn(
-                  JitLogEvent.format(
-                    "sign.signup.telephone.otp.transition_unexpected",
-                    status: result.status,
-                    next_event: result.next_event,
-                    expected_next_event: expected_next_event,
-                  ),
-                )
-                SignUpResult.build(
-                  status: :invalid_transition,
-                  ticket: @sign_up_ticket,
-                  errors: ["unexpected telephone OTP sign-up transition"],
-                )
-              end
-
-              def mark_telephone_otp_requirement_cleared!
-                requirements = @sign_up_ticket.completed_requirements.deep_dup
-                requirements["otp"] = {
-                  "cleared" => true,
-                  "cleared_at" => Time.current.iso8601,
-                }
-                @sign_up_ticket.update!(completed_requirements: requirements)
               end
 
               def verify_dummy_otp_ceremony!(submitted_code)

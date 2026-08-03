@@ -92,7 +92,7 @@ class SignUpEmailPendingGuardTest < ActiveSupport::TestCase
     yielded = false
 
     connection = Struct.new(:queries) do
-      def exec_query(query)
+      def execute(query)
         queries << query
       end
     end.new(sql)
@@ -150,7 +150,7 @@ class SignUpEmailPendingGuardTest < ActiveSupport::TestCase
         yield
       end
 
-      def exec_query(query)
+      def execute(query)
         queries << query
       end
     end.new(sql)

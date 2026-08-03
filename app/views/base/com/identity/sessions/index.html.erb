@@ -4,10 +4,12 @@
 <% if has_other_sessions %>
   <div>
     <%= button_to 'Revoke other sessions',
-                  base_com_identity_revocations_others_path,
+                  base_com_identity_other_sessions_path(ri: params[:ri]),
+                  method: :delete,
                   data: { confirm: 'Revoke other sessions?' } %>
     <%= button_to 'Revoke all sessions',
-                  base_com_identity_revocations_all_path,
+                  base_com_identity_session_set_path(ri: params[:ri]),
+                  method: :delete,
                   data: { confirm: 'Revoke all sessions?' } %>
   </div>
 <% end %>
@@ -46,7 +48,9 @@
           <td><%= l(session.discarded_at, format: :short) %></td>
           <td>
             <% unless current_session %>
-              <%= button_to 'Revoke', base_com_identity_session_revocation_path(session.public_id),
+              <%= button_to 'Revoke',
+                            base_com_identity_session_path(session.public_id, ri: params[:ri]),
+                            method: :delete,
                             data: { confirm: 'Revoke this session?' } %>
             <% end %>
           </td>

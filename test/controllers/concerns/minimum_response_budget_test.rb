@@ -92,8 +92,8 @@ class MinimumResponseBudgetTest < ActiveSupport::TestCase
     assert plain.send(:timing_protection_sleep_enabled?)
   end
 
-  test "org entra authorization uses the secure default budget" do
-    controller = Auth::Org::Sign::In::Entra::AuthorizationsController.new
+  test "org secret credential controller uses the secure default budget" do
+    controller = Auth::Org::Sign::In::SecretCredentialsController.new
     controller.define_singleton_method(:action_name) { "create" }
 
     assert controller.send(:minimum_response_budget_enabled?)

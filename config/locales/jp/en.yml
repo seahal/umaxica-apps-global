@@ -253,8 +253,11 @@ en:
             address_required: Please enter an email address.
         telephone:
           success: Telephone number verified.
+          edit:
+            session_expired: Your session has expired. Please start over.
           update:
             success: Telephone number verified.
+            passkey_required: Phone verified. Please register a passkey to continue.
         checkpoint:
           age_restricted: This sign-up method cannot create an account. Please try again after your 16th birthday.
           show:
@@ -993,6 +996,14 @@ en:
             operator_not_found: Sign-in is not permitted for this account.
             sign_in_failed: Sign-in failed. Please try again.
             internal_error: An internal error occurred. Please try again.
+            provider_unavailable: Microsoft sign-in is currently unavailable. Please try again later.
+            authentication_method_locked: Microsoft sign-in is locked for this account. Please contact your administrator.
+            invalid_callback: The authentication response was invalid. Please start over.
+            missing_id_token: The authentication response was incomplete. Please start over.
+            pkce_verifier_missing: Your sign-in session expired. Please start over.
+            client_assertion_unavailable: Microsoft sign-in is not configured correctly. Please contact your administrator.
+            tenant_not_allowed: This account type cannot be used to sign in. Please use your organization account.
+            tenant_mismatch: This account belongs to a different organization.
             generic: An error occurred. Please try again.
       outs:
         destroy:

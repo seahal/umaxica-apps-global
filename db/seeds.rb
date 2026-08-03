@@ -7,6 +7,11 @@
 # email/secret), and is a no-op in production. The sample fixtures below rely on the reference
 # rows already being present from migrations.
 
+# The category and tag vocabularies are structural data every environment
+# needs, so they are seeded before the production guard below. The operation is
+# idempotent and refuses to rewrite a vocabulary whose kind has diverged.
+Publishing::SeedVocabularies.call
+
 return if Rails.env.production?
 
 # `schema_format: :sql` loads `structure.sql` for db:prepare, which carries schema only (no row
@@ -66,8 +71,3 @@ staff_secret.staff_secret_kind_id = OperatorSecretCredentialKind::PERMANENT
 staff_secret.staff_identity_secret_status_id = OperatorSecretCredentialStatus::ACTIVE
 staff_secret.password = sample_staff_secret
 staff_secret.save!
-
-if Rails.env.development? && ENV["SEED_CMS_SAMPLES"] == "1"
-  require_relative "seeds/cms_samples"
-  CmsSamples.load!
-end

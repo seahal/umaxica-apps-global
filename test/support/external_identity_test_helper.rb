@@ -44,8 +44,6 @@ end
 # the tests are renamed incrementally. They are never loaded by the application.
 class LegacyExternalIdentityTestFacade
   class << self
-    attr_accessor :provider
-
     def relation
       ClientExternalIdentity.where(provider: provider)
     end
@@ -95,11 +93,15 @@ class LegacyExternalIdentityTestFacade
 end
 
 class ClientGoogleIdentity < LegacyExternalIdentityTestFacade
-  self.provider = "google"
+  def self.provider
+    "google"
+  end
 end
 
 class ClientAppleIdentity < LegacyExternalIdentityTestFacade
-  self.provider = "apple"
+  def self.provider
+    "apple"
+  end
 end
 
 module ClientGoogleIdentityStatus

@@ -180,7 +180,9 @@ class Base::Org::Support::EnforcementCasesControllerTest < ActionDispatch::Integ
       principal_public_id: client.public_id, applied_by_operator_public_id: @operator.public_id,
     )
     appeal = AppEnforcementAppeal.create!(
+      # rubocop:disable I18n/RailsI18n/DecorateString -- appeal statements are stored user content, not UI copy
       enforcement_case: the_case, reason_code: "incorrect_decision", statement: "Please review this decision.",
+      # rubocop:enable I18n/RailsI18n/DecorateString
       submitted_at: Time.current,
     )
     mark_token_step_up_satisfied_for_test(@approver_token, scope: "enforcement_case_review_appeal")

@@ -25,7 +25,7 @@ module Auth
           )
 
           redirect_to(
-            new_auth_org_sign_in_entra_path(connection: connection.public_id, ri: params[:ri]),
+            new_auth_org_social_entra_session_path(connection: connection.public_id, ri: params[:ri]),
             status: :see_other,
           )
         end

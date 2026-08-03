@@ -5,11 +5,17 @@ require "test_helper"
 # require "helpers/global_test_support"
 require "rake"
 
+# Load only the task under test rather than every file under lib/tasks/; a full
+# `load_tasks` also re-evaluates unrelated rake files and warns about their
+# constants being reinitialized. The Rails environment is already booted here,
+# so the task's `:environment` prerequisite only needs to exist.
+Rake::Task.define_task(:environment) unless Rake::Task.task_defined?("environment")
+load Rails.root.join("lib/tasks/identity_graph_repair.rake")
+
 class IdentityGraphRepairTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   setup do
-    Rails.application.load_tasks unless Rake::Task.task_defined?("environment")
     ensure_reference_rows!
   end
 

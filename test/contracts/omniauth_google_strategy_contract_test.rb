@@ -59,7 +59,7 @@ class OmniauthGoogleStrategyContractTest < ActiveSupport::TestCase
         "id_token" => id_token,
       )
       strategy.access_token = access_token
-      access_token.define_singleton_method(:get) { |_| raise "UserInfo must not be called" }
+      access_token.define_singleton_method(:get) { |_| raise RuntimeError, "UserInfo must not be called" }
       jwks = { "keys" => [JWT::JWK.new(signing_key.public_key, kid: "contract-key").export] }
 
       strategy.stub(:google_jwks_loader, ->(_options = {}) { jwks }) do

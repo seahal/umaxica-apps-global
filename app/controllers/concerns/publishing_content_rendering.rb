@@ -29,11 +29,28 @@ module PublishingContentRendering
   # "namespace" field is the content surface (docs/news/help/info) and the
   # "surface" field is the audience (app/com/org).
   def publishing_entry_json(entry)
-    PublishingEntrySerializer.call(entry:, namespace: self.class::PUBLISHING_SURFACE, surface: self.class::PUBLISHING_AUDIENCE)
+    PublishingEntrySerializer.call(
+      entry:, namespace: self.class::PUBLISHING_SURFACE, surface: self.class::PUBLISHING_AUDIENCE,
+      vocabularies: publishing_vocabularies,
+    )
+  end
+
+  # Loaded once per request: the taxonomy keys are a property of the surface,
+  # not of an individual entry, so an index of N entries still costs one query.
+  def publishing_vocabularies
+    @publishing_vocabularies ||=
+      Publishing::Vocabulary
+        .available
+        .for_scope(audience: self.class::PUBLISHING_AUDIENCE, surface: self.class::PUBLISHING_SURFACE)
+        .order(:key)
+        .to_a
   end
 
   def publishing_entries_query
-    @publishing_entries_query ||= PublishingPublishedEntriesQuery.new(edition: publishing_edition)
+    @publishing_entries_query ||=
+      PublishingPublishedEntriesQuery.new(
+        edition: publishing_edition, category: params[:category], tag: params[:tag],
+      )
   end
 
   def publishing_edition

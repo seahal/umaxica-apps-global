@@ -74,27 +74,29 @@ class ExternalAuthenticationEnvironmentProviderAvailabilityAdapterTest < ActiveS
   end
 
   test "fails closed when the requested provider setting is missing" do
+    adapter = ExternalAuthentication::EnvironmentProviderAvailabilityAdapter.new(
+      environment: {
+        "APPLE_SOCIAL_CEREMONY_ENABLED" => "true",
+      },
+      clock: -> { Time.zone.local(2026, 7, 24, 12, 0, 0) },
+    )
+
     assert_raises(KeyError) do
-      adapter = ExternalAuthentication::EnvironmentProviderAvailabilityAdapter.new(
-        environment: {
-          "APPLE_SOCIAL_CEREMONY_ENABLED" => "true",
-        },
-        clock: -> { Time.zone.local(2026, 7, 24, 12, 0, 0) },
-      )
       adapter.start_decision(provider: "google", operation: "login", context: {})
     end
   end
 
   test "fails construction when a provider setting is not a strict boolean" do
+    adapter = ExternalAuthentication::EnvironmentProviderAvailabilityAdapter.new(
+      environment: {
+        "APPLE_SOCIAL_CEREMONY_ENABLED" => "yes",
+        "GOOGLE_SOCIAL_CEREMONY_ENABLED" => "true",
+      },
+      clock: -> { Time.zone.local(2026, 7, 24, 12, 0, 0) },
+    )
+
     error =
       assert_raises(ExternalAuthentication::EnvironmentProviderAvailabilityAdapter::ConfigurationError) do
-        adapter = ExternalAuthentication::EnvironmentProviderAvailabilityAdapter.new(
-          environment: {
-            "APPLE_SOCIAL_CEREMONY_ENABLED" => "yes",
-            "GOOGLE_SOCIAL_CEREMONY_ENABLED" => "true",
-          },
-          clock: -> { Time.zone.local(2026, 7, 24, 12, 0, 0) },
-        )
         adapter.start_decision(provider: "apple", operation: "login", context: {})
       end
 

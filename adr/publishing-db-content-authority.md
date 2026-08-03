@@ -68,10 +68,15 @@ then remove the old structures.
 
 ### 6. Defer Taxonomy
 
-Do not copy the six legacy taxonomy tables. Future taxonomy may extend beyond Category and Tag and
-requires its own ADR and implementation plan. This change documents direction only and adds no
-taxonomy migration, model, service, or API. If legacy taxonomy contains data, its tables may remain
-until a taxonomy migration plan is complete.
+**Superseded 2026-08-01 by `adr/publishing-taxonomy-architecture.md`, which is the ADR this section
+required. Taxonomy now exists in the publishing schema as vocabularies, locale-specific terms, and
+revision/version assignments. The legacy taxonomy tables were never copied and their DDL has since
+been removed from the repository.**
+
+Original decision: do not copy the six legacy taxonomy tables. Future taxonomy may extend beyond
+Category and Tag and requires its own ADR and implementation plan. This change documents direction
+only and adds no taxonomy migration, model, service, or API. If legacy taxonomy contains data, its
+tables may remain until a taxonomy migration plan is complete.
 
 ### 7. Documentation Precedes Implementation
 

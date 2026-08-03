@@ -59,12 +59,17 @@ Entra-specific records require `tid` validation, connection-scoped activation st
 the Entra schema to the generic OIDC schema, making independent evolution of either harder. Separate
 tables also allow Entra-specific indexes and constraints without affecting the generic OIDC flow.
 
-### OmniAuth is not used on the org surface
+### OmniAuth is not used on the org surface -- superseded
 
-`OmniAuthNonAppSocialGuard` (in `config/initializers/omniauth.rb`) blocks all `/social/*` requests
-on org and com hosts unconditionally. The `auth_surface :org` route block does not call
-`auth_app_social_routes`. The Entra ID flow must not open OmniAuth on org hosts, must not use
-`/social` paths, and must not weaken or modify `OmniAuthNonAppSocialGuard`.
+**Superseded by `adr/org-entra-omniauth-strategy-migration.md` (2026-07-31).** The blanket
+`OmniAuthNonAppSocialGuard` block on all `/social/*` traffic for non-app hosts is replaced by an
+explicit provider/surface allow matrix (`OmniAuthSocialProviderHostMatrix`) that allows only
+`entra` on the org (staff) host and only `apple`/`google` on the app host. Entra ID sign-in is now
+implemented as a Umaxica-specific OmniAuth strategy under `/social/entra/*`. Every other decision in
+this ADR (no JIT provisioning, `tid + oid` lookup key, no email/UPN/name, `org_zenith` placement,
+certificate-based `private_key_jwt`, default-inactive records, callback boundary discipline, MFA
+bypass policy) is unchanged and still governs the new implementation; see the new ADR for what
+changed and why.
 
 ### Logical references for `organization_id` and `operator_id`
 
@@ -95,22 +100,18 @@ referenced value contains the certificate and private key PEM. Token exchange us
 PS256 `private_key_jwt` assertion with an `x5t#S256` certificate thumbprint. Neither private key nor
 client secret is stored in the database.
 
-### Callback boundary
+### Callback boundary -- superseded
 
-The callback remains `GET /sign/in/entra/callback`. The redirect URI is built from the configured
-Org authentication origin and this fixed path; it is never derived from request host, forwarded
-host, or referer. The ceremony session holds only an opaque reference. State, nonce, PKCE verifier,
-connection reference, and return target are stored server-side, consumed once, and deleted on every
-callback outcome, including state mismatch and provider error.
-
-The controller is Rails glue only. `ExternalAuthentication::EntraProviderAdapter` owns code exchange
-and token verification. It returns a typed principal containing only verified issuer, pairwise
-subject, audience, and typed `tid + oid` context. ID token, access token, token response, raw
-claims, profile claims, and AuthHash are discarded at the adapter boundary.
-
-`ExternalAuthenticationOrgEntraCeremonyStore` owns the server-side ceremony reference.
-`ENTRA_SOCIAL_CEREMONY_ENABLED` is read only by the provider-availability environment adapter. It
-blocks new Org Entra ceremonies when false while allowing already-issued callbacks to drain.
+**Superseded by `adr/org-entra-omniauth-strategy-migration.md`.** The callback is now
+`GET /social/entra/callback`, handled by the OmniAuth strategy
+(`lib/omniauth/strategies/umaxica_entra.rb`) plus `Auth::Org::Omniauth::OmniauthCallbacksController`;
+neither `ExternalAuthentication::EntraProviderAdapter` nor
+`ExternalAuthenticationOrgEntraCeremonyStore` exist anymore -- the strategy owns code exchange and
+token verification directly, and state/nonce/PKCE are the OmniAuth gem's own session-based
+mechanism rather than a bespoke ceremony store. The redirect URI is still never derived from
+request host, forwarded host, or referer, and the deny-by-default identity resolution, discard of
+raw tokens, and `ENTRA_SOCIAL_CEREMONY_ENABLED` gate are all unchanged in substance; see the new ADR
+for exactly how each is implemented now.
 
 ### MFA bypass policy: `entra_id` is not bypassed
 
@@ -138,7 +139,8 @@ no-provisioning guarantee, and the MFA bypass policy above.
 - All records default to `:inactive`; sign-in is impossible until explicit activation.
 - The callback resolver must be deny-by-default: raise on any miss, never create.
 - App Google/Apple social login is unaffected.
-- `OmniAuthNonAppSocialGuard` is unmodified.
-- `omniauth_openid_connect` remains outside the production Entra path until its real-strategy
-  contract tests prove PKCE, state, nonce, signature, issuer, audience, time claims, tenant
-  discovery, unknown key handling, token exchange failure, and provider mix-up behavior.
+- `OmniAuthNonAppSocialGuard` is replaced by `OmniAuthSocialProviderHostMatrix`; see
+  `adr/org-entra-omniauth-strategy-migration.md`.
+- `omniauth_openid_connect` is now the production Entra path, subclassed by a Umaxica-specific
+  strategy (`lib/omniauth/strategies/umaxica_entra.rb`); see the new ADR for the contract tests
+  that gated this and the overrides that preserve every guarantee above.

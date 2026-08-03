@@ -3,7 +3,12 @@
 
 module ExternalAuthentication
   class ProviderAdapterFactory
-    def self.build(provider:, audience: nil, connection: nil, redirect_uri: nil)
+    # Entra ID is not built by this factory: it is a Umaxica-specific
+    # OmniAuth strategy (lib/omniauth/strategies/umaxica_entra.rb) that owns
+    # its own token exchange directly, not through an
+    # ExternalAuthentication::*ProviderAdapter. See
+    # adr/org-entra-omniauth-strategy-migration.md.
+    def self.build(provider:, audience: nil)
       entry = ProviderRegistry.fetch(provider)
 
       case entry.adapter_key
@@ -11,11 +16,6 @@ module ExternalAuthentication
         AppleProviderAdapter.new(audience: audience)
       when :google_oidc
         GoogleProviderAdapter.new(audience: audience)
-      when :entra_oidc
-        raise ArgumentError, "connection is required" if connection.nil?
-        raise ArgumentError, "redirect_uri is required" if redirect_uri.blank?
-
-        EntraProviderAdapter.new(connection: connection, redirect_uri: redirect_uri)
       else
         raise ArgumentError, "adapter is unsupported"
       end

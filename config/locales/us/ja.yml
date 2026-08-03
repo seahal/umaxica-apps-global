@@ -626,6 +626,7 @@ ja:
             session_expired: セッションの有効期限が切れました。最初からやり直してください。
           update:
             success: 電話番号が確認されました。
+            passkey_required: 電話番号が確認されました。パスキーを登録してください。
         checkpoint:
           age_restricted: この登録方法ではアカウントを作成できません。13歳の誕生日以降にもう一度お試しください。
           show:

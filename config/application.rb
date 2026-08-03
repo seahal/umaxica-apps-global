@@ -38,7 +38,11 @@ module Jit
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # CommonHelper ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w(assets tasks))
+    # `omniauth` holds lib/omniauth/strategies/umaxica_entra.rb, which reopens
+    # the omniauth_openid_connect gem's own OmniAuth::Strategies module
+    # (capitalized "OmniAuth"); Zeitwerk's inflection for the directory name
+    # ("Omniauth") would otherwise collide with it.
+    config.autoload_lib(ignore: %w(assets tasks omniauth))
 
     # Configuration for the application, engines, and railties goes here.
     #

@@ -329,6 +329,22 @@ module Auth
             expires_at: cycle.expires_at,
           )
 
+          # `social_signup` is ceremony evidence, not a checkpoint requirement.
+          # It shares the `completed_requirements` column because it is bound to
+          # exactly this ticket's lifetime, but it is inert with respect to the
+          # requirement machinery: SignUpRequirementRegistry only ever fetches
+          # the requirement names it declares (confirmation, birthdate for
+          # social), so an extra key can neither satisfy nor block a checkpoint.
+          #
+          # Only pointers and digests are stored here. The verified callback
+          # result itself lives encrypted in identity_social_ceremony_candidates
+          # and is reachable solely through `candidate_ref`.
+          #
+          # Do not rename these nested keys to anything matching
+          # SignUpFlowTicket::SECRET_REQUIREMENT_KEY_PATTERNS (token, challenge,
+          # otp, passcode, secret_credential, cookie, authorization) -- the
+          # secret-material validator inspects nested keys and would reject the
+          # ticket. `grant_transaction_id` is deliberately not `grant_token`.
           cycle.update!(
             completed_requirements: cycle.completed_requirements.merge(
               "social_signup" => {

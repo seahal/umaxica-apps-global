@@ -215,9 +215,6 @@ scope(module: :base, as: :base) do
         resource :revocation, only: :destroy, path: "sessions", controller: "revocations/alls", as: :session_set
         resource :revocation, only: :destroy, path: "other_sessions", controller: "revocations/others",
                               as: :other_sessions
-        namespace :sessions do
-          resource :revocation, only: :create, controller: "/base/app/identity/revocations"
-        end
 
         resources :activities, only: :index
 

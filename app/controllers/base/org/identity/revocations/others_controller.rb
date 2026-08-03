@@ -7,17 +7,12 @@ class Base::Org::Identity::Revocations::OthersController < ::Base::Org::Applicat
   before_action :authenticate_operator!
 
   def create
-    current_operator.staff_tokens.session_inventory.find_each do |token|
-      next if token.public_id == current_session_public_id
-
-      AuthenticationSelectedSessionRevoker.call(
-        owner: current_operator,
-        token: token,
-        current_token: current_session,
-        current_session_public_id: current_session_public_id,
-        reason: "settings.session.revoke_others",
-      )
-    end
+    AuthenticationOtherSessionsRevoker.call(
+      owner: current_operator,
+      sessions: current_operator.staff_tokens.session_inventory,
+      current_token: current_session,
+      current_session_public_id: current_session_public_id,
+    )
     redirect_to(base_org_identity_sessions_path(ri: params[:ri]), status: :see_other)
   end
   alias_method :destroy, :create

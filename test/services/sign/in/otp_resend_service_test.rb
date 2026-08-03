@@ -9,30 +9,31 @@ module Sign
     class OtpResendServiceTest < ActiveSupport::TestCase
       include ActiveJob::TestHelper
 
-      test "telephone resend keeps otp out of sms title metadata" do
+      # SMS OTP is not an accepted sign-in proof. Neither a telephone resend
+      # state nor a telephone resender may exist, so no SMS can be sent here.
+      test "telephone resend state cannot be minted" do
         telephone = ClientTelephone.create!(
           user: clients(:one),
           raw_number: "+819012399991",
           confirm_policy: "1",
           confirm_using_mfa: "1",
         )
-        state = SignInOtpResendState.issue(kind: :telephone, target: telephone.number)
 
-        assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
-          result = SignInOtpResender.new(kind: :telephone, state: state).call
-
-          assert_equal :ok, result.status
-          assert result.resendable
+        assert_no_enqueued_jobs only: Outbound::SmsDeliveryJob do
+          assert_raises(ArgumentError) do
+            SignInOtpResendState.issue(kind: :telephone, target: telephone.number)
+          end
         end
+      end
 
-        job_args = enqueued_jobs.last[:args].first
-        body = OutboundSensitivePayload.decrypt_sms_body(job_args.fetch("encrypted_body"))
-        otp_code = body[/\d{6}/]
+      test "telephone resender cannot be constructed" do
+        state = SignInOtpResendState.issue(kind: :email, target: "resend-guard@example.com")
 
-        assert_equal "Verification code", job_args.fetch("title")
-        assert_match(/\A\d{6}\z/, otp_code)
-        assert_not_includes job_args.fetch("title"), otp_code
-        assert_not_includes job_args.inspect, otp_code
+        assert_no_enqueued_jobs only: Outbound::SmsDeliveryJob do
+          assert_raises(ArgumentError) do
+            SignInOtpResender.new(kind: :telephone, state: state)
+          end
+        end
       end
 
       test "parse returns nil for blank token" do

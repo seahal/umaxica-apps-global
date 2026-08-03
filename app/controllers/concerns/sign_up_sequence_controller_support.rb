@@ -495,9 +495,9 @@ module SignUpSequenceControllerSupport
   def sign_up_telephone_edit_path
     case sign_up_surface
     when :app
-      sign_app_sign_up_check_telephone_otp_path(ri: params[:ri])
+      auth_app_sign_up_check_telephone_otp_path(ri: params[:ri])
     when :com
-      sign_com_sign_up_check_telephone_otp_path(ri: params[:ri])
+      auth_com_sign_up_check_telephone_otp_path(ri: params[:ri])
     else
       sign_up_default_sign_in_path
     end
@@ -563,7 +563,7 @@ module SignUpSequenceControllerSupport
     :failed
   end
 
-  def finalize_com_sign_up_actor!(_actor)
+  def finalize_com_sign_up_actor!(actor)
     case @sign_up_ticket.pending_contact_type
     when "telephone"
       # Com sign-up has its own telephone finalizer because the checkpoint
@@ -769,9 +769,9 @@ module SignUpSequenceControllerSupport
         credential_class: VisitorSecretCredential,
         reveal_purpose: "visitor.recovery_secret_credential",
         reveal_url: ->(token) {
-          sign_com_settings_secrets_url(
+          base_com_identity_secrets_url(
             ri: params[:ri], token: token,
-            host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
+            host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL"),
           )
         },
       }

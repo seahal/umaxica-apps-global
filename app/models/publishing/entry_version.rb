@@ -43,14 +43,23 @@ module Publishing
 
     include PublicId
 
+    # Version rows are immutable release snapshots; only the initial insert is
+    # allowed. Declared before the associations so that immutability, not a
+    # dependent-record restriction, is the reason a destroy fails. PostgreSQL
+    # triggers enforce the same rule against writes that bypass Active Record.
+    before_update { raise ActiveRecord::ReadOnlyRecord, "Publishing::EntryVersion is immutable" }
+    before_destroy { raise ActiveRecord::ReadOnlyRecord, "Publishing::EntryVersion is immutable" }
+
     belongs_to :entry, class_name: "Publishing::Entry", inverse_of: :versions
     belongs_to :entry_revision, class_name: "Publishing::EntryRevision"
 
     has_many :publications, class_name: "Publishing::Publication", inverse_of: :entry_version, dependent: :restrict_with_exception
     has_many :media_usages, class_name: "Publishing::MediaUsage", inverse_of: :entry_version, dependent: :restrict_with_exception
-
-    # Version rows are immutable release snapshots; only the initial insert is allowed.
-    before_update { raise ActiveRecord::ReadOnlyRecord, "Publishing::EntryVersion is immutable" }
-    before_destroy { raise ActiveRecord::ReadOnlyRecord, "Publishing::EntryVersion is immutable" }
+    # restrict_with_exception, not destroy: a published version's taxonomy
+    # history is frozen, and PostgreSQL rejects the delete regardless.
+    has_many :single_taxonomy_assignments, class_name: "Publishing::VersionSingleTaxonomyAssignment",
+                                           inverse_of: :entry_version, dependent: :restrict_with_exception
+    has_many :multiple_taxonomy_assignments, -> { ordered }, class_name: "Publishing::VersionMultipleTaxonomyAssignment",
+                                                             inverse_of: :entry_version, dependent: :restrict_with_exception
   end
 end

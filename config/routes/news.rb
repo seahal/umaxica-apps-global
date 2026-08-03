@@ -33,12 +33,8 @@ scope module: :news, as: :news do
         # Versioned news API.
         namespace :v0 do
           # Published news entries. `param: :slug` only renames the path
-          # segment to the public identifier; `module: :entries` nests the
-          # revisions controller under entries/. The route stays fully
-          # resourceful.
-          resources :entries, only: %i(index show), param: :slug do
-            resources :revisions, only: %i(index show), module: :entries
-          end
+          # segment to the public identifier; the route stays fully resourceful.
+          resources :entries, only: %i(index show), param: :slug
         end
       end
     end
@@ -74,12 +70,8 @@ scope module: :news, as: :news do
         # Versioned news API.
         namespace :v0 do
           # Published news entries. `param: :slug` only renames the path
-          # segment to the public identifier; `module: :entries` nests the
-          # revisions controller under entries/. The route stays fully
-          # resourceful.
-          resources :entries, only: %i(index show), param: :slug do
-            resources :revisions, only: %i(index show), module: :entries
-          end
+          # segment to the public identifier; the route stays fully resourceful.
+          resources :entries, only: %i(index show), param: :slug
         end
       end
     end
@@ -115,12 +107,8 @@ scope module: :news, as: :news do
         # Versioned news API.
         namespace :v0 do
           # Published news entries. `param: :slug` only renames the path
-          # segment to the public identifier; `module: :entries` nests the
-          # revisions controller under entries/. The route stays fully
-          # resourceful.
-          resources :entries, only: %i(index show), param: :slug do
-            resources :revisions, only: %i(index show), module: :entries
-          end
+          # segment to the public identifier; the route stays fully resourceful.
+          resources :entries, only: %i(index show), param: :slug
         end
       end
     end

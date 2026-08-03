@@ -23,7 +23,8 @@ implements the first self-service operational layer for Unified Enforcement.
 
 ## Deliberate follow-ups
 
-- Passkey, TOTP, and verified-telephone recovery proofs.
+- Passkey and TOTP recovery proofs. Verified-telephone OTP is not a follow-up: SMS was rejected as
+  an authentication proof, so telephone OTP stays limited to sign-up and telephone registration.
 - App-in notification delivery and an inbox presentation.
 - Self-service appeals for eligible visible Cases that do not have a verification-required
   security lock.

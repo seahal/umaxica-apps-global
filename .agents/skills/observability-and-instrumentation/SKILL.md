@@ -1,28 +1,19 @@
 ---
 name: observability-and-instrumentation
 description:
-  Instruments code so production behavior is visible and diagnosable. Use when adding logging,
-  metrics, tracing, or alerting. Use when shipping any feature that runs in production and you need
-  evidence it works. Use when production issues are reported but you can't tell what happened from
-  the available data.
+  Instruments code with structured logs, metrics, traces, and alerts so production behavior is
+  visible and diagnosable. Use when building a feature that will run in production, when adding a
+  service or endpoint or background job or external integration, when an incident took too long to
+  diagnose, when setting up or reviewing alerting rules, or when reviewing a change that adds I/O,
+  retries, queues, or cross-service calls.
 ---
 
 # Observability and Instrumentation
 
-## Overview
-
-Code you can't observe is code you can't operate. Observability is the ability to answer "what is
-the system doing and why?" from the outside, using the telemetry the code emits. Instrumentation is
-not a post-launch add-on — it's written alongside the feature, the same way tests are. If a feature
-ships without telemetry, the first user-reported bug becomes archaeology instead of a query.
-
-## When to Use
-
-- Building any feature that will run in production
-- Adding a new service, endpoint, background job, or external integration
-- A production incident took too long to diagnose ("we couldn't tell what happened")
-- Setting up or reviewing alerting rules
-- Reviewing a PR that adds I/O, retries, queues, or cross-service calls
+Observability is the ability to answer "what is the system doing, and why?" from the outside, using
+the telemetry the code emits. Instrumentation is written alongside the feature the way tests are,
+not added after launch: a feature that ships without telemetry turns its first bug report into
+archaeology instead of a query.
 
 **NOT for:**
 
@@ -200,18 +191,6 @@ at the actual output:
 - Follow one request across services in the tracing UI → no broken spans
 - Fire each new alert once (lower the threshold temporarily) → confirm it reaches the right channel
   and the runbook link works
-
-## Common Rationalizations
-
-| Rationalization                                            | Reality                                                                                                                           |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| "I'll add logging after it works"                          | "After" becomes "after the first incident", which is the most expensive moment to discover you're blind. Instrument as you build. |
-| "More logs = more observability"                           | Unstructured noise makes incidents slower, not faster. Three queryable events beat three hundred prose lines.                     |
-| "console.log is fine for now"                              | Unstructured output can't be filtered, correlated, or alerted on. The structured logger costs five extra minutes once.            |
-| "We can just look at the dashboards when something breaks" | Dashboards built without defined questions show you everything except the answer. Start from on-call questions.                   |
-| "Alert on everything important, we'll tune later"          | A noisy pager trains people to ignore it. The tuning never happens; the missed real page does.                                    |
-| "User ID as a metric label makes debugging easier"         | It also makes your metrics backend fall over. High-cardinality lookups belong in logs and traces.                                 |
-| "Tracing is overkill for our two services"                 | Two services already means cross-service latency questions logs can't answer. Auto-instrumentation makes the cost trivial.        |
 
 ## Red Flags
 

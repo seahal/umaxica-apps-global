@@ -130,7 +130,9 @@ an open recovery entry backed by a short-lived, opaque recovery-ceremony cookie.
 OTP may issue that cookie; it does not issue an access token, refresh token, DBSC state, or device
 binding. The recovery status only resolves Cases for the cookie's subject and can complete only
 that subject's eligible Case. Unknown, active, hidden, and otherwise ineligible subjects use the
-same email-OTP entry response. Passkey, TOTP, and telephone proofs are tracked as follow-up work.
+same email-OTP entry response. Passkey and TOTP proofs are tracked as follow-up work. Telephone OTP
+is excluded as a recovery proof by decision — SMS is not an accepted authentication proof anywhere
+in this application, so it is also absent from sign-in and from the step-up method contract.
 
 ## Related
 

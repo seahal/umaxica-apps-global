@@ -1,0 +1,58 @@
+---
+name: data-shape-design
+description: Require explicit review for persisted data formats and API shapes.
+---
+
+# Data Shape Design
+
+Use this rule before changing a persisted data format or an API shape. This includes database
+schemas, JSON columns, serialized values, request and response bodies, event payloads, and other
+machine-readable contracts.
+
+## Approval gate
+
+Before editing implementation files, present a concise shape proposal and wait for explicit user
+approval. Include:
+
+- a `Before` sample showing the current shape, or `none` when introducing a new shape
+- an `After` sample showing only the affected shape
+- the authoritative source for each value and which values are derived
+- the tuple and enum decisions when either applies
+- migration, compatibility, and client impact when the shape is already consumed
+
+Use the representation that matches the boundary. Prefer a small JSON sample for an API or
+serialized value and a focused column/table sample for a database schema. Do not replace the
+samples with prose alone.
+
+Example:
+
+```text
+Before: {"items":[{"id":"a1","label":"Alpha","state":"active"}]}
+After:  {"items":[["a1","Alpha","active"]]}  # [id, label, state]
+```
+
+Do not edit the shape until the user has accepted the proposal. If the proposal changes during
+implementation, present the revised `Before`/`After` samples and obtain approval again.
+
+## Persistence principles
+
+- Persist authoritative facts, not values that can be deterministically derived from persisted
+  state or the request. Intentional snapshots, history, and audit records are data in their own
+  right and must identify their historical purpose.
+- For arrays of records, prefer short, stable keys. Do not repeat parent context or encode prose in
+  every item key.
+- When a sequence has fixed length and invariant positional meaning, use a tuple rather than a
+  keyed object. Document the position of every element. Apply this to persisted and API wire
+  shapes as well as in-memory values.
+- Do not use a tuple merely to shorten a shape when positional meaning is unclear, the sequence is
+  expected to evolve independently, or the loss of named fields would make the contract unsafe.
+  Record that reason in the proposal and obtain approval for the exception.
+- Keep enum dimensions orthogonal. Each enum should represent one independent axis; do not encode
+  combinations of unrelated axes as compound enum values. Represent a true combination with
+  separate fields or independently composed values.
+
+## Existing contracts
+
+Apply these principles directly to new shapes and explicitly approved shape changes. Do not rename
+existing persisted keys, tuple positions, or enum values solely to satisfy this rule. Any such
+change requires its own compatibility and migration decision in the `Before`/`After` proposal.

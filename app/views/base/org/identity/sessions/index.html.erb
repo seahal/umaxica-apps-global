@@ -4,13 +4,13 @@
 <% if has_other_sessions %>
   <div>
     <%= button_to t('sign.org.settings.sessions.revoke.others_button'),
-                  base_org_identity_revocations_others_path,
+                  base_org_identity_other_sessions_path(ri: params[:ri]),
                   method: :delete,
                   data: {
                     confirm: t('sign.org.settings.sessions.revoke.others_confirm')
                   } %>
     <%= button_to t('sign.org.settings.sessions.revoke.all_button'),
-                  base_org_identity_revocations_all_path,
+                  base_org_identity_session_set_path(ri: params[:ri]),
                   method: :delete,
                   data: {
                     confirm: t('sign.org.settings.sessions.revoke.all_confirm')
@@ -54,7 +54,9 @@
           <td><%= l(session.discarded_at, format: :short) %></td>
           <td>
             <% unless current_session %>
-              <%= button_to 'Revoke', base_org_identity_session_revocation_path(session.public_id),
+              <%= button_to 'Revoke',
+                            base_org_identity_session_path(session.public_id, ri: params[:ri]),
+                            method: :delete,
                             data: { confirm: 'Revoke this session?' } %>
             <% end %>
           </td>

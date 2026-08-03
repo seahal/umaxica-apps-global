@@ -49,5 +49,28 @@ module Publishing
     belongs_to :restored_from_version, class_name: "Publishing::EntryVersion", optional: true
 
     has_many :media_usages, class_name: "Publishing::MediaUsage", inverse_of: :entry_revision, dependent: :restrict_with_exception
+    has_many :single_taxonomy_assignments, class_name: "Publishing::RevisionSingleTaxonomyAssignment",
+                                           inverse_of: :entry_revision, dependent: :destroy
+    has_many :multiple_taxonomy_assignments, -> { ordered }, class_name: "Publishing::RevisionMultipleTaxonomyAssignment",
+                                                             inverse_of: :entry_revision, dependent: :destroy
+
+    # Drafts may hold archived terms (restoring an old version must not fail),
+    # but promotion is blocked until the author resolves them.
+    # An assignment blocks promotion when its vocabulary is archived, its term is
+    # archived, or any ancestor on the term's breadcrumb is archived.
+    def archived_taxonomy_assignments
+      taxonomy_assignments.select do |assignment|
+        assignment.vocabulary.archived? || assignment.taxonomy_term.archived_in_path.any?
+      end
+    end
+
+    def promoted? = Publishing::EntryVersion.exists?(entry_revision_id: id)
+
+    # Both assignment kinds with their vocabulary and term loaded, ready for the
+    # promotion path to inspect and snapshot without lazy loading.
+    def taxonomy_assignments
+      single_taxonomy_assignments.includes(:vocabulary, :taxonomy_term).to_a +
+        multiple_taxonomy_assignments.includes(:vocabulary, :taxonomy_term).to_a
+    end
   end
 end

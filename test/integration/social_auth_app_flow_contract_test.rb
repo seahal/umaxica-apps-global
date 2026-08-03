@@ -275,7 +275,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   def assert_social_sign_in_contract(config)
     uid = "#{config.fetch(:normalized)}_signin_#{SecureRandom.hex(4)}"
     user = create_social_client
-    identity = create_social_identity(config, user:, uid:, token: "old_token")
+    identity = create_social_identity(config, user:, uid:)
 
     state = seed_social_auth_session(provider: config.fetch(:provider), intent: "login", ri: "jp")
     setup_mock_auth(config, uid:, token: "fresh_token")
@@ -325,7 +325,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   def assert_settings_replacement_rejected(config)
     user = create_social_client
-    existing = create_social_identity(config, user:, uid: "existing_#{config.fetch(:normalized)}", token: "keep_token")
+    existing = create_social_identity(config, user:, uid: "existing_#{config.fetch(:normalized)}")
 
     headers = as_user_headers(user, host: @host)
     token = ClientToken.find_by!(public_id: headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
@@ -406,7 +406,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     user
   end
 
-  def create_social_identity(config, user:, uid:, token: "token")
+  def create_social_identity(config, user:, uid:)
     config.fetch(:model).create!(
       client: user,
       subject: uid,
