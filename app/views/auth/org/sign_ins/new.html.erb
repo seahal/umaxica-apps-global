@@ -10,13 +10,41 @@
     </p>
   </div>
 
-  <div>
-    <%= link_to new_auth_org_sign_in_passkey_path(pt: pt, ri: params[:ri]) do %>
-      <span><%= t("sign.org.authentication.new.links.passkey") %></span>
-    <% end %>
+  <%#
+    One list, one item per sign-in method, so the Entra button sits on the same
+    line as the passkey and secret-credential links rather than below them.
+    Entra needs the organization's connection before a tenant can be chosen, so
+    its button posts to the surface ceremony endpoint, which renders one cushion
+    page and only then hands the POST to the OmniAuth request phase. Button
+    wording is governed by
+    docs/reference/third-party-sign-in-button-requirements.md.
+  %>
+  <ul class="sign-in-methods">
+    <li>
+      <%= link_to t("sign.org.authentication.new.links.passkey"),
+                  new_auth_org_sign_in_passkey_path(pt: pt, ri: params[:ri]) %>
+    </li>
+    <li>
+      <%= link_to t("sign.org.authentication.new.links.secret_credential"),
+                  new_auth_org_sign_in_secret_path(pt: pt, ri: params[:ri]) %>
+    </li>
+    <li>
+      <%= render "auth/shared/social_provider_button",
+                 url: auth_org_social_entra_session_path(pt: pt, ri: params[:ri]),
+                 label: t("sign.org.authentication.new.links.entra"),
+                 provider: "entra" %>
+    </li>
+  </ul>
 
-    <%= link_to new_auth_org_sign_in_secret_credential_path(pt: pt, ri: params[:ri]) do %>
-      <span><%= t("sign.org.authentication.new.links.secret_credential") %></span>
+  <div>
+    <%#
+      Direct entry only. An RP-initiated ceremony asked for a sign-in, so the
+      page must not offer a detour into sign-up; the same rule governs the
+      reciprocal link on auth/org/sign_ups/new.
+    %>
+    <% if @oidc_authorization_intent.blank? %>
+      <%= link_to t("sign.org.authentication.new.links.registration"),
+                  auth_org_sign_up_path(pt: pt, ri: params[:ri]) %>
     <% end %>
 
     <div>

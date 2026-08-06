@@ -36,7 +36,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
     source = read("app/views/auth/org/sign_ins/new.html.erb")
 
     assert_match(/new_auth_org_sign_in_passkey_path/, source)
-    assert_match(/new_auth_org_sign_in_secret_credential_path/, source)
+    assert_match(/new_auth_org_sign_in_secret_path/, source)
     assert_no_match(/social_authentication|google|apple|microsoft/i, source)
   end
 
@@ -45,7 +45,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
     org_block = surface_block(source, "# Staff credential gateway host")
 
     assert_match(/resource :passkey, only: :new/, org_block)
-    assert_match(/resource :secret_credential, only: %i\(new create\)/, org_block)
+    assert_match(/resource :secret, only: %i\(new create\)/, org_block)
     assert_match(/resource :passkey, only: %i\(new create\)/, org_block)
     assert_no_match(/namespace :social|resource :totp|resources :totps/, org_block)
   end
@@ -64,7 +64,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
     com_block = surface_block(source, "# Corporate credential gateway host", "# Staff credential gateway host")
 
     assert_match(/resource :email, only: %i\(new create edit\)/, com_block)
-    assert_match(/resource :secret_credential, only: %i\(new create\)/, com_block)
+    assert_match(/resource :secret, only: %i\(new create\)/, com_block)
     assert_no_match(/namespace :social|google|apple|microsoft/i, com_block)
   end
 
@@ -75,7 +75,10 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
     )
     omniauth = read("config/initializers/omniauth.rb")
 
-    assert_match(/resource :session, only: :new, controller: :sessions/, routes)
+    # The ceremony entry is POST only: a GET entry would let a link start an
+    # authentication ceremony (login CSRF), so there is no `new` action.
+    assert_match(/resource :session, only: :create, controller: :sessions/, routes)
+    assert_no_match(/resource :session, only: %i\([^)]*new[^)]*\), controller: :sessions/, routes)
     assert_match(%r{omniauth/omniauth_callbacks#omniauth}, routes)
     assert_match(/apple/, routes)
     assert_match(/google/, omniauth)

@@ -11,6 +11,23 @@ module Base
 
         before_action :skip_oauth_session!
         after_action :set_oauth_cache_headers
+        # The 401/200 distinction on an invalid client_secret is a guessing oracle;
+        # this endpoint is the only OAuth POST that had no limiter.
+        rate_limit(
+          to: 20,
+          within: 1.minute,
+          by: -> { request.remote_ip },
+          scope: "base_org_oauth_revoke",
+          name: "revocation_ip",
+          store: rate_limit_store,
+          only: :create,
+          with: -> {
+            render_rate_limited(
+              rule_name: "base_org_oauth_revoke_revocation_ip",
+              retry_after: 60,
+            )
+          },
+        )
 
         def create
           result = ::OidcTokenRevoker.call(

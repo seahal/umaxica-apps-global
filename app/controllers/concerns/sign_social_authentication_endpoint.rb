@@ -49,7 +49,10 @@ module SignSocialAuthenticationEndpoint
       store_social_ceremony_grant!(issuance.grant)
     end
 
-    render_social_authorization_form(provider)
+    # The settings link button is already a token-protected POST, so the
+    # ceremony hands the same POST to the OmniAuth request phase with a 307
+    # instead of asking for a second press on a cushion page.
+    redirect_to(omniauth_authorize_path(provider), status: :temporary_redirect)
   rescue SocialAuth::BaseError => e
     handle_social_auth_error(e)
   end

@@ -7,22 +7,28 @@
   <li><%= link_to t("sign.app.authentication.new.links.email"), new_auth_app_sign_in_email_path(pt: pt) %></li>
   <li><%= link_to t("sign.app.authentication.new.links.passkey"), new_auth_app_sign_in_passkey_path(pt: pt) %>
   </li>
-  <li><%= link_to t("sign.app.authentication.new.links.secret_credential"), new_auth_app_sign_in_secret_credential_path(pt: pt) %>
+  <li><%= link_to t("sign.app.authentication.new.links.secret_credential"), new_auth_app_sign_in_secret_path(pt: pt) %>
   </li>
 </ul>
 
-<ul>
+<%#
+  Provider buttons post directly: the press supplies the CSRF token the
+  OmniAuth request phase requires, so no cushion page is involved. Button
+  labels and artwork are governed by
+  docs/reference/third-party-sign-in-button-requirements.md.
+%>
+<ul class="social-provider-buttons">
   <li>
-    <%= link_to new_auth_app_social_google_session_path,
-                data: { turbo: false } do %>
-      <%= t("sign.app.authentication.new.links.google") %>
-    <% end %>
+    <%= render "auth/shared/social_provider_button",
+               url: auth_app_social_google_session_path,
+               label: t("sign.app.authentication.new.links.google"),
+               provider: "google" %>
   </li>
   <li>
-    <%= link_to new_auth_app_social_apple_session_path,
-                data: { turbo: false } do %>
-      <%= t("sign.app.authentication.new.links.apple") %>
-    <% end %>
+    <%= render "auth/shared/social_provider_button",
+               url: auth_app_social_apple_session_path,
+               label: t("sign.app.authentication.new.links.apple"),
+               provider: "apple" %>
   </li>
 </ul>
 

@@ -11,15 +11,27 @@ module Auth
         @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
       end
 
-      test "direct entry without login challenge starts OIDC handoff" do
+      test "direct entry without login challenge lists the sign-in methods" do
         get auth_app_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 
-        assert_response :redirect
+        assert_response :success
+
+        query = {}
+
+        assert_select "a[href=?]", new_auth_app_sign_in_email_path(query, ri: "jp")
+        assert_select "a[href=?]", new_auth_app_sign_in_passkey_path(query, ri: "jp")
+        assert_select "a[href=?]", new_auth_app_sign_in_secret_path(query, ri: "jp")
+        assert_select "form[action=?][method=?]", auth_app_social_google_session_path(ri: "jp"), "post"
+        assert_select "form[action=?][method=?]", auth_app_social_apple_session_path(ri: "jp"), "post"
+      end
+
+      test "direct entry without login challenge starts no OIDC handoff state" do
+        get auth_app_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+
         assert_nil session[:oidc_authorization_login_challenge]
-        assert_predicate session[:oidc_code_verifier], :present?
-        assert_predicate session[:oidc_state], :present?
-        assert_predicate session[:oidc_nonce], :present?
-        assert_equal auth_app_root_path(ri: "jp"), session[:oidc_pt]
+        assert_nil session[:oidc_code_verifier]
+        assert_nil session[:oidc_state]
+        assert_nil session[:oidc_nonce]
         assert_nil session["oidc_pending_flows"]
       end
 
@@ -34,7 +46,7 @@ module Auth
                       I18n.t("sign.app.authentication.new.links.email")
         assert_select "a[href=?]", new_auth_app_sign_in_passkey_path(query, ri: "jp"),
                       I18n.t("sign.app.authentication.new.links.passkey")
-        assert_select "a[href=?]", new_auth_app_sign_in_secret_credential_path(query, ri: "jp"),
+        assert_select "a[href=?]", new_auth_app_sign_in_secret_path(query, ri: "jp"),
                       I18n.t("sign.app.authentication.new.links.secret_credential")
       end
 
@@ -66,7 +78,7 @@ module Auth
         assert_response :success
         assert_select "a[href=?]", new_auth_app_sign_in_email_path(ri: "jp")
         assert_select "a[href=?]", new_auth_app_sign_in_passkey_path(ri: "jp")
-        assert_select "a[href=?]", new_auth_app_sign_in_secret_credential_path(ri: "jp")
+        assert_select "a[href=?]", new_auth_app_sign_in_secret_path(ri: "jp")
       end
 
       test "sign up link includes pt when pt is present" do
@@ -109,14 +121,44 @@ module Auth
         get auth_app_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "a[href=?][data-turbo=?]",
-                      new_auth_app_social_google_session_path(ri: "jp"),
+        assert_select "form[action=?][method=?][data-turbo=?]",
+                      auth_app_social_google_session_path(ri: "jp"),
+                      "post",
                       "false",
                       count: 1
-        assert_select "a[href=?][data-turbo=?]",
-                      new_auth_app_social_apple_session_path(ri: "jp"),
+        assert_select "form[action=?][method=?][data-turbo=?]",
+                      auth_app_social_apple_session_path(ri: "jp"),
+                      "post",
                       "false",
                       count: 1
+        assert_select "form[action=?] input[name=?]",
+                      auth_app_social_google_session_path(ri: "jp"),
+                      "authenticity_token",
+                      count: 1
+      end
+
+      test "apple button carries a permitted call to action on the custom button element" do
+        get auth_app_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
+
+        assert_response :success
+        assert_select "form[action=?] button.social-provider-button--apple",
+                      auth_app_social_apple_session_path(ri: "jp"),
+                      count: 1 do |buttons|
+          title = buttons.first.text.strip
+
+          assert_includes ["Sign in with Apple", "Sign up with Apple", "Continue with Apple", "Appleで続行"],
+                          title
+        end
+      end
+
+      test "apple button renders the official logo artwork for both appearances" do
+        get auth_app_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
+
+        assert_response :success
+        assert_select "button.social-provider-button--apple img[src=?][width=?][height=?]",
+                      "/images/social/apple_logo_white.svg", "28", "40", count: 1
+        assert_select "button.social-provider-button--apple img[src=?][width=?][height=?]",
+                      "/images/social/apple_logo_black.svg", "28", "40", count: 1
       end
 
       test "rejects direct entry when logged in" do

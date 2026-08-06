@@ -23,18 +23,25 @@ module AuthenticationJwtConfiguration
     "#{base}:#{normalized_resource_type}"
   end
 
+  # Audience is a resource-type boundary: a visitor token must not validate where
+  # an operator token is expected. Falling back to a single shared literal when
+  # the environment is unset silently collapses that boundary for every resource
+  # type at once, so the missing configuration is named instead. `issuer` above
+  # already fails this way.
   def self.audiences(resource_type = nil)
     normalized_resource_type = normalize_resource_type(resource_type)
     resource_key = normalized_resource_type&.upcase
     raw =
       if resource_key.present?
-        ENV["AUTH_JWT_#{resource_key}_AUDIENCES"].presence || ENV["AUTH_JWT_AUDIENCES"].to_s
+        ENV["AUTH_JWT_#{resource_key}_AUDIENCES"].presence || ENV.fetch("AUTH_JWT_AUDIENCES")
       else
-        ENV["AUTH_JWT_AUDIENCES"].to_s
+        ENV.fetch("AUTH_JWT_AUDIENCES")
       end
     audiences = raw.split(",").map(&:strip)
     audiences.reject!(&:empty?)
-    audiences.presence || ["umaxica-api"]
+    return audiences if audiences.present?
+
+    raise KeyError, "AUTH_JWT_AUDIENCES (or AUTH_JWT_#{resource_key}_AUDIENCES) is set but contains no audience"
   end
 
   def self.token_type(resource_type)

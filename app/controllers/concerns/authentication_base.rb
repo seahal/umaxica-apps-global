@@ -2215,8 +2215,12 @@ module AuthenticationBase
       "ri" => ri.to_s.presence,
       "issued_at" => issued_at,
       "expires_at" => expires_at,
-      "attempts" => 0,
     }
+    # No per-ceremony attempt counter is kept here. A session-scoped counter is not
+    # a control: an attacker discards the session and starts a fresh one. Second-factor
+    # guessing is bounded per account by the "*_create_account" rate_limit rules on the
+    # TOTP challenge and secret-credential controllers, which are keyed on the
+    # pending-MFA user id and backed by the shared rate-limit store.
     # Backward compatibility for existing controllers still using mfa_user_id.
     session[:mfa_user_id] = resource.id
   end
@@ -2434,6 +2438,17 @@ module AuthenticationBase
     return session_limit_hard_reject_result(resource) if session_limit_state == :hard_reject
 
     if session_limit_state == :issue_restricted
+      # This branch returns before log_in, so log_in's reset_session never runs -
+      # yet store_pending_login_resource below writes the authenticated principal's
+      # id into the session, and the session-management page treats that id as
+      # authoritative (it lists and revokes the actor's sessions). That is a
+      # privilege transition from anonymous to identified, so the session id must be
+      # rotated here for the same reason log_in rotates it. OIDC RP state is
+      # preserved across the reset exactly as log_in does at :359-362.
+      oidc_rp_session_state = preserved_oidc_rp_session_state
+      reset_session
+      restore_oidc_rp_session_state!(oidc_rp_session_state)
+
       store_pending_login_resource(resource)
       issue_session_limit_gate!(
         pt: session_limit_gate_pt,

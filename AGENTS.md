@@ -62,6 +62,8 @@ repository root. Load only the entries that match the task.
 - Routing or authentication workflows: `project/surfaces.mdc`, `generic/routing.mdc`,
   `generic/no-workflow-drift.mdc`, `docs/architecture/controller-lifecycle.md`
 - User-facing notices, alerts, or feedback: `generic/no-flash-messages.mdc`
+- Google or Apple sign-in buttons and provider branding:
+  `docs/reference/third-party-sign-in-button-requirements.md`
 - External technical sources: `generic/source-policy.mdc`
 - Documentation, ADRs, plans, notes, memos, harnesses, comments, or test names:
   `generic/repository-language.mdc`

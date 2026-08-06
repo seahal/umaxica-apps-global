@@ -103,9 +103,13 @@ module SignUpSocialBirthdateSupport
     render(
       "sign/shared/social_completion",
       locals: {
+        # The browser posts this form, so the target must be the public base
+        # host, not the internal one, and https, because the CSP form-action
+        # allowlist carries https origins only.
         completion_url: base_app_social_authentication_completion_url(
           id: candidate.provider,
-          host: ENV.fetch("PRIVATE_BASE_SERVICE_URL"),
+          host: base_authority_host,
+          protocol: "https",
         ),
         result_token: result_token,
         ri: params[:ri],

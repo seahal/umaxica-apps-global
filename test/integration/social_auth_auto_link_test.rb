@@ -649,11 +649,14 @@ class SocialAuthAutoLinkTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -696,6 +699,10 @@ class SocialAuthAutoLinkTest
     return unless response.media_type == "text/html"
     return unless response.body.include?("social-completion-form")
 
+    # A browser only reaches the completion endpoint when CSP allows the form
+    # target. See test/support/form_action_policy_helper.rb.
+    assert_forms_submittable_under_policy
+
     form = response.parsed_body.at_css("form#social-completion-form")
     raise StandardError, "social completion form missing" unless form
 
@@ -737,9 +744,9 @@ class SocialAuthAutoLinkTest
                                                             social_ceremony_grant: social_ceremony_grant,
         )
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -752,7 +759,7 @@ class SocialAuthAutoLinkTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1007,11 +1014,14 @@ class SocialAuthAutoLinkTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

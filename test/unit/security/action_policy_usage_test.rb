@@ -52,7 +52,6 @@ class ActionPolicyUsageTest < ActiveSupport::TestCase
     "app/controllers/auth/app/sign/in/check/cancellations_controller.rb#update",
     "app/controllers/auth/app/sign/in/checks_controller.rb#destroy",
     "app/controllers/auth/app/sign/in/checks_controller.rb#update",
-    "app/controllers/auth/app/social/authentications_controller.rb#destroy",
     "app/controllers/auth/app/verification/emails_controller.rb#create",
     "app/controllers/auth/app/verification/emails_controller.rb#update",
     "app/controllers/auth/app/verification/redeliveries_controller.rb#create",

@@ -29,7 +29,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     OmniAuth.config.test_mode = true
     CloudflareTurnstile.test_mode = true
     JitSecurityTurnstileVerifier.test_mode = true
-    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+    # The ceremony runs on the Auth host the application is configured with: a request
+    # made to any other host gets a session cookie the application does not read back,
+    # so the sign-up ticket is lost and the flow restarts instead of advancing.
+    @host = configured_host(:sign_service)
     @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -290,7 +293,9 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to "http://#{@base_host}/dashboard"
+    # The completion form posts to the public base origin, so the dashboard
+    # handoff continues from there.
+    assert_redirected_to "https://#{ENV.fetch("PUBLIC_BASE_SERVICE_URL")}/dashboard"
     identity.reload
 
     assert_equal user.id, identity.user_id
@@ -1040,11 +1045,14 @@ class SocialAuthAppFlowContractTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -1091,9 +1099,9 @@ class SocialAuthAppFlowContractTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -1106,7 +1114,7 @@ class SocialAuthAppFlowContractTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1182,6 +1190,10 @@ class SocialAuthAppFlowContractTest
   def submit_social_completion_if_present!
     return unless response.media_type == "text/html"
     return unless response.body.include?("social-completion-form")
+
+    # A browser only reaches the completion endpoint when CSP allows the form
+    # target. See test/support/form_action_policy_helper.rb.
+    assert_forms_submittable_under_policy
 
     form = response.parsed_body.at_css("form#social-completion-form")
     raise StandardError, "social completion form missing" unless form
@@ -1444,11 +1456,14 @@ class SocialAuthAppFlowContractTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

@@ -18,6 +18,9 @@ module OidcDiscoveryDocument
       backchannel_logout_supported: true,
       backchannel_logout_session_supported: true,
       response_types_supported: ["code"],
+      # RFC 9207. The authorization response carries `iss`; advertising it lets a
+      # conforming client require the parameter and reject a response that omits it.
+      authorization_response_iss_parameter_supported: true,
       grant_types_supported: ["authorization_code"],
       subject_types_supported: ["public"],
       id_token_signing_alg_values_supported: [AuthenticationTokenService::JWT_ALGORITHM],

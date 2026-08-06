@@ -1810,6 +1810,7 @@ ja:
             secret_credential: シークレット
             google: Google
             apple: Apple
+            entra: Microsoft でサインイン
             registration: アカウント登録はこちら
           back_to_root: うえへ
         secret_credential:
@@ -1864,6 +1865,10 @@ ja:
             page_title: Microsoft アカウントでサインイン
             submit: Microsoft でサインイン
             connection_unavailable: この組織の Microsoft 連携が設定されていません。管理者にお問い合わせください。
+            connection_prompt: 管理者から案内された組織の連携 ID を入力してください。
+            connection_label: 連携 ID
+            connection_submit: つづける
+            connection_not_found: 連携 ID を確認できませんでした。入力内容をご確認のうえ、管理者にお問い合わせください。
           errors:
             connection_not_found: 指定された Microsoft 連携が見つかりません。
             state_mismatch: セキュリティ検証に失敗しました。最初からやり直してください。
@@ -1890,6 +1895,8 @@ ja:
           description: お客様専用の管理操作をはじめるにはアカウントを作成してください。
           recruit_prompt_html: 採用を希望しますか？ %{link}
           recruit_link_text: 採用に関するお問い合わせ
+          links:
+            sign_in: すでにアカウントをお持ちですか？サインイン
           back_to_root: うえへ
       up:
         invitations:

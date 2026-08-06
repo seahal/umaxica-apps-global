@@ -17,11 +17,10 @@ class SocialAuthStepUpTest < ActionDispatch::IntegrationTest
   end
 
   test "social auth entry rejects step_up intent" do
-    get new_auth_app_social_google_session_url(intent: "step_up", ri: "jp"),
-        headers: as_user_headers(@user, host: @host)
+    post auth_app_social_google_session_url(intent: "step_up", ri: "jp"),
+         headers: as_user_headers(@user, host: @host)
 
-    assert_response :success
-    assert_select "form#social-authorization-form[action='/social/google'][method='post']"
+    assert_response :temporary_redirect
     assert_not_equal "step_up", session[SocialAuth::SOCIAL_INTENT_SESSION_KEY]
     assert_predicate session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY], :present?
     assert_nil @user.reload.last_step_up_at

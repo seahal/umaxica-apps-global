@@ -185,8 +185,28 @@ Rails.application.configure do
   # We've configured this production environment to prevent the delivery of public static content.
   config.public_file_server.enabled = false
 
-  # Enable Gzip compression
-  config.middleware.use(Rack::Deflater)
+  # Gzip compression, restricted to content types that carry no secret alongside
+  # attacker-influenced text.
+  #
+  # Compressing HTML is the BREACH precondition: every authenticated page embeds
+  # the CSRF authenticity token, and the sign-in and identity surfaces reflect
+  # submitted input back into the same response. An attacker who can trigger
+  # requests and observe compressed response sizes can recover the token a byte
+  # at a time, and Rails adds no length randomization. text/html is therefore
+  # excluded here rather than compressed.
+  config.middleware.use(
+    Rack::Deflater,
+    include: %w(
+      application/javascript
+      application/json
+      application/xml
+      image/svg+xml
+      text/css
+      text/javascript
+      text/plain
+      text/xml
+    ),
+  )
 
   # Additional security headers
   config.action_dispatch.default_headers.merge!(

@@ -963,6 +963,7 @@ en:
             passkey: Passkey
             recovery: Recovery code
             secret_credential: Secret
+            entra: Sign in with Microsoft
             registration: Need an account?
         passkey:
           new:
@@ -986,6 +987,10 @@ en:
             page_title: Sign in with Microsoft
             submit: Sign in with Microsoft
             connection_unavailable: Microsoft sign-in is not configured for this organization. Please contact your administrator.
+            connection_prompt: Enter the organization connection ID your administrator gave you.
+            connection_label: Connection ID
+            connection_submit: Continue
+            connection_not_found: That connection ID could not be verified. Check the value and contact your administrator.
           errors:
             connection_not_found: The specified Microsoft connection was not found.
             state_mismatch: Security verification failed. Please start over.
@@ -1005,6 +1010,16 @@ en:
             tenant_not_allowed: This account type cannot be used to sign in. Please use your organization account.
             tenant_mismatch: This account belongs to a different organization.
             generic: An error occurred. Please try again.
+      ups:
+        new:
+          heading: Create an account
+          description: Create an account to start the administrative operations reserved for you.
+          recruit_prompt: Careers
+          recruit_prompt_html: Interested in joining the team? %{link}
+          recruit_link_text: Contact recruiting
+          links:
+            sign_in: Already have an account? Sign in
+          back_to_root: Up
       outs:
         destroy:
           success: You have been signed out.

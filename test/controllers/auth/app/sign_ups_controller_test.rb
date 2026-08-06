@@ -7,11 +7,24 @@ require "test_helper"
 class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
-  test "direct entry without a login challenge starts OIDC handoff" do
+  test "direct entry without a login challenge lists the registration methods" do
     get auth_app_sign_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
 
-    assert_response :redirect
+    assert_response :success
     assert_nil session[:oidc_authorization_login_challenge]
+    assert_select "a[href=?]", new_auth_app_sign_up_email_path(ri: "jp")
+    assert_select "a[href=?]", new_auth_app_sign_up_telephone_path(ri: "jp")
+    assert_select "form[action=?][method=?]", auth_app_social_google_registration_path(ri: "jp"), "post"
+    assert_select "form[action=?][method=?]", auth_app_social_apple_registration_path(ri: "jp"), "post"
+  end
+
+  test "direct entry without a login challenge starts no OIDC handoff state" do
+    get auth_app_sign_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
+
+    assert_nil session[:oidc_code_verifier]
+    assert_nil session[:oidc_state]
+    assert_nil session[:oidc_nonce]
+    assert_nil session["oidc_pending_flows"]
   end
 
   test "valid login challenge renders local ceremony" do
@@ -52,13 +65,19 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
         headers: { "Host" => host }
 
     assert_response :success
-    assert_select "a[href=?][data-turbo=?]",
-                  new_auth_app_social_google_registration_path(ri: "jp"),
+    assert_select "form[action=?][method=?][data-turbo=?]",
+                  auth_app_social_google_registration_path(ri: "jp"),
+                  "post",
                   "false",
                   count: 1
-    assert_select "a[href=?][data-turbo=?]",
-                  new_auth_app_social_apple_registration_path(ri: "jp"),
+    assert_select "form[action=?][method=?][data-turbo=?]",
+                  auth_app_social_apple_registration_path(ri: "jp"),
+                  "post",
                   "false",
+                  count: 1
+    assert_select "form[action=?] input[name=?]",
+                  auth_app_social_google_registration_path(ri: "jp"),
+                  "authenticity_token",
                   count: 1
   end
 
@@ -631,11 +650,14 @@ class Auth::App::SignUpsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

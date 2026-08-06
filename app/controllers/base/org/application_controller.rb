@@ -97,8 +97,11 @@ module Base
         "base-rails-rp"
       end
 
+      # The browser is redirected to this host for the OIDC hop, so it has to be the public
+      # Auth origin, matching Base::App::ApplicationController. An internal host here sends
+      # the visitor to a name their browser cannot resolve.
       def oidc_sign_host
-        ENV.fetch("PRIVATE_AUTH_STAFF_URL")
+        ENV.fetch("PUBLIC_AUTH_STAFF_URL")
       end
 
       def oidc_base_authority_host

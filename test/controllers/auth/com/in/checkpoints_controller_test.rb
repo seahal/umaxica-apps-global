@@ -21,7 +21,12 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
     get auth_com_sign_in_check_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :redirect
-    assert_includes response.location, "rt="
+    # Auth and Base are same-site, so the authorize hop goes straight to Base. The jump
+    # gateway (an `rt=` token) is for cross-site hops and is not used here.
+    assert_equal Rails.configuration.x.boot_config.fetch(:hosts).base_corporate.host,
+                 URI.parse(response.location).host
+    assert_equal "/oauth/authorize", URI.parse(response.location).path
+    assert_not_includes response.location, "rt="
   end
 
   test "show without sign in sequence is rejected" do
@@ -674,11 +679,14 @@ class Auth::Com::Sign::In::CheckpointsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -725,9 +733,9 @@ class Auth::Com::Sign::In::CheckpointsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -740,7 +748,7 @@ class Auth::Com::Sign::In::CheckpointsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -995,11 +1003,14 @@ class Auth::Com::Sign::In::CheckpointsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

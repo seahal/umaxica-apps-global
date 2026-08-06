@@ -152,8 +152,16 @@ class OidcTokenExchangeCoordinator < ApplicationService
 
     connection_class = connection_class_for(authorization_code)
 
+    # The transaction must be opened on the ticket connection, not on
+    # ActiveRecord::Base. Authorization codes, token usages, and OIDC connection
+    # records all live on the per-surface ticket database, while
+    # ActiveRecord::Base is the primary (publishing) connection — so
+    # `ActiveRecord::Base.transaction` wrapped none of the writes below, and the
+    # `SELECT ... FOR UPDATE` taken by `lock!` committed and released
+    # immediately. That left `consumed?` here and `consume!` further down as a
+    # TOCTOU window in which one authorization code could be redeemed twice.
     connection_class.connected_to(role: :writing) do
-      ActiveRecord::Base.transaction do
+      connection_class.transaction do
         authorization_code.lock!
         return failure("invalid_grant", "Authorization code expired") if authorization_code.expired?
         return failure("invalid_grant", "Authorization code already consumed") if authorization_code.consumed?

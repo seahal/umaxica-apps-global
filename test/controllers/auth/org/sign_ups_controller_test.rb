@@ -11,11 +11,34 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     @host = configured_host(:sign_staff)
   end
 
-  test "direct entry without a login challenge starts OIDC handoff" do
+  test "direct entry without a login challenge renders the org entry page" do
     get auth_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
 
-    assert_response :redirect
+    assert_response :success
     assert_nil session[:oidc_authorization_login_challenge]
+    assert_nil session[:oidc_code_verifier]
+    assert_nil session[:oidc_state]
+  end
+
+  test "direct entry offers the reciprocal sign in link" do
+    get auth_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_response :success
+    assert_select "a[href=?]", auth_org_sign_in_path(ri: "jp")
+  end
+
+  test "local ceremony does not render sign in link on sign up page" do
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
+      surface: "org",
+      intent: "sign_up",
+      params: authorize_params(screen_hint: "signup"),
+    )
+
+    get auth_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+        headers: { "Host" => @host }
+
+    assert_response :success
+    assert_select "a[href=?]", auth_org_sign_in_path(ri: "jp"), count: 0
   end
 
   test "valid login challenge renders local ceremony" do
@@ -122,8 +145,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     get auth_org_sign_up_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
-    assert_response :redirect
-    assert_includes response.location, "rt="
+    assert_response :forbidden
   end
 
   private
@@ -690,11 +712,14 @@ class Auth::Org::SignUpsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -741,9 +766,9 @@ class Auth::Org::SignUpsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -756,7 +781,7 @@ class Auth::Org::SignUpsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -877,6 +902,11 @@ class Auth::Org::SignUpsControllerTest
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    # The X-TEST-* headers alone do not authenticate; the access token is what makes `logged_in?`
+    # true. Mirrors the org sign-in test helper.
+    base["Authorization"] = "Bearer #{
+      jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+    }"
     base
   end
 
@@ -999,11 +1029,14 @@ class Auth::Org::SignUpsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

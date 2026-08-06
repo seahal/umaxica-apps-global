@@ -35,6 +35,25 @@ module Auth
                 render_rate_limited(rule_name: "auth_app_sign_in_mfa_totp_create_ip_sustained", retry_after: 900)
               },
             )
+            # Per-account limit. The two rules above are keyed by source IP, so a
+            # distributed attacker gets unbounded guesses against one account's
+            # 6-digit TOTP. The email and SMS OTP channels already have a
+            # per-account lock (OtpLockable); this is its equivalent for TOTP.
+            rate_limit(
+              to: 10,
+              within: 15.minutes,
+              by: -> {
+                actor_id = pending_mfa&.dig(:user_id)
+                actor_id.present? ? "client:#{actor_id}" : "unbound:#{request.remote_ip}"
+              },
+              scope: "auth_app_sign_in",
+              name: "mfa_totp_create_account",
+              store: rate_limit_store,
+              only: :create,
+              with: -> {
+                render_rate_limited(rule_name: "auth_app_sign_in_mfa_totp_create_account", retry_after: 900)
+              },
+            )
 
             class TotpChallengeForm
               include ActiveModel::Model

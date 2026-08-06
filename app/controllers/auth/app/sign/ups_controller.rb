@@ -15,7 +15,7 @@ module Auth
 
         def show
           return redirect_logged_in_direct_entry! if logged_in? && params[:login_challenge].blank?
-          return normalize_to_acme_authorize! if params[:login_challenge].blank?
+          return render_method_selection! if params[:login_challenge].blank?
 
           transaction =
             OidcAuthorizationTransactionCoordinator.find_by_login_challenge!(
@@ -46,9 +46,13 @@ module Auth
           redirect_to(base_app_dashboard_url(ri: params[:ri], host: base_authority_host), allow_other_host: true)
         end
 
-        def normalize_to_acme_authorize!
-          url = initiate_oidc_session!(pt: auth_app_root_path(ri: params[:ri]), screen_hint: "signup")
-          redirect_to_oidc_authorization_url(url)
+        # Direct entry without an authorization transaction lists the registration methods instead
+        # of bouncing through Base. The round trip dropped `ri`, so every link on the returned page
+        # needed a further redirect to restore it. Sign-up finalization never reads
+        # `oidc_authorization_login_challenge`; it hands off to the sign-in sequence, which already
+        # branches on a missing challenge.
+        def render_method_selection!
+          render "auth/app/sign_ups/new"
         end
       end
     end

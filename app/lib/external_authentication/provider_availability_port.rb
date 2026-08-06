@@ -11,7 +11,7 @@ module ExternalAuthentication
   # Microsoft (OmniAuth::Strategies::UmaxicaEntra#request_phase,
   # lib/omniauth/strategies/umaxica_entra.rb) and before processing a
   # callback (Auth::Org::Omniauth::OmniauthCallbacksController#omniauth),
-  # so the ENTRA_SOCIAL_CEREMONY_ENABLED kill switch is operational today.
+  # so the :social_ceremony_entra Flipper kill switch is operational today.
   module ProviderAvailabilityPort
     def start_decision(provider:, operation:, context:)
       raise NotImplementedError

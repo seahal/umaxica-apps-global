@@ -254,7 +254,8 @@ class Auth::App::SignUpCompensationTest < ActiveSupport::TestCase
       "app/controllers/auth/app/sign/up/check/email/otps_controller.rb",
       "app/controllers/auth/app/sign/up/check/telephone/otps_controller.rb",
       "app/controllers/auth/app/omniauth/omniauth_callbacks_controller.rb",
-      "app/controllers/auth/app/social/authentications_controller.rb",
+      "app/controllers/auth/app/social/sessions_controller.rb",
+      "app/controllers/auth/app/social/registrations_controller.rb",
     ]
 
     matches =

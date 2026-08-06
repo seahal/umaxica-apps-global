@@ -60,15 +60,15 @@ class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
       count: 2,
       classification: "WebAuthn options error response and best-effort risk emission boundaries",
     },
-    "app/controllers/auth/app/sign/in/secret_credentials_controller.rb" => {
+    "app/controllers/auth/app/sign/in/secrets_controller.rb" => {
       count: 2,
       classification: "secret_credential sign-in error response boundary; follow-up required",
     },
-    "app/controllers/auth/com/sign/in/secret_credentials_controller.rb" => {
+    "app/controllers/auth/com/sign/in/secrets_controller.rb" => {
       count: 1,
       classification: "secret_credential sign-in error response boundary; follow-up required",
     },
-    "app/controllers/auth/org/sign/in/secret_credentials_controller.rb" => {
+    "app/controllers/auth/org/sign/in/secrets_controller.rb" => {
       count: 1,
       classification: "secret_credential sign-in error response boundary; follow-up required",
     },

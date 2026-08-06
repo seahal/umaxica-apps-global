@@ -11,7 +11,7 @@ module Auth
 
         def show
           return reject_logged_in_direct_entry! if logged_in? && params[:login_challenge].blank?
-          return normalize_to_acme_authorize! if params[:login_challenge].blank?
+          return render_method_selection! if params[:login_challenge].blank?
 
           transaction =
             OidcAuthorizationTransactionCoordinator.find_by_login_challenge!(
@@ -38,9 +38,11 @@ module Auth
           render plain: I18n.t("errors.messages.already_authenticated"), status: :forbidden
         end
 
-        def normalize_to_acme_authorize!
-          url = initiate_oidc_session!(pt: auth_org_root_path(ri: params[:ri]), screen_hint: "signin")
-          redirect_to_oidc_authorization_url(url)
+        # Direct entry without an authorization transaction renders this surface's entry page instead
+        # of bouncing through Base. Every page it links to is already reachable directly, and the
+        # completion paths branch on a missing `oidc_authorization_login_challenge`.
+        def render_method_selection!
+          render "auth/org/sign_ins/new"
         end
       end
     end

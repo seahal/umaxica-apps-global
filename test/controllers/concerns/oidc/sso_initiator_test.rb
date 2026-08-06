@@ -28,8 +28,11 @@ class OidcSsoInitiatorTestController < ApplicationController
     Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host
   end
 
+  # Base::App::ApplicationController resolves this to PUBLIC_BASE_SERVICE_URL, which is
+  # same-site with the Auth host. Pointing the stand-in at a different family would make
+  # the hop cross-site and exercise the jump gateway instead of the direct authorize path.
   def oidc_base_authority_host
-    Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host
+    Rails.configuration.x.boot_config.fetch(:hosts).base_service.host
   end
 
   def oidc_callback_url
@@ -59,6 +62,15 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
 
   teardown do
     Rails.application.reload_routes!
+    # Several tests below redefine these on the controller class to drive a specific
+    # redirect decision. define_method is permanent, so without this the next test in the
+    # process inherits the override and the file's results depend on the run order.
+    OidcSsoInitiatorTestController.define_method(:oidc_base_authority_host) do
+      Rails.configuration.x.boot_config.fetch(:hosts).base_service.host
+    end
+    OidcSsoInitiatorTestController.define_method(:oidc_callback_url) do
+      "https://#{Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host}/oidc/callback"
+    end
   end
 
   test "authenticate! redirects unauthenticated html requests to oidc authorize url" do
@@ -66,14 +78,14 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     logger = Logger.new(io)
 
     Rails.stub(:logger, logger) do
-      get "/oidc/sso", headers: { "Host" => configured_host(:sign_service) }
+      get "/oidc/sso", headers: { "Host" => configured_host(:sign_service), "HTTPS" => "on" }
     end
 
     assert_response :redirect
     location = response.location
     uri = URI.parse(location)
 
-    assert_equal configured_host(:acme_service), uri.host
+    assert_equal configured_host(:base_service), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_not_equal "jump.umaxica.net", uri.host
 
@@ -106,7 +118,10 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
   end
 
   test "authenticate! preserves the protected request query in oidc return path" do
-    get "/oidc/sso", params: { ri: "jp" }, headers: { "Host" => configured_host(:sign_service) }
+    # https, as a browser would: an http request to a public host is a scheme mismatch and
+    # takes the jump gateway instead of the direct authorize hop.
+    get "/oidc/sso", params: { ri: "jp" },
+                     headers: { "Host" => configured_host(:sign_service), "HTTPS" => "on" }
 
     assert_response :redirect
     assert_nil session[:oidc_pt]
@@ -118,6 +133,11 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
   end
 
   test "token endpoint uses local rails port for local public Acme hosts" do
+    # This test is about the .localhost rewrite, so it states a local authority host
+    # instead of inheriting the configured public one. The teardown restores it.
+    OidcSsoInitiatorTestController.define_method(:oidc_base_authority_host) do
+      Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host
+    end
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create(
       "HTTP_HOST" => configured_host(:sign_service),
@@ -137,7 +157,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     )
 
     Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
-      assert_equal "https://#{configured_host(:acme_service)}/oauth/token", controller.send(:oidc_token_url)
+      assert_equal "https://#{configured_host(:base_service)}/oauth/token", controller.send(:oidc_token_url)
     end
   end
 
@@ -699,9 +719,9 @@ class OidcSsoInitiatorTestController
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -714,7 +734,7 @@ class OidcSsoInitiatorTestController
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 

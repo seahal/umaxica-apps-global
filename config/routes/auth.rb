@@ -125,7 +125,7 @@ scope(module: :auth, as: :auth) do
             resource :verification, only: :create
           end
 
-          resource :secret_credential, only: %i(new create)
+          resource :secret, only: %i(new create)
           resource :session, only: %i(show update destroy)
 
           resource :guard, only: :show
@@ -161,16 +161,22 @@ scope(module: :auth, as: :auth) do
           as: :failure,
         )
 
-        # Ceremony start pages. session = sign-in intent, registration =
-        # sign-up entry; the provider is carried by route defaults.
+        # Ceremony start. session = sign-in intent, registration = sign-up
+        # entry; the provider is carried by route defaults.
+        #
+        # POST only, and deliberately so: the press of an in-application button
+        # supplies the CSRF token the OmniAuth request phase requires, and the
+        # ceremony hands that same POST on with a 307. There is no GET entry, so
+        # a link cannot start an authentication ceremony. People choose their
+        # provider on the sign-in or sign-up page.
         scope :google, as: :google, defaults: { provider: "google", intent: "login" } do
-          resource :session, only: :new, controller: :sessions
-          resource :registration, only: :new, controller: :registrations, defaults: { entry: "auth_up" }
+          resource :session, only: :create, controller: :sessions
+          resource :registration, only: :create, controller: :registrations, defaults: { entry: "auth_up" }
         end
 
         scope :apple, as: :apple, defaults: { provider: "apple", intent: "login" } do
-          resource :session, only: :new, controller: :sessions
-          resource :registration, only: :new, controller: :registrations, defaults: { entry: "auth_up" }
+          resource :session, only: :create, controller: :sessions
+          resource :registration, only: :create, controller: :registrations, defaults: { entry: "auth_up" }
         end
       end
 
@@ -313,7 +319,7 @@ scope(module: :auth, as: :auth) do
             resource :verification, only: :create
           end
 
-          resource :secret_credential, only: %i(new create)
+          resource :secret, only: %i(new create)
           resource :session, only: %i(show update destroy)
 
           resource :guard, only: :show
@@ -441,7 +447,7 @@ scope(module: :auth, as: :auth) do
             resource :verification, only: :create
           end
 
-          resource :secret_credential, only: %i(new create)
+          resource :secret, only: %i(new create)
           resource :session, only: %i(show update destroy)
 
           resource :guard, only: :show
@@ -459,7 +465,7 @@ scope(module: :auth, as: :auth) do
       # See adr/org-entra-omniauth-strategy-migration.md.
       namespace(:social) do
         scope :entra, as: :entra, defaults: { provider: "entra" } do
-          resource :session, only: :new, controller: :sessions
+          resource :session, only: %i(new create), controller: :sessions
         end
 
         # Non-resourceful exception: OmniAuth middleware owns these fixed

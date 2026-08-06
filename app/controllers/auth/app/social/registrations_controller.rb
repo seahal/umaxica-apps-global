@@ -4,17 +4,20 @@
 module Auth
   module App
     module Social
-      # GET /social/(google|apple)/registration/new
+      # POST /social/(google|apple)/registration
+      #
       # Starts the social sign-up ceremony. The provider and the sign-up entry
-      # marker arrive as route defaults; the shared ceremony start issues the
+      # marker arrive as route defaults; the shared ceremony entry issues the
       # sign-up flow ticket when the entry is a sign-up.
-      class RegistrationsController < AuthenticationsController
+      class RegistrationsController < ::Auth::App::ApplicationController
+        include SocialCeremonyEntry
+
         AUTHENTICATION_MODE = :open
 
-        declare_authentication_mode! :open, only: :new
+        declare_authentication_mode! :open, only: :create
 
-        def new
-          start_social_ceremony!
+        def create
+          handoff_social_ceremony!
         end
       end
     end

@@ -128,6 +128,10 @@ class IdentitySocialCeremonyCandidateStore
     OpenSSL::HMAC.hexdigest("SHA256", social_ceremony_hmac_key, data)
   end
 
+  # Rails.app.creds reads ENV before the encrypted credentials, so the explicit
+  # ENV.fetch looks redundant. It is not: tests stub creds lookups, and the
+  # fetch keeps the real value reachable while still failing loudly, by name,
+  # when nothing provides the key.
   def social_ceremony_hmac_key
     Rails.app.creds.option(:SOCIAL_AUTH_CEREMONY_HMAC_KEY).presence ||
       ENV.fetch("SOCIAL_AUTH_CEREMONY_HMAC_KEY")

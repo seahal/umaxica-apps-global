@@ -11,6 +11,23 @@ module Base
 
         before_action :skip_oauth_session!
         after_action :set_oauth_cache_headers
+        # Bearer-token probing against a resource endpoint must be bounded, as it
+        # already is on the token endpoint.
+        rate_limit(
+          to: 60,
+          within: 1.minute,
+          by: -> { request.remote_ip },
+          scope: "base_org_oauth_userinfo",
+          name: "userinfo_ip",
+          store: rate_limit_store,
+          only: :show,
+          with: -> {
+            render_rate_limited(
+              rule_name: "base_org_oauth_userinfo_userinfo_ip",
+              retry_after: 60,
+            )
+          },
+        )
 
         def show
           result = ::OidcAccessTokenAuthenticator.call(

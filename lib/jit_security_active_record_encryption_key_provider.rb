@@ -36,11 +36,26 @@ module JitSecurityActiveRecordEncryptionKeyProvider
     value = credential_value(key)
     return value if value.present?
 
-    raise KeyError, "missing credential: #{key}" if Rails.env.production?
+    # The fallback below is derived from public strings, so anyone with the
+    # source can recompute it. Gate it on development/test explicitly rather
+    # than on "not production": a staging or preview deployment whose RAILS_ENV
+    # is not literally "production" would otherwise encrypt real emails, phone
+    # numbers, birthdates, and TOTP seeds under a publicly derivable key, with
+    # only a log warning. Mirrors JitSessionCookieConfig.force_secure?, which
+    # fails closed for unknown environments.
+    unless derivable_fallback_permitted?
+      raise KeyError,
+            "missing credential: #{key} (no derivable fallback outside development and test; " \
+            "RAILS_ENV=#{Rails.env})"
+    end
 
     fallback = fallback_key_for(key)
     Rails.logger&.warn("Using local fallback Active Record encryption key for #{key}")
     fallback
+  end
+
+  def derivable_fallback_permitted?
+    Rails.env.local?
   end
 
   def credential_value(key)

@@ -275,9 +275,13 @@ module SocialAuth
     render(
       "sign/shared/social_completion",
       locals: {
+        # The browser posts this form, so the target must be the public base
+        # host, not the internal one, and https, because the CSP form-action
+        # allowlist carries https origins only.
         completion_url: base_app_social_authentication_completion_url(
           id: callback_result.principal.provider,
-          host: ENV.fetch("PRIVATE_BASE_SERVICE_URL"),
+          host: base_authority_host,
+          protocol: "https",
         ),
         result_token: result_token,
         ri: params[:ri],
@@ -333,16 +337,6 @@ module SocialAuth
     return "/social/#{request_provider}" if state.blank?
 
     "/social/#{request_provider}?state=#{CGI.escape(state)}"
-  end
-
-  def render_social_authorization_form(provider)
-    render(
-      "auth/shared/social_authorization",
-      locals: {
-        authorization_path: omniauth_authorize_path(provider),
-        provider: SocialIdentifiable.normalize_provider(provider),
-      },
-    )
   end
 
   def social_auth_user

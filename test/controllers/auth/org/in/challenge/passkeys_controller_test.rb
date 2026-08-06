@@ -335,7 +335,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
 
   def establish_pending_mfa!
     post(
-      auth_org_sign_in_secret_credential_url(ri: "jp"), params: {
+      auth_org_sign_in_secret_url(ri: "jp"), params: {
         secret_credential_login_form: {
           identifier: @staff.public_id.downcase,
           secret_credential_value: @raw_secret_credential,

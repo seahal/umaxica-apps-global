@@ -5,7 +5,11 @@
     <h1><%= t("sign.org.authentication.entra.new.page_title") %></h1>
   </div>
 
-  <% if @connection.present? %>
+  <% if !@provider_available %>
+    <div role="alert">
+      <p><%= t("sign.org.authentication.entra.errors.provider_unavailable") %></p>
+    </div>
+  <% elsif @connection.present? %>
     <%= form_with url: "/social/entra", method: :post, data: { turbo: false } do %>
       <%= hidden_field_tag :connection_public_id, @connection.public_id %>
 
@@ -14,8 +18,44 @@
       </div>
     <% end %>
   <% else %>
-    <div role="alert">
-      <p><%= t("sign.org.authentication.entra.new.connection_unavailable") %></p>
-    </div>
+    <% if @connection_error %>
+      <%#
+        One message for unknown, inactive, and malformed identifiers alike, so
+        this endpoint cannot be used to enumerate which organizations have
+        Entra configured.
+      %>
+      <div role="alert">
+        <p><%= t("sign.org.authentication.entra.new.connection_not_found") %></p>
+      </div>
+    <% end %>
+
+    <p><%= t("sign.org.authentication.entra.new.connection_prompt") %></p>
+
+    <%#
+      The token is verified twice: once here and again at /social/entra after
+      the 307, which sits at a different path, so this carries the global
+      authenticity token rather than a per-form one. Turbo is disabled so the
+      browser follows the 307 and then the cross-origin redirect natively.
+    %>
+    <%= form_with url: auth_org_social_entra_session_path(pt: signed_pt_param, ri: params[:ri]),
+                  method: :post,
+                  authenticity_token: false,
+                  data: { turbo: false } do %>
+      <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+
+      <div>
+        <%= label_tag :connection_public_id, t("sign.org.authentication.entra.new.connection_label") %>
+        <%= text_field_tag :connection_public_id,
+                           params[:connection_public_id],
+                           id: "connection_public_id",
+                           required: true,
+                           autocomplete: "off",
+                           spellcheck: false %>
+      </div>
+
+      <div>
+        <%= submit_tag t("sign.org.authentication.entra.new.connection_submit") %>
+      </div>
+    <% end %>
   <% end %>
 </div>

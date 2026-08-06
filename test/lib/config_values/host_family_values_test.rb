@@ -161,6 +161,45 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
     assert_equal "base.umaxica.org", values.base_staff.host
   end
 
+  test "sign origins fall back to PUBLIC_AUTH_*_URL instead of a localhost default" do
+    env = {
+      "PUBLIC_AUTH_SERVICE_URL" => "auth.umaxica.app",
+      "PUBLIC_AUTH_CORPORATE_URL" => "auth.umaxica.com",
+      "PUBLIC_AUTH_STAFF_URL" => "auth.umaxica.org",
+    }
+    values = ConfigValues::HostFamilyValues.build(env: env, production: false)
+
+    assert_equal "auth.umaxica.app", values.sign_service.host
+    assert_equal "auth.umaxica.com", values.sign_corporate.host
+    assert_equal "auth.umaxica.org", values.sign_staff.host
+  end
+
+  # Only the base, side and auth families read a PUBLIC_* key. Widening the
+  # fallback to every family moves the OIDC issuer and authorize hosts off their
+  # development defaults, which breaks the SSO redirect contract.
+  test "other families keep their localhost defaults when only PUBLIC_* keys exist" do
+    env = {
+      "PUBLIC_HELP_SERVICE_URL" => "help.umaxica.app",
+      "PUBLIC_INFO_SERVICE_URL" => "info.umaxica.app",
+      "PUBLIC_CORE_SERVICE_URL" => "jpx.umaxica.app",
+    }
+    values = ConfigValues::HostFamilyValues.build(env: env, production: false)
+
+    assert_equal "help.app.localhost", values.help_service.host
+    assert_equal "info.app.localhost", values.info_service.host
+    assert_equal "jpx.umaxica.app", values.core_service.host
+  end
+
+  test "AUTH_*_URL takes precedence over PUBLIC_AUTH_*_URL for sign origins" do
+    env = {
+      "AUTH_SERVICE_URL" => "sign.example.test",
+      "PUBLIC_AUTH_SERVICE_URL" => "auth.umaxica.app",
+    }
+    values = ConfigValues::HostFamilyValues.build(env: env, production: false)
+
+    assert_equal "sign.example.test", values.sign_service.host
+  end
+
   test "origin adds an https scheme when the raw value lacks one" do
     env = {
       "AUTH_SERVICE_URL" => "https://sign.example.test",

@@ -86,6 +86,17 @@ module OidcTokenUsage
     secure_compare?(refresh_token_digest, candidate)
   end
 
+  # A verifier that matches the digest superseded by the last rotation is a
+  # replay of an already-rotated refresh token. Per RFC 9700 section 4.14.2 that
+  # is compromise evidence, not a routine authentication failure: either the
+  # client kept a stale token or an attacker captured one.
+  def previous_refresh_token_digest_matches?(verifier)
+    return false if previous_refresh_token_digest.blank?
+
+    candidate = encoded_refresh_token_digest(verifier)
+    secure_compare?(previous_refresh_token_digest, candidate)
+  end
+
   def revoke!(status: "failed", now: Time.current)
     update!(
       revoked_at: now,

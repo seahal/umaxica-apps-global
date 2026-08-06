@@ -40,7 +40,11 @@ class Auth::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
     get auth_app_dashboard_url(ri: "jp", host: @host), headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_match %r{\Ahttps://jump\.umaxica\.net/}, response.location
+    # Auth and Base are same-site, so the logged-out redirect goes straight to Base's
+    # authorize endpoint. The jump gateway is for cross-site hops and is not used here.
+    assert_equal Rails.configuration.x.boot_config.fetch(:hosts).base_service.host,
+                 URI.parse(response.location).host
+    assert_equal "/oauth/authorize", URI.parse(response.location).path
   end
 
   test "show_ignores_user_controlled_return_to" do

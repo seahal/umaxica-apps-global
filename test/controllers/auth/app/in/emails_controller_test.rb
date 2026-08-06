@@ -393,7 +393,8 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :too_many_requests
-    assert_includes @response.body, I18n.t("errors.messages.login_cooldown")
+    # The cooldown message must not depend on whether the address is registered.
+    assert_includes @response.body, I18n.t("sign.app.authentication.email.create.cooldown")
     assert_equal initial_sent_at, test_email.reload.otp_last_sent_at
   end
 
@@ -896,7 +897,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
   end
 
-  test "cooldown returns login cooldown message after immediate re-login" do
+  test "cooldown returns the non-disclosing cooldown message after immediate re-login" do
     user = clients(:one)
     email = user.client_emails.create!(
       address: "cooldown_login_#{SecureRandom.hex(4)}@example.com",
@@ -920,7 +921,9 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
          headers: { "Host" => @host }
 
     assert_response :too_many_requests
-    assert_includes response.body, I18n.t("errors.messages.login_cooldown")
+    # A registered address must get the same message an unregistered one gets.
+    # See test/controllers/auth/app/in/emails_controller_enumeration_test.rb.
+    assert_includes response.body, I18n.t("sign.app.authentication.email.create.cooldown")
   end
 
   test "cooldown does not block different email addresses" do
@@ -1574,11 +1577,14 @@ class Auth::App::Sign::In::EmailsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -1625,9 +1631,9 @@ class Auth::App::Sign::In::EmailsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -1640,7 +1646,7 @@ class Auth::App::Sign::In::EmailsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1907,11 +1913,14 @@ class Auth::App::Sign::In::EmailsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

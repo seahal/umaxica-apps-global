@@ -11,7 +11,7 @@ module Auth
 
         def show
           return redirect_logged_in_direct_entry! if logged_in? && params[:login_challenge].blank?
-          return normalize_to_acme_authorize! if params[:login_challenge].blank?
+          return render_method_selection! if params[:login_challenge].blank?
 
           transaction = load_sign_in_authorization_transaction!
           return redirect_signed_in_authorization_transaction!(transaction) if logged_in?
@@ -26,9 +26,12 @@ module Auth
 
         private
 
-        def normalize_to_acme_authorize!
-          url = initiate_oidc_session!(pt: auth_app_root_path(ri: params[:ri]), screen_hint: "signin")
-          redirect_to_oidc_authorization_url(url)
+        # Direct entry without an authorization transaction lists the sign-in methods instead of
+        # bouncing through Base. Every method page it links to is already reachable directly, and
+        # AuthenticationSequenceGate already branches on a missing
+        # `oidc_authorization_login_challenge` after login, so no ceremony state is skipped here.
+        def render_method_selection!
+          render "auth/app/sign_ins/new"
         end
 
         def redirect_logged_in_direct_entry!

@@ -39,8 +39,6 @@ gem "strong_migrations"
 gem "pg_search"
 # PostgreSQL database inspection helpers.
 gem "rails-pg-extras", require: false
-# Browser-based database console.
-gem "rails_db"
 # Redis client.
 gem "redis"
 # JSON response builder.
@@ -133,7 +131,12 @@ gem "ruby-vips"
 gem "lograge"
 # json
 gem "json-canonicalization"
+# ?
 gem "svix"
+# Switch
+gem "flipper"
+gem "flipper-ui"
+gem "flipper-redis"
 
 group :development, :test do
   # Test coverage reporting.
@@ -229,6 +232,12 @@ group :development do
   gem "pghero", require: false
   # SQL exploration dashboard.
   gem "blazer", require: false
+  # Browser-based database console. Development only: the engine self-mounts at
+  # /rails/db with no authentication (RailsDb.verify_access_proc defaults to
+  # `proc { true }`), so loading it outside development exposes an unauthenticated
+  # arbitrary-SQL endpoint. test/security/invariants/mounted_engine_invariant_test.rb
+  # guards this.
+  gem "rails_db"
   # Package boundary enforcement.
   gem "packwerk", require: false
   # ERB linter.

@@ -79,12 +79,12 @@ class << ConfigValues::HostFamilyValues
         production: production,
       ),
       acme_staff: origin(env, "BASE_STAFF_URL", production ? nil : "base.org.localhost", production: production),
-      sign_service: origin(env, "AUTH_SERVICE_URL", production ? nil : "sign.app.localhost", production: production),
+      sign_service: origin(env, auth_key(env, "SERVICE"), production ? nil : "sign.app.localhost", production: production),
       sign_corporate: origin(
-        env, "AUTH_CORPORATE_URL", production ? nil : "sign.com.localhost",
+        env, auth_key(env, "CORPORATE"), production ? nil : "sign.com.localhost",
         production: production,
       ),
-      sign_staff: origin(env, "AUTH_STAFF_URL", production ? nil : "sign.org.localhost", production: production),
+      sign_staff: origin(env, auth_key(env, "STAFF"), production ? nil : "sign.org.localhost", production: production),
       core_service: origin(env, "CORE_SERVICE_URL", production ? nil : "jpx.umaxica.app", production: production),
       core_corporate: origin(
         env,
@@ -171,6 +171,21 @@ class << ConfigValues::HostFamilyValues
       "SIDE_#{surface}_URL"
     else
       "PUBLIC_SIDE_#{surface}_URL"
+    end
+  end
+
+  # Resolves the ENV key for an auth surface (service/corporate/staff).
+  #
+  # Deployments publish this family as PUBLIC_AUTH_*_URL. Without this fallback the
+  # sign origins kept their development localhost defaults outside
+  # RAILS_ENV=production, so the CSP form-action allowlist advertised
+  # sign.app.localhost instead of the real Auth origin and blocked the social
+  # ceremony handoff back to Auth.
+  def auth_key(env, surface)
+    if env.key?("AUTH_#{surface}_URL")
+      "AUTH_#{surface}_URL"
+    else
+      "PUBLIC_AUTH_#{surface}_URL"
     end
   end
 

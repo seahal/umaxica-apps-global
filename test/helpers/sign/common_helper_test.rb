@@ -61,6 +61,32 @@ class Auth::CommonHelperTest < ActionView::TestCase
     Actor.preferences = original
   end
 
+  test "sign up birthdate fields prefill today when no value is present" do
+    original = Actor.preferences
+    Actor.preferences = Actor::Preference.new(date_format: "iso")
+    today = Time.zone.today
+
+    fragment = Nokogiri::HTML.fragment(sign_up_birthdate_fields(nil))
+
+    assert_equal(
+      [format("%04d", today.year), format("%02d", today.month), format("%02d", today.day)],
+      fragment.css("input").pluck("value"),
+    )
+  ensure
+    Actor.preferences = original
+  end
+
+  test "sign up birthdate fields prefer the supplied value over today" do
+    original = Actor.preferences
+    Actor.preferences = Actor::Preference.new(date_format: "uk")
+
+    fragment = Nokogiri::HTML.fragment(sign_up_birthdate_fields("2000-02-03"))
+
+    assert_equal %w(03 02 2000), fragment.css("input").pluck("value")
+  ensure
+    Actor.preferences = original
+  end
+
   test "get_timezone returns request timezone context" do
     assert_equal "asia/tokyo", get_timezone
   end

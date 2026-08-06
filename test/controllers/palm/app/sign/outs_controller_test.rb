@@ -92,16 +92,16 @@ module Palm
           sign_form = css_select("form#sign-out-handoff-form").first
           sign_uri = URI.parse(sign_form["action"])
 
-          assert_equal ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"), sign_uri.host
+          assert_equal Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host, sign_uri.host
           assert_equal "/sign/out", sign_uri.path
 
           post auth_app_sign_out_url(
-            host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
+            host: Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host,
             ri: "jp",
             logout_challenge: query["logout_challenge"],
           ), headers: as_user_headers(
             native_client,
-            host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
+            host: Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host,
             session_public_id: browser_token.public_id,
             headers: {
               "Origin" => "https://#{ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost")}",
@@ -596,11 +596,14 @@ class Palm::App::Sign::OutsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

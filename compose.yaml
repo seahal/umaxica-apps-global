@@ -87,6 +87,13 @@ services:
       # --- Redis / Valkey ---
       VALKEY_URL: "redis://valkey:6379/0"
       RATE_LIMIT_REDIS_URL: "redis://valkey:6379/1"
+      VALKEY_FLIPPER_URL: "redis://valkey:6379/2"
+      # Credentials for the Flipper UI mounted on the developer surface. The mount
+      # is wrapped in Rack::Auth::Basic (config/routes/base.rb) and fails closed
+      # when these are unset, so local development needs them to reach the UI.
+      # Development values only: production supplies them through credentials.
+      FLIPPER_UI_USER: "${FLIPPER_UI_USER:-flipper}"
+      FLIPPER_UI_PASSWORD: "${FLIPPER_UI_PASSWORD:-development_flipper_password}"
       REDIS_NORMAL_URL: "redis://valkey:6379/7"
       # --- Observability ---
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
@@ -106,6 +113,7 @@ services:
       PUBLIC_BASE_CORPORATE_URL: www.umaxica.com
       PUBLIC_BASE_SERVICE_URL: www.umaxica.app
       PUBLIC_BASE_STAFF_URL: www.umaxica.org
+      PUBLIC_BASE_DEVELOPER_URL: www.umaxica.dev
       PUBLIC_SIDE_CORPORATE_URL: side-jp.umaxica.com
       PUBLIC_SIDE_SERVICE_URL: side-jp.umaxica.app
       PUBLIC_SIDE_STAFF_URL: side-jp.umaxica.org
@@ -150,6 +158,9 @@ services:
       PRIVATE_NEWS_SERVICE_URL: news.app.localhost
       PRIVATE_NEWS_STAFF_URL: news.org.localhost
       PRIVATE_PALM_SERVICE_URL: palm.app.localhost
+      # --- External authentication ceremony availability ---
+      # Now runtime Flipper features (:social_ceremony_apple / _google / _entra) stored in
+      # VALKEY_FLIPPER_URL. Enable them with `bin/rails social_ceremony:enable[apple]`.
       # --- JWT leeway ---
       PREFERENCE_JWT_LEEWAY_SECONDS: "30"
       AUTH_JWT_LEEWAY_SECONDS: "30"
@@ -357,12 +368,13 @@ services:
       POSTGRES_INITDB_MAX_WAL_SENDERS: 10
       POSTGRES_INITDB_MAX_REPLICATION_SLOTS: 10
     # Explicit tmpfs cap: writer DBs hold dev (~17G) plus 27 writer test DBs ×
-    # up to 32 parallel-test workers (per-worker copies dbname_<n>) in RAM. 64G
-    # gives headroom for that fanout without letting the mount grow unbounded.
+    # up to 32 parallel-test workers (per-worker copies dbname_<n>) in RAM. 48G
+    # gives the development container's writer the same bounded allocation as
+    # the reader.
     # Override POSTGRES_PRIMARY_TMPFS_SIZE on memory-constrained hosts (rootless
     # podman bills tmpfs against the user memory cgroup).
     tmpfs:
-      - "/var/lib/postgresql/data:size=${POSTGRES_PRIMARY_TMPFS_SIZE:-64g}"
+      - "/var/lib/postgresql/data:size=${POSTGRES_PRIMARY_TMPFS_SIZE:-48g}"
     # PG allocates 32MB DSM segments from /dev/shm for parallel query and
     # column-metadata joins. The default 64MB container shm exhausts under
     # 32 Rails parallel workers; 4G covers worst-case fanout with margin.

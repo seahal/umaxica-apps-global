@@ -38,11 +38,28 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_includes response.headers["Content-Security-Policy"], "https://#{hosts.base_corporate.host}"
     assert_includes response.headers["Content-Security-Policy"], "https://#{hosts.base_staff.host}"
     assert_includes response.headers["Content-Security-Policy"], "https://#{hosts.auth_service.host}"
+    # The configured Auth origin has to be the public one the browser uses. The social
+    # ceremony posts from Auth to Base and Base redirects back to Auth; Firefox applies
+    # form-action to that redirect, so a stale Auth origin here blocks the handoff.
+    assert_includes response.headers["Content-Security-Policy"],
+                    "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL")}"
+    # Internal hosts must never be form-action targets: browser-posted forms have to
+    # aim at the public origins asserted above.
+    assert_not_includes response.headers["Content-Security-Policy"],
+                        ENV.fetch("PRIVATE_BASE_SERVICE_URL")
     # The jump gateway must be a valid form-action target: sign-flow form submissions
     # (e.g. the sign-up birthdate checkpoint) finalize by redirecting through it.
     assert_includes response.headers["Content-Security-Policy"],
                     ENV.fetch("PUBLIC_JUMP_GATEWAY_URL")
-    assert_includes response.headers["Content-Security-Policy"], "connect-src 'self' https: ws: wss:"
+    # connect-src decides where injected script may send data, so it must name
+    # origins rather than the `https:` scheme. `https:` permits every HTTPS host
+    # on the internet and removes CSP's value as an exfiltration control.
+    assert_includes response.headers["Content-Security-Policy"],
+                    "connect-src 'self' https://challenges.cloudflare.com"
+    assert_no_match(
+      /connect-src[^;]*\s(?:https:|ws:|wss:)(?:\s|;|$)/,
+      response.headers["Content-Security-Policy"],
+    )
     assert_includes response.headers["Content-Security-Policy"], "script-src 'self' 'strict-dynamic'"
     assert_not_includes response.headers["Content-Security-Policy"], "script-src-elem"
     assert_includes response.headers["Content-Security-Policy"], "https://challenges.cloudflare.com"

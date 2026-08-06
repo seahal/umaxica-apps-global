@@ -1034,6 +1034,7 @@ en:
             passkey: Passkey
             recovery: Recovery code
             secret_credential: Secret
+            entra: Sign in with Microsoft
             registration: Need an account?
         passkey:
           new:
@@ -1052,6 +1053,44 @@ en:
           create:
             success: Signed in successfully.
             invalid: Authentication failed. Please check your credentials.
+        entra:
+          new:
+            page_title: Sign in with Microsoft
+            submit: Sign in with Microsoft
+            connection_unavailable: Microsoft sign-in is not configured for this organization. Please contact your administrator.
+            connection_prompt: Enter the organization connection ID your administrator gave you.
+            connection_label: Connection ID
+            connection_submit: Continue
+            connection_not_found: That connection ID could not be verified. Check the value and contact your administrator.
+          errors:
+            connection_not_found: The specified Microsoft connection was not found.
+            state_mismatch: Security verification failed. Please start over.
+            entra_error: An error occurred during Microsoft authentication. Please try again.
+            token_exchange_failed: Failed to retrieve authentication token. Please try again.
+            token_verification_failed: Authentication token verification failed. Please try again.
+            identity_not_found: This account is not registered as a staff member. Please contact your administrator.
+            operator_not_found: Sign-in is not permitted for this account.
+            sign_in_failed: Sign-in failed. Please try again.
+            internal_error: An internal error occurred. Please try again.
+            provider_unavailable: Microsoft sign-in is currently unavailable. Please try again later.
+            authentication_method_locked: Microsoft sign-in is locked for this account. Please contact your administrator.
+            invalid_callback: The authentication response was invalid. Please start over.
+            missing_id_token: The authentication response was incomplete. Please start over.
+            pkce_verifier_missing: Your sign-in session expired. Please start over.
+            client_assertion_unavailable: Microsoft sign-in is not configured correctly. Please contact your administrator.
+            tenant_not_allowed: This account type cannot be used to sign in. Please use your organization account.
+            tenant_mismatch: This account belongs to a different organization.
+            generic: An error occurred. Please try again.
+      ups:
+        new:
+          heading: Create an account
+          description: Create an account to start the administrative operations reserved for you.
+          recruit_prompt: Careers
+          recruit_prompt_html: Interested in joining the team? %{link}
+          recruit_link_text: Contact recruiting
+          links:
+            sign_in: Already have an account? Sign in
+          back_to_root: Up
       outs:
         destroy:
           success: You have been signed out.

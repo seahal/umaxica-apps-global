@@ -11,6 +11,10 @@ if Rails.env.local?
   JitSecurityJwtLocalKeysetInstaller.install!
   ENV["AUTH_JWT_ISSUER"] ||= "urn:umaxica:test:auth"
   ENV["PREFERENCE_JWT_ISSUER"] ||= "urn:umaxica:test:preference"
+  # Development and test defaults only. In production AuthenticationJwtConfiguration
+  # raises for a missing audience rather than falling back to a shared literal,
+  # which would let a token minted for one resource type validate as another.
+  ENV["AUTH_JWT_AUDIENCES"] ||= "umaxica-api"
 end
 
 JitSecurityJwtRegistry.configure!

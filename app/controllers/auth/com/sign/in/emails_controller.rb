@@ -74,7 +74,10 @@ module Auth
             end
 
             if sign_in_email_cooldown_active?(normalized_address)
-              render plain: sign_in_email_cooldown_message(normalized_address), status: :too_many_requests
+              # One message for every address. Branching on whether the account exists
+              # would turn the cooldown response into an account-existence oracle,
+              # which is exactly what the dummy OTP work below exists to prevent.
+              render plain: t("sign.app.authentication.email.create.cooldown"), status: :too_many_requests
               return
             end
 
@@ -123,10 +126,6 @@ module Auth
           def process_email_authentication(normalized_address)
             existing_email = find_email_with_timing_protection(normalized_address)
 
-            Rails.logger.debug { "Inside controller existing_email: #{existing_email.inspect}" }
-            Rails.logger.debug { "Inside controller identity_email_model: #{identity_email_model}" }
-            Rails.logger.debug { "Inside controller login_allowed: #{existing_email&.visitor&.login_allowed?}" }
-
             if existing_email&.visitor&.login_allowed?
               visitor = existing_email.visitor
               if session_limit_hard_reject_for?(visitor)
@@ -172,13 +171,6 @@ module Auth
           def record_sign_in_email_cooldown!(normalized_address)
             session[:sign_in_email_cooldown_address] = normalized_address
             session[:sign_in_email_cooldown_at] = Time.current.to_i
-          end
-
-          def sign_in_email_cooldown_message(normalized_address)
-            existing_email = find_email_with_timing_protection(normalized_address)
-            return t("errors.messages.login_cooldown") if existing_email&.visitor&.login_allowed?
-
-            t("sign.app.authentication.email.create.cooldown")
           end
         end
       end

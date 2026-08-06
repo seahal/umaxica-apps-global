@@ -11,11 +11,30 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
   end
 
-  test "direct entry without a login challenge starts OIDC handoff" do
+  test "direct entry without a login challenge lists the sign-in methods" do
     get auth_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 
-    assert_response :redirect
+    assert_response :success
     assert_nil session[:oidc_authorization_login_challenge]
+    assert_select "a[href=?]", new_auth_org_sign_in_passkey_path(ri: "jp")
+    assert_select "a[href=?]", new_auth_org_sign_in_secret_path(ri: "jp")
+  end
+
+  test "direct entry lists every sign-in method as a sibling in one list" do
+    get auth_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_response :success
+    assert_select "ul.sign-in-methods > li", 3
+    assert_select "ul.sign-in-methods > li > a[href=?]", new_auth_org_sign_in_passkey_path(ri: "jp")
+    assert_select "ul.sign-in-methods > li > a[href=?]", new_auth_org_sign_in_secret_path(ri: "jp")
+    assert_select "ul.sign-in-methods > li form[action=?]", auth_org_social_entra_session_path(ri: "jp")
+  end
+
+  test "direct entry offers the reciprocal sign up link" do
+    get auth_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_response :success
+    assert_select "a[href=?]", auth_org_sign_up_path(ri: "jp")
   end
 
   test "valid login challenge renders local ceremony" do
@@ -47,7 +66,7 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     query = { ri: "jp" }
 
     assert_select "a[href=?]", new_auth_org_sign_in_passkey_path(query)
-    assert_select "a[href=?]", new_auth_org_sign_in_secret_credential_path(query)
+    assert_select "a[href=?]", new_auth_org_sign_in_secret_path(query)
     assert_select "form[action*=?]", "/social/auth/", count: 0
     assert_select "form[action*=?]", "/auth/google", count: 0
     assert_select "form[action*=?]", "/auth/apple", count: 0
@@ -68,7 +87,7 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "a[href=?]", new_auth_org_sign_in_passkey_path(ri: "jp")
-    assert_select "a[href=?]", new_auth_org_sign_in_secret_credential_path(ri: "jp")
+    assert_select "a[href=?]", new_auth_org_sign_in_secret_path(ri: "jp")
   end
 
   test "local ceremony does not render sign up link on sign in page" do

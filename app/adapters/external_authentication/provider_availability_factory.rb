@@ -4,7 +4,7 @@
 module ExternalAuthentication
   class ProviderAvailabilityFactory
     def self.current
-      EnvironmentProviderAvailabilityAdapter.new
+      FlipperProviderAvailabilityAdapter.new
     end
   end
 end

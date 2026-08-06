@@ -109,9 +109,13 @@ module SocialCallbackGuard
   def allowed_hosts
     @allowed_hosts ||=
       begin
+        # Optional host aliases. The authoritative auth hosts come from boot_config below, which
+        # fails at boot when its required keys are missing, so an alias that is simply not
+        # configured for this deployment is skipped rather than raising mid-request.
         hosts =
           %w(
             PUBLIC_AUTH_SERVICE_URL
+            AUTH_SERVICE_URL
             PRIVATE_AUTH_SERVICE_URL
             PUBLIC_AUTH_CORPORATE_URL
             AUTH_CORPORATE_URL
@@ -119,7 +123,7 @@ module SocialCallbackGuard
             PUBLIC_AUTH_STAFF_URL
             AUTH_STAFF_URL
             PRIVATE_AUTH_STAFF_URL
-          ).filter_map { |key| normalize_host_port(ENV.fetch(key)) }
+          ).filter_map { |key| normalize_host_port(ENV.fetch(key, nil)) }
 
         if Rails.configuration.x.respond_to?(:boot_config)
           boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)

@@ -33,7 +33,21 @@ Rails.application.configure do
 
     policy.default_src(:self)
     policy.base_uri(:self)
-    policy.connect_src(:self, :https, :ws, :wss)
+    # connect-src is the directive that decides where injected or compromised
+    # script can send data. A bare `:https` emits the `https:` scheme source,
+    # which permits every HTTPS origin on the internet and removes CSP's value
+    # as an exfiltration control. `ws:` additionally permitted a plaintext
+    # scheme on an HTTPS-only application.
+    #
+    # Every fetch in src/controllers/ targets a same-origin endpoint supplied
+    # through a data attribute; the only cross-origin XHR is Cloudflare
+    # Turnstile, which is already trusted in script-src and frame-src. The app
+    # defines no ActionCable channels and no browser WebSocket client, so no
+    # ws/wss source is needed.
+    policy.connect_src(:self, "https://challenges.cloudflare.com")
+    # Allow @vite/client to hot reload changes in development
+    #    policy.connect_src *policy.connect_src, "ws://#{ ViteRuby.config.host_with_port }" if Rails.env.development?
+
     # Allow @vite/client to hot reload changes in development
     #    policy.connect_src *policy.connect_src, "ws://#{ ViteRuby.config.host_with_port }" if Rails.env.development?
 
@@ -53,6 +67,12 @@ Rails.application.configure do
     policy.object_src(:none)
     policy.script_src(:self, :strict_dynamic, "https://challenges.cloudflare.com")
     # Allow @vite/client to hot reload javascript changes in development
+    #    policy.script_src *policy.script_src, :unsafe_eval, "http://#{ ViteRuby.config.host_with_port }" if Rails.env.development?
+
+    # You may need to enable this in production as well depending on your setup.
+    #    policy.script_src *policy.script_src, :blob if Rails.env.test?
+
+    # Allow @vite/client to hot reload javascript changes in development
     # policy.script_src *policy.script_src, :unsafe_eval,
     #   "http://#{ViteRuby.config.host_with_port}" if Rails.env.development?
 
@@ -60,6 +80,9 @@ Rails.application.configure do
     #    policy.script_src *policy.script_src, :blob if Rails.env.test?
 
     policy.style_src(:self, :https)
+    # Allow @vite/client to hot reload style changes in development
+    #    policy.style_src *policy.style_src, :unsafe_inline if Rails.env.development?
+
     # Allow @vite/client to hot reload style changes in development
     #    policy.style_src *policy.style_src, :unsafe_inline if Rails.env.development?
 

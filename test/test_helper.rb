@@ -6,18 +6,14 @@ if ENV["COVERAGE"] == "true"
 end
 
 ENV["RAILS_ENV"] ||= "test"
-ENV["AUTH_SERVICE_URL"] = "auth.app.localhost"
-ENV["AUTH_CORPORATE_URL"] = "auth.com.localhost"
-ENV["AUTH_STAFF_URL"] = "auth.org.localhost"
-ENV["PUBLIC_AUTH_SERVICE_URL"] = "auth.app.localhost"
-ENV["PUBLIC_AUTH_CORPORATE_URL"] = "auth.com.localhost"
-ENV["PUBLIC_AUTH_STAFF_URL"] = "auth.org.localhost"
-ENV["PRIVATE_AUTH_SERVICE_URL"] = "auth.app.localhost"
-ENV["PRIVATE_AUTH_CORPORATE_URL"] = "auth.com.localhost"
-ENV["PRIVATE_AUTH_STAFF_URL"] = "auth.org.localhost"
-ENV["APPLE_SOCIAL_CEREMONY_ENABLED"] = "true"
-ENV["GOOGLE_SOCIAL_CEREMONY_ENABLED"] = "true"
-ENV["ENTRA_SOCIAL_CEREMONY_ENABLED"] = "true"
+# Host names are deliberately NOT set here. This file is read after the application has
+# already booted whenever the runner boots first (`bin/rails test` with no path argument,
+# which is the documented command), and config/application.rb freezes
+# Rails.configuration.x.boot_config from ENV at boot. An assignment made here therefore
+# reaches ENV but never boot_config, leaving two disagreeing sources of truth for the same
+# host and making results depend on how the suite was invoked. Host configuration belongs
+# to the process environment (compose.yaml, the CI job env), which is set before boot.
+# test/config/host_configuration_consistency_test.rb fails loudly if the two ever diverge.
 ENV["SOCIAL_AUTH_CEREMONY_HMAC_KEY"] = "test-social-auth-ceremony-hmac-key"
 ENV["SMTP_FROM_ADDRESS_APP"] = "from@umaxica.app"
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
@@ -27,6 +23,8 @@ require "rails/test_help"
 require_relative "support/parallel_test_database_cloner"
 require_relative "support/external_identity_test_helper"
 require_relative "support/publishing_content_helper"
+require_relative "support/form_action_policy_helper"
+require_relative "support/fetch_metadata_defaults"
 
 module AuthenticationHarness
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " \
@@ -223,6 +221,7 @@ module ActiveSupport
     include AuthenticationHarness
     include ExternalIdentityTestHelper
     include PublishingContentHelper
+    include FormActionPolicyHelper
 
     parallel_workers =
       if ENV["COVERAGE"] == "true"
@@ -246,6 +245,15 @@ module ActiveSupport
     # (mutate the same instance with #clear -- replacing it would not reach
     # controllers that captured the original store at class-load time).
     setup { Rails.configuration.x.rate_limit.fetch(:store).clear }
+
+    # Social ceremony availability is a Flipper kill switch that fails closed, so the suite's
+    # baseline is every provider enabled; tests that exercise a disabled provider turn it off
+    # themselves. This runs per test rather than once at boot because the in-memory adapter is
+    # rebuilt whenever Flipper's instance is, which would silently drop a boot-time enable.
+    setup do
+      ExternalAuthentication::FlipperProviderAvailabilityAdapter::PROVIDER_FEATURE_NAMES
+        .each_value { |feature| Flipper.enable(feature) }
+    end
 
     # I18n.locale is thread-local and is set by controller `set_locale`
     # before_actions during integration/controller tests. Those tests share

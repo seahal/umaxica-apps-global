@@ -199,14 +199,14 @@ module OmniAuth
 
       # Parity with the legacy Auth::Org::Sign::In::Entra::AuthorizationsController:
       # the request phase must respect the same surface-policy and
-      # provider-availability (ENTRA_SOCIAL_CEREMONY_ENABLED) gate, or a
+      # provider-availability (:social_ceremony_entra Flipper feature) gate, or a
       # provider-disable during an incident would only stop the callback,
       # not new ceremonies.
       def entra_start_available?
         ExternalAuthentication::ProviderSurfacePolicy.new.allowed?(surface: "org", provider: "entra", operation: "login") &&
           ExternalAuthentication::ProviderAvailabilityFactory.current
             .start_decision(provider: "entra", operation: "login", context: {}).state == :enabled
-      rescue ExternalAuthentication::EnvironmentProviderAvailabilityAdapter::ConfigurationError, KeyError
+      rescue Redis::BaseError
         false
       end
 

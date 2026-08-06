@@ -38,24 +38,24 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
     assert_equal issuance.transaction.login_challenge, session[:oidc_authorization_login_challenge]
   end
 
-  test "sign entry without login challenge starts OIDC handoff" do
+  test "sign in entry without login challenge lists methods and stores no challenge" do
     get auth_app_sign_in_url(ri: "jp"), headers: { "Host" => @sign_host }
 
-    assert_response :redirect
+    assert_response :success
     assert_nil session[:oidc_authorization_login_challenge]
   end
 
-  test "sign up entry without login challenge starts OIDC handoff" do
+  test "sign up entry without login challenge lists methods and stores no challenge" do
     get auth_app_sign_up_url(ri: "jp"), headers: { "Host" => @sign_host }
 
-    assert_response :redirect
+    assert_response :success
     assert_nil session[:oidc_authorization_login_challenge]
   end
 
-  test "sign started flow without issued login challenge starts OIDC handoff" do
+  test "sign in started flow without issued login challenge stores no challenge" do
     get auth_app_sign_in_url(ri: "jp"), headers: { "Host" => @sign_host }
 
-    assert_response :redirect
+    assert_response :success
     assert_nil session[:oidc_authorization_login_challenge]
   end
 
@@ -476,11 +476,14 @@ class AuthOidcEntrancesTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

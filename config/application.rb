@@ -76,6 +76,19 @@ module Jit
       config.active_record.encryption.key_derivation_salt = encryption_keys.fetch(:key_derivation_salt)
     end
 
+    # CSRF outcomes are recorded through CsrfNotificationSubscriber, which subscribes to
+    # the three csrf_*.action_controller events (rails/rails#56355) and emits redacted
+    # security.csrf.* application events.
+    #
+    # Rails' own ActionController::LogSubscriber handles the same events and writes
+    # payload[:message] verbatim. That message is built by
+    # unverified_request_warning_message and can read "HTTP Origin header (...) didn't
+    # match request.base_url (...)": free text outside JitLogEvent.format, so
+    # ObservabilityRedactor never sees it. Silencing it here leaves the redacted event as
+    # the single source of truth. config/environments/development.rb turns it back on,
+    # where the raw reason is the useful signal and no real user data is present.
+    config.action_controller.log_warning_on_csrf_failure = false
+
     # Rails encrypted/signed cookies derive keys from secret_key_base.
     # Pin modern primitives explicitly and do not keep SHA1 compatibility rotations.
     config.action_dispatch.signed_cookie_digest = "SHA256"

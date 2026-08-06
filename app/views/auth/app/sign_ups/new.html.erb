@@ -13,18 +13,24 @@
   </li>
 </ul>
 
-<ul>
+<%#
+  Provider buttons post directly: the press supplies the CSRF token the
+  OmniAuth request phase requires, so no cushion page is involved. Button
+  labels and artwork are governed by
+  docs/reference/third-party-sign-in-button-requirements.md.
+%>
+<ul class="social-provider-buttons">
   <li data-test-id="registration-method">
-    <%= link_to new_auth_app_social_google_registration_path,
-                data: { turbo: false } do %>
-      <%= t("sign.app.registration.new.social.buttons.google") %>
-    <% end %>
+    <%= render "auth/shared/social_provider_button",
+               url: auth_app_social_google_registration_path,
+               label: t("sign.app.registration.new.social.buttons.google"),
+               provider: "google" %>
   </li>
   <li data-test-id="registration-method">
-    <%= link_to new_auth_app_social_apple_registration_path,
-                data: { turbo: false } do %>
-      <%= t("sign.app.registration.new.social.buttons.apple") %>
-    <% end %>
+    <%= render "auth/shared/social_provider_button",
+               url: auth_app_social_apple_registration_path,
+               label: t("sign.app.registration.new.social.buttons.apple"),
+               provider: "apple" %>
   </li>
 </ul>
 

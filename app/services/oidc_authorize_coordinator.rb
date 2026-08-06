@@ -55,6 +55,12 @@ class OidcAuthorizeCoordinator < ApplicationService
     query_params = URI.decode_www_form(uri.query || "")
     query_params << ["code", code_record.code]
     query_params << ["state", code_record.state] if code_record.state.present?
+    # RFC 9207: identify the issuing authorization server in the response so a
+    # client registered against more than one AS cannot be tricked into sending
+    # the code to the wrong one (RFC 9700 section 4.4.2, mix-up attack). The same
+    # RP is registered against all three surface issuers with an identical
+    # callback path, so the per-AS-URI alternative holds only by host here.
+    query_params << ["iss", OidcIssuer.for_resource_type(code_record.resource_type)]
     uri.query = URI.encode_www_form(query_params)
 
     Result.new(

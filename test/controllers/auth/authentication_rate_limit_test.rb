@@ -19,11 +19,11 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
 
     5.times do
-      post auth_app_sign_in_secret_credential_url(ri: "jp"),
+      post auth_app_sign_in_secret_url(ri: "jp"),
            params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
     end
 
-    post auth_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_url(ri: "jp"),
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
 
     assert_sign_rate_limited("auth_app_sign_in_secret_credential_create_ip_burst")
@@ -33,11 +33,11 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
 
     5.times do
-      post auth_com_sign_in_secret_credential_url(ri: "jp"),
+      post auth_com_sign_in_secret_url(ri: "jp"),
            params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
     end
 
-    post auth_com_sign_in_secret_credential_url(ri: "jp"),
+    post auth_com_sign_in_secret_url(ri: "jp"),
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
 
     assert_sign_rate_limited("auth_com_sign_in_secret_credential_create_ip_burst")
@@ -47,11 +47,11 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
 
     5.times do
-      post auth_org_sign_in_secret_credential_url(ri: "jp"),
+      post auth_org_sign_in_secret_url(ri: "jp"),
            params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
     end
 
-    post auth_org_sign_in_secret_credential_url(ri: "jp"),
+    post auth_org_sign_in_secret_url(ri: "jp"),
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
 
     assert_sign_rate_limited("auth_org_sign_in_secret_credential_create_ip_burst")
