@@ -90,13 +90,32 @@ to Rails, or receive HTTP `200` makes the command fail nonzero.
 Repository checks cannot prove these Cloudflare-account and network controls:
 
 - outbound UDP 7844 is allowed from the connector environment;
-- the Access application exists before its published hostname;
+- the Access application exists before its published hostname, including the development
+  hostnames;
 - the published route enables Access validation;
 - the VPC Service target, port, and Worker binding match this contract.
 
 Treat each as blocked until verified in the deployment environment. Do not infer them from a local
 `/health` response.
 
-The pre-existing public alias spelling mismatch (`docs-jp.umaxica.app` in compose versus
-`docs.jp.umaxica.app` in route constraints, with the same pattern for help and news) is unchanged by
-this private-origin work and requires separate follow-up.
+The second and third items were verified for development on 2026-08-10 against the ten published
+Rails hostnames: every unauthenticated external request returned an Access login redirect, a nonce
+probe confirmed no such request reached the origin, and authenticated browser traffic was observed
+arriving at Rails from a public client address. Evidence is in
+`notes/implementation/2026-08-10-development-tunnel-access-verification.md`. That run covers
+development only; the first and fourth items remain unverified, and production remains blocked on all
+four. A dated verification run is evidence, not a substitute for re-checking after any account
+change.
+
+That run also found that `palm-jp.umaxica.app` currently carries an interactive Access application.
+Palm is a bearer-token API surface whose authenticator rejects any request carrying a cookie, and
+Access forwards its `CF_Authorization` cookie to the origin, so interactive Access breaks both
+browser and native clients there. Resolve that before treating Palm as published.
+
+The Docs, Help, and News families are not published through the tunnel. `PUBLIC_DOCS_*_URL` names a
+private `*.localhost` origin and no `PUBLIC_HELP_*`/`PUBLIC_NEWS_*` value is set, so the former
+`docs-jp.`/`help-jp.`/`news-jp.umaxica.*` aliases named hostnames that nothing configured and that
+Host Authorization would reject; they are removed rather than left dangling. This also retires the
+pre-existing spelling mismatch between those aliases and the `docs.jp.umaxica.app` route
+constraints. Publishing any of the three means choosing the canonical hostname, setting the matching
+`PUBLIC_*_URL`, and adding the alias — in that order.

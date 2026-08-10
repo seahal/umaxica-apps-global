@@ -24,9 +24,10 @@ Browser --(HTTPS)--> Cloudflare edge --(QUIC tunnel)--> cloudflared (compose: cl
   --(private `frontend` network)--> core (Rails)
 ```
 
-- `cloudflared` is configured in `compose.yaml` (`cloudflare-tunnel` service, image
+- `cloudflared` is configured in `compose.custom.yaml` (`cloudflare-tunnel` service, image
   `cloudflare/cloudflared:2025.7.0`, `tunnel --protocol quic run`, token-based
-  auth). It is the only component on the `frontend` network besides `core` itself.
+  auth). The base `compose.yaml` must never define it — see the note at `compose.yaml:604-609`.
+  It is the only component on the `frontend` network besides `core` itself.
 - `core` never publishes a host port in the base `compose.yaml` — verified by
   `test/unit/security/tunnel_origin_isolation_test.rb`. This is the actual security
   boundary: nothing outside the compose project's private networks can reach Rails
@@ -90,7 +91,7 @@ Cloudflare Worker (fetch()) --(Workers VPC binding)--> VPC Service (bound to a T
 - Workers VPC binds to a Tunnel-registered VPC Service and proxies an absolute-URL
   `fetch()` request to the target host/port over that tunnel connection — it reuses
   the same Cloudflare Tunnel infrastructure as path 1, not a separate ingress.
-  `cloudflared 2025.7.0`, already pinned in `compose.yaml:572-573`, is the minimum
+  `cloudflared 2025.7.0`, already pinned in `compose.custom.yaml:12-13`, is the minimum
   version Workers VPC requires (comment already present at that line).
 - This path does not currently exist in the repository — no VPC Service or Worker
   binding is configured. This section documents the intended architecture per your

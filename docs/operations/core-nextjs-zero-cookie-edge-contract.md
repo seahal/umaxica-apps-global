@@ -65,12 +65,38 @@ Before setting `CORE_BROWSER_JWT_COOKIE_ENABLED=1` in production, record evidenc
    `Set-Cookie`.
 4. A request to `https://jp.umaxica.app/api/v0/...` reaches Rails Core with the credential cookie
    header intact.
-5. Requests to `https://jp.umaxica.app/auth/...` and `/sso/...` reach Rails Core with required
-   cookies intact.
+5. Requests to `https://jp.umaxica.app/oidc/callback`, `/sign/out`, `/sign/out/complete`,
+   `/web/v0/...`, and `/edge/v0/...` reach Rails Core with required cookies intact.
 6. A request to `https://side.jp.umaxica.app/api/v0/...` with a synthetic `Cookie` header reaches
    Side without a `Cookie` header, and Side rejects any bypassed request that still contains one.
 7. Public requests to `/health` and `/health/*` are blocked at the edge or return only the approved
    no-leak public behavior from `adr/internal-health-endpoint-edge-isolation.md`.
+
+## Cloudflare Access Interaction
+
+Development published `jp.umaxica.{app,com,org}` through Cloudflare Tunnel behind a Cloudflare Access
+application on 2026-08-10. Rails Core answers every path on those hostnames today; the Next.js origin
+does not exist yet, so the split above is not in force. Evidence:
+`notes/implementation/2026-08-10-development-tunnel-access-verification.md`.
+
+Two consequences for the work that implements this contract.
+
+Access issues a `CF_Authorization` cookie scoped to the Core hostname, and the edge forwards it to
+whichever origin serves the request. It is therefore covered by the "remove entire `Cookie` header"
+rows above, not exempt from them. Verification items 1 and 2 must be run with an Access session
+active, not only with a synthetic `Cookie` header, or they will pass while the real cookie still
+reaches Next.js.
+
+The `core-jp` application sets `http_only_cookie_attribute` to `false`, which makes `CF_Authorization`
+readable by JavaScript on the Core origin, and spans `app`, `com`, and `org` in one application with
+one policy and a shared session, so one authenticated session admits a principal to all three realms.
+
+Both are accepted for development and are not defects there. Both block treating `jp.umaxica.org` as
+production-ready: the cookie attribute collides with this boundary's invariant that JavaScript cannot
+read credential material, and the shared application prevents governing or revoking staff access
+independently of the end-user and corporate realms, which `AGENTS.md` requires to stay separate. Set
+`http_only_cookie_attribute` to `true` and give `jp.umaxica.org` its own application with its own
+policy before the staff realm carries production traffic. Open, not actioned.
 
 ## Production Blocker
 
