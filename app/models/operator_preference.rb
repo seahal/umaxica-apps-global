@@ -38,6 +38,8 @@
 #  fk_rails_...  (staff_id => operators.id)
 #
 class OperatorPreference < OrgPrincipalRecord
+  include ::PreferenceExplicitFields
+
   belongs_to :staff, inverse_of: :staff_preference, class_name: "Operator"
 
   has_one :staff_preference_language, class_name: "OperatorPreferenceLanguage", foreign_key: :preference_id,

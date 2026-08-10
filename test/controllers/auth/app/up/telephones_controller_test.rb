@@ -81,6 +81,7 @@ module Auth::App::Up
       assert_select "h1", text: I18n.t("sign.app.registration.telephone.edit.page_title")
       assert_select "label", text: I18n.t("sign.app.registration.telephone.edit.code_label")
       assert_select "input[placeholder=?]", I18n.t("sign.app.registration.telephone.edit.code_placeholder")
+      assert_select "input[name='client_telephone[pass_code]'][autocomplete='one-time-code']", count: 1
       assert_select "input[type=submit][value=?]", I18n.t("sign.app.registration.telephone.edit.submit")
       assert_includes response.body, "電話番号"
       assert_includes response.body, "SMS"

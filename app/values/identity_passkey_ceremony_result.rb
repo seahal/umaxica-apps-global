@@ -11,7 +11,7 @@ class IdentityPasskeyCeremonyResult
     verified_at challenge_id expires_at iat exp webauthn_id public_key sign_count
   ).freeze
   OPTIONAL_CLAIMS = %w(
-    credential_candidate_ref credential_candidate_digest description transports
+    credential_candidate_ref credential_candidate_digest description transports authenticator_metadata
   ).freeze
   ALLOWED_CLAIMS = (REQUIRED_CLAIMS + OPTIONAL_CLAIMS).freeze
 

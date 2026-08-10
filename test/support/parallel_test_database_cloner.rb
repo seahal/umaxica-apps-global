@@ -6,6 +6,10 @@ require "pg"
 require "set"
 
 module ParallelTestDatabaseCloner
+  # CREATE DATABASE ... TEMPLATE fails when the template is used by another
+  # concurrent copy, so parallelism is across distinct template sources only.
+  CLONE_THREADS = 8
+
   module_function
 
   def install!(workers:)
@@ -38,6 +42,14 @@ module ParallelTestDatabaseCloner
     end
   end
 
+  # Staleness is judged from the schema_sha comment stamped on each clone
+  # database (readable for all clones in one pg_database catalog query), NOT
+  # from per-clone data fingerprints: clones are dropped and re-templated on any
+  # schema change, and test writes are rolled back by transactional fixtures, so
+  # a per-clone data scan (previously: one connection + count(*) on every table
+  # for each of workers x databases clones) bought no real protection for its
+  # cost. If a clone is ever corrupted outside that model, drop it (or wipe the
+  # tmpfs data dir) and it is rebuilt on the next run.
   def rebuild_stale_worker_clones(workers)
     configs = ActiveRecord::Base.configurations.configs_for(env_name: "test", include_hidden: true)
     base_configs = configs.reject(&:replica?)
@@ -45,90 +57,103 @@ module ParallelTestDatabaseCloner
     databases = configs.map(&:database).uniq.sort
     first_config = configs.first.configuration_hash
     schema_sha_by_database = base_configs.to_h { |config| [config.database, schema_sha(config)] }
+    configs.select(&:replica?).each do |replica_config|
+      base_config = base_configs_by_name.fetch(replica_config.name.delete_suffix("_replica"))
+      schema_sha_by_database[replica_config.database] = schema_sha_by_database.fetch(base_config.database)
+    end
 
     ActiveRecord::Base.connection_handler.clear_all_connections!
 
     admin_connection = connect(first_config, ENV.fetch("POSTGRESQL_DATABASE", "db"))
     admin_connection.exec("select pg_advisory_lock(hashtext('umaxica_parallel_test_database_cloner'))")
-    existing = admin_connection.exec("select datname from pg_database").map { |row| row.fetch("datname") }.to_set
 
-    missing_base = base_configs.map(&:database).reject { |database| existing.include?(database) }
+    stamped_sha = clone_sha_by_database(admin_connection)
+
+    missing_base = base_configs.map(&:database).reject { |database| stamped_sha.key?(database) }
     # rubocop:disable I18n/RailsI18n/DecorateString
     raise RuntimeError,
           "Missing base test DBs: #{missing_base.join(", ")}. " \
           "Run RAILS_ENV=test bin/rails db:test:prepare." unless missing_base.empty?
     # rubocop:enable I18n/RailsI18n/DecorateString
 
-    base_fingerprint_by_database =
-      base_configs.to_h do |config|
-        [config.database, database_fingerprint(first_config, config.database)]
-      end
-
-    ensure_replica_databases(
-      admin_connection,
-      first_config,
-      configs,
-      base_configs_by_name,
-      existing,
-      base_fingerprint_by_database,
-      schema_sha_by_database,
-    )
-
-    configs.select(&:replica?).each do |replica_config|
-      base_config = base_configs_by_name.fetch(replica_config.name.delete_suffix("_replica"))
-      base_fingerprint_by_database[replica_config.database] = base_fingerprint_by_database.fetch(base_config.database)
-      schema_sha_by_database[replica_config.database] = schema_sha_by_database.fetch(base_config.database)
-    end
-
-    databases.each do |database|
-      workers.times do |worker|
-        clone = "#{database}_#{worker}"
-        clone_exists = existing.include?(clone)
-        next if clone_exists && database_fingerprint(
-          first_config,
-          clone,
-        ) == base_fingerprint_by_database.fetch(database)
-
-        rebuild_clone(
-          admin_connection,
-          first_config,
-          source: database,
-          clone: clone,
-          schema_sha: schema_sha_by_database.fetch(database),
-          clone_exists: clone_exists,
+    # Replica base DBs are themselves template clones of their writer DB and in
+    # turn serve as templates for their own worker clones, so they must be
+    # current before the worker-clone pass.
+    replica_tasks =
+      configs.select(&:replica?).filter_map do |replica_config|
+        base_config = base_configs_by_name.fetch(replica_config.name.delete_suffix("_replica"))
+        clone_task(
+          stamped_sha,
+          source: base_config.database,
+          clone: replica_config.database,
+          sha: schema_sha_by_database.fetch(replica_config.database),
         )
-        existing.add(clone)
       end
-    end
+    run_clone_tasks(first_config, replica_tasks)
+    replica_tasks.each { |task| stamped_sha[task.fetch(:clone)] = task.fetch(:sha) }
+
+    worker_tasks =
+      databases.flat_map do |database|
+        workers.times.filter_map do |worker|
+          clone_task(
+            stamped_sha,
+            source: database,
+            clone: "#{database}_#{worker}",
+            sha: schema_sha_by_database.fetch(database),
+          )
+        end
+      end
+    run_clone_tasks(first_config, worker_tasks)
   ensure
     admin_connection&.exec("select pg_advisory_unlock(hashtext('umaxica_parallel_test_database_cloner'))")
     admin_connection&.close
   end
 
-  def ensure_replica_databases(admin_connection, first_config, configs, base_configs_by_name, existing,
-                               base_fingerprint_by_database, schema_sha_by_database)
-    configs.select(&:replica?).each do |replica_config|
-      base_config = base_configs_by_name.fetch(replica_config.name.delete_suffix("_replica"))
-      source_database = base_config.database
-      clone = replica_config.database
-      clone_exists = existing.include?(clone)
-
-      next if clone_exists &&
-        database_fingerprint(first_config, clone) == base_fingerprint_by_database.fetch(source_database)
-
-      rebuild_clone(
-        admin_connection,
-        first_config,
-        source: source_database,
-        clone: clone,
-        schema_sha: schema_sha_by_database.fetch(source_database),
-        clone_exists: clone_exists,
-      )
-      existing.add(clone)
-    end
+  # One catalog query yields existence + stamped schema sha for every database.
+  def clone_sha_by_database(connection)
+    connection.exec(<<~SQL.squish).to_h { |row| [row.fetch("datname"), row["sha"]] }
+      select datname, shobj_description(oid, 'pg_database') as sha
+      from pg_database
+    SQL
   end
 
-  def rebuild_clone(admin_connection, config, source:, clone:, schema_sha:, clone_exists:)
+  def clone_task(stamped_sha, source:, clone:, sha:)
+    # A nil sha (schema dump file absent) cannot prove freshness, so the clone
+    # rebuilds every run until the dump exists.
+    return nil if sha && stamped_sha.key?(clone) && stamped_sha[clone] == sha
+
+    { source: source, clone: clone, sha: sha, clone_exists: stamped_sha.key?(clone) }
+  end
+
+  def run_clone_tasks(config, tasks)
+    groups = tasks.group_by { |task| task.fetch(:source) }.values
+    return if groups.empty?
+
+    queue = Queue.new
+    groups.each { |group| queue << group }
+    thread_count = [CLONE_THREADS, groups.size].min
+    thread_count.times { queue << nil }
+
+    errors = Queue.new
+    Array.new(thread_count) {
+      Thread.new do
+        connection = connect(config, ENV.fetch("POSTGRESQL_DATABASE", "db"))
+        begin
+          while (group = queue.pop)
+            group.each { |task| rebuild_clone(connection, **task) }
+          end
+        rescue => e
+          errors << e
+        ensure
+          connection.close
+        end
+      end
+    }.each(&:join)
+
+    raise errors.pop unless errors.empty?
+  end
+
+  def rebuild_clone(admin_connection, source:, clone:, sha:, clone_exists:)
     if clone_exists
       terminate_connections(admin_connection, clone)
 
@@ -142,7 +167,11 @@ module ParallelTestDatabaseCloner
     admin_connection.exec(
       "create database #{admin_connection.quote_ident(clone)} template #{admin_connection.quote_ident(source)}",
     )
-    set_schema_sha(config, clone, schema_sha)
+    return unless sha
+
+    admin_connection.exec(
+      "comment on database #{admin_connection.quote_ident(clone)} is '#{admin_connection.escape_string(sha)}'",
+    )
   end
 
   def terminate_connections(connection, database)
@@ -165,64 +194,5 @@ module ParallelTestDatabaseCloner
       password: config[:password],
       dbname: database,
     )
-  end
-
-  def database_fingerprint(config, database)
-    connection = connect(config, database)
-    tables = connection.exec(<<~SQL.squish).map { |row| row.fetch("table_name") }.sort
-      select schemaname || '.' || tablename as table_name
-      from pg_tables
-      where schemaname not in ('pg_catalog', 'information_schema')
-    SQL
-    row_counts =
-      tables.filter_map do |table|
-        next if table == "public.ar_internal_metadata"
-
-        quoted_table = table.split(".", 2).map { |part| connection.quote_ident(part) }.join(".")
-        "#{table}=#{connection.exec("select count(*) as count from #{quoted_table}").first.fetch("count")}"
-      end
-    migrations =
-      if tables.include?("public.schema_migrations")
-        connection.exec("select version from schema_migrations order by version").map { |row| row.fetch("version") }
-      else
-        []
-      end
-    metadata =
-      if tables.include?("public.ar_internal_metadata")
-        connection.exec(<<~SQL.squish).map { |row| row.fetch("pair") }
-          select key || '=' || value as pair
-          from ar_internal_metadata
-          where key <> 'schema_sha1'
-          order by key
-        SQL
-      else
-        []
-      end
-
-    Digest::SHA256.hexdigest(
-      ([tables, row_counts, migrations, metadata].map { |items|
-        items.join("\n")
-      }).join("\n--\n"),
-    )
-  ensure
-    connection&.close
-  end
-
-  def set_schema_sha(config, database, schema_sha)
-    return unless schema_sha
-
-    connection = connect(config, database)
-    table_exists =
-      connection.exec("select to_regclass('public.ar_internal_metadata') is not null as present")
-        .first.fetch("present")
-    return unless table_exists == "t"
-
-    connection.exec_params(<<~SQL.squish, [schema_sha])
-      insert into ar_internal_metadata (key, value, created_at, updated_at)
-      values ('schema_sha1', $1, current_timestamp, current_timestamp)
-      on conflict (key) do update set value = excluded.value, updated_at = excluded.updated_at
-    SQL
-  ensure
-    connection&.close
   end
 end

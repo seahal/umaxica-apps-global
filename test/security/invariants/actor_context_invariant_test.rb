@@ -44,8 +44,8 @@ module Security
           "app/controllers/concerns/actor_support.rb",
           "app/controllers/concerns/authentication_base.rb",
           "app/controllers/concerns/authentication_jwt_tokens.rb",
+          "app/controllers/concerns/base_step_up_completion.rb",
           "app/controllers/concerns/core_browser_api_boundary.rb",
-          "app/controllers/concerns/sign_verification_step_up_lifecycle.rb",
           "app/controllers/concerns/verification_base.rb",
         ]
 
@@ -56,7 +56,8 @@ module Security
 
             content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
             content.each_line.with_index(1).filter_map do |line, line_number|
-              next unless line.match?(/\bActor\.install_context!\b/)
+              next if line.lstrip.start_with?("#")
+              next unless line.match?(/\bActor\.install_context!/)
 
               "#{relative_path}:#{line_number}: #{line.strip}"
             end

@@ -139,9 +139,12 @@ Rails.application.configure do
     base.umaxica.app
     base.umaxica.com
     base.umaxica.org
-    side-jp.umaxica.app
     side-jp.umaxica.com
+    side-jp.umaxica.app
     side-jp.umaxica.org
+    core-jp.umaxica.app
+    core-jp.umaxica.org
+    core-jp.umaxica.com
   )
 
   localhost_tunnel_hosts = %w(
@@ -168,10 +171,10 @@ Rails.application.configure do
     news.com.localhost:3000
     news.org.localhost:3000
     news.app.localhost:3000
+    side.com.localhost:3000
+    side.org.localhost:3000
+    side.app.localhost:3000
     palm.app.localhost:3000
-    core.app.localhost
-    core.com.localhost
-    core.org.localhost
   )
 
   env_host_keys = %w(
@@ -216,8 +219,16 @@ Rails.application.configure do
       [origin.host, ("#{origin.host}:#{origin.port}" if origin.port != default_port)]
     end
 
+  tailscale_serve_host = ENV["TAILSCALE_SERVE_HOST"].presence
+  if tailscale_serve_host && !tailscale_serve_host.match?(/\A[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.ts\.net\z/)
+    raise ArgumentError, "TAILSCALE_SERVE_HOST must be a bare .ts.net hostname"
+  end
+
   config.hosts.concat(
-    (boot_config_hosts + public_tunnel_hosts + localhost_tunnel_hosts + env_hosts).compact_blank.uniq,
+    (
+      boot_config_hosts + public_tunnel_hosts + localhost_tunnel_hosts + env_hosts +
+        [tailscale_serve_host]
+    ).compact_blank.uniq,
   )
 
   ## file watcher

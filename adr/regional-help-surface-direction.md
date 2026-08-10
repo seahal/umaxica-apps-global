@@ -2,7 +2,14 @@
 
 ## Status
 
+Superseded by `adr/publishing-db-content-authority.md` (2026-07-16)
+
 Accepted (2026-04-16)
+
+> **Superseded:** Help no longer belongs to the Regional content database group. Like
+> info/docs/news, it is a global content surface owned by the central `publishing` database. The new
+> design preserves the decisions that help is not the inquiry/contact implementation surface and
+> that its data is document-like: an entry, edit history, and published snapshots.
 
 ## Context
 

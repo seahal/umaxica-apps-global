@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: clients
-# Database name: app_principal
+# Database name: app_zenith
 #
 #  id                          :bigint           not null, primary key
 #  access_state                :string           default("enabled"), not null
@@ -21,6 +21,7 @@
 #  reactivated_at              :datetime
 #  terminated_at               :datetime
 #  token_valid_after_at        :datetime
+#  webauthn_user_handle        :string           not null
 #  withdrawal_started_at       :datetime
 #  withdrawn_at                :datetime         default(Infinity)
 #  created_at                  :datetime         not null
@@ -46,6 +47,7 @@
 #  index_clients_on_terminated_at          (terminated_at) WHERE (terminated_at IS NOT NULL)
 #  index_clients_on_token_valid_after_at   (token_valid_after_at) WHERE (token_valid_after_at IS NOT NULL)
 #  index_clients_on_visibility_id          (visibility_id)
+#  index_clients_on_webauthn_user_handle   (webauthn_user_handle) UNIQUE
 #  index_clients_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
 #  index_clients_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
@@ -78,6 +80,7 @@ class Client < AppPrincipalRecord
   include ::PublicId
   include ::Identity
   include AuthenticationCredentialInventoryOwner
+  include WebauthnUserHandleOwner
   include MfaLevelConfigurable
   include MfaStatusTrackable
   include ActorLifecycleConsistency

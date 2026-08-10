@@ -2,7 +2,10 @@
 # frozen_string_literal: true
 
 class IdentityPasskeyCeremonyResultIssuer
-  Candidate = Data.define(:webauthn_id, :public_key, :sign_count, :description, :transports)
+  Candidate =
+    Data.define(:webauthn_id, :public_key, :sign_count, :description, :transports, :metadata) do
+      def initialize(metadata: {}, **rest) = super
+    end
 
   def self.issue!(grant_token:, candidate:, surface:, actor_ref:, session_ref:, operation:, challenge_id: nil,
                   now: Time.current)
@@ -57,6 +60,20 @@ class IdentityPasskeyCeremonyResultIssuer
           "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
     raise IdentityPasskeyCeremonyContract::Error, "transaction is expired" if transaction.expired?(now: now)
     raise IdentityPasskeyCeremonyContract::Error, "transaction is already consumed" if transaction.consumed?
+
+    validate_relying_party_binding!
+  end
+
+  # The ceremony must have been executed under the same relying party the
+  # transaction was issued for; a grant minted for one surface's RP can never
+  # be redeemed with an assertion produced under another RP ID or origin.
+  def validate_relying_party_binding!
+    config = Webauthn::RelyingPartyConfigResolver.resolve(surface.to_sym)
+
+    raise IdentityPasskeyCeremonyContract::Error,
+          "transaction rp_id does not match surface relying party" unless transaction.rp_id == config.rp_id
+    raise IdentityPasskeyCeremonyContract::Error,
+          "transaction origin does not match surface relying party" unless transaction.origin == config.origin
   end
 
   def grant
@@ -87,6 +104,7 @@ class IdentityPasskeyCeremonyResultIssuer
       "sign_count" => candidate.sign_count.to_i,
       "description" => candidate.description,
       "transports" => candidate.transports,
+      "authenticator_metadata" => candidate.metadata.presence&.stringify_keys,
     }.compact
   end
 end

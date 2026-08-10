@@ -56,17 +56,9 @@ class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
       count: 5,
       classification: "mixed legacy inventory; each site needs follow-up before changing behavior",
     },
-    "app/controllers/concerns/sign_passkey_authentication.rb" => {
-      count: 1,
-      classification: "WebAuthn error response boundary",
-    },
-    "app/controllers/concerns/sign_passkey_options_flow.rb" => {
-      count: 1,
-      classification: "WebAuthn options error response boundary",
-    },
-    "app/controllers/concerns/sign_passkey_verification_flow.rb" => {
-      count: 1,
-      classification: "WebAuthn verification error response boundary",
+    "app/controllers/concerns/passkey_sign_in_flow.rb" => {
+      count: 2,
+      classification: "WebAuthn options error response and best-effort risk emission boundaries",
     },
     "app/controllers/auth/app/sign/in/secret_credentials_controller.rb" => {
       count: 2,

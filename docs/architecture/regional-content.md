@@ -11,9 +11,15 @@ Regional RP delivery remains outside this repository's stable application archit
 `adr/split-into-regional-and-global-repos.md`, regional RP delivery belongs to the separate regional
 repository.
 
-Read-only `docs`, `news`, and `help` content delivery is the explicit exception accepted by
-`adr/read-only-content-surfaces-in-rails.md`. That v1 Rails implementation is public and read-only;
-it does not restore the old regional engine, CMS editing, OIDC RP callbacks, preference writes, or
+> **Content surfaces re-scoped (2026-07-16):** Per `adr/publishing-db-content-authority.md`, `info`,
+> `docs`, `news`, and `help` are now all **global content surfaces**. Their content authority lives
+> in the central `publishing` database in this Rails repository, not in a regional repository or
+> per-surface zenith databases. `app`/`com`/`org` are audience identifiers, not database placement.
+> The regional rows for `docs`/`news`/`help` in the boundary map below are historical.
+
+Read-only `docs`, `news`, and `help` content delivery in Rails was first accepted by
+`adr/read-only-content-surfaces-in-rails.md` (now superseded). The Rails implementation is public
+and read-only; it does not restore the old regional engine, OIDC RP callbacks, preference writes, or
 authenticated actor lifecycle.
 
 ## Boundary Map
@@ -25,9 +31,10 @@ authenticated actor lifecycle.
 | `notice` | Global    | Push notification and notification-delivery behavior.                        |
 | `core`   | Regional  | Regional RP surface, parallel in kind to `acme` but region-owned.            |
 | `line`   | Regional  | Direct message behavior.                                                     |
-| `docs`   | Regional  | Regional or locale-specific documentation delivery.                          |
-| `news`   | Regional  | Regional or locale-specific news delivery.                                   |
-| `help`   | Regional  | Regional or locale-specific help delivery.                                   |
+| `docs`   | Global    | Documentation delivery. Content authority: central `publishing` DB.          |
+| `news`   | Global    | News delivery. Content authority: central `publishing` DB.                   |
+| `help`   | Global    | Help delivery. Content authority: central `publishing` DB.                   |
+| `info`   | Global    | Info delivery. Content authority: central `publishing` DB.                   |
 
 `acme` and `core` are both RP surfaces, but they do not share repository ownership: `acme` remains
 global, while `core` belongs to regional.
@@ -37,13 +44,14 @@ global, while `core` belongs to regional.
 Do not add regional RP or direct message implementation to this repository unless a current ADR
 explicitly changes the repository boundary.
 
-For `docs`, `news`, and `help`, only the v1 read-only Rails content delivery path described in
-`adr/read-only-content-surfaces-in-rails.md` is current. Do not infer CMS editing, regional RP
-behavior, OIDC callbacks, or preference writes from historical regional content material.
+For `info`, `docs`, `news`, and `help`, the current authority is the central `publishing` database
+per `adr/publishing-db-content-authority.md`. Do not infer regional RP behavior, OIDC callbacks, or
+preference writes from historical regional content material.
 
 When a document says `post`, read the local context carefully:
 
 - global `post` means SNS-style or in-application posts;
-- docs/news/help publication remains regional unless a current ADR says otherwise.
+- info/docs/news/help publication is global and belongs to the `publishing` DB per
+  `adr/publishing-db-content-authority.md`.
 
 Historical Foundation / Distributor content notes should be treated as migration background only.

@@ -251,3 +251,24 @@ behavior.
   sensitive actions. Controller metadata may exist only as inventory/assertion data.
 - Credential availability must be classified through the shared inventory and maintained by
   model/service lifecycle code.
+
+## WebAuthn User Verification Policy
+
+Passkey ceremonies resolve their `userVerification` requirement through the closed
+`Webauthn::UvPolicy` registry (`app/values/webauthn/uv_policy.rb`); call sites never pass raw
+policy strings. Server-side enforcement (`verify(..., user_verification: true)` plus explicit
+`user_verified?` / `user_present?` re-checks) follows the same policy.
+
+| Purpose | Flow | Policy |
+| --- | --- | --- |
+| `registration` | sign-up and settings passkey registration | required |
+| `direct_sign_in` | identifier-first passkey sign-in | required |
+| `mfa_challenge` | passkey as second factor after another factor | required |
+| `ordinary_step_up` | step-up verification for sensitive settings | required |
+| `high_risk_step_up` | reserved for future high-risk operations | required |
+
+The purposes are deliberately distinct so a future decision can relax exactly one of them
+(e.g. `ordinary_step_up`) without touching the AAL2-aligned sign-in and registration paths;
+any such change requires updating `docs/security/webauthn-security-invariants.md` and
+`adr/passkey-uv-policy.md` first. Only a user-verified, user-present assertion supports the
+AAL2-aligned claim (`Webauthn::AuthenticationContext#aal2_aligned?`).

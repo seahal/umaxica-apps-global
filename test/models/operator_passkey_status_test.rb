@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: operator_passkey_statuses
-# Database name: org_principal
+# Database name: org_zenith
 #
 #  id :bigint           not null, primary key
 #

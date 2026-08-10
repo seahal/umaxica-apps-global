@@ -52,4 +52,20 @@ class DbscProofValidatorTest < ActiveSupport::TestCase
 
     assert_predicate result, :ok
   end
+
+  test "call rejects a case-variant algorithm" do
+    key = OpenSSL::PKey::EC.generate("prime256v1")
+    public_jwk = JWT::JWK.new(key).export
+    proof = JWT.encode(
+      { "jti" => "c", "aud" => "https://test.host/x", "iat" => Time.current.to_i },
+      key,
+      "ES256",
+      { typ: "dbsc+jwt", jwk: public_jwk, alg: "eS256" },
+    )
+
+    result = DbscProofValidator.call(proof: proof, challenge: "c", challenge_issued_at: Time.current)
+
+    assert_not result.ok
+    assert_equal "invalid_algorithm", result.error_code
+  end
 end

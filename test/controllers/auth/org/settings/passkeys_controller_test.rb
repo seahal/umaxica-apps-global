@@ -56,7 +56,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "test_webauthn_id",
       external_id: "test_external_id",
       public_key: "test_public_key",
-      name: "Test Passkey",
+      description: "Test Passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
@@ -113,7 +113,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "active_status_webauthn_id",
       external_id: "active_status_external_id",
       public_key: "active_status_public_key",
-      name: "Active Status Passkey",
+      description: "Active Status Passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
     @token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
@@ -146,7 +146,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "test_webauthn_id_2",
       external_id: "test_external_id_2",
       public_key: "test_public_key_2",
-      name: "Test Passkey",
+      description: "Test Passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
@@ -161,7 +161,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "test_webauthn_id_3",
       external_id: "test_external_id_3",
       public_key: "test_public_key_3",
-      name: "Old Name",
+      description: "Old Name",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
@@ -179,7 +179,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "test_webauthn_id_4",
       external_id: "test_external_id_4",
       public_key: "test_public_key_4",
-      name: "Test Passkey",
+      description: "Test Passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
@@ -197,7 +197,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "test_webauthn_id_5",
       external_id: "test_external_id_5",
       public_key: "test_public_key_5",
-      name: "Test Passkey",
+      description: "Test Passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
     OperatorPasskey.create!(
@@ -205,7 +205,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "test_webauthn_id_5_extra",
       external_id: "test_external_id_5_extra",
       public_key: "test_public_key_5_extra",
-      name: "Extra Passkey",
+      description: "Extra Passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
@@ -224,7 +224,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "test_webauthn_id_destroy_stale",
       external_id: "test_external_id_destroy_stale",
       public_key: "test_public_key_destroy_stale",
-      name: "Delete Me",
+      description: "Delete Me",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
     OperatorPasskey.create!(
@@ -232,7 +232,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "test_webauthn_id_destroy_stale_extra",
       external_id: "test_external_id_destroy_stale_extra",
       public_key: "test_public_key_destroy_stale_extra",
-      name: "Keep Me",
+      description: "Keep Me",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
     headers = headers_for_operator_token(@token, scope: "settings_passkey", step_up_at: 20.minutes.ago)
@@ -252,7 +252,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "other_webauthn_id",
       external_id: "other_external_id",
       public_key: "other_public_key",
-      name: "Other Passkey",
+      description: "Other Passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
@@ -295,7 +295,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "test_webauthn_id_json",
       external_id: "test_external_id_json",
       public_key: "test_public_key_json",
-      name: "Old Name",
+      description: "Old Name",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
@@ -314,7 +314,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "test_webauthn_id_json_destroy",
       external_id: "test_external_id_json_destroy",
       public_key: "test_public_key_json_destroy",
-      name: "Delete Me",
+      description: "Delete Me",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
     OperatorPasskey.create!(
@@ -322,7 +322,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       webauthn_id: "test_webauthn_id_json_destroy_extra",
       external_id: "test_external_id_json_destroy_extra",
       public_key: "test_public_key_json_destroy_extra",
-      name: "Keep Me",
+      description: "Keep Me",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 

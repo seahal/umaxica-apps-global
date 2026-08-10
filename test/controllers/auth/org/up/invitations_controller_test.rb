@@ -29,6 +29,7 @@ class Auth::Org::Sign::Up::InvitationsControllerTest < ActionDispatch::Integrati
 
     assert_response :success
     assert_select "input[name=?]", "invitation_code"
+    assert_select "input[name='invitation_code'][autocomplete='one-time-code']", count: 0
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
     assert_includes response.body, 'data-turnstile-mode-value="render"'
   end

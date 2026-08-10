@@ -91,6 +91,8 @@ class RedisInitializerTest < ActiveSupport::TestCase
         end
       end
     end
+
+    assert Object.const_defined?(:REDIS_CLIENT, false)
   end
 
   private

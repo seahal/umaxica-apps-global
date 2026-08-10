@@ -79,5 +79,5 @@ hides business meaning.
 
 ## Tools
 
-Use Minitest for Ruby and `vp test` (Vitest) for JavaScript. When a change spans both languages, add
+Use Minitest for Ruby and `pnpm test` (Vitest) for JavaScript. When a change spans both languages, add
 coverage on both sides where behavior changes.

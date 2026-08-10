@@ -610,6 +610,8 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.define_singleton_method(:risk_actor_payload) { |_| {} }
     @controller.request.request_id = "request-1"
 
+    @controller.define_singleton_method(:controller_path) { "base/app/identity/sessions" }
+
     assert_equal "/identity/withdrawal/edit", @controller.withdrawal_gate_redirect_path
     assert_nil @controller.handle_missing_refresh_token("missing-public-id")
     assert_equal :unauthorized, @controller.refresh_failure_status

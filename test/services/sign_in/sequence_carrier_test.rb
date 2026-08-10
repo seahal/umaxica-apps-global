@@ -127,4 +127,84 @@ class SignInSequenceCarrierTest < ActiveSupport::TestCase
       )
     end
   end
+
+  test "advances a live sequence and preserves reference values" do
+    session = {}
+    actor = ClientStub.new(42)
+    carrier = SignInSequenceCarrier.new(session, surface: :app)
+    carrier.start!(
+      surface: :app,
+      actor: actor,
+      method: :email_otp,
+      state: "CHECKPOINT_PENDING",
+      participant: :checkpoint,
+      pt: nil,
+    )
+
+    sequence = carrier.advance!(
+      state: "MFA_PENDING",
+      participant: :guardrail,
+      mfa_challenge_id: "challenge-1",
+    )
+
+    assert_equal "MFA_PENDING", sequence.state
+    assert_equal "guardrail", sequence.participant
+    assert_equal "challenge-1", sequence.payload["mfa_challenge_id"]
+    assert_equal sequence.payload, session.fetch(:app_sign_in_sequence)
+  end
+
+  test "advance rejects unsupported values and leaves terminal sequences unchanged" do
+    session = {}
+    actor = ClientStub.new(42)
+    carrier = SignInSequenceCarrier.new(session, surface: :app)
+
+    assert_predicate carrier.advance!(state: "MFA_PENDING", participant: :guardrail), :blank?
+
+    carrier.start!(
+      surface: :app,
+      actor: actor,
+      method: :email_otp,
+      state: "CHECKPOINT_PENDING",
+      participant: :checkpoint,
+      pt: nil,
+    )
+    terminal = carrier.complete!
+
+    assert_equal terminal.payload, carrier.advance!(state: "MFA_PENDING", participant: :guardrail).payload
+
+    carrier.start!(
+      surface: :app,
+      actor: actor,
+      method: :email_otp,
+      state: "CHECKPOINT_PENDING",
+      participant: :checkpoint,
+      pt: nil,
+    )
+    assert_raises(ArgumentError) { carrier.advance!(state: "BOGUS", participant: :guardrail) }
+    assert_raises(ArgumentError) { carrier.advance!(state: "MFA_PENDING", participant: :unknown) }
+  end
+
+  test "expire and clear remove every compatible session key" do
+    session = {}
+    actor = ClientStub.new(42)
+    carrier = SignInSequenceCarrier.new(session, surface: :app)
+    carrier.start!(
+      surface: :app,
+      actor: actor,
+      method: :email_otp,
+      state: "CHECKPOINT_PENDING",
+      participant: :checkpoint,
+      pt: nil,
+    )
+
+    expired = carrier.expire!
+
+    assert_equal "EXPIRED", expired.terminal_state
+
+    session[SignInSequenceCarrier::KEY] = { "surface" => "app" }
+    carrier.clear!
+
+    assert_nil session[:app_sign_in_sequence]
+    assert_nil session[SignInSequenceCarrier::KEY]
+  end
 end

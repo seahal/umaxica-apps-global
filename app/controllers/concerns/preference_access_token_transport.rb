@@ -35,7 +35,19 @@ module PreferenceAccessTokenTransport
     operation =
       lambda do
         with_preference_connection(:writing) do
-          preference_class.includes(preference_associations_to_preload).find_by(public_id: public_id)
+          # Scoped to `active.unconsumed` (both already defined by
+          # SingleUseToken, included on AppPreference/ComPreference/
+          # OrgPreference): a discarded/expired row or a `used_at`-consumed
+          # row (retired by PreferenceSignOutRotation, or superseded by
+          # ordinary refresh rotation) must not be resurrected merely
+          # because a still-signature-valid, still-unexpired access JWT
+          # naming its public_id is presented. Without this, a 7-day
+          # PREFERENCE_JWT_TTL access token issued before sign-out would
+          # keep resolving to the retired row for up to 7 days after
+          # retirement -- the DB-side retirement would exist but not
+          # actually be enforced at the access-token verification layer.
+          preference_class.active.unconsumed.includes(preference_associations_to_preload)
+            .find_by(public_id: public_id)
         end
       end
     @preferences = defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call

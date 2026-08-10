@@ -17,6 +17,10 @@
           </div>
           <dl>
             <div>
+              <dt><%= t('activerecord.attributes.user_passkey.provider_name') %></dt>
+              <dd><%= @passkey.provider_name.presence || t('sign.unknown_authenticator') %></dd>
+            </div>
+            <div>
               <dt><%= t('activerecord.attributes.user_passkey.created_at') %></dt>
               <dd><%= l @passkey.created_at, format: :long %></dd>
             </div>

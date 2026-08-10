@@ -174,5 +174,60 @@ module Concerns
         end
       end
     end
+
+    # Controllers that run the full authenticated request lifecycle are marked by
+    # enforce_access_policy!. dev/net/palm bare bases do not run it and are excluded.
+    def lifecycle_controllers
+      CONTROLLER_FILES.values.select do |controller|
+        controller[:content].include?("enforce_access_policy!")
+      end
+    end
+
+    # Wedge: every full-lifecycle surface controller must reflect the request locale.
+    # Regression guard against the com/org surfaces silently dropping set_locale again.
+    test "all lifecycle application controllers reflect locale" do
+      lifecycle_controllers.each do |controller|
+        assert_match(
+          /before_action :set_locale$/,
+          controller[:content],
+          "#{controller[:path_name]} should run set_locale (locale drift guard)",
+        )
+      end
+    end
+
+    # Wedge: every full-lifecycle surface controller must enforce the restricted-session
+    # guard. Regression guard against core/side surfaces silently dropping it again.
+    test "all lifecycle application controllers enforce the restricted session guard" do
+      lifecycle_controllers.each do |controller|
+        content = controller[:content]
+        controller_name = controller[:path_name]
+
+        assert_includes content, "RestrictedSessionGuard",
+                        "#{controller_name} should include RestrictedSessionGuard (guard drift)"
+        assert_match(
+          /before_action :enforce_restricted_session_guard!$/,
+          content,
+          "#{controller_name} should run enforce_restricted_session_guard! (guard drift)",
+        )
+      end
+    end
+
+    # Wedge: app-surface controllers (AuthenticationClient) must reflect the request
+    # timezone alongside locale. Regression guard against auth/app losing set_timezone.
+    test "app surface lifecycle controllers reflect timezone" do
+      app_controllers =
+        lifecycle_controllers.select { |controller| controller[:content].include?("AuthenticationClient") }
+
+      assert_operator app_controllers.length, :>=, 3,
+                      "expected multiple app-surface lifecycle controllers"
+
+      app_controllers.each do |controller|
+        assert_match(
+          /before_action :set_timezone$/,
+          controller[:content],
+          "#{controller[:path_name]} should run set_timezone (timezone drift guard)",
+        )
+      end
+    end
   end
 end

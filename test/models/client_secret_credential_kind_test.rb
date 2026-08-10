@@ -40,7 +40,7 @@ class ClientSecretCredentialKindTest < ActiveSupport::TestCase
     record = ClientSecretCredentialKind.new(id: -1)
 
     assert_predicate record, :invalid?
-    assert_includes record.errors[:id], "は0以上の値にしてください"
+    assert record.errors.of_kind?(:id, :greater_than_or_equal_to)
   end
 
   test "validates id is an integer" do

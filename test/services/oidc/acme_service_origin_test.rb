@@ -144,6 +144,38 @@ class Oidc::AcmeServiceOriginTest < ActiveSupport::TestCase
                  )
   end
 
+  test "decision predicates identify jump and rejected outcomes" do
+    attributes = {
+      reason_code: "test",
+      same_site: false,
+      request_host: nil,
+      request_scheme: nil,
+      target_scheme: nil,
+      target_host: nil,
+      target_port: nil,
+      target_path: nil,
+      acme_scheme: "https",
+      acme_host: "www.umaxica.app",
+      acme_port: nil,
+    }
+
+    assert_predicate Oidc::AcmeServiceOrigin::Decision.new(kind: :jump, **attributes), :jump?
+    assert_predicate Oidc::AcmeServiceOrigin::Decision.new(kind: :rejected, **attributes), :rejected?
+  end
+
+  test "host and authorize parsing return safe outcomes for malformed URLs" do
+    assert_nil Oidc::AcmeServiceOrigin.host_from("http://[")
+
+    origin = build_origin("www.umaxica.app", default_scheme: "https")
+    decision = origin.decision_for_authorize_url(
+      "http://[",
+      request: test_request(host: "log.umaxica.app", scheme: "https"),
+    )
+
+    assert_predicate decision, :rejected?
+    assert_equal "invalid_url", decision.reason_code
+  end
+
   private
 
   def build_origin(value, default_scheme:)

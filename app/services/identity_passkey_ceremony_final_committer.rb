@@ -18,7 +18,7 @@ class IdentityPasskeyCeremonyFinalCommitter
       record_class: OperatorPasskey,
       owner_key: :staff_id,
       owner_association: :staff_passkeys,
-      description_key: :name,
+      audit_event_id: OperatorChronicleEvent::PASSKEY_REGISTERED,
     },
   }.freeze
 
@@ -82,7 +82,8 @@ class IdentityPasskeyCeremonyFinalCommitter
         :webauthn_id => result["webauthn_id"],
         :public_key => result["public_key"],
         :sign_count => result["sign_count"].to_i,
-        description_key => result["description"].presence || I18n.t("sign.default_passkey_description"),
+        :description => result["description"].presence || I18n.t("sign.default_passkey_description"),
+        **Webauthn::AuthenticatorMetadata.permit(result["authenticator_metadata"]),
       }
       config.fetch(:record_class).create!(attributes)
     end
@@ -111,10 +112,6 @@ class IdentityPasskeyCeremonyFinalCommitter
 
   def transaction
     @transaction ||= IdentityPasskeyCeremonyReplayStore.for(surface).find_transaction!(result["transaction_id"])
-  end
-
-  def description_key
-    config[:description_key] || :description
   end
 
   def config

@@ -13,7 +13,7 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
       root_path: "/",
       health_path: "/health",
       entries_index_path: "/api/v0/entries",
-      entry_model: HelpAppContentEntry,
+      surface: "help",
       expected_body: "Help API is available",
     },
     {
@@ -23,7 +23,7 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
       root_path: "/",
       health_path: "/health",
       entries_index_path: "/api/v0/entries",
-      entry_model: DocsAppContentEntry,
+      surface: "docs",
       expected_body: "Docs API is available",
     },
     {
@@ -33,7 +33,7 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
       root_path: "/",
       health_path: "/health",
       entries_index_path: "/api/v0/entries",
-      entry_model: NewsAppContentEntry,
+      surface: "news",
       expected_body: "News API is available",
     },
   ].freeze
@@ -65,7 +65,7 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
       assert_response :success, surface.fetch(:label)
       assert_not_empty response.body, surface.fetch(:label)
 
-      published = create_content_entry(surface.fetch(:entry_model), surface.fetch(:label).downcase)
+      published = create_publishing_entry(audience: "app", surface: surface.fetch(:surface), namespace: surface.fetch(:label).downcase)
 
       get surface.fetch(:entries_index_path),
           params: { locale: "test-smoke" },
@@ -111,15 +111,25 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
     assert_select "footer", count: 0
   end
 
-  def create_content_entry(model, namespace)
-    model.create!(
-      slug: "#{namespace}-surface-smoke",
-      locale: "test-smoke",
-      title: "#{namespace.titleize} Surface Smoke",
-      summary: "#{namespace.titleize} summary",
-      body: "#{namespace.titleize} body",
-      status: "published",
-      published_at: 1.minute.ago,
-    )
+  def create_publishing_entry(audience:, surface:, namespace:)
+    locale = "test-smoke"
+    slug = "#{namespace}-surface-smoke"
+    edition = Publishing::Edition.find_or_create_by!(audience:, surface:, locale:)
+    entry = Publishing::Entry.create!(edition:, locale:)
+    Publishing::EntrySlug.create!(entry:, edition:, locale:, slug:, state: "canonical", canonicalized_at: Time.current)
+    digest = Digest::SHA256.hexdigest(slug)
+    revision =
+      Publishing::EntryRevision.create!(
+        entry:, locale:, title: "#{namespace.titleize} Surface Smoke", summary: "#{namespace.titleize} summary",
+        body: { "text" => "#{namespace.titleize} body" }, schema_version: 1, content_digest: digest, sequence: 1,
+      )
+    entry.update!(current_revision: revision)
+    version =
+      Publishing::EntryVersion.create!(
+        entry:, entry_revision: revision, locale:, title: revision.title, summary: revision.summary,
+        body: revision.body, schema_version: 1, content_digest: digest, sequence: 1,
+      )
+    Publishing::Publication.create!(entry:, entry_version: version, effective_from: 1.minute.ago)
+    entry.slugs.canonical.first
   end
 end

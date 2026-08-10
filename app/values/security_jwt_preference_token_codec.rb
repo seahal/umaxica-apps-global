@@ -142,7 +142,7 @@ class SecurityJwtPreferenceTokenCodec
     def decode_options(host)
       {
         algorithms: [JWT_ALGORITHM],
-        required_claims: %w(iss aud typ exp public_id jti preference_type),
+        required_claims: %w(iss aud typ exp iat public_id jti preference_type),
         leeway: jwt_configuration.leeway_seconds,
         verify_iss: true,
         iss: jwt_configuration.issuer,

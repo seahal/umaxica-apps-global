@@ -32,6 +32,7 @@ class WithdrawalCeremonyReentryTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
+    assert_select "input[name='pass_code'][autocomplete='one-time-code']", count: 1
     otp_data = email.reload.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
@@ -96,6 +97,7 @@ class WithdrawalCeremonyReentryTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
+    assert_select "input[name='pass_code'][autocomplete='one-time-code']", count: 1
     otp_data = email.reload.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 

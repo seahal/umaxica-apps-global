@@ -7,13 +7,20 @@ module DbscRequestLogging
   private
 
   def log_dbsc_request_observability!
-    headers = dbsc_observable_headers
-    return if headers.empty?
+    header_names = dbsc_observable_header_names
+    return if header_names.empty?
 
-    Rails.logger.info("[dbsc] #{request.request_method} #{request.fullpath} headers=#{headers.inspect}")
+    Rails.logger.info(
+      JitLogEvent.format(
+        "dbsc.request",
+        request_method: request.request_method,
+        request_path: request.path,
+        header_names: header_names.sort,
+      ),
+    )
   end
 
-  def dbsc_observable_headers
+  def dbsc_observable_header_names
     header_names = [
       AuthIoKeys::Headers::DBSC_REGISTRATION,
       AuthIoKeys::Headers::DBSC_RESPONSE,
@@ -37,15 +44,6 @@ module DbscRequestLogging
       "Sec-Session-Challenge",
     ].uniq
 
-    header_names.each_with_object({}) do |name, result|
-      value = request.headers[name]
-      next if value.blank?
-
-      result[name] = dbsc_truncated_header_value(value)
-    end
-  end
-
-  def dbsc_truncated_header_value(value)
-    value.to_s.tr("\n\r", " ")[0, 160]
+    header_names.select { |name| request.headers[name].present? }
   end
 end

@@ -24,7 +24,8 @@ module SignSettingsPasskeyRegistration
       :webauthn_id => candidate.webauthn_id,
       :public_key => candidate.public_key,
       :sign_count => candidate.sign_count.to_i,
-      config.fetch(:description_key) => candidate.description.presence || I18n.t("sign.default_passkey_description"),
+      :description => candidate.description.presence || I18n.t("sign.default_passkey_description"),
+      **Webauthn::AuthenticatorMetadata.permit(candidate.metadata),
     }
     passkey = config.fetch(:record_class).create!(attributes)
     record_settings_passkey_registration_audit!(config, actor, passkey)
@@ -38,18 +39,16 @@ module SignSettingsPasskeyRegistration
       "app" => {
         record_class: ClientPasskey,
         owner_key: :user_id,
-        description_key: :description,
         audit_event_id: ClientChronicleEvent::PASSKEY_REGISTERED,
       },
       "com" => {
         record_class: VisitorPasskey,
         owner_key: :visitor_id,
-        description_key: :description,
       },
       "org" => {
         record_class: OperatorPasskey,
         owner_key: :staff_id,
-        description_key: :name,
+        audit_event_id: OperatorChronicleEvent::PASSKEY_REGISTERED,
       },
     }.fetch(surface.to_s) { raise IdentityPasskeyCeremonyContract::Error, "surface is invalid" }
   end

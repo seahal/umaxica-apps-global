@@ -96,7 +96,7 @@ detailed cases, and acceptance criteria derived from the SRS and HLD.
 
 | Env                     | Purpose                                 | Stack                                                                                                                           |
 | ----------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Local                   | Developer loop                          | Docker Compose (Postgres primaries/replicas, Valkey, MinIO, Loki, Tempo, Grafana), Foreman with Rails + pnpm-managed JS tooling |
+| Local                   | Developer loop                          | Podman Compose (Postgres primaries/replicas, Valkey, optional RustFS, Loki, Tempo, Grafana), Foreman with Rails + pnpm-managed JS tooling |
 | Staging                 | Integrated QA, performance & regression | Mirrors production hostnames, uses managed Postgres/Valkey, OTEL exports to staging Tempo                                       |
 | Production Verification | Smoke tests post-deploy                 | Fastly/Cloudflare fronted hosts, managed infra                                                                                  |
 

@@ -15,7 +15,7 @@ module Security
       # Update SECURITY_INVARIANTS.md before intentionally changing them.
 
       FORBIDDEN_PATTERNS = {
-        "mass-assignment permit!" => /\bpermit!\b/,
+        "mass-assignment permit!" => /\bpermit!/,
         "access policy bypass" => /skip_before_action\s+:enforce_access_policy!/,
         "csrf bypass" => /\bskip_forgery_protection\b/,
         "csrf null_session" => /\bprotect_from_forgery\b.*\bwith:\s*:null_session\b|\bwith:\s*:null_session\b/,
@@ -220,7 +220,7 @@ module Security
         },
         {
           pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/palm/app/auth/authorizations_controller.rb",
+          path: "app/controllers/palm/app/oidc/authorizations_controller.rb",
           line: /redirect_to\(url, allow_other_host: true\)/,
           reason: "Palm app authorization starts the reviewed jump gateway handoff.",
         },

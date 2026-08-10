@@ -48,6 +48,7 @@ class OidcEndSessionRequest < ApplicationService
     if redirect_uri.present? && !OidcClientRegistry.valid_post_logout_redirect_uri?(
       client_id: client.client_id,
       uri: redirect_uri,
+      resource_type: resource_type_for_request,
     )
       return invalid_request("post_logout_redirect_uri is invalid")
     end

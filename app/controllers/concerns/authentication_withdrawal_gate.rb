@@ -58,32 +58,21 @@ module AuthenticationWithdrawalGate
 
   def withdrawal_gate_redirect_path
     ri = params[AuthIoKeys::Params::RI]
-    return edit_base_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("auth/app/")
-    return edit_base_com_identity_withdrawal_path(ri: ri) if controller_path.start_with?("auth/com/")
-    return base_org_identity_path(ri: ri) if controller_path.start_with?("auth/org/")
-    return edit_base_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("base/app/")
-    return edit_base_com_identity_withdrawal_path(ri: ri) if controller_path.start_with?("base/com/")
 
-    acme_withdrawal_gate_redirect_path
-  rescue StandardError => e
-    Rails.logger.error(
-      JitLogEvent.format(
-        "auth.withdrawal_gate.path_resolution_failed", message: e.message,
-                                                       exception: e,
-      ),
-    )
-    acme_withdrawal_gate_redirect_path
+    case withdrawal_gate_surface_family
+    when "app" then edit_base_app_identity_withdrawal_path(ri: ri)
+    when "com" then edit_base_com_identity_withdrawal_path(ri: ri)
+    when "org" then base_org_identity_withdrawal_path(ri: ri)
+    else
+      raise ArgumentError, "no withdrawal redirect path configured for controller_path=#{controller_path}"
+    end
   end
 
-  def withdrawal_gate_api_redirect_path
-    ri = params[AuthIoKeys::Params::RI]
-    return base_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("auth/app/")
-    return base_com_identity_withdrawal_path(ri: ri) if controller_path.start_with?("auth/com/")
-    return base_org_identity_path(ri: ri) if controller_path.start_with?("auth/org/")
-    return base_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("base/app/")
-    return base_com_identity_withdrawal_path(ri: ri) if controller_path.start_with?("base/com/")
-
-    base_app_identity_withdrawal_path(ri: ri)
+  # Derives the app/com/org family from the surface/family/... controller_path shape shared by
+  # every surface (auth, base, core, side). A rescued default here would silently cross surfaces
+  # (e.g. redirect an org request to the app withdrawal page), so unknown families raise instead.
+  def withdrawal_gate_surface_family
+    controller_path.split("/")[1]
   end
 
   def acme_withdrawal_gate_redirect_path

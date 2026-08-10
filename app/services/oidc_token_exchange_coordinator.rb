@@ -118,6 +118,12 @@ class OidcTokenExchangeCoordinator < ApplicationService
     ) if root_token_from_authorization_code(authorization_code).blank?
     return failure("invalid_request", "redirect_uri mismatch") unless authorization_code.redirect_uri == redirect_uri
     return failure("invalid_request", "client_id mismatch") unless authorization_code.client_id == client_id
+    return failure(
+      "invalid_request",
+      "redirect_uri is not registered for this authorization code's realm",
+    ) unless OidcClientRegistry.valid_redirect_uri?(
+      client_id, authorization_code.redirect_uri, resource_type: authorization_code.resource_type,
+    )
 
     nil
   end
@@ -389,6 +395,7 @@ class OidcTokenExchangeCoordinator < ApplicationService
       client_id: client.client_id,
       client_secret: client.client_secret,
       redirect_uris: client.redirect_uris,
+      redirect_uris_by_realm: client.redirect_uris_by_realm,
       post_logout_redirect_uris: client.post_logout_redirect_uris,
       backchannel_logout_uris: client.backchannel_logout_uris,
       backchannel_logout_session_required: client.backchannel_logout_session_required,

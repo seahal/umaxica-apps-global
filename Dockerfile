@@ -3,7 +3,7 @@
 # ============================================================================
 # Shared build arguments
 # ============================================================================
-ARG RUBY_VERSION=4.0.5
+ARG RUBY_VERSION=4.0.6
 ARG DOCKER_UID=1000
 ARG DOCKER_GID=1000
 ARG DOCKER_USER=global
@@ -15,6 +15,10 @@ ARG NODE_MAJOR=26
 # Node.js toolchain (binaries copied into the development image)
 # ============================================================================
 FROM node:${NODE_MAJOR}-trixie-slim AS node-toolchain
+
+# Tailscale binaries are copied only into the development target. Pin both the
+# release tag and image digest so a rebuild cannot silently change the tools.
+FROM docker.io/tailscale/tailscale:v1.98.9@sha256:6dba149843cfd9171bbd602b17a71b0fb7955c13f96f534877075c915abbc072 AS tailscale-toolchain
 
 # ============================================================================
 # Production base — runtime-only dependencies
@@ -208,9 +212,13 @@ WORKDIR ${HOME}/workspace
 
 COPY --from=node-toolchain /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-toolchain /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=tailscale-toolchain /usr/local/bin/tailscale /usr/local/bin/tailscale
+COPY --from=tailscale-toolchain /usr/local/bin/tailscaled /usr/local/bin/tailscaled
 RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
     && ln -sf ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack
+
+RUN tailscale version
 
 # hadolint ignore=DL3008
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -234,6 +242,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     lsb-release \
     ncdu \
     netcat-openbsd \
+    openssh-client \
     openssl \
     ripgrep \
     silversearcher-ag \
@@ -257,7 +266,7 @@ RUN if [ -z "${GITHUB_ACTIONS}" ]; then \
     fi
 
 # Install pnpm for development use only (available by default on PATH).
-RUN npm install -g pnpm@11.1.3 \
+RUN npm install -g pnpm@latest \
     && rm -rf "${HOME}/.cache" "${HOME}/.local"
 
 # Final ownership fix for the home directory and workspace

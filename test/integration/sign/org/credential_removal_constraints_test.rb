@@ -157,7 +157,7 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
       webauthn_id: "org_removal_passkey_#{SecureRandom.hex(8)}",
       external_id: SecureRandom.uuid,
       public_key: "public_key_#{SecureRandom.hex(8)}",
-      name: "Removal guard passkey",
+      description: "Removal guard passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
   end

@@ -1,7 +1,7 @@
 # == Schema Information
 #
 # Table name: operators
-# Database name: org_principal
+# Database name: org_zenith
 #
 #  id                          :bigint           not null, primary key
 #  access_state                :string           default("enabled"), not null
@@ -16,6 +16,7 @@
 #  purged_at                   :datetime         default(Infinity), not null
 #  reactivated_at              :datetime
 #  token_valid_after_at        :datetime
+#  webauthn_user_handle        :string           not null
 #  withdrawal_started_at       :datetime
 #  withdrawn_at                :datetime
 #  created_at                  :datetime         not null
@@ -40,6 +41,7 @@
 #  index_operators_on_status_id              (status_id)
 #  index_operators_on_token_valid_after_at   (token_valid_after_at) WHERE (token_valid_after_at IS NOT NULL)
 #  index_operators_on_visibility_id          (visibility_id)
+#  index_operators_on_webauthn_user_handle   (webauthn_user_handle) UNIQUE
 #  index_operators_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
 #  index_operators_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
@@ -54,6 +56,7 @@ _fixture:
   model_class: Operator
 
 placeholder:
+  webauthn_user_handle: <%= SecureRandom.urlsafe_base64(32) %>
   mfa_level_id: <%= OperatorMfaLevel::NOTHING %>
   mfa_status_id: <%= OperatorMfaStatus::UNCONFIGURED %>
   status_id: <%= OperatorStatus::NOTHING %>
@@ -61,6 +64,7 @@ placeholder:
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 one:
+  webauthn_user_handle: <%= SecureRandom.urlsafe_base64(32) %>
   mfa_level_id: <%= OperatorMfaLevel::NOTHING %>
   mfa_status_id: <%= OperatorMfaStatus::UNCONFIGURED %>
   status_id: <%= OperatorStatus::NOTHING %>
@@ -68,6 +72,7 @@ one:
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 none_staff:
+  webauthn_user_handle: <%= SecureRandom.urlsafe_base64(32) %>
   mfa_level_id: <%= OperatorMfaLevel::NOTHING %>
   mfa_status_id: <%= OperatorMfaStatus::UNCONFIGURED %>
   status_id: <%= OperatorStatus::NOTHING %>
@@ -75,6 +80,7 @@ none_staff:
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 two:
+  webauthn_user_handle: <%= SecureRandom.urlsafe_base64(32) %>
   mfa_level_id: <%= OperatorMfaLevel::NOTHING %>
   mfa_status_id: <%= OperatorMfaStatus::UNCONFIGURED %>
   status_id: <%= OperatorStatus::NOTHING %>
@@ -82,6 +88,7 @@ two:
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 sample_staff:
+  webauthn_user_handle: <%= SecureRandom.urlsafe_base64(32) %>
   mfa_level_id: <%= OperatorMfaLevel::NOTHING %>
   mfa_status_id: <%= OperatorMfaStatus::UNCONFIGURED %>
   status_id: <%= OperatorStatus::NOTHING %>
@@ -89,6 +96,7 @@ sample_staff:
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 reserved_staff:
+  webauthn_user_handle: <%= SecureRandom.urlsafe_base64(32) %>
   mfa_level_id: <%= OperatorMfaLevel::NOTHING %>
   mfa_status_id: <%= OperatorMfaStatus::UNCONFIGURED %>
   status_id: <%= OperatorStatus::RESERVED %>

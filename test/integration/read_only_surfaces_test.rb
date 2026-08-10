@@ -25,18 +25,15 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   ].freeze
 
   CONTENT_API_SURFACES = [
-    ["help_app_api_v0_entry_url", "PRIVATE_HELP_SERVICE_URL", "help.app.localhost", HelpAppContentEntry, "help", "app"],
-    ["help_com_api_v0_entry_url", "PRIVATE_HELP_CORPORATE_URL", "help.com.localhost", HelpComContentEntry, "help",
-     "com",],
-    ["help_org_api_v0_entry_url", "PRIVATE_HELP_STAFF_URL", "help.org.localhost", HelpOrgContentEntry, "help", "org"],
-    ["docs_app_api_v0_entry_url", "PRIVATE_DOCS_SERVICE_URL", "docs.app.localhost", DocsAppContentEntry, "docs", "app"],
-    ["docs_com_api_v0_entry_url", "PRIVATE_DOCS_CORPORATE_URL", "docs.com.localhost", DocsComContentEntry, "docs",
-     "com",],
-    ["docs_org_api_v0_entry_url", "PRIVATE_DOCS_STAFF_URL", "docs.org.localhost", DocsOrgContentEntry, "docs", "org"],
-    ["news_app_api_v0_entry_url", "PRIVATE_NEWS_SERVICE_URL", "news.app.localhost", NewsAppContentEntry, "news", "app"],
-    ["news_com_api_v0_entry_url", "PRIVATE_NEWS_CORPORATE_URL", "news.com.localhost", NewsComContentEntry, "news",
-     "com",],
-    ["news_org_api_v0_entry_url", "PRIVATE_NEWS_STAFF_URL", "news.org.localhost", NewsOrgContentEntry, "news", "org"],
+    ["help_app_api_v0_entry_url", "PRIVATE_HELP_SERVICE_URL", "help.app.localhost", "help", "app"],
+    ["help_com_api_v0_entry_url", "PRIVATE_HELP_CORPORATE_URL", "help.com.localhost", "help", "com"],
+    ["help_org_api_v0_entry_url", "PRIVATE_HELP_STAFF_URL", "help.org.localhost", "help", "org"],
+    ["docs_app_api_v0_entry_url", "PRIVATE_DOCS_SERVICE_URL", "docs.app.localhost", "docs", "app"],
+    ["docs_com_api_v0_entry_url", "PRIVATE_DOCS_CORPORATE_URL", "docs.com.localhost", "docs", "com"],
+    ["docs_org_api_v0_entry_url", "PRIVATE_DOCS_STAFF_URL", "docs.org.localhost", "docs", "org"],
+    ["news_app_api_v0_entry_url", "PRIVATE_NEWS_SERVICE_URL", "news.app.localhost", "news", "app"],
+    ["news_com_api_v0_entry_url", "PRIVATE_NEWS_CORPORATE_URL", "news.com.localhost", "news", "com"],
+    ["news_org_api_v0_entry_url", "PRIVATE_NEWS_STAFF_URL", "news.org.localhost", "news", "org"],
   ].freeze
 
   test "static base and palm roots respond without auth redirects" do
@@ -61,63 +58,48 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   end
 
   test "content api show rejects unpublished entries and old rails article routes are unavailable" do
-    model = DocsAppContentEntry
-    published = create_content_entry(model, slug: "visible-entry", title: "Visible Entry", locale: "test-show")
-    create_content_entry(
-      model,
-      slug: "future-entry",
-      title: "Future Entry",
-      locale: "test-show",
+    published = create_publishing_entry(audience: "app", surface: "docs", slug: "visible-entry", title: "Visible Entry", locale: "test-show")
+    create_publishing_entry(
+      audience: "app", surface: "docs", slug: "future-entry", title: "Future Entry", locale: "test-show",
       published_at: 1.day.from_now,
     )
 
     host! ENV.fetch("PRIVATE_DOCS_SERVICE_URL")
-    get docs_app_api_v0_entry_url(slug: published.slug, locale: published.locale)
+    get docs_app_api_v0_entry_url(slug: published.slugs.canonical.first.slug, locale: "test-show")
 
     assert_response :success
     assert_equal "visible-entry", response.parsed_body.fetch("entry").fetch("slug")
 
-    get docs_app_api_v0_entry_url(slug: "future-entry", locale: published.locale)
+    get docs_app_api_v0_entry_url(slug: "future-entry", locale: "test-show")
 
     assert_response :not_found
 
-    get "/entries/#{published.slug}", params: { locale: published.locale }
+    get "/entries/#{published.slugs.canonical.first.slug}", params: { locale: "test-show" }
 
     assert_response :not_found
 
-    get "/edge/v0/entries/#{published.slug}", params: { locale: published.locale }
+    get "/edge/v0/entries/#{published.slugs.canonical.first.slug}", params: { locale: "test-show" }
 
     assert_response :not_found
   end
 
   test "content api show resolves locale from ri and rejects draft or archived entries" do
-    published = create_content_entry(
-      DocsAppContentEntry,
-      slug: "locale-visible-entry",
-      title: "Locale Visible Entry",
-      locale: "ja",
-    )
-    create_content_entry(
-      DocsAppContentEntry,
-      slug: "locale-draft-entry",
-      title: "Locale Draft Entry",
-      locale: "ja",
+    published = create_publishing_entry(audience: "app", surface: "docs", slug: "locale-visible-entry", title: "Locale Visible Entry", locale: "ja")
+    create_publishing_entry(
+      audience: "app", surface: "docs", slug: "locale-draft-entry", title: "Locale Draft Entry", locale: "ja",
       status: "draft",
     )
-    create_content_entry(
-      DocsAppContentEntry,
-      slug: "locale-archived-entry",
-      title: "Locale Archived Entry",
-      locale: "ja",
+    create_publishing_entry(
+      audience: "app", surface: "docs", slug: "locale-archived-entry", title: "Locale Archived Entry", locale: "ja",
       status: "archived",
     )
 
     host! ENV.fetch("PRIVATE_DOCS_SERVICE_URL")
 
-    get docs_app_api_v0_entry_url(slug: published.slug, ri: "jp")
+    get docs_app_api_v0_entry_url(slug: published.slugs.canonical.first.slug, ri: "jp")
 
     assert_response :success
-    assert_equal published.slug, response.parsed_body.fetch("entry").fetch("slug")
+    assert_equal published.slugs.canonical.first.slug, response.parsed_body.fetch("entry").fetch("slug")
 
     get docs_app_api_v0_entry_url(slug: "locale-draft-entry", ri: "jp")
 
@@ -129,59 +111,53 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   end
 
   test "content api show falls back safely for invalid ri values" do
-    published = create_content_entry(
-      DocsAppContentEntry,
-      slug: "fallback-visible-entry",
-      title: "Fallback Visible Entry",
+    published = create_publishing_entry(
+      audience: "app", surface: "docs", slug: "fallback-visible-entry", title: "Fallback Visible Entry",
       locale: I18n.locale.to_s,
     )
-    english = create_content_entry(
-      DocsAppContentEntry,
-      slug: "fallback-english-entry",
-      title: "Fallback English Entry",
-      locale: "en",
+    english = create_publishing_entry(
+      audience: "app", surface: "docs", slug: "fallback-english-entry", title: "Fallback English Entry", locale: "en",
     )
 
     host! ENV.fetch("PRIVATE_DOCS_SERVICE_URL")
 
-    get docs_app_api_v0_entry_url(slug: published.slug, ri: "zz")
+    get docs_app_api_v0_entry_url(slug: published.slugs.canonical.first.slug, ri: "zz")
 
     assert_response :success
-    assert_equal published.slug, response.parsed_body.fetch("entry").fetch("slug")
+    assert_equal published.slugs.canonical.first.slug, response.parsed_body.fetch("entry").fetch("slug")
 
-    get docs_app_api_v0_entry_url(slug: english.slug, ri: "us")
+    get docs_app_api_v0_entry_url(slug: english.slugs.canonical.first.slug, ri: "us")
 
     assert_response :success
-    assert_equal english.slug, response.parsed_body.fetch("entry").fetch("slug")
+    assert_equal english.slugs.canonical.first.slug, response.parsed_body.fetch("entry").fetch("slug")
   end
 
   test "content api index and show serialize published content with the expected namespace" do
-    CONTENT_API_SURFACES.each do |helper, env_key, fallback, model, namespace, surface|
-      create_content_entry(
-        model, slug: "#{surface}-older-entry", title: "Older Entry", locale: "test-api",
-               published_at: 2.hours.ago,
+    CONTENT_API_SURFACES.each do |helper, env_key, fallback, surface, audience|
+      create_publishing_entry(
+        audience:, surface:, slug: "#{audience}-older-entry", title: "Older Entry", locale: "test-api",
+        published_at: 2.hours.ago,
       )
-      newer = create_content_entry(
-        model, slug: "#{surface}-newer-entry", title: "Newer Entry", locale: "test-api",
-      )
-      create_content_entry(model, slug: "#{surface}-other-locale", title: "Other Locale", locale: "jp")
+      newer =
+        create_publishing_entry(audience:, surface:, slug: "#{audience}-newer-entry", title: "Newer Entry", locale: "test-api")
+      create_publishing_entry(audience:, surface:, slug: "#{audience}-other-locale", title: "Other Locale", locale: "jp")
 
       host = ENV.fetch(env_key, fallback)
       host! host
 
-      get public_send(helper, slug: newer.slug, locale: "test-api", host: host),
+      get public_send(helper, slug: newer.slugs.canonical.first.slug, locale: "test-api", host: host),
           headers: { "Host" => host, "Accept" => "application/json" },
           as: :json
 
       assert_response :success
       entry = response.parsed_body.fetch("entry")
 
-      assert_equal newer.slug, entry.fetch("slug")
-      assert_equal namespace, entry.fetch("namespace")
-      assert_equal surface, entry.fetch("surface")
+      assert_equal newer.slugs.canonical.first.slug, entry.fetch("slug")
+      assert_equal surface, entry.fetch("namespace")
+      assert_equal audience, entry.fetch("surface")
       assert_equal "Newer Entry", entry.fetch("title")
 
-      get public_send(helper, slug: "#{surface}-future-entry", locale: "test-api", host: host),
+      get public_send(helper, slug: "#{audience}-future-entry", locale: "test-api", host: host),
           headers: { "Host" => host, "Accept" => "application/json" },
           as: :json
 
@@ -195,24 +171,34 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
       assert_response :success
       entries = response.parsed_body.fetch("entries")
 
-      assert_equal [newer.slug, "#{surface}-older-entry"], entries.map { |e| e.fetch("slug") }
-      assert_equal namespace, entries.first.fetch("namespace")
-      assert_equal surface, entries.first.fetch("surface")
+      assert_equal [newer.slugs.canonical.first.slug, "#{audience}-older-entry"], entries.map { |e| e.fetch("slug") }
+      assert_equal surface, entries.first.fetch("namespace")
+      assert_equal audience, entries.first.fetch("surface")
       assert_equal "Newer Entry", entries.first.fetch("title")
     end
   end
 
   private
 
-  def create_content_entry(model, slug:, title:, locale: "jp", status: "published", published_at: 1.hour.ago)
-    model.create!(
-      slug: slug,
-      locale: locale,
-      title: title,
-      summary: "#{title} summary",
-      body: "#{title} body",
-      status: status,
-      published_at: published_at,
-    )
+  def create_publishing_entry(audience:, surface:, slug:, title:, locale: "jp", status: "published", published_at: 1.hour.ago)
+    edition = Publishing::Edition.find_or_create_by!(audience:, surface:, locale:)
+    entry = Publishing::Entry.create!(edition:, locale:)
+    Publishing::EntrySlug.create!(entry:, edition:, locale:, slug:, state: "canonical", canonicalized_at: Time.current)
+    digest = Digest::SHA256.hexdigest(slug)
+    revision =
+      Publishing::EntryRevision.create!(
+        entry:, locale:, title:, summary: "#{title} summary", body: { "text" => "#{title} body" },
+        schema_version: 1, content_digest: digest, sequence: 1,
+      )
+    entry.update!(current_revision: revision)
+    return entry unless status == "published"
+
+    version =
+      Publishing::EntryVersion.create!(
+        entry:, entry_revision: revision, locale:, title:, summary: revision.summary, body: revision.body,
+        schema_version: 1, content_digest: digest, sequence: 1,
+      )
+    Publishing::Publication.create!(entry:, entry_version: version, effective_from: published_at)
+    entry
   end
 end

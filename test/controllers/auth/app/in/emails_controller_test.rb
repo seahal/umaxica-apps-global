@@ -49,6 +49,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     ActiveJob::Base.queue_adapter = :test
     ActionMailer::Base.deliveries.clear
     CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
     @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
     AuthenticationBase.login_cooldown_enabled = false
   end
@@ -149,6 +150,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")
     assert_select "label", text: I18n.t("sign.app.authentication.email.edit.code_label")
     assert_select "input[placeholder=?]", I18n.t("sign.app.authentication.email.edit.code_placeholder")
+    assert_select "input[name='client_email[pass_code]'][autocomplete='one-time-code']", count: 1
     assert_includes response.body, "メールアドレス"
     assert_includes response.body, I18n.t("sign.app.authentication.email.edit.delivery_help")
   end

@@ -40,4 +40,20 @@ class PromotionalEmailUnsubscribeHeadersTest < ActiveSupport::TestCase
     assert_includes url, "tok-edit"
     assert_includes url, "edit"
   end
+
+  test "configured_promotional_unsubscribe_host uses the configured environment value" do
+    ENV.stub(:key?, true) do
+      ENV.stub(:fetch, "https://configured.example") do
+        assert_equal "https://configured.example",
+                     @mailer.send(:configured_promotional_unsubscribe_host, ["PUBLIC_BASE_SERVICE_URL"])
+      end
+    end
+  end
+
+  test "configured_promotional_unsubscribe_host uses the surface default when unset" do
+    ENV.stub(:key?, false) do
+      assert_equal "www.app.localhost",
+                   @mailer.send(:configured_promotional_unsubscribe_host, ["PUBLIC_BASE_SERVICE_URL"])
+    end
+  end
 end

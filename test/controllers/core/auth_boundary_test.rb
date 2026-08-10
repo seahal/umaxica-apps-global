@@ -10,25 +10,25 @@ class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
   BOOT_HOSTS = Rails.configuration.x.boot_config.fetch(:hosts)
   SURFACES = [
     {
-      host: BOOT_HOSTS.core_service.host,
-      controller: "core/app/auth/callbacks",
-      sign_out_controller: "core/app/sign_outs",
+      host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", BOOT_HOSTS.core_service.host),
+      controller: "core/app/oidc/callbacks",
+      sign_out_controller: "core/app/sign/outs",
       acme_host: BOOT_HOSTS.acme_service.host,
       jwt_issuer_id: "surface:CORE_APP",
       resource_type: "client",
     },
     {
-      host: BOOT_HOSTS.core_corporate.host,
-      controller: "core/com/auth/callbacks",
-      sign_out_controller: "core/com/sign_outs",
+      host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", BOOT_HOSTS.core_corporate.host),
+      controller: "core/com/oidc/callbacks",
+      sign_out_controller: "core/com/sign/outs",
       acme_host: BOOT_HOSTS.acme_corporate.host,
       jwt_issuer_id: "surface:CORE_COM",
       resource_type: "visitor",
     },
     {
-      host: BOOT_HOSTS.core_staff.host,
-      controller: "core/org/auth/callbacks",
-      sign_out_controller: "core/org/sign_outs",
+      host: ENV.fetch("PUBLIC_CORE_STAFF_URL", BOOT_HOSTS.core_staff.host),
+      controller: "core/org/oidc/callbacks",
+      sign_out_controller: "core/org/sign/outs",
       acme_host: BOOT_HOSTS.acme_staff.host,
       jwt_issuer_id: "surface:CORE_ORG",
       resource_type: "operator",
@@ -42,7 +42,7 @@ class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
 
       assert_routing(
         { method: :get, path: "http://#{host}/oidc/callback" },
-        { controller: surface.fetch(:controller), action: "show", to: "/#{surface.fetch(:controller)}#show" },
+        { controller: surface.fetch(:controller), action: "show" },
       )
 
       assert_routing(

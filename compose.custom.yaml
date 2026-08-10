@@ -1,0 +1,85 @@
+name: umaxica-apps-global-dc
+# Always-on overlay: unconditionally referenced by .devcontainer/devcontainer.json's
+# dockerComposeFile array, and merged manually with `-f compose.custom.yaml` for
+# non-devcontainer `podman compose` invocations. None of the services below carry a
+# `profiles:` key -- this file's presence in the merge is itself the opt-in, so a plain
+# `devcontainer up` (or `podman compose -f compose.yaml -f .devcontainer/compose.override.yml
+# -f compose.custom.yaml up`) starts all of them with no extra flags. Starting
+# cloudflare-tunnel requires its token at Compose resolution time. Direct-core
+# Tailscale uses persisted interactive-login state instead of a Compose secret.
+services:
+  cloudflare-tunnel:
+    # Workers VPC requires cloudflared 2025.7.0 or newer.
+    image: cloudflare/cloudflared:2025.7.0
+    depends_on:
+      - core
+    # Workers VPC DNS routing requires QUIC and outbound UDP 7844.
+    command: tunnel --protocol quic run
+    environment:
+      TUNNEL_TOKEN: "${CLOUDFLARED_TOKEN:?CLOUDFLARED_TOKEN must be set in .env}"
+    networks:
+      - frontend
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped
+  pgadmin:
+    image: dpage/pgadmin4
+    # `user: root` lets the entrypoint chmod the bind-mounted pgpass to 0600
+    # before pgAdmin de-escalates to the pgadmin user. Under rootless podman
+    # "root" inside the container is the host user via userns mapping (not
+    # real root), but the chmod still succeeds on the bind-mounted file
+    # because the host user already owns it.
+    user: root
+    entrypoint:
+      - "/bin/sh"
+      - "-c"
+      - "chmod 600 /pgpass && /entrypoint.sh"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: root@example.com
+      PGADMIN_DEFAULT_PASSWORD: password
+      # Auto-import the pub/sub server definitions on first launch.
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+    volumes:
+      - "./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro,z"
+      - "./docker/pgadmin/pgpass:/pgpass:z"
+    ports:
+      - "5050:80"
+    networks:
+      - backend
+    depends_on:
+      primary:
+        condition: service_healthy
+      replica:
+        condition: service_started
+  tinyrdm:
+    image: ghcr.io/tiny-craft/tiny-rdm:latest
+    environment:
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: change-me
+    volumes:
+      - tinyrdm-volume:/app/tinyrdm
+    ports:
+      - "8086:8086"
+    networks:
+      - backend
+    depends_on:
+      valkey:
+        condition: service_healthy
+    restart: unless-stopped
+  core:
+    command:
+      - /home/global/workspace/.devcontainer/tailscale-core-supervisor.sh
+      - bin/dev
+    environment:
+      # Optional exact Rails Host Authorization entry for Tailscale Serve.
+      # The value is a hostname, not a credential; unset keeps normal startup
+      # independent from Tailscale.
+      TAILSCALE_SERVE_HOST: "${TAILSCALE_SERVE_HOST:-}"
+    volumes:
+      - type: volume
+        source: tailscale-core-state
+        target: /var/lib/tailscale-core
+volumes:
+  # Persistent identity for direct-core Tailscale SSH and HTTPS Serve.
+  tailscale-core-state: {}
+  tinyrdm-volume: {}

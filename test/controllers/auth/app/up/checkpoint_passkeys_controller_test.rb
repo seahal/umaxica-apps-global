@@ -16,23 +16,11 @@ module Auth::App::Up
 
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
-
-      @original_trusted_origins = Webauthn.method(:trusted_origins)
-      allowed_origins = [
-        "http://auth.app.localhost",
-        "http://auth.org.localhost",
-        "http://www.example.com",
-        "http://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")}",
-        "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")}",
-      ].uniq
-      Webauthn.define_singleton_method(:trusted_origins) { allowed_origins }
     end
 
     teardown do
       CloudflareTurnstile.test_mode = false
       CloudflareTurnstile.test_validation_response = nil
-
-      Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
     end
 
     test "GET show returns 200 with passkey endpoint data attrs" do
@@ -134,17 +122,20 @@ module Auth::App::Up
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
-      WebAuthn::Credential.stub(:from_create, mock_credential) do
-        assert_difference("ClientPasskey.count", 1) do
-          patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
-            challenge_id: challenge_id,
-            checkpoint_version: cycle.checkpoint_version,
-            credential: {
-              id: "new_webauthn_id",
-              response: { clientDataJSON: "e30=", attestationObject: "e30=" },
-            },
-            description: "Signup Passkey",
-          }
+      registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("new_webauthn_id", 1)
+      Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+        WebAuthn::Credential.stub(:from_create, mock_credential) do
+          assert_difference("ClientPasskey.count", 1) do
+            patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+              challenge_id: challenge_id,
+              checkpoint_version: cycle.checkpoint_version,
+              credential: {
+                id: "new_webauthn_id",
+                response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+              },
+              description: "Signup Passkey",
+            }
+          end
         end
       end
 
@@ -187,16 +178,19 @@ module Auth::App::Up
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
-      WebAuthn::Credential.stub(:from_create, mock_credential) do
-        patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
-          challenge_id: challenge_id,
-          checkpoint_version: cycle.checkpoint_version,
-          credential: {
-            id: "login_webauthn_id",
-            response: { clientDataJSON: "e30=", attestationObject: "e30=" },
-          },
-          description: "Login Passkey",
-        }
+      registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("login_webauthn_id", 1)
+      Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+        WebAuthn::Credential.stub(:from_create, mock_credential) do
+          patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+            challenge_id: challenge_id,
+            checkpoint_version: cycle.checkpoint_version,
+            credential: {
+              id: "login_webauthn_id",
+              response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+            },
+            description: "Login Passkey",
+          }
+        end
       end
 
       assert_response :created
@@ -228,17 +222,20 @@ module Auth::App::Up
 
       pt = "/welcome?ri=jp"
 
-      WebAuthn::Credential.stub(:from_create, mock_credential) do
-        patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
-          pt: pt,
-          challenge_id: challenge_id,
-          checkpoint_version: cycle.checkpoint_version,
-          credential: {
-            id: "rt_webauthn_id",
-            response: { clientDataJSON: "e30=", attestationObject: "e30=" },
-          },
-          description: "PT Passkey",
-        }
+      registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("rt_webauthn_id", 1)
+      Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+        WebAuthn::Credential.stub(:from_create, mock_credential) do
+          patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+            pt: pt,
+            challenge_id: challenge_id,
+            checkpoint_version: cycle.checkpoint_version,
+            credential: {
+              id: "rt_webauthn_id",
+              response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+            },
+            description: "PT Passkey",
+          }
+        end
       end
 
       assert_response :created
@@ -259,17 +256,20 @@ module Auth::App::Up
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
-      WebAuthn::Credential.stub(:from_create, mock_credential) do
-        assert_no_difference("ClientChronicle.count") do
-          patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
-            challenge_id: challenge_id,
-            checkpoint_version: cycle.checkpoint_version,
-            credential: {
-              id: "audit_webauthn_id",
-              response: { clientDataJSON: "e30=", attestationObject: "e30=" },
-            },
-            description: "Audit Passkey",
-          }
+      registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("audit_webauthn_id", 1)
+      Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+        WebAuthn::Credential.stub(:from_create, mock_credential) do
+          assert_no_difference("ClientChronicle.count") do
+            patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+              challenge_id: challenge_id,
+              checkpoint_version: cycle.checkpoint_version,
+              credential: {
+                id: "audit_webauthn_id",
+                response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+              },
+              description: "Audit Passkey",
+            }
+          end
         end
       end
     end
@@ -281,12 +281,9 @@ module Auth::App::Up
       post auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
 
-      mock_credential = Object.new
-      mock_credential.define_singleton_method(:verify) do |_challenge|
-        raise WebAuthn::Error, "verification failed"
-      end
-
-      WebAuthn::Credential.stub(:from_create, mock_credential) do
+      Webauthn::RegistrationVerifier.stub(
+        :verify!, ->(**) { raise WebAuthn::Error, "verification failed" },
+      ) do
         assert_no_difference("ClientPasskey.count") do
           patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
             challenge_id: challenge_id,
@@ -369,16 +366,19 @@ module Auth::App::Up
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
-      WebAuthn::Credential.stub(:from_create, mock_credential) do
-        patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
-          challenge_id: challenge_id,
-          checkpoint_version: cycle.checkpoint_version,
-          credential: {
-            id: "failure_webauthn_id",
-            response: { clientDataJSON: "e30=", attestationObject: "e30=" },
-          },
-          description: "Failure Test Passkey",
-        }
+      registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("failure_webauthn_id", 1)
+      Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+        WebAuthn::Credential.stub(:from_create, mock_credential) do
+          patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+            challenge_id: challenge_id,
+            checkpoint_version: cycle.checkpoint_version,
+            credential: {
+              id: "failure_webauthn_id",
+              response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+            },
+            description: "Failure Test Passkey",
+          }
+        end
       end
 
       assert_response :created
@@ -510,18 +510,21 @@ module Auth::App::Up
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
-      WebAuthn::Credential.stub(:from_create, mock_credential) do
-        patch(
-          auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
-            challenge_id: challenge_id,
-            checkpoint_version: cycle.checkpoint_version,
-            credential: {
-              id: "#{webauthn_suffix}_webauthn_id",
-              response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+      registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("#{webauthn_suffix}_webauthn_id", 1)
+      Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+        WebAuthn::Credential.stub(:from_create, mock_credential) do
+          patch(
+            auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+              challenge_id: challenge_id,
+              checkpoint_version: cycle.checkpoint_version,
+              credential: {
+                id: "#{webauthn_suffix}_webauthn_id",
+                response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+              },
+              description: "Signup Passkey",
             },
-            description: "Signup Passkey",
-          },
-        )
+          )
+        end
       end
 
       assert_response :created

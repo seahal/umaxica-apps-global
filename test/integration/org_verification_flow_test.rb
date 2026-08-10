@@ -56,7 +56,8 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
 
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
-        WebAuthn::Credential.stub(:from_get, passkey_credential_stub("webauthn_id_1")) do
+        verification_context = Struct.new(:sign_count, :verified_at).new(1, Time.current)
+        Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
           get auth_org_verification_url(scope: "settings_passkey", return_to: return_to, ri: "jp"),
               headers: @headers
           get new_auth_org_verification_passkey_url(ri: "jp"), headers: @headers

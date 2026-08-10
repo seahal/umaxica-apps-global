@@ -170,6 +170,12 @@ Rails.application.configure do
     boot_hosts.info_service.host,
     boot_hosts.info_corporate.host,
     boot_hosts.info_staff.host,
+    "news.app.localhost",
+    "news.com.localhost",
+    "news.org.localhost",
+    "docs.app.localhost",
+    "docs.com.localhost",
+    "docs.org.localhost",
   ]
 
   # Skip DNS rebinding protection only for health checks and load balancer probes.

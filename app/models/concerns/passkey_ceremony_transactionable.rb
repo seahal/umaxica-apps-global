@@ -28,6 +28,7 @@ module PasskeyCeremonyTransactionable
     }
 
     validates :transaction_id, :surface, :actor_ref, :session_ref, :operation, :status, :grant_jti, :expires_at,
+              :rp_id, :origin,
               presence: true
     validates :transaction_id, uniqueness: true
     validates :grant_jti, uniqueness: true
@@ -48,10 +49,14 @@ module PasskeyCeremonyTransactionable
     def create_transaction!(surface: ceremony_surface, actor_ref:, session_ref:, operation:, transaction_id: nil,
                             grant_jti: nil, credential_candidate_ref: nil, credential_candidate_digest: nil,
                             expires_at: nil, now: Time.current)
+      relying_party_config = Webauthn::RelyingPartyConfigResolver.resolve(surface.to_sym)
+
       connection_owner.connected_to(role: :writing) do
         create!(
           transaction_id: transaction_id.presence || SecureRandom.uuid,
           surface: surface.to_s,
+          rp_id: relying_party_config.rp_id,
+          origin: relying_party_config.origin,
           actor_ref: actor_ref,
           session_ref: session_ref,
           operation: operation,
@@ -81,6 +86,8 @@ module PasskeyCeremonyTransactionable
   def grant_claims(now: Time.current)
     {
       "surface" => surface,
+      "rp_id" => rp_id,
+      "origin" => origin,
       "actor_ref" => actor_ref,
       "session_ref" => session_ref,
       "transaction_id" => transaction_id,

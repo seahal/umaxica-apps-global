@@ -93,21 +93,234 @@ module PreferenceAdoption
     end
   end
 
-  # Compare updated_at and sync in the appropriate direction.
+  # Per-key sign-in reconciliation (target semantics: explicit user intent wins
+  # over an unmarked/auto-seeded default; a whole-record `updated_at` winner no
+  # longer decides the fate of unrelated keys). Each of CHILD_RECORD_TYPES is
+  # resolved independently using `explicit_fields` as the authority:
+  #
+  #   principal legacy (explicit_fields IS NULL) -> principal always wins,
+  #                                        regardless of browser state. A row
+  #                                        that predates the explicit_fields
+  #                                        column has unknowable history; a
+  #                                        browser-side explicit marker must
+  #                                        not be allowed to overwrite an
+  #                                        established value just because its
+  #                                        own provenance happens to be known
+  #                                        (see PreferenceExplicitFields).
+  #   browser explicit,  principal not  -> browser wins
+  #   principal explicit, browser not   -> principal wins
+  #   both explicit                     -> more recently touched *child*
+  #                                        record wins (best-effort per-key
+  #                                        LWW on a low-sensitivity display
+  #                                        value, not a strict causal order);
+  #                                        tie -> principal
+  #   neither explicit                  -> principal (unchanged default
+  #                                        behavior for accounts with no
+  #                                        divergent browser edit)
+  #
+  # The losing side is updated to match the winner's value *and* its explicit
+  # flag, so both records converge to the same value and the same explicit
+  # state (never marking a side explicit for a value it never chose). The
+  # legacy branch is the one exception: the principal side is never written
+  # to by this method while legacy, so it stays legacy until a genuine user
+  # action on that account (mark_field_explicit!/dual-write) transitions it.
   def sync_preferences!(resource_pref)
-    app_updated = @preferences.updated_at
-    res_updated = resource_pref.updated_at
-
-    if res_updated.present? && (app_updated.blank? || res_updated > app_updated)
-      # ClientPreference/OperatorPreference is newer; copy to AppPreference/OrgPreference.
-      copy_preference_values!(resource_pref, @preferences, preference_prefix)
-    else
-      # AppPreference/OrgPreference is newer; copy to ClientPreference/OperatorPreference.
-      copy_preference_values!(@preferences, resource_pref, resource_pref_prefix)
-    end
+    CHILD_RECORD_TYPES.each { |type| reconcile_preference_key!(resource_pref, type) }
+    reconcile_flat_preference_values!(resource_pref)
+    reconcile_cookie_consent!(resource_pref)
 
     force_underage_r18_stopper!(resource_pref)
     issue_access_token_from(@preferences)
+  end
+
+  def reconcile_preference_key!(resource_pref, type)
+    browser_child = preference_child_for(@preferences, type, preference_prefix)
+    principal_child = preference_child_for(resource_pref, type, resource_pref_prefix)
+    return if browser_child.blank? && principal_child.blank?
+
+    principal_legacy = preference_legacy_unknown?(resource_pref)
+    browser_explicit = explicit_field_on?(@preferences, type)
+    principal_explicit = !principal_legacy && explicit_field_on?(resource_pref, type)
+
+    winner =
+      if !principal_legacy && browser_explicit && !principal_explicit
+        :browser
+      elsif !principal_legacy && browser_explicit && principal_explicit
+        key_recency_winner(browser_child, principal_child)
+      else
+        # Covers "principal legacy" (protect unknown-provenance value from
+        # any browser marker), "principal explicit, browser not", and
+        # "neither explicit" -- all fall through to the principal per target
+        # semantics section 6.3 and section 2's legacy-compatibility rule.
+        :principal
+      end
+
+    case winner
+    when :browser
+      return if browser_child.blank?
+
+      copy_single_child!(
+        @preferences, resource_pref, resource_pref_prefix, type,
+        source_child: browser_child, mark_explicit: browser_explicit,
+      )
+    when :principal
+      return if principal_child.blank?
+
+      copy_single_child!(
+        resource_pref, @preferences, preference_prefix, type,
+        source_child: principal_child, mark_explicit: principal_explicit,
+      )
+    end
+  end
+
+  def explicit_field_on?(preference, type)
+    preference.respond_to?(:explicit_field?) && preference.explicit_field?(type)
+  end
+
+  def preference_legacy_unknown?(preference)
+    preference.respond_to?(:legacy_unknown_explicit_state?) && preference.legacy_unknown_explicit_state?
+  end
+
+  def key_recency_winner(browser_child, principal_child)
+    browser_updated = browser_child&.updated_at
+    principal_updated = principal_child&.updated_at
+    return :principal if principal_updated.blank?
+    return :browser if browser_updated.present? && browser_updated > principal_updated
+
+    :principal
+  end
+
+  def preference_child_for(preference, type, _prefix)
+    return if preference.blank?
+
+    association_prefix = preference_child_association_prefix(preference)
+    return unless preference.respond_to?("#{association_prefix}_#{type}")
+
+    with_preference_writing_connection(preference) { preference.public_send("#{association_prefix}_#{type}") }
+  end
+
+  # Copy a single child record's option_id from source to target, creating the
+  # target child (with defaults) if it does not exist yet, then align both
+  # sides' explicit-state for this key so a subsequent sync is a no-op.
+  def copy_single_child!(_source, target, target_prefix, type, source_child:, mark_explicit:)
+    return if source_child.blank? || source_child.option_id.blank?
+
+    target_assoc = preference_child_association_prefix(target)
+    return unless target.respond_to?("#{target_assoc}_#{type}") || target.respond_to?("create_#{target_assoc}_#{type}!")
+
+    target_child = with_preference_writing_connection(target) { target.public_send("#{target_assoc}_#{type}") } ||
+      begin
+        option_class = PreferenceClassRegistry.option_class(target_prefix, type)
+        with_preference_writing_connection(option_class) { option_class.ensure_defaults! }
+        with_preference_writing_connection(target) do
+          target.public_send(
+            "create_#{target_assoc}_#{type}!",
+            option_id: PreferenceClassRegistry.default_option_id(target_prefix, type),
+          )
+        end
+      end
+
+    if target_child.option_id != source_child.option_id
+      target_option_class = PreferenceClassRegistry.option_class(target_prefix, type)
+      resolved_id = resolve_cross_db_option_id(source_child, target_option_class)
+      if resolved_id
+        connection_class = preference_connection_class(target)
+        if connection_class
+          connection_class.connected_to(role: :writing) { target_child.update!(option_id: resolved_id) }
+        else
+          target_child.update!(option_id: resolved_id)
+        end
+      end
+    end
+
+    sync_explicit_state!(target, type, mark_explicit)
+  end
+
+  def sync_explicit_state!(preference, type, explicit)
+    return unless preference.respond_to?(:mark_field_explicit!) && preference.respond_to?(:explicit_field?)
+    return if preference.explicit_field?(type) == explicit
+
+    with_preference_writing_connection(preference) do
+      if explicit
+        preference.mark_field_explicit!(type)
+      else
+        preference.update!(explicit_fields: preference.explicit_field_names - [type.to_s])
+      end
+    end
+  end
+
+  # Flat columns (language/region/timezone/theme mirrored as plain strings on
+  # ClientPreference/OperatorPreference/VisitorPreference) follow the same
+  # per-key child-record winner computed above, so they are re-derived from
+  # whichever side just won rather than compared on their own timestamp.
+  def reconcile_flat_preference_values!(resource_pref)
+    return unless resource_pref.respond_to?(:language=)
+
+    # `adult_content_gate` is never a real flat column on either side (both
+    # AppPreference and ClientPreference/OperatorPreference/VisitorPreference
+    # expose it as a read-only method backed by the child association); it is
+    # already reconciled per-key above and must not be mass-assigned here.
+    snapshot = preference_snapshot_for(resource_pref).except(:adult_content_gate)
+    return if snapshot.blank?
+
+    connection_class = preference_connection_class(resource_pref)
+    if connection_class
+      connection_class.connected_to(role: :writing) { resource_pref.update!(snapshot) }
+    else
+      resource_pref.update!(snapshot)
+    end
+  end
+
+  # Cookie consent is not a display preference: it is not covered by
+  # `explicit_fields`/CHILD_RECORD_TYPES and is intentionally excluded from
+  # the per-key display-preference merge above. Whichever side has the more
+  # recently recorded `consented_at` wins; a side with no recorded consent
+  # never overwrites a side that has one.
+  def reconcile_cookie_consent!(resource_pref)
+    browser_consent = preference_consent_snapshot(@preferences)
+    principal_consent = preference_consent_snapshot(resource_pref)
+    return if browser_consent.blank? && principal_consent.blank?
+
+    browser_at = browser_consent&.dig(:consented_at)
+    principal_at = principal_consent&.dig(:consented_at)
+
+    if browser_at.present? && (principal_at.blank? || browser_at > principal_at)
+      apply_consent_snapshot!(resource_pref, browser_consent)
+    elsif principal_at.present?
+      apply_consent_snapshot!(@preferences, principal_consent)
+    end
+  end
+
+  def preference_consent_snapshot(preference)
+    return if preference.blank?
+
+    if preference.respond_to?(:consented)
+      COOKIE_CONSENT_FIELDS.index_with { |f| preference.public_send(f) }.merge(consented_at: preference.consented_at)
+    else
+      assoc_name = "#{preference.class.name.underscore}_cookie"
+      return unless preference.respond_to?(assoc_name)
+
+      cookie = with_preference_writing_connection(preference) { preference.public_send(assoc_name) }
+      return if cookie.blank?
+
+      COOKIE_CONSENT_FIELDS.index_with { |f| cookie.public_send(f) }.merge(consented_at: cookie.consented_at)
+    end
+  end
+
+  def apply_consent_snapshot!(target, snapshot)
+    if target.respond_to?(:consented)
+      connection_class = preference_connection_class(target)
+      connection_class ? connection_class.connected_to(role: :writing) { target.update!(snapshot) } : target.update!(snapshot)
+      return
+    end
+
+    assoc_name = "#{target.class.name.underscore}_cookie"
+    return unless target.respond_to?(assoc_name)
+
+    cookie = with_preference_writing_connection(target) { target.public_send(assoc_name) } ||
+      with_preference_writing_connection(target) { target.public_send("create_#{assoc_name}!") }
+    connection_class = preference_connection_class(target)
+    connection_class ? connection_class.connected_to(role: :writing) { cookie.update!(snapshot) } : cookie.update!(snapshot)
   end
 
   # Copy child record option_ids and cookie consent from source to target.

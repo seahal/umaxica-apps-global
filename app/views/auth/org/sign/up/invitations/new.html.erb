@@ -13,8 +13,7 @@
     <%= form.label :invitation_code, t("sign.org.up.invitations.form.invitation_code") %>
     <%= form.text_field :invitation_code,
                         value: @invitation_code,
-                        required: true,
-                        autocomplete: "one-time-code" %>
+                        required: true %>
   </div>
   <%= render "shared/cloudflare_turnstile_visible" %>
   <%= form.submit t("sign.org.up.invitations.form.submit") %>

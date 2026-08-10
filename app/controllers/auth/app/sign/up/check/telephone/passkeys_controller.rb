@@ -9,8 +9,7 @@ module Auth
           module Telephone
             class PasskeysController < ::Auth::App::ApplicationController
               include CommonRedirect
-              include SignWebauthn
-              include SignPasskeyRegistrationFlow
+              include ::PasskeyRegistrationFlow
               include SignUpSequenceControllerSupport
               include SignUpExplicitStepControllerSupport
 

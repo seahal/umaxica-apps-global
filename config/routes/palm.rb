@@ -32,13 +32,16 @@ scope module: :palm, as: :palm do
       resource :sitemap, only: :show, path: "sitemap.xml"
 
       # RP login start: redirects to Base /oauth/authorize.
+      # Compatibility callback is a generic native stub; Base owns OAuth/OIDC.
       namespace :oidc do
-        # FIXME: nasty entrypoint!
-        resource :authorization, only: :show, to: "/palm/app/auth/authorizations#show"
+        resource :authorization, only: :show
+        resource :callback, only: :show
       end
 
       # Native sign-out notice; does not clear bearer tokens from the browser.
-      resource :sign_out, only: %i(show create), path: "sign/out"
+      namespace :sign do
+        resource :termination, only: %i(show create), path: "out", controller: :outs, as: :out
+      end
 
       # Browser CSP report sink.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
@@ -50,13 +53,6 @@ scope module: :palm, as: :palm do
           # Current native profile.
           resource :profile, only: :show
         end
-      end
-
-      # Compatibility callbacks only; Base owns OAuth/OIDC.
-      namespace :oidc do
-        # Generic native callback stub.
-        # FIXME: nasty entrypoint!
-        resource :callback, only: :show, to: "/palm/app/oauth/callbacks#show"
       end
     end
   end

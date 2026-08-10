@@ -36,6 +36,20 @@ class PalmAccessTokenAuthenticatorTest < ActiveSupport::TestCase
     assert_equal "invalid_token", result.error
   end
 
+  test "rejects a core-next-rp audienced access token" do
+    result = authenticate(token: palm_token(audiences: ["core-next-rp"]))
+
+    assert_not result.success?
+    assert_equal "invalid_token", result.error
+  end
+
+  test "rejects palm-api audience token bound to a client_id not in the allowed native client list" do
+    result = authenticate(token: palm_token(audiences: [PalmAccessTokenAuthenticator::AUDIENCE], client_id: "core-next-rp"))
+
+    assert_not result.success?
+    assert_equal "invalid_token", result.error
+  end
+
   test "rejects missing palm read scope" do
     result = authenticate(token: palm_token(scopes: %w(openid profile)))
 

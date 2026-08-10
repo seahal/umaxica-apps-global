@@ -77,7 +77,7 @@ class PalmRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "palm/app/auth/authorizations", recognized[:controller]
+    assert_equal "palm/app/oidc/authorizations", recognized[:controller]
     assert_equal "show", recognized[:action]
 
     assert_raises(ActionController::RoutingError) do
@@ -105,7 +105,7 @@ class PalmRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "palm/app/oauth/callbacks", recognized[:controller]
+    assert_equal "palm/app/oidc/callbacks", recognized[:controller]
     assert_equal "show", recognized[:action]
 
     assert_raises(ActionController::RoutingError) do
@@ -125,5 +125,21 @@ class PalmRouteContractTest < ActionDispatch::IntegrationTest
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{PALM_HOST}/oauth/callback", method: :get)
     end
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{PALM_HOST}/sign/out",
+      method: :get,
+    )
+
+    assert_equal "palm/app/sign/outs", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{PALM_HOST}/sign/out",
+      method: :post,
+    )
+
+    assert_equal "palm/app/sign/outs", recognized[:controller]
+    assert_equal "create", recognized[:action]
   end
 end

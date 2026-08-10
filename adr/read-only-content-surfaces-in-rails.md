@@ -2,7 +2,15 @@
 
 ## Status
 
+Superseded by `adr/publishing-db-content-authority.md` (2026-07-16)
+
 Accepted (2026-06-13)
+
+> **Superseded:** Content authority moves from lean content-entry tables in the zenith databases to
+> the central `publishing` database. All info/docs/news/help surfaces are global content surfaces.
+> The new ADR also replaces the taxonomy removal and future revision/version decisions. The
+> `entries` API noun, host-separated routing, Next.js/Rails responsibility split, and BareController
+> boundary remain in force.
 
 ## Context
 

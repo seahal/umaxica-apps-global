@@ -11,9 +11,11 @@ module OidcClientStoresStaticClientStore
     {
       # Sign credential gateway as RP. This is an RP client-auth key only; Sign remains non-OP.
       "sign-rp" => {
-        redirect_uris: build_redirect_uris("PUBLIC_AUTH_SERVICE_URL", "id.app.localhost") +
-          build_redirect_uris("PRIVATE_AUTH_STAFF_URL", "id.org.localhost") +
-          build_redirect_uris("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost"),
+        redirect_uris_by_realm: {
+          "client" => build_redirect_uris("PUBLIC_AUTH_SERVICE_URL", "id.app.localhost"),
+          "operator" => build_redirect_uris("PRIVATE_AUTH_STAFF_URL", "id.org.localhost"),
+          "visitor" => build_redirect_uris("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost"),
+        },
         post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_AUTH_SERVICE_URL", "id.app.localhost") +
           build_post_logout_redirect_uris("PRIVATE_AUTH_STAFF_URL", "id.org.localhost") +
           build_post_logout_redirect_uris("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost"),
@@ -33,12 +35,14 @@ module OidcClientStoresStaticClientStore
       },
       # Shared browser RP client for Base's local browser flow and launcher flows.
       "base-rails-rp" => {
-        redirect_uris: build_redirect_uris("BASE_SERVICE_URL", "www.app.localhost") +
-          build_redirect_uris("BASE_STAFF_URL", "www.org.localhost") +
-          build_redirect_uris("BASE_CORPORATE_URL", "www.com.localhost") +
-          build_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
-          build_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
-          build_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
+        redirect_uris_by_realm: {
+          "client" => build_redirect_uris("BASE_SERVICE_URL", "www.app.localhost") +
+            build_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost"),
+          "operator" => build_redirect_uris("BASE_STAFF_URL", "www.org.localhost") +
+            build_redirect_uris("SIDE_STAFF_URL", "side.org.localhost"),
+          "visitor" => build_redirect_uris("BASE_CORPORATE_URL", "www.com.localhost") +
+            build_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
+        },
         post_logout_redirect_uris: build_post_logout_redirect_uris("BASE_SERVICE_URL", "www.app.localhost") +
           build_post_logout_redirect_uris("BASE_STAFF_URL", "www.org.localhost") +
           build_post_logout_redirect_uris("BASE_CORPORATE_URL", "www.com.localhost") +
@@ -54,9 +58,11 @@ module OidcClientStoresStaticClientStore
       },
       # Side browser RP.
       "side-rails-rp" => {
-        redirect_uris: build_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
-          build_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
-          build_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
+        redirect_uris_by_realm: {
+          "client" => build_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost"),
+          "operator" => build_redirect_uris("SIDE_STAFF_URL", "side.org.localhost"),
+          "visitor" => build_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
+        },
         post_logout_redirect_uris: build_post_logout_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
           build_post_logout_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
           build_post_logout_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
@@ -73,15 +79,19 @@ module OidcClientStoresStaticClientStore
       },
       # Core browser RP.
       "core-next-rp" => {
-        redirect_uris: build_redirect_uris("CORE_SERVICE_URL", "jpx.umaxica.app") +
-          build_redirect_uris("CORE_STAFF_URL", "jpx.umaxica.org") +
-          build_redirect_uris("CORE_CORPORATE_URL", "jpx.umaxica.com"),
-        post_logout_redirect_uris: build_post_logout_redirect_uris("CORE_SERVICE_URL", "jpx.umaxica.app") +
-          build_post_logout_redirect_uris("CORE_STAFF_URL", "jpx.umaxica.org") +
-          build_post_logout_redirect_uris("CORE_CORPORATE_URL", "jpx.umaxica.com"),
-        backchannel_logout_uris: build_logout_uris("CORE_SERVICE_URL", "jpx.umaxica.app", "backchannel/logout") +
-          build_logout_uris("CORE_STAFF_URL", "jpx.umaxica.org", "backchannel/logout") +
-          build_logout_uris("CORE_CORPORATE_URL", "jpx.umaxica.com", "backchannel/logout"),
+        redirect_uris_by_realm: {
+          "client" => build_redirect_uris("PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app"),
+          "operator" => build_redirect_uris("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org"),
+          "visitor" => build_redirect_uris("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com"),
+        },
+        post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app") +
+          build_post_logout_redirect_uris("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org") +
+          build_post_logout_redirect_uris("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com"),
+        backchannel_logout_uris: build_logout_uris(
+          "PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app", "backchannel/logout",
+        ) +
+          build_logout_uris("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org", "backchannel/logout") +
+          build_logout_uris("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com", "backchannel/logout"),
         backchannel_logout_session_required: true,
         aud: "core-next-rp",
         resource_type: "client",

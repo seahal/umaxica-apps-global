@@ -1,32 +1,32 @@
-# 認可 (Authorization) 実装ガイド
+# Authorization Implementation Guide
 
-## 概要
+## Overview
 
-本アプリケーションの認可は **Action Policy** (`action_policy` gem) で実装する。Pundit は使用しない。
+This application implements authorization with **Action Policy** through the `action_policy` gem.
+It does not use Pundit.
 
-基本方針:
+Core rules:
 
-- 認可コンテキストは **Actor**（`Actor::Context`）。`ApplicationController` 系で
-  `authorize :actor, through: :current_actor` として束ねる。
-- すべてのポリシーは `ApplicationPolicy < ActionPolicy::Base` を継承し、**デフォルト全拒否 (deny-all
-  / allowlist)**。各アクション述語を明示的に `true` にしない限り許可されない。
-- 所有者判定・ロール判定・JWT スコープ判定・サーフェス（app/org/com）判定を `ApplicationPolicy`
-  のヘルパとして提供する。
+- The authorization context is an **Actor** (`Actor::Context`). ApplicationController classes bind
+  it with `authorize :actor, through: :current_actor`.
+- Every policy inherits from `ApplicationPolicy < ActionPolicy::Base` and defaults to deny-all. An
+  action is forbidden unless its predicate explicitly returns true.
+- `ApplicationPolicy` provides ownership, role, JWT scope, and app/org/com surface helpers.
 
-関連実装:
+Related implementation:
 
-- ベース: `app/policies/application_policy.rb`
-- ポリシー群: `app/policies/`（`ClientPolicy` / `OperatorPolicy` / `VisitorPolicy` ほか）
-- コンテキスト: `app/models/actor.rb`、`app/controllers/concerns/actor_support.rb`
-- 失敗ハンドリング: `app/controllers/concerns/authorization_audit.rb`
+- Base policy: `app/policies/application_policy.rb`
+- Policies: `app/policies/`, including `ClientPolicy`, `OperatorPolicy`, and `VisitorPolicy`
+- Context: `app/models/actor.rb` and `app/controllers/concerns/actor_support.rb`
+- Failure handling: `app/controllers/concerns/authorization_audit.rb`
 
-## 認可コンテキスト（Actor）
+## Actor Authorization Context
 
-`ApplicationPolicy` は以下の 2 コンテキストを宣言する（`app/policies/application_policy.rb`）:
+`ApplicationPolicy` declares two contexts:
 
 ```ruby
 class ApplicationPolicy < ActionPolicy::Base
-  # Actor::Context が主コンテキスト。レガシーな `user` は省略時に actor から導出する。
+  # Actor::Context is primary. The legacy `user` is derived from actor when omitted.
   authorize :actor, optional: true
   authorize :user, optional: true
 
@@ -37,41 +37,41 @@ class ApplicationPolicy < ActionPolicy::Base
 end
 ```
 
-サーフェスごとの `ApplicationController` が actor を供給する（例:
-`app/controllers/core/app/application_controller.rb`）:
+Each surface ApplicationController supplies the actor, for example in
+`app/controllers/core/app/application_controller.rb`:
 
 ```ruby
 authorize :actor, through: :current_actor
 ```
 
-`current_actor` は `Actor.context`（`ActiveSupport::CurrentAttributes`
-ベース）を返す（`app/controllers/concerns/actor_support.rb`）。ポリシー内では:
+`current_actor` returns `Actor.context`, which is based on `ActiveSupport::CurrentAttributes`, from
+`app/controllers/concerns/actor_support.rb`. Within a policy:
 
-- `actor` … `Actor::Context`
-- `user` … `actor` から導出した実リソース（`Client` / `Operator` / `Visitor`）。未認証時は `nil`
-- `record` … 認可対象レコード
+- `actor` is the `Actor::Context`.
+- `user` is the concrete Client, Operator, or Visitor derived from the actor, or nil when anonymous.
+- `record` is the resource being authorized.
 
-## ApplicationPolicy のヘルパ
+## ApplicationPolicy Helpers
 
-`app/policies/application_policy.rb` がポリシー内で使えるヘルパを提供する。
+`app/policies/application_policy.rb` provides these policy helpers:
 
-| メソッド                                                                      | 説明                                                                                                               |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `actor` / `user`                                                              | 認可コンテキスト / 導出された実リソース                                                                            |
-| `record`                                                                      | 認可対象レコード                                                                                                   |
-| `owner?`                                                                      | `user` が `record` の所有者か（Client→`user_id` / Operator→`staff_id` / Visitor→`visitor_id`、または同一リソース） |
-| `operator?` / `manager?` / `editor?` / `contributor?` / `viewer?`             | 組織スコープ付きロール判定                                                                                         |
-| `operator_or_manager?` / `can_edit?` / `can_view?` / `can_contribute?`        | 複合ロール判定                                                                                                     |
-| `has_scope?(scope)`                                                           | JWT スコープ判定（`current_token` の `scp` クレーム由来）                                                          |
-| `domain_app?` / `domain_org?` / `domain_com?` / `domain_permitted?(*domains)` | JWT `aud` クレームのサーフェス判定                                                                                 |
-| `current_token`                                                               | `Actor.authz.token_claims`                                                                                         |
+| Method | Meaning |
+|---|---|
+| `actor` / `user` | Authorization context and derived concrete resource |
+| `record` | Resource being authorized |
+| `owner?` | Whether `user` owns `record`, using Client `user_id`, Operator `staff_id`, Visitor `visitor_id`, or resource identity |
+| `operator?` / `manager?` / `editor?` / `contributor?` / `viewer?` | Organization-scoped role checks |
+| `operator_or_manager?` / `can_edit?` / `can_view?` / `can_contribute?` | Composite role checks |
+| `has_scope?(scope)` | JWT scope check based on the current token's `scp` claim |
+| `domain_app?` / `domain_org?` / `domain_com?` / `domain_permitted?(*domains)` | Surface checks based on the JWT `aud` claim |
+| `current_token` | `Actor.authz.token_claims` |
 
-デフォルト述語（`index?` / `show?` / `create?` / `update?` / `destroy?`）はすべて `false`。
-`edit?`→`update?`、`new?`→`create?` は `alias_rule` で対応付けられている。
+The default `index?`, `show?`, `create?`, `update?`, and `destroy?` predicates all return false.
+`alias_rule` maps `edit?` to `update?` and `new?` to `create?`.
 
-## ポリシーの実装
+## Implementing a Policy
 
-`app/policies/client_policy.rb` の例:
+Example from `app/policies/client_policy.rb`:
 
 ```ruby
 class ClientPolicy < ApplicationPolicy
@@ -95,7 +95,7 @@ class ClientPolicy < ApplicationPolicy
     (owner? && user.is_a?(Client)) || (user.is_a?(Operator) && operator?)
   end
 
-  # スコープ（一覧フィルタ）は relation_scope で定義する。
+  # Define list filtering with relation_scope.
   relation_scope do |relation|
     if user.is_a?(Operator) && operator_or_manager?
       relation.all
@@ -108,19 +108,18 @@ class ClientPolicy < ApplicationPolicy
 end
 ```
 
-ポイント:
+Important points:
 
-- アクター種別（`Client` / `Operator` / `Visitor`）を明示的に分岐する。
-- 所有権は `owner?` で明示チェックする。
-- スコープは Pundit の `Scope` クラスではなく Action Policy の `relation_scope` ブロックで定義する。
+- Branch explicitly on the Client, Operator, or Visitor actor type.
+- Check ownership explicitly with `owner?`.
+- Define scopes with Action Policy's `relation_scope`, not a Pundit `Scope` class.
 
-## コントローラでの利用
+## Controller Usage
 
-### アクション認可
+### Authorizing an Action
 
-`authorize!(record, to: :action?)` を呼ぶ。`before_action`
-から使う場合はシンボルで渡せないため、名前付きラッパーメソッドにして `before_action`
-に登録するのが本アプリの慣用パターン:
+Call `authorize!(record, to: :action?)`. Because a `before_action` cannot pass the predicate symbol
+directly, this application conventionally registers a named wrapper method:
 
 ```ruby
 class Sign::App::Settings::SessionsController < ...
@@ -134,44 +133,42 @@ class Sign::App::Settings::SessionsController < ...
 end
 ```
 
-レコードインスタンスを直接渡すこともできる（例: `authorize!(current_client, to: :show?)`）。
+A concrete record may also be passed directly, such as
+`authorize!(current_client, to: :show?)`.
 
-### スコープ適用
+### Applying a Scope
 
-一覧取得は `authorized_scope` で `relation_scope` を適用する（例:
-`app/controllers/sign/app/settings/passkeys_controller.rb`）:
+Use `authorized_scope` to apply `relation_scope` to a collection. For example,
+`app/controllers/sign/app/settings/passkeys_controller.rb` uses:
 
 ```ruby
 @passkeys = authorized_scope(current_client.client_passkeys).order(created_at: :desc)
 ```
 
-## 認可失敗時の挙動
+## Authorization Failure Behavior
 
-各サーフェスの `ApplicationController` が例外を捕捉する:
+Each surface ApplicationController catches authorization failures:
 
 ```ruby
 rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error
 ```
 
-`handle_authorization_error`（`app/controllers/concerns/authorization_audit.rb`）の挙動:
+`handle_authorization_error` in `app/controllers/concerns/authorization_audit.rb`:
 
-- 失敗を監査ログに記録（`authorization.failure`
-  イベント、監査レコード作成）。ログ処理自体の例外は握りつぶしてアプリを止めない。
-- レスポンス:
-  - HTML:
-    `flash[:alert] = I18n.t("errors.messages.not_authorized")`（`この操作を行う権限がありません。`）の上で
-    `safe_redirect_back_or_to(root_path)`。
-  - JSON: `{ error: "Unauthorized" }` を `:forbidden`（403）で返す。
+- Records an `authorization.failure` audit event and audit record. An audit-write error is isolated
+  so it does not stop the application response.
+- For HTML, sets the translated not-authorized message and calls
+  `safe_redirect_back_or_to(root_path)`.
+- For JSON, returns `{ error: "Unauthorized" }` with HTTP 403 Forbidden.
 
-> 注: 認可と **ステップアップ認証** は別レイヤ。ステップアップは
-> `Verification::Base#require_step_up!` と `step_up`
-> DSL（`Verification::StepUpGuard`）で扱い、失敗時は 302 リダイレクト / 401 /
-> 422 を返す。認可（ActionPolicy）の 403 とは別物。
+Authorization and **step-up authentication** are separate layers. Step-up uses
+`Verification::Base#require_step_up!` and the `step_up` DSL in `Verification::StepUpGuard`; its
+failures return a 302 redirect, 401, or 422. Those are distinct from an Action Policy 403.
 
-## テスト
+## Testing
 
-ポリシーは `test/policies/` 配下で単体テストする（Action
-Policy のテストヘルパを利用）。アクターごとに許可 / 拒否 / 未認証 / 別ユーザ / 別スタッフのケースを網羅する。
+Unit-test policies under `test/policies/` with Action Policy's test support. Cover allowed and
+denied cases, anonymous actors, another user, another staff member, and each relevant actor type.
 
 ```ruby
 require "test_helper"
@@ -187,32 +184,31 @@ class ClientPolicyTest < ActiveSupport::TestCase
 end
 ```
 
-（実際のコンテキスト生成は `test/policies/application_policy_actor_context_test.rb` 等を参照。）
+See `test/policies/application_policy_actor_context_test.rb` for concrete context construction.
 
-## ベストプラクティス
+## Best Practices
 
-1. **デフォルト全拒否**: `ApplicationPolicy` は allowlist。必要な述語のみ明示的に許可する。
-2. **明示的な認可呼び出し**: コントローラで `authorize!` / `authorized_scope` を必ず呼ぶ。
-3. **アクター種別と所有権を明示**: `user.is_a?(...)` と `owner?` を組み合わせる。
-4. **コンテキストは Actor 経由**: コントローラのインスタンス変数に依存せず `actor` / `user` を使う。
-5. **テストを書く**: 各ポリシーに許可 / 拒否 / 未認証 / 越境ケースのテストを追加する。
+1. **Default to deny:** `ApplicationPolicy` is an allowlist. Permit only necessary predicates.
+2. **Authorize explicitly:** Controllers must call `authorize!` or `authorized_scope`.
+3. **Name actor type and ownership:** Combine explicit `user.is_a?(...)` checks with `owner?`.
+4. **Use Actor context:** Use `actor` and `user`, not controller instance variables.
+5. **Test boundaries:** Cover allowed, denied, anonymous, and cross-boundary cases for each policy.
 
-## トラブルシュート
+## Troubleshooting
 
-### `ActionPolicy::Unauthorized` が発生する
+### `ActionPolicy::Unauthorized` Is Raised
 
-- 当該アクションのポリシー述語が `false`
-  を返している。ポリシーとアクター種別・所有権・ロールを確認する。
-- 期待挙動なら問題なし（403 / リダイレクト）。誤りなら述語条件を見直す。
+- The policy predicate for the action returned false. Check the policy, actor type, ownership, and
+  role.
+- If denial is expected, the 403 or redirect is correct. Otherwise, revise the predicate condition.
 
-### ポリシーが見つからない
+### The Policy Cannot Be Found
 
-命名規約を確認する（モデル `Client` → `ClientPolicy` =
-`app/policies/client_policy.rb`）。レコードを使わない認可は `authorize!(SomeClass, to: :action?)`
-のようにクラスを渡す。
+Check naming: model `Client` maps to `ClientPolicy` in `app/policies/client_policy.rb`. For
+authorization without a record, pass a class such as `authorize!(SomeClass, to: :action?)`.
 
-### コンテキストが取れない
+### Context Is Missing
 
-`current_actor`（= `Actor.context`）が `set_current_actor`
-で投入されているかを確認する（`app/controllers/concerns/actor_support.rb`、`BareController`
-系はライフサイクルを意図的にバイパスする）。
+Confirm that `set_current_actor` populated `current_actor`, which equals `Actor.context`, through
+`app/controllers/concerns/actor_support.rb`. BareController classes intentionally bypass this
+lifecycle.

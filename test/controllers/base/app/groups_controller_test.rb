@@ -9,7 +9,7 @@ class Base::App::GroupsControllerTest < ActionDispatch::IntegrationTest
     @host = configured_host(:base_service)
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user)
+    @bootstrap = BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user)
     BaseSelectorAuthority.prepare(surface: :app, principal: @user, session: @token)
   end
 
@@ -35,6 +35,113 @@ class Base::App::GroupsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_oidc_authorize_redirect(response.location, host: @host)
   end
+
+  test "client creates and views a group in the selected account" do
+    assert_difference -> { AvatarGroup.count }, 1 do
+      post base_app_groups_url(ri: "jp", host: @host),
+           params: { group: { name: "Coverage Group", description: "Group description" } },
+           headers: as_user_headers(@user, host: @host)
+    end
+
+    assert_response :created
+    group = AvatarGroup.order(:id).last
+
+    assert_equal "Coverage Group", group.name
+
+    get base_app_group_url(group.public_id, ri: "jp", host: @host),
+        headers: as_user_headers(@user, host: @host)
+
+    assert_response :success
+    assert_equal group.public_id, response.parsed_body.dig("group", "public_id")
+  end
+
+  test "client updates and archives a selected-account group" do
+    account_public_id = @bootstrap.account.public_id
+    group = AvatarGroup.create!(
+      account_surface: "app", account_public_id: account_public_id,
+      name: "Original Group", description: "Original", state: "active",
+    )
+
+    patch base_app_group_url(group.public_id, ri: "jp", host: @host),
+          params: { group: { name: "Updated Group", description: "Updated" } },
+          headers: as_user_headers(@user, host: @host)
+
+    assert_response :success
+    assert_equal "Updated Group", group.reload.name
+
+    delete base_app_group_url(group.public_id, ri: "jp", host: @host),
+           headers: as_user_headers(@user, host: @host)
+
+    assert_response :no_content
+    assert_predicate group.reload, :archived?
+  end
+
+  test "client attaches an avatar to a selected-account group" do
+    group = AvatarGroup.new(
+      public_id: "group-public-id", account_surface: "app", account_public_id: @bootstrap.account.public_id,
+      name: "Membership Group", state: "active",
+    )
+    avatar = Avatar.new(public_id: "avatar-public-id", moniker: "Member")
+    membership = GroupAvatarMembership.new(
+      public_id: "membership-public-id", avatar_group: group, avatar: avatar,
+      role: "member", position: 2, state: "active",
+    )
+
+    AvatarGroup.stub(:find_by!, group) do
+      Avatar.stub(:find_by!, avatar) do
+        GroupAvatarMemberships::Attach.stub(:call, membership) do
+          post base_app_group_avatar_memberships_url(group.public_id, ri: "jp", host: @host),
+               params: { membership: { avatar_public_id: avatar.public_id, role: "member", position: 2 } },
+               headers: as_user_headers(@user, host: @host)
+        end
+      end
+    end
+
+    assert_response :created
+    assert_equal "membership-public-id", response.parsed_body.dig("membership", "public_id")
+    assert_equal "avatar-public-id", response.parsed_body.dig("membership", "avatar_public_id")
+  end
+
+  test "client reorders and detaches a selected-account membership" do
+    group = AvatarGroup.new(
+      public_id: "group-public-id", account_surface: "app", account_public_id: @bootstrap.account.public_id,
+      name: "Membership Group", state: "active",
+    )
+    avatar = Avatar.new(public_id: "avatar-public-id", moniker: "Member")
+    membership = GroupAvatarMembership.new(
+      public_id: "membership-public-id", avatar_group: group, avatar: avatar,
+      role: "member", position: 1, state: "active",
+    )
+    memberships = Object.new
+    memberships.define_singleton_method(:find_by!) { |**| membership }
+    group.define_singleton_method(:group_avatar_memberships) { memberships }
+    reordered = membership.dup
+    reordered.avatar_group = group
+    reordered.avatar = avatar
+    reordered.position = 4
+
+    AvatarGroup.stub(:find_by!, group) do
+      GroupAvatarMemberships::Reorder.stub(:call, reordered) do
+        patch base_app_group_avatar_membership_url(
+          group.public_id, membership.public_id, ri: "jp", host: @host,
+        ), params: { membership: { position: 4 } }, headers: as_user_headers(@user, host: @host)
+      end
+    end
+
+    assert_response :success
+    assert_equal 4, response.parsed_body.dig("membership", "position")
+
+    AvatarGroup.stub(:find_by!, group) do
+      GroupAvatarMemberships::Detach.stub(:call, membership) do
+        delete base_app_group_avatar_membership_url(
+          group.public_id, membership.public_id, ri: "jp", host: @host,
+        ), headers: as_user_headers(@user, host: @host)
+      end
+    end
+
+    assert_response :no_content
+  end
+
   private
 
   def host_headers(host = nil)

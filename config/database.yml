@@ -33,19 +33,19 @@ development_default: &development_default
   !!merge <<: *default
   pool: 2
 development:
-  com_principal:
+  publishing:
     !!merge <<: *development_default
-    database: development_com_principal_db
-    host: <%= ENV["POSTGRESQL_COM_PRINCIPAL_PUB"] || default_host %>
-    migrations_paths: db/com_principal_reserved_migrate
-    schema_dump: com_principal_structure.sql
-  com_principal_replica:
+    database: development_publishing_db
+    host: <%= ENV["POSTGRESQL_PUBLISHING_PUB"] || default_host %>
+    migrations_paths: db/publishing_migrate
+    schema_dump: publishing_structure.sql
+  publishing_replica:
     !!merge <<: *development_default
     replica: true
-    database: development_com_principal_db
-    host: <%= ENV["POSTGRESQL_COM_PRINCIPAL_SUB"] || default_host %>
-    migrations_paths: db/com_principal_reserved_migrate
-    schema_dump: com_principal_structure.sql
+    database: development_publishing_db
+    host: <%= ENV["POSTGRESQL_PUBLISHING_SUB"] || default_host %>
+    migrations_paths: db/publishing_migrate
+    schema_dump: publishing_structure.sql
   com_zenith:
     !!merge <<: *development_default
     database: development_com_zenith_db
@@ -97,19 +97,6 @@ development:
       - db/org_principals_migrate
       - db/org_zenith_migrate
     schema_dump: org_zenith_structure.sql
-  app_principal:
-    !!merge <<: *development_default
-    database: development_app_principal_db
-    host: <%= ENV["POSTGRESQL_APP_PRINCIPAL_PUB"] || default_host %>
-    migrations_paths: db/app_principal_reserved_migrate
-    schema_dump: app_principal_structure.sql
-  app_principal_replica:
-    !!merge <<: *development_default
-    replica: true
-    database: development_app_principal_db
-    host: <%= ENV["POSTGRESQL_APP_PRINCIPAL_SUB"] || default_host %>
-    migrations_paths: db/app_principal_reserved_migrate
-    schema_dump: app_principal_structure.sql
   app_setting:
     !!merge <<: *development_default
     database: development_app_setting_db
@@ -241,11 +228,13 @@ development:
     migrations_paths: db/caches_migrate
   queue:
     !!merge <<: *development_default
+    pool: 5
     database: development_queue_db
     host: <%= ENV["POSTGRESQL_QUEUE_PUB"] || default_host %>
     migrations_paths: db/queues_migrate
   queue_replica:
     !!merge <<: *development_default
+    pool: 5
     replica: true
     database: development_queue_db
     host: <%= ENV["POSTGRESQL_QUEUE_SUB"] || default_host %>
@@ -285,19 +274,6 @@ development:
     host: <%= ENV["POSTGRESQL_CHRONICLE_SUB"] || default_host %>
     migrations_paths: db/chronicle_migrate
     schema_dump: chronicle_structure.sql
-  org_principal:
-    !!merge <<: *development_default
-    database: development_org_principal_db
-    host: <%= ENV["POSTGRESQL_ORG_PRINCIPAL_PUB"] || default_host %>
-    migrations_paths: db/org_principal_reserved_migrate
-    schema_dump: org_principal_structure.sql
-  org_principal_replica:
-    !!merge <<: *development_default
-    replica: true
-    database: development_org_principal_db
-    host: <%= ENV["POSTGRESQL_ORG_PRINCIPAL_SUB"] || default_host %>
-    migrations_paths: db/org_principal_reserved_migrate
-    schema_dump: org_principal_structure.sql
   avatar:
     !!merge <<: *development_default
     database: development_avatar_db
@@ -313,19 +289,19 @@ development:
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
 test:
-  com_principal:
+  publishing:
     !!merge <<: *test_default
-    database: test_com_principal_db
+    database: test_publishing_db
     host: <%= test_host %>
-    migrations_paths: db/com_principal_reserved_migrate
-    schema_dump: com_principal_structure.sql
-  com_principal_replica:
+    migrations_paths: db/publishing_migrate
+    schema_dump: publishing_structure.sql
+  publishing_replica:
     !!merge <<: *test_default
     replica: true
-    database: test_com_principal_replica_db
+    database: test_publishing_replica_db
     host: <%= test_host %>
-    migrations_paths: db/com_principal_reserved_migrate
-    schema_dump: com_principal_structure.sql
+    migrations_paths: db/publishing_migrate
+    schema_dump: publishing_structure.sql
   com_zenith:
     !!merge <<: *test_default
     database: test_com_zenith_db
@@ -377,19 +353,6 @@ test:
       - db/org_principals_migrate
       - db/org_zenith_migrate
     schema_dump: org_zenith_structure.sql
-  app_principal:
-    !!merge <<: *test_default
-    database: test_app_principal_db
-    host: <%= test_host %>
-    migrations_paths: db/app_principal_reserved_migrate
-    schema_dump: app_principal_structure.sql
-  app_principal_replica:
-    !!merge <<: *test_default
-    replica: true
-    database: test_app_principal_replica_db
-    host: <%= test_host %>
-    migrations_paths: db/app_principal_reserved_migrate
-    schema_dump: app_principal_structure.sql
   app_setting:
     !!merge <<: *test_default
     database: test_app_setting_db
@@ -574,19 +537,6 @@ test:
     host: <%= test_host %>
     migrations_paths: db/chronicle_migrate
     schema_dump: chronicle_structure.sql
-  org_principal:
-    !!merge <<: *test_default
-    database: test_org_principal_db
-    host: <%= test_host %>
-    migrations_paths: db/org_principal_reserved_migrate
-    schema_dump: org_principal_structure.sql
-  org_principal_replica:
-    !!merge <<: *test_default
-    replica: true
-    database: test_org_principal_replica_db
-    host: <%= test_host %>
-    migrations_paths: db/org_principal_reserved_migrate
-    schema_dump: org_principal_structure.sql
   avatar:
     !!merge <<: *test_default
     database: test_avatar_db
@@ -600,25 +550,25 @@ test:
     migrations_paths: db/avatars_migrate
     schema_dump: avatar_structure.sql
 production:
-  com_principal:
+  publishing:
     !!merge <<: *default
-    database: production_com_principal_db
+    database: production_publishing_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.COM_PRINCIPAL&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.PUBLISHING&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.COM_PRINCIPAL&.PASSWORD %>
-    migrations_paths: db/com_principal_reserved_migrate
-    schema_dump: com_principal_structure.sql
-  com_principal_replica:
+    password: <%= Rails.application.credentials&.DATABASE&.PUBLISHING&.PASSWORD %>
+    migrations_paths: db/publishing_migrate
+    schema_dump: publishing_structure.sql
+  publishing_replica:
     !!merge <<: *default
     replica: true
-    database: production_com_principal_db
+    database: production_publishing_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.COM_PRINCIPAL_REPLICA&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.PUBLISHING_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.COM_PRINCIPAL_REPLICA&.PASSWORD %>
-    migrations_paths: db/com_principal_reserved_migrate
-    schema_dump: com_principal_structure.sql
+    password: <%= Rails.application.credentials&.DATABASE&.PUBLISHING_REPLICA&.PASSWORD %>
+    migrations_paths: db/publishing_migrate
+    schema_dump: publishing_structure.sql
   com_zenith:
     !!merge <<: *default
     database: production_com_zenith_db
@@ -688,25 +638,6 @@ production:
       - db/org_principals_migrate
       - db/org_zenith_migrate
     schema_dump: org_zenith_structure.sql
-  app_principal:
-    !!merge <<: *default
-    database: production_app_principal_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.APP_PRINCIPAL&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.APP_PRINCIPAL&.PASSWORD %>
-    migrations_paths: db/app_principal_reserved_migrate
-    schema_dump: app_principal_structure.sql
-  app_principal_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_app_principal_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.APP_PRINCIPAL_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.APP_PRINCIPAL_REPLICA&.PASSWORD %>
-    migrations_paths: db/app_principal_reserved_migrate
-    schema_dump: app_principal_structure.sql
   app_setting:
     !!merge <<: *default
     database: production_app_setting_db
@@ -970,25 +901,6 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.OCCURRENCE_REPLICA&.PASSWORD %>
     migrations_paths: db/occurrences_migrate
-  org_principal:
-    !!merge <<: *default
-    database: production_org_principal_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.ORG_PRINCIPAL&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.ORG_PRINCIPAL&.PASSWORD %>
-    migrations_paths: db/org_principal_reserved_migrate
-    schema_dump: org_principal_structure.sql
-  org_principal_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_org_principal_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.ORG_PRINCIPAL_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.ORG_PRINCIPAL_REPLICA&.PASSWORD %>
-    migrations_paths: db/org_principal_reserved_migrate
-    schema_dump: org_principal_structure.sql
   avatar:
     !!merge <<: *default
     database: production_avatar_db

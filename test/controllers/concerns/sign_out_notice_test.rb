@@ -15,12 +15,13 @@ class SignOutNoticeTest < ActiveSupport::TestCase
 
     include SignOutNotice
 
-    attr_reader :session, :response, :request
+    attr_reader :session, :response, :request, :params
 
-    def initialize(session = {})
+    def initialize(session = {}, params = {})
       @session = session
       @response = Struct.new(:headers).new({})
       @request = Struct.new(:params).new({})
+      @params = ActionController::Parameters.new(params)
     end
 
     def current_resource
@@ -34,6 +35,24 @@ class SignOutNoticeTest < ActiveSupport::TestCase
     def current_sign_out_access_expires_at
       nil
     end
+
+    def controller_path
+      "auth/app/sign_outs"
+    end
+
+    def new_auth_app_sign_out_path(**options) = [__method__, options]
+
+    def new_auth_app_sign_out_url(**options) = [__method__, options]
+
+    def edit_auth_app_sign_out_url(**options) = [__method__, options]
+
+    def auth_app_sign_out_path(**options) = [__method__, options]
+
+    def auth_app_sign_out_url(**options) = [__method__, options]
+
+    def auth_app_sign_out_completion_url(**options) = [__method__, options]
+
+    def auth_app_root_url(**options) = [__method__, options]
   end
 
   test "stores and consumes a notice once" do
@@ -67,5 +86,27 @@ class SignOutNoticeTest < ActiveSupport::TestCase
 
     assert_predicate harness, :sign_out_completion_notice_present?
     assert_not_predicate harness, :sign_out_active_context_present?
+  end
+
+  test "builds every sign out URL variant with preserved route state" do
+    harness = Harness.new({}, { ri: "return-id", logout_challenge: "challenge" })
+    expected_options = { ri: "return-id", logout_challenge: "challenge", host: "app.example.test" }
+
+    assert_equal [:new_auth_app_sign_out_path, expected_options],
+                 harness.send(:sign_out_new_path, host: "app.example.test", ignored: nil)
+    assert_equal [:new_auth_app_sign_out_url, expected_options],
+                 harness.send(:sign_out_new_url, host: "app.example.test", ignored: nil)
+    assert_equal [:edit_auth_app_sign_out_url, expected_options],
+                 harness.send(:sign_out_edit_url, host: "app.example.test", ignored: nil)
+    assert_equal [:auth_app_sign_out_path, expected_options],
+                 harness.send(:sign_out_post_path, host: "app.example.test", ignored: nil)
+    assert_equal [:auth_app_sign_out_url, expected_options],
+                 harness.send(:sign_out_post_url, host: "app.example.test", ignored: nil)
+    assert_equal [:auth_app_sign_out_completion_url, expected_options],
+                 harness.send(:sign_out_complete_url, host: "app.example.test", ignored: nil)
+    assert_equal [:auth_app_root_url, expected_options],
+                 harness.send(:sign_out_home_url, host: "app.example.test", ignored: nil)
+    assert_equal [:auth_app_sign_out_path, expected_options.except(:host)],
+                 harness.send(:sign_out_confirmation_form_path)
   end
 end

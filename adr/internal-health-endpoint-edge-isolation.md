@@ -25,7 +25,7 @@ probe JSON or the HTML snapshot to the public has three problems:
 3. It widens the reconnaissance surface by advertising surface topology and dependency shape.
 
 The edge in front of the Rails origin is Cloudflare Tunnel (`cloudflare-tunnel` service in
-`compose.yaml`). There is no in-repo reverse proxy, WAF, or ingress configuration; edge access rules
+`compose.custom.yaml`). There is no in-repo reverse proxy, WAF, or ingress configuration; edge access rules
 are managed on the Cloudflare side. Orchestrator and container probes
 (`liveness`/`readiness`/`startup`) reach the origin internally, not through the public edge, so an
 edge-level block on public traffic does not affect internal probing.

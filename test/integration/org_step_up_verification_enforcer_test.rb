@@ -25,14 +25,6 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     )
     @base_headers = as_staff_headers(@staff, host: @base_host, session_public_id: @token.public_id)
     @auth_headers = as_staff_headers(@staff, host: @auth_host, session_public_id: @token.public_id)
-
-    @original_trusted_origins = Webauthn.method(:trusted_origins)
-    auth_host = @auth_host
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://id.org.localhost", "http://#{auth_host}"] }
-  end
-
-  teardown do
-    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
   end
 
   test "GET protected endpoint redirects to setup when configured methods are zero" do
@@ -72,7 +64,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
-      name: "stepup passkey",
+      description: "stepup passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
@@ -91,7 +83,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
-      name: "stepup passkey",
+      description: "stepup passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
@@ -109,13 +101,14 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
-      name: "stepup passkey",
+      description: "stepup passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
-        WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
+        verification_context = Struct.new(:sign_count, :verified_at).new(1, Time.current)
+        Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
           get auth_org_verification_url(scope: "settings_passkey", return_to: return_to, ri: "jp", host: @auth_host),
               headers: @auth_headers
 

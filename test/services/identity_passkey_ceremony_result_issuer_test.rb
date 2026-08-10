@@ -110,6 +110,18 @@ class IdentityPasskeyCeremonyResultIssuerTest < ActiveSupport::TestCase
     end
   end
 
+  test "raises when the transaction rp_id does not match the surface relying party" do
+    with_ceremony(transaction: FakeTransaction.new(rp_id: "auth.umaxica.com")) do
+      assert_passkey_error("transaction rp_id does not match surface relying party") { issuer.issue! }
+    end
+  end
+
+  test "raises when the transaction origin does not match the surface relying party" do
+    with_ceremony(transaction: FakeTransaction.new(origin: "https://auth.umaxica.app:8443")) do
+      assert_passkey_error("transaction origin does not match surface relying party") { issuer.issue! }
+    end
+  end
+
   private
 
   def issuer(challenge_id: nil, candidate: valid_candidate)
@@ -163,7 +175,10 @@ class IdentityPasskeyCeremonyResultIssuerTest < ActiveSupport::TestCase
     )
   end
 
-  PasskeyCandidate = Data.define(:webauthn_id, :public_key, :sign_count, :description, :transports)
+  PasskeyCandidate =
+    Data.define(:webauthn_id, :public_key, :sign_count, :description, :transports, :metadata) do
+      def initialize(metadata: {}, **rest) = super
+    end
 
   class FakeStore
     def initialize(transaction)
@@ -176,10 +191,13 @@ class IdentityPasskeyCeremonyResultIssuerTest < ActiveSupport::TestCase
   end
 
   class FakeTransaction
-    attr_reader :surface, :actor_ref, :session_ref, :operation, :transaction_id, :grant_jti, :expires_at
+    attr_reader :surface, :rp_id, :origin, :actor_ref, :session_ref, :operation, :transaction_id, :grant_jti,
+                :expires_at
 
-    def initialize(expired: false, consumed: false)
+    def initialize(expired: false, consumed: false, rp_id: "auth.umaxica.app", origin: "https://auth.umaxica.app")
       @surface = "app"
+      @rp_id = rp_id
+      @origin = origin
       @actor_ref = "actor-1"
       @session_ref = "session-1"
       @operation = "registration"

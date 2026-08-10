@@ -6,7 +6,7 @@ ActiveSupport.on_load(:active_record) do
     define_method(:create_table) do
       @pool.with_connection do |connection|
         connection.create_table(table_name, id: false, if_not_exists: true) do |t|
-          t.string :version, **connection.internal_string_options_for_primary_key
+          t.string(:version, **connection.internal_string_options_for_primary_key)
         end
       end
     end

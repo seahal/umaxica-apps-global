@@ -279,7 +279,7 @@ class AuthenticationCurrentResourceResolver
   end
 
   def administratively_locked?(resource)
-    resource.respond_to?(:admin_locked?) && resource.admin_locked?
+    self.class.administratively_locked?(resource)
   end
 
   def token_stale_for_administrative_lock?(resource, payload)
@@ -294,5 +294,11 @@ class AuthenticationCurrentResourceResolver
     return true if resource.respond_to?(:withdrawn?) && resource.withdrawn?
 
     resource.respond_to?(:deactivated?) && resource.deactivated?
+  end
+
+  class << self
+    def administratively_locked?(resource)
+      resource.respond_to?(:admin_locked?) && resource.admin_locked?
+    end
   end
 end

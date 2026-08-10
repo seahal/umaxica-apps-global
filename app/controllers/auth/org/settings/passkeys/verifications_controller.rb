@@ -3,10 +3,9 @@
 
 class Auth::Org::Settings::Passkeys::VerificationsController < ::Auth::Org::ApplicationController
   include ::VerificationOperator
-  include SignWebauthn
   include SignSettingsPasskeyRegistration
   include ::SignRequiresRecoveryPasscodes
-  include ::SignSettingsPasskeyRegistrationEndpoint
+  include ::PasskeyRegistrationFlow
 
   AUTHENTICATION_MODE = :private
   declare_authentication_mode! :private
@@ -20,8 +19,6 @@ class Auth::Org::Settings::Passkeys::VerificationsController < ::Auth::Org::Appl
   private
 
   def passkey_registration_actor = current_operator
-
-  def passkey_registration_surface = "org"
 
   def passkey_registration_passkeys = current_operator.staff_passkeys
 

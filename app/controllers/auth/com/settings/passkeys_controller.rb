@@ -4,11 +4,11 @@
 module Auth
   module Com
     module Settings
+      # Passkey registration and management for visitors.
       class PasskeysController < ::Auth::Com::ApplicationController
         include ::VerificationVisitor
-
-        include SignWebauthn
         include SignSettingsPasskeyRegistration
+        include ::PasskeyRegistrationFlow
         include ::SignRequiresRecoveryPasscodes
 
         include ::CloudflareTurnstile
@@ -62,60 +62,9 @@ module Auth
           end
         end
 
-        def options
-          existing_credentials = current_visitor.visitor_passkeys.map { |passkey| { id: passkey.webauthn_id } }
-          challenge_id, creation_options = create_registration_challenge(
-            resource: current_visitor,
-            exclude_credentials: existing_credentials,
-          )
+        def options = render_passkey_registration_options
 
-          render json: {
-            challenge_id: challenge_id,
-            options: creation_options,
-          }, status: :ok
-        rescue SignWebauthn::OriginValidationError => e
-          Rails.logger.error(JitLogEvent.format("webauthn.origin_validation_failed", message: e.message))
-          render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
-        rescue SignWebauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
-          Rails.logger.error(
-            JitLogEvent.format(
-              "webauthn.registration_options_failed", error_class: e.class.name,
-                                                      message: e.message,
-            ),
-          )
-          render json: { error: I18n.t("errors.webauthn.options_failed") }, status: :unprocessable_content
-        end
-
-        def verification
-          challenge_id = params[:challenge_id]
-          if challenge_id.blank?
-            return render json: {
-              error: I18n.t("errors.webauthn.challenge_id_required"),
-            }, status: :bad_request
-          end
-
-          render_verification_result(perform_webauthn_registration!(challenge_id))
-        rescue SignWebauthn::ChallengeNotFoundError,
-               SignWebauthn::ChallengeExpiredError => e
-          Rails.logger.warn("WebAuthn challenge error: #{e.message}")
-          render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
-        rescue SignWebauthn::ChallengePurposeMismatchError => e
-          Rails.logger.warn("WebAuthn challenge purpose mismatch: #{e.message}")
-          render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
-        rescue WebAuthn::Error => e
-          Rails.logger.warn("WebAuthn registration failed: #{e.message}")
-          render json: { error: I18n.t("errors.webauthn.verification_failed") },
-                 status: :unprocessable_content
-        rescue IdentityPasskeyCeremonyContract::Error => e
-          Rails.logger.warn("WebAuthn passkey commit failed: #{e.message}")
-          render json: { error: I18n.t("errors.webauthn.verification_failed") },
-                 status: :unprocessable_content
-        rescue ActiveRecord::RecordNotUnique
-          render json: { error: I18n.t("errors.webauthn.credential_already_registered") }, status: :conflict
-        rescue ActiveRecord::RecordInvalid => e
-          Rails.logger.warn("WebAuthn passkey creation failed: #{e.message}")
-          render json: { error: e.record.errors.full_messages.to_sentence }, status: :unprocessable_content
-        end
+        def verification = verify_passkey_registration
 
         def update
           authorize!(@passkey)
@@ -169,118 +118,42 @@ module Auth
           @passkey = current_visitor.visitor_passkeys.find_by!(public_id: params.expect(:id))
         end
 
-        def perform_webauthn_registration!(challenge_id)
-          with_challenge(challenge_id, purpose: :registration) do |challenge|
-            credential = WebAuthn::Credential.from_create(
-              credential_params.to_h,
-              relying_party: webauthn_relying_party,
-            )
-            credential.verify(challenge)
-            passkey = commit_passkey_ceremony!(credential, challenge_id)
-            { passkey: passkey, challenge_id: challenge_id }
-          end
-        end
-
-        def render_verification_result(result)
-          passkey = result[:passkey]
-          recovery_passcode_top_up = RecoveryPasscodeTopUp.call(
-            actor: current_visitor,
-            credential_class: VisitorSecretCredential,
-            target_count: RecoveryPasscodeTopUp::TARGET_ACTIVE_RECOVERY_PASSCODES,
-          )
-          redirect_url =
-            if recovery_passcode_top_up.raw_values.any?
-              reveal = IdentityOneTimeReveal.issue!(
-                actor: current_visitor,
-                session_nonce: current_visitor.public_id,
-                value: recovery_passcode_top_up.raw_values,
-                purpose: "visitor.recovery_secret_credential",
-                metadata: {},
-              )
-              base_com_identity_url(
-                ri: params[:ri],
-                token: reveal.token,
-                host: base_authority_host,
-              )
-            else
-              bootstrap_return_path(
-                auth_com_settings_passkeys_url(
-                  ri: params[:ri],
-                  host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
-                ),
-              )
-            end
-
-          render json: {
-            status: "ok",
-            passkey_id: passkey.id,
-            redirect_url: redirect_url,
-          }, status: :created
-        end
-
-        def credential_params
-          params.fetch(:credential, {}).permit(
-            :id,
-            :rawId,
-            :type,
-            :authenticatorAttachment,
-            { transports: [] },
-            { response: %i(clientDataJSON attestationObject) },
-            { clientExtensionResults: {} },
-          )
-        end
-
         def update_params
           key = params.key?(:visitor_passkey) ? :visitor_passkey : :passkey
           params.fetch(key, {}).permit(:description)
         end
 
-        def commit_passkey_ceremony!(credential, challenge_id)
-          candidate = IdentityPasskeyCeremonyResultIssuer::Candidate.new(
-            webauthn_id: credential.id,
-            public_key: credential.public_key,
-            sign_count: credential.sign_count,
-            description: passkey_description,
-            transports: credential_params[:transports],
-          )
-          commit = finish_passkey_ceremony!(
-            surface: "com",
-            actor: current_visitor,
-            session_ref: current_session_public_id,
-            candidate: candidate,
-            challenge_id: challenge_id,
-          )
-          reset_passkey_ceremony_session!
-          commit.passkey
-        end
+        def passkey_registration_actor = current_visitor
 
-        def passkey_description
-          params[:description].presence || I18n.t("sign.default_passkey_description")
-        end
+        def passkey_registration_passkeys = current_visitor.visitor_passkeys
 
-        def verification_required_action?
-          step_up_bootstrap_active? && %w(new create options verification).include?(action_name)
-        end
-
-        def verification_scope
-          "settings_passkey"
+        def passkey_registration_redirect_url
+          auth_com_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"))
         end
 
         def recovery_passcode_requirement_active_strong_credential_count
           current_visitor.visitor_passkeys.active.count
         end
 
-        def recovery_passcode_requirement_actor
-          current_visitor
-        end
+        def recovery_passcode_requirement_actor = current_visitor
 
-        def recovery_passcode_requirement_credential_class
-          VisitorSecretCredential
-        end
+        def recovery_passcode_requirement_credential_class = VisitorSecretCredential
 
         def recovery_passcode_setup_url
           base_com_identity_url(
             ri: params[:ri],
+            host: base_authority_host,
+          )
+        end
+
+        def recovery_passcode_top_up_actor = current_visitor
+
+        def recovery_passcode_top_up_credential_class = VisitorSecretCredential
+
+        def recovery_passcode_reveal_redirect_url(token)
+          base_com_identity_url(
+            ri: params[:ri],
+            token: token,
             host: base_authority_host,
           )
         end

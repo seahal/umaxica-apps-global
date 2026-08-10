@@ -6,19 +6,7 @@ module Auth
     module Sign
       module In
         class PasskeysController < ::Auth::Com::ApplicationController
-          include SignWebauthn
-
-          include SignPasskeyAuthentication
-
-          include SignPasskeyAuthenticationHelpers
-
-          include SignPasskeyOptionsFlow
-
-          include SignPasskeyVerificationFlow
-
-          include SignPasskeySignInFlow
-
-          include SignPasskeyLoginResultFlow
+          include ::PasskeySignInFlow
 
           include EmailValidation
 
@@ -112,35 +100,6 @@ module Auth
 
           def before_passkey_options_request!
             verify_turnstile_stealth!
-          end
-
-          def allow_passkey_options_for_actor?(visitor)
-            if session_limit_hard_reject_for?(visitor)
-              render_session_limit_hard_reject
-              return false
-            end
-
-            true
-          end
-
-          def active_passkeys_for_actor(visitor)
-            visitor.visitor_passkeys.where(status_id: VisitorPasskeyStatus::ACTIVE)
-          end
-
-          def passkey_challenge_actor_id_key
-            "visitor_id"
-          end
-
-          def passkey_sign_in_model
-            VisitorPasskey
-          end
-
-          def passkey_belongs_to_challenge_actor?(passkey, actor_id)
-            passkey.visitor_id == actor_id
-          end
-
-          def passkey_owner_mismatch_log_message
-            "WebAuthn: Credential not found or visitor mismatch"
           end
 
           def allow_passkey_sign_in?(passkey)

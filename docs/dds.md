@@ -55,7 +55,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 | Presentation   | Namespaced controllers and Turbo/React views under `src`                                  |
 | Domain Logic   | Concerns in `app/controllers/concerns`, services in `app/services`, models per DB         |
 | Integration    | `app/mailers`, `Outbound::Sms`, OTEL instrumentation                                      |
-| Infrastructure | Compose services (Postgres, Valkey, MinIO, Loki, Tempo, Grafana), pnpm/Tailwind toolchain |
+| Infrastructure | Compose services (Postgres, Valkey, optional RustFS, Loki, Tempo, Grafana), pnpm/Tailwind toolchain |
 
 ---
 
@@ -286,7 +286,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 | ActionMailer         | `Email::{App,Com,Org}::{OtpMailer,AlertMailer,PromotionalMailer}`                                         | OTP, alert, and promotion senders are fixed per surface and purpose, for example `otp@umaxica.app` and `promotion@umaxica.org`. OTP job arguments carry encrypted OTP payloads. |
 | SMS                  | `Outbound::Sms`                                                                                           | Called via `Outbound::Sms.deliver_later` for OTP-related flows; `SMS_PROVIDER` selects the concrete provider. SMS job arguments carry encrypted message bodies.                 |
 | OpenTelemetry        | OTLP exporter                                                                                             | Default endpoint `http://tempo:4318/v1/traces` (configurable).                                                                                                                  |
-| Storage              | MinIO / Google Cloud Storage                                                                              | `google-cloud-storage` + `shrine` used for file storage (future).                                                                                                               |
+| Storage              | RustFS S3-compatible API                                                                                  | Opt-in local `object-storage` Compose profile with `object_storage:prepare`/`object_storage:smoke` rake tasks (`lib/tasks/object_storage.rake`) for manual verification. Not wired into the application: Shrine (`config/initializers/shrine.rb`) uses `Memory` storage in test and local `FileSystem` storage otherwise, and Active Storage (`config/storage.yml`) is `Disk`-only. |
 
 ---
 
@@ -297,7 +297,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
   `POSTGRESQL_ACTIVITY_PUB/SUB` pair and `POSTGRESQL_BEHAVIOR_PUB`), Redis URLs
   (`REDIS_RACK_ATTACK_URL`, `REDIS_SESSION_URL`), Cloudflare Turnstile keys, JWT keys, AWS
   credentials, OTLP endpoint.
-- `compose.yml` launches all infra dependencies with sensible defaults; volumes store data per
+- `compose.yaml` launches the normal infrastructure; the `object-storage` profile adds RustFS with
+  four persistent volumes. Other volumes store data per
   service.
 - `bin/dev` ensures the Rails server, Vite dev server, and background jobs run concurrently via
   `foreman start -f Procfile.dev`.
@@ -356,7 +357,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
   - Fastly/Cloudflare handle DNS & TLS; `EDGE_*` hostnames define redirect targets.
   - Observability data flows to Tempo/Loki/Grafana (self-hosted or managed).
   - Infrastructure managed by Terraform (as referenced in README).
-- **Backups**: rely on PostgreSQL snapshots (outside repo) and MinIO/GCS backups.
+- **Backups**: PostgreSQL and production object-storage backup policies remain outside this local
+  development design.
 
 ---
 

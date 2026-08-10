@@ -2,7 +2,15 @@
 
 ## Status
 
+Superseded by `adr/publishing-db-content-authority.md` (2026-07-16)
+
 Accepted (2026-04-16)
+
+> **Superseded:** Regional placement for docs/news and the `Document`/`Timeline` model family are
+> retired. Content authority is centralized in the `publishing` database through
+> Entry/Revision/Version/Publication. The separation of Revision as edit history and Version as a
+> published snapshot carries into the new design. Taxonomy (one category and many tags) will not be
+> copied directly into the new database and requires a separate ADR.
 
 ## Context
 

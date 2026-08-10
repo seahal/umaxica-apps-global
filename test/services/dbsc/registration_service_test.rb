@@ -121,6 +121,31 @@ class DbscRegistrationServiceTest < ActiveSupport::TestCase
     assert_equal "audience_mismatch", result[:error_code]
     assert_nil token.reload.dbsc_session_id
   end
+
+  test "does not mutate state when the proof envelope is valid but its signature is invalid" do
+    user = create_verified_user_with_email(email_address: "dbsc-registration-signature-#{SecureRandom.hex(4)}@example.com")
+    token = ClientToken.create!(user: user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
+    token.update!(dbsc_challenge: "signature-challenge", dbsc_challenge_issued_at: Time.current)
+    verification_key = OpenSSL::PKey::EC.generate("prime256v1")
+    signing_key = OpenSSL::PKey::EC.generate("prime256v1")
+    public_jwk = JWT::JWK.new(verification_key).export
+
+    proof = JWT.encode(
+      { "jti" => "signature-challenge", "aud" => "https://test.host/registration", "iat" => Time.current.to_i },
+      signing_key,
+      "ES256",
+      { typ: "dbsc+jwt", jwk: public_jwk },
+    )
+
+    result = DbscRegistrationService.call(record: token, proof: proof, session_id: "dbsc-invalid-signature")
+
+    assert_not result[:ok]
+    assert_equal "invalid_proof", result[:error_code]
+    token.reload
+
+    assert_not_equal "dbsc-invalid-signature", token.dbsc_session_id
+    assert_not_equal ClientTokenDbscStatus::ACTIVE, token.user_token_dbsc_status_id
+  end
 end
 
 # DAMP local helper copy for former shared test support.

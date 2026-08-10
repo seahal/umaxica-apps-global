@@ -10,7 +10,7 @@ class SignOrgVerificationBaseIncludedDoTest < ActiveSupport::TestCase
     include CommonOtp
     include AuthenticationOperator
     include VerificationOperator
-    include SignWebauthn
+    include PasskeyCeremonyContext
     include SignVerificationTiming
     include SignVerificationCommonBase
     include SignVerificationAuditAndCookie
@@ -36,8 +36,8 @@ class SignOrgVerificationBaseIncludedDoTest < ActiveSupport::TestCase
     assert_includes Harness.included_modules, VerificationOperator
   end
 
-  test "included do includes SignWebauthn module" do
-    assert_includes Harness.included_modules, SignWebauthn
+  test "included do includes PasskeyCeremonyContext module" do
+    assert_includes Harness.included_modules, PasskeyCeremonyContext
   end
 
   test "included do includes SignVerificationTiming module" do

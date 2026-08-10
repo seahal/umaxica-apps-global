@@ -139,6 +139,53 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
     end
   end
 
+  test "valid? rejects an expired assertion" do
+    token_url = "https://log.umaxica.app/oauth/token"
+
+    with_oidc_client_key("CORE_APP") do
+      assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url, now: 1.hour.ago)
+
+      assert_not OidcClientAssertionJwt.valid?(
+        client_id: "core-next-rp",
+        assertion: assertion,
+        token_url: token_url,
+      )
+    end
+  end
+
+  test "valid? rejects an assertion issued in the future" do
+    token_url = "https://log.umaxica.app/oauth/token"
+
+    with_oidc_client_key("CORE_APP") do
+      assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url, now: 1.hour.from_now)
+
+      assert_not OidcClientAssertionJwt.valid?(
+        client_id: "core-next-rp",
+        assertion: assertion,
+        token_url: token_url,
+      )
+    end
+  end
+
+  test "valid? rejects an assertion signed by a key that is not registered for the client" do
+    token_url = "https://log.umaxica.app/oauth/token"
+    assertion = nil
+
+    with_oidc_client_key("CORE_APP") do
+      assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
+    end
+
+    # Registering a fresh key under the same kid means the original signature no
+    # longer matches any key registered for the client.
+    with_oidc_client_key("CORE_APP") do
+      assert_not OidcClientAssertionJwt.valid?(
+        client_id: "core-next-rp",
+        assertion: assertion,
+        token_url: token_url,
+      )
+    end
+  end
+
   test "valid? fails closed when the replay store is unavailable" do
     token_url = "https://log.umaxica.app/oauth/token"
 

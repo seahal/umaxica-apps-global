@@ -34,7 +34,7 @@ class TelephoneNormalizationTest < ActiveSupport::TestCase
     assert_equal "+819012345678", TelephoneNormalization.normalize_to_e164("090/1234/5678")
   end
 
-  test "normalize_to_e164 removes middle dot (全角中点)" do
+  test "normalize_to_e164 removes a full-width middle dot" do
     assert_equal "+819012345678", TelephoneNormalization.normalize_to_e164("090・1234・5678")
   end
 

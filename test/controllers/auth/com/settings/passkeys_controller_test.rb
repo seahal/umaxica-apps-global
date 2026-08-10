@@ -23,10 +23,6 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     satisfy_visitor_verification(@token)
     mark_token_step_up_satisfied_for_test(@token, scope: "settings_passkey")
 
-    host_value = @host
-    @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://auth.app.localhost", "http://#{host_value}"] }
-
     @passkey = VisitorPasskey.create!(
       visitor: @visitor,
       webauthn_id: Base64.urlsafe_encode64("com_existing_credential", padding: false),
@@ -43,7 +39,6 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   teardown do
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
-    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
   end
 
   test "unauthenticated passkey settings requests start login handoff" do
@@ -98,19 +93,22 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     mock_credential.define_singleton_method(:sign_count) { 1 }
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
-    WebAuthn::Credential.stub(:from_create, mock_credential) do
-      assert_difference("VisitorPasskey.count", 1) do
-        assert_difference(-> { @visitor.reload.visitor_secret_credentials.count }, 8) do
-          post auth_com_settings_passkeys_verification_path(ri: "jp"),
-               params: {
-                 challenge_id: challenge_id,
-                 credential: {
-                   id: "new_webauthn_id",
-                   response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+    registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("new_webauthn_id", 1)
+    Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+      WebAuthn::Credential.stub(:from_create, mock_credential) do
+        assert_difference("VisitorPasskey.count", 1) do
+          assert_difference(-> { @visitor.reload.visitor_secret_credentials.count }, 8) do
+            post auth_com_settings_passkeys_verification_path(ri: "jp"),
+                 params: {
+                   challenge_id: challenge_id,
+                   credential: {
+                     id: "new_webauthn_id",
+                     response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+                   },
+                   description: "New Passkey",
                  },
-                 description: "New Passkey",
-               },
-               headers: @headers.merge(@origin_headers).merge("Cookie" => cookie_header)
+                 headers: @headers.merge(@origin_headers).merge("Cookie" => cookie_header)
+          end
         end
       end
     end
@@ -137,24 +135,27 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     mock_credential.define_singleton_method(:sign_count) { 1 }
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
-    WebAuthn::Credential.stub(:from_create, mock_credential) do
-      post auth_com_settings_passkeys_options_path(ri: "jp"),
-           headers: headers.merge(@origin_headers)
-      challenge_id = response.parsed_body["challenge_id"]
-      cookie_header = response_set_cookie_lines.map { |line| line.split(";", 2).first }.join("; ")
+    registration_context = Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state, :authenticator_attachment).new("bootstrap_new_webauthn_id", 1)
+    Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+      WebAuthn::Credential.stub(:from_create, mock_credential) do
+        post auth_com_settings_passkeys_options_path(ri: "jp"),
+             headers: headers.merge(@origin_headers)
+        challenge_id = response.parsed_body["challenge_id"]
+        cookie_header = response_set_cookie_lines.map { |line| line.split(";", 2).first }.join("; ")
 
-      assert_difference("VisitorPasskey.count", 1) do
-        assert_difference(-> { visitor.reload.visitor_secret_credentials.count }, 10) do
-          post auth_com_settings_passkeys_verification_path(ri: "jp"),
-               params: {
-                 challenge_id: challenge_id,
-                 credential: {
-                   id: "bootstrap_new_webauthn_id",
-                   response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+        assert_difference("VisitorPasskey.count", 1) do
+          assert_difference(-> { visitor.reload.visitor_secret_credentials.count }, 10) do
+            post auth_com_settings_passkeys_verification_path(ri: "jp"),
+                 params: {
+                   challenge_id: challenge_id,
+                   credential: {
+                     id: "bootstrap_new_webauthn_id",
+                     response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+                   },
+                   description: "Bootstrap Passkey",
                  },
-                 description: "Bootstrap Passkey",
-               },
-               headers: headers.merge(@origin_headers).merge("Cookie" => cookie_header)
+                 headers: headers.merge(@origin_headers).merge("Cookie" => cookie_header)
+          end
         end
       end
     end

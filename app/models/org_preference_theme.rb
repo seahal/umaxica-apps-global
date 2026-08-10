@@ -24,7 +24,7 @@
 # frozen_string_literal: true
 
 class OrgPreferenceTheme < OrgSettingRecord
-  belongs_to :preference, class_name: "OrgPreference", inverse_of: :org_preference_theme
+  belongs_to :preference, class_name: "OrgPreference", inverse_of: :org_preference_theme, optional: false
   belongs_to :option,
              class_name: "OrgPreferenceThemeOption",
              inverse_of: :org_preference_themes

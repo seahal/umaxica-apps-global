@@ -57,6 +57,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")
     assert_select "label", text: I18n.t("sign.app.authentication.email.edit.code_label")
     assert_select "input[placeholder=?]", I18n.t("sign.app.authentication.email.edit.code_placeholder")
+    assert_select "input[name='visitor_email[pass_code]'][autocomplete='one-time-code']", count: 1
     assert_select "input[type=submit][value=?]", I18n.t("sign.app.authentication.email.edit.submit")
     assert_includes response.body, "メールアドレス"
     assert_includes response.body, I18n.t("sign.app.authentication.email.edit.delivery_help")

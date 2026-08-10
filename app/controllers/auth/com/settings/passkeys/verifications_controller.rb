@@ -3,10 +3,9 @@
 
 class Auth::Com::Settings::Passkeys::VerificationsController < ::Auth::Com::ApplicationController
   include ::VerificationVisitor
-  include SignWebauthn
   include SignSettingsPasskeyRegistration
   include ::SignRequiresRecoveryPasscodes
-  include ::SignSettingsPasskeyRegistrationEndpoint
+  include ::PasskeyRegistrationFlow
 
   AUTHENTICATION_MODE = :private
   declare_authentication_mode! :private
@@ -20,8 +19,6 @@ class Auth::Com::Settings::Passkeys::VerificationsController < ::Auth::Com::Appl
   private
 
   def passkey_registration_actor = current_visitor
-
-  def passkey_registration_surface = "com"
 
   def passkey_registration_passkeys = current_visitor.visitor_passkeys
 

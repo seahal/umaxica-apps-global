@@ -1,12 +1,454 @@
-name: Dependency Review
-on: [pull_request]
+# CI/CD Pipeline for Umaxica App
+name: "CI"
+on:
+  push:
+    branches: [develop, main]
+    paths-ignore:
+      - "README.md"
+      - "docs/**"
+  pull_request:
+    paths-ignore:
+      - "README.md"
+      - "docs/**"
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
+defaults:
+  run:
+    shell: bash
+env:
+  # CI Configuration
+  CI: true
+  # Version Configuration
+  RUBY_VERSION: "4.0.6"
+  NODE_VERSION: "24"
+  # Rails Configuration
+  RAILS_ENV: test
+  RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+  NODE_ENV: test
+  # Bundler Configuration
+  BUNDLE_WITH: test
+  BUNDLE_JOBS: 4
+  BUNDLE_PATH: vendor/bundle
+  BUNDLE_DEPLOYMENT: "true"
+  BUNDLE_FROZEN: "true"
+  # Region Configuration
+  REGION_CODE: all
+  ACME_REGION: true
 jobs:
-  dependency-review:
+  # ====================
+  # FAST CHECKS (Lint & Security)
+  # ====================
+  lint-actions:
+    name: GitHub Actions Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - uses: actions/dependency-review-action@da24556b548a50705dd671f47852072ea4c105d9
+      - uses: actions/checkout@v6.0.1
         with:
-          fail-on-severity: moderate
+          persist-credentials: false
+      - name: Run actionlint
+        uses: devops-actions/actionlint@v0.1.10
+  security:
+    name: Security Checks (Brakeman, Bundle Audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v6.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          cache-version: 1
+      - name: Run Brakeman security scanner (SARIF + fail on issues)
+        run: bundle exec brakeman -f sarif -o brakeman.sarif --no-pager --quiet -z
+      - name: Upload Brakeman SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4.31.10
+        with:
+          sarif_file: brakeman.sarif
+          category: brakeman
+        continue-on-error: true
+      - name: Run bundle-audit
+        run: bin/bundler-audit check --update
+  gitleaks:
+    name: Secret Leaks Detection
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v6.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_REPORT_PATH: gitleaks.sarif
+          GITLEAKS_FORMAT: sarif
+          GITLEAKS_FAIL: true
+      - name: Upload SARIF to GitHub Security
+        if: always() && hashFiles('gitleaks.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4.31.10
+        with:
+          sarif_file: gitleaks.sarif
+        continue-on-error: true
+  lint-ruby:
+    name: Ruby Linting (RuboCop, ERB)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          cache-version: 1
+      - name: Run RuboCop
+        run: bundle exec rubocop --fail-fast --format github
+      - name: Run ERB Lint
+        run: bundle exec erb_lint --lint-all
+  # ====================
+  # CORE TESTS
+  # ====================
+  test-rails:
+    name: Rails Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Rails & Rack
+      RACK_ENV: test
+      RAILS_MAX_THREADS: 5
+      # Application
+      BRAND_NAME: UMAXICA
+      PORT: 3000
+      # Identifiers
+      SINGLETON_DEFAULT_SALT: hoge
+      IDENTIFIER_REGION_CODE: "392"
+      IDENTIFIER_INSTANCE_ID: "0123456789"
+      # Domain URLs - ACME
+      ACME_CORPORATE_URL: www.com.localhost
+      ACME_SERVICE_URL: www.app.localhost
+      ACME_STAFF_URL: www.org.localhost
+      ACME_NETWORK_URL: www.net.localhost
+      ACME_DEVELOPER_URL: www.dev.localhost
+      # Domain URLs - Auth
+      SIGN_CORPORATE_URL: sign.com.localhost
+      SIGN_SERVICE_URL: sign.app.localhost
+      SIGN_STAFF_URL: sign.org.localhost
+      TRUSTED_ORIGINS: http://sign.app.localhost,http://sign.org.localhost
+      # Domain URLs - Core
+      CORE_CORPORATE_URL: ww.com.localhost
+      CORE_SERVICE_URL: ww.app.localhost
+      CORE_STAFF_URL: ww.org.localhost
+      # Domain URLs - Docs
+      DOCS_CORPORATE_URL: docs.com.localhost
+      DOCS_SERVICE_URL: docs.app.localhost
+      DOCS_STAFF_URL: docs.org.localhost
+      # Domain URLs - News
+      NEWS_CORPORATE_URL: news.com.localhost
+      NEWS_SERVICE_URL: news.app.localhost
+      NEWS_STAFF_URL: news.org.localhost
+      # Domain URLs - Help
+      HELP_CORPORATE_URL: help.com.localhost
+      HELP_SERVICE_URL: help.app.localhost
+      HELP_STAFF_URL: help.org.localhost
+      # Domain URLs - Edge
+      EDGE_CORPORATE_URL: localhost:5170
+      EDGE_SERVICE_URL: localhost:5171
+      EDGE_STAFF_URL: localhost:5172
+      STATUS_URL: status.localhost
+      ASSET_URL: asset.localhost
+      # Region
+      ACME_REGION: true
+      GLOBAL_MODE: true
+      REGION_CODE: all
+      # Valkey
+      VALKEY_URL: redis://localhost:6379/0
+      RATE_LIMIT_REDIS_URL: redis://localhost:6379/1
+      # PostgreSQL - Connection
+      POSTGRESQL_USER: root
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_PASSWORD: password
+      # PostgreSQL - Primary/Replica Hosts
+      POSTGRESQL_UNIVERSAL_PUB: localhost
+      POSTGRESQL_UNIVERSAL_SUB: localhost
+      POSTGRESQL_AUDIT_PUB: localhost
+      POSTGRESQL_AUDIT_SUB: localhost
+      POSTGRESQL_DEFAULT_PUB: localhost
+      POSTGRESQL_GUEST_PUB: localhost
+      POSTGRESQL_GUEST_SUB: localhost
+      POSTGRESQL_PRINCIPAL_PUB: localhost
+      POSTGRESQL_PRINCIPAL_SUB: localhost
+      POSTGRESQL_PROFILE_PUB: localhost
+      POSTGRESQL_PROFILE_SUB: localhost
+      POSTGRESQL_COMMERCE_PUB: localhost
+      POSTGRESQL_COMMERCE_SUB: localhost
+      POSTGRESQL_TOKEN_PUB: localhost
+      POSTGRESQL_TOKEN_SUB: localhost
+      POSTGRESQL_DOCUMENT_PUB: localhost
+      POSTGRESQL_DOCUMENT_SUB: localhost
+      POSTGRESQL_PUBLISHING_PUB: localhost
+      POSTGRESQL_PUBLISHING_SUB: localhost
+      POSTGRESQL_BILLING_PUB: localhost
+      POSTGRESQL_BILLING_SUB: localhost
+      POSTGRESQL_MESSAGE_PUB: localhost
+      POSTGRESQL_MESSAGE_SUB: localhost
+      POSTGRESQL_NOTIFICATION_PUB: localhost
+      POSTGRESQL_NOTIFICATION_SUB: localhost
+      POSTGRESQL_CACHE_PUB: localhost
+      POSTGRESQL_CACHE_SUB: localhost
+      POSTGRESQL_QUEUE_PUB: localhost
+      POSTGRESQL_QUEUE_SUB: localhost
+      POSTGRESQL_STORAGE_PUB: localhost
+      POSTGRESQL_STORAGE_SUB: localhost
+      POSTGRESQL_OPERATOR_PUB: localhost
+      POSTGRESQL_OPERATOR_SUB: localhost
+      POSTGRESQL_AVATAR_PUB: localhost
+      POSTGRESQL_AVATAR_SUB: localhost
+      POSTGRESQL_FINDER_PUB: localhost
+      POSTGRESQL_FINDER_SUB: localhost
+      POSTGRESQL_SEARCH_PUB: localhost
+      POSTGRESQL_SEARCH_SUB: localhost
+      # Email
+      RESEND_SMTP_ENDPOINT: smtp.resend.com
+      RESEND_SMTP_USER_NAME: resend
+      # HMAC Secret
+      OCCURRENCE_HMAC_SECRET: ${{ secrets.OCCURRENCE_HMAC_SECRET }}
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      valkey:
+        image: valkey/valkey:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping" --health-interval 10s --health-timeout 5s --health-retries
+          5
+    steps:
+      - uses: actions/checkout@v6.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          cache-version: 1
+      - name: Install native runtime dependencies
+        run: sudo apt-get update -qq && sudo apt-get install --no-install-recommends -y libvips
+      - name: Setup test databases
+        run: bin/rails db:prepare
+      - name: Run Rails tests
+        run: bin/rails test
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: rails-test-logs-${{ github.sha }}
+          path: |
+            log/test.log
+            tmp/screenshots/
+          retention-days: 7
+          compression-level: 9
+  coverage:
+    name: Rails Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Rails & Rack
+      RACK_ENV: test
+      RAILS_MAX_THREADS: 5
+      # Application
+      BRAND_NAME: UMAXICA
+      PORT: 3000
+      # Identifiers
+      SINGLETON_DEFAULT_SALT: hoge
+      IDENTIFIER_REGION_CODE: "392"
+      IDENTIFIER_INSTANCE_ID: "0123456789"
+      # Domain URLs - ACME
+      ACME_CORPORATE_URL: www.com.localhost
+      ACME_SERVICE_URL: www.app.localhost
+      ACME_STAFF_URL: www.org.localhost
+      ACME_NETWORK_URL: www.net.localhost
+      ACME_DEVELOPER_URL: www.dev.localhost
+      # Domain URLs - Auth
+      SIGN_CORPORATE_URL: sign.com.localhost
+      SIGN_SERVICE_URL: sign.app.localhost
+      SIGN_STAFF_URL: sign.org.localhost
+      TRUSTED_ORIGINS: http://sign.app.localhost,http://sign.org.localhost
+      # Domain URLs - Core
+      CORE_CORPORATE_URL: ww.com.localhost
+      CORE_SERVICE_URL: ww.app.localhost
+      CORE_STAFF_URL: ww.org.localhost
+      # Domain URLs - Docs
+      DOCS_CORPORATE_URL: docs.com.localhost
+      DOCS_SERVICE_URL: docs.app.localhost
+      DOCS_STAFF_URL: docs.org.localhost
+      # Domain URLs - News
+      NEWS_CORPORATE_URL: news.com.localhost
+      NEWS_SERVICE_URL: news.app.localhost
+      NEWS_STAFF_URL: news.org.localhost
+      # Domain URLs - Help
+      HELP_CORPORATE_URL: help.com.localhost
+      HELP_SERVICE_URL: help.app.localhost
+      HELP_STAFF_URL: help.org.localhost
+      # Domain URLs - Edge
+      EDGE_CORPORATE_URL: localhost:5170
+      EDGE_SERVICE_URL: localhost:5171
+      EDGE_STAFF_URL: localhost:5172
+      STATUS_URL: status.localhost
+      ASSET_URL: asset.localhost
+      # Region
+      ACME_REGION: true
+      GLOBAL_MODE: true
+      REGION_CODE: all
+      # Valkey
+      VALKEY_URL: redis://localhost:6379/0
+      RATE_LIMIT_REDIS_URL: redis://localhost:6379/1
+      # PostgreSQL - Connection
+      POSTGRESQL_USER: root
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_PASSWORD: password
+      # PostgreSQL - Primary/Replica Hosts
+      POSTGRESQL_UNIVERSAL_PUB: localhost
+      POSTGRESQL_UNIVERSAL_SUB: localhost
+      POSTGRESQL_AUDIT_PUB: localhost
+      POSTGRESQL_AUDIT_SUB: localhost
+      POSTGRESQL_DEFAULT_PUB: localhost
+      POSTGRESQL_GUEST_PUB: localhost
+      POSTGRESQL_GUEST_SUB: localhost
+      POSTGRESQL_PRINCIPAL_PUB: localhost
+      POSTGRESQL_PRINCIPAL_SUB: localhost
+      POSTGRESQL_PROFILE_PUB: localhost
+      POSTGRESQL_PROFILE_SUB: localhost
+      POSTGRESQL_COMMERCE_PUB: localhost
+      POSTGRESQL_COMMERCE_SUB: localhost
+      POSTGRESQL_TOKEN_PUB: localhost
+      POSTGRESQL_TOKEN_SUB: localhost
+      POSTGRESQL_DOCUMENT_PUB: localhost
+      POSTGRESQL_DOCUMENT_SUB: localhost
+      POSTGRESQL_PUBLISHING_PUB: localhost
+      POSTGRESQL_PUBLISHING_SUB: localhost
+      POSTGRESQL_BILLING_PUB: localhost
+      POSTGRESQL_BILLING_SUB: localhost
+      POSTGRESQL_MESSAGE_PUB: localhost
+      POSTGRESQL_MESSAGE_SUB: localhost
+      POSTGRESQL_NOTIFICATION_PUB: localhost
+      POSTGRESQL_NOTIFICATION_SUB: localhost
+      POSTGRESQL_CACHE_PUB: localhost
+      POSTGRESQL_CACHE_SUB: localhost
+      POSTGRESQL_QUEUE_PUB: localhost
+      POSTGRESQL_QUEUE_SUB: localhost
+      POSTGRESQL_STORAGE_PUB: localhost
+      POSTGRESQL_STORAGE_SUB: localhost
+      POSTGRESQL_OPERATOR_PUB: localhost
+      POSTGRESQL_OPERATOR_SUB: localhost
+      POSTGRESQL_AVATAR_PUB: localhost
+      POSTGRESQL_AVATAR_SUB: localhost
+      POSTGRESQL_FINDER_PUB: localhost
+      POSTGRESQL_FINDER_SUB: localhost
+      POSTGRESQL_SEARCH_PUB: localhost
+      POSTGRESQL_SEARCH_SUB: localhost
+      # Email
+      RESEND_SMTP_ENDPOINT: smtp.resend.com
+      RESEND_SMTP_USER_NAME: resend
+      # HMAC Secret
+      OCCURRENCE_HMAC_SECRET: ${{ secrets.OCCURRENCE_HMAC_SECRET }}
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      valkey:
+        image: valkey/valkey:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping" --health-interval 10s --health-timeout 5s --health-retries
+          5
+    steps:
+      - uses: actions/checkout@v6.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          cache-version: 1
+      - name: Install native runtime dependencies
+        run: sudo apt-get update -qq && sudo apt-get install --no-install-recommends -y libvips
+      - name: Setup test databases
+        run: bin/rails db:prepare
+      - name: Run Rails tests with coverage
+        run: COVERAGE=true bin/rails test test/
+      - name: Upload test coverage
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: rails-coverage-${{ github.sha }}
+          path: coverage/
+          retention-days: 30
+          compression-level: 6
+  lint-js:
+    name: JavaScript Checks (oxlint, oxfmt, typecheck, vitest)
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Format check (oxfmt)
+        run: pnpm -s run format:check
+      - name: Lint (oxlint)
+        run: pnpm -s run lint
+      - name: Typecheck (tsc)
+        run: pnpm -s run typecheck
+      - name: Test (vitest, with coverage)
+        run: pnpm -s run test:coverage
+      - name: Upload JavaScript coverage
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: vite-coverage-${{ github.sha }}
+          path: coverage/vite/
+          retention-days: 30
+          compression-level: 6

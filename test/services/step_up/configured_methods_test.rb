@@ -69,7 +69,7 @@ class StepUpConfiguredMethodsTest < ActiveSupport::TestCase
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
-      name: "staff passkey",
+      description: "staff passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
     passkey.save!(validate: false)

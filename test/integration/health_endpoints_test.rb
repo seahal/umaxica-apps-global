@@ -174,6 +174,30 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       startup_controller: "core/dev/health/startups",
       profile: Health::Profiles::App,
     },
+    {
+      host: ENV.fetch("PUBLIC_SIDE_SERVICE_URL", "side.app.localhost"),
+      controller: "side/app/healths",
+      liveness_controller: "side/app/health/livenesses",
+      readiness_controller: "side/app/health/readinesses",
+      startup_controller: "side/app/health/startups",
+      profile: Health::Profiles::App,
+    },
+    {
+      host: ENV.fetch("PUBLIC_SIDE_CORPORATE_URL", "side.com.localhost"),
+      controller: "side/com/healths",
+      liveness_controller: "side/com/health/livenesses",
+      readiness_controller: "side/com/health/readinesses",
+      startup_controller: "side/com/health/startups",
+      profile: Health::Profiles::Com,
+    },
+    {
+      host: ENV.fetch("PUBLIC_SIDE_STAFF_URL", "side.org.localhost"),
+      controller: "side/org/healths",
+      liveness_controller: "side/org/health/livenesses",
+      readiness_controller: "side/org/health/readinesses",
+      startup_controller: "side/org/health/startups",
+      profile: Health::Profiles::Org,
+    },
   ].freeze
 
   test "surface routes resolve to concrete local controllers with exact profiles" do

@@ -25,8 +25,8 @@ class RedirectTargetUsageTest < ActiveSupport::TestCase
     app/controllers/concerns/oidc_rp_logout_launcher.rb
     app/controllers/concerns/oidc_sso_initiator.rb
     app/controllers/concerns/sign_oidc_logout.rb
-    app/controllers/core/app/sign_outs_controller.rb
-    app/controllers/palm/app/auth/authorizations_controller.rb
+    app/controllers/core/app/sign/outs_controller.rb
+    app/controllers/palm/app/oidc/authorizations_controller.rb
     app/controllers/sign/app/sign/ins_controller.rb
     app/controllers/sign/app/sign/outs_controller.rb
   ).freeze

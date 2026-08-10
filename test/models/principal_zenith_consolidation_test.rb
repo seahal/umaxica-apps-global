@@ -25,12 +25,16 @@ class PrincipalZenithConsolidationTest < ActiveSupport::TestCase
     },
   }.freeze
 
-  test "principal configs use reserved empty migration paths" do
+  # After the principal/zenith consolidation there is no standalone principal
+  # database: principal migrations live only inside the zenith connection (see
+  # the "zenith configs include principal and zenith migration paths" test).
+  # This guards against a future change re-introducing a split principal DB.
+  test "no standalone principal database config exists" do
     SURFACE_CONFIG.each_value do |config|
-      assert_equal config.fetch(:principal_path),
-                   database_config(config.fetch(:principal)).fetch(:migrations_paths)
-      assert_equal config.fetch(:principal_path),
-                   database_config("#{config.fetch(:principal)}_replica").fetch(:migrations_paths)
+      assert_nil database_config(config.fetch(:principal)),
+                 "#{config.fetch(:principal)} must stay consolidated into its zenith connection"
+      assert_nil database_config("#{config.fetch(:principal)}_replica"),
+                 "#{config.fetch(:principal)}_replica must stay consolidated into its zenith connection"
     end
   end
 
@@ -70,7 +74,8 @@ class PrincipalZenithConsolidationTest < ActiveSupport::TestCase
   private
 
   def database_config(name)
-    ActiveRecord::Base.configurations.configs_for(env_name: Rails.env, name: name, include_hidden: true)
-      .configuration_hash
+    ActiveRecord::Base.configurations
+      .configs_for(env_name: Rails.env, name: name, include_hidden: true)
+      &.configuration_hash
   end
 end

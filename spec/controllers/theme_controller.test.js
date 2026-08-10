@@ -10,7 +10,7 @@ vi.mock("@hotwired/stimulus", () => ({
 const { default: ThemeController } = await import("../../src/controllers/theme_controller.js");
 
 // ──────────────────────────────────────────────
-// DOM グローバルのモック
+// Mock DOM globals.
 // ──────────────────────────────────────────────
 
 let cookieReadValue = "";
@@ -301,7 +301,7 @@ describe("syncRadio", () => {
 });
 
 // ──────────────────────────────────────────────
-// applyThemeFromCookie (統合テスト)
+// applyThemeFromCookie integration tests.
 // ──────────────────────────────────────────────
 
 describe("applyThemeFromCookie (統合テスト)", () => {

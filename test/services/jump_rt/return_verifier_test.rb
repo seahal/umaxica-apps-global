@@ -262,7 +262,57 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
     end
   end
 
+  test "fetch_jwks parses a successful bounded response without network access" do
+    verifier = build_verifier
+    response = stub_http_success({ keys: [@public_jwk] }.to_json)
+    http = Object.new
+    http.define_singleton_method(:get) { |_path| response }
+    start = ->(*, &block) { block.call(http) }
+
+    verifier.stub(:jwks_url, "https://jump.umaxica.net/.well-known/jwks.json") do
+      Net::HTTP.stub(:start, start) do
+        assert_equal({ "keys" => [@public_jwk] }, verifier.send(:fetch_jwks))
+      end
+    end
+  end
+
+  test "fetch_jwks normalizes transport and response failures" do
+    verifier = build_verifier
+
+    verifier.stub(:jwks_url, "http://jump.umaxica.net/.well-known/jwks.json") do
+      assert_raises(JWT::DecodeError) { verifier.send(:fetch_jwks) }
+    end
+
+    invalid_json = stub_http_success("not-json")
+    http = Object.new
+    http.define_singleton_method(:get) { |_path| invalid_json }
+    start = ->(*, &block) { block.call(http) }
+    verifier.stub(:jwks_url, "https://jump.umaxica.net/.well-known/jwks.json") do
+      Net::HTTP.stub(:start, start) do
+        assert_raises(JWT::DecodeError) { verifier.send(:fetch_jwks) }
+      end
+    end
+  end
+
   private
+
+  def build_verifier
+    JumpRtReturnVerifier.new(
+      token: "dummy",
+      request_url: "https://www.umaxica.app/path",
+      request_base_url: "https://www.umaxica.app",
+      now: @now,
+    )
+  end
+
+  def stub_http_success(body)
+    Class.new do
+      attr_reader :body
+
+      define_method(:initialize) { |value| @body = value }
+      define_method(:is_a?) { |klass| klass == Net::HTTPSuccess || super(klass) }
+    end.new(body)
+  end
 
   def verify(token)
     JumpRtReturnVerifier.call(

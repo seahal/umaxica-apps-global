@@ -4,11 +4,12 @@ Status: deprecated
 
 Deprecated: 2026-06-02
 
-Deprecated 理由: この古い plan は unified OAuth/provider
-architecture を提案し、Apple 向け実装作業も含む。現在の方針は surface 別、Rails Way 優先、`org`
-と後続 `com` slice の Google temporary gateway に限定する。Apple は対象外。
+Deprecation reason: This older plan proposes a unified OAuth/provider architecture and includes
+Apple implementation work. The current direction is surface-specific, prioritizes Rails conventions,
+and is limited to the Google temporary gateway for `org` and the later `com` slice. Apple is out of
+scope.
 
-後継 plan: `plans/active/org-com-google-social-temporary-gateway-plan.md`.
+Successor plan: `plans/active/org-com-google-social-temporary-gateway-plan.md`.
 
 ## Overview
 

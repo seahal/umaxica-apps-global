@@ -164,12 +164,36 @@ class VisitorAuthorizationCodeTest < ActiveSupport::TestCase
   end
 
   test "verify_pkce accepts matching verifier and rejects blank or mismatched verifier" do
-    verifier = "test-verifier-123"
+    verifier = "a" * 43
     challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
     code = VisitorAuthorizationCode.issue!(**@valid_params.merge(code_challenge: challenge))
 
     assert code.verify_pkce(verifier)
     assert_not code.verify_pkce("wrong-verifier")
     assert_not code.verify_pkce(nil)
+  end
+
+  test "verify_pkce rejects a code_verifier shorter than the RFC 7636 43 character minimum" do
+    verifier = "a" * 42
+    challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
+    code = VisitorAuthorizationCode.issue!(**@valid_params.merge(code_challenge: challenge))
+
+    assert_not code.verify_pkce(verifier), "a 42-character verifier must be rejected even when the SHA256 digest matches"
+  end
+
+  test "verify_pkce rejects a code_verifier longer than the RFC 7636 128 character maximum" do
+    verifier = "a" * 129
+    challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
+    code = VisitorAuthorizationCode.issue!(**@valid_params.merge(code_challenge: challenge))
+
+    assert_not code.verify_pkce(verifier), "a 129-character verifier must be rejected even when the SHA256 digest matches"
+  end
+
+  test "verify_pkce rejects a code_verifier containing characters outside the RFC 7636 unreserved set" do
+    verifier = "#{"a" * 42}*"
+    challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
+    code = VisitorAuthorizationCode.issue!(**@valid_params.merge(code_challenge: challenge))
+
+    assert_not code.verify_pkce(verifier), "a verifier containing '*' is outside A-Z/a-z/0-9/-._~ and must be rejected"
   end
 end

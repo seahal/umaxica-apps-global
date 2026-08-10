@@ -2,12 +2,16 @@
 
 source "https://rubygems.org", cooldown: 3
 
-ruby "4.0.5"
+ruby "4.0.6"
 
 # Type signatures for Ruby libraries.
-gem "rbs", require: false
+gem "rbs", "~> 4.0", require: false
+# runtime for sorbet
+gem "sorbet-runtime"
 # Rails application framework from the main branch.
 gem "rails", github: "rails/rails", branch: "main"
+# Propshaft asset pipeline.
+gem "propshaft", github: "rails/propshaft"
 # Rails task runner.
 gem "rake"
 # Rack webserver interface.
@@ -57,9 +61,8 @@ gem "shrine"
 gem "image_processing", require: false
 # AWS SNS client for SMS delivery.
 gem "aws-sdk-sns", require: false
-# Propshaft asset pipeline.
-gem "propshaft"
-# Tailwind CSS integration.
+# AWS S3 client for explicit object-storage integration tasks.
+gem "aws-sdk-s3", require: false
 # HTML metadata helpers.
 gem "meta-tags"
 # OpenTelemetry SDK.
@@ -124,14 +127,11 @@ gem "ruby-vips"
 gem "lograge"
 # json
 gem "json-canonicalization"
-# Solid Queue operations UI.
-gem "mission_control-jobs"
+gem "svix"
 
 group :development, :test do
   # Test coverage reporting.
-  gem "simplecov"
-  # LCOV formatter for SimpleCov.
-  gem "simplecov-lcov"
+  gem "simplecov", "~> 1.0", ">= 1.0.1", require: false
   # Minitest mock extraction.
   gem "minitest-mock"
   # Slow test profiling.
@@ -175,6 +175,8 @@ group :development, :test do
   gem "rubocop-rubycw", require: false
   # RuboCop Rails rules.
   gem "rubocop-rails", require: false
+  # Type for ruby.
+  gem "sorbet"
 end
 
 group :test do
@@ -237,4 +239,7 @@ group :development do
   gem "reek", require: false
 end
 
-gem "rbs", "~> 4.0"
+group :development, :production do
+  # Solid Queue operations UI.
+  gem "mission_control-jobs"
+end

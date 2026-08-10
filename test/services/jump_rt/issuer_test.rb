@@ -48,6 +48,12 @@ class JumpRtIssuerTest < ActiveSupport::TestCase
     end
   end
 
+  test "rejects a case-variant algorithm header" do
+    assert_not SecurityJwtJumpRtTokenCodec.valid_header?(
+      { "typ" => "JWT", "alg" => "eS384", "kid" => "kid-1" },
+    )
+  end
+
   test "returns nil for url with invalid percent encoding" do
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",

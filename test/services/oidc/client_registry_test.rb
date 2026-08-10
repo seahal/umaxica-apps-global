@@ -5,6 +5,23 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class OidcClientRegistryTest < ActiveSupport::TestCase
+  def post_logout_uris_for_realm(client, resource_type)
+    hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+    realm_hosts =
+      case resource_type
+      when "operator"
+        [hosts.sign_staff.host, hosts.auth_staff.host,
+         ENV.fetch("PRIVATE_AUTH_STAFF_URL", nil), ENV.fetch("PUBLIC_AUTH_STAFF_URL", nil),]
+      when "visitor"
+        [hosts.sign_corporate.host, hosts.auth_corporate.host,
+         ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", nil), ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", nil),]
+      else
+        [hosts.sign_service.host, hosts.auth_service.host,
+         ENV.fetch("PRIVATE_AUTH_SERVICE_URL", nil), ENV.fetch("PUBLIC_AUTH_SERVICE_URL", nil),]
+      end.compact_blank
+    client.post_logout_redirect_uris.select { |uri| realm_hosts.include?(URI.parse(uri).host) }
+  end
+
   def with_oidc_client_secret_credentials(overrides)
     creds = Rails.app.creds
     fetch = ->(key, default: nil) { overrides.fetch(key, default) }
@@ -55,18 +72,51 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
 
   test "valid_post_logout_redirect_uri? uses exact registered uri match" do
     client = OidcClientRegistry.find!("sign-rp")
-    uri = client.post_logout_redirect_uris.first
+    uri = post_logout_uris_for_realm(client, "client").first
 
-    assert OidcClientRegistry.valid_post_logout_redirect_uri?(client_id: client.client_id, uri: uri)
-    assert_not OidcClientRegistry.valid_post_logout_redirect_uri?(client_id: client.client_id, uri: "#{uri}/extra")
+    assert OidcClientRegistry.valid_post_logout_redirect_uri?(
+      client_id: client.client_id, uri: uri, resource_type: "client",
+    )
+    assert_not OidcClientRegistry.valid_post_logout_redirect_uri?(
+      client_id: client.client_id, uri: "#{uri}/extra", resource_type: "client",
+    )
     assert_not OidcClientRegistry.valid_post_logout_redirect_uri?(
       client_id: client.client_id,
       uri: uri.sub("/sign/out", "/SIGN/OUT"),
+      resource_type: "client",
     )
     assert_not OidcClientRegistry.valid_post_logout_redirect_uri?(
       client_id: "unknown",
       uri: uri,
+      resource_type: "client",
     )
+  end
+
+  test "valid_post_logout_redirect_uri? binds registered uris to the requesting realm" do
+    client = OidcClientRegistry.find!("sign-rp")
+    uris_by_realm = {
+      "client" => post_logout_uris_for_realm(client, "client"),
+      "operator" => post_logout_uris_for_realm(client, "operator"),
+      "visitor" => post_logout_uris_for_realm(client, "visitor"),
+    }
+
+    uris_by_realm.each do |realm, uris|
+      assert_not_empty uris, "sign-rp should register post_logout uris for #{realm}"
+    end
+
+    uris_by_realm.each do |realm, uris|
+      uris.each do |uri|
+        assert OidcClientRegistry.valid_post_logout_redirect_uri?(
+          client_id: client.client_id, uri: uri, resource_type: realm,
+        ), "#{realm} realm should accept its own uri #{uri}"
+
+        (uris_by_realm.keys - [realm]).each do |other_realm|
+          assert_not OidcClientRegistry.valid_post_logout_redirect_uri?(
+            client_id: client.client_id, uri: uri, resource_type: other_realm,
+          ), "#{other_realm} realm must reject #{realm} uri #{uri}"
+        end
+      end
+    end
   end
 
   test "client cache follows configured host changes" do
@@ -372,6 +422,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
       client_id: "test_client",
       client_secret: "secret",
       redirect_uris: ["https://client.example/auth/callback"],
+      redirect_uris_by_realm: { "client" => ["https://client.example/auth/callback"] },
       post_logout_redirect_uris: ["https://client.example/signed-out"],
       backchannel_logout_uris: [],
       backchannel_logout_session_required: false,

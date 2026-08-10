@@ -17,6 +17,7 @@ module Core
       include ::VerificationClient
       include ActionPolicy::Controller
       include ::OidcSsoInitiator
+      include ::RestrictedSessionGuard
       include ::ActorSupport
       include ::Finisher
 
@@ -68,6 +69,7 @@ module Core
       before_action :set_timezone
       before_action :set_color_theme
       before_action :enforce_withdrawal_gate!
+      before_action :enforce_restricted_session_guard!
       before_action :enforce_verification_if_required
       before_action :enforce_access_policy!
       before_action :set_current_observability

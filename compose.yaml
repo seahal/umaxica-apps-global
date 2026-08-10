@@ -10,10 +10,10 @@ services:
         # DOCKER_UID/DOCKER_GID are host-shaped; they are supplied by the
         # devcontainer override (.devcontainer/compose.override.yml).
     entrypoint:
-    - "/bin/bash"
-    - "/home/global/workspace/docker/core/entrypoint.sh"
+      - "/bin/bash"
+      - "/home/global/workspace/docker/core/entrypoint.sh"
     command:
-    - bin/dev
+      - bin/dev
     environment:
       # --- Shell / productivity ---
       COLORTERM: truecolor
@@ -30,6 +30,9 @@ services:
       POSTGRESQL_USER: "${POSTGRESQL_USER:-root}"
       POSTGRESQL_PASSWORD: "${POSTGRESQL_PASSWORD:-development_password}"
       POSTGRESQL_DATABASE: "${POSTGRESQL_DATABASE:-db}"
+      # --- Identifier HMAC salts (dev-only fixed values; differ from production) ---
+      EMAIL_ADDRESS_HMAC_SALT: "${EMAIL_ADDRESS_HMAC_SALT:-development_email_address_hmac_salt}"
+      TELEPHONE_NUMBER_HMAC_SALT: "${TELEPHONE_NUMBER_HMAC_SALT:-development_telephone_number_hmac_salt}"
       # --- PostgreSQL topology ---
       POSTGRESQL_HOST: primary
       POSTGRESQL_PORT: "5432"
@@ -57,6 +60,8 @@ services:
       POSTGRESQL_CACHE_SUB: replica
       POSTGRESQL_STORAGE_PUB: primary
       POSTGRESQL_STORAGE_SUB: replica
+      POSTGRESQL_PUBLISHING_PUB: primary
+      POSTGRESQL_PUBLISHING_SUB: replica
       POSTGRESQL_QUEUE_PUB: primary
       POSTGRESQL_QUEUE_SUB: replica
       POSTGRESQL_OPERATOR_PUB: primary
@@ -75,6 +80,13 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       # --- Mail ---
       AWS_SES_REGION: ap-northeast-1
+      # --- Local object storage (optional profile) ---
+      OBJECT_STORAGE_ENDPOINT: "http://rustfs:9000"
+      OBJECT_STORAGE_REGION: "us-east-1"
+      OBJECT_STORAGE_BUCKET: "${OBJECT_STORAGE_BUCKET:-}"
+      OBJECT_STORAGE_ACCESS_KEY_ID: "${OBJECT_STORAGE_ACCESS_KEY_ID:-}"
+      OBJECT_STORAGE_SECRET_ACCESS_KEY: "${OBJECT_STORAGE_SECRET_ACCESS_KEY:-}"
+      OBJECT_STORAGE_FORCE_PATH_STYLE: "true"
       # --- Public hosts (browser-visible) ---
       PUBLIC_AUTH_CORPORATE_URL: auth.umaxica.com
       PUBLIC_AUTH_SERVICE_URL: auth.umaxica.app
@@ -85,9 +97,9 @@ services:
       PUBLIC_SIDE_CORPORATE_URL: side-jp.umaxica.com
       PUBLIC_SIDE_SERVICE_URL: side-jp.umaxica.app
       PUBLIC_SIDE_STAFF_URL: side-jp.umaxica.org
-      PUBLIC_CORE_CORPORATE_URL: jpx.umaxica.com
-      PUBLIC_CORE_SERVICE_URL: jpx.umaxica.app
-      PUBLIC_CORE_STAFF_URL: jpx.umaxica.org
+      PUBLIC_CORE_CORPORATE_URL: core-jp.umaxica.com
+      PUBLIC_CORE_SERVICE_URL: core-jp.umaxica.app
+      PUBLIC_CORE_STAFF_URL: core-jp.umaxica.org
       PUBLIC_PALM_SERVICE_URL: palm-jp.umaxica.app
       PUBLIC_INFO_CORPORATE_URL: info.umaxica.com
       PUBLIC_INFO_SERVICE_URL: info.umaxica.app
@@ -128,7 +140,7 @@ services:
       PRIVATE_PALM_SERVICE_URL: palm.app.localhost
       # --- JWT leeway ---
       PREFERENCE_JWT_LEEWAY_SECONDS: "30"
-      AUTH_JWT_LEEWAY_SECONDS: '30'
+      AUTH_JWT_LEEWAY_SECONDS: "30"
       # --- Vite ---
       VITE_RUBY_PACKAGE_MANAGER: pnpm
       VITE_RUBY_HOST: "0.0.0.0"
@@ -140,14 +152,14 @@ services:
     # rootless podman's `userns_mode: keep-id` (set in the devcontainer
     # override) and the double mapping breaks bind-mount ownership.
     tmpfs:
-    # tmpfs uid=/gid= options are rejected by rootless podman. Mode 1777 +
-    # sticky bit lets the in-container user write under root-owned tmpfs.
-    # /tmp and tmp/pids are on tmpfs so stale server.pid never survives a
-    # container restart ("A server is already running" error).
-    - /tmp
-    - /home/global/workspace/tmp
-    - /home/global/workspace/tmp/pids
-    - /home/global/workspace/log
+      # tmpfs uid=/gid= options are rejected by rootless podman. Mode 1777 +
+      # sticky bit lets the in-container user write under root-owned tmpfs.
+      # /tmp and tmp/pids are on tmpfs so stale server.pid never survives a
+      # container restart ("A server is already running" error).
+      - /tmp
+      - /home/global/workspace/tmp
+      - /home/global/workspace/tmp/pids
+      - /home/global/workspace/log
     # Named volumes for high-write paths prevent rootless podman UID-mapping
     # from rewriting host file ownership on the bind-mounted workspace:
     #   - umaxica-home-cache  → pnpm / corepack / Vite+ / YJIT scratch
@@ -157,18 +169,18 @@ services:
     # Discard any of these with `podman volume rm <name>` to recover from
     # a corrupted cache without affecting credentials or workspace state.
     volumes:
-    - type: volume
-      source: umaxica-home-cache
-      target: "/home/global/.cache"
-    - type: volume
-      source: umaxica-home-share
-      target: "/home/global/.local/share"
-    - type: volume
-      source: umaxica-node-modules
-      target: "/home/global/workspace/node_modules"
-    - type: volume
-      source: umaxica-bundle
-      target: "/home/global/workspace/vendor/bundle"
+      - type: volume
+        source: umaxica-home-cache
+        target: "/home/global/.cache"
+      - type: volume
+        source: umaxica-home-share
+        target: "/home/global/.local/share"
+      - type: volume
+        source: umaxica-node-modules
+        target: "/home/global/workspace/node_modules"
+      - type: volume
+        source: umaxica-bundle
+        target: "/home/global/workspace/vendor/bundle"
     # Workspace bind mount, host-port publishing, and host-gateway alias are
     # host-shaped — see the devcontainer override.
     networks:
@@ -196,6 +208,9 @@ services:
           - news.com.localhost
           - news.org.localhost
           - palm.app.localhost
+          - side.app.localhost
+          - side.com.localhost
+          - side.org.localhost
           - edge.app.localhost
           - edge.com.localhost
           - edge.org.localhost
@@ -217,9 +232,6 @@ services:
           - core-jp.umaxica.app
           - core-jp.umaxica.com
           - core-jp.umaxica.org
-          - jpx.umaxica.app
-          - jpx.umaxica.com
-          - jpx.umaxica.org
           - palm-jp.umaxica.app
           - docs-jp.umaxica.app
           - docs-jp.umaxica.com
@@ -233,7 +245,7 @@ services:
       observability: {}
       outer:
         aliases:
-        - global
+          - global
     depends_on:
       primary:
         condition: service_healthy
@@ -241,15 +253,87 @@ services:
         condition: service_started
       valkey:
         condition: service_healthy
+  rustfs-permissions:
+    image: alpine:3.24.1
+    profiles:
+      - object-storage
+    user: root
+    read_only: true
+    network_mode: none
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        for directory in /data/rustfs0 /data/rustfs1 /data/rustfs2 /data/rustfs3; do
+          chown 10001:10001 "$${directory}"
+          chmod 0750 "$${directory}"
+        done
+    volumes:
+      - rustfs-data0:/data/rustfs0
+      - rustfs-data1:/data/rustfs1
+      - rustfs-data2:/data/rustfs2
+      - rustfs-data3:/data/rustfs3
+  rustfs:
+    image: rustfs/rustfs:1.0.0-beta.10
+    profiles:
+      - object-storage
+    depends_on:
+      rustfs-permissions:
+        condition: service_completed_successfully
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        : "$${RUSTFS_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY_ID must be set}"
+        : "$${RUSTFS_SECRET_KEY:?OBJECT_STORAGE_SECRET_ACCESS_KEY must be set}"
+        : "$${RUSTFS_RPC_SECRET:?RUSTFS_RPC_SECRET must be set}"
+        if [ "$${RUSTFS_RPC_SECRET}" = "$${RUSTFS_SECRET_KEY}" ]; then
+          echo "RUSTFS_RPC_SECRET must differ from OBJECT_STORAGE_SECRET_ACCESS_KEY" >&2
+          exit 1
+        fi
+        exec /entrypoint.sh rustfs
+    environment:
+      RUSTFS_VOLUMES: "/data/rustfs{0...3}"
+      RUSTFS_ADDRESS: "0.0.0.0:9000"
+      RUSTFS_CONSOLE_ADDRESS: "0.0.0.0:9001"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_REGION: "us-east-1"
+      RUSTFS_ACCESS_KEY: "${OBJECT_STORAGE_ACCESS_KEY_ID:-}"
+      RUSTFS_SECRET_KEY: "${OBJECT_STORAGE_SECRET_ACCESS_KEY:-}"
+      RUSTFS_RPC_SECRET: "${RUSTFS_RPC_SECRET:-}"
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -fsS
+        - http://127.0.0.1:9000/health/ready
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    volumes:
+      - rustfs-data0:/data/rustfs0
+      - rustfs-data1:/data/rustfs1
+      - rustfs-data2:/data/rustfs2
+      - rustfs-data3:/data/rustfs3
+    networks:
+      - backend
   primary:
     build:
       context: ./docker/psql-pub
       dockerfile: Dockerfile
     command:
-    - "-c"
-    - config_file=/etc/postgresql/postgresql.conf
-    - "-c"
-    - hba_file=/etc/postgresql/pg_hba.conf
+      - "-c"
+      - config_file=/etc/postgresql/postgresql.conf
+      - "-c"
+      - hba_file=/etc/postgresql/pg_hba.conf
     environment:
       POSTGRES_USER: "${POSTGRESQL_USER:-root}"
       POSTGRES_PASSWORD: "${POSTGRESQL_PASSWORD:-development_password}"
@@ -266,24 +350,24 @@ services:
     # Override POSTGRES_PRIMARY_TMPFS_SIZE on memory-constrained hosts (rootless
     # podman bills tmpfs against the user memory cgroup).
     tmpfs:
-    - "/var/lib/postgresql/data:size=${POSTGRES_PRIMARY_TMPFS_SIZE:-64g}"
+      - "/var/lib/postgresql/data:size=${POSTGRES_PRIMARY_TMPFS_SIZE:-64g}"
     # PG allocates 32MB DSM segments from /dev/shm for parallel query and
     # column-metadata joins. The default 64MB container shm exhausts under
     # 32 Rails parallel workers; 4G covers worst-case fanout with margin.
     shm_size: 4gb
     volumes:
-    # `:z` adds an SELinux shared label so Fedora/RHEL hosts permit container
-    # reads. Harmless on non-SELinux hosts (Arch, Ubuntu).
-    - "./docker/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
-    - "./docker/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
-    - "./docker/psql-pub:/docker-entrypoint-initdb.d:ro,z"
+      # `:z` adds an SELinux shared label so Fedora/RHEL hosts permit container
+      # reads. Harmless on non-SELinux hosts (Arch, Ubuntu).
+      - "./docker/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
+      - "./docker/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
+      - "./docker/psql-pub:/docker-entrypoint-initdb.d:ro,z"
     networks:
-    - backend
+      - backend
     restart: unless-stopped
     healthcheck:
       test:
-      - CMD-SHELL
-      - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1
       interval: 3s
       timeout: 3s
       retries: 20
@@ -306,32 +390,32 @@ services:
     # the expected ~40G working set with margin. Override
     # POSTGRES_REPLICA_TMPFS_SIZE on memory-constrained hosts.
     tmpfs:
-    - "/var/lib/postgresql/data:size=${POSTGRES_REPLICA_TMPFS_SIZE:-48g}"
+      - "/var/lib/postgresql/data:size=${POSTGRES_REPLICA_TMPFS_SIZE:-48g}"
     # Match primary: parallel query + metadata-join DSM segments under 32 Rails
     # workers exceed the 64MB default container shm.
     shm_size: 4gb
     volumes:
-    - "./docker/psql-sub/entrypoint.sh:/entrypoint.sh:ro,z"
-    - "./docker/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
-    - "./docker/psql-sub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
+      - "./docker/psql-sub/entrypoint.sh:/entrypoint.sh:ro,z"
+      - "./docker/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
+      - "./docker/psql-sub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
     depends_on:
       primary:
         condition: service_healthy
     networks:
-    - backend
+      - backend
     restart: unless-stopped
   valkey:
     image: valkey/valkey:8.0-alpine3.22
     networks:
-    - backend
+      - backend
     volumes:
-    - valkey-volume:/data
+      - valkey-volume:/data
     restart: unless-stopped
     healthcheck:
       test:
-      - CMD
-      - valkey-cli
-      - ping
+        - CMD
+        - valkey-cli
+        - ping
       interval: 3s
       timeout: 2s
       retries: 20
@@ -357,15 +441,15 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       CLUSTER_ID: q1Sh-9_ISia_zwGINzRvyQ
     networks:
-    - backend
+      - backend
     restart: unless-stopped
     # Host port publishing lives in the devcontainer override.
     healthcheck:
       test:
-      - CMD
-      - kafka-broker-api-versions
-      - "--bootstrap-server"
-      - localhost:9092
+        - CMD
+        - kafka-broker-api-versions
+        - "--bootstrap-server"
+        - localhost:9092
       interval: 30s
       timeout: 10s
       retries: 5
@@ -377,12 +461,12 @@ services:
     # directories writable without changing host ownership.
     user: root
     profiles:
-    - observability
+      - observability
     command: "-config.file=/etc/loki/local-config.yaml"
     volumes:
-    - loki-volume:/tmp/loki
+      - loki-volume:/tmp/loki
     networks:
-    - observability
+      - observability
     restart: "no"
   tempo:
     image: grafana/tempo:2.10.5
@@ -390,15 +474,15 @@ services:
     # writer to map back to the host user.
     user: root
     profiles:
-    - observability
+      - observability
     command:
-    - "-config.file=/etc/tempo.yaml"
+      - "-config.file=/etc/tempo.yaml"
     # Host port publishing lives in the devcontainer override.
     volumes:
-    - "./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro,z"
-    - tempo-volume:/var/tempo
+      - "./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro,z"
+      - tempo-volume:/var/tempo
     networks:
-    - observability
+      - observability
     restart: "no"
   grafana:
     image: grafana/grafana:latest
@@ -406,31 +490,31 @@ services:
     # podman the named volume can otherwise appear read-only to Grafana's UID.
     user: root
     profiles:
-    - observability
+      - observability
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_PATHS_PROVISIONING: "/etc/grafana/provisioning"
     volumes:
-    - grafana-volume:/var/lib/grafana
-    - "./docker/grafana/provisioning:/etc/grafana/provisioning:z"
+      - grafana-volume:/var/lib/grafana
+      - "./docker/grafana/provisioning:/etc/grafana/provisioning:z"
     networks:
-    - observability
+      - observability
     depends_on:
-    - loki
-    - tempo
-    - prometheus
+      - loki
+      - tempo
+      - prometheus
     restart: "no"
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     profiles:
-    - observability
+      - observability
     volumes:
-    - "./docker/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro,z"
+      - "./docker/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro,z"
     networks:
-    - observability
+      - observability
     depends_on:
-    - tempo
+      - tempo
     restart: "no"
   prometheus:
     image: prom/prometheus:latest
@@ -438,69 +522,13 @@ services:
     # volumes writable when the observability profile is explicitly enabled.
     user: root
     profiles:
-    - observability
+      - observability
     volumes:
-    - "./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z"
-    - prometheus-volume:/prometheus
+      - "./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z"
+      - prometheus-volume:/prometheus
     networks:
-    - observability
+      - observability
     restart: "no"
-  pgadmin:
-    image: dpage/pgadmin4
-    # `user: root` lets the entrypoint chmod the bind-mounted pgpass to 0600
-    # before pgAdmin de-escalates to the pgadmin user. Under rootless podman
-    # "root" inside the container is the host user via userns mapping (not
-    # real root), but the chmod still succeeds on the bind-mounted file
-    # because the host user already owns it.
-    user: root
-    entrypoint:
-    - "/bin/sh"
-    - "-c"
-    - "chmod 600 /pgpass && /entrypoint.sh"
-    # Host port publishing lives in the devcontainer override.
-    environment:
-      PGADMIN_DEFAULT_EMAIL: root@example.com
-      PGADMIN_DEFAULT_PASSWORD: password
-      # Auto-import the pub/sub server definitions on first launch.
-      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
-    volumes:
-    - "./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro,z"
-    - "./docker/pgadmin/pgpass:/pgpass:z"
-    networks:
-    - backend
-    depends_on:
-      primary:
-        condition: service_healthy
-      replica:
-        condition: service_started
-  tinyrdm:
-    image: ghcr.io/tiny-craft/tiny-rdm:latest
-    # Host port publishing lives in the devcontainer override.
-    environment:
-      ADMIN_USERNAME: admin
-      ADMIN_PASSWORD: change-me
-    volumes:
-    - tinyrdm-volume:/app/tinyrdm
-    networks:
-    - backend
-    depends_on:
-      valkey:
-        condition: service_healthy
-    restart: unless-stopped
-  cloudflare-tunnel:
-    # Workers VPC requires cloudflared 2025.7.0 or newer.
-    image: cloudflare/cloudflared:2025.7.0
-    depends_on:
-    - core
-    # Workers VPC DNS routing requires QUIC and outbound UDP 7844.
-    command: tunnel --protocol quic run
-    environment:
-      TUNNEL_TOKEN: "${CLOUDFLARED_TOKEN}"
-    networks:
-    - frontend
-    extra_hosts:
-    - host.docker.internal:host-gateway
-    restart: unless-stopped
 networks:
   backend: {}
   frontend: {}
@@ -508,14 +536,25 @@ networks:
   outer:
     name: "${OUTER_DOCKER_NETWORK:-umaxica-apps-global_outer}"
     external: "${OUTER_DOCKER_NETWORK_EXTERNAL:-false}"
+  # NOTE: `cloudflare-tunnel` lives entirely in compose.custom.yaml (repo
+  # root) -- an always-on, unprofiled
+  # overlay that is included unconditionally via
+  # .devcontainer/devcontainer.json's dockerComposeFile array. This base
+  # compose.yaml alone must never create, start, or pull it. Likewise
+  # `pgadmin`/`tinyrdm` (admin GUIs) are defined entirely in
+  # compose.custom.yaml, not here. See docs/operations/remote-codex-over-tailscale.md
+  # and docs/operations/cloudflare-private-origin.md.
 volumes:
   valkey-volume: {}
   loki-volume: {}
   tempo-volume: {}
   grafana-volume: {}
   prometheus-volume: {}
-  tinyrdm-volume: {}
   umaxica-home-cache: {}
   umaxica-home-share: {}
   umaxica-node-modules: {}
   umaxica-bundle: {}
+  rustfs-data0: {}
+  rustfs-data1: {}
+  rustfs-data2: {}
+  rustfs-data3: {}

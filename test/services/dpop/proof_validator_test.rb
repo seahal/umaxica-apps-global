@@ -92,6 +92,24 @@ module Dpop
       assert_equal "unsupported_alg", result.error
     end
 
+    test "case-variant supported alg returns error" do
+      private_key, jwk = generate_proof_jwk
+      payload = { "htm" => "GET",
+                  "htu" => "http://example.com/api",
+                  "iat" => Time.current.to_i,
+                  "jti" => SecureRandom.uuid, }
+      proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk, "alg" => "eS256" })
+
+      result = DpopProofValidator.new(
+        proof_jwt: proof,
+        request_method: "GET",
+        request_uri: "http://example.com/api",
+      ).call
+
+      assert_not result.valid?
+      assert_equal "unsupported_alg", result.error
+    end
+
     test "missing jwk returns error" do
       private_key, = generate_proof_jwk
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }

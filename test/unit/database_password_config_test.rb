@@ -11,4 +11,14 @@ class DatabasePasswordConfigTest < ActiveSupport::TestCase
     assert_includes database_yml, 'password: <%= ENV["POSTGRESQL_PASSWORD"]'
     assert_includes database_yml, ".presence || Rails.application.credentials.dig(:DATABASE, :PASSWORD) %>"
   end
+
+  test "development queue pools can serve every Solid Queue worker thread" do
+    configurations = Rails.application.config.database_configuration.fetch("development")
+
+    %w(queue queue_replica).each do |name|
+      configuration = configurations.fetch(name)
+
+      assert_operator configuration.fetch("pool"), :>=, 5, name
+    end
+  end
 end

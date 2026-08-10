@@ -11,7 +11,6 @@ module Auth
         include ::PreferenceGlobal
         include CommonOtp
         include ::VerificationClient
-        include SignWebauthn
         include SignVerificationTiming
         include SignVerificationCommonBase
         include SignVerificationAuditAndCookie

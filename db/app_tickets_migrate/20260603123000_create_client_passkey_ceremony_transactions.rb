@@ -11,6 +11,8 @@ class CreateClientPasskeyCeremonyTransactions < ActiveRecord::Migration[8.2]
       t.string :actor_ref, null: false
       t.string :session_ref, null: false
       t.string :operation, null: false
+      t.string :rp_id, null: false
+      t.string :origin, null: false
       t.string :status, null: false, default: "pending"
       t.string :grant_jti, null: false
       t.string :result_jti

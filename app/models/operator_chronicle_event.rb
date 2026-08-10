@@ -27,6 +27,7 @@ class OperatorChronicleEvent < ChronicleRecord
   SOCIAL_UNLINKED = 12
   LOGOUT = 13
   CREDENTIAL_SECURITY_TRANSITION = 14
+  PASSKEY_REGISTERED = 15
 
   # Association with staff_chronicles
   has_many :staff_chronicles, class_name: "OperatorChronicle", foreign_key: :event_id,
@@ -37,7 +38,7 @@ class OperatorChronicleEvent < ChronicleRecord
     LOGIN_SUCCESS, AUTHORIZATION_FAILED, LOGGED_IN, LOGGED_OUT, LOGIN_FAILED,
     TOKEN_REFRESHED, NOTHING, STAFF_SECRET_CREATED, STAFF_SECRET_REMOVED,
     STAFF_SECRET_UPDATED, STEP_UP_VERIFIED, SOCIAL_UNLINKED, LOGOUT,
-    CREDENTIAL_SECURITY_TRANSITION,
+    CREDENTIAL_SECURITY_TRANSITION, PASSKEY_REGISTERED,
   ].freeze
 
   def self.ensure_defaults!

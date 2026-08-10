@@ -102,6 +102,15 @@ class IdentityEmailCeremonyContractTest < ActiveSupport::TestCase
     end
   end
 
+  test "validate_header rejects a case-variant algorithm" do
+    assert_email_ceremony_error("alg is invalid") do
+      IdentityEmailCeremonyContract.validate_header!(
+        { "alg" => "eS384", "typ" => IdentityEmailCeremonyGrant::TOKEN_TYPE, "kid" => "kid-1" },
+        expected_type: IdentityEmailCeremonyGrant::TOKEN_TYPE,
+      )
+    end
+  end
+
   test "validate_future_timestamp rejects non-integer exp" do
     assert_email_ceremony_error("exp must be an integer timestamp") do
       IdentityEmailCeremonyContract.validate_future_timestamp!({ "exp" => "bad" }, "exp", now: @now)

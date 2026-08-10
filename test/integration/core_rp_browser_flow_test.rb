@@ -49,24 +49,24 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       ENV.fetch(
         "PUBLIC_CORE_SERVICE_URL",
         ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"),
-      ) => "core/app/auth/callbacks",
+      ) => "core/app/oidc/callbacks",
       ENV.fetch(
         "PUBLIC_CORE_CORPORATE_URL",
         ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"),
-      ) => "core/com/auth/callbacks",
+      ) => "core/com/oidc/callbacks",
       ENV.fetch(
         "PUBLIC_CORE_STAFF_URL",
         ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"),
-      ) => "core/org/auth/callbacks",
-      "core.app.localhost" => "core/app/auth/callbacks",
-      "core.com.localhost" => "core/com/auth/callbacks",
-      "core.org.localhost" => "core/org/auth/callbacks",
+      ) => "core/org/oidc/callbacks",
+      "core.app.localhost" => "core/app/oidc/callbacks",
+      "core.com.localhost" => "core/com/oidc/callbacks",
+      "core.org.localhost" => "core/org/oidc/callbacks",
     }
 
     expectations.each do |host, controller|
       assert_routing(
         { method: :get, path: "http://#{host}/oidc/callback" },
-        { controller: controller, action: "show", to: "/#{controller}#show" },
+        { controller: controller, action: "show" },
       )
     end
   end

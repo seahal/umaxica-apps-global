@@ -66,6 +66,11 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_response :redirect
     assert_redirected_to %r{/sign/in/email/edit}
+
+    follow_redirect!
+
+    assert_response :success
+    assert_select "input[name='user_email[pass_code]'][autocomplete='one-time-code']", count: 1
   end
 
   test "post create with invalid email format" do

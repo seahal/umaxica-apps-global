@@ -76,4 +76,34 @@ class OmniauthTest < ActiveSupport::TestCase
     assert_not_includes logged.to_s, "strategy-nonce"
     assert_not_includes logged.to_s, "app-nonce"
   end
+
+  test "omniauth failure logs normalized metadata without the provider exception message" do
+    env = Rack::MockRequest.env_for("/social/failure?message=invalid_credentials&strategy=google")
+    env["omniauth.error.type"] = "invalid_credentials"
+    env["omniauth.error.strategy"] = Struct.new(:name).new("google")
+    provider_secret = "audit-provider-response-token-not-a-real-secret"
+    env["omniauth.error"] = StandardError.new("provider response contained #{provider_secret}")
+
+    errors = []
+    logger = Struct.new(:errors) do
+      def error(message)
+        errors << message
+      end
+
+      def info(*)
+      end
+    end.new(errors)
+
+    Rails.stub(:logger, logger) do
+      OmniAuth.config.on_failure.call(env)
+    end
+
+    event = errors.map { |message| JSON.parse(message) }.find { |entry| entry["event"] == "social_auth.failure" }
+
+    assert_not_nil event
+    assert_equal "google", event.dig("data", "strategy")
+    assert_equal "invalid_credentials", event.dig("data", "type")
+    assert_equal "StandardError", event.dig("data", "error_class")
+    assert_not_includes errors.join("\n"), provider_secret
+  end
 end

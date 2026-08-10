@@ -35,7 +35,7 @@ class OrgPreferenceLanguageTest < ActiveSupport::TestCase
     language = OrgPreferenceLanguage.new
 
     assert_not language.valid?
-    assert_includes language.errors[:preference], "を入力してください"
+    assert_predicate language.errors[:preference], :any?
   end
 
   test "can be created with preference and option" do

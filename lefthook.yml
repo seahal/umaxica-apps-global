@@ -4,6 +4,10 @@ pre-commit:
     - name: oxfmt
       glob:
         - "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,yml,yaml}"
+      exclude:
+        # ERB-templated Rails config; oxfmt's YAML parser cannot handle the
+        # embedded <% %> tags and misreads them as YAML syntax errors.
+        - "config/database.yml"
       run: pnpm exec oxfmt {staged_files}
       stage_fixed: true
 

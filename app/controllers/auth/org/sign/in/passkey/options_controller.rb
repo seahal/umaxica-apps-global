@@ -7,7 +7,7 @@ module Auth
       module In
         module Passkey
           class OptionsController < ::Auth::Org::ApplicationController
-            include SignPasskeySignInEndpoint
+            include ::PasskeySignInFlow
 
             AUTHENTICATION_MODE = :guest
             declare_authentication_mode! :guest
@@ -65,26 +65,6 @@ module Auth
 
               staff = Operator.find_by(public_id: normalized_identifier)
               staff if staff&.login_allowed?
-            end
-
-            def active_passkeys_for_actor(staff)
-              staff.staff_passkeys.where(status_id: OperatorPasskeyStatus::ACTIVE)
-            end
-
-            def passkey_challenge_actor_id_key
-              "staff_id"
-            end
-
-            def passkey_sign_in_model
-              OperatorPasskey
-            end
-
-            def passkey_belongs_to_challenge_actor?(passkey, actor_id)
-              passkey.staff_id == actor_id
-            end
-
-            def passkey_owner_mismatch_log_message
-              "WebAuthn: Credential not found or staff mismatch"
             end
 
             def perform_passkey_sign_in(passkey)

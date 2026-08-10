@@ -215,6 +215,7 @@ export default class extends Controller {
       response: {
         clientDataJSON: this.bufferToBase64url(response.clientDataJSON),
         attestationObject: this.bufferToBase64url(response.attestationObject),
+        transports: typeof response.getTransports === "function" ? response.getTransports() : [],
       },
       clientExtensionResults: credential.getClientExtensionResults(),
     };

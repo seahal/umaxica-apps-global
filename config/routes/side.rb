@@ -37,19 +37,17 @@ scope module: :side, as: :side do
       # Signed-in dashboard.
       resource :dashboard, only: :show
 
-      # Canonical browser sign-out flow.
-      # FIXME: nasty entrypoint!
-      resource :sign_out, only: %i(new edit create), path: "sign/out" do
-        # FIXME: nasty entrypoint!
-        resource :completion, only: :show, path: "complete", module: :sign_outs
+      # Canonical browser sign-out ceremony (see config/routes/auth.rb for the pattern).
+      namespace :sign do
+        resource :termination, only: %i(new edit create), path: "out", controller: :outs, as: :out do
+          resource :completion, only: :show, path: "complete", module: :outs
+        end
       end
 
       # RP login start: redirects to Base /oauth/authorize.
       namespace :oidc do
-        # FIXME: nasty entrypoint!
-        resource :authorization, only: :show, to: "/side/app/auth/authorizations#show"
-        # FIXME: nasty entrypoint!
-        resource :callback, only: :show, to: "/side/app/auth/callbacks#show"
+        resource :authorization, only: :show
+        resource :callback, only: :show
       end
 
       # Browser CSP report sink; keep configured report-uri path.
@@ -92,19 +90,17 @@ scope module: :side, as: :side do
       # Signed-in dashboard.
       resource :dashboard, only: :show
 
-      # Canonical browser sign-out flow.
-      # FIXME: nasty entrypoint!
-      resource :sign_out, only: %i(new edit create), path: "sign/out" do
-        # FIXME: nasty entrypoint!
-        resource :completion, only: :show, path: "complete", module: :sign_outs
+      # Canonical browser sign-out ceremony (see config/routes/auth.rb for the pattern).
+      namespace :sign do
+        resource :termination, only: %i(new edit create), path: "out", controller: :outs, as: :out do
+          resource :completion, only: :show, path: "complete", module: :outs
+        end
       end
 
       # RP login start: redirects to Base /oauth/authorize.
       namespace :oidc do
-        # FIXME: nasty entrypoint!
-        resource :authorization, only: :show, to: "/side/com/auth/authorizations#show"
-        # FIXME: nasty entrypoint!
-        resource :callback, only: :show, to: "/side/com/auth/callbacks#show"
+        resource :authorization, only: :show
+        resource :callback, only: :show
       end
 
       # Browser CSP report sink; keep configured report-uri path.
@@ -146,19 +142,17 @@ scope module: :side, as: :side do
       # Signed-in dashboard.
       resource :dashboard, only: :show
 
-      # Canonical browser sign-out flow.
-      # FIXME: nasty entrypoint!
-      resource :sign_out, only: %i(new edit create), path: "sign/out" do
-        # FIXME: nasty entrypoint!
-        resource :completion, only: :show, path: "complete", module: :sign_outs
+      # Canonical browser sign-out ceremony (see config/routes/auth.rb for the pattern).
+      namespace :sign do
+        resource :termination, only: %i(new edit create), path: "out", controller: :outs, as: :out do
+          resource :completion, only: :show, path: "complete", module: :outs
+        end
       end
 
       # RP login start: redirects to Base /oauth/authorize.
       namespace :oidc do
-        # FIXME: nasty entrypoint!
-        resource :authorization, only: :show, to: "/side/org/auth/authorizations#show"
-        # FIXME: nasty entrypoint!
-        resource :callback, only: :show, to: "/side/org/auth/callbacks#show"
+        resource :authorization, only: :show
+        resource :callback, only: :show
       end
 
       # Browser CSP report sink; keep configured report-uri path.

@@ -38,6 +38,8 @@
 #  fk_rails_...  (user_id => clients.id) ON DELETE => cascade
 #
 class ClientPreference < AppPrincipalRecord
+  include ::PreferenceExplicitFields
+
   belongs_to :user, class_name: "Client", inverse_of: :user_preference
 
   has_one :user_preference_language, class_name: "ClientPreferenceLanguage",
