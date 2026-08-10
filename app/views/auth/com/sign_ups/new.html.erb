@@ -1,5 +1,11 @@
 <% title t("sign.app.registration.new.page_title") %>
 
+<%# `@sign_up_available == false` means the sign_up_suspended_<surface> kill
+    switch is on: show the notice instead of entry points that would start a
+    registration the guard is about to reject anyway. %>
+<% if @sign_up_available == false %>
+  <%= render "auth/shared/sign_up_suspended" %>
+<% else %>
 <h1><%= t("sign.app.registration.new.page_title") %></h1>
 
 <ul>
@@ -14,3 +20,4 @@
 </ul>
 
 <%= link_to t("sign.app.registration.new.links.sign_in"), auth_com_sign_in_path(ct: params[:ct], ri: params[:ri]) %>
+<% end %>

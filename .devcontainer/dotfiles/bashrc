@@ -1,6 +1,6 @@
 export PATH="$HOME/.local/bin:$PATH"
 
-export HISTFILE="$HOME/workspace/docker/core/preferences/.bash_history"
+export HISTFILE="$HOME/workspace/podman/core/preferences/.bash_history"
 export HISTSIZE=50000
 export HISTFILESIZE=100000
 export HISTCONTROL=ignoreboth:erasedups

@@ -138,23 +138,15 @@ Rails.application.configure do
   ].flatten
   boot_config_hosts.map!(&:host)
 
-  public_tunnel_hosts = %w(
-    auth.umaxica.app
-    auth.umaxica.com
-    auth.umaxica.org
-    base.umaxica.app
-    base.umaxica.com
-    base.umaxica.org
-    base.umaxica.dev
-    www.umaxica.dev
-    side-jp.umaxica.com
-    side-jp.umaxica.app
-    side-jp.umaxica.org
-    core-jp.umaxica.app
-    core-jp.umaxica.org
-    core-jp.umaxica.com
-  )
-
+  # Development is published through Cloudflare Tunnel under the browser-facing site names,
+  # with Cloudflare Access as the perimeter in front of them. Host Authorization therefore
+  # has to admit both hostname families here, and boot_config is not filtered: requests that
+  # arrive directly on the compose `frontend` network carry a PRIVATE_* `*.localhost` alias,
+  # while requests the connector forwards carry the browser's public site name, because
+  # cloudflared leaves `Host` unmodified unless `httpHostHeader` is set. Access, not Host
+  # Authorization, is what keeps an unauthenticated stranger off this listener; Rails
+  # authentication and authorization remain authoritative behind it.
+  # See docs/architecture/cloudflare-request-paths.md.
   localhost_tunnel_hosts = %w(
     auth.app.localhost:3000
     auth.com.localhost:3000
@@ -173,6 +165,8 @@ Rails.application.configure do
     core.com.localhost:3000
     core.org.localhost:3000
     core.app.localhost:3000
+    core.net.localhost:3000
+    core.dev.localhost:3000
     docs.com.localhost:3000
     docs.org.localhost:3000
     docs.app.localhost:3000
@@ -185,6 +179,13 @@ Rails.application.configure do
     palm.app.localhost:3000
   )
 
+  # Both families, deliberately. Per adr/public-private-url-boundaries.md, `PUBLIC_*` names
+  # the site a browser or app sees (www.umaxica.app) and `PRIVATE_*` names the network-side
+  # ingress the tunnel connects to. Host Authorization evaluates the `Host` Rails actually
+  # receives, and in development that is either one: the private alias on a direct
+  # `frontend` network request, or the public site name on a request forwarded by
+  # cloudflared. Both are read from the environment rather than hardcoded so compose.yaml
+  # stays the single source of hostnames; a new tunnel hostname is added there, not here.
   env_host_keys = %w(
     PRIVATE_BASE_CORPORATE_URL
     PRIVATE_BASE_SERVICE_URL
@@ -194,22 +195,13 @@ Rails.application.configure do
     PRIVATE_AUTH_CORPORATE_URL
     PRIVATE_AUTH_SERVICE_URL
     PRIVATE_AUTH_STAFF_URL
-    PUBLIC_JUMP_CORPORATE_URL
-    PUBLIC_JUMP_SERVICE_URL
-    PUBLIC_JUMP_STAFF_URL
-    PRIVATE_MAIN_SERVICE_URL
-    PRIVATE_MAIN_STAFF_URL
-    PRIVATE_MAIN_CORPORATE_URL
-    PUBLIC_CORE_SERVICE_URL
-    PUBLIC_CORE_STAFF_URL
-    PUBLIC_CORE_CORPORATE_URL
-    PUBLIC_BASE_SERVICE_URL
-    PUBLIC_BASE_STAFF_URL
-    PUBLIC_BASE_CORPORATE_URL
+    PRIVATE_CORE_SERVICE_URL
+    PRIVATE_CORE_STAFF_URL
+    PRIVATE_CORE_CORPORATE_URL
     PRIVATE_PALM_SERVICE_URL
-    PUBLIC_INFO_SERVICE_URL
-    PUBLIC_INFO_STAFF_URL
-    PUBLIC_INFO_CORPORATE_URL
+    PRIVATE_INFO_SERVICE_URL
+    PRIVATE_INFO_STAFF_URL
+    PRIVATE_INFO_CORPORATE_URL
     PRIVATE_DOCS_SERVICE_URL
     PRIVATE_DOCS_STAFF_URL
     PRIVATE_DOCS_CORPORATE_URL
@@ -219,6 +211,26 @@ Rails.application.configure do
     PRIVATE_HELP_SERVICE_URL
     PRIVATE_HELP_STAFF_URL
     PRIVATE_HELP_CORPORATE_URL
+    PUBLIC_AUTH_SERVICE_URL
+    PUBLIC_AUTH_CORPORATE_URL
+    PUBLIC_AUTH_STAFF_URL
+    PUBLIC_BASE_SERVICE_URL
+    PUBLIC_BASE_CORPORATE_URL
+    PUBLIC_BASE_STAFF_URL
+    PUBLIC_BASE_DEVELOPER_URL
+    PUBLIC_CORE_SERVICE_URL
+    PUBLIC_CORE_CORPORATE_URL
+    PUBLIC_CORE_STAFF_URL
+    PUBLIC_SIDE_SERVICE_URL
+    PUBLIC_SIDE_CORPORATE_URL
+    PUBLIC_SIDE_STAFF_URL
+    PUBLIC_PALM_SERVICE_URL
+    PUBLIC_INFO_SERVICE_URL
+    PUBLIC_INFO_CORPORATE_URL
+    PUBLIC_INFO_STAFF_URL
+    PUBLIC_DOCS_SERVICE_URL
+    PUBLIC_DOCS_CORPORATE_URL
+    PUBLIC_DOCS_STAFF_URL
   )
   env_hosts =
     ENV.values_at(*env_host_keys).compact_blank.flat_map do |value|
@@ -234,8 +246,7 @@ Rails.application.configure do
 
   config.hosts.concat(
     (
-      boot_config_hosts + public_tunnel_hosts + localhost_tunnel_hosts + env_hosts +
-        [tailscale_serve_host]
+      boot_config_hosts + localhost_tunnel_hosts + env_hosts + [tailscale_serve_host]
     ).compact_blank.uniq,
   )
 
@@ -244,9 +255,11 @@ Rails.application.configure do
 
   ## Email Settings
   config.action_mailer.delivery_method = :smtp
-  # Match the dev Sign surface origin (see TRUSTED_ORIGINS in initializers/webauthn.rb);
-  # production uses AUTH_SERVICE_URL. Puma serves on 3000.
-  config.action_mailer.default_url_options = { host: "sign.app.localhost", port: 3000 }
+  # Match the dev Auth surface private origin. `sign.app.localhost` predates the Sign ->
+  # Auth surface rename and resolves nowhere: compose.yaml publishes no `sign.*` alias and
+  # config.hosts has no such entry, so mail links built here were unreachable. Production
+  # uses boot_config's base_service host. Puma serves on 3000.
+  config.action_mailer.default_url_options = { host: "auth.app.localhost", port: 3000 }
   config.action_mailer.smtp_settings = {
     address: "email-smtp.#{ENV.fetch("AWS_SES_REGION", "ap-northeast-1")}.amazonaws.com",
     user_name: Rails.app.creds.option(:AWS_SES_SMTP_USERNAME),
@@ -265,7 +278,4 @@ Rails.application.configure do
 
   # SMS Provider Configuration - Use test provider in development
   config.sms_provider = ENV.fetch("SMS_PROVIDER", "test")
-
-  # add to the default host
-  # config.action_controller.default_url_options = { host: "localhost", port: 3001 }
 end

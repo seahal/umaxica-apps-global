@@ -22,11 +22,11 @@ module SocialCeremonyEntry
 
   included do
     include SocialAuth
+    include SignUpSuspensionGuard
+    include ExternalAuthenticationEndpoint
 
     rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
     rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
-
-    before_action :require_social_link_step_up!, only: :create
   end
 
   private
@@ -56,6 +56,25 @@ module SocialCeremonyEntry
 
     unless SUPPORTED_PROVIDERS.include?(provider)
       redirect_to(auth_app_sign_in_path)
+      return false
+    end
+
+    # Only the sign-up entry is gated: this concern also serves the sign-in
+    # ceremony, which `sign_up_suspended_app` must leave open. The check runs
+    # before any session state is prepared, so a suspended registration leaves
+    # no intent, no ceremony grant, and no ClientSignUpFlow behind.
+    return false if social_auth_entry == "sign_up" && reject_suspended_sign_up!
+
+    # `social_ceremony_app_{provider}` gates the *start* here, matching
+    # SignSocialAuthenticationEndpoint. Without this the callback's `:draining`
+    # state never drains: draining exists to let ceremonies issued before the
+    # switch was flipped finish, which is only bounded if no new ceremony can
+    # start. An operation outside ProviderSurfacePolicy (a forged `intent`)
+    # fails the first check and short-circuits before the adapter sees it.
+    operation = (social_auth_entry == "sign_up") ? "signup" : intent.to_s
+    unless external_authentication_allowed?(surface: "app", provider: provider, operation: operation) &&
+        external_authentication_start_available?(provider: provider, operation: operation, context: {})
+      redirect_to(auth_app_sign_in_path, status: :see_other)
       return false
     end
 
@@ -126,6 +145,10 @@ module SocialCeremonyEntry
     sign_up_flow_locator.issue!(cycle)
     session[:auth_app_up_sequence_id] = cycle.public_id
   end
+
+  # This concern is mounted only on app-surface controllers (see the file
+  # header), so the gated surface is fixed rather than derived per request.
+  def sign_up_surface = :app
 
   def social_login_actor_ref
     "anonymous"

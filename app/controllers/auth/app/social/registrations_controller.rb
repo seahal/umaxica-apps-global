@@ -15,6 +15,7 @@ module Auth
         AUTHENTICATION_MODE = :open
 
         declare_authentication_mode! :open, only: :create
+        before_action :require_social_link_step_up!, only: :create
 
         def create
           handoff_social_ceremony!

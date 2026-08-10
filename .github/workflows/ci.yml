@@ -24,7 +24,7 @@ env:
   CI: true
   # Version Configuration
   RUBY_VERSION: "4.0.6"
-  NODE_VERSION: "24"
+  NODE_VERSION: "24.19.0"
   # Rails Configuration
   RAILS_ENV: test
   RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}

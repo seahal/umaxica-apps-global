@@ -5,7 +5,11 @@ module Auth
   module Org
     module Sign
       class UpsController < ::Auth::Org::ApplicationController
+        include SignUpSuspensionGuard
+
         AUTHENTICATION_MODE = :guest
+
+        before_action :reject_suspended_sign_up!
         helper Auth::Org::SignUpsHelper
         declare_authentication_mode! :guest, no_redirect: true
         skip_before_action :set_region, raise: false
@@ -34,6 +38,8 @@ module Auth
         end
 
         private
+
+        def sign_up_surface = :org
 
         def reject_logged_in_direct_entry!
           render plain: I18n.t("errors.messages.already_authenticated"), status: :forbidden

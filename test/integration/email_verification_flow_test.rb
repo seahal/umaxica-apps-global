@@ -9,7 +9,7 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
            :client_mfa_statuses
 
   setup do
-    CloudflareTurnstile.test_mode = true
+    TurnstileVerifierStub.challenge_enabled = true
     # The ceremony runs on the Auth host the application is configured with: a request
     # made to any other host gets a session cookie the application does not read back,
     # so the sign-up ticket is lost and the flow restarts instead of advancing.

@@ -96,7 +96,6 @@ Rails.application.configure do
 
   # SMS Provider Configuration - Use test provider in test environment
   config.sms_provider = "test"
-  config.x.security.allow_turnstile_validation_override = true
 
   # Unlogged tables skip WAL entirely -- less write work per test and less
   # pg_wal pressure on the tmpfs-backed primary. The old shared-memory concern

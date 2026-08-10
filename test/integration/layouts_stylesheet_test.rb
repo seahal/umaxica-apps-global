@@ -45,7 +45,7 @@ class StylesheetTagsTest < ActiveSupport::TestCase
   ).freeze
 
   test "target layouts use Vite and avoid stylesheet_link_tag" do
-    (APPLICATION_LAYOUTS.merge(INERTIA_LAYOUT => "entrypoints/inertia")).each do |path, entrypoint|
+    (APPLICATION_LAYOUTS.merge(INERTIA_LAYOUT => "entrypoints/inertia.tsx")).each do |path, entrypoint|
       contents = Rails.root.join(path).read
 
       assert_includes contents, "<meta charset=\"utf-8\">", "missing charset meta tag in #{path}"
@@ -117,7 +117,7 @@ class StylesheetTagsTest < ActiveSupport::TestCase
 
     assert_includes contents, 'meta name="turbo-refresh-method" content="morph"'
     assert_includes contents, 'meta name="turbo-refresh-scroll" content="preserve"'
-    assert_includes contents, 'vite_typescript_tag "entrypoints/inertia"'
+    assert_includes contents, 'vite_typescript_tag "entrypoints/inertia.tsx"'
     assert_not_includes contents, "yield :head"
     assert_not_includes contents, "content_for"
   end

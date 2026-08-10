@@ -45,7 +45,7 @@ module Auth
 
               def verify_social_signup_turnstile!
                 result =
-                  JitSecurityTurnstileVerifier.verify_for_ceremony(
+                  Turnstile::VerifierFactory.current.verify_for_ceremony(
                     token: request.request_parameters["cf-turnstile-response"].to_s,
                     remote_ip: request.remote_ip,
                     ceremony_id: @sign_up_ticket.public_id,

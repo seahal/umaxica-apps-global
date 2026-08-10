@@ -5,7 +5,11 @@ module Auth
   module Com
     module Sign
       class UpsController < ::Auth::Com::ApplicationController
+        include SignUpSuspensionGuard
+
         AUTHENTICATION_MODE = :guest
+
+        before_action :reject_suspended_sign_up!
         declare_authentication_mode! :guest, no_redirect: true
         skip_before_action :set_region, raise: false
 
@@ -33,6 +37,8 @@ module Auth
         end
 
         private
+
+        def sign_up_surface = :com
 
         def reject_logged_in_direct_entry!
           render plain: I18n.t("errors.messages.already_authenticated"), status: :forbidden

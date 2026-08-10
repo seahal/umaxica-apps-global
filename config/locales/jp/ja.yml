@@ -402,6 +402,7 @@ ja:
     otp_locked: 試行回数の上限を超えました。最初からやり直してください。
     forbidden: アクセスが禁止されています。
     messages:
+      sign_up_suspended: 新規登録は一時的にご利用いただけません。しばらくしてからお試しください。
       invalid_request: 無効なリクエストです。
       not_found: 見つかりませんでした。
       validation_failed: 入力内容を確認してください。

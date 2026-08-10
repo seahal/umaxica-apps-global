@@ -12,8 +12,13 @@ module Auth
           include SignEmailRegistrable
           include EnforcementIdentifierGate
 
+          include SignUpSuspensionGuard
+
           AUTHENTICATION_MODE = :guest
+
           REGISTRATION_EMAIL_PERMITTED_KEYS = %i(raw_address address confirm_policy promotional notifiable).freeze
+
+          before_action :reject_suspended_sign_up!
           before_action :enforce_email_flow!
 
           declare_authentication_mode! :guest, status: :unauthorized,
@@ -131,6 +136,8 @@ module Auth
           end
 
           private
+
+          def sign_up_surface = :app
 
           def render_blank_registration_email!(email_address)
             return false if email_address.present?

@@ -12,10 +12,13 @@ module ExternalAuthentication
   class FlipperProviderAvailabilityAdapter
     include ProviderAvailabilityPort
 
+    # The surface segment is part of the key because a provider is mounted on exactly one
+    # trust boundary (see OmniAuthSocialProviderHostMatrix): flipping a switch in the Flipper
+    # UI must make the affected surface obvious without cross-referencing this file.
     PROVIDER_FEATURE_NAMES = {
-      "apple" => :social_ceremony_apple,
-      "google" => :social_ceremony_google,
-      "entra" => :social_ceremony_entra,
+      "apple" => :social_ceremony_app_apple,
+      "google" => :social_ceremony_app_google,
+      "entra" => :social_ceremony_org_entra,
     }.freeze
     START_OPERATIONS = %w(link login signup).freeze
 
@@ -52,7 +55,7 @@ module ExternalAuthentication
       feature_name = PROVIDER_FEATURE_NAMES[provider]
       raise ArgumentError, "provider is unsupported" if feature_name.nil?
 
-      @flipper.enabled?(feature_name)
+      FeatureFlags.enabled?(feature_name, flipper: @flipper)
     end
 
     def validate_context(context)

@@ -308,7 +308,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
     before_audit_count = ClientChronicle.where(event_id: ClientChronicleEvent::CREDENTIAL_SECURITY_TRANSITION).count
 
-    CloudflareTurnstile.validation_override_enabled = true
+    TurnstileVerifierStub.challenge_enabled = true
     begin
       patch(
         base_app_identity_emails_registration_url(ri: "jp", host: @base_host),
@@ -319,7 +319,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
         headers: @headers,
       )
     ensure
-      CloudflareTurnstile.validation_override_enabled = false
+      TurnstileVerifierStub.challenge_enabled = false
     end
 
     assert_response :redirect

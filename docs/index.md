@@ -80,6 +80,7 @@ Current content-model references:
 - `docs/security/security-headers.md`
 - `docs/operations/health-check.md`
 - `docs/operations/search-engine-webmaster-tools.md`
+- `docs/operations/external-scan-cadence.md`
 - `docs/architecture/controller-boundaries.md`
 - `docs/security/turnstile.md`
 - `docs/security/authentication-assurance-levels.md`
@@ -108,6 +109,7 @@ Current content-model references:
 - `docs/dictionary/access-terms.md`
 - `docs/dictionary/alphabet.md`
 - `docs/dictionary/glossary.md`
+- `docs/reference/feature-flags.md`
 - `docs/reference/forbidden-rails-methods.md`
 - `docs/reference/repository-language-policy.md`
 - `docs/reference/ruby-static-analysis.md`

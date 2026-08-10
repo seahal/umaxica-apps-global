@@ -9,6 +9,8 @@
   <meta name="turbo-refresh-scroll" content="preserve">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
+  <%= vite_client_tag nonce: true %>
+  <%= vite_typescript_tag "entrypoints/palm/app", nonce: true, "data-turbo-eval": "false" %>
 </head>
 <body>
   <header>

@@ -32,13 +32,13 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: VisitorPasskeyStatus::ACTIVE,
     )
 
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "unauthenticated passkey settings requests start login handoff" do

@@ -15,8 +15,8 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
   setup do
     host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     host! host
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
 
     @staff = operators(:one)
     @staff.update!(status_id: OperatorStatus::ACTIVE, mfa_level_enabled: true)
@@ -50,8 +50,8 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "new requires pending MFA session" do
@@ -93,7 +93,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
 
   test "create requires cloudflare turnstile validation" do
     establish_pending_mfa!
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     session[:passkey_challenges] = { "test-id" => { "challenge" => "test", "purpose" => "authentication" } }

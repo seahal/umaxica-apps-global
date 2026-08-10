@@ -204,7 +204,8 @@ module Security
           pattern: "cross-host redirect escape hatch",
           path: "app/controllers/auth/app/sign/outs_controller.rb",
           line: /allow_other_host: true,/,
-          reason: "Sign-out completion crosses the reviewed Auth/Base host boundary.",
+          reason: "The coordinated sign-out continuation returns the browser to the reviewed " \
+                  "Base completion page after the auth-host cleanup hop.",
         },
         {
           pattern: "cross-host redirect escape hatch",
@@ -217,18 +218,6 @@ module Security
           path: "app/controllers/auth/org/sign/in/entra/authorizations_controller.rb",
           line: /allow_other_host: true,/,
           reason: "Org Entra sign-in completion returns through the reviewed RP resume URL.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/base/app/outs_controller.rb",
-          line: /allow_other_host: true,/,
-          reason: "Base app sign-out completion crosses the reviewed Auth/Base host boundary.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/base/app/sign_outs_controller.rb",
-          line: /allow_other_host: true,/,
-          reason: "Base app sign-out completion crosses the reviewed Auth/Base host boundary.",
         },
         {
           pattern: "cross-host redirect escape hatch",

@@ -7,8 +7,11 @@ module Auth
       module Up
         class InvitationsController < ::Auth::Org::ApplicationController
           include CloudflareTurnstile
+          include SignUpSuspensionGuard
 
           AUTHENTICATION_MODE = :guest
+
+          before_action :reject_suspended_sign_up!
 
           def new
             @invitation_code = params[:invitation_code].to_s
@@ -32,6 +35,10 @@ module Auth
               render :new, status: :unprocessable_content
             end
           end
+
+          private
+
+          def sign_up_surface = :org
         end
       end
     end

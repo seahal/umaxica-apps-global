@@ -15,10 +15,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    CloudflareTurnstile.test_mode = true
-    JitSecurityTurnstileVerifier.test_mode = true
-    @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
-    AuthenticationBase.login_cooldown_enabled = false
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.enabled = true
+    @original_login_cooldown = login_cooldown
+    self.login_cooldown = 0.seconds
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
     @callback_headers = social_callback_headers(@host)
   end
@@ -26,9 +26,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   teardown do
     OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
-    CloudflareTurnstile.test_mode = false
-    JitSecurityTurnstileVerifier.test_mode = false
-    AuthenticationBase.login_cooldown_enabled = @original_login_cooldown_enabled
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.enabled = false
+    self.login_cooldown = @original_login_cooldown
   end
 
   # ============================================================================

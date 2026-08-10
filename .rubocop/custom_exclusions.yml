@@ -1419,6 +1419,7 @@ Style/IpAddresses:
     - "config/**/*"
     - "test/**/*"
     - "docker/**/*"
+    - "podman/**/*"
     - "db/**/*_migrate/**/*"
 
 # rubocop:disable コメントの使用を可視化（安易な無効化を抑止）

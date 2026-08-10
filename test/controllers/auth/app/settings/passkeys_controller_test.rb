@@ -40,13 +40,13 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
         description: "My Passkey",
       )
 
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
     @original_webauthn_env.each do |key, value|
       value.nil? ? ENV.delete(key) : ENV[key] = value
     end

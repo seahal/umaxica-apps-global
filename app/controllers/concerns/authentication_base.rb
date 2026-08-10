@@ -96,7 +96,6 @@ module AuthenticationBase
   REFRESH_TOKEN_TTL = ::SecurityTokenLifetimes::CLIENT_REFRESH_TOKEN_TTL
   DBSC_COOKIE_TTL = 10.minutes
   RESTRICTED_SESSION_TTL = 15.minutes
-  LOGIN_COOLDOWN = 30.seconds
   SESSION_LIMIT_HARD_REJECT_MESSAGE = I18n.t("errors.messages.session_limit_exceeded")
   LOGIN_COOLDOWN_MESSAGE = I18n.t("errors.messages.login_cooldown")
 
@@ -104,16 +103,12 @@ module AuthenticationBase
 
   class ConcurrentSessionLimitExceededError < StandardError; end
 
-  # Prevents rapid re-login by enforcing a 30-second cooldown between sessions.
-  LOGIN_COOLDOWN_ENABLED = Concurrent::AtomicReference.new(true)
-
   class << self
-    def login_cooldown_enabled
-      LOGIN_COOLDOWN_ENABLED.get
-    end
-
-    def login_cooldown_enabled=(value)
-      LOGIN_COOLDOWN_ENABLED.set(value)
+    # Prevents rapid re-login by enforcing a cooldown between sessions. The window is
+    # application configuration (config/initializers/login_cooldown.rb), read on every
+    # check so that no mutable state is held here; a zero duration disables the gate.
+    def login_cooldown
+      Rails.application.config.x.authentication.login_cooldown
     end
   end
 
@@ -2479,7 +2474,8 @@ module AuthenticationBase
   end
 
   def check_login_cooldown!(resource, bootstrap_actor: false, skip_login_cooldown: false)
-    return unless AuthenticationBase.login_cooldown_enabled
+    cooldown = AuthenticationBase.login_cooldown
+    return unless cooldown.positive?
     # Bootstrap handoffs (sign-up completion, OIDC authorization resume) issue a
     # token within seconds of the one minted moments earlier in the same flow.
     # That fresh token is not a rapid re-login attempt, so skip the cooldown gate
@@ -2500,7 +2496,7 @@ module AuthenticationBase
         token_class.where(fk => resource.id).order(created_at: :desc).pick(:created_at)
       }
 
-    raise LoginCooldownError if latest_at && latest_at > LOGIN_COOLDOWN.ago
+    raise LoginCooldownError if latest_at && latest_at > cooldown.ago
   end
 
   def render_login_cooldown

@@ -16,12 +16,15 @@ module Auth
 
           include EnforcementIdentifierGate
 
+          include SignUpSuspensionGuard
+
           AUTHENTICATION_MODE = :guest
 
           SESSION_KEY = :auth_com_up_email_flow_state
           EXISTING_EMAIL_SESSION_KEY = :auth_com_up_existing_visitor_email_id
           EXISTING_EMAIL_SKIP_OTP_SESSION_KEY = :auth_com_up_existing_visitor_email_skip_otp
           DUMMY_EXISTING_EMAIL_SESSION_KEY = :auth_com_up_dummy_existing_visitor_email
+          before_action :reject_suspended_sign_up!
 
           before_action :enforce_email_flow!
 
@@ -148,6 +151,8 @@ module Auth
           end
 
           private
+
+          def sign_up_surface = :com
 
           def enforce_email_flow!
             requirements = { new: "init", create: "init", edit: "email_created" }

@@ -10,8 +10,8 @@ class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     host! @host
     @origin_headers = { "HTTP_ORIGIN" => "http://#{@host}", "Origin" => "http://#{@host}" }.freeze
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
 
     @visitor = create_verified_visitor_with_email(email_address: "com_passkey_test@example.com")
     @visitor.visitor_telephones.create!(
@@ -29,8 +29,8 @@ class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   teardown do
-    JitSecurityTurnstileVerifier.test_mode = false
-    JitSecurityTurnstileVerifier.test_response = nil
+    TurnstileVerifierStub.enabled = false
+    TurnstileVerifierStub.response = nil
   end
 
   test "should get new" do

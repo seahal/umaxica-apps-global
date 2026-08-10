@@ -16,7 +16,11 @@ module Auth
 
           include EnforcementIdentifierGate
 
+          include SignUpSuspensionGuard
+
           AUTHENTICATION_MODE = :guest
+
+          before_action :reject_suspended_sign_up!
 
           declare_authentication_mode! :guest, status: :unauthorized,
                                                message: I18n.t("errors.messages.already_authenticated"),
@@ -186,6 +190,8 @@ module Auth
           end
 
           private
+
+          def sign_up_surface = :app
 
           def valid_telephone_session?
             return dummy_existing_telephone_session_valid? if dummy_existing_telephone_flow?

@@ -17,13 +17,13 @@ module Auth::App::Up
       host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
       cookies["csrf_token"] = csrf_token_value
       # Mock Cloudflare Turnstile validation
-      CloudflareTurnstile.test_mode = true
-      CloudflareTurnstile.test_validation_response = { "success" => true }
+      TurnstileVerifierStub.challenge_enabled = true
+      TurnstileVerifierStub.challenge_response = { "success" => true }
     end
 
     teardown do
-      CloudflareTurnstile.test_mode = false
-      CloudflareTurnstile.test_validation_response = nil
+      TurnstileVerifierStub.challenge_enabled = false
+      TurnstileVerifierStub.challenge_response = nil
     end
 
     test "should get new" do
@@ -236,7 +236,7 @@ module Auth::App::Up
     end
 
     test "create with turnstile failure returns unprocessable content" do
-      CloudflareTurnstile.test_validation_response = { "success" => false }
+      TurnstileVerifierStub.challenge_response = { "success" => false }
 
       assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
         assert_no_difference("Client.count") do

@@ -79,8 +79,8 @@ end
 
 class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
   setup do
-    @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
-    AuthenticationBase.login_cooldown_enabled = false
+    @original_login_cooldown = login_cooldown
+    self.login_cooldown = 0.seconds
     @controller = AuthenticationBaseTestController.new
     @user = clients(:one)
 
@@ -94,7 +94,7 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    AuthenticationBase.login_cooldown_enabled = @original_login_cooldown_enabled
+    self.login_cooldown = @original_login_cooldown
   end
 
   test "redirect_with_pt_handling hits branches" do

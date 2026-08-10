@@ -1,8 +1,13 @@
 # frozen_string_literal: true
 
 if ENV["COVERAGE"] == "true"
+  # `require "simplecov"` already loads ./.simplecov, and that file loads the
+  # "rails" profile along with the rest of the configuration. Passing the
+  # profile to `start` as well would apply it a second time (only duplicating
+  # filters, but splitting the configuration across two places). Keep .simplecov
+  # as the single source of configuration and let `start` just begin tracking.
   require "simplecov"
-  SimpleCov.start("rails")
+  SimpleCov.start
 end
 
 ENV["RAILS_ENV"] ||= "test"
@@ -25,6 +30,12 @@ require_relative "support/external_identity_test_helper"
 require_relative "support/publishing_content_helper"
 require_relative "support/form_action_policy_helper"
 require_relative "support/fetch_metadata_defaults"
+require_relative "support/turnstile_verifier_stub"
+require_relative "support/login_cooldown_helper"
+
+# Inject the Turnstile stub for the whole suite. Application code resolves the verifier
+# through Turnstile::VerifierFactory, so no production class knows about the test suite.
+Rails.application.config.x.turnstile.verifier = "TurnstileVerifierStub"
 
 module AuthenticationHarness
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " \
@@ -222,9 +233,28 @@ module ActiveSupport
     include ExternalIdentityTestHelper
     include PublishingContentHelper
     include FormActionPolicyHelper
+    include LoginCooldownHelper
 
     parallel_workers =
       if ENV["COVERAGE"] == "true"
+        # `parallelize(workers: 1)` below cannot pin the run to one worker on its
+        # own: ActiveSupport::TestCase.parallelize reads ENV["PARALLEL_WORKERS"]
+        # in preference to its `workers:` argument. A surviving
+        # PARALLEL_WORKERS > 1 would therefore fork that many workers while
+        # ParallelTestDatabaseCloner.install! -- which returns early at
+        # workers <= 1 -- had prepared no per-worker clones and registered no
+        # after_fork_hook, leaving every worker on the same unprepared test
+        # database. Refuse the combination instead of running it.
+        requested_workers = ENV["PARALLEL_WORKERS"]
+        if requested_workers.present? && requested_workers != "1"
+          # rubocop:disable I18n/RailsI18n/DecorateString
+          raise ArgumentError,
+                "COVERAGE=true runs on a single test worker, but PARALLEL_WORKERS=#{requested_workers} " \
+                "is set and Rails gives the environment variable precedence. " \
+                "Unset PARALLEL_WORKERS, or set it to 1, for a coverage run."
+          # rubocop:enable I18n/RailsI18n/DecorateString
+        end
+
         1
       else
         # Physical cores, not logical: measured on a 16C/32T host -- 32 workers

@@ -155,7 +155,7 @@ class OidcTokenExchangeCoordinator < ApplicationService
     # The transaction must be opened on the ticket connection, not on
     # ActiveRecord::Base. Authorization codes, token usages, and OIDC connection
     # records all live on the per-surface ticket database, while
-    # ActiveRecord::Base is the primary (publishing) connection — so
+    # ActiveRecord::Base is the primary (publishing) connection - so
     # `ActiveRecord::Base.transaction` wrapped none of the writes below, and the
     # `SELECT ... FOR UPDATE` taken by `lock!` committed and released
     # immediately. That left `consumed?` here and `consume!` further down as a

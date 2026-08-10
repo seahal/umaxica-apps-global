@@ -45,7 +45,7 @@ worked end to end. Only the entry point was missing: nothing linked to
     cases.
 
 - Decision: gate the entry point on `ProviderSurfacePolicy` plus
-  `external_authentication_start_available?` (the `:social_ceremony_entra` Flipper feature), not only
+  `external_authentication_start_available?` (the `:social_ceremony_org_entra` Flipper feature), not only
   on the strategy's own gate.
   - Why: without it, a kill switch during an incident would still render a live-looking button and
     only fail after the operator pressed it. Mirrors `UmaxicaEntra#entra_start_available?`.

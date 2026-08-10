@@ -12,13 +12,13 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     reset_cookie_jar!
     cookies["csrf_token"] = csrf_token_value
     Rails.configuration.x.rate_limit.fetch(:store).clear
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
     Rails.configuration.x.rate_limit.fetch(:store).clear
     reset_cookie_jar!
   end
@@ -53,7 +53,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
         { "success" => false }
       end
 
-    CloudflareTurnstile.test_mode = false
+    TurnstileVerifierStub.challenge_enabled = false
     JitSecurityTurnstileVerifier.stub(:verify, verifier) do
       post(
         auth_app_sign_up_email_url(ri: "jp"),
@@ -71,7 +71,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :unprocessable_content
     assert_equal [{ token: "signup-token", remote_ip: "127.0.0.1", mode: :visible }], calls
   ensure
-    CloudflareTurnstile.test_mode = true
+    TurnstileVerifierStub.challenge_enabled = true
   end
 
   test "collection get redirects to add ri" do
@@ -234,7 +234,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "create renders unprocessable when turnstile fails" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     assert_no_difference("ClientEmail.count") do
       post auth_app_sign_up_email_url(ri: "jp"),
@@ -434,7 +434,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "create with turnstile failure enqueues no emails and returns 422" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     email = "turnstile_fail@example.com"
 
@@ -455,7 +455,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :unprocessable_content
     assert_includes @response.body, I18n.t("sign.app.registration.email.create.turnstile_validation_failed")
   ensure
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   test "rejects wrong OTP codes with error message" do

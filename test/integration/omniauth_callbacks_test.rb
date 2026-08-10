@@ -10,8 +10,8 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
     # The ceremony runs on the Auth host the application is configured with: a request
     # made to any other host gets a session cookie the application does not read back,
     # so the sign-up ticket is lost and the flow restarts instead of advancing.
@@ -23,8 +23,8 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
   teardown do
     OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
     ClientTokenBindingMethod.ensure_defaults!
     ClientTokenDbscStatus.ensure_defaults!
     ClientTokenKind.ensure_defaults!

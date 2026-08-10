@@ -15,10 +15,10 @@ module Auth::App::In
 
     setup do
       host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-      CloudflareTurnstile.test_mode = true
-      CloudflareTurnstile.test_validation_response = { "success" => true }
-      JitSecurityTurnstileVerifier.test_mode = true
-      JitSecurityTurnstileVerifier.test_response = { "success" => true }
+      TurnstileVerifierStub.challenge_enabled = true
+      TurnstileVerifierStub.challenge_response = { "success" => true }
+      TurnstileVerifierStub.enabled = true
+      TurnstileVerifierStub.response = { "success" => true }
       @user = create_verified_user_with_email(email_address: "passkey_test_user_#{SecureRandom.hex(6)}@example.com")
       @user_email = @user.client_emails.first # Use the email created by the helper
 
@@ -35,10 +35,10 @@ module Auth::App::In
     end
 
     teardown do
-      CloudflareTurnstile.test_mode = false
-      CloudflareTurnstile.test_validation_response = nil
-      JitSecurityTurnstileVerifier.test_mode = false
-      JitSecurityTurnstileVerifier.test_response = nil
+      TurnstileVerifierStub.challenge_enabled = false
+      TurnstileVerifierStub.challenge_response = nil
+      TurnstileVerifierStub.enabled = false
+      TurnstileVerifierStub.response = nil
     end
     test "should get new" do
       get new_auth_app_sign_in_passkey_path(ri: "jp")
@@ -376,9 +376,9 @@ module Auth::App::In
     end
 
     test "options returns turnstile error when response token is missing" do
-      CloudflareTurnstile.test_mode = false
-      JitSecurityTurnstileVerifier.test_mode = false
-      JitSecurityTurnstileVerifier.test_response = nil
+      TurnstileVerifierStub.challenge_enabled = false
+      TurnstileVerifierStub.enabled = false
+      TurnstileVerifierStub.response = nil
 
       post auth_app_sign_in_passkey_options_path(ri: "jp"), params: { identifier: @user_email.address }
 

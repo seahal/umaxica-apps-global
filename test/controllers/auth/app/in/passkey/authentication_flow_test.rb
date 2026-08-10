@@ -14,10 +14,10 @@ module Auth::App::Sign::In::Passkey
 
     setup do
       host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-      CloudflareTurnstile.test_mode = true
-      CloudflareTurnstile.test_validation_response = { "success" => true }
-      JitSecurityTurnstileVerifier.test_mode = true
-      JitSecurityTurnstileVerifier.test_response = { "success" => true }
+      TurnstileVerifierStub.challenge_enabled = true
+      TurnstileVerifierStub.challenge_response = { "success" => true }
+      TurnstileVerifierStub.enabled = true
+      TurnstileVerifierStub.response = { "success" => true }
       @user = clients(:one)
       ClientEmail.create!(
         user: @user,
@@ -46,10 +46,10 @@ module Auth::App::Sign::In::Passkey
     end
 
     teardown do
-      CloudflareTurnstile.test_mode = false
-      CloudflareTurnstile.test_validation_response = nil
-      JitSecurityTurnstileVerifier.test_mode = false
-      JitSecurityTurnstileVerifier.test_response = nil
+      TurnstileVerifierStub.challenge_enabled = false
+      TurnstileVerifierStub.challenge_response = nil
+      TurnstileVerifierStub.enabled = false
+      TurnstileVerifierStub.response = nil
     end
 
     test "should generate authentication options and store challenge in session" do

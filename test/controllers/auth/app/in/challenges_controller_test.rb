@@ -11,8 +11,8 @@ class Auth::App::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
 
   setup do
     host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
     @user = Client.create!(mfa_level_enabled: true)
     @email = "challenge_hub_#{SecureRandom.hex(4)}@example.com".freeze
     @user.client_emails.create!(address: @email, user_email_status_id: ClientEmailStatus::VERIFIED)
@@ -32,8 +32,8 @@ class Auth::App::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "show requires pending_mfa and redirects to sign in" do

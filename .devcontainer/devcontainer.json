@@ -1,7 +1,7 @@
 {
   "name": "umaxica-apps-global-dc",
   "dockerComposeFile": ["../compose.yaml", "./compose.override.yml", "../compose.custom.yaml"],
-  "initializeCommand": ".devcontainer/write-host-ids.sh",
+  "initializeCommand": ".devcontainer/write-host-ids.sh && bin/setup-dev-secrets",
   "service": "core",
   "remoteUser": "global",
   "containerUser": "global",
@@ -12,6 +12,16 @@
   "remoteEnv": {
     "EDITOR": "code --wait --reuse-window",
     "DEBUGGER_DISABLE": "1",
+    // Do NOT forward the host's TERM. Ghostty, kitty, and WezTerm ship their
+    // own terminfo, so a host value like `xterm-ghostty` has no entry inside
+    // the image — `infocmp` fails, `tput clear` fails, and with it Ctrl+L,
+    // the arrow keys, history, less, htop, and every TUI. Pin a value the
+    // Debian trixie base image is guaranteed to carry in
+    // /usr/share/terminfo/x/ instead. COLORTERM is safe to forward: it only
+    // signals 24-bit color support and never looks anything up in terminfo.
+    // Kept in sync with seahal/umaxica-apps-edge.
+    "TERM": "xterm-256color",
+    "COLORTERM": "${localEnv:COLORTERM}",
     "PATH": "/home/global/.opencode/bin:${containerEnv:PATH}"
   },
   "customizations": {

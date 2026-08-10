@@ -57,13 +57,13 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
     )
 
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
     IdentityTotpCeremonyCandidate.find_each(&:destroy!)
   end
 
@@ -472,7 +472,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_select "input[name='cf-turnstile-response']"
 
-      CloudflareTurnstile.test_validation_response = { "success" => false }
+      TurnstileVerifierStub.challenge_response = { "success" => false }
       token = ROTP::TOTP.new(secret_credential).now
 
       assert_no_difference("ClientTotpCredential.count") do

@@ -64,7 +64,7 @@ host—marketing, authentication, docs/news, help/support, BFF, and API—consis
 ### 2.3 Constraints
 
 - Ruby 3.4.7 / Rails 8.x
-- pnpm 11.0.8 / Node 22.13+ for JavaScript tooling (Vite-backed)
+- pnpm 11.20.0 / Node 24.19.0 (Active LTS) for JavaScript tooling (Vite-backed)
 - PostgreSQL 18 primaries/replicas per logical database
 - Valkey for caching/rate limiting
 - Cloudflare/ Fastly handle TLS and CDN duties
@@ -315,7 +315,8 @@ Sensitive columns leverage Active Record encryption.
 ## 11. Appendices
 
 - Sequence diagrams and state flows live in `docs/uml/` (to be updated alongside DDS).
-- Environment variable catalog: RustFS/object-storage variables are documented inline as
-  comments in the ignored `.env` file (see `docs/operations/local-object-storage-rustfs.md`);
-  there is no committed `.env.example` template.
+- Environment variable catalog: RustFS/object-storage credentials are Podman secrets provisioned by
+  `bin/setup-dev-secrets`; only the non-secret bucket and host-port settings live in the ignored
+  `.env` file (see `docs/operations/local-object-storage-rustfs.md`). There is no committed
+  `.env.example` template.
 - Testing strategy captured in `docs/test.md`.

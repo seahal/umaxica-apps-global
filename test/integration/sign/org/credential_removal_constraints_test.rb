@@ -9,13 +9,13 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("PRIVATE_AUTH_STAFF_URL")
     @base_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
     host! @host
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "email removal preserves contactability even when aal methods remain" do

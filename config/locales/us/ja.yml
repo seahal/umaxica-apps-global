@@ -397,6 +397,7 @@ ja:
       session_limit_exceeded: セッション数の上限に達しました
       not_authorized: この操作を行う権限がありません。
       login_required: ログインが必要です
+      sign_up_suspended: 新規登録は一時的にご利用いただけません。しばらくしてからお試しください。
       already_authenticated: すでにログインしています
       preference_operation_failed: 設定の操作に失敗しました。
       accepted: を受諾してください

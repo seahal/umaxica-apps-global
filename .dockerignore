@@ -28,6 +28,10 @@ docs/
 !.env.example
 !.env*.erb
 
+# Local credentials are excluded independently of Git. Keep this synchronized
+# with .containerignore because Podman prefers that file when both exist.
+.secrets/
+
 # Security files
 config/master.key
 config/credentials/*.key
@@ -126,12 +130,13 @@ docker-compose*
 compose.yaml
 compose.yaml
 docker/
-!docker/
-docker/*
-!docker/core/
-docker/core/*
-!docker/core/entrypoint.sh
-!docker/core/dev-supervisor.sh
+podman/
+!podman/
+podman/*
+!podman/core/
+podman/core/*
+!podman/core/entrypoint.sh
+!podman/core/dev-supervisor.sh
 gke/
 
 # CI/CD

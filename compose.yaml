@@ -4,7 +4,7 @@ services:
   core:
     build:
       context: "."
-      dockerfile: "./Dockerfile"
+      dockerfile: "./Containerfile"
       target: development
       args:
         COMMIT_HASH: abcdef
@@ -12,16 +12,12 @@ services:
         # devcontainer override (.devcontainer/compose.override.yml).
     entrypoint:
       - "/usr/local/bin/core-entrypoint"
-    # core-dev-supervisor keeps PID 1 alive across a single Procfile.dev
-    # process (web/vite/jobs) dying -- foreman's default behavior is to
-    # SIGTERM/SIGKILL its whole group and exit when any one of them exits,
-    # which would otherwise take the container down with it.
+    # The container stays up idle; start the Rails/Vite/jobs stack manually
+    # with `bin/dev` inside the container when it is wanted.
     command:
-      - /usr/local/bin/core-dev-supervisor
-      - bin/dev
+      - sleep
+      - infinity
     environment:
-      # --- Shell / productivity ---
-      COLORTERM: truecolor
       # --- Ruby / Bundler ---
       RUBY_PATH: /usr/local/bin/ruby
       BUNDLE_PATH: vendor/bundle
@@ -33,7 +29,7 @@ services:
       NODE_ENV: development
       # --- PostgreSQL credentials (injected from host .env with local defaults) ---
       POSTGRESQL_USER: "${POSTGRESQL_USER:-root}"
-      POSTGRESQL_PASSWORD: "${POSTGRESQL_PASSWORD:-development_password}"
+      POSTGRESQL_PASSWORD_FILE: /run/secrets/dev_postgres_writer
       POSTGRESQL_DATABASE: "${POSTGRESQL_DATABASE:-db}"
       # --- Identifier HMAC salts (dev-only fixed values; differ from production) ---
       EMAIL_ADDRESS_HMAC_SALT: "${EMAIL_ADDRESS_HMAC_SALT:-development_email_address_hmac_salt}"
@@ -46,48 +42,58 @@ services:
       ENFORCEMENT_COM_IDENTIFIER_HMAC_KEY: "${ENFORCEMENT_COM_IDENTIFIER_HMAC_KEY:-development_enforcement_com_identifier_hmac_key}"
       ENFORCEMENT_ORG_IDENTIFIER_HMAC_KEY: "${ENFORCEMENT_ORG_IDENTIFIER_HMAC_KEY:-development_enforcement_org_identifier_hmac_key}"
       # --- PostgreSQL topology ---
+      # One `_PUB` (writer) and one `_SUB` (reader) entry per development
+      # database in config/database.yml, which reads them with one-argument
+      # ENV.fetch: a name missing here fails the boot instead of silently
+      # routing that database at the default host. `platform` has no replica
+      # entry, so it is writer-only. Keep this list in step with the
+      # `development:` block of config/database.yml.
       POSTGRESQL_HOST: primary
       POSTGRESQL_PORT: "5432"
-      POSTGRESQL_OCCURRENCE_PUB: primary
-      POSTGRESQL_OCCURRENCE_SUB: replica
-      POSTGRESQL_CHRONICLE_PUB: primary
-      POSTGRESQL_CHRONICLE_SUB: replica
-      POSTGRESQL_GUEST_PUB: primary
-      POSTGRESQL_GUEST_SUB: replica
-      POSTGRESQL_IDENTITY_PUB: primary
-      POSTGRESQL_IDENTITY_SUB: replica
-      POSTGRESQL_PRINCIPAL_PUB: primary
-      POSTGRESQL_PRINCIPAL_SUB: replica
-      POSTGRESQL_PROFILE_PUB: primary
-      POSTGRESQL_PROFILE_SUB: replica
-      POSTGRESQL_COMMERCE_PUB: primary
-      POSTGRESQL_COMMERCE_SUB: replica
-      POSTGRESQL_TOKEN_PUB: primary
-      POSTGRESQL_TOKEN_SUB: replica
-      POSTGRESQL_MESSAGE_PUB: primary
-      POSTGRESQL_MESSAGE_SUB: replica
-      POSTGRESQL_NOTIFICATION_PUB: primary
-      POSTGRESQL_NOTIFICATION_SUB: replica
+      POSTGRESQL_APP_ZENITH_PUB: primary
+      POSTGRESQL_APP_ZENITH_SUB: replica
+      POSTGRESQL_ORG_ZENITH_PUB: primary
+      POSTGRESQL_ORG_ZENITH_SUB: replica
+      POSTGRESQL_COM_ZENITH_PUB: primary
+      POSTGRESQL_COM_ZENITH_SUB: replica
+      POSTGRESQL_APP_SETTING_PUB: primary
+      POSTGRESQL_APP_SETTING_SUB: replica
+      POSTGRESQL_ORG_SETTING_PUB: primary
+      POSTGRESQL_ORG_SETTING_SUB: replica
+      POSTGRESQL_COM_SETTING_PUB: primary
+      POSTGRESQL_COM_SETTING_SUB: replica
+      POSTGRESQL_APP_TICKET_PUB: primary
+      POSTGRESQL_APP_TICKET_SUB: replica
+      POSTGRESQL_ORG_TICKET_PUB: primary
+      POSTGRESQL_ORG_TICKET_SUB: replica
+      POSTGRESQL_COM_TICKET_PUB: primary
+      POSTGRESQL_COM_TICKET_SUB: replica
+      POSTGRESQL_APP_SIGNAL_PUB: primary
+      POSTGRESQL_APP_SIGNAL_SUB: replica
+      POSTGRESQL_ORG_SIGNAL_PUB: primary
+      POSTGRESQL_ORG_SIGNAL_SUB: replica
+      POSTGRESQL_COM_SIGNAL_PUB: primary
+      POSTGRESQL_COM_SIGNAL_SUB: replica
+      POSTGRESQL_AVATAR_PUB: primary
+      POSTGRESQL_AVATAR_SUB: replica
       POSTGRESQL_CACHE_PUB: primary
       POSTGRESQL_CACHE_SUB: replica
-      POSTGRESQL_STORAGE_PUB: primary
-      POSTGRESQL_STORAGE_SUB: replica
+      POSTGRESQL_CHRONICLE_PUB: primary
+      POSTGRESQL_CHRONICLE_SUB: replica
+      POSTGRESQL_OCCURRENCE_PUB: primary
+      POSTGRESQL_OCCURRENCE_SUB: replica
       POSTGRESQL_PUBLISHING_PUB: primary
       POSTGRESQL_PUBLISHING_SUB: replica
       POSTGRESQL_QUEUE_PUB: primary
       POSTGRESQL_QUEUE_SUB: replica
-      POSTGRESQL_OPERATOR_PUB: primary
-      POSTGRESQL_OPERATOR_SUB: replica
-      POSTGRESQL_AVATAR_PUB: primary
-      POSTGRESQL_AVATAR_SUB: replica
-      POSTGRESQL_REDIRECTOR_PUB: primary
-      POSTGRESQL_REDIRECTOR_SUB: replica
       POSTGRESQL_SEARCH_PUB: primary
       POSTGRESQL_SEARCH_SUB: replica
+      POSTGRESQL_STORAGE_PUB: primary
+      POSTGRESQL_STORAGE_SUB: replica
+      POSTGRESQL_PLATFORM_PUB: primary
       # --- Redis / Valkey ---
       VALKEY_URL: "redis://valkey:6379/0"
       RATE_LIMIT_REDIS_URL: "redis://valkey:6379/1"
-      VALKEY_FLIPPER_URL: "redis://valkey:6379/2"
       # Credentials for the Flipper UI mounted on the developer surface. The mount
       # is wrapped in Rack::Auth::Basic (config/routes/base.rb) and fails closed
       # when these are unset, so local development needs them to reach the UI.
@@ -100,11 +106,15 @@ services:
       # --- Mail ---
       AWS_SES_REGION: ap-northeast-1
       # --- Local object storage (optional profile) ---
+      # Credentials are read from the mounted Podman secrets below, matching the
+      # PostgreSQL `*_PASSWORD_FILE` convention. They are mounted unconditionally
+      # even though RustFS itself is profile-gated, so enabling the profile does
+      # not additionally require recreating this container.
       OBJECT_STORAGE_ENDPOINT: "http://rustfs:9000"
       OBJECT_STORAGE_REGION: "us-east-1"
       OBJECT_STORAGE_BUCKET: "${OBJECT_STORAGE_BUCKET:-}"
-      OBJECT_STORAGE_ACCESS_KEY_ID: "${OBJECT_STORAGE_ACCESS_KEY_ID:-}"
-      OBJECT_STORAGE_SECRET_ACCESS_KEY: "${OBJECT_STORAGE_SECRET_ACCESS_KEY:-}"
+      OBJECT_STORAGE_ACCESS_KEY_ID_FILE: /run/secrets/dev_rustfs_access_key
+      OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE: /run/secrets/dev_rustfs_secret_key
       OBJECT_STORAGE_FORCE_PATH_STYLE: "true"
       # --- Public hosts (browser-visible) ---
       PUBLIC_AUTH_CORPORATE_URL: auth.umaxica.com
@@ -117,9 +127,9 @@ services:
       PUBLIC_SIDE_CORPORATE_URL: side-jp.umaxica.com
       PUBLIC_SIDE_SERVICE_URL: side-jp.umaxica.app
       PUBLIC_SIDE_STAFF_URL: side-jp.umaxica.org
-      PUBLIC_CORE_CORPORATE_URL: core-jp.umaxica.com
-      PUBLIC_CORE_SERVICE_URL: core-jp.umaxica.app
-      PUBLIC_CORE_STAFF_URL: core-jp.umaxica.org
+      PUBLIC_CORE_CORPORATE_URL: jp.umaxica.com
+      PUBLIC_CORE_SERVICE_URL: jp.umaxica.app
+      PUBLIC_CORE_STAFF_URL: jp.umaxica.org
       PUBLIC_PALM_SERVICE_URL: palm-jp.umaxica.app
       PUBLIC_INFO_CORPORATE_URL: info.umaxica.com
       PUBLIC_INFO_SERVICE_URL: info.umaxica.app
@@ -160,7 +170,7 @@ services:
       PRIVATE_PALM_SERVICE_URL: palm.app.localhost
       # --- External authentication ceremony availability ---
       # Now runtime Flipper features (:social_ceremony_apple / _google / _entra) stored in
-      # VALKEY_FLIPPER_URL. Enable them with `bin/rails social_ceremony:enable[apple]`.
+      # the `platform` PostgreSQL database. Enable them with `bin/rails social_ceremony:enable[apple]`.
       # --- JWT leeway ---
       PREFERENCE_JWT_LEEWAY_SECONDS: "30"
       AUTH_JWT_LEEWAY_SECONDS: "30"
@@ -174,15 +184,6 @@ services:
     # core-entrypoint drops the application workload to CORE_WORKLOAD_USER;
     # Dev Container shells also use the non-root containerUser.
     user: root
-    tmpfs:
-      # tmpfs uid=/gid= options are rejected by rootless podman. Mode 1777 +
-      # sticky bit lets the in-container user write under root-owned tmpfs.
-      # /tmp and tmp/pids are on tmpfs so stale server.pid never survives a
-      # container restart ("A server is already running" error).
-      - /tmp
-      - /home/global/workspace/tmp
-      - /home/global/workspace/tmp/pids
-      - /home/global/workspace/log
     # Named volumes for high-write paths prevent rootless podman UID-mapping
     # from rewriting host file ownership on the bind-mounted workspace:
     #   - umaxica-home-cache  → pnpm / corepack / Vite+ / YJIT scratch
@@ -204,6 +205,10 @@ services:
       - type: volume
         source: umaxica-bundle
         target: "/home/global/workspace/vendor/bundle"
+    secrets:
+      - dev_postgres_writer
+      - dev_rustfs_access_key
+      - dev_rustfs_secret_key
     # Workspace bind mount, host-port publishing, and host-gateway alias are
     # host-shaped — see the devcontainer override.
     networks:
@@ -240,31 +245,32 @@ services:
           - info.app.localhost
           - info.com.localhost
           - info.org.localhost
+          # Browser-facing site names (PUBLIC_*_URL). Development is published through
+          # Cloudflare Tunnel behind Cloudflare Access, and a Tunnel ingress rule resolves
+          # its `service:` address on this network, so the published names have to resolve
+          # to `core` here. Only Umaxica-owned names belong in this list.
+          # See docs/architecture/cloudflare-request-paths.md.
           - auth.umaxica.app
           - auth.umaxica.com
           - auth.umaxica.org
           - www.umaxica.app
           - www.umaxica.com
           - www.umaxica.org
+          - www.umaxica.dev
           - side-jp.umaxica.app
           - side-jp.umaxica.com
           - side-jp.umaxica.org
           - info.umaxica.app
           - info.umaxica.com
           - info.umaxica.org
-          - core-jp.umaxica.app
-          - core-jp.umaxica.com
-          - core-jp.umaxica.org
+          # Canonical Core family per adr/core-canonical-public-host.md. The legacy
+          # core-jp.*, docs-jp.*, help-jp.*, and news-jp.* aliases are gone: PUBLIC_CORE_*
+          # now names jp.umaxica.*, and PUBLIC_DOCS_* names a private *.localhost origin, so
+          # those hostnames are no longer configured anywhere and Rails would reject them.
+          - jp.umaxica.app
+          - jp.umaxica.com
+          - jp.umaxica.org
           - palm-jp.umaxica.app
-          - docs-jp.umaxica.app
-          - docs-jp.umaxica.com
-          - docs-jp.umaxica.org
-          - help-jp.umaxica.app
-          - help-jp.umaxica.com
-          - help-jp.umaxica.org
-          - news-jp.umaxica.app
-          - news-jp.umaxica.com
-          - news-jp.umaxica.org
       observability: {}
       outer:
         aliases:
@@ -311,13 +317,35 @@ services:
       - -ec
     command:
       - |
-        : "$${RUSTFS_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY_ID must be set}"
-        : "$${RUSTFS_SECRET_KEY:?OBJECT_STORAGE_SECRET_ACCESS_KEY must be set}"
-        : "$${RUSTFS_RPC_SECRET:?RUSTFS_RPC_SECRET must be set}"
+        # Credentials arrive as Podman secrets rather than Compose
+        # interpolation, so they never sit in the repository-root .env next to
+        # non-secret settings. Command substitution drops the trailing newline
+        # that `openssl rand` writes into each secret file.
+        for secret in access_key secret_key rpc_secret; do
+          path="/run/secrets/dev_rustfs_$${secret}"
+          test -s "$${path}" || {
+            echo "missing or empty Podman secret: $${path}; run bin/setup-dev-secrets" >&2
+            exit 1
+          }
+        done
+        RUSTFS_ACCESS_KEY="$$(cat /run/secrets/dev_rustfs_access_key)"
+        RUSTFS_SECRET_KEY="$$(cat /run/secrets/dev_rustfs_secret_key)"
+        RUSTFS_RPC_SECRET="$$(cat /run/secrets/dev_rustfs_rpc_secret)"
+        export RUSTFS_ACCESS_KEY RUSTFS_SECRET_KEY RUSTFS_RPC_SECRET
         if [ "$${RUSTFS_RPC_SECRET}" = "$${RUSTFS_SECRET_KEY}" ]; then
-          echo "RUSTFS_RPC_SECRET must differ from OBJECT_STORAGE_SECRET_ACCESS_KEY" >&2
+          echo "dev_rustfs_rpc_secret must differ from dev_rustfs_secret_key" >&2
           exit 1
         fi
+        # SigV4 builds the credential scope as
+        # `<access key>/<date>/<region>/s3/aws4_request`, so a `/` inside the
+        # access key silently corrupts every signature. Reject it here instead
+        # of leaving the operator to debug opaque 403 responses.
+        case "$${RUSTFS_ACCESS_KEY}" in
+          */*)
+            echo "dev_rustfs_access_key must not contain '/'; regenerate it with bin/setup-dev-secrets" >&2
+            exit 1
+            ;;
+        esac
         exec /entrypoint.sh rustfs
     environment:
       RUSTFS_VOLUMES: "/data/rustfs{0...3}"
@@ -325,9 +353,10 @@ services:
       RUSTFS_CONSOLE_ADDRESS: "0.0.0.0:9001"
       RUSTFS_CONSOLE_ENABLE: "true"
       RUSTFS_REGION: "us-east-1"
-      RUSTFS_ACCESS_KEY: "${OBJECT_STORAGE_ACCESS_KEY_ID:-}"
-      RUSTFS_SECRET_KEY: "${OBJECT_STORAGE_SECRET_ACCESS_KEY:-}"
-      RUSTFS_RPC_SECRET: "${RUSTFS_RPC_SECRET:-}"
+    secrets:
+      - dev_rustfs_access_key
+      - dev_rustfs_secret_key
+      - dev_rustfs_rpc_secret
     security_opt:
       - no-new-privileges:true
     restart: "no"
@@ -350,8 +379,14 @@ services:
       - backend
   primary:
     build:
-      context: ./docker/psql-pub
-      dockerfile: Dockerfile
+      context: ./podman/psql-pub
+      dockerfile: Containerfile
+    # Wraps the stock postgres entrypoint so the replication role, the
+    # replication slot, and pg_cron are (re)asserted on every start. They were
+    # previously created from /docker-entrypoint-initdb.d, which runs only when
+    # PGDATA is initialised, so `primary-data` volumes older than any of those
+    # additions never received them.
+    entrypoint: "/entrypoint.sh"
     command:
       - "-c"
       - config_file=/etc/postgresql/postgresql.conf
@@ -359,75 +394,78 @@ services:
       - hba_file=/etc/postgresql/pg_hba.conf
     environment:
       POSTGRES_USER: "${POSTGRESQL_USER:-root}"
-      POSTGRES_PASSWORD: "${POSTGRESQL_PASSWORD:-development_password}"
+      POSTGRES_PASSWORD_FILE: /run/secrets/dev_postgres_writer
       POSTGRES_DB: "${POSTGRESQL_DATABASE:-db}"
       POSTGRES_REPLICATION_USER: "${POSTGRESQL_REPLICATION_USER:-replicator}"
-      POSTGRES_REPLICATION_PASSWORD: "${POSTGRESQL_REPLICATION_PASSWORD:-development_replication_password}"
+      POSTGRES_REPLICATION_PASSWORD_FILE: /run/secrets/dev_postgres_replication
       TZ: UTC
       POSTGRES_INITDB_WAL_LEVEL: replica
       POSTGRES_INITDB_MAX_WAL_SENDERS: 10
       POSTGRES_INITDB_MAX_REPLICATION_SLOTS: 10
-    # Explicit tmpfs cap: writer DBs hold dev (~17G) plus 27 writer test DBs ×
-    # up to 32 parallel-test workers (per-worker copies dbname_<n>) in RAM. 48G
-    # gives the development container's writer the same bounded allocation as
-    # the reader.
-    # Override POSTGRES_PRIMARY_TMPFS_SIZE on memory-constrained hosts (rootless
-    # podman bills tmpfs against the user memory cgroup).
-    tmpfs:
-      - "/var/lib/postgresql/data:size=${POSTGRES_PRIMARY_TMPFS_SIZE:-48g}"
-    # PG allocates 32MB DSM segments from /dev/shm for parallel query and
-    # column-metadata joins. The default 64MB container shm exhausts under
-    # 32 Rails parallel workers; 4G covers worst-case fanout with margin.
-    shm_size: 4gb
     volumes:
+      - primary-data:/var/lib/postgresql/data
       # `:z` adds an SELinux shared label so Fedora/RHEL hosts permit container
       # reads. Harmless on non-SELinux hosts (Arch, Ubuntu).
-      - "./docker/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
-      - "./docker/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
-      - "./docker/psql-pub:/docker-entrypoint-initdb.d:ro,z"
+      - "./podman/psql-pub/entrypoint.sh:/entrypoint.sh:ro,z"
+      - "./podman/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
+      - "./podman/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
     networks:
       - backend
+    secrets:
+      - dev_postgres_writer
+      - dev_postgres_replication
     restart: unless-stopped
     healthcheck:
+      # Also asserts the objects /entrypoint.sh provisions. `replica` gates its
+      # pg_basebackup on this healthcheck, so without those two conditions it
+      # can race ahead of provisioning, fail to authenticate, and burn its five
+      # basebackup attempts before the role exists.
       test:
         - CMD-SHELL
-        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1
+        - export PGPASSWORD="$$(cat "$${POSTGRES_PASSWORD_FILE}")" && pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc 'SELECT pg_is_in_recovery()')" = f && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc "SELECT count(*) FROM pg_roles WHERE rolname = '$${POSTGRES_REPLICATION_USER}' AND rolreplication")" = 1 && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc "SELECT count(*) FROM pg_replication_slots WHERE slot_name = 'replication_slot_slave1'")" = 1
       interval: 3s
       timeout: 3s
-      retries: 20
+      retries: 40
       start_period: 5s
   replica:
     build:
-      context: ./docker/psql-sub
-      dockerfile: Dockerfile
+      context: ./podman/psql-sub
+      dockerfile: Containerfile
     entrypoint: "/entrypoint.sh"
     environment:
       POSTGRES_USER: "${POSTGRESQL_USER:-root}"
-      POSTGRES_PASSWORD: "${POSTGRESQL_PASSWORD:-development_password}"
+      POSTGRES_PASSWORD_FILE: /run/secrets/dev_postgres_writer
       POSTGRES_DB: "${POSTGRESQL_DATABASE:-db}"
       POSTGRES_REPLICATION_USER: "${POSTGRESQL_REPLICATION_USER:-replicator}"
-      POSTGRES_REPLICATION_PASSWORD: "${POSTGRESQL_REPLICATION_PASSWORD:-development_replication_password}"
+      POSTGRES_REPLICATION_PASSWORD_FILE: /run/secrets/dev_postgres_replication
       TZ: UTC
-    # Replica holds dev read-replica copies plus 27 reader test DBs × up to 32
-    # parallel-test workers (test reader DBs are physically separate per
-    # notes/.../2026-05-31-test-parallel-reader-writer-db-split.md). 48G covers
-    # the expected ~40G working set with margin. Override
-    # POSTGRES_REPLICA_TMPFS_SIZE on memory-constrained hosts.
-    tmpfs:
-      - "/var/lib/postgresql/data:size=${POSTGRES_REPLICA_TMPFS_SIZE:-48g}"
-    # Match primary: parallel query + metadata-join DSM segments under 32 Rails
-    # workers exceed the 64MB default container shm.
-    shm_size: 4gb
     volumes:
-      - "./docker/psql-sub/entrypoint.sh:/entrypoint.sh:ro,z"
-      - "./docker/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
-      - "./docker/psql-sub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
+      - replica-data:/var/lib/postgresql/data
+      - "./podman/psql-sub/entrypoint.sh:/entrypoint.sh:ro,z"
+      - "./podman/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
+      - "./podman/psql-sub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
     depends_on:
       primary:
         condition: service_healthy
     networks:
       - backend
+    secrets:
+      - dev_postgres_writer
+      - dev_postgres_replication
     restart: unless-stopped
+    healthcheck:
+      # No backslash-escaped quotes: CMD-SHELL runs this under `sh -c`, where
+      # `\"` is a literal quote rather than a nesting escape, and the whole
+      # probe dies with `Syntax error: "(" unexpected` before it ever reaches
+      # psql -- a check that can only fail, never pass. Plain double quotes
+      # nest correctly inside "$(...)".
+      test:
+        - CMD-SHELL
+        - export PGPASSWORD="$$(cat "$${POSTGRES_PASSWORD_FILE}")" && pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc 'SELECT pg_is_in_recovery()')" = t && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc "SELECT count(*) > 0 FROM pg_stat_wal_receiver WHERE status = 'streaming'")" = t
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
   valkey:
     image: valkey/valkey:8.0-alpine3.22
     networks:
@@ -503,7 +541,7 @@ services:
       - "-config.file=/etc/tempo.yaml"
     # Host port publishing lives in the devcontainer override.
     volumes:
-      - "./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro,z"
+      - "./podman/tempo/tempo.yaml:/etc/tempo.yaml:ro,z"
       - tempo-volume:/var/tempo
     networks:
       - observability
@@ -521,7 +559,7 @@ services:
       GF_PATHS_PROVISIONING: "/etc/grafana/provisioning"
     volumes:
       - grafana-volume:/var/lib/grafana
-      - "./docker/grafana/provisioning:/etc/grafana/provisioning:z"
+      - "./podman/grafana/provisioning:/etc/grafana/provisioning:z"
     networks:
       - observability
     depends_on:
@@ -534,7 +572,7 @@ services:
     profiles:
       - observability
     volumes:
-      - "./docker/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro,z"
+      - "./podman/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro,z"
     networks:
       - observability
     depends_on:
@@ -548,7 +586,7 @@ services:
     profiles:
       - observability
     volumes:
-      - "./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z"
+      - "./podman/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z"
       - prometheus-volume:/prometheus
     networks:
       - observability
@@ -559,16 +597,19 @@ networks:
   observability: {}
   outer:
     name: "${OUTER_DOCKER_NETWORK:-umaxica-apps-global_outer}"
-    external: "${OUTER_DOCKER_NETWORK_EXTERNAL:-false}"
+    # Keep this network Compose-managed. Interpolating `external` produces a
+    # string, which podman-compose cannot safely treat as the boolean required
+    # by the Compose model and causes `up` to fail while building network args.
+    external: false
   # NOTE: `cloudflare-tunnel` lives entirely in compose.custom.yaml (repo
   # root) -- an always-on, unprofiled
   # overlay that is included unconditionally via
   # .devcontainer/devcontainer.json's dockerComposeFile array. This base
-  # compose.yaml alone must never create, start, or pull it. Likewise
-  # `pgadmin`/`tinyrdm` (admin GUIs) are defined entirely in
-  # compose.custom.yaml, not here. See docs/operations/remote-codex-over-tailscale.md
-  # and docs/operations/cloudflare-private-origin.md.
+  # compose.yaml alone must never create, start, or pull it. See
+  # docs/operations/cloudflare-private-origin.md.
 volumes:
+  primary-data: {}
+  replica-data: {}
   valkey-volume: {}
   loki-volume: {}
   tempo-volume: {}
@@ -582,3 +623,14 @@ volumes:
   rustfs-data1: {}
   rustfs-data2: {}
   rustfs-data3: {}
+secrets:
+  dev_postgres_writer:
+    external: true
+  dev_postgres_replication:
+    external: true
+  dev_rustfs_access_key:
+    external: true
+  dev_rustfs_secret_key:
+    external: true
+  dev_rustfs_rpc_secret:
+    external: true

@@ -3,17 +3,37 @@
 require "flipper"
 require "flipper/ui"
 require "flipper/adapters/memory"
-require "flipper/adapters/redis"
-require "redis"
+require "flipper/adapters/active_record"
 
-# The test suite must not depend on a running Valkey instance, mirroring the
+# Flags are durable configuration, not cache: they must survive a store restart or
+# eviction, because a lost flag silently reverts every feature to its default. They
+# therefore live in PostgreSQL (the `platform` database) rather than Valkey.
+#
+# The `platform` database has no replica on purpose. A flag is read immediately after
+# it is toggled, so replication lag would surface as a flip that did not apply.
+#
+# The reading role points at the same database rather than being omitted: the
+# DatabaseSelector middleware (config/initializers/multi_db.rb) wraps GET requests in
+# `connected_to(role: :reading)`, and a model without a reading pool raises
+# ActiveRecord::ConnectionNotDefined there.
+#
+# Wrapped in the same load hook the adapter uses to define its models: the adapter
+# defers `Flipper::Adapters::ActiveRecord::Model` until ActiveRecord::Base is loaded,
+# so referencing it eagerly here raises NameError during boot.
+ActiveSupport.on_load(:active_record) do
+  Flipper::Adapters::ActiveRecord::Model.connects_to(
+    database: { writing: :platform, reading: :platform },
+  )
+end
+
+# The test suite must not depend on a database connection for flag reads, mirroring the
 # NullRedisClient substitution in config/initializers/redis.rb.
 Flipper.configure do |config|
   config.adapter do
     if Rails.env.test?
       Flipper::Adapters::Memory.new
     else
-      Flipper::Adapters::Redis.new(Redis.new(url: ENV.fetch("VALKEY_FLIPPER_URL")))
+      Flipper::Adapters::ActiveRecord.new
     end
   end
 end

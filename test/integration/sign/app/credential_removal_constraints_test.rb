@@ -13,13 +13,13 @@ class Auth::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
     @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     host! @host
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "email removal preserves contactability even when aal methods remain" do

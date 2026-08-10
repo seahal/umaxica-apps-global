@@ -4,6 +4,25 @@
 
 Accepted (2026-06-14)
 
+## Amendment (2026-08-09)
+
+The Rails Core path list in "Decision" below — `/api/v0/*`, `/auth/*`, `/sso/*` — does not match
+`config/routes/core.rb`. `/auth` is a host family (`auth.umaxica.*`) drawn under `constraints host:`
+in `config/routes/auth.rb`, not a path prefix on the Core host, and `/sso/*` has no route on any
+surface; `test/integration/routes/core_route_contract_test.rb` asserts both are unroutable on Core.
+Likewise `/settings` and `/settings/*` are defined on the Auth and Side surfaces, not Base.
+
+The correction matters because the omitted paths are the cookie-bearing ones: `/oidc/callback`,
+`/sign/out`, `/sign/out/complete`, `/web/v0/*`, and `/edge/v0/*` set and clear the credential
+cookies, and under the original list they would have fallen into the Cookie-stripped "all other
+paths" row.
+
+`config/routes/core.rb` is the source of truth for Core path ownership, per
+`adr/core-canonical-public-host.md`. The corrected edge route table lives in
+`docs/operations/core-nextjs-zero-cookie-edge-contract.md`. The security invariants this ADR
+establishes — zero `Cookie` at the Next.js origin, no `Set-Cookie` from it, no user-bound SSR/RSC,
+audience-to-transport binding — are unchanged.
+
 ## Supersedes
 
 This ADR supersedes the Core browser `__Host-core_sid`-only invariant in

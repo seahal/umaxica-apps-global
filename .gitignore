@@ -113,6 +113,9 @@ node_modules
 /docker/core/preferences/*
 !/docker/core/preferences/.bashrc
 /docker/core/preferences/.bash_history
+/podman/core/preferences/*
+!/podman/core/preferences/.bashrc
+/podman/core/preferences/.bash_history
 erd.pdf
 .pnpm-store/
 .claudeignore
@@ -143,6 +146,7 @@ nvim.log
 /plans/tmp/
 /plans/drafts/local/
 .antigravitycli/
+.secrets/
 app/javascript/node_modules
 app/javascript/coverage
 
@@ -167,4 +171,3 @@ node_modules
 # Vite uses dotenv and suggests to ignore local-only env files. See
 # https://vitejs.dev/guide/env-and-mode.html#env-files
 *.local
-

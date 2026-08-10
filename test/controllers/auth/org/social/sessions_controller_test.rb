@@ -79,7 +79,7 @@ class Auth::Org::Social::SessionsControllerTest < ActionDispatch::IntegrationTes
 
   test "GET new renders a form and cannot start the ceremony on its own" do
     # A GET carries no CSRF token, so a GET that started a ceremony would be
-    # login CSRF (CVE-2015-9284) — the reason the app surface has no GET entry
+    # login CSRF (CVE-2015-9284) - the reason the app surface has no GET entry
     # at all. This GET is a landing page only: it renders the button and sends
     # nothing to Microsoft until a person presses it. Only #create hands off.
     get new_auth_org_social_entra_session_path(connection: @connection.public_id, ri: "jp")

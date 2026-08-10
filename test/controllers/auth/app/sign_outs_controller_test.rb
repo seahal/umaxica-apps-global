@@ -11,74 +11,74 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     host! @host
   end
 
-  test "get sign out redirects to base entry" do
+  test "new redirects to the local confirmation page" do
     get new_auth_app_sign_out_url(host: @host, ri: "jp")
 
     assert_response :see_other
-    assert_equal(
-      new_auth_app_sign_out_url(
-        host: @base_host,
-        protocol: "https",
-      ),
-      response.location,
-    )
+    assert_equal edit_auth_app_sign_out_path(ri: "jp"), URI.parse(response.location).request_uri
   end
 
-  test "post sign out consumes one-time token and redirects to base complete" do
-    user = create_verified_user_with_email(email_address: "sign-cleanup@example.com")
+  test "edit renders confirmation and post starts the RP logout handoff" do
+    user = create_verified_user_with_email(email_address: "auth-app-sign-out-#{SecureRandom.hex(4)}@example.com")
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    transaction, raw_token = LogoutTransaction.issue!(
-      issuer: "acme",
-      audience: "sign_app",
-      purpose: "sign_out",
-      expires_in: 1.minute,
-    )
-    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
+    satisfy_user_verification(token)
 
-    post auth_app_sign_out_url(host: @host, logout_token: raw_token), headers: browser_headers.merge(
-      "Host" => @host,
-      **as_user_headers(user, host: @host, session_public_id: token.public_id),
-    )
+    get edit_auth_app_sign_out_url(ri: "jp", host: @host), headers: rp_session_headers(user, token)
 
-    assert_response :see_other
+    assert_response :success
+    assert_select "form[action='#{auth_app_sign_out_path(ri: "jp")}'] input[name=_method][value=delete]"
+    assert_predicate token.reload, :currently_usable?
+
+    post auth_app_sign_out_url(ri: "jp", host: @host), headers: rp_session_headers(user, token)
+
+    assert_response :success
+    assert_select "form#sign-out-handoff-form[method=?]", "post", count: 1
+    handoff = URI.parse(css_select("form#sign-out-handoff-form").first["action"])
+    query = Rack::Utils.parse_nested_query(handoff.query.to_s)
+
+    # Auth is an RP: it hands the browser to the Base end-session endpoint instead of
+    # mutating authoritative session state itself.
+    assert_equal @base_host, handoff.host
+    assert_equal "/oidc/logout", handoff.path
+    assert_predicate query["id_token_hint"], :present?
+    assert_predicate query["state"], :present?
     assert_equal(
       auth_app_sign_out_completion_url(
-        host: @base_host, protocol: "https",
+        ri: "jp",
+        host: Rails.configuration.x.boot_config.fetch(:hosts).auth_service.host,
+        protocol: "https",
       ),
-      response.location,
+      query["post_logout_redirect_uri"],
     )
-    assert_predicate transaction.reload.consumed_at, :present?
     assert_predicate token.reload, :revoked?
   end
 
-  test "consumed token reuse remains idempotent and still redirects to acme complete" do
-    transaction, raw_token = LogoutTransaction.issue!(
-      issuer: "acme",
-      audience: "sign_app",
-      purpose: "sign_out",
-      expires_in: 1.minute,
-    )
-    transaction.update!(consumed_at: Time.current)
+  test "post sign out with a coordinated challenge clears this host and returns to base completion" do
+    user = create_verified_user_with_email(email_address: "auth-app-coordinated-#{SecureRandom.hex(4)}@example.com")
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    transaction =
+      AcmeLogoutTransactionCoordinator.issue!(
+        origin_surface: "core",
+        initiating_client_id: "sign-rp",
+        completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(
+          origin_surface: "core",
+          ri: "jp",
+          surface: "app",
+        ),
+        surface: "app",
+        ri: "jp",
+      ).transaction
 
-    post auth_app_sign_out_url(host: @host, logout_token: raw_token)
+    post auth_app_sign_out_url(ri: "jp", host: @host, logout_challenge: transaction.logout_challenge),
+         headers: rp_session_headers(user, token)
 
+    # The continuation hop must not start a second RP ceremony; it only clears this host.
     assert_response :see_other
-    assert_equal(
-      auth_app_sign_out_completion_url(
-        host: @base_host, protocol: "https",
-      ),
-      response.location,
-    )
-  end
+    location = URI.parse(response.location)
 
-  test "invalid token does not external redirect" do
-    post auth_app_sign_out_url(host: @host, logout_token: "invalid"), headers: browser_headers.merge("Host" => @host)
-
-    assert_response :see_other
-    uri = URI.parse(response.location)
-
-    assert_equal @base_host, uri.host
-    assert_equal "/sign/out/complete", uri.path
+    assert_equal @base_host, location.host
+    assert_equal "/sign/out/complete", location.path
+    assert_predicate token.reload, :revoked?
   end
 
   test "destroy cancels the pending logout and keeps the current session" do
@@ -146,7 +146,19 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :currently_usable?
     assert_predicate transaction.reload, :failed?
   end
+
   private
+
+  def rp_session_headers(user, token)
+    {
+      "Host" => @host,
+      "X-TEST-CURRENT-USER" => user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(user, host: @host, session_public_id: token.public_id, resource_type: "client")
+      }",
+    }
+  end
 
   def host_headers(host = nil)
     host_value = host || (respond_to?(:request, true) ? request&.host : nil) || ENV["DEFAULT_URL_HOST"]

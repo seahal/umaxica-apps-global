@@ -85,14 +85,19 @@ class << ConfigValues::HostFamilyValues
         production: production,
       ),
       sign_staff: origin(env, auth_key(env, "STAFF"), production ? nil : "sign.org.localhost", production: production),
-      core_service: origin(env, "CORE_SERVICE_URL", production ? nil : "jpx.umaxica.app", production: production),
+      core_service: origin(
+        env,
+        core_key(env, "SERVICE"),
+        production ? nil : "jpx.umaxica.app",
+        production: production,
+      ),
       core_corporate: origin(
         env,
-        "CORE_CORPORATE_URL",
+        core_key(env, "CORPORATE"),
         production ? nil : "jpx.umaxica.com",
         production: production,
       ),
-      core_staff: origin(env, "CORE_STAFF_URL", production ? nil : "jpx.umaxica.org", production: production),
+      core_staff: origin(env, core_key(env, "STAFF"), production ? nil : "jpx.umaxica.org", production: production),
       base_service: origin(
         env,
         base_key(env, "SERVICE"),
@@ -186,6 +191,23 @@ class << ConfigValues::HostFamilyValues
       "AUTH_#{surface}_URL"
     else
       "PUBLIC_AUTH_#{surface}_URL"
+    end
+  end
+
+  # Resolves the ENV key for a core surface (service/corporate/staff).
+  #
+  # PUBLIC_CORE_*_URL wins over CORE_*_URL, which is the reverse of base_key/side_key/auth_key.
+  # config/routes/core.rb constrains the Core surfaces on
+  # `ENV["PUBLIC_CORE_*_URL"] || ENV["CORE_*_URL"]`, so the host Rails answers on already
+  # prefers the PUBLIC value. Boot config feeds production Host Authorization and the
+  # core-next-rp redirect URIs, both of which must name the host the route constraint accepts;
+  # taking the opposite precedence would let a deployment that sets both keys route on one host
+  # while registering a callback for the other.
+  def core_key(env, surface)
+    if env.key?("PUBLIC_CORE_#{surface}_URL")
+      "PUBLIC_CORE_#{surface}_URL"
+    else
+      "CORE_#{surface}_URL"
     end
   end
 

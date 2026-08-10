@@ -12,13 +12,13 @@ class EnforcementIdentifierAttachmentGateTest < ActionDispatch::IntegrationTest
   fixtures :clients, :operators, :visitors
 
   setup do
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "app email attachment is rejected when blocked by an in-force attachment_blocked Identifier Effect" do

@@ -7,11 +7,6 @@
 # email/secret), and is a no-op in production. The sample fixtures below rely on the reference
 # rows already being present from migrations.
 
-# The category and tag vocabularies are structural data every environment
-# needs, so they are seeded before the production guard below. The operation is
-# idempotent and refuses to rewrite a vocabulary whose kind has diverged.
-Publishing::SeedVocabularies.call
-
 return if Rails.env.production?
 
 # `schema_format: :sql` loads `structure.sql` for db:prepare, which carries schema only (no row
@@ -42,7 +37,12 @@ user.mfa_level_id = ClientMfaLevel::NOTHING
 user.mfa_status_id = ClientMfaStatus::UNCONFIGURED
 user.save!
 
-user_email = user.client_emails.find_or_initialize_by(address: "sample-user@example.test")
+# `address` is encrypted, so a plaintext `find_or_initialize_by(address:)` never matches an
+# existing row and the second seed run fails the blind-index uniqueness validation. Look the
+# record up through the `with_address` scope, which searches the blind index instead.
+sample_user_email_address = "sample-user@example.test"
+user_email = user.client_emails.with_address(sample_user_email_address).first ||
+  user.client_emails.new(address: sample_user_email_address)
 user_email.user_email_status_id = ClientEmailStatus::VERIFIED
 user_email.confirm_policy = true
 user_email.save!
@@ -61,7 +61,8 @@ staff.mfa_level_id = OperatorMfaLevel::NOTHING
 staff.mfa_status_id = OperatorMfaStatus::UNCONFIGURED
 staff.save!
 
-staff_email = OperatorEmail.find_or_initialize_by(address: sample_staff_email_address)
+staff_email = OperatorEmail.with_address(sample_staff_email_address).first ||
+  OperatorEmail.new(address: sample_staff_email_address)
 staff_email.staff = staff
 staff_email.staff_email_status_id = OperatorEmailStatus::VERIFIED
 staff_email.save!
@@ -71,3 +72,14 @@ staff_secret.staff_secret_kind_id = OperatorSecretCredentialKind::PERMANENT
 staff_secret.staff_identity_secret_status_id = OperatorSecretCredentialStatus::ACTIVE
 staff_secret.password = sample_staff_secret
 staff_secret.save!
+
+# Flipper stores nothing until a feature is written, so a fresh platform database shows an
+# empty feature list and every external authentication ceremony reads as disabled. Register
+# the ceremony kill switches so they appear in the Flipper UI and local sign-in works.
+#
+# Development only, and deliberately not extended to production: the flags are kill switches
+# for external authentication ceremonies, and their production state must be an explicit
+# operator decision rather than a side effect of running seeds. `enable` is idempotent, so a
+# flag an operator disabled locally is re-enabled by the next seed run.
+ExternalAuthentication::FlipperProviderAvailabilityAdapter::PROVIDER_FEATURE_NAMES
+  .each_value { |feature_name| Flipper.enable(feature_name) }

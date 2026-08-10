@@ -101,6 +101,8 @@ gem "jwt"
 gem "web-push", require: false
 # Native Action Push integration.
 gem "action_push_native", require: false
+# Notification orchestration across delivery channels.
+gem "noticed", "~> 3.0"
 # Solid Cache backend.
 gem "solid_cache"
 # Solid Queue backend.
@@ -134,13 +136,17 @@ gem "json-canonicalization"
 # ?
 gem "svix"
 # Switch
-gem "flipper"
-gem "flipper-ui"
-gem "flipper-redis"
+# Sourced from git rather than the 1.4.2 release: that release calls
+# `Arel::Table.new(name)` positionally in the ActiveRecord adapter's `get_all`,
+# and Rails main made Arel::Table keyword-only, so every request raises
+# ArgumentError. Fixed upstream by flippercloud/flipper#1003; pin back to the
+# released gems once a version above 1.4.2 ships.
+gem "flipper", github: "flippercloud/flipper", branch: "main"
+gem "flipper-active_record", github: "flippercloud/flipper", branch: "main"
 
 group :development, :test do
   # Test coverage reporting.
-  gem "simplecov", "~> 1.0", ">= 1.0.1", require: false
+  gem "simplecov", "~> 1.0", require: false
   # Minitest mock extraction.
   gem "minitest-mock"
   # Slow test profiling.
@@ -257,4 +263,5 @@ end
 group :development, :production do
   # Solid Queue operations UI.
   gem "mission_control-jobs"
+  gem "flipper-ui", github: "flippercloud/flipper", branch: "main"
 end

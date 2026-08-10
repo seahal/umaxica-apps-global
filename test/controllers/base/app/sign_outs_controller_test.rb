@@ -7,47 +7,76 @@ require "test_helper"
 class Base::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    @user = create_verified_user_with_email(email_address: "base-app-sign-out-#{SecureRandom.hex(4)}@example.com")
     host! @host
+    # The shared completion path renders through the jump-aware helpers, which need signing keys.
+    load_jump_rt_env!
   end
 
-  test "new renders confirmation page" do
-    user = create_verified_user_with_email(email_address: "base-sign-out-new@example.com")
-    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+  test "new redirects to the confirmation page without mutation" do
+    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    get new_base_app_sign_out_url(host: @host, ri: "jp"), headers: {
-      **as_user_headers(user, host: @host, session_public_id: token.public_id),
-    }
+    get new_base_app_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
+
+    assert_response :see_other
+    assert_equal edit_base_app_sign_out_path(ri: "jp"), URI.parse(response.location).request_uri
+    assert_predicate token.reload, :currently_usable?
+  end
+
+  test "edit sign out renders confirmation without mutation" do
+    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+
+    get edit_base_app_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.shared.sign_out.title")
+    assert_select "p", text: I18n.t("sign.shared.sign_out.confirm_description")
+    assert_select "form[action*=?][method=?]", base_app_sign_out_path, "post"
+    assert_predicate token.reload, :currently_usable?
   end
 
-  test "post sign out issues logout transaction and redirects to sign receiver" do
-    user = create_verified_user_with_email(email_address: "base-sign-out-post@example.com")
-    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+  test "post sign out revokes the current session and completes on the base surface" do
+    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-    post base_app_sign_out_url(host: @host), headers: browser_headers.merge(
-      "Host" => @host,
-      **as_user_headers(user, host: @host, session_public_id: token.public_id),
-    )
+    post base_app_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
 
     assert_response :see_other
+    assert_predicate token.reload, :revoked?
+
+    # Completion is surface-local: the browser must not be handed to another host,
+    # and the completion marker must not travel in the URL.
     location = URI.parse(response.location)
 
-    assert_equal Rails.configuration.x.boot_config.fetch(:hosts).auth_service.host, location.host
-    assert_equal "/sign/out", location.path
-    assert_predicate Rack::Utils.parse_nested_query(location.query.to_s)["logout_token"], :present?
-    assert_predicate token.reload, :revoked?
+    assert_equal @host, location.host
+    assert_equal base_app_sign_out_completion_path(ri: "jp"), location.request_uri
+
+    get response.location
+
+    assert_response :success
+    assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
   end
 
-  test "post sign out without active session redirects to complete" do
-    post base_app_sign_out_url(host: @host), headers: browser_headers.merge("Host" => @host)
+  test "post sign out without a resolved session renders friendly completion" do
+    post base_app_sign_out_url(host: @host, ri: "jp")
 
-    assert_response :see_other
-    assert_equal base_app_sign_out_completion_url(host: @host, protocol: "https"), response.location
+    assert_response :success
+    assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
   end
+
   private
+
+  def session_headers(token)
+    access_token = jwt_access_token_for(
+      @user, host: @host, session_public_id: token.public_id, resource_type: "client",
+    )
+    set_access_cookie(access_token)
+    {
+      "Host" => @host,
+      "X-TEST-CURRENT-USER" => @user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+    }
+  end
 
   def host_headers(host = nil)
     host_value = host || (respond_to?(:request, true) ? request&.host : nil) || ENV["DEFAULT_URL_HOST"]

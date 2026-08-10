@@ -12,10 +12,10 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   setup do
     host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     host! host
-    JitSecurityTurnstileVerifier.test_mode = true
-    JitSecurityTurnstileVerifier.test_response = { "success" => true }
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.enabled = true
+    TurnstileVerifierStub.response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
     # Setup active staff with email and passkey
     @staff = operators(:one)
     @staff.update!(status_id: OperatorStatus::ACTIVE)
@@ -32,10 +32,10 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   teardown do
-    JitSecurityTurnstileVerifier.test_mode = false
-    JitSecurityTurnstileVerifier.test_response = nil
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.enabled = false
+    TurnstileVerifierStub.response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "should get new" do

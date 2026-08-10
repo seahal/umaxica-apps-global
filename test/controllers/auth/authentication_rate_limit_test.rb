@@ -59,8 +59,8 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
 
   test "app passkey options sign-in hits explicit rails rate limit" do
     host!(ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"))
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
 
     5.times do
       post(auth_app_sign_in_passkey_options_url(ri: "jp"), params: { identifier: "" }, as: :json)
@@ -70,8 +70,8 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
 
     assert_sign_rate_limited("auth_app_sign_in_passkey_options_ip_burst")
   ensure
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   private

@@ -45,7 +45,22 @@ class RetentionPurgeJob < ApplicationJob
     Client Visitor Operator
   ).filter_map(&:safe_constantize).freeze
 
+  # Operational kill switch, not a retention rule: the flag exists so an
+  # operator can stop irreversible deletion during an incident, a data
+  # migration, or a legal hold that is not yet expressed as a hold record.
+  # Every unit of work below is selected by a time window (`purged_at: ..now`),
+  # so a skipped run is inherently catch-up safe -- the next unsuspended run
+  # processes the accumulated backlog. Returning normally keeps the recurring
+  # schedule (config/recurring.yml, every 15 minutes) as the retry mechanism;
+  # raising would only requeue work that is deliberately paused.
+  FEATURE_NAME = :retention_purge_suspended
+
   def perform(batch_size: 500)
+    if FeatureFlags.enabled?(FEATURE_NAME)
+      Rails.logger.warn(JitLogEvent.format("retention.purge.suspended"))
+      return
+    end
+
     now = Time.current
     SignUpArtifactCleanup.cleanup_pending!(now: now, batch_size: batch_size)
 

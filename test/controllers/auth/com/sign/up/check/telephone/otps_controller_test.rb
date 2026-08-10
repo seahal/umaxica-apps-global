@@ -4,6 +4,7 @@
 require "test_helper"
 
 class Auth::Com::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch::IntegrationTest
+  include ActiveJob::TestHelper
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
@@ -11,64 +12,98 @@ class Auth::Com::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
     host! @host
     cookies["csrf_token"] = csrf_token_value
     Rails.configuration.x.rate_limit.fetch(:store).clear
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
+
+    Prosopite.pause do
+      [VisitorStatus::NOTHING, VisitorStatus::ACTIVE].each { |id| VisitorStatus.find_or_create_by!(id: id) }
+      VisitorVisibility::DEFAULTS.each { |id| VisitorVisibility.find_or_create_by!(id: id) }
+      [
+        VisitorTelephoneStatus::UNVERIFIED,
+        VisitorTelephoneStatus::VERIFIED,
+        VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP,
+        VisitorTelephoneStatus::VERIFIED_WITH_SIGN_UP,
+      ].each { |id| VisitorTelephoneStatus.find_or_create_by!(id: id) }
+      VisitorTokenDbscStatus.ensure_defaults!
+      VisitorTokenStatus::DEFAULTS.each { |id| VisitorTokenStatus.find_or_create_by!(id: id) }
+    end
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
     Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 
-  test "patch with a valid otp advances to the guard checkpoint" do
-    visitor_telephone = start_telephone_signup!("+1234567801")
-    cycle = current_sign_up_cycle
+  test "show renders the OTP code entry page for a valid telephone session" do
+    start_telephone_signup!("+819011110001")
 
-    assert_equal VisitorSignUpFlowStatus::CONTACT_PENDING, cycle.status_id
+    get auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
 
-    patch auth_com_sign_up_check_telephone_otp_url(ri: "jp"),
-          params: { visitor_telephone: { pass_code: otp_code_for(visitor_telephone) } },
-          headers: default_headers
+    assert_response :success
+    assert_select "h1", text: I18n.t("sign.app.registration.telephone.edit.page_title")
+  end
+
+  test "show returns to the start when there is no sign-up flow at all" do
+    get auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+
+    assert_redirected_to auth_com_sign_up_url(ri: "jp")
+  end
+
+  test "show renders session expired when the OTP has expired" do
+    telephone = start_telephone_signup!("+819011110002")
+    telephone.update!(otp_expires_at: 1.minute.ago)
+
+    get auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("sign.com.registration.telephone.edit.session_expired")
+  end
+
+  test "create resends an OTP and redirects back to the OTP page" do
+    start_telephone_signup!("+819011110003")
+
+    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
+      post auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+    end
+
+    assert_redirected_to auth_com_sign_up_check_telephone_otp_url(ri: "jp")
+    assert_predicate session[:visitor_telephone_otp_last_sent_at], :present?
+  end
+
+  test "create is rate limited when resending too soon" do
+    start_telephone_signup!("+819011110004")
+
+    post auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :redirect
+
+    assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
+      post auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+    end
+
+    assert_response :too_many_requests
+    assert_includes response.body, I18n.t("sign.app.registration.email.create.otp_resend_too_soon")
+  end
+
+  test "update with a valid OTP advances to the guard page" do
+    telephone = start_telephone_signup!("+819011110005")
+
+    patch auth_com_sign_up_check_telephone_otp_url(ri: "jp"),
+          params: { visitor_telephone: { pass_code: otp_code_for(telephone) } },
+          headers: default_headers
+
     assert_redirected_to auth_com_sign_up_guard_telephone_url(ri: "jp")
-    assert_equal VisitorSignUpFlowStatus::CHECKPOINT_PENDING, cycle.reload.status_id
-    assert_equal "checkpoint", cycle.step
-    assert cycle.completed_requirements.dig("otp", "cleared")
-    assert_equal 1, cycle.checkpoint_version
+
+    cycle = current_sign_up_flow
+
+    assert_equal VisitorSignUpFlowStatus::CHECKPOINT_PENDING, cycle.status_id
+    assert cycle.requirement_cleared?(:otp)
+    assert_predicate session[:visitor_telephone_registration]["otp_verified"], :present?
   end
 
-  test "a verified telephone stays unverified until the finalizer promotes it" do
-    visitor_telephone = start_telephone_signup!("+1234567802")
-
-    patch auth_com_sign_up_check_telephone_otp_url(ri: "jp"),
-          params: { visitor_telephone: { pass_code: otp_code_for(visitor_telephone) } },
-          headers: default_headers
-
-    assert_equal(
-      VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP,
-      visitor_telephone.reload.visitor_telephone_status_id,
-    )
-    # The passkey and passcode steps read ownership from the session, so the
-    # flag has to survive the OTP step for the checkpoint to stay reachable.
-    assert session.dig(:visitor_telephone_registration, "otp_verified")
-  end
-
-  test "the guard forwards a verified ticket to the passkey step" do
-    visitor_telephone = start_telephone_signup!("+1234567803")
-
-    patch auth_com_sign_up_check_telephone_otp_url(ri: "jp"),
-          params: { visitor_telephone: { pass_code: otp_code_for(visitor_telephone) } },
-          headers: default_headers
-    follow_redirect!
-
-    assert_response :redirect
-    assert_match auth_com_sign_up_check_telephone_passkey_path, response.location
-  end
-
-  test "patch with a blank otp returns a validation error" do
-    start_telephone_signup!("+1234567804")
+  test "update with a blank OTP returns a validation error" do
+    start_telephone_signup!("+819011110006")
 
     patch auth_com_sign_up_check_telephone_otp_url(ri: "jp"),
           params: { visitor_telephone: { pass_code: "" } },
@@ -78,9 +113,8 @@ class Auth::Com::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
     assert_includes response.body, I18n.t("sign.app.registration.telephone.update.code_required")
   end
 
-  test "patch with an invalid otp leaves the ticket at contact pending" do
-    start_telephone_signup!("+1234567805")
-    cycle = current_sign_up_cycle
+  test "update with an invalid OTP keeps the ticket at contact pending" do
+    start_telephone_signup!("+819011110007")
 
     patch auth_com_sign_up_check_telephone_otp_url(ri: "jp"),
           params: { visitor_telephone: { pass_code: "000000" } },
@@ -88,14 +122,16 @@ class Auth::Com::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
 
     assert_response :unprocessable_content
     assert_includes response.body, I18n.t("sign.app.registration.telephone.update.invalid_code")
-    assert_equal VisitorSignUpFlowStatus::CONTACT_PENDING, cycle.reload.status_id
-    assert_nil cycle.completed_requirements["otp"]
-    assert_equal 0, cycle.checkpoint_version
+
+    cycle = current_sign_up_flow
+
+    assert_equal VisitorSignUpFlowStatus::CONTACT_PENDING, cycle.status_id
+    assert_not cycle.requirement_cleared?(:otp)
   end
 
-  test "patch with repeated invalid otp attempts locks the flow" do
-    visitor_telephone = start_telephone_signup!("+1234567806")
-    cycle = current_sign_up_cycle
+  test "update with repeated invalid OTP attempts locks the flow" do
+    telephone = start_telephone_signup!("+819011110008")
+    cycle = current_sign_up_flow
 
     Telephone::MAX_OTP_ATTEMPTS.times do
       patch auth_com_sign_up_check_telephone_otp_url(ri: "jp"),
@@ -105,19 +141,35 @@ class Auth::Com::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
 
     assert_response :too_many_requests
     assert_includes response.body, I18n.t("sign.app.registration.telephone.update.attempts_exceeded")
-    assert_predicate visitor_telephone.reload, :locked?
+    assert_predicate telephone.reload, :locked?
     assert_nil session[:visitor_telephone_registration]
     assert_nil cycle.reload.completed_requirements["otp"]
   end
 
+  test "destroy cancels the sign-up flow and returns to the start" do
+    start_telephone_signup!("+819011110009")
+    cycle = current_sign_up_flow
+
+    # Cancellation terminates and discards the cycle; SignUpTermination schedules
+    # the physical purge later, so the row is still present right after the request.
+    assert_no_difference("VisitorSignUpFlow.count") do
+      delete auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+    end
+
+    assert_redirected_to auth_com_sign_up_url(ri: "jp")
+    assert_equal VisitorSignUpFlowStatus::CANCELLED, cycle.reload.status_id
+    assert_operator cycle.discarded_at, :<=, Time.current
+    assert_nil session[:com_sign_up_flow_locator]
+  end
+
   private
 
-  def start_telephone_signup!(number)
+  def start_telephone_signup!(raw_number)
     post(
       auth_com_sign_up_telephone_url(ri: "jp"),
       params: {
         visitor_telephone: {
-          raw_number: number,
+          raw_number: raw_number,
           confirm_policy: "1",
           confirm_using_mfa: "1",
         },
@@ -130,15 +182,15 @@ class Auth::Com::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
     VisitorTelephone.order(:created_at).last
   end
 
-  def current_sign_up_cycle
+  def current_sign_up_flow
     public_id = session.dig(:com_sign_up_flow_locator, "public_id")
     return if public_id.blank?
 
     VisitorSignUpFlow.find_by(public_id: public_id)
   end
 
-  def otp_code_for(visitor_telephone)
-    otp_data = visitor_telephone.get_otp
+  def otp_code_for(telephone)
+    otp_data = telephone.get_otp
     ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
   end
 

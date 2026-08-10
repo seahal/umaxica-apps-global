@@ -22,56 +22,12 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: unless-stopped
-  pgadmin:
-    image: dpage/pgadmin4
-    # `user: root` lets the entrypoint chmod the bind-mounted pgpass to 0600
-    # before pgAdmin de-escalates to the pgadmin user. Under rootless podman
-    # "root" inside the container is the host user via userns mapping (not
-    # real root), but the chmod still succeeds on the bind-mounted file
-    # because the host user already owns it.
-    user: root
-    entrypoint:
-      - "/bin/sh"
-      - "-c"
-      - "chmod 600 /pgpass && /entrypoint.sh"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: root@example.com
-      PGADMIN_DEFAULT_PASSWORD: password
-      # Auto-import the pub/sub server definitions on first launch.
-      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
-    volumes:
-      - "./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro,z"
-      - "./docker/pgadmin/pgpass:/pgpass:z"
-    ports:
-      - "5050:80"
-    networks:
-      - backend
-    depends_on:
-      primary:
-        condition: service_healthy
-      replica:
-        condition: service_started
-  tinyrdm:
-    image: ghcr.io/tiny-craft/tiny-rdm:latest
-    environment:
-      ADMIN_USERNAME: admin
-      ADMIN_PASSWORD: change-me
-    volumes:
-      - tinyrdm-volume:/app/tinyrdm
-    ports:
-      - "8086:8086"
-    networks:
-      - backend
-    depends_on:
-      valkey:
-        condition: service_healthy
-    restart: unless-stopped
   core:
     # Tailscale is not in use right now. tailscale-core-supervisor needs a
     # real root control-plane PID 1 (see .devcontainer/compose.override.yml),
     # which conflicts with `userns_mode: keep-id` there. Falling back to the
-    # base compose.yaml `command: [bin/dev]` (by not overriding it here) lets
-    # core-entrypoint run the workload directly as the keep-id-mapped user.
+    # base compose.yaml `command: [sleep, infinity]` (by not overriding it
+    # here) lets core-entrypoint idle as the keep-id-mapped user.
     # Re-enable by restoring this override and reverting the override file.
     environment:
       # Optional exact Rails Host Authorization entry for Tailscale Serve.
@@ -85,4 +41,3 @@ services:
 volumes:
   # Persistent identity for direct-core Tailscale SSH and HTTPS Serve.
   tailscale-core-state: {}
-  tinyrdm-volume: {}

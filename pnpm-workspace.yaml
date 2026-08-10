@@ -12,14 +12,14 @@ overrides:
   vitest: "catalog:"
   vite: "catalog:"
 catalog:
-  "@types/node": 26.1.1
-  vite: 8.1.4
+  "@types/node": 24.13.3
+  vite: 8.2.0
   vitest: 4.1.10
   "@vitest/coverage-v8": 4.1.10
   lefthook: 2.1.10
-  oxfmt: 0.59.0
-  oxlint: 1.74.0
-  oxlint-tsgolint: 0.25.0
+  oxfmt: 0.62.0
+  oxlint: 1.77.0
+  oxlint-tsgolint: 7.0.2001
 peerDependencyRules:
   allowAny:
     - vite
@@ -27,35 +27,3 @@ peerDependencyRules:
   allowedVersions:
     vite: "*"
     vitest: "*"
-minimumReleaseAgeExclude:
-  - lefthook
-  - "lefthook-*"
-  - oxlint
-  - "@oxlint/*"
-  - oxlint-tsgolint
-  - "@oxlint-tsgolint/*"
-  - oxfmt
-  - "@oxfmt/*"
-  - vitest
-  - "@vitest/*"
-  - "@typescript/typescript-aix-ppc64@7.0.2"
-  - "@typescript/typescript-darwin-arm64@7.0.2"
-  - "@typescript/typescript-darwin-x64@7.0.2"
-  - "@typescript/typescript-freebsd-arm64@7.0.2"
-  - "@typescript/typescript-freebsd-x64@7.0.2"
-  - "@typescript/typescript-linux-arm64@7.0.2"
-  - "@typescript/typescript-linux-arm@7.0.2"
-  - "@typescript/typescript-linux-loong64@7.0.2"
-  - "@typescript/typescript-linux-mips64el@7.0.2"
-  - "@typescript/typescript-linux-ppc64@7.0.2"
-  - "@typescript/typescript-linux-riscv64@7.0.2"
-  - "@typescript/typescript-linux-s390x@7.0.2"
-  - "@typescript/typescript-linux-x64@7.0.2"
-  - "@typescript/typescript-netbsd-arm64@7.0.2"
-  - "@typescript/typescript-netbsd-x64@7.0.2"
-  - "@typescript/typescript-openbsd-arm64@7.0.2"
-  - "@typescript/typescript-openbsd-x64@7.0.2"
-  - "@typescript/typescript-sunos-x64@7.0.2"
-  - "@typescript/typescript-win32-arm64@7.0.2"
-  - "@typescript/typescript-win32-x64@7.0.2"
-  - typescript@7.0.2

@@ -1,4 +1,11 @@
 <% content_for :page_title, t("sign.org.ups.new.heading") %>
+
+<%# `@sign_up_available == false` means the sign_up_suspended_<surface> kill
+    switch is on: show the notice instead of entry points that would start a
+    registration the guard is about to reject anyway. %>
+<% if @sign_up_available == false %>
+  <%= render "auth/shared/sign_up_suspended" %>
+<% else %>
 <div class="animate-fade-in-up">
   <div>
     <h1>
@@ -36,3 +43,4 @@
     </div>
   </div>
 </div>
+<% end %>

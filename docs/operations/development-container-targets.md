@@ -1,13 +1,13 @@
 # Development Container Targets
 
-The repository uses one multi-stage `Dockerfile` with three outcome images:
+The repository uses one multi-stage `Containerfile` with three outcome images:
 
 - `development` is the normal Rails development image.
 - `workspace` derives from `development` and adds nested rootless Podman for a
   persistent coding workspace.
 - `production` is the deployable runtime image.
 
-The final Dockerfile stage aliases `production`, so omitting `--target` does not
+The final Containerfile stage aliases `production`, so omitting `--target` does not
 accidentally produce a development image.
 
 ## Build an image directly

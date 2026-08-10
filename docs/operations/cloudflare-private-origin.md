@@ -23,7 +23,9 @@ The gates are intentionally independent:
    `GET /health` through every private surface alias and requires HTTP `200`.
 2. **Host Authorization**: `ruby test/config/host_authorization_contract_test.rb` boots a separate
    Rails development process, constructs the middleware from the effective development settings,
-   requests the non-excluded `/` path, accepts the private origins, and rejects an unknown host.
+   requests the non-excluded `/` path, accepts the private origins and the published site
+   hostnames, and rejects both an unknown host and an Umaxica-owned hostname that no
+   `PUBLIC_*_URL` names.
 3. **Surface routing**: the route contract tests recognize non-health application resources for
    the private Host values and assert the matching `app`, `com`, `org`, `net`, or `dev` controller.
 4. **Podman DNS aliases**: `podman compose config` must show the private aliases on `core`'s
@@ -36,6 +38,19 @@ The gates are intentionally independent:
 `/health` is excluded from Rails Host Authorization in production. A successful Gate 1 request
 therefore proves transport reachability only. It does not prove that the Host is accepted by
 `ActionDispatch::HostAuthorization`, and it does not substitute for Gate 3 routing evidence.
+
+## Development Scope
+
+Development Rails is published through this tunnel under the browser-facing site names, behind
+Cloudflare Access. The `core` container therefore carries two sets of `frontend` aliases — the
+private `*.localhost` origins and the published site names — and development Host Authorization
+accepts both families and nothing else. See the "Development Is Tunnel-Exposed Behind Access"
+section of `docs/architecture/cloudflare-request-paths.md` for how each family reaches
+`config.hosts`, and for the `FORCE_SECURE_COOKIES` trade-off between the tunnel path and the
+plain-`http` local path.
+
+Access is the control that keeps the development surface non-public, and it lives in the
+Cloudflare account rather than in this repository — see "External Checks" below.
 
 ## Browser Traffic Through Access
 

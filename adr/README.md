@@ -25,6 +25,12 @@ Current identity authority decision:
   opaque, reverse audience/transport use is rejected, and no `Cookie` header may reach Next.js or
   Side origins.
 - `adr/core-browser-credential-transport.md` — superseded predecessor retained for traceability.
+- `adr/core-canonical-public-host.md` — chooses `jp.umaxica.{app,com,org}` as the canonical Core
+  public host, sends the Workers VPC `Host` from the `PUBLIC_*` family with no `X-Forwarded-Host`,
+  and makes `config/routes/core.rb` the source of truth for edge path ownership. `jpx.umaxica.*`
+  and `core-jp.umaxica.*` remain accepted until the `jpx.*` column defaults are migrated. No
+  external identity provider re-registration is involved; the social callbacks live on the Auth and
+  Base surfaces, not on Core.
 - `adr/acme-sign-core-base-port-boundary.md` — current source of truth for the target component
   model: Acme is the only IdP / Authorization Server, Sign is a special RP, Core is the Next.js web
   RP/BFF, Base is the Rails foundation/control-plane subdomain, and Palm is the native bearer-token
@@ -231,7 +237,13 @@ Current tooling / code-quality decisions:
 
 Current outbound delivery decisions:
 
-- `adr/outbound-message-delivery-interface.md`
+- `adr/notification-orchestration-via-noticed.md` — accepted decision that Noticed notifiers under
+  `Notify::<Surface>` are the notification orchestration entry point, with the surface mailers,
+  `OutboundSms`, and `ApplicationPushNotification` kept as the transport layer that carries the kill
+  switches and the encryption boundary.
+- `adr/outbound-message-delivery-interface.md` — partially superseded for the `Notification` naming
+  reservation and the call-site entry point; its payload shape, result object, and job-argument
+  encryption rule remain in force.
 
 Current retention / deletion decisions:
 

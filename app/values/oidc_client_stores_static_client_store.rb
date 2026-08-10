@@ -91,18 +91,16 @@ module OidcClientStoresStaticClientStore
       # Core browser RP.
       "core-next-rp" => {
         redirect_uris_by_realm: {
-          "client" => build_redirect_uris("PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app"),
-          "operator" => build_redirect_uris("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org"),
-          "visitor" => build_redirect_uris("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com"),
+          "client" => build_redirect_uris("PUBLIC_CORE_SERVICE_URL"),
+          "operator" => build_redirect_uris("PUBLIC_CORE_STAFF_URL"),
+          "visitor" => build_redirect_uris("PUBLIC_CORE_CORPORATE_URL"),
         },
-        post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app") +
-          build_post_logout_redirect_uris("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org") +
-          build_post_logout_redirect_uris("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com"),
-        backchannel_logout_uris: build_logout_uris(
-          "PUBLIC_CORE_SERVICE_URL", "backchannel/logout", "jpx.umaxica.app",
-        ) +
-          build_logout_uris("PUBLIC_CORE_STAFF_URL", "backchannel/logout", "jpx.umaxica.org") +
-          build_logout_uris("PUBLIC_CORE_CORPORATE_URL", "backchannel/logout", "jpx.umaxica.com"),
+        post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_CORE_SERVICE_URL") +
+          build_post_logout_redirect_uris("PUBLIC_CORE_STAFF_URL") +
+          build_post_logout_redirect_uris("PUBLIC_CORE_CORPORATE_URL"),
+        backchannel_logout_uris: build_logout_uris("PUBLIC_CORE_SERVICE_URL", "backchannel/logout") +
+          build_logout_uris("PUBLIC_CORE_STAFF_URL", "backchannel/logout") +
+          build_logout_uris("PUBLIC_CORE_CORPORATE_URL", "backchannel/logout"),
         backchannel_logout_session_required: true,
         aud: "core-next-rp",
         resource_type: "client",
@@ -254,9 +252,9 @@ module OidcClientStoresStaticClientStore
       when "SIDE_SERVICE_URL" then hosts.side_service.to_s
       when "SIDE_STAFF_URL" then hosts.side_staff.to_s
       when "SIDE_CORPORATE_URL" then hosts.side_corporate.to_s
-      when "CORE_SERVICE_URL" then hosts.core_service.to_s
-      when "CORE_STAFF_URL" then hosts.core_staff.to_s
-      when "CORE_CORPORATE_URL" then hosts.core_corporate.to_s
+      when "PUBLIC_CORE_SERVICE_URL", "CORE_SERVICE_URL" then hosts.core_service.to_s
+      when "PUBLIC_CORE_STAFF_URL", "CORE_STAFF_URL" then hosts.core_staff.to_s
+      when "PUBLIC_CORE_CORPORATE_URL", "CORE_CORPORATE_URL" then hosts.core_corporate.to_s
       else
         raise KeyError, "No boot host mapping for #{env_key} and no default host given" if default_host.blank?
 

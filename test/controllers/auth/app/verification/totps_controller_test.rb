@@ -13,13 +13,13 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     @user = Client.create!(status_id: ClientStatus::NOTHING)
     @headers = as_user_headers(@user, host: @host)
     @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   def with_prosopite_paused
@@ -305,7 +305,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     assert_response :success
 
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
     with_prosopite_paused do

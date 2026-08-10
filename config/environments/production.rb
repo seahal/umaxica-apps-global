@@ -20,7 +20,15 @@ Rails.application.configure do
   # config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
 
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
-  config.asset_host = ENV["PUBLIC_ASSET_URL"] || ENV["ASSET_URL"] || "https://asset-jp.umaxica.net"
+  #
+  # `PUBLIC_ASSET_URL` is the preferred name (adr/public-private-url-boundaries.md);
+  # `ASSET_URL` stays a supported compatibility input because CI sets it
+  # (.github/workflows/ci.yml). There is deliberately no literal default: a hardcoded
+  # asset host silently served every production asset from one environment's CDN if the
+  # variable was ever missing. Fail at boot and name what is missing instead.
+  config.asset_host =
+    ENV["PUBLIC_ASSET_URL"].presence || ENV["ASSET_URL"].presence ||
+    raise(KeyError, "PUBLIC_ASSET_URL must be set in production (legacy alias: ASSET_URL)")
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   # config.active_storage.service = :local
@@ -155,12 +163,17 @@ Rails.application.configure do
     "www.umaxica.app",
     "www.umaxica.com",
     "www.umaxica.org",
+    # Legacy Core host family. `adr/core-canonical-public-host.md` chose jp.umaxica.* as
+    # canonical; these stay until the external OAuth/OIDC redirect URIs are re-registered
+    # and the jpx.* column defaults are migrated, then they are removed.
     "jpx.umaxica.app",
     "jpx.umaxica.com",
     "jpx.umaxica.org",
-    boot_hosts.base_service.host,
-    boot_hosts.base_corporate.host,
-    boot_hosts.base_staff.host,
+    # Canonical Core host family. Listed alongside the legacy families during the cutover so
+    # the origin answers on the new name before the edge publishes it.
+    "jp.umaxica.app",
+    "jp.umaxica.com",
+    "jp.umaxica.org",
     boot_hosts.palm_service.host,
     boot_hosts.palm_corporate.host,
     boot_hosts.palm_staff.host,
@@ -170,13 +183,14 @@ Rails.application.configure do
     boot_hosts.info_service.host,
     boot_hosts.info_corporate.host,
     boot_hosts.info_staff.host,
-    "news.app.localhost",
-    "news.com.localhost",
-    "news.org.localhost",
-    "docs.app.localhost",
-    "docs.com.localhost",
-    "docs.org.localhost",
   ]
+  # The docs and news surfaces have no host entry. Their only entries here were
+  # `docs.*.localhost` and `news.*.localhost` -- private development ingress names, which
+  # no production request can carry: the edge routes no such name, and
+  # ConfigValues::HostFamilyValues defines no docs/news member to derive a real one from.
+  # They were removed rather than left as a development ingress name accepted in
+  # production. Add the real ingress hosts here (preferably via boot_config) before serving
+  # either surface publicly.
 
   # Skip DNS rebinding protection only for health checks and load balancer probes.
   config.host_authorization = { exclude: ->(request) { request.path == "/health" } }

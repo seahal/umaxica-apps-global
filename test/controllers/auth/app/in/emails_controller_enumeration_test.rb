@@ -23,15 +23,15 @@ module Auth
 
         setup do
           host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-          CloudflareTurnstile.test_mode = true
-          CloudflareTurnstile.test_validation_response = { "success" => true }
+          TurnstileVerifierStub.challenge_enabled = true
+          TurnstileVerifierStub.challenge_response = { "success" => true }
 
           ClientEmail.create!(user: clients(:one), address: REGISTERED_ADDRESS, confirm_policy: true)
         end
 
         teardown do
-          CloudflareTurnstile.test_mode = false
-          CloudflareTurnstile.test_validation_response = nil
+          TurnstileVerifierStub.challenge_enabled = false
+          TurnstileVerifierStub.challenge_response = nil
         end
 
         test "the cooldown response is identical for registered and unregistered addresses" do

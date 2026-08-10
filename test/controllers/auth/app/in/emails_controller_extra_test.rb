@@ -11,8 +11,8 @@ class Auth::App::Sign::In::EmailsControllerExtraTest < ActionDispatch::Integrati
     host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     ActionMailer::Base.deliveries.clear
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
 
     ensure_visitor_reference_records!
     # Client status might be different from Visitor status
@@ -20,7 +20,7 @@ class Auth::App::Sign::In::EmailsControllerExtraTest < ActionDispatch::Integrati
   end
 
   test "post create with Turnstile failure" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     post auth_app_sign_in_email_url,
          params: {
@@ -40,7 +40,7 @@ class Auth::App::Sign::In::EmailsControllerExtraTest < ActionDispatch::Integrati
         { "success" => false }
       end
 
-    CloudflareTurnstile.test_mode = false
+    TurnstileVerifierStub.challenge_enabled = false
     JitSecurityTurnstileVerifier.stub(:verify, verifier) do
       post(
         auth_app_sign_in_email_url,
@@ -55,7 +55,7 @@ class Auth::App::Sign::In::EmailsControllerExtraTest < ActionDispatch::Integrati
     assert_response :unprocessable_content
     assert_equal [{ token: "signin-token", remote_ip: "127.0.0.1", mode: :visible }], calls
   ensure
-    CloudflareTurnstile.test_mode = true
+    TurnstileVerifierStub.challenge_enabled = true
   end
 
   test "post create with email cooldown active" do

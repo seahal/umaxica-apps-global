@@ -1,0 +1,26 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "pub (primary)",
+      "Group": "Umaxica Dev",
+      "Host": "primary",
+      "Port": 5432,
+      "MaintenanceDB": "db",
+      "Username": "root",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer",
+      "Comment": "Dev primary / pub DB (read-write). Defined in podman/pgadmin/servers.json"
+    },
+    "2": {
+      "Name": "sub (replica)",
+      "Group": "Umaxica Dev",
+      "Host": "replica",
+      "Port": 5432,
+      "MaintenanceDB": "db",
+      "Username": "root",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer",
+      "Comment": "Dev replica / sub DB (read-only). Defined in podman/pgadmin/servers.json"
+    }
+  }
+}

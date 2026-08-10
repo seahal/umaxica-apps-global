@@ -29,7 +29,7 @@ pattern.
 ## Image, state, and trust boundaries
 
 The Tailscale binaries are copied from the digest-pinned official image only
-after the Dockerfile enters the `development` target. Production targets do
+after the Containerfile enters the `development` target. Production targets do
 not contain the binaries or the supervisor.
 
 The named `tailscale-core-state` volume stores the node identity and Serve

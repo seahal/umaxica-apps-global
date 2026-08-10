@@ -35,7 +35,7 @@ class ExternalAuthenticationEndpointTest < ActiveSupport::TestCase
 
     assert_equal 1, logged.size
     assert_includes logged.first, "external_authentication.availability.misconfigured"
-    assert_includes logged.first, "social_ceremony_google"
+    assert_includes logged.first, "social_ceremony_app_google"
     assert_includes logged.first, "callback"
   end
 
@@ -48,14 +48,14 @@ class ExternalAuthenticationEndpointTest < ActiveSupport::TestCase
       end
 
     assert_equal 1, logged.size
-    assert_includes logged.first, "social_ceremony_google"
+    assert_includes logged.first, "social_ceremony_app_google"
     assert_includes logged.first, "start"
   end
 
   test "start availability is false without a log when the provider is switched off" do
     logged =
       capture_availability_logs do
-        with_feature_disabled(:social_ceremony_google) do
+        with_feature_disabled(:social_ceremony_app_google) do
           assert_not @endpoint.start_available?(provider: "google", operation: "login", context: {})
         end
       end
@@ -64,7 +64,7 @@ class ExternalAuthenticationEndpointTest < ActiveSupport::TestCase
   end
 
   test "an issued callback still drains after the provider is switched off" do
-    with_feature_disabled(:social_ceremony_google) do
+    with_feature_disabled(:social_ceremony_app_google) do
       assert @endpoint.callback_available?(provider: "google", ceremony: { state: "x" }, context: {})
     end
   end

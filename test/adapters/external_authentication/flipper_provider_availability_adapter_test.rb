@@ -18,7 +18,7 @@ class ExternalAuthenticationFlipperProviderAvailabilityAdapterTest < ActiveSuppo
   OBSERVED_AT = Time.zone.local(2026, 7, 24, 12, 0, 0)
 
   test "maps an enabled feature to enabled for a new Apple ceremony" do
-    decision = adapter(social_ceremony_apple: true, social_ceremony_google: false)
+    decision = adapter(social_ceremony_app_apple: true, social_ceremony_app_google: false)
       .start_decision(provider: "apple", operation: "login", context: {})
 
     assert_equal :enabled, decision.state
@@ -28,7 +28,7 @@ class ExternalAuthenticationFlipperProviderAvailabilityAdapterTest < ActiveSuppo
   end
 
   test "maps a disabled feature to disabled for a new Google ceremony" do
-    decision = adapter(social_ceremony_apple: true, social_ceremony_google: false)
+    decision = adapter(social_ceremony_app_apple: true, social_ceremony_app_google: false)
       .start_decision(provider: "google", operation: "signup", context: {})
 
     assert_equal :disabled, decision.state
@@ -36,7 +36,7 @@ class ExternalAuthenticationFlipperProviderAvailabilityAdapterTest < ActiveSuppo
   end
 
   test "allows an issued callback to drain when new ceremonies are disabled" do
-    decision = adapter(social_ceremony_apple: false).callback_decision(
+    decision = adapter(social_ceremony_app_apple: false).callback_decision(
       provider: "apple",
       ceremony: Struct.new(:public_id).new("ceremony-public-id"),
       context: {},
@@ -47,7 +47,7 @@ class ExternalAuthenticationFlipperProviderAvailabilityAdapterTest < ActiveSuppo
   end
 
   test "controls Entra independently from Apple and Google" do
-    subject = adapter(social_ceremony_apple: true, social_ceremony_google: true, social_ceremony_entra: false)
+    subject = adapter(social_ceremony_app_apple: true, social_ceremony_app_google: true, social_ceremony_org_entra: false)
 
     assert_equal :disabled, subject.start_decision(provider: "entra", operation: "login", context: {}).state
     assert_equal :enabled, subject.start_decision(provider: "apple", operation: "login", context: {}).state
@@ -62,7 +62,7 @@ class ExternalAuthenticationFlipperProviderAvailabilityAdapterTest < ActiveSuppo
   test "rejects providers outside the fixed registry" do
     error =
       assert_raises(ArgumentError) do
-        adapter(social_ceremony_apple: true).start_decision(provider: "saml", operation: "login", context: {})
+        adapter(social_ceremony_app_apple: true).start_decision(provider: "saml", operation: "login", context: {})
       end
 
     assert_equal "provider is unsupported", error.message
@@ -71,7 +71,7 @@ class ExternalAuthenticationFlipperProviderAvailabilityAdapterTest < ActiveSuppo
   test "rejects operations outside the social ceremony contract" do
     error =
       assert_raises(ArgumentError) do
-        adapter(social_ceremony_apple: true).start_decision(provider: "apple", operation: "unlink", context: {})
+        adapter(social_ceremony_app_apple: true).start_decision(provider: "apple", operation: "unlink", context: {})
       end
 
     assert_equal "operation is unsupported", error.message
@@ -80,7 +80,7 @@ class ExternalAuthenticationFlipperProviderAvailabilityAdapterTest < ActiveSuppo
   test "requires an issued ceremony for callback decisions" do
     error =
       assert_raises(ArgumentError) do
-        adapter(social_ceremony_apple: true).callback_decision(provider: "apple", ceremony: nil, context: {})
+        adapter(social_ceremony_app_apple: true).callback_decision(provider: "apple", ceremony: nil, context: {})
       end
 
     assert_equal "ceremony is required", error.message
@@ -89,7 +89,7 @@ class ExternalAuthenticationFlipperProviderAvailabilityAdapterTest < ActiveSuppo
   test "requires a context" do
     error =
       assert_raises(ArgumentError) do
-        adapter(social_ceremony_apple: true).start_decision(provider: "apple", operation: "login", context: nil)
+        adapter(social_ceremony_app_apple: true).start_decision(provider: "apple", operation: "login", context: nil)
       end
 
     assert_equal "context is required", error.message

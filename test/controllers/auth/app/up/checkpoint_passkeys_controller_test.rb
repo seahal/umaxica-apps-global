@@ -14,13 +14,13 @@ module Auth::App::Up
     setup do
       host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
 
-      CloudflareTurnstile.test_mode = true
-      CloudflareTurnstile.test_validation_response = { "success" => true }
+      TurnstileVerifierStub.challenge_enabled = true
+      TurnstileVerifierStub.challenge_response = { "success" => true }
     end
 
     teardown do
-      CloudflareTurnstile.test_mode = false
-      CloudflareTurnstile.test_validation_response = nil
+      TurnstileVerifierStub.challenge_enabled = false
+      TurnstileVerifierStub.challenge_response = nil
     end
 
     test "GET show returns 200 with passkey endpoint data attrs" do

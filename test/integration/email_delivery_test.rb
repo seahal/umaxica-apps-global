@@ -16,16 +16,16 @@ class EmailDeliveryTest < ActionDispatch::IntegrationTest
     ActiveJob::Base.queue_adapter = :solid_queue
 
     # Mock Turnstile to pass validation
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
     # Restore the original adapter
     ActiveJob::Base.queue_adapter = @previous_adapter if @previous_adapter
 
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "deliver_later enqueues a job in solid_queue" do

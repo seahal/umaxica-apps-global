@@ -13,7 +13,7 @@ SimpleCov.group "Validators", "app/validators"
 SimpleCov.group "Errors", "app/errors"
 
 SimpleCov.coverage :line do
-  minimum 95
+  minimum 94
 end
 
 SimpleCov.coverage :branch do

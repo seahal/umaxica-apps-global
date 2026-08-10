@@ -9,29 +9,62 @@ this contract and verification evidence is recorded.
 
 ## Public Core Host
 
-Canonical public Core host for this boundary:
+Canonical public Core host for this boundary, chosen by `adr/core-canonical-public-host.md`:
 
-- `jp.umaxica.app`
+- `jp.umaxica.app` (and `jp.umaxica.com`, `jp.umaxica.org` for the corporate and staff realms)
 
-Current Rails defaults previously used `www.jp.umaxica.app` in some Core configuration. The edge
-configuration must route `jp.umaxica.app` according to this contract, or a later ADR must explicitly
-choose a different canonical host before production enablement.
+Current Rails defaults previously used `www.jp.umaxica.app` in some Core configuration, and the
+legacy `jpx.umaxica.*` and `core-jp.umaxica.*` families are still accepted by production Host
+Authorization during the cutover.
 
 ## Request Routing
 
+The Rails-owned rows below are derived from `config/routes/core.rb`, which is the source of truth
+for what Rails answers on the Core host. Every path Rails does not route falls to Next.js.
+
 For `jp.umaxica.app`:
 
-| Path            | Origin           | Cookie forwarding               |
-| --------------- | ---------------- | ------------------------------- |
-| `/api/v0/*`     | Rails Core       | keep `Cookie`                   |
-| `/auth/*`       | Rails Core       | keep `Cookie`                   |
-| `/sso/*`        | Rails Core       | keep `Cookie`                   |
-| `/settings`     | Base Rails       | explicit Base credential policy |
-| `/settings/*`   | Base Rails       | explicit Base credential policy |
-| `/health`       | blocked publicly | no public origin                |
-| `/health/*`     | blocked publicly | no public origin                |
-| `/_next/*`      | Next.js Core     | remove entire `Cookie` header   |
-| all other paths | Next.js Core     | remove entire `Cookie` header   |
+| Path                       | Origin           | Cookie forwarding             |
+| -------------------------- | ---------------- | ----------------------------- |
+| `/api/v0/*`                | Rails Core       | keep `Cookie`                 |
+| `/web/v0/*`                | Rails Core       | keep `Cookie`                 |
+| `/edge/v0/*`               | Rails Core       | keep `Cookie`                 |
+| `/oidc/*`                  | Rails Core       | keep `Cookie`                 |
+| `/sign/out`                | Rails Core       | keep `Cookie`                 |
+| `/sign/out/complete`       | Rails Core       | keep `Cookie`                 |
+| `/.well-known/jwks.json`   | Rails Core       | keep `Cookie`                 |
+| `/csp-violation-report`    | Rails Core       | keep `Cookie`                 |
+| `/robots.txt`              | Rails Core       | keep `Cookie`                 |
+| `/sitemap.xml`             | Rails Core       | keep `Cookie`                 |
+| `/health`                  | blocked publicly | no public origin              |
+| `/health/*`                | blocked publicly | no public origin              |
+| `/_next/*`                 | Next.js Core     | remove entire `Cookie` header |
+| `/` and all other paths    | Next.js Core     | remove entire `Cookie` header |
+
+`jp.umaxica.org` additionally routes `/configuration` to Rails Core; that route exists only on the
+org realm (`config/routes/core.rb`).
+
+`/oidc/*` covers `/oidc/authorization`, `/oidc/callback`, and `/oidc/backchannel/logout`.
+`/oidc/callback` and `/sign/out*` are the paths that set and clear the credential cookies, so
+stripping `Cookie` from them breaks sign-in and sign-out. They must not be allowed to fall into the
+"all other paths" row.
+
+### Paths deliberately absent from this table
+
+Earlier revisions routed `/auth/*` and `/sso/*` to Rails Core and `/settings`, `/settings/*` to Base
+Rails. None of those exist as Rails paths:
+
+- `auth` is a host family (`auth.umaxica.*`), drawn in `config/routes/auth.rb` under
+  `constraints host:`. It is not a path prefix on the Core host.
+- `/sso/*` has no route on any surface.
+  `test/integration/routes/core_route_contract_test.rb` asserts `/sso/authorize` and `/sso/logout`
+  are unroutable on Core.
+- `/settings` and `/settings/*` are defined on the Auth and Side surfaces
+  (`config/routes/auth.rb`, `config/routes/side.rb`), not Base. Base owns `/identity/*`,
+  `/accounts`, and `/preference/*`.
+
+The rows were removed rather than left as edge routes pointing at origins that would 404, which also
+silently placed the real cookie-bearing Core paths in the Cookie-stripped fallback row.
 
 For `side.jp.umaxica.app`:
 

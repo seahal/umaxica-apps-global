@@ -48,17 +48,17 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     @original_queue_adapter = ActiveJob::Base.queue_adapter
     ActiveJob::Base.queue_adapter = :test
     ActionMailer::Base.deliveries.clear
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
-    @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
-    AuthenticationBase.login_cooldown_enabled = false
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
+    @original_login_cooldown = login_cooldown
+    self.login_cooldown = 0.seconds
   end
 
   teardown do
     ActiveJob::Base.queue_adapter = @original_queue_adapter
-    AuthenticationBase.login_cooldown_enabled = @original_login_cooldown_enabled
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    self.login_cooldown = @original_login_cooldown
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "GET new displays email form" do

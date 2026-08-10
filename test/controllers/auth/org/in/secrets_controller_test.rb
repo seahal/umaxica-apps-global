@@ -12,8 +12,8 @@ class Auth::Org::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     host! @host
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
     @staff = operators(:sample_staff)
     @staff.update!(status_id: OperatorStatus::ACTIVE)
     OperatorToken.where(staff_id: @staff.id).delete_all
@@ -29,8 +29,8 @@ class Auth::Org::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "should get new" do

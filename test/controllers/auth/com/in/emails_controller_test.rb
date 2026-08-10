@@ -11,8 +11,8 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     ActionMailer::Base.deliveries.clear
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
     VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
     VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
     VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
@@ -25,8 +25,8 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "get new renders email form" do
@@ -146,7 +146,7 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "post create with turnstile failure returns unprocessable content" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     post auth_com_sign_in_email_url(ri: "jp"),
          params: { user_email: { address: "test@example.com" }, "cf-turnstile-response": "test" },

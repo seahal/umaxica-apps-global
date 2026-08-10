@@ -106,7 +106,7 @@ module Auth
         end
 
         # Mirrors the strategy's own request-phase gate
-        # (UmaxicaEntra#entra_start_available?) so a :social_ceremony_entra kill
+        # (UmaxicaEntra#entra_start_available?) so a :social_ceremony_org_entra kill
         # switch stops the ceremony at the entry point rather than only after
         # the operator has pressed the button.
         def entra_start_available?

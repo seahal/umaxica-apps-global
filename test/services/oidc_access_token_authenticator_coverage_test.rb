@@ -21,6 +21,14 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
     end
   end
 
+  class StaleLockedResource
+    def active? = true
+
+    def admin_locked? = false
+
+    def access_token_stale_for_administrative_lock?(_payload) = true
+  end
+
   test "returns invalid token when access token is blank" do
     authenticator = OidcAccessTokenAuthenticator.new(
       access_token: nil,
@@ -147,6 +155,173 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
     end
   end
 
+  test "rejects resource with stale administrative lock" do
+    resource = StaleLockedResource.new
+    authenticator = OidcAccessTokenAuthenticator.new(
+      access_token: "token",
+      resource_type: "client",
+      host: "app.example.test",
+    )
+    token = Struct.new(:active?, :user).new(true, resource)
+
+    AuthenticationTokenService.stub(:decode, { "scp" => ["openid"], "iat" => Time.current.to_i }) do
+      authenticator.stub(:dpop_valid?, true) do
+        authenticator.stub(:find_token, token) do
+          authenticator.stub(:token_belongs_to_audience?, true) do
+            authenticator.stub(:token_jti_matches?, true) do
+              authenticator.stub(:token_scope_allows_userinfo?, true) do
+                result = authenticator.call
+
+                assert_not result.success?
+                assert_equal "invalid_token", result.error
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  test "returns invalid token when decode fails" do
+    authenticator = OidcAccessTokenAuthenticator.new(
+      access_token: "token",
+      resource_type: "client",
+      host: "app.example.test",
+    )
+
+    AuthenticationTokenService.stub(:decode, nil) do
+      result = authenticator.call
+
+      assert_not result.success?
+      assert_equal "invalid_token", result.error
+    end
+  end
+
+  test "returns invalid token when token is inactive" do
+    resource = Client.create!(status_id: ClientStatus::ACTIVE)
+    authenticator = OidcAccessTokenAuthenticator.new(
+      access_token: "token",
+      resource_type: "client",
+      host: "app.example.test",
+    )
+    token = Struct.new(:active?, :user).new(false, resource)
+
+    AuthenticationTokenService.stub(:decode, { "scp" => ["openid"] }) do
+      authenticator.stub(:dpop_valid?, true) do
+        authenticator.stub(:find_token, token) do
+          result = authenticator.call
+
+          assert_not result.success?
+          assert_equal "invalid_token", result.error
+        end
+      end
+    end
+  end
+
+  test "returns invalid token when token audience does not match" do
+    resource = Client.create!(status_id: ClientStatus::ACTIVE)
+    authenticator = OidcAccessTokenAuthenticator.new(
+      access_token: "token",
+      resource_type: "client",
+      host: "app.example.test",
+    )
+    token = Struct.new(:active?, :user).new(true, resource)
+
+    AuthenticationTokenService.stub(:decode, { "scp" => ["openid"] }) do
+      authenticator.stub(:dpop_valid?, true) do
+        authenticator.stub(:find_token, token) do
+          authenticator.stub(:token_belongs_to_audience?, false) do
+            result = authenticator.call
+
+            assert_not result.success?
+            assert_equal "invalid_token", result.error
+          end
+        end
+      end
+    end
+  end
+
+  test "returns invalid token when token jti does not match" do
+    resource = Client.create!(status_id: ClientStatus::ACTIVE)
+    authenticator = OidcAccessTokenAuthenticator.new(
+      access_token: "token",
+      resource_type: "client",
+      host: "app.example.test",
+    )
+    token = Struct.new(:active?, :user).new(true, resource)
+
+    AuthenticationTokenService.stub(:decode, { "scp" => ["openid"] }) do
+      authenticator.stub(:dpop_valid?, true) do
+        authenticator.stub(:find_token, token) do
+          authenticator.stub(:token_belongs_to_audience?, true) do
+            authenticator.stub(:token_jti_matches?, false) do
+              result = authenticator.call
+
+              assert_not result.success?
+              assert_equal "invalid_token", result.error
+            end
+          end
+        end
+      end
+    end
+  end
+
+  test "returns invalid token when resource is inactive" do
+    resource = Struct.new(:active?).new(false)
+    authenticator = OidcAccessTokenAuthenticator.new(
+      access_token: "token",
+      resource_type: "client",
+      host: "app.example.test",
+    )
+    token = Struct.new(:active?, :user).new(true, resource)
+
+    AuthenticationTokenService.stub(:decode, { "scp" => ["openid"] }) do
+      authenticator.stub(:dpop_valid?, true) do
+        authenticator.stub(:find_token, token) do
+          authenticator.stub(:token_belongs_to_audience?, true) do
+            authenticator.stub(:token_jti_matches?, true) do
+              authenticator.stub(:token_scope_allows_userinfo?, true) do
+                result = authenticator.call
+
+                assert_not result.success?
+                assert_equal "invalid_token", result.error
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  test "returns invalid token when token subject does not match" do
+    resource = Client.create!(status_id: ClientStatus::ACTIVE)
+    authenticator = OidcAccessTokenAuthenticator.new(
+      access_token: "token",
+      resource_type: "client",
+      host: "app.example.test",
+    )
+    token = Struct.new(:active?, :user).new(true, resource)
+
+    AuthenticationTokenService.stub(:decode, { "scp" => ["openid"] }) do
+      authenticator.stub(:dpop_valid?, true) do
+        authenticator.stub(:find_token, token) do
+          authenticator.stub(:token_belongs_to_audience?, true) do
+            authenticator.stub(:token_jti_matches?, true) do
+              authenticator.stub(:token_scope_allows_userinfo?, true) do
+                authenticator.stub(:token_subject_matches?, false) do
+                  result = authenticator.call
+
+                  assert_not result.success?
+                  assert_equal "invalid_token", result.error
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
   test "private helpers cover dpop, audience, jti, resource, and context routing" do
     assert OidcAccessTokenAuthenticator.new(
       access_token: "token",
@@ -211,6 +386,9 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
     assert_equal ComTicketRecord, visitor_authenticator.send(:token_context)
     assert_equal ClientToken, client_authenticator.send(:token_class_for_resource_type)
     assert_equal AppTicketRecord, client_authenticator.send(:token_context)
+    assert_equal OperatorTokenUsage, operator_authenticator.send(:usage_class_for_resource_type)
+    assert_equal VisitorTokenUsage, visitor_authenticator.send(:usage_class_for_resource_type)
+    assert_equal ClientTokenUsage, client_authenticator.send(:usage_class_for_resource_type)
 
     failure = client_authenticator.send(:failure, "invalid_token")
 

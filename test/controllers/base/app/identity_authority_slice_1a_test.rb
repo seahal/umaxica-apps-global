@@ -12,7 +12,9 @@ class Base::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     @user = clients(:one)
   end
 
-  test "base_sign_out_create_is_session_mutation_and_redirects_to_sign_handoff" do
+  # Base is the session authority: it revokes directly and keeps the ceremony surface-local.
+  # See adr/logout-ceremony-boundary.md.
+  test "base_sign_out_create_is_session_mutation_and_completes_on_the_base_surface" do
     token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
@@ -22,9 +24,9 @@ class Base::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :revoked?
     location = URI.parse(response.location)
 
-    assert_equal Rails.configuration.x.boot_config.fetch(:hosts).auth_service.host, location.host
-    assert_equal "/sign/out", location.path
-    assert_predicate Rack::Utils.parse_nested_query(location.query.to_s)["logout_token"], :present?
+    assert_equal @host, location.host
+    assert_equal base_app_sign_out_completion_path(ri: "jp"), location.request_uri
+    assert_nil Rack::Utils.parse_nested_query(location.query.to_s)["logout_token"]
   end
 
   private

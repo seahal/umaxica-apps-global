@@ -45,8 +45,8 @@ bin/rails assets:clobber        # Remove compiled assets
 - Docker and Docker Compose
 - Ruby `4.0.x`
 - Bundler
-- Node.js `22.13+`
-- `pnpm@11.0.8`
+- Node.js `24.19.0` (Active LTS)
+- `pnpm@11.20.0`
 
 Start the local stack, install dependencies, and boot the app:
 
@@ -103,11 +103,32 @@ bin/dev
 Modern browsers resolve `*.localhost` to `127.0.0.1`, so extra `/etc/hosts` entries are usually not
 needed.
 
-| Surface | URL                                        |
-| :------ | :----------------------------------------- |
-| Acme    | `http://www.{app,com,org}.localhost:3001`  |
-| Sign    | `http://sign.{org,com,app}.localhost:3000` |
-| Jump    | `http://jump.{app,com,org}.localhost:3001` |
+Local hosts follow the `<service>.<surface>.localhost` order, and every surface is served by the
+single Rails process on port `3000`.
+
+| Surface                    | URL                                                                          |
+| :------------------------- | :--------------------------------------------------------------------------- |
+| Base                       | `http://base.{app,com,org}.localhost:3000`                                    |
+| Base (developer / network) | `http://base.{dev,net}.localhost:3000`                                        |
+| Auth                       | `http://auth.{app,com,org}.localhost:3000`                                    |
+| Core                       | `http://core.{app,com,org,net,dev}.localhost:3000`                            |
+| Side / Palm                | `http://side.{app,com,org}.localhost:3000` / `http://palm.app.localhost:3000` |
+| Info / Help / Docs / News  | `http://{info,help,docs,news}.{app,com,org}.localhost:3000`                   |
+
+Compose injects the `PUBLIC_*_URL` variables (`compose.yaml`), and each route's host constraint
+lists the configured host alongside the `*.localhost` literal. **Development is published through
+Cloudflare Tunnel behind Cloudflare Access**, and cloudflared leaves `Host` unmodified, so Rails
+receives either family: the private `*.localhost` alias on a direct `frontend` network request, or
+the published site name on a request the connector forwards. Development Host Authorization
+therefore accepts the union of both and nothing else — `www.umaxica.com` and `auth.umaxica.app` are
+served, while an Umaxica hostname that no `PUBLIC_*_URL` names is still rejected. Access, not Host
+Authorization, is what keeps the development listener non-public. See
+`docs/architecture/cloudflare-request-paths.md` for the trust boundaries and
+`notes/implementation/2026-08-10-development-tunnel-access-verification.md` for the measured
+end-to-end evidence.
+
+`sign.{app,com,org}.localhost` resolves only when `AUTH_*_URL` and `PUBLIC_AUTH_*_URL` are unset.
+Under Compose the canonical local names for the credential gateway are `auth.*`.
 
 ## コード品質
 
@@ -190,7 +211,8 @@ bundle exec rails test
 COVERAGE=true bundle exec rails test
 ```
 
-Coverage reports are written to `coverage/rails/`.
+Coverage reports are written to `coverage/`. `COVERAGE=true` forces a single test worker, so a
+coverage run takes considerably longer than an ordinary parallel run.
 
 ### JavaScript Tests
 

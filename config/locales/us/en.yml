@@ -1560,6 +1560,7 @@ en:
       action_required: 'Action required: Run migration to set DEFAULT uuidv7() for all tables.'
   errors:
     messages:
+      sign_up_suspended: New registration is temporarily unavailable. Please try again later.
       validation_errors:
         one: 1 error
         other: "%{count} errors"

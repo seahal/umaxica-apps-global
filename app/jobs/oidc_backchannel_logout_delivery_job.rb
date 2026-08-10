@@ -8,6 +8,8 @@ class OidcBackchannelLogoutDeliveryJob < ApplicationJob
   READ_TIMEOUT = 3
 
   def perform(uri, client_id, resource_type, subject, sid)
+    return log_suspended(client_id) if suspended?(client_id)
+
     parsed_uri = URI.parse(uri.to_s)
     logout_token = OidcLogoutTokenCodec.encode(
       client_id: client_id,
@@ -35,6 +37,30 @@ class OidcBackchannelLogoutDeliveryJob < ApplicationJob
   end
 
   private
+
+  # One feature covers both scopes: Flipper's boolean gate short-circuits every
+  # actor check, so `Flipper.enable(:oidc_backchannel_logout_suspended)` stops
+  # delivery to every relying party while
+  # `Flipper.enable_actor(:oidc_backchannel_logout_suspended, actor)` stops only
+  # the named one. The check runs before the logout token is minted so a
+  # suspended RP never has a token created on its behalf.
+  #
+  # Polarity matches OutboundChannelSuspension: the feature names a suspension,
+  # so an unset flag delivers normally. A lost flag store must not silently
+  # strand RPs with sessions the identity provider believes are closed.
+  def suspended?(client_id)
+    FeatureFlags.enabled?(
+      :oidc_backchannel_logout_suspended,
+      OidcClientFlipperActor.new(client_id: client_id.to_s),
+    )
+  end
+
+  def log_suspended(client_id)
+    Rails.logger.warn(
+      JitLogEvent.format("oidc.backchannel_logout.suspended", client_id: client_id),
+    )
+    nil
+  end
 
   def post_logout_token(uri, logout_token)
     Net::HTTP.start(

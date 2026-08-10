@@ -50,10 +50,10 @@ Per the approved plan, this PoC does not implement or validate:
 
 | Path | Purpose |
 |---|---|
-| `docker/fdw-poc/Dockerfile` | Disposable PostgreSQL 16 image with Wrappers' `s3_fdw` built via `cargo pgrx install`. |
-| `docker/fdw-poc/compose.fdw-poc.yml` | Opt-in Compose overlay (`fdw-poc` profile), tmpfs-backed PGDATA, isolated from `compose.yaml`. |
-| `docker/fdw-poc/fixtures/generate_fixtures.sh` | Generates tiny CSV/JSONL/Parquet fixtures and uploads them to RustFS. |
-| `docker/fdw-poc/smoke/run_smoke_checks.sql` | Read-only smoke checklist: SELECT, projection, filter, COUNT, missing-object, invalid-credential, and two schema-mismatch cases, per format. |
+| `podman/fdw-poc/Containerfile` | Disposable PostgreSQL 16 image with Wrappers' `s3_fdw` built via `cargo pgrx install`. |
+| `podman/fdw-poc/compose.fdw-poc.yml` | Opt-in Compose overlay (`fdw-poc` profile), tmpfs-backed PGDATA, isolated from `compose.yaml`. |
+| `podman/fdw-poc/fixtures/generate_fixtures.sh` | Generates tiny CSV/JSONL/Parquet fixtures and uploads them to RustFS. |
+| `podman/fdw-poc/smoke/run_smoke_checks.sql` | Read-only smoke checklist: SELECT, projection, filter, COUNT, missing-object, invalid-credential, and two schema-mismatch cases, per format. |
 
 ## Reproduction Steps
 
@@ -71,18 +71,18 @@ Run all of this on the host (or inside `core`, if it has `podman`, `aws` CLI, an
    export OBJECT_STORAGE_ENDPOINT=http://127.0.0.1:9000   # host-reachable RustFS port
    export OBJECT_STORAGE_ACCESS_KEY_ID=...                 # same value used to start RustFS
    export OBJECT_STORAGE_SECRET_ACCESS_KEY=...
-   ./docker/fdw-poc/fixtures/generate_fixtures.sh
+   ./podman/fdw-poc/fixtures/generate_fixtures.sh
    ```
 
 3. Build and start the disposable FDW PoC container:
    ```sh
    export FDW_POC_POSTGRES_PASSWORD=...   # any local-only value; never reuse a real credential
-   $COMPOSE -f docker/fdw-poc/compose.fdw-poc.yml \
+   $COMPOSE -f podman/fdw-poc/compose.fdw-poc.yml \
      --profile object-storage --profile fdw-poc \
      up -d --build rustfs-permissions rustfs fdw-poc
    ```
 
-4. Before running the checklist, edit `docker/fdw-poc/smoke/run_smoke_checks.sql`:
+4. Before running the checklist, edit `podman/fdw-poc/smoke/run_smoke_checks.sql`:
    replace `CHANGEME_ACCESS_KEY` / `CHANGEME_SECRET_KEY` with the same
    `OBJECT_STORAGE_ACCESS_KEY_ID` / `OBJECT_STORAGE_SECRET_ACCESS_KEY` used above,
    and confirm the `CREATE SERVER` / `CREATE USER MAPPING` option names against the
@@ -91,11 +91,11 @@ Run all of this on the host (or inside `core`, if it has `podman`, `aws` CLI, an
 
 5. Run the checklist and capture full output, including errors verbatim:
    ```sh
-   $COMPOSE -f docker/fdw-poc/compose.fdw-poc.yml \
+   $COMPOSE -f podman/fdw-poc/compose.fdw-poc.yml \
      --profile object-storage --profile fdw-poc \
      exec -T fdw-poc psql -U fdw_poc -d fdw_poc -v ON_ERROR_STOP=0 \
-     -f /dev/stdin < docker/fdw-poc/smoke/run_smoke_checks.sql \
-     | tee docker/fdw-poc/smoke-results.txt
+     -f /dev/stdin < podman/fdw-poc/smoke/run_smoke_checks.sql \
+     | tee podman/fdw-poc/smoke-results.txt
    ```
 
 6. Paste the captured output (or a faithful summary with exact error text) into the
@@ -163,7 +163,7 @@ except this document.
 COMPOSE="podman compose -f compose.yaml -f .devcontainer/compose.override.yml"
 
 # 1. Stop and remove the PoC container (tmpfs PGDATA is discarded automatically).
-$COMPOSE -f docker/fdw-poc/compose.fdw-poc.yml \
+$COMPOSE -f podman/fdw-poc/compose.fdw-poc.yml \
   --profile object-storage --profile fdw-poc down fdw-poc
 
 # 2. Remove the built PoC image.
@@ -178,8 +178,8 @@ aws --endpoint-url "$OBJECT_STORAGE_ENDPOINT" s3 rb \
   "s3://${FDW_POC_BUCKET:-fdw-poc-bucket}"
 
 # 4. Remove the repository files (this document is intentionally excluded).
-git rm -r docker/fdw-poc/Dockerfile docker/fdw-poc/compose.fdw-poc.yml \
-  docker/fdw-poc/fixtures docker/fdw-poc/smoke
+git rm -r podman/fdw-poc/Containerfile podman/fdw-poc/compose.fdw-poc.yml \
+  podman/fdw-poc/fixtures podman/fdw-poc/smoke
 ```
 
 After this manifest is executed, only this document remains as the permanent

@@ -566,6 +566,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.define_singleton_method(:action_name) { @action_name_for_test }
     controller.define_singleton_method(:verified_social_callback_request?) { @verified_social_for_test }
     controller.define_singleton_method(:reject_social_callback!) { |**kwargs| @rejection_for_test = kwargs }
+    controller.define_singleton_method(:test_mode_omniauth_auth_hash) { nil }
 
     controller.omniauth
 

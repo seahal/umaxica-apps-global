@@ -5,11 +5,15 @@ module Auth
   module App
     module Sign
       class UpsController < ::Auth::App::ApplicationController
+        include SignUpSuspensionGuard
+
         # Use :open instead of :guest so already-authenticated users reach the
         # action body and get redirected to their dashboard (see
         # `redirect_logged_in_direct_entry!`) instead of receiving a 403 from
         # the guest enforcement. Matches the sibling InsController policy.
         AUTHENTICATION_MODE = :open
+
+        before_action :reject_suspended_sign_up!
         declare_authentication_mode! :open
         skip_before_action :set_region, raise: false
 
@@ -37,6 +41,8 @@ module Auth
         end
 
         private
+
+        def sign_up_surface = :app
 
         # Logged-in users hitting /sign/up directly are sent to their post-auth
         # landing instead of receiving a 403. The 403 surfaced as a hard error

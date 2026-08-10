@@ -13,8 +13,8 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
     @staff_host = ENV.fetch("PRIVATE_AUTH_STAFF_URL")
     @corporate_host = ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost")
 
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
 
     VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
     VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
@@ -28,8 +28,8 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "rotation drill preserves existing records and keeps app org and com flows working" do

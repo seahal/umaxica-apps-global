@@ -10,8 +10,8 @@ class Auth::Com::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
     ensure_visitor_reference_records!
     VisitorSecretCredentialStatus::DEFAULTS.each { |id| VisitorSecretCredentialStatus.find_or_create_by!(id: id) }
     VisitorSecretCredentialKind::DEFAULTS.each { |id| VisitorSecretCredentialKind.find_or_create_by!(id: id) }
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
 
     @visitor = create_verified_visitor_with_email(
       email_address: "com_challenge_#{SecureRandom.hex(4)}@example.com",
@@ -32,8 +32,8 @@ class Auth::Com::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "show requires pending_mfa" do

@@ -11,8 +11,8 @@ module Auth::App::In
 
     setup do
       host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-      CloudflareTurnstile.test_mode = true
-      CloudflareTurnstile.test_validation_response = { "success" => true }
+      TurnstileVerifierStub.challenge_enabled = true
+      TurnstileVerifierStub.challenge_response = { "success" => true }
 
       @user = Client.create!(mfa_level_enabled: true)
       @email = "mfa_totp_#{SecureRandom.hex(4)}@example.com".freeze
@@ -34,8 +34,8 @@ module Auth::App::In
     end
 
     teardown do
-      CloudflareTurnstile.test_mode = false
-      CloudflareTurnstile.test_validation_response = nil
+      TurnstileVerifierStub.challenge_enabled = false
+      TurnstileVerifierStub.challenge_response = nil
     end
 
     def with_prosopite_paused
@@ -140,7 +140,7 @@ module Auth::App::In
         establish_pending_mfa_via_secret_credential!
       end
 
-      CloudflareTurnstile.test_validation_response = { "success" => false }
+      TurnstileVerifierStub.challenge_response = { "success" => false }
 
       totp_code = ROTP::TOTP.new(@totp.private_key).now
 

@@ -9,7 +9,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    JitSecurityTurnstileVerifier.test_mode = true
+    TurnstileVerifierStub.enabled = true
     # The ceremony runs on the Auth host the application is configured with: a request
     # made to any other host gets a session cookie the application does not read back,
     # so the sign-up ticket is lost and the flow restarts instead of advancing.
@@ -19,7 +19,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
   teardown do
     OmniAuth.config.mock_auth[:apple] = nil
-    JitSecurityTurnstileVerifier.test_mode = false
+    TurnstileVerifierStub.enabled = false
   end
 
   test "sign up waits for confirmation before creating user and identity" do

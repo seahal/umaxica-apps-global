@@ -10,8 +10,8 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   setup do
     host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     cookies["csrf_token"] = csrf_token_value
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
     Prosopite.pause do
       [1, 2, 3].each { |id| VisitorStatus.find_or_create_by!(id: id) }
       [0, 1, 2, 3].each { |id| VisitorVisibility.find_or_create_by!(id: id) }
@@ -25,8 +25,8 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "should get new" do
@@ -148,7 +148,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "create renders unprocessable when turnstile fails" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     assert_no_difference("VisitorEmail.count") do
       post auth_com_sign_up_email_url(ri: "jp"),
@@ -259,7 +259,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "create with turnstile failure returns unprocessable content" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     post auth_com_sign_up_email_url(ri: "jp"),
          params: {

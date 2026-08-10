@@ -20,8 +20,8 @@ class Auth::Com::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
       VisitorSecretCredentialKind.find_or_create_by!(id: VisitorSecretCredentialKind::LOGIN)
       VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::ACTIVE)
     end
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
 
     @visitor = create_verified_visitor_with_email(email_address: "com-sign-in-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
@@ -38,8 +38,8 @@ class Auth::Com::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "should get new" do
@@ -98,7 +98,7 @@ class Auth::Com::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
   end
 
   test "create requires successful turnstile" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     post auth_com_sign_in_secret_url(ri: "jp"),
          params: {

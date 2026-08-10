@@ -4,7 +4,19 @@
 require "test_helper"
 
 class EnforcementIdentifierDigestTest < ActiveSupport::TestCase
+  # `Rails.application.envs` is one process-wide snapshot of the whole
+  # environment (ActiveSupport::EnvConfiguration#reload does `@envs = ENV.to_h`)
+  # and is the first backend `Rails.app.creds` reads. `key_for` resolves through
+  # creds before ENV, so this test has to reload the snapshot to make its own
+  # ENV writes and deletions visible -- but a reload also picks up every other
+  # variable set since boot. config/initializers/jwt.rb installs local JWT
+  # signing material into ENV after the snapshot is first taken, so an
+  # unrestored reload publishes those keys through `Rails.app.creds` for the
+  # remainder of the process. Later tests that delete the same keys from ENV
+  # then still see them via the creds fallback in JitSecurityJwtKeySource#value.
+  # Put the original snapshot back so the leak stops at this test's boundary.
   setup do
+    @previous_env_snapshot = Rails.application.envs.instance_variable_get(:@envs)
     @previous_app_key = ENV.fetch("ENFORCEMENT_APP_IDENTIFIER_HMAC_KEY", nil)
     @previous_com_key = ENV.fetch("ENFORCEMENT_COM_IDENTIFIER_HMAC_KEY", nil)
     ENV["ENFORCEMENT_APP_IDENTIFIER_HMAC_KEY"] = "test-app-enforcement-key"
@@ -15,7 +27,7 @@ class EnforcementIdentifierDigestTest < ActiveSupport::TestCase
   teardown do
     ENV["ENFORCEMENT_APP_IDENTIFIER_HMAC_KEY"] = @previous_app_key
     ENV["ENFORCEMENT_COM_IDENTIFIER_HMAC_KEY"] = @previous_com_key
-    Rails.application.envs.reload
+    Rails.application.envs.instance_variable_set(:@envs, @previous_env_snapshot)
   end
 
   test "for_email normalizes, digests, and stamps current versions" do

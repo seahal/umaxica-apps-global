@@ -16,7 +16,11 @@ module Auth
 
           include EnforcementIdentifierGate
 
+          include SignUpSuspensionGuard
+
           AUTHENTICATION_MODE = :guest
+
+          before_action :reject_suspended_sign_up!
 
           def new
             @visitor_telephone = VisitorTelephone.new
@@ -122,6 +126,8 @@ module Auth
           end
 
           private
+
+          def sign_up_surface = :com
 
           def valid_telephone_session?
             return dummy_existing_telephone_session_valid? if dummy_existing_telephone_flow?

@@ -25,6 +25,7 @@ module Security
       PUBLIC_CSP_REPORTS
       PUBLIC_WELL_KNOWN
       PUBLIC_ROBOTS_SITEMAPS
+      PUBLIC_PWA_OFFLINE
       PUBLIC_CONTENT_READ_APIS
       PUBLIC_PREFERENCE
       PUBLIC_WEB_EDGE
@@ -86,6 +87,26 @@ module Security
         end
 
       assert_empty wrongly_public, "Private routes must not match public categories:\n#{wrongly_public.join("\n")}"
+    end
+
+    test "PUBLIC_PWA_OFFLINE covers exactly the two Rails PWA endpoints" do
+      # Rails::PwaController is a framework controller, so these routes are outside
+      # application_route_entries by construction. They are still public entrypoints, so the category
+      # is enforced here instead. See adr/pwa-offline-route-exception.md.
+      entries =
+        Rails.application.routes.routes.filter_map do |route|
+          controller_path = route.defaults[:controller].to_s
+          next unless controller_path == "rails/pwa"
+
+          [route.verb, route.path.spec.to_s.sub(/\(\.:format\)\z/, ""), route.defaults[:action].to_s]
+        end
+
+      assert_equal 20, entries.size, "expected two PWA endpoints on each of the ten base/auth/side/palm hosts"
+      assert_equal ["GET"], entries.map(&:first).uniq
+      assert_equal(
+        [["/offline", "offline"], ["/service-worker", "service_worker"]],
+        entries.map { |entry| entry.drop(1) }.uniq.sort,
+      )
     end
 
     private

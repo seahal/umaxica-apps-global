@@ -27,23 +27,23 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    CloudflareTurnstile.test_mode = true
-    JitSecurityTurnstileVerifier.test_mode = true
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.enabled = true
     # The ceremony runs on the Auth host the application is configured with: a request
     # made to any other host gets a session cookie the application does not read back,
     # so the sign-up ticket is lost and the flow restarts instead of advancing.
     @host = configured_host(:sign_service)
     @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
     OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
-    JitSecurityTurnstileVerifier.test_mode = false
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
+    TurnstileVerifierStub.enabled = false
   end
 
   test "Google sign up entry creates one client and one active social identity without email" do
@@ -191,7 +191,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     user = create_social_client
     google_identity = create_social_identity(PROVIDERS.fetch(:google), user:, uid: "turnstile_google")
     create_social_identity(PROVIDERS.fetch(:apple), user:, uid: "turnstile_backup_apple")
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     delete_with_verified_session(user, PROVIDERS.fetch(:google))
 

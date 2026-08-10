@@ -17,6 +17,25 @@ class HostAuthorizationContractTest < Minitest::Test
     base.dev.localhost:3000
   ).freeze
 
+  # PUBLIC_*_URL names the site a browser or app sees; PRIVATE_*_URL names the network-side
+  # ingress the CDN/tunnel connects to (adr/public-private-url-boundaries.md). Development
+  # is published through Cloudflare Tunnel behind Cloudflare Access, and cloudflared leaves
+  # `Host` unmodified, so development Host Authorization must accept both families.
+  BROWSER_FACING_SITE_HOSTS = %w(
+    auth.umaxica.app
+    auth.umaxica.com
+    auth.umaxica.org
+    www.umaxica.app
+    www.umaxica.com
+    www.umaxica.org
+    jp.umaxica.app
+    jp.umaxica.com
+    jp.umaxica.org
+    side-jp.umaxica.app
+    info.umaxica.app
+    palm-jp.umaxica.app
+  ).freeze
+
   def test_effective_development_middleware_accepts_private_origins_and_rejects_an_unknown_host
     runner = <<~'RUBY'
       require "json"
@@ -61,6 +80,89 @@ class HostAuthorizationContractTest < Minitest::Test
     end
     assert_equal 200, statuses.fetch(tailscale_serve_host)
     assert_equal 403, statuses.fetch("evil.example.com")
+  end
+
+  def test_development_accepts_published_site_hosts_from_public_url_env_and_nothing_else
+    runner = <<~'RUBY'
+      require "json"
+      require "rack/mock"
+
+      endpoint = ->(_env) { [200, { "content-type" => "text/plain" }, ["accepted"]] }
+      middleware = ActionDispatch::HostAuthorization.new(
+        endpoint,
+        Rails.application.config.hosts,
+        **Rails.application.config.host_authorization,
+      )
+      hosts = JSON.parse(ENV.fetch("HOST_AUTHORIZATION_TEST_HOSTS"))
+      statuses = hosts.to_h do |host|
+        response = Rack::MockRequest.new(middleware).get("/", "HTTP_HOST" => host)
+        [host, response.status]
+      end
+      puts JSON.generate(statuses)
+    RUBY
+
+    # Mirror the PUBLIC_* values compose.yaml sets for the development container, plus one
+    # Umaxica-owned hostname that no PUBLIC_*_URL names. Admitting the published names must
+    # not degrade into admitting the whole umaxica.* domain.
+    unconfigured_site_host = "core-jp.umaxica.app"
+    stdout, stderr, status = Open3.capture3(
+      {
+        "RAILS_ENV" => "development",
+        "HOST_AUTHORIZATION_TEST_HOSTS" =>
+          JSON.generate(BROWSER_FACING_SITE_HOSTS + [unconfigured_site_host, "evil.example.com"]),
+        "PUBLIC_AUTH_SERVICE_URL" => "https://auth.umaxica.app",
+        "PUBLIC_AUTH_CORPORATE_URL" => "https://auth.umaxica.com",
+        "PUBLIC_AUTH_STAFF_URL" => "https://auth.umaxica.org",
+        "PUBLIC_BASE_SERVICE_URL" => "https://www.umaxica.app",
+        "PUBLIC_BASE_CORPORATE_URL" => "https://www.umaxica.com",
+        "PUBLIC_BASE_STAFF_URL" => "https://www.umaxica.org",
+        # Canonical Core family (adr/core-canonical-public-host.md).
+        "PUBLIC_CORE_SERVICE_URL" => "https://jp.umaxica.app",
+        "PUBLIC_CORE_STAFF_URL" => "https://jp.umaxica.org",
+        "PUBLIC_CORE_CORPORATE_URL" => "https://jp.umaxica.com",
+        "PUBLIC_SIDE_SERVICE_URL" => "https://side-jp.umaxica.app",
+        "PUBLIC_INFO_SERVICE_URL" => "https://info.umaxica.app",
+        "PUBLIC_PALM_SERVICE_URL" => "https://palm-jp.umaxica.app",
+      },
+      "bin/rails",
+      "runner",
+      runner,
+    )
+
+    assert_predicate status, :success?, stderr
+
+    statuses = JSON.parse(stdout.lines.last)
+
+    BROWSER_FACING_SITE_HOSTS.each do |host|
+      assert_equal 200,
+                   statuses.fetch(host),
+                   "development Host Authorization must accept the published site host #{host}"
+    end
+    assert_equal 403, statuses.fetch(unconfigured_site_host)
+    assert_equal 403, statuses.fetch("evil.example.com")
+  end
+
+  def test_development_compose_aliases_only_private_origins_and_configured_public_site_hosts
+    compose = File.read(File.expand_path("../../compose.yaml", __dir__))
+    aliases_block = compose[/frontend:\n\s+aliases:\n((?:\s+(?:- \S+|#.*)\n)+)/, 1].to_s
+
+    # Plain Minitest does not provide Rails' assert_not_empty assertion.
+    # rubocop:disable Rails/RefuteMethods
+    refute_empty aliases_block, "expected to find the core service's frontend aliases block"
+    # rubocop:enable Rails/RefuteMethods
+
+    aliased_hosts = aliases_block.scan(/^\s+- (\S+)/).flatten
+    configured_public_hosts =
+      compose.scan(/^\s+PUBLIC_[A-Z_]+_URL:\s*(\S+)/).flatten.map { |value| value.sub(%r{\Ahttps?://}, "") }
+
+    aliased_hosts.each do |host|
+      next if host.end_with?(".localhost")
+
+      assert_includes configured_public_hosts,
+                      host,
+                      "compose.yaml aliases #{host} to core, but no PUBLIC_*_URL names it, " \
+                      "so development Host Authorization would reject it"
+    end
   end
 
   def test_tailscale_serve_host_is_optional_but_must_be_a_bare_ts_net_hostname

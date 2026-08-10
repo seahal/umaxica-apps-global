@@ -209,7 +209,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 
 ### 6.1 Technical constraints
 
-- Ruby 3.4.7, Rails 8.x, pnpm 11.0.8, Node.js 22.13+ (for tooling), PostgreSQL 18.
+- Ruby 3.4.7, Rails 8.x, pnpm 11.20.0, Node.js 24.19.0 (for tooling), PostgreSQL 18.
 - Multi-database config defined in `config/database.yml` requires environment variables for each
   host (e.g., `POSTGRESQL_IDENTITY_PUB`, `POSTGRESQL_ACTIVITY_PUB`/`POSTGRESQL_ACTIVITY_SUB`, and
   `POSTGRESQL_BEHAVIOR_PUB`).

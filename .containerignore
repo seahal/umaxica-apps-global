@@ -1,0 +1,135 @@
+# Podman uses .containerignore in preference to .dockerignore. This file is
+# intentionally kept byte-for-byte equivalent to .dockerignore so both Podman
+# and Docker-compatible builders exclude the same repository content.
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+doc/
+docs/
+*.md
+
+# Development files
+.devcontainer/
+!.devcontainer/
+.devcontainer/*
+!.devcontainer/tailscale-core-supervisor.sh
+!.devcontainer/tailscale-core-status.sh
+!.devcontainer/tailscale-core-login-environment.sh
+.vscode/
+.idea/
+
+# Environment files
+.env*
+!.env.example
+!.env*.erb
+
+# Local credentials are excluded independently of Git. Keep this synchronized
+# with .dockerignore for Docker-compatible builders.
+.secrets/
+
+# Security files
+config/master.key
+config/credentials/*.key
+
+# Log files and temp files
+log/*
+!log/.keep
+tmp/*
+!tmp/.keep
+tmp/pids/*
+!tmp/pids/.keep
+
+# Storage (uploaded files)
+storage/*
+!storage/.keep
+tmp/storage/*
+!tmp/storage/.keep
+
+# Dependencies
+.bundle
+.bun/
+
+# Assets and builds
+app/assets/builds/*
+!app/assets/builds/.keep
+public/assets
+!public/assets/.manifest.json
+public/packs/
+public/packs-test/
+
+# Test and coverage
+test/
+spec/
+coverage/
+.simplecov
+
+# Development databases
+*.sqlite3
+*.sqlite3-*
+
+# Caches and generated files
+.sass-cache/
+.byebug_history
+.ruby-lsp/
+.wrangler/
+.crush/
+.claude/
+.codex/
+.gnupg/
+.ssh/
+dependency/
+memo/
+node_modules/
+.npm/
+.eslintcache
+build/
+dist/
+*.tsbuildinfo
+
+# OS and editor files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+*.swp
+*.swo
+*#
+.#*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Repository build definitions and Compose configuration
+Dockerfile*
+Containerfile*
+docker-compose*
+compose.yaml
+docker/
+podman/
+!podman/
+podman/*
+!podman/core/
+podman/core/*
+!podman/core/entrypoint.sh
+!podman/core/dev-supervisor.sh
+gke/
+
+# CI
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/

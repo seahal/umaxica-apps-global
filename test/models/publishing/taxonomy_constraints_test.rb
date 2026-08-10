@@ -16,7 +16,11 @@ module Publishing
         Vocabulary.new(audience: "app", surface: "docs", key: "category", kind: @category.kind, internal_name: "Dup").save!(validate: false)
       end
 
-      other = Vocabulary.create!(audience: "com", surface: "docs", key: "category", kind: @category.kind, internal_name: "Category")
+      # The same key under a different audience is a different vocabulary, by
+      # design. `category` and `tag` exist in every scope already, so proving
+      # this needs a key the structural migration does not own.
+      Vocabulary.create!(audience: "app", surface: "docs", key: "topic", kind: @category.kind, internal_name: "Topic")
+      other = Vocabulary.create!(audience: "com", surface: "docs", key: "topic", kind: @category.kind, internal_name: "Topic")
 
       assert_predicate other, :persisted?
     end

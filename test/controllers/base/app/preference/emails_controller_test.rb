@@ -17,13 +17,13 @@ module Base
           @email = @user.client_emails.first
           @token = @email.promotional_unsubscribe_token
           host! @host
-          CloudflareTurnstile.test_mode = true
-          CloudflareTurnstile.test_validation_response = { "success" => true }
+          TurnstileVerifierStub.challenge_enabled = true
+          TurnstileVerifierStub.challenge_response = { "success" => true }
         end
 
         teardown do
-          CloudflareTurnstile.test_mode = false
-          CloudflareTurnstile.test_validation_response = nil
+          TurnstileVerifierStub.challenge_enabled = false
+          TurnstileVerifierStub.challenge_response = nil
         end
 
         test "controller uses bare unsubscribe boundary" do
@@ -48,15 +48,15 @@ module Base
         end
 
         test "DELETE destroy keeps promotional email on when turnstile fails" do
-          CloudflareTurnstile.test_mode = true
-          CloudflareTurnstile.test_validation_response = { "success" => false }
+          TurnstileVerifierStub.challenge_enabled = true
+          TurnstileVerifierStub.challenge_response = { "success" => false }
 
           delete(base_app_preference_email_path(@email), params: { token: @token, "cf-turnstile-response": "test" })
 
           assert_redirected_to edit_base_app_preference_email_path(@email, token: @token)
           assert @email.reload.promotional
         ensure
-          CloudflareTurnstile.test_validation_response = { "success" => true }
+          TurnstileVerifierStub.challenge_response = { "success" => true }
         end
 
         test "POST create supports one-click unsubscribe without csrf token" do

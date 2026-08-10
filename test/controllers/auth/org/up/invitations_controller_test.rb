@@ -9,8 +9,8 @@ class Auth::Org::Sign::Up::InvitationsControllerTest < ActionDispatch::Integrati
 
   setup do
     host! ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
     @invitation = OrganizationInvitation.create!(
       organization_id: 123,
       email: "invitee-controller@example.com",
@@ -20,8 +20,8 @@ class Auth::Org::Sign::Up::InvitationsControllerTest < ActionDispatch::Integrati
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "new renders invitation acceptance form" do
@@ -57,7 +57,7 @@ class Auth::Org::Sign::Up::InvitationsControllerTest < ActionDispatch::Integrati
   end
 
   test "create rejects failed turnstile before accepting invitation" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     assert_no_difference -> { Operator.count } do
       post auth_org_sign_up_invitations_url(ri: "jp"),

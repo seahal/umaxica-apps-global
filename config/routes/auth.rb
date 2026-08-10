@@ -30,6 +30,13 @@ scope(module: :auth, as: :auth) do
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
 
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
+
       namespace :apple do
         resources :notifications, only: :create
       end
@@ -240,6 +247,13 @@ scope(module: :auth, as: :auth) do
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
 
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
+
       # Canonical ceremony entrypoints and authed-out confirmation.
       namespace :sign do
         resource :registration, only: :show, path: "up", controller: :ups, as: :up
@@ -385,6 +399,13 @@ scope(module: :auth, as: :auth) do
       resources(:robots, only: :index, path: "robots.txt")
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
 
       # Staff management areas.
       resource :configuration, only: :show

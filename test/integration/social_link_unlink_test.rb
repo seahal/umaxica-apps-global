@@ -42,13 +42,13 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
       user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     @headers = as_user_headers(@user, host: @host, session_public_id: @token.public_id)
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "should unlink apple account when another identity exists" do

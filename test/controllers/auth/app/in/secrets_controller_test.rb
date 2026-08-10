@@ -18,16 +18,16 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
     @email = @user.client_emails.create!(address: @raw_email, user_email_status_id: ClientEmailStatus::VERIFIED)
     @telephone = @user.client_telephones.create!(number: "+819012345678")
     ClientToken.where(user_id: @user.id).delete_all
-    @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
-    AuthenticationBase.login_cooldown_enabled = false
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    @original_login_cooldown = login_cooldown
+    self.login_cooldown = 0.seconds
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    AuthenticationBase.login_cooldown_enabled = @original_login_cooldown_enabled
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    self.login_cooldown = @original_login_cooldown
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "should get new" do
@@ -106,7 +106,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
   end
 
   test "turnstile failure returns unified authentication error" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
     _secret_credential, raw_secret_credential = issue_secret_credential!
 
     post auth_app_sign_in_secret_url(ri: "jp"),
@@ -125,7 +125,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
         { "success" => false }
       end
 
-    CloudflareTurnstile.test_mode = false
+    TurnstileVerifierStub.challenge_enabled = false
     JitSecurityTurnstileVerifier.stub(:verify, verifier) do
       post(
         auth_app_sign_in_secret_url(ri: "jp"),
@@ -138,7 +138,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
     assert_equal [{ token: "test_token", remote_ip: "127.0.0.1", mode: :visible }], calls
     assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
   ensure
-    CloudflareTurnstile.test_mode = true
+    TurnstileVerifierStub.challenge_enabled = true
   end
 
   test "email and matching permanent secret_credential logs in successfully" do
@@ -387,8 +387,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
 
     reset!
     host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
 
     post auth_app_sign_in_secret_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),

@@ -1400,6 +1400,7 @@ Style/IpAddresses:
     - "config/**/*"
     - "test/**/*"
     - "docker/**/*"
+    - "podman/**/*"
     - "db/**/*_migrate/**/*"
     - "db/initial_schemas/**/*"
 

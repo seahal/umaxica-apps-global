@@ -17,8 +17,8 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
     @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @public_base_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", @base_host)
@@ -45,8 +45,8 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
   teardown do
     OmniAuth.config.mock_auth[:google_app] = nil
     OmniAuth.config.mock_auth[:apple] = nil
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "unlink Google requires recent step_up" do

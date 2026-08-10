@@ -1,6 +1,16 @@
 <%
-  default_host = ENV.fetch("POSTGRESQL_HOST", "localhost")
   test_host = ENV.fetch("POSTGRESQL_TEST_HOST", ENV.fetch("POSTGRESQL_HOST", "localhost"))
+
+  # Every `development:` host is required configuration: a missing name used to
+  # fall back to a shared default, which silently pointed a database at the
+  # wrong node instead of reporting the gap. Rails renders this file in full for
+  # whichever environment boots, though, so a bare ENV.fetch in that block would
+  # also abort `test` and `production` runs that have no development hosts to
+  # declare. Enforce presence only when development is the environment actually
+  # being booted.
+  development_host = lambda do |name|
+    Rails.env.development? ? ENV.fetch(name) : ENV[name]
+  end
 %>
 default: &default
   adapter: postgresql
@@ -9,8 +19,11 @@ default: &default
   port: 5432
   timeout: 30000
   username: <%= ENV.fetch("POSTGRESQL_USER", "postgres") %>
-  password: <%= ENV["POSTGRESQL_PASSWORD"]
-    .presence || Rails.application.credentials.dig(:DATABASE, :PASSWORD) %>
+  password: <%= if ENV["POSTGRESQL_PASSWORD_FILE"].present?
+    File.read(ENV.fetch("POSTGRESQL_PASSWORD_FILE")).strip
+  else
+    ENV["POSTGRESQL_PASSWORD"].presence || Rails.application.credentials.dig(:DATABASE, :PASSWORD)
+  end %>
   lock_timeout: 2s
   # Raised from 2s so background jobs (e.g. RetentionPurgeJob batch deletes) are not
   # killed mid-statement. Web requests are additionally bounded by rack-timeout (10s).
@@ -36,20 +49,20 @@ development:
   publishing:
     !!merge <<: *development_default
     database: development_publishing_db
-    host: <%= ENV["POSTGRESQL_PUBLISHING_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_PUBLISHING_PUB") %>
     migrations_paths: db/publishing_migrate
     schema_dump: publishing_structure.sql
   publishing_replica:
     !!merge <<: *development_default
     replica: true
     database: development_publishing_db
-    host: <%= ENV["POSTGRESQL_PUBLISHING_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_PUBLISHING_SUB") %>
     migrations_paths: db/publishing_migrate
     schema_dump: publishing_structure.sql
   com_zenith:
     !!merge <<: *development_default
     database: development_com_zenith_db
-    host: <%= ENV["POSTGRESQL_COM_ZENITH_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_COM_ZENITH_PUB") %>
     migrations_paths:
       - db/com_principals_migrate
       - db/com_zenith_migrate
@@ -58,7 +71,7 @@ development:
     !!merge <<: *development_default
     replica: true
     database: development_com_zenith_db
-    host: <%= ENV["POSTGRESQL_COM_ZENITH_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_COM_ZENITH_SUB") %>
     migrations_paths:
       - db/com_principals_migrate
       - db/com_zenith_migrate
@@ -66,7 +79,7 @@ development:
   app_zenith:
     !!merge <<: *development_default
     database: development_app_zenith_db
-    host: <%= ENV["POSTGRESQL_APP_ZENITH_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_APP_ZENITH_PUB") %>
     migrations_paths:
       - db/app_principals_migrate
       - db/app_zenith_migrate
@@ -75,7 +88,7 @@ development:
     !!merge <<: *development_default
     replica: true
     database: development_app_zenith_db
-    host: <%= ENV["POSTGRESQL_APP_ZENITH_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_APP_ZENITH_SUB") %>
     migrations_paths:
       - db/app_principals_migrate
       - db/app_zenith_migrate
@@ -83,7 +96,7 @@ development:
   org_zenith:
     !!merge <<: *development_default
     database: development_org_zenith_db
-    host: <%= ENV["POSTGRESQL_ORG_ZENITH_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_ORG_ZENITH_PUB") %>
     migrations_paths:
       - db/org_principals_migrate
       - db/org_zenith_migrate
@@ -92,7 +105,7 @@ development:
     !!merge <<: *development_default
     replica: true
     database: development_org_zenith_db
-    host: <%= ENV["POSTGRESQL_ORG_ZENITH_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_ORG_ZENITH_SUB") %>
     migrations_paths:
       - db/org_principals_migrate
       - db/org_zenith_migrate
@@ -100,7 +113,7 @@ development:
   app_setting:
     !!merge <<: *development_default
     database: development_app_setting_db
-    host: <%= ENV["POSTGRESQL_APP_SETTING_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_APP_SETTING_PUB") %>
     migrations_paths: db/app_settings_migrate
     schema_dump: app_setting_structure.sql
     connect_timeout: 2
@@ -108,183 +121,191 @@ development:
     !!merge <<: *development_default
     replica: true
     database: development_app_setting_db
-    host: <%= ENV["POSTGRESQL_APP_SETTING_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_APP_SETTING_SUB") %>
     migrations_paths: db/app_settings_migrate
     schema_dump: app_setting_structure.sql
     connect_timeout: 2
   org_setting:
     !!merge <<: *development_default
     database: development_org_setting_db
-    host: <%= ENV["POSTGRESQL_ORG_SETTING_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_ORG_SETTING_PUB") %>
     migrations_paths: db/org_settings_migrate
     schema_dump: org_setting_structure.sql
   org_setting_replica:
     !!merge <<: *development_default
     replica: true
     database: development_org_setting_db
-    host: <%= ENV["POSTGRESQL_ORG_SETTING_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_ORG_SETTING_SUB") %>
     migrations_paths: db/org_settings_migrate
     schema_dump: org_setting_structure.sql
   com_setting:
     !!merge <<: *development_default
     database: development_com_setting_db
-    host: <%= ENV["POSTGRESQL_COM_SETTING_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_COM_SETTING_PUB") %>
     migrations_paths: db/com_settings_migrate
     schema_dump: com_setting_structure.sql
   com_setting_replica:
     !!merge <<: *development_default
     replica: true
     database: development_com_setting_db
-    host: <%= ENV["POSTGRESQL_COM_SETTING_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_COM_SETTING_SUB") %>
     migrations_paths: db/com_settings_migrate
     schema_dump: com_setting_structure.sql
   search:
     !!merge <<: *development_default
     database: development_search_db
-    host: <%= ENV["POSTGRESQL_SEARCH_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_SEARCH_PUB") %>
     migrations_paths: db/searches_migrate
   search_replica:
     !!merge <<: *development_default
     replica: true
     database: development_search_db
-    host: <%= ENV["POSTGRESQL_SEARCH_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_SEARCH_SUB") %>
     migrations_paths: db/searches_migrate
   org_ticket:
     !!merge <<: *development_default
     database: development_org_ticket_db
-    host: <%= ENV["POSTGRESQL_ORG_TICKET_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_ORG_TICKET_PUB") %>
     migrations_paths: db/org_tickets_migrate
   org_ticket_replica:
     !!merge <<: *development_default
     replica: true
     database: development_org_ticket_db
-    host: <%= ENV["POSTGRESQL_ORG_TICKET_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_ORG_TICKET_SUB") %>
     migrations_paths: db/org_tickets_migrate
   com_ticket:
     !!merge <<: *development_default
     database: development_com_ticket_db
-    host: <%= ENV["POSTGRESQL_COM_TICKET_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_COM_TICKET_PUB") %>
     migrations_paths: db/com_tickets_migrate
   com_ticket_replica:
     !!merge <<: *development_default
     replica: true
     database: development_com_ticket_db
-    host: <%= ENV["POSTGRESQL_COM_TICKET_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_COM_TICKET_SUB") %>
     migrations_paths: db/com_tickets_migrate
   app_ticket:
     !!merge <<: *development_default
     database: development_app_ticket_db
-    host: <%= ENV["POSTGRESQL_APP_TICKET_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_APP_TICKET_PUB") %>
     migrations_paths: db/app_tickets_migrate
   app_ticket_replica:
     !!merge <<: *development_default
     replica: true
     database: development_app_ticket_db
-    host: <%= ENV["POSTGRESQL_APP_TICKET_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_APP_TICKET_SUB") %>
     migrations_paths: db/app_tickets_migrate
   app_signal:
     !!merge <<: *development_default
     database: development_app_signal_db
-    host: <%= ENV["POSTGRESQL_APP_SIGNAL_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_APP_SIGNAL_PUB") %>
     migrations_paths: db/app_signals_migrate
   app_signal_replica:
     !!merge <<: *development_default
     replica: true
     database: development_app_signal_db
-    host: <%= ENV["POSTGRESQL_APP_SIGNAL_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_APP_SIGNAL_SUB") %>
     migrations_paths: db/app_signals_migrate
   org_signal:
     !!merge <<: *development_default
     database: development_org_signal_db
-    host: <%= ENV["POSTGRESQL_ORG_SIGNAL_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_ORG_SIGNAL_PUB") %>
     migrations_paths: db/org_signals_migrate
   org_signal_replica:
     !!merge <<: *development_default
     replica: true
     database: development_org_signal_db
-    host: <%= ENV["POSTGRESQL_ORG_SIGNAL_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_ORG_SIGNAL_SUB") %>
     migrations_paths: db/org_signals_migrate
   com_signal:
     !!merge <<: *development_default
     database: development_com_signal_db
-    host: <%= ENV["POSTGRESQL_COM_SIGNAL_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_COM_SIGNAL_PUB") %>
     migrations_paths: db/com_signals_migrate
   com_signal_replica:
     !!merge <<: *development_default
     replica: true
     database: development_com_signal_db
-    host: <%= ENV["POSTGRESQL_COM_SIGNAL_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_COM_SIGNAL_SUB") %>
     migrations_paths: db/com_signals_migrate
   cache:
     !!merge <<: *development_default
     database: development_cache_db
-    host: <%= ENV["POSTGRESQL_CACHE_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_CACHE_PUB") %>
     migrations_paths: db/caches_migrate
   cache_replica:
     !!merge <<: *development_default
     replica: true
     database: development_cache_db
-    host: <%= ENV["POSTGRESQL_CACHE_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_CACHE_SUB") %>
     migrations_paths: db/caches_migrate
   queue:
     !!merge <<: *development_default
     pool: 5
     database: development_queue_db
-    host: <%= ENV["POSTGRESQL_QUEUE_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_QUEUE_PUB") %>
     migrations_paths: db/queues_migrate
   queue_replica:
     !!merge <<: *development_default
     pool: 5
     replica: true
     database: development_queue_db
-    host: <%= ENV["POSTGRESQL_QUEUE_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_QUEUE_SUB") %>
     migrations_paths: db/queues_migrate
   storage:
     !!merge <<: *development_default
     database: development_storage_db
-    host: <%= ENV["POSTGRESQL_STORAGE_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_STORAGE_PUB") %>
     migrations_paths: db/storages_migrate
   storage_replica:
     !!merge <<: *development_default
     replica: true
     database: development_storage_db
-    host: <%= ENV["POSTGRESQL_STORAGE_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_STORAGE_SUB") %>
     migrations_paths: db/storages_migrate
   occurrence:
     !!merge <<: *development_default
     database: development_occurrence_db
-    host: <%= ENV["POSTGRESQL_OCCURRENCE_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_OCCURRENCE_PUB") %>
     migrations_paths: db/occurrences_migrate
   occurrence_replica:
     !!merge <<: *development_default
     replica: true
     database: development_occurrence_db
-    host: <%= ENV["POSTGRESQL_OCCURRENCE_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_OCCURRENCE_SUB") %>
     migrations_paths: db/occurrences_migrate
   chronicle:
     !!merge <<: *development_default
     database: development_chronicle_db
-    host: <%= ENV["POSTGRESQL_CHRONICLE_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_CHRONICLE_PUB") %>
     migrations_paths: db/chronicle_migrate
     schema_dump: chronicle_structure.sql
   chronicle_replica:
     !!merge <<: *development_default
     replica: true
     database: development_chronicle_db
-    host: <%= ENV["POSTGRESQL_CHRONICLE_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_CHRONICLE_SUB") %>
     migrations_paths: db/chronicle_migrate
     schema_dump: chronicle_structure.sql
   avatar:
     !!merge <<: *development_default
     database: development_avatar_db
-    host: <%= ENV["POSTGRESQL_AVATAR_PUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_AVATAR_PUB") %>
     migrations_paths: db/avatars_migrate
   avatar_replica:
     !!merge <<: *development_default
     replica: true
     database: development_avatar_db
-    host: <%= ENV["POSTGRESQL_AVATAR_SUB"] || default_host %>
+    host: <%= development_host.call("POSTGRESQL_AVATAR_SUB") %>
     migrations_paths: db/avatars_migrate
+  # Feature flags (Flipper). Deliberately has no replica: a flag is read immediately
+  # after it is toggled, and replication lag would surface as a flip that "did not apply".
+  platform:
+    !!merge <<: *development_default
+    database: development_platform_db
+    host: <%= development_host.call("POSTGRESQL_PLATFORM_PUB") %>
+    migrations_paths: db/platform_migrate
+    schema_dump: platform_structure.sql
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
@@ -549,6 +570,12 @@ test:
     host: <%= test_host %>
     migrations_paths: db/avatars_migrate
     schema_dump: avatar_structure.sql
+  platform:
+    !!merge <<: *test_default
+    database: test_platform_db
+    host: <%= test_host %>
+    migrations_paths: db/platform_migrate
+    schema_dump: platform_structure.sql
 production:
   publishing:
     !!merge <<: *default
@@ -918,3 +945,13 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.AVATAR_REPLICA&.PASSWORD %>
     migrations_paths: db/avatars_migrate
+  # Feature flags (Flipper). No replica by design; see the development section.
+  platform:
+    !!merge <<: *default
+    database: production_platform_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.PLATFORM&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.PLATFORM&.PASSWORD %>
+    migrations_paths: db/platform_migrate
+    schema_dump: platform_structure.sql

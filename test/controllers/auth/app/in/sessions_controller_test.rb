@@ -336,13 +336,13 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   end
 
   test "update promotes pending email OIDC sign-in cycle and signs in Sign while preserving callback capacity" do
-    CloudflareTurnstile.test_mode = true
+    TurnstileVerifierStub.challenge_enabled = true
     first_active = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     first_active.rotate_refresh_token!
     second_active = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     second_active.rotate_refresh_token!
     [first_active, second_active].each do |token|
-      token.update_columns(created_at: AuthenticationBase::LOGIN_COOLDOWN.ago - 1.second)
+      token.update_columns(created_at: AuthenticationBase.login_cooldown.ago - 1.second)
     end
     email = @user.client_emails.create!(address: "cycle_limit_#{SecureRandom.hex(4)}@example.com")
     login_challenge = issue_login_challenge
@@ -405,8 +405,8 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_nil transaction.auth_method
     assert_equal 2, ClientToken.not_revoked.where(user_id: @user.id, rotated_at: nil).count
   ensure
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "update with pt param redirects to the requested path" do
