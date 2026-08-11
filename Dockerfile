@@ -18,7 +18,7 @@ FROM node:${NODE_MAJOR}-trixie-slim AS node-toolchain
 
 # Tailscale binaries are copied only into the development target. Pin both the
 # release tag and image digest so a rebuild cannot silently change the tools.
-FROM docker.io/tailscale/tailscale:v1.98.9@sha256:6dba149843cfd9171bbd602b17a71b0fb7955c13f96f534877075c915abbc072 AS tailscale-toolchain
+FROM docker.io/tailscale/tailscale:v1.102.2@sha256:321ce041508c19079b57a28b6666c8d81ab0b08accc0a2585b3ab663d557ac24 AS tailscale-toolchain
 
 # ============================================================================
 # Production base — runtime-only dependencies
