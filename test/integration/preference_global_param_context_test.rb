@@ -84,12 +84,13 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_select "html[lang='ja']"
-      assert_select "select[name='preference_timezone[option_id]'] option", text: /東部時間/
-      assert_select "select[name='preference_timezone[option_id]'] option", text: /中部時間/
-      assert_select "select[name='preference_timezone[option_id]'] option", text: /山岳部時間/
-      assert_select "select[name='preference_timezone[option_id]'] option", text: /太平洋時間/
-      assert_select "select[name='preference_timezone[option_id]'] option", text: /アラスカ時間/
-      assert_select "select[name='preference_timezone[option_id]'] option", text: /ハワイ時間/
+
+      labels = inertia_choice_labels
+
+      [/東部時間/, /中部時間/, /山岳部時間/, /太平洋時間/, /アラスカ時間/, /ハワイ時間/].each do |pattern|
+        assert labels.any? { |label| label.match?(pattern) },
+               "timezone choices should offer #{pattern.source}: #{labels.inspect}"
+      end
     end
 
     test "#{domain[:name]} ri param is always included in default_url_options" do
@@ -100,12 +101,9 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      # Check that links generated with url helpers have ri parameter
-      # Look for specific navigation links that use url helpers
-      links = css_select("a[href*='/preference']")
-      links.each do |link|
-        href = link["href"]
-
+      # The index is an Inertia page, so the links generated with url helpers travel in the page
+      # object props rather than in server rendered anchors.
+      preference_screen_hrefs.each do |href|
         assert_match(/ri=/, href, "Preference link should include ri parameter: #{href}")
       end
     end
@@ -125,9 +123,9 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       assert_response :success
 
       # Check preference links (which use url helpers)
-      links = css_select("a[href*='/preference'][href*='lx=en']")
+      hrefs = preference_screen_hrefs.grep(/lx=en/)
 
-      assert_predicate links, :any?,
+      assert_predicate hrefs, :any?,
                        "Preference links should preserve lx=en parameter when it was in the request"
     end
 
@@ -140,10 +138,7 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       assert_response :success
 
       # Check preference links - they should NOT have lx parameter
-      links = css_select("a[href*='/preference']")
-      links.each do |link|
-        href = link["href"]
-
+      preference_screen_hrefs.each do |href|
         assert_no_match(/lx=/, href, "Preference link should NOT include lx parameter: #{href}")
       end
     end
@@ -156,9 +151,9 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      links = css_select("a[href*='/preference'][href*='ct=dr']")
+      hrefs = preference_screen_hrefs.grep(/ct=dr/)
 
-      assert_predicate links, :any?,
+      assert_predicate hrefs, :any?,
                        "Preference links should preserve ct=dr parameter when it was in the request"
     end
 
@@ -170,10 +165,7 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      links = css_select("a[href*='/preference']")
-      links.each do |link|
-        href = link["href"]
-
+      preference_screen_hrefs.each do |href|
         assert_no_match(/ct=/, href, "Preference link should NOT include ct parameter: #{href}")
       end
     end
@@ -186,9 +178,9 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      links = css_select("a[href*='/preference'][href*='tz=utc']")
+      hrefs = preference_screen_hrefs.grep(/tz=utc/)
 
-      assert_predicate links, :any?,
+      assert_predicate hrefs, :any?,
                        "Preference links should preserve tz=utc parameter when it was in the request"
     end
 
@@ -200,10 +192,7 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      links = css_select("a[href*='/preference']")
-      links.each do |link|
-        href = link["href"]
-
+      preference_screen_hrefs.each do |href|
         assert_no_match(/tz=/, href, "Preference link should NOT include tz parameter: #{href}")
       end
     end
@@ -229,20 +218,19 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       assert_response :success
 
       # Check that preference links preserve all params
-      links = css_select("a[href*='/preference']")
+      hrefs = preference_screen_hrefs
 
-      assert_predicate links, :any?, "Should have preference links"
+      assert_predicate hrefs, :any?, "Should have preference links"
 
       # At least some links should have all the params
-      links_with_all_params =
-        links.select do |link|
-          href = link["href"]
+      hrefs_with_all_params =
+        hrefs.select do |href|
           %w(lx=en ct=dr tz=utc cu=usd df=us tf=12 mo=rd dn=cp ps=50).all? do |param|
             href.include?(param)
           end
         end
 
-      assert_predicate links_with_all_params, :any?,
+      assert_predicate hrefs_with_all_params, :any?,
                        "Some preference links should have all optional params preserved"
     end
 
@@ -254,10 +242,7 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      links = css_select("a[href*='/preference']")
-      links.each do |link|
-        href = link["href"]
-
+      preference_screen_hrefs.each do |href|
         assert_no_match(/pt=/, href, "Preference link should not include pt by default: #{href}")
         assert_no_match(/nt=/, href, "Preference link should not include nt by default: #{href}")
       end
@@ -348,6 +333,13 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  # Hrefs of the preference edit screens listed on the index. The index renders through Inertia, so
+  # the URLs built by the route helpers live in the embedded page object rather than in anchors,
+  # and so does the request context that default_url_options merges into them.
+  def preference_screen_hrefs
+    inertia_props.fetch("screens").map { |screen| screen.fetch("href") }
+  end
 
   def internal_links_for(host)
     allowed_hosts = [

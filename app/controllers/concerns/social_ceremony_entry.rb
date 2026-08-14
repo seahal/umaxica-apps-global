@@ -1,8 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-# Shared entry point for the app-surface social ceremony controllers
-# (Auth::App::Social::SessionsController and RegistrationsController).
+# Surface-neutral entry point for external-identity ceremony start.
 #
 # The ceremony is POST only. The press of an in-application provider button
 # supplies the CSRF token the OmniAuth request phase requires, and the handoff is
@@ -13,179 +12,109 @@
 # started a ceremony would be login CSRF (CVE-2015-9284). People choose their
 # provider on the sign-in or sign-up page.
 #
-# The OmniAuth callbacks are handled by Auth::App::Omniauth::OmniauthCallbacksController.
+# This concern holds only what every surface shares: the provider allow-list
+# check, the provider availability gate, and the handoff. Everything that
+# differs per surface is a hook. The three required hooks raise rather than
+# defaulting, because a surface that silently inherited another surface's
+# provider list, gate surface, or redirect target would be a cross-surface
+# leak (.agents/harnesses/rules/project/surfaces.mdc).
+#
+# Surface-local extensions:
+# - app: AppSocialCeremonyEntry adds sign-up entry detection, ceremony grants,
+#   the link/step-up intents, and the ClientSignUpFlow issuance.
+# - org: Auth::Org::Social::SessionsController implements the required hooks
+#   only; the org surface has no social sign-up at all, because Entra sign-in
+#   performs no JIT provisioning (adr/org-entra-id-sign-in-boundary.md).
 module SocialCeremonyEntry
   extend ActiveSupport::Concern
 
-  SUPPORTED_PROVIDERS = %w(google apple).freeze
-  SOCIAL_LINK_SCOPE = SocialAuth::SOCIAL_LINK_SCOPE
-
   included do
-    include SocialAuth
-    include SignUpSuspensionGuard
     include ExternalAuthenticationEndpoint
-
-    rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
-    rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
   end
 
   private
+
+  # --- Required hooks -------------------------------------------------------
+
+  # @return [String] surface name passed to the provider policy/availability
+  #   gate, e.g. "app" or "org".
+  def social_ceremony_surface
+    raise NotImplementedError, "#{self.class} must implement #social_ceremony_surface"
+  end
+
+  # @return [Array<String>] providers this surface may start a ceremony for.
+  def social_ceremony_providers
+    raise NotImplementedError, "#{self.class} must implement #social_ceremony_providers"
+  end
+
+  # @return [String] path to redirect to when the ceremony cannot start.
+  def social_ceremony_abort_path
+    raise NotImplementedError, "#{self.class} must implement #social_ceremony_abort_path"
+  end
+
+  # --- Optional hooks -------------------------------------------------------
+
+  # Operation name for the provider policy and availability gate. Surfaces
+  # with a sign-up ceremony override this to distinguish signup from login.
+  def social_ceremony_operation(intent)
+    intent.to_s.presence || "login"
+  end
+
+  # Ceremony state a surface needs before handing off (intent session state,
+  # replay grants, sign-up flow records). Called with `intent:` and `provider:`;
+  # the default needs neither, so it accepts and discards them. Return false to
+  # abort the handoff; the hook is responsible for having issued its own
+  # response in that case.
+  def prepare_surface_ceremony_state!(**)
+    true
+  end
+
+  # --- Algorithm ------------------------------------------------------------
+
+  # OmniAuth request-phase path for a provider, from the registry rather than a
+  # per-surface literal, so the path a surface hands off to and the path the
+  # middleware mounts cannot drift apart. The app surface overrides this in
+  # SocialAuth, which also accepts a `state:` argument.
+  def social_ceremony_request_path(provider)
+    ExternalAuthentication::ProviderRegistry.fetch(
+      SocialIdentifiable.normalize_provider(provider),
+    ).request_path
+  end
 
   # Prepares the ceremony, then hands the request on with a 307.
   def handoff_social_ceremony!
     return unless prepare_social_ceremony!
 
     redirect_to(
-      omniauth_authorize_path(params[:provider]),
+      social_ceremony_request_path(params[:provider]),
       status: :temporary_redirect,
     )
   rescue SocialAuth::BaseError => e
     handle_social_auth_error(e)
   end
 
-  # Params:
-  #   - provider: "google" or "apple" (route default)
-  #   - intent: "login", "link", or "step_up" (default: "login")
-  #     "login" is the internal continue flow: existing identities sign in,
-  #     missing identities create a new account.
-  #
   # @return [Boolean] false when the request was redirected instead.
   def prepare_social_ceremony!
     provider = params[:provider]
     intent = params[:intent] || "login"
 
-    unless SUPPORTED_PROVIDERS.include?(provider)
-      redirect_to(auth_app_sign_in_path)
+    unless social_ceremony_providers.include?(provider)
+      redirect_to(social_ceremony_abort_path)
       return false
     end
 
-    # Only the sign-up entry is gated: this concern also serves the sign-in
-    # ceremony, which `sign_up_suspended_app` must leave open. The check runs
-    # before any session state is prepared, so a suspended registration leaves
-    # no intent, no ceremony grant, and no ClientSignUpFlow behind.
-    return false if social_auth_entry == "sign_up" && reject_suspended_sign_up!
-
-    # `social_ceremony_app_{provider}` gates the *start* here, matching
-    # SignSocialAuthenticationEndpoint. Without this the callback's `:draining`
-    # state never drains: draining exists to let ceremonies issued before the
-    # switch was flipped finish, which is only bounded if no new ceremony can
-    # start. An operation outside ProviderSurfacePolicy (a forged `intent`)
-    # fails the first check and short-circuits before the adapter sees it.
-    operation = (social_auth_entry == "sign_up") ? "signup" : intent.to_s
-    unless external_authentication_allowed?(surface: "app", provider: provider, operation: operation) &&
+    # Gating the *start* is what bounds the callback's `:draining` state:
+    # draining exists to let ceremonies issued before a kill switch was flipped
+    # finish, which is only bounded if no new ceremony can start. An operation
+    # outside ProviderSurfacePolicy (a forged `intent`) fails the first check
+    # and short-circuits before the adapter sees it.
+    operation = social_ceremony_operation(intent)
+    unless external_authentication_allowed?(surface: social_ceremony_surface, provider: provider, operation: operation) &&
         external_authentication_start_available?(provider: provider, operation: operation, context: {})
-      redirect_to(auth_app_sign_in_path, status: :see_other)
+      redirect_to(social_ceremony_abort_path, status: :see_other)
       return false
     end
 
-    # Prepare session with intent context (OmniAuth manages OAuth state)
-    state = prepare_social_auth_intent!(
-      intent,
-      provider: provider,
-      pt: nil,
-      entry: social_auth_entry,
-      ri: params[:ri].presence,
-    )
-    if params[:social_ceremony_grant].present?
-      store_social_ceremony_grant!(params[:social_ceremony_grant])
-    elsif intent.to_s == "login"
-      issuance = IdentitySocialCeremonyGrantIssuer.issue!(
-        surface: "app",
-        actor_ref: social_login_actor_ref,
-        session_ref: state,
-        operation: "login",
-        provider: provider,
-        resource_ref: social_auth_entry,
-        return_to: path_from_signed_pt(signed_pt_token(resolved_path_or_navigation_target)),
-      )
-      store_social_ceremony_grant!(issuance.grant)
-    end
-    issue_sign_up_flow!(provider) if social_auth_entry == "sign_up"
-
-    true
-  end
-
-  def social_auth_entry
-    return "sign_up" if %w(sign_up auth_up).include?(request.parameters["entry"].to_s)
-
-    referer_path = URI.parse(request.referer.to_s).path
-    return "sign_up" if referer_path == auth_app_sign_up_path
-
-    "sign_in"
-  rescue URI::InvalidURIError
-    "sign_in"
-  end
-
-  def issue_sign_up_flow!(provider)
-    cycle =
-      AppTicketRecord.connected_to(role: :writing) do
-        ClientSignUpFlowStatus.ensure_defaults!
-        ClientSignUpFlow.create!(
-          principal_id: nil,
-          status_id: ClientSignUpFlowStatus::STARTED,
-          step: "start",
-          nonce_digest: ClientSignUpFlow.digest_nonce(SecureRandom.urlsafe_base64(32)),
-          issued_at: Time.current,
-          expires_at: ClientSignUpFlow.default_ttl.from_now,
-          entry_method: social_entry_method(provider),
-          social_provider: social_entry_method(provider),
-          return_to: resolved_path_or_navigation_target,
-        )
-      end
-    result =
-      AppTicketRecord.connected_to(role: :writing) do
-        SignUpStateMachine.call(
-          ticket: cycle,
-          event: :start_social_callback,
-          actor_context: Actor.authn,
-        )
-      end
-    raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless result.status == :advanced
-
-    sign_up_flow_locator.issue!(cycle)
-    session[:auth_app_up_sequence_id] = cycle.public_id
-  end
-
-  # This concern is mounted only on app-surface controllers (see the file
-  # header), so the gated surface is fixed rather than derived per request.
-  def sign_up_surface = :app
-
-  def social_login_actor_ref
-    "anonymous"
-  end
-
-  def social_entry_method(provider)
-    SocialIdentifiable.normalize_provider(provider)
-  end
-
-  def sign_up_flow_locator
-    SignUpCycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow)
-  end
-
-  # A link intent arriving from settings has to be recently step-up verified.
-  def require_social_link_step_up!
-    return true unless params[:intent].to_s == "link"
-    return true unless SUPPORTED_PROVIDERS.include?(params[:provider].to_s)
-    return true unless logged_in? && current_resource.present?
-    return true if step_up_satisfied?(scope: SOCIAL_LINK_SCOPE)
-
-    redirect_to(
-      actor_verification_path(
-        scope: SOCIAL_LINK_SCOPE,
-        pt: encoded_relative_pt(social_link_settings_path(params[:provider])),
-        ri: params[:ri],
-      ),
-      status: :see_other,
-    )
-    false
-  end
-
-  def social_link_settings_path(provider)
-    case SocialIdentifiable.normalize_provider(provider)
-    when "apple"
-      auth_app_settings_apple_path(ri: params[:ri])
-    else
-      auth_app_settings_google_path(ri: params[:ri])
-    end
+    prepare_surface_ceremony_state!(intent: intent, provider: provider)
   end
 end

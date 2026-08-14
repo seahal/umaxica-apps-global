@@ -18,9 +18,9 @@ module Outbound
                       },
       ) do
         SmsDeliveryJob.perform_now(
-          to: "+819012345678",
-          title: "Verification",
-          encrypted_body: OutboundSensitivePayload.encrypt_sms_body("Your code is 123456"),
+          encrypted_payload: OutboundSensitivePayload.encrypt_sms_delivery(
+            to: "+819012345678", title: "Verification", body: "Your code is 123456",
+          ),
         )
       end
 

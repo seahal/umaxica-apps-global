@@ -7,8 +7,10 @@ require "test_helper"
 class I18nRuntimeDefaultCleanupTest < ActiveSupport::TestCase
   LOCALES = %i(ja en).freeze
 
+  # meta.default_title is intentionally absent: the brand and its TLD edition are
+  # a locale-independent contract carried by the layouts' meta-tags site title, so
+  # only page-specific titles are translated.
   KEYS = %w(
-    meta.default_title
     defaults.never
     time.formats.short
     session_limit.edit.page_title

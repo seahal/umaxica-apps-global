@@ -1,23 +1,22 @@
 # Rails-Internal Lifecycle and FDW Active Record Contract Audit
 
-Date: 2026-07-21
-Branch: `develop` at `f120790d12`
-Scope: Rails application code only. No Podman, host, or Aurora operations were performed.
+Date: 2026-07-21 Branch: `develop` at `f120790d12` Scope: Rails application code only. No Podman,
+host, or Aurora operations were performed.
 
 ## 1. Executive summary
 
-| Area | Verdict |
-| --- | --- |
-| Logical-deletion domain consistency | PARTIALLY READY |
-| Physical-retention implementation (`RetentionPurgeJob`) | READY |
-| Legal-hold protection | READY |
-| Cross-database purge behavior | READY |
-| Database-function need | NOT APPLICABLE (none justified) |
-| Migration/index readiness | READY (see §7 correction) |
-| Model/query safety | READY |
-| Lifecycle test coverage | READY (verified live this session) |
-| Coverage/lint readiness | PARTIALLY READY (real run below 95% gate; lint clean) |
-| FDW Active Record contract readiness | NOT READY (PoC unexecuted, read-only contract only) |
+| Area                                                    | Verdict                                               |
+| ------------------------------------------------------- | ----------------------------------------------------- |
+| Logical-deletion domain consistency                     | PARTIALLY READY                                       |
+| Physical-retention implementation (`RetentionPurgeJob`) | READY                                                 |
+| Legal-hold protection                                   | READY                                                 |
+| Cross-database purge behavior                           | READY                                                 |
+| Database-function need                                  | NOT APPLICABLE (none justified)                       |
+| Migration/index readiness                               | READY (see §7 correction)                             |
+| Model/query safety                                      | READY                                                 |
+| Lifecycle test coverage                                 | READY (verified live this session)                    |
+| Coverage/lint readiness                                 | PARTIALLY READY (real run below 95% gate; lint clean) |
+| FDW Active Record contract readiness                    | NOT READY (PoC unexecuted, read-only contract only)   |
 
 ## 2. Scope and safety statement
 
@@ -47,15 +46,16 @@ Scope: Rails application code only. No Podman, host, or Aurora operations were p
     root causes, just fewer manifested under serialization).
   - **All failures/errors in both runs are pre-existing and unrelated to lifecycle/retention code**:
     `AvatarPersonaBindingTest` (Japanese validation-message content, order-dependent, only in the
-    plain run), `Acme::AccountQuotaPolicyTest` (missing `ja.activerecord.attributes.operator_identity.identity_state`
-    i18n key), `ModelOnlyLineCoverageTest` (an `Actor::Configuration::NullValue` equality
-    expectation), and `RepositoryLanguageCheckTest` (calls a nonexistent `assert_not_includes`
-    method). Confirmed via targeted grep: zero mentions of retention/purge/discard/withdrawal/
-    legal_hold/retainable among the failing tests. **Every lifecycle-domain test passed.**
+    plain run), `Acme::AccountQuotaPolicyTest` (missing
+    `ja.activerecord.attributes.operator_identity.identity_state` i18n key),
+    `ModelOnlyLineCoverageTest` (an `Actor::Configuration::NullValue` equality expectation), and
+    `RepositoryLanguageCheckTest` (calls a nonexistent `assert_not_includes` method). Confirmed via
+    targeted grep: zero mentions of retention/purge/discard/withdrawal/ legal_hold/retainable among
+    the failing tests. **Every lifecycle-domain test passed.**
   - Real coverage: **line 45825/49333 = 92.88%**, **branch 10665/14760 = 72.25%** — this is a real
-    measurement, not the earlier stale artifact. **92.88% is below the repository's 95% line-coverage
-    gate** (see §10 for per-file lifecycle breakdown; the shortfall is concentrated outside the
-    lifecycle files this audit targets).
+    measurement, not the earlier stale artifact. **92.88% is below the repository's 95%
+    line-coverage gate** (see §10 for per-file lifecycle breakdown; the shortfall is concentrated
+    outside the lifecycle files this audit targets).
 - `bin/rubocop` (bounded to lifecycle core files) ran cleanly: 6 files inspected, no offenses.
 
 ## 4. Lifecycle architecture
@@ -87,25 +87,25 @@ already implemented, neither depends on `pg_cron`.
 
 ## 5. Domain-rule matrix
 
-| Operation | Trigger | Owner | Model(s) | Physical DB | Field | Scheduling | Legal hold | Cross-DB | Idempotency | Tests | Gap |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Logical deletion / discard | app event | `Retainable` concern | ~60 models incl. tokens, credentials, occurrences | app/org/com zenith, chronicle, occurrences, avatars, settings | `discarded_at`/`purged_at` | n/a (immediate) | via `RetentionHoldState` | n/a | validated ordering (`discarded_at <= purged_at`) | `test/models/concerns/retainable_test.rb` | none found |
-| Scheduled physical purge | `purged_at <= now` | `RetentionPurgeJob` | `RETAINABLE_MODELS` allowlist | multiple (see above) | `purged_at` | SolidQueue, 15 min | checked before Client/Visitor purge | `RetentionCrossDatabaseChildPurge` for Operator | set-based `delete_all`, ordered allowlist for FK safety | `test/jobs/retention_purge_job_test.rb`, `retention_purge_legal_hold_test.rb` | index gap (§7) |
-| Ceremony/session TTL expiry | `expires_at <= now` | 7 dedicated `*_ceremony_transaction_purge_job.rb` + `DpopProofStatePurgeJob` | passkey/email/telephone/TOTP/social/step-up/secret-credential ceremony transactions, DPoP proof state | respective settings/credential DBs | `expires_at` | SolidQueue, independent per-job cadence | not applicable (ceremony state, not retained PII) | none | each job scoped to its own table | one test file per job (`test/jobs/*_purge_job_test.rb`) | not verified live this session |
-| Withdrawal / suspension / termination | user or admin action | `WithdrawalLifecycle` service, `Withdrawable`/`WithdrawalFlow` concerns | Client, Visitor, Operator + `*_withdrawal_flow` rows | app/org/com zenith | `withdrawn_at`, `purged_at`, recovery window (31d), early-termination delay (7d) | recovery window enforced in-app, purge via `RetentionPurgeJob` | checked at purge time | `RetentionCrossDatabaseChildPurge` (Operator) | `discard_now!` idempotent by nature of timestamp fields | `test/integration/withdrawal_lifecycle_security_test.rb` | not verified live this session |
-| Privacy/erasure request (GDPR/CCPA) | user request | `PrivacyRequestState`/`PrivacyRequestDueDate` concerns, `*PrivacyRequest` models | app/com zenith | `legal_hold_blocked_at`, SLA due-date fields | app-driven state machine, `ProcessorErasureNotificationJob` for downstream processors | legal_hold_blocked_at explicitly blocks | notifies external processors | state-machine driven | `test/services/...` (erasure-adjacent) present, no dedicated erasure integration test located | test coverage for the SLA due-date edge cases not directly located |
-| Permanent deletion after legal retention | `purged_at <= now` AND no active hold | `RetentionPurgeJob` + `RetentionHoldState#active_at` | `*_retention_holds`, `*_privacy_requests` | app/com zenith | `purged_at`, hold `expires_at` | via retention purge cadence | primary purpose of this row | n/a | hold check is a precondition, naturally idempotent | `retention_purge_legal_hold_test.rb` | none found |
-| Cache/session/token expiration | `expires_at <= now` | token/credential concerns (`TokenStatusManagement`, `RefreshTokenable`, `SingleUseToken`) + ceremony purge jobs | tokens, secret credentials, refresh tokens | zenith DBs | `expires_at` | SolidQueue per-job | not applicable | none | per-job scoped | per-job test files | not verified live this session |
+| Operation                                | Trigger                               | Owner                                                                                                           | Model(s)                                                                                              | Physical DB                                                   | Field                                                                                 | Scheduling                                                     | Legal hold                                        | Cross-DB                                        | Idempotency                                                                                   | Tests                                                                         | Gap                            |
+| ---------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------ |
+| Logical deletion / discard               | app event                             | `Retainable` concern                                                                                            | ~60 models incl. tokens, credentials, occurrences                                                     | app/org/com zenith, chronicle, occurrences, avatars, settings | `discarded_at`/`purged_at`                                                            | n/a (immediate)                                                | via `RetentionHoldState`                          | n/a                                             | validated ordering (`discarded_at <= purged_at`)                                              | `test/models/concerns/retainable_test.rb`                                     | none found                     |
+| Scheduled physical purge                 | `purged_at <= now`                    | `RetentionPurgeJob`                                                                                             | `RETAINABLE_MODELS` allowlist                                                                         | multiple (see above)                                          | `purged_at`                                                                           | SolidQueue, 15 min                                             | checked before Client/Visitor purge               | `RetentionCrossDatabaseChildPurge` for Operator | set-based `delete_all`, ordered allowlist for FK safety                                       | `test/jobs/retention_purge_job_test.rb`, `retention_purge_legal_hold_test.rb` | index gap (§7)                 |
+| Ceremony/session TTL expiry              | `expires_at <= now`                   | 7 dedicated `*_ceremony_transaction_purge_job.rb` + `DpopProofStatePurgeJob`                                    | passkey/email/telephone/TOTP/social/step-up/secret-credential ceremony transactions, DPoP proof state | respective settings/credential DBs                            | `expires_at`                                                                          | SolidQueue, independent per-job cadence                        | not applicable (ceremony state, not retained PII) | none                                            | each job scoped to its own table                                                              | one test file per job (`test/jobs/*_purge_job_test.rb`)                       | not verified live this session |
+| Withdrawal / suspension / termination    | user or admin action                  | `WithdrawalLifecycle` service, `Withdrawable`/`WithdrawalFlow` concerns                                         | Client, Visitor, Operator + `*_withdrawal_flow` rows                                                  | app/org/com zenith                                            | `withdrawn_at`, `purged_at`, recovery window (31d), early-termination delay (7d)      | recovery window enforced in-app, purge via `RetentionPurgeJob` | checked at purge time                             | `RetentionCrossDatabaseChildPurge` (Operator)   | `discard_now!` idempotent by nature of timestamp fields                                       | `test/integration/withdrawal_lifecycle_security_test.rb`                      | not verified live this session |
+| Privacy/erasure request (GDPR/CCPA)      | user request                          | `PrivacyRequestState`/`PrivacyRequestDueDate` concerns, `*PrivacyRequest` models                                | app/com zenith                                                                                        | `legal_hold_blocked_at`, SLA due-date fields                  | app-driven state machine, `ProcessorErasureNotificationJob` for downstream processors | legal_hold_blocked_at explicitly blocks                        | notifies external processors                      | state-machine driven                            | `test/services/...` (erasure-adjacent) present, no dedicated erasure integration test located | test coverage for the SLA due-date edge cases not directly located            |
+| Permanent deletion after legal retention | `purged_at <= now` AND no active hold | `RetentionPurgeJob` + `RetentionHoldState#active_at`                                                            | `*_retention_holds`, `*_privacy_requests`                                                             | app/com zenith                                                | `purged_at`, hold `expires_at`                                                        | via retention purge cadence                                    | primary purpose of this row                       | n/a                                             | hold check is a precondition, naturally idempotent                                            | `retention_purge_legal_hold_test.rb`                                          | none found                     |
+| Cache/session/token expiration           | `expires_at <= now`                   | token/credential concerns (`TokenStatusManagement`, `RefreshTokenable`, `SingleUseToken`) + ceremony purge jobs | tokens, secret credentials, refresh tokens                                                            | zenith DBs                                                    | `expires_at`                                                                          | SolidQueue per-job                                             | not applicable                                    | none                                            | per-job scoped                                                                                | per-job test files                                                            | not verified live this session |
 
 ## 6. Database and connection matrix
 
 Physical databases identified from `db/*_structure.sql` and model `establish_connection`/base-record
 classes: `app_zenith`, `org_zenith`, `com_zenith` (principal/account domain, hold retention CHECK
-constraints and `purged_at` partial indexes), `chronicle` (audit trail, e.g. `AppPreferenceChronicle`),
-`occurrences` (`AreaOccurrence`, `ClientOccurrence`, etc.), `avatars` (`Avatar`), `app_settings` /
-`org_settings` / `com_settings` (`AppPreference` etc.), `app_tickets` / `org_tickets` / `com_tickets`,
-`caches`, `queues`, `publishing`. `RetentionPurgeJob`'s `RETAINABLE_MODELS` allowlist spans nearly all
-of these — retention is not confined to one database.
+constraints and `purged_at` partial indexes), `chronicle` (audit trail, e.g.
+`AppPreferenceChronicle`), `occurrences` (`AreaOccurrence`, `ClientOccurrence`, etc.), `avatars`
+(`Avatar`), `app_settings` / `org_settings` / `com_settings` (`AppPreference` etc.), `app_tickets` /
+`org_tickets` / `com_tickets`, `caches`, `queues`, `publishing`. `RetentionPurgeJob`'s
+`RETAINABLE_MODELS` allowlist spans nearly all of these — retention is not confined to one database.
 
 ## 7. Database-function and migration findings
 
@@ -115,24 +115,25 @@ found in any `*_structure.sql` are per-zenith-DB cardinality-limit triggers (e.g
 row-count caps — unrelated to retention/discard/purge/legal-hold. No trigger, view, or materialized
 view is tied to `discarded_at`/`purged_at`/`expires_at`/`legal_hold` anywhere. This confirms the
 default posture from the host-infrastructure audit: application-level `RetentionPurgeJob` fully owns
-this behavior, and no atomicity/performance/integrity problem exists that would justify a DB function.
+this behavior, and no atomicity/performance/integrity problem exists that would justify a DB
+function.
 
 **Migration/index finding — CORRECTED after live re-verification (§ this section supersedes the
 initial static-only pass).** The first static pass grepped every `*_structure.sql` for a `purged_at`
 index and found matches only in `app_zenith`/`org_zenith`/`com_zenith`, leading to a provisional
 "Medium severity index gap" claim for chronicle/occurrence/avatar/settings tables. That claim was
-**wrong** and has been withdrawn. Root cause: `db/avatar_structure.sql`, `db/chronicle_structure.sql`,
-`db/occurrence_structure.sql`, `db/app_setting_structure.sql`, `db/org_setting_structure.sql`, and
-`db/com_setting_structure.sql` are each 18-line stub files with no `CREATE TABLE`/`CREATE INDEX`
-statements at all — they do not reflect the live schema for those connections (those databases are
-bootstrapped via `db/initial_schemas/*.rb` Ruby-DSL schema files loaded through a
-`LoadInitial*Schema` migration, and their `structure.sql` dumps were never regenerated to match).
-Querying the **live, prepared database** directly (via `ActiveRecord::ConnectionAdapters::Adapter#indexes`,
-after `bin/rails db:prepare`) shows every one of these tables already has a `purged_at` index:
-`index_avatars_on_purged_at`, `index_app_preference_chronicles_on_purged_at`,
-`index_area_occurrences_on_purged_at`, `index_app_preferences_on_purged_at`,
-`index_client_tokens_on_purged_at`, in addition to the zenith indexes already confirmed
-(`index_clients_on_purged_at`, etc.). **There is no retention-index gap.**
+**wrong** and has been withdrawn. Root cause: `db/avatar_structure.sql`,
+`db/chronicle_structure.sql`, `db/occurrence_structure.sql`, `db/app_setting_structure.sql`,
+`db/org_setting_structure.sql`, and `db/com_setting_structure.sql` are each 18-line stub files with
+no `CREATE TABLE`/`CREATE INDEX` statements at all — they do not reflect the live schema for those
+connections (those databases are bootstrapped via `db/initial_schemas/*.rb` Ruby-DSL schema files
+loaded through a `LoadInitial*Schema` migration, and their `structure.sql` dumps were never
+regenerated to match). Querying the **live, prepared database** directly (via
+`ActiveRecord::ConnectionAdapters::Adapter#indexes`, after `bin/rails db:prepare`) shows every one
+of these tables already has a `purged_at` index: `index_avatars_on_purged_at`,
+`index_app_preference_chronicles_on_purged_at`, `index_area_occurrences_on_purged_at`,
+`index_app_preferences_on_purged_at`, `index_client_tokens_on_purged_at`, in addition to the zenith
+indexes already confirmed (`index_clients_on_purged_at`, etc.). **There is no retention-index gap.**
 
 **Real finding to carry forward instead (Low severity, documentation/tooling):** the `structure.sql`
 dumps for `avatar`, `chronicle`, `occurrence`, `app_setting`, `org_setting`, and `com_setting` are
@@ -140,14 +141,14 @@ stale stubs, not the empty-but-accurate state they might appear to be. This has 
 `RetentionPurgeJob` (its `column_names.include?("purged_at")` guard introspects the live schema, not
 the dump), but it does mean: (a) anyone reading these `*_structure.sql` files to answer "does this
 table have X" will get a wrong (empty) answer without checking `db/initial_schemas/*.rb` or the live
-DB, and (b) if `schema_format = :sql` is expected to be authoritative for `db:schema:load` on a fresh
-environment for these six connections, verify that a fresh load actually reconstructs the schema via
-the `LoadInitial*Schema` migration path rather than depending on a stale dump. This is a
+DB, and (b) if `schema_format = :sql` is expected to be authoritative for `db:schema:load` on a
+fresh environment for these six connections, verify that a fresh load actually reconstructs the
+schema via the `LoadInitial*Schema` migration path rather than depending on a stale dump. This is a
 documentation-accuracy finding, not a retention-correctness or performance gap, and is not urgent.
 
-Retention-order CHECK constraints (`chk_*_retention_order`) exist consistently across
-app/org/com zenith and are correctly enforced (some as `NOT VALID`, meaning existing rows were not
-re-validated at add-time — worth a one-line note but not a correctness risk for new rows).
+Retention-order CHECK constraints (`chk_*_retention_order`) exist consistently across app/org/com
+zenith and are correctly enforced (some as `NOT VALID`, meaning existing rows were not re-validated
+at add-time — worth a one-line note but not a correctness risk for new rows).
 
 ## 8. Model and query findings
 
@@ -155,9 +156,9 @@ re-validated at add-time — worth a one-line note but not a correctness risk fo
   avoid naming collisions across ~60 including classes). Consumers use raw
   `where('discarded_at > ?', ...)`-style predicates instead. This is a deliberate, documented
   trade-off, not an oversight — no leak risk was found because there is no default scope to bypass
-  via `unscoped`; every caller must write its own predicate, which shifts risk to
-  reviewer-vigilance rather than a shared-scope bug, but that is a design choice already made and
-  accepted (see `adr/retainable-concern-and-retention-purge.md`).
+  via `unscoped`; every caller must write its own predicate, which shifts risk to reviewer-vigilance
+  rather than a shared-scope bug, but that is a design choice already made and accepted (see
+  `adr/retainable-concern-and-retention-purge.md`).
 - `WithdrawalFlow#active`, `RetentionHoldState#active_at`, and `Withdrawable#withdrawn` scopes are
   each independently defined per concern, consistent with the domain-boundary rule in this
   repository's `AGENTS.md` (no shared cross-domain abstraction forced where the domains legitimately
@@ -172,15 +173,15 @@ re-validated at add-time — worth a one-line note but not a correctness risk fo
 
 ## 9. Test matrix
 
-| Behavior | app | com | org | DB-level | Job-level | Integration |
-| --- | --: | --: | --: | --: | --: | --: |
-| Logical deletion / discard | yes (shared concern test) | yes | yes | n/a | n/a | `retainable_test.rb` |
-| Retention purge (normal) | yes | yes | yes | n/a | `retention_purge_job_test.rb` | — |
-| Retention purge (legal hold) | yes | yes | yes | n/a | `retention_purge_legal_hold_test.rb` | — |
-| Cross-database child purge | n/a | n/a | yes (Operator) | n/a | `retention_cross_database_child_purge_test.rb` | — |
-| Ceremony/TTL expiry (7 kinds) | yes | yes | yes | n/a | one test file per job | — |
-| Withdrawal lifecycle | yes | yes | yes | n/a | — | `withdrawal_lifecycle_security_test.rb` |
-| App/com/org preference parity | yes | yes | yes | n/a | n/a | `preference_sign_out_rotation_contract_test.rb` (shared contract via `preference_lifecycle_surfaces.rb`) |
+| Behavior                      |                       app | com |            org | DB-level |                                      Job-level |                                                                                              Integration |
+| ----------------------------- | ------------------------: | --: | -------------: | -------: | ---------------------------------------------: | -------------------------------------------------------------------------------------------------------: |
+| Logical deletion / discard    | yes (shared concern test) | yes |            yes |      n/a |                                            n/a |                                                                                     `retainable_test.rb` |
+| Retention purge (normal)      |                       yes | yes |            yes |      n/a |                  `retention_purge_job_test.rb` |                                                                                                        — |
+| Retention purge (legal hold)  |                       yes | yes |            yes |      n/a |           `retention_purge_legal_hold_test.rb` |                                                                                                        — |
+| Cross-database child purge    |                       n/a | n/a | yes (Operator) |      n/a | `retention_cross_database_child_purge_test.rb` |                                                                                                        — |
+| Ceremony/TTL expiry (7 kinds) |                       yes | yes |            yes |      n/a |                          one test file per job |                                                                                                        — |
+| Withdrawal lifecycle          |                       yes | yes |            yes |      n/a |                                              — |                                                                  `withdrawal_lifecycle_security_test.rb` |
+| App/com/org preference parity |                       yes | yes |            yes |      n/a |                                            n/a | `preference_sign_out_rotation_contract_test.rb` (shared contract via `preference_lifecycle_surfaces.rb`) |
 
 **Executed live this session** after `bin/rails db:prepare`: all rows above passed. Both the plain
 and coverage test runs (§3) had zero failures/errors among any retention/purge/discard/withdrawal/
@@ -193,35 +194,36 @@ file exists for `app/models/publishing/entry.rb` or `app/services/publishing_ent
 
 ## 10. Coverage and lint findings
 
-- Required gate: 95% line coverage, configured in `.simplecov` (`SimpleCov.coverage :line do minimum
-  95 end`); branch coverage has no minimum configured.
+- Required gate: 95% line coverage, configured in `.simplecov`
+  (`SimpleCov.coverage :line do minimum 95 end`); branch coverage has no minimum configured.
 - **Real, verified coverage this session** (after `bin/rails db:prepare` + full
   `COVERAGE=true bin/rails test test/`): **line 45825/49333 = 92.88%**, **branch 10665/14760 =
   72.25%**. The 95% line gate is **not met repository-wide**, but the shortfall is not concentrated
   in lifecycle code. Per-file coverage for the core lifecycle files, extracted from
   `coverage/.resultset.json`:
 
-  | File | Line coverage |
-  | --- | --- |
-  | `app/models/concerns/retainable.rb` | 62/62 (100.0%) |
-  | `app/models/concerns/retention_hold_state.rb` | 28/28 (100.0%) |
-  | `app/models/concerns/withdrawable.rb` | 48/48 (100.0%) |
-  | `app/models/concerns/withdrawal_flow.rb` | 63/63 (100.0%) |
-  | `app/models/concerns/privacy_request_state.rb` | 45/45 (100.0%) |
-  | `app/models/concerns/privacy_request_due_date.rb` | 4/4 (100.0%) |
-  | `app/jobs/retention_purge_job.rb` | 47/48 (97.9%) |
-  | `app/services/retention_cross_database_child_purge.rb` | 21/21 (100.0%) |
-  | `app/services/withdrawal_personal_data_anonymizer.rb` | 47/47 (100.0%) |
-  | `app/services/withdrawal_lifecycle.rb` | 105/139 (75.5%) |
+  | File                                                   | Line coverage   |
+  | ------------------------------------------------------ | --------------- |
+  | `app/models/concerns/retainable.rb`                    | 62/62 (100.0%)  |
+  | `app/models/concerns/retention_hold_state.rb`          | 28/28 (100.0%)  |
+  | `app/models/concerns/withdrawable.rb`                  | 48/48 (100.0%)  |
+  | `app/models/concerns/withdrawal_flow.rb`               | 63/63 (100.0%)  |
+  | `app/models/concerns/privacy_request_state.rb`         | 45/45 (100.0%)  |
+  | `app/models/concerns/privacy_request_due_date.rb`      | 4/4 (100.0%)    |
+  | `app/jobs/retention_purge_job.rb`                      | 47/48 (97.9%)   |
+  | `app/services/retention_cross_database_child_purge.rb` | 21/21 (100.0%)  |
+  | `app/services/withdrawal_personal_data_anonymizer.rb`  | 47/47 (100.0%)  |
+  | `app/services/withdrawal_lifecycle.rb`                 | 105/139 (75.5%) |
 
   `withdrawal_lifecycle.rb` at 75.5% is the one lifecycle file with a real, verified coverage gap —
   a concrete candidate for Phase C-2 (§16) if this audit's findings are acted on.
+
 - Lint: `bin/rubocop` against the six core lifecycle files (`retainable.rb`,
   `retention_hold_state.rb`, `withdrawable.rb`, `withdrawal_flow.rb`, `retention_purge_job.rb`,
   `retention_cross_database_child_purge.rb`) — **clean, no offenses**.
-- `vp test --coverage` (mentioned in the original task prompt) does not exist in this repository —
-  confirmed by direct search; the correct commands are `bin/rails test` and
-  `COVERAGE=true bin/rails test test/`.
+- The coverage command named in the original task prompt does not produce Rails coverage — confirmed
+  by direct search. `pnpm test:coverage` covers JavaScript only; Rails coverage comes from
+  `bin/rails test` and `COVERAGE=true bin/rails test test/`.
 
 ## 11. FDW proposed SQL contract
 
@@ -289,10 +291,10 @@ there is strong evidence that Rails migrations can manage these objects
 portably and safely.
 ```
 
-No evidence in this repository contradicts that default. Rails migrations should not issue `CREATE
-FOREIGN TABLE` for this PoC; `db:prepare`/structure-dump behavior when the extension is absent was
-not empirically tested in this session (would require actually running the PoC, out of scope). Do
-not place credentials in migrations, schema dumps, or model code — the PoC's own
+No evidence in this repository contradicts that default. Rails migrations should not issue
+`CREATE FOREIGN TABLE` for this PoC; `db:prepare`/structure-dump behavior when the extension is
+absent was not empirically tested in this session (would require actually running the PoC, out of
+scope). Do not place credentials in migrations, schema dumps, or model code — the PoC's own
 `smoke/run_smoke_checks.sql` already isolates credentials into `CREATE USER MAPPING` statements
 executed against a disposable, tmpfs-backed database, which is the correct pattern to preserve if
 this is ever productionized.
@@ -305,19 +307,19 @@ this is ever productionized.
    shape (no PK, columns matching the PoC schema) — exercises the same read paths without requiring
    the extension.
 3. Integration tests against the actual RustFS PoC — opt-in only, skipped by default in the normal
-   Rails test suite (e.g. gated by an environment flag), since the extension is not installed in
-   the standard test database.
+   Rails test suite (e.g. gated by an environment flag), since the extension is not installed in the
+   standard test database.
 4. Aurora compatibility tests — explicitly out of Rails' test suite; performed separately once/if
    Aurora extension support is confirmed.
-5. Graceful-absence behavior — Rails boot and the normal test suite must not depend on the
-   extension being present; any FDW-backed model must fail closed (raise or be entirely unloaded)
-   rather than silently returning empty results when the extension/table is missing.
+5. Graceful-absence behavior — Rails boot and the normal test suite must not depend on the extension
+   being present; any FDW-backed model must fail closed (raise or be entirely unloaded) rather than
+   silently returning empty results when the extension/table is missing.
 
 ## 15. Findings ranked by severity
 
 - **Medium** — Real coverage repository-wide is 92.88% line / 72.25% branch, below the 95% line
-  gate. Not concentrated in lifecycle code (see per-file table in §10); a real, actionable metric now
-  that this session's coverage run is verified. (§10)
+  gate. Not concentrated in lifecycle code (see per-file table in §10); a real, actionable metric
+  now that this session's coverage run is verified. (§10)
 - **Low** — `withdrawal_lifecycle.rb` at 75.5% line coverage is the one lifecycle file with a real,
   verified coverage gap; a concrete Phase C-2 candidate. (§10)
 - **Low** — `structure.sql` dumps for `avatar`/`chronicle`/`occurrence`/`app_setting`/`org_setting`/
@@ -340,9 +342,11 @@ prepared database directly; see §7.
 ## 16. Recommended implementation phases (not executed)
 
 ### Phase C-1: Lifecycle correctness gaps
+
 No real correctness gaps were found. This phase is empty — do not manufacture work.
 
 ### Phase C-2: Lifecycle tests and coverage
+
 - Real coverage baseline is now established (§10): 92.88% line / 72.25% branch repository-wide,
   below the 95% gate. `withdrawal_lifecycle.rb` (75.5% line) is the one lifecycle file with a
   verified, concrete gap; the remaining shortfall is outside lifecycle code and outside this audit's
@@ -353,6 +357,7 @@ No real correctness gaps were found. This phase is empty — do not manufacture 
 - Explicit approval required before writing any new test.
 
 ### Phase C-3: FDW read-only Rails contract
+
 - Only relevant if the host PoC is later executed successfully and Aurora support is confirmed.
 - Likely files: a new `app/models/*` FDW-backed model per the contract in §12, a dedicated
   `establish_connection` config, contract tests per §14 tiers 1–2.
@@ -365,6 +370,7 @@ No real correctness gaps were found. This phase is empty — do not manufacture 
 - Explicit approval required.
 
 ### Phase C-4: Documentation and operational guards
+
 - Document the two-parallel-mechanism lifecycle architecture (§4) somewhere more discoverable than
   this audit, e.g. as an addition to `adr/retainable-concern-and-retention-purge.md`, so future
   readers don't conflate `purged_at`-keyed retention with `expires_at`-keyed ceremony TTL.
@@ -379,7 +385,7 @@ host-infrastructure audit's prior conclusion. This is now backed by a **live, ve
 retention/purge/discard/withdrawal/legal-hold test passed, and no lifecycle table is missing a
 `purged_at` index (the earlier provisional index-gap finding was withdrawn after live
 re-verification — see §7). No new database function, no lifecycle code change, and no migration is
-proposed by this audit. The two remaining actionable items are the repository-wide 95%
-line-coverage shortfall (concentrated outside lifecycle code, with one real lifecycle exception in
-`withdrawal_lifecycle.rb`) and the stale `structure.sql` dumps for six non-zenith databases — neither
-is a lifecycle-correctness defect requiring immediate action.
+proposed by this audit. The two remaining actionable items are the repository-wide 95% line-coverage
+shortfall (concentrated outside lifecycle code, with one real lifecycle exception in
+`withdrawal_lifecycle.rb`) and the stale `structure.sql` dumps for six non-zenith databases —
+neither is a lifecycle-correctness defect requiring immediate action.

@@ -1,0 +1,33 @@
+/*
+ * Typography for the base family only (base/app, base/com, base/org).
+ *
+ * Every surface stylesheet under `surfaces/` starts from `base.css`, which owns the line breaking
+ * and paragraph shaping for all fourteen surfaces. What is left here is the family's own font
+ * treatment, imported only by `surfaces/base_{app,com,org}.css`.
+ *
+ * Sources:
+ * - https://ics.media/entry/200317/ font-family
+ * - https://ics.media/entry/14087/  font-feature-settings
+ */
+
+/*
+ * `html body` rather than `body`: `base.css` already sets a body font stack for every surface, and
+ * it ships in a different CSS chunk. Raising the specificity by one element makes the base family
+ * win without depending on which chunk the bundler emits first.
+ */
+html body {
+  /*
+   * System fonts only. A Latin face first so Latin text is not rendered by the Japanese face, then
+   * the Japanese faces per OS: Hiragino on Apple, Noto Sans JP elsewhere. No webfont, so nothing
+   * here blocks first paint.
+   */
+  font-family:
+    "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP",
+    sans-serif;
+
+  /*
+   * Proportional alternate widths. Japanese OpenType faces carry per-glyph spacing that the default
+   * fullwidth metrics ignore, which leaves visible gaps around 、。「」（）. `palt` uses it.
+   */
+  font-feature-settings: "palt" 1;
+}

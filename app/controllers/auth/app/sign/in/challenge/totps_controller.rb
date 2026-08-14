@@ -87,12 +87,13 @@ module Auth
               end
 
               user = pending_mfa_user
-              last_otp_at, totp_record = verify_totp_for(user, @totp_form.token)
+              result = consume_totp_for(user, @totp_form.token)
 
-              if last_otp_at
-                handle_totp_success(user, totp_record, last_otp_at)
+              if result.accepted?
+                handle_totp_success(user)
               else
-                SignRiskEmitter.emit("auth_failed", user_id: user&.id, ip: request.remote_ip, reason: "totp_mismatch")
+                reason = result.replay? ? "totp_replay" : "totp_mismatch"
+                SignRiskEmitter.emit("auth_failed", user_id: user&.id, ip: request.remote_ip, reason: reason)
                 @totp_form.errors.add(:token, t("sign.app.in.mfa.verification_failed"))
                 render :new, status: :unprocessable_content
               end
@@ -110,45 +111,16 @@ module Auth
               )
             end
 
-            def verify_totp_for(user, token)
-              user.client_totp_credentials
-                .where(user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
-                .order(created_at: :desc)
-                .each do |totp|
-                last_otp_at = ROTP::TOTP.new(totp.private_key).verify(token.to_s)
-                return [last_otp_at, totp] if last_otp_at
-              end
-              [nil, nil]
+            def consume_totp_for(user, token)
+              TotpWindowConsumer.call(
+                credentials: user.client_totp_credentials
+                  .where(user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
+                  .order(created_at: :desc),
+                token: token,
+              )
             end
 
-            def handle_totp_success(user, totp_record, last_otp_at)
-              new_otp_at = Time.zone.at(last_otp_at)
-
-              # SELECT FOR UPDATE acquires a row lock and reloads the record atomically.
-              # If a concurrent request already consumed this TOTP window the timestamps
-              # will match and we reject, preventing same-window replay.
-              accepted =
-                totp_record.with_lock do
-                  stored = totp_record.last_otp_at
-                  # Guard against PostgreSQL +/-Infinity sentinel: calling .to_i on
-                  # Infinity raises FloatDomainError. Treat non-finite values as
-                  # "never used" -- the window has not been consumed.
-                  stored_finite = stored.present? &&
-                    !(stored.respond_to?(:infinite?) && stored.infinite?)
-                  if stored_finite && stored.to_i == new_otp_at.to_i
-                    false
-                  else
-                    totp_record.update!(last_otp_at: new_otp_at)
-                    true
-                  end
-                end
-
-              unless accepted
-                SignRiskEmitter.emit("auth_failed", user_id: user&.id, ip: request.remote_ip, reason: "totp_replay")
-                @totp_form.errors.add(:token, t("sign.app.in.mfa.verification_failed"))
-                return render :new, status: :unprocessable_content
-              end
-
+            def handle_totp_success(user)
               result = finalize_mfa_login!(user)
               case result[:status]
               when :session_limit_hard_reject

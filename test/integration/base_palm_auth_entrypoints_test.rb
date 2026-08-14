@@ -123,31 +123,43 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "base and palm roots expose sign up links" do
+  # The base roots no longer render a sign up entry point: they canonicalize to the regional root,
+  # which owns the entry point. Palm still serves its own.
+  test "base roots canonicalize to the regional root and palm root exposes sign up links" do
     host! BASE_APP_HOST
     get "/", params: { ri: "jp" }
 
-    assert_response :success
-    assert_select "a[href=?]", base_app_oidc_authorization_path(ri: "jp"), text: "Sign up"
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.app/", response.location
 
     host! BASE_COM_HOST
     get "/", params: { ri: "jp" }
 
-    assert_response :success
-    assert_select "a[href=?]", base_com_oidc_authorization_path(ri: "jp"), text: "Sign up"
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.com/", response.location
 
     host! BASE_ORG_HOST
     get "/", params: { ri: "jp" }
 
-    assert_response :success
-    assert_select "a[href=?]", base_org_oidc_authorization_path(ri: "jp"), text: "Sign up"
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.org/", response.location
 
+    # Palm renders regional HTML, so its root owes the same `ri` contract as the other HTML
+    # surfaces: a request without a region is redirected to the canonical URL that carries one,
+    # and every link it renders then propagates that region.
     host! PALM_HOST
     get "/"
 
+    assert_response :redirect
+    assert_equal "http://#{PALM_HOST}/?ri=#{RequestContextContract.default_region}", response.location
+
+    get "/", params: { ri: "jp" }
+
     assert_response :success
-    assert_select "a[href=?]", palm_app_oidc_authorization_path(client_id: "app-ios-rp"), text: "Sign up on iOS"
-    assert_select "a[href=?]", palm_app_oidc_authorization_path(client_id: "app-android-rp"), text: "Sign up on Android"
+    assert_select "a[href=?]", palm_app_oidc_authorization_path(client_id: "app-ios-rp", ri: "jp"),
+                  text: "Sign up on iOS"
+    assert_select "a[href=?]", palm_app_oidc_authorization_path(client_id: "app-android-rp", ri: "jp"),
+                  text: "Sign up on Android"
   end
 end
 

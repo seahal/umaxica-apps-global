@@ -3,8 +3,8 @@
 
 require "test_helper"
 
-# Phase 19 (Entra OmniAuth migration): measures real SQL statement counts for
-# the connection/identity/operator resolution this new controller owns
+# Measures real SQL statement counts for the identity/operator resolution
+# the Entra callback controller owns
 # (Auth::Org::Omniauth::OmniauthCallbacksController#omniauth,
 # app/controllers/auth/org/omniauth/omniauth_callbacks_controller.rb) using
 # real ActiveSupport::Notifications instrumentation -- not estimation. Scoped
@@ -13,7 +13,27 @@ require "test_helper"
 # of scope here.
 class Auth::Org::Omniauth::OmniauthCallbackQueryCountTest < ActionDispatch::IntegrationTest
   TENANT_ID = "11111111-2222-3333-4444-555555555555"
+  CLIENT_ID = "22222222-3333-4444-5555-666666666666"
   OBJECT_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
+  # See the same helper in omniauth_callbacks_controller_test.rb: the strategy
+  # reads tenant and client from configuration, replaced here with fixed test
+  # values so the suite never depends on real credential values.
+  def stub_configured_tenant!
+    registry = ExternalAuthentication::ProviderRegistry
+    @registry_originals =
+      %i(tenant_id audience issuer_for).index_with { |name| registry.method(name) }
+    tenant = TENANT_ID
+    client = CLIENT_ID
+    registry.define_singleton_method(:tenant_id) { |_provider| tenant }
+    registry.define_singleton_method(:audience) { |_provider| client }
+    registry.define_singleton_method(:issuer_for) { |_provider| "https://login.microsoftonline.com/#{tenant}/v2.0" }
+  end
+
+  def restore_configured_tenant!
+    registry = ExternalAuthentication::ProviderRegistry
+    @registry_originals&.each { |name, method| registry.define_singleton_method(name, method) }
+  end
 
   setup do
     # See the same note in omniauth_callbacks_controller_test.rb: other suites
@@ -27,17 +47,11 @@ class Auth::Org::Omniauth::OmniauthCallbackQueryCountTest < ActionDispatch::Inte
     OrganizationEntraConnectionState.ensure_defaults!
     OperatorEntraIdentityState.ensure_defaults!
 
-    @connection = OrganizationEntraConnection.create!(
-      organization_id: 1,
-      entra_tenant_id: TENANT_ID,
-      entra_client_id: "entra-query-count-test-client",
-      entra_credential_key: "entra-query-count-test-secret",
-      status_id: OrganizationEntraConnectionState::ACTIVE,
-    )
+    stub_configured_tenant!
     @operator = operators(:one)
     OperatorEntraIdentity.create!(
       operator_id: @operator.id,
-      connection_id: @connection.id,
+      connection_id: nil,
       entra_tenant_id: TENANT_ID,
       entra_object_id: OBJECT_ID,
       status_id: OperatorEntraIdentityState::ACTIVE,
@@ -45,12 +59,13 @@ class Auth::Org::Omniauth::OmniauthCallbackQueryCountTest < ActionDispatch::Inte
   end
 
   teardown do
+    restore_configured_tenant!
     Rails.configuration.x.rate_limit.fetch(:store).clear
     OmniAuth.config.test_mode = @previous_omniauth_test_mode
   end
 
-  test "the callback resolves connection, identity, and operator with no duplicate SELECTs" do
-    post "/social/entra", params: { connection_public_id: @connection.public_id }
+  test "the callback resolves identity and operator with no duplicate SELECTs" do
+    post "/social/entra", params: {}
     authorize_query = Rack::Utils.parse_nested_query(URI.parse(response.location).query)
     state = authorize_query.fetch("state")
     nonce = authorize_query.fetch("nonce")
@@ -62,7 +77,7 @@ class Auth::Org::Omniauth::OmniauthCallbackQueryCountTest < ActionDispatch::Inte
     id_token = JWT.encode(
       {
         "iss" => "https://login.microsoftonline.com/#{TENANT_ID}/v2.0",
-        "aud" => @connection.entra_client_id,
+        "aud" => CLIENT_ID,
         "tid" => TENANT_ID,
         "oid" => OBJECT_ID,
         "sub" => "pairwise-sub",
@@ -96,17 +111,11 @@ class Auth::Org::Omniauth::OmniauthCallbackQueryCountTest < ActionDispatch::Inte
     identity_selects = statements.select { |s| s[:sql].include?("operator_entra_identities") && s[:sql].start_with?("SELECT") }
     operator_selects = statements.select { |s| s[:sql].include?(%(FROM "operators")) }
 
-    # 3, not 1: the strategy validates the connection during callback_phase
-    # (by public_id), the controller independently re-validates it as a
-    # trust boundary (by public_id -- the same pattern the legacy
-    # Auth::Org::Sign::In::Entra::CallbacksController already uses), and the
-    # existing, unchanged ExternalSignIn::OrgEntraResolver eager-loads
-    # `identity.connection` (by id) regardless of the caller already
-    # holding the object. None of these three repeats in a loop -- each
-    # fires exactly once per request.
-    assert_equal 3, connection_selects.size,
-                 "expected exactly 3 OrganizationEntraConnection lookups (strategy + controller trust boundary " \
-                 "+ resolver eager-load), got:\n#{connection_selects.pluck(:sql).join("\n")}"
+    # Zero: the tenant and client come from configuration, so nothing in the
+    # callback path reads organization_entra_connections. A non-zero count here
+    # means the connection concept has crept back into sign-in.
+    assert_empty connection_selects,
+                 "the callback must not query OrganizationEntraConnection, got:\n#{connection_selects.pluck(:sql).join("\n")}"
     assert_equal 1, identity_selects.size,
                  "expected exactly one OperatorEntraIdentity lookup, got:\n#{identity_selects.pluck(:sql).join("\n")}"
     assert_operator operator_selects.size, :<=, 2,

@@ -10,6 +10,14 @@ scope module: :side, as: :side do
       # Thin landing endpoint.
       root to: "roots#index"
 
+      # Model Context Protocol endpoint. The MCP spec requires a single path serving POST; the
+      # transport carries every protocol method in the JSON-RPC body, so one create action is the
+      # whole endpoint.
+      resource :mcp, only: :create
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       # Basic health summary.
       resource :health, only: :show
 
@@ -70,6 +78,14 @@ scope module: :side, as: :side do
       # Thin landing endpoint.
       root to: "roots#index"
 
+      # Model Context Protocol endpoint. The MCP spec requires a single path serving POST; the
+      # transport carries every protocol method in the JSON-RPC body, so one create action is the
+      # whole endpoint.
+      resource :mcp, only: :create
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       # Basic health summary.
       resource :health, only: :show
 
@@ -128,6 +144,14 @@ scope module: :side, as: :side do
     scope module: :org, as: :org do
       # Thin landing endpoint.
       root to: "roots#index"
+
+      # Model Context Protocol endpoint. The MCP spec requires a single path serving POST; the
+      # transport carries every protocol method in the JSON-RPC body, so one create action is the
+      # whole endpoint.
+      resource :mcp, only: :create
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
 
       # Basic health summary.
       resource :health, only: :show

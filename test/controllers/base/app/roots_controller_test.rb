@@ -7,14 +7,49 @@ require "test_helper"
 class Base::App::RootsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
-  test "renders a thin landing page" do
+  test "permanently redirects the jp region to the canonical jp regional root" do
     host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     get base_app_root_url(ri: "jp")
 
-    assert_response :success
-    assert_select "title", "Base App"
-    assert_select "h1", text: "Base App"
-    assert_select "main p", text: I18n.t("landing.thin_endpoint")
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.app/", response.location
+  end
+
+  test "permanently redirects the us region to the canonical us regional root" do
+    host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    get base_app_root_url(ri: "us")
+
+    assert_response :moved_permanently
+    assert_equal "https://us.umaxica.app/", response.location
+  end
+
+  test "drops every request context parameter from the regional redirect target" do
+    host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    get base_app_root_url(ri: "jp", ct: "dr", lx: "en", tz: "asia/tokyo")
+
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.app/", response.location
+    assert_not_includes response.location, "?"
+    assert_not_includes response.location, "ri="
+    assert_not_includes response.location, "ct="
+    assert_not_includes response.location, "lx="
+    assert_not_includes response.location, "tz="
+  end
+
+  test "does not regionally redirect an unknown region" do
+    host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    get base_app_root_url(ri: "xx")
+
+    assert_response :found
+    assert_equal base_app_root_url(ri: "jp"), response.location
+  end
+
+  test "does not regionally redirect a missing region" do
+    host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    get "/"
+
+    assert_response :found
+    assert_equal base_app_root_url(ri: "jp"), response.location
   end
 
   test "auth authorize preserves app sign up and sign in screen hints" do
@@ -39,44 +74,42 @@ class Base::App::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "/dashboard?ri=jp", session[:oidc_pt]
   end
 
-  test "creates preference cookies on root" do
+  test "mints no preference state on the gateway host it redirects away from" do
     host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
 
-    assert_difference("AppPreference.count", 1) do
-      get base_app_root_url(ri: "jp")
-    end
-
-    assert_response :success
-    assert_predicate cookies[PreferenceCookieName.access(surface: :app)], :present?
-    assert_predicate cookies[PreferenceCookieName.refresh(surface: :app)], :present?
-  end
-
-  test "creates preference cookies on root when optional URL preferences are present" do
-    host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
-
-    assert_difference("AppPreference.count", 1) do
+    assert_no_difference("AppPreference.count") do
       get base_app_root_url(ct: "dr", lx: "en", ri: "us", tz: "asia/tokyo")
     end
 
-    assert_response :success
-    assert_predicate cookies[PreferenceCookieName.access(surface: :app)], :present?
-    assert_predicate cookies[PreferenceCookieName.refresh(surface: :app)], :present?
+    assert_response :moved_permanently
+    assert_nil cookies[PreferenceCookieName.access(surface: :app)].presence
+    assert_nil cookies[PreferenceCookieName.refresh(surface: :app)].presence
   end
 
-  test "redirects to dashboard when logged in" do
+  test "regional redirect takes precedence over the logged in dashboard redirect" do
     host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     user = clients(:one)
 
     get base_app_root_url(ri: "jp"),
         headers: as_user_headers(user, host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"))
 
-    assert_response :redirect
-    assert_redirected_to base_app_dashboard_url(
-      ri: "jp",
-      host: ENV.fetch(
-        "PUBLIC_BASE_SERVICE_URL", "base.app.localhost",
-      ),
-    )
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.app/", response.location
+  end
+
+  test "a logged in request without a region normalizes the region then leaves the gateway host" do
+    host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    user = clients(:one)
+
+    get "/", headers: as_user_headers(user, host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"))
+
+    assert_response :found
+    assert_equal base_app_root_url(ri: "jp"), response.location
+
+    follow_redirect!
+
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.app/", response.location
   end
   private
 

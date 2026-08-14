@@ -52,10 +52,6 @@ class OidcIdTokenIssuer < ApplicationService
     )
   end
 
-  def token_resource_type
-    SecurityJwtOidcIdTokenCodec.resource_type_for_client(client)
-  end
-
   def resolved_jwt_issuer_id
     jwt_issuer_id.presence || OidcIssuer.jwt_issuer_id_for_client(client)
   end

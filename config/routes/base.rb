@@ -11,6 +11,12 @@ scope(module: :base, as: :base) do
   ) do
     scope(module: :app, as: :app) do
       root "roots#index"
+
+      # Model Context Protocol endpoint. The MCP spec requires a single path serving POST; the
+      # transport carries every protocol method in the JSON-RPC body, so one create action is the
+      # whole endpoint.
+      resource :mcp, only: :create
+
       resource :welcome, only: :show
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
@@ -51,6 +57,9 @@ scope(module: :base, as: :base) do
         )
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
+
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
 
       resource(:health, only: :show)
       namespace(:health) do
@@ -247,6 +256,12 @@ scope(module: :base, as: :base) do
   ) do
     scope(module: :com, as: :com) do
       root "roots#index"
+
+      # Model Context Protocol endpoint. The MCP spec requires a single path serving POST; the
+      # transport carries every protocol method in the JSON-RPC body, so one create action is the
+      # whole endpoint.
+      resource :mcp, only: :create
+
       resource :welcome, only: :show
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
@@ -284,6 +299,9 @@ scope(module: :base, as: :base) do
         )
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
+
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
 
       resource(:health, only: :show)
       namespace(:health) do
@@ -408,6 +426,12 @@ scope(module: :base, as: :base) do
   ) do
     scope(module: :org, as: :org) do
       root "roots#index"
+
+      # Model Context Protocol endpoint. The MCP spec requires a single path serving POST; the
+      # transport carries every protocol method in the JSON-RPC body, so one create action is the
+      # whole endpoint.
+      resource :mcp, only: :create
+
       resource :welcome, only: :show
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
@@ -445,6 +469,9 @@ scope(module: :base, as: :base) do
         )
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
+
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
 
       resource(:health, only: :show)
       namespace(:health) do
@@ -581,6 +608,9 @@ scope(module: :base, as: :base) do
 
   constraints(host: [ENV["PRIVATE_BASE_NETWORK_URL"], "base.net.localhost"].compact) do
     scope(module: :app, as: :network) do
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
+
       resource(:health, only: :show)
       namespace(:health) do
         resource(:liveness, only: :show)
@@ -621,6 +651,9 @@ scope(module: :base, as: :base) do
     )
 
     scope(module: :app, as: :developer) do
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
+
       resource(:health, only: :show)
       namespace(:health) do
         resource(:liveness, only: :show)

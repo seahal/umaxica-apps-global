@@ -20,9 +20,7 @@ class OutboundSms < ApplicationService
 
     provider
     Outbound::SmsDeliveryJob.perform_later(
-      to: to,
-      title: title,
-      encrypted_body: OutboundSensitivePayload.encrypt_sms_body(body),
+      encrypted_payload: OutboundSensitivePayload.encrypt_sms_delivery(to:, title:, body:),
     )
     OutboundResult.accepted(channel: :sms)
   end

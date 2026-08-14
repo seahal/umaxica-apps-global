@@ -42,8 +42,8 @@ platform callback routes) is **remove routes + controllers**.
 - Targeted `cat`/`grep` for Palm callback stubs, userinfo duplication, flash usage, `base-rails-rp`.
 
 **Current failures**: none observed at the route/boot level. Full `bin/rails test` and
-`vp test --coverage` were **not run** in this pass (audit-only; the working tree already carries
-unrelated `M` changes). See §5.
+`COVERAGE=true bin/rails test test/` were **not run** in this pass (audit-only; the working tree
+already carries unrelated `M` changes). See §5.
 
 **Important reconciliation**: the two remediation memos are partly historical. The _current_ routes
 show OIDC-cleanup Phases 1–3 already implemented — no `/sso/*`, canonical `GET /auth` +
@@ -262,8 +262,8 @@ boundary) cannot be asserted from Rails and stays a deployment-contract concern.
 
 **Verification when remediation is approved:** `bin/rails routes` (confirm B1 paths gone, isolation
 holds), `bin/rails test test/integration/routes/ test/controllers/{palm,base,docs,help,news}` for
-the focused suites, then `bin/rails test` and `vp test --coverage` for the full run and coverage
-numbers.
+the focused suites, then `bin/rails test` and `COVERAGE=true bin/rails test test/` for the full run
+and coverage numbers.
 
 ---
 

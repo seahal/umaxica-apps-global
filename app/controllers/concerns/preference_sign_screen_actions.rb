@@ -86,9 +86,13 @@ module PreferenceSignScreenActions
     @preference.require_reset_confirmation(params[:confirm_reset])
 
     unless @preference.valid?(:reset)
-      # Render the same shared customization template the edit action uses.
-      # Base routes every preference screen through shared templates.
-      render "base/shared/preference/customizations", status: :unprocessable_content
+      # Inertia treats any response with a 4xx status as a transport exception rather than a page,
+      # so validation failures go back to the edit screen carrying the errors, which is the
+      # protocol's own convention. The middleware turns this into a 303 for the DELETE.
+      redirect_to(
+        reset_preference_edit_url,
+        inertia: { errors: @preference.errors.to_hash(true).transform_values(&:first) },
+      )
       return
     end
 
@@ -113,6 +117,15 @@ module PreferenceSignScreenActions
   rescue PreferenceOperationError
     redirect_to(
       preference_edit_url(screen, preference_write_redirect_params(except: preference_context_key_for_screen(screen))),
+    )
+  end
+
+  # The reset screen is routed as `customization`, which `preference_url_helper_name` does not map
+  # (it answers `:reset` with a `..._preference_reset_url` helper no route defines).
+  def reset_preference_edit_url
+    public_send(
+      "edit_#{preference_route_authority}_#{preference_surface_key}_preference_customization_url",
+      compact_url_params(preference_context_redirect_params),
     )
   end
 

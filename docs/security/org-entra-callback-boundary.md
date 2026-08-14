@@ -65,9 +65,8 @@ verification reason.
 
 ## Failure taxonomy
 
-Every failure path in `CallbacksController#show` renders the shared error template with an explicit
-reason (`render_entra_error` / `render_entra_callback_failure`,
-`app/controllers/auth/org/sign/in/entra/callbacks_controller.rb`). No failure falls through to a
+Every failure path renders the shared error template with an explicit reason (`render_entra_error`,
+`app/controllers/auth/org/omniauth/omniauth_callbacks_controller.rb`). No failure falls through to a
 generic success response.
 
 | Reason                         | Trigger                                                                                                                                                                            |

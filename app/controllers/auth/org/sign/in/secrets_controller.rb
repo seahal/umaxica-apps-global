@@ -40,6 +40,26 @@ module Auth
               render_rate_limited(rule_name: "auth_org_sign_in_secret_credential_create_ip_sustained", retry_after: 900)
             },
           )
+          rate_limit(
+            to: 10,
+            within: 15.minutes,
+            by: -> {
+              AuthenticationRateLimitKey.for(
+                surface: :org,
+                identifier: request.request_parameters.dig("secret_credential_login_form", "identifier"),
+              )
+            },
+            scope: "auth_org_sign_in",
+            name: "secret_credential_create_identifier",
+            store: rate_limit_store,
+            only: :create,
+            with: -> {
+              render_rate_limited(
+                rule_name: "auth_org_sign_in_secret_credential_create_identifier",
+                retry_after: 900,
+              )
+            },
+          )
           before_action :start_minimum_response_budget
           after_action :enforce_minimum_response_budget
 

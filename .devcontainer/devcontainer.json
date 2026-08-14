@@ -105,7 +105,8 @@
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/codex:1": {},
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
-    "ghcr.io/devcontainers-extra/features/opencode:1": {}
+    "ghcr.io/devcontainers-extra/features/opencode:1": {},
+    "ghcr.io/jsburckhardt/devcontainer-features/herdr:1": { "VERSION": "v0.8.0" }
   }
   // Host bind mounts that must be readonly live in compose.override.yml. The
   // Dev Container string-form `readonly` option is not effective with the

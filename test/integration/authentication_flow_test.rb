@@ -29,7 +29,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "guest can access login page" do
-    get auth_app_sign_in_path(login_challenge: login_challenge_for_sign_in), headers: { "Host" => @host }
+    get auth_app_sign_in_path(ri: "jp", login_challenge: login_challenge_for_sign_in), headers: { "Host" => @host }
 
     assert_response :ok
   end

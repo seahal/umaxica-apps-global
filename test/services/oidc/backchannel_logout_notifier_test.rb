@@ -28,11 +28,15 @@ class OidcBackchannelLogoutNotifierTest < ActiveSupport::TestCase
 
     enqueued_jobs.each do |job|
       assert_equal OidcBackchannelLogoutDeliveryJob, job.fetch(:job)
-      assert_equal 5, job.fetch(:args).size
-      assert_equal "sign-rp", job[:args][1]
-      assert_equal "client", job[:args][2]
-      assert_equal "subject-1", job[:args][3]
-      assert_equal sid, job[:args][4]
+      assert_equal 1, job.fetch(:args).size
+      payload = OutboundSensitivePayload.decrypt_oidc_backchannel_logout(job[:args].first)
+
+      assert_equal "sign-rp", payload.fetch(:client_id)
+      assert_equal "client", payload.fetch(:resource_type)
+      assert_equal "subject-1", payload.fetch(:subject)
+      assert_equal sid, payload.fetch(:sid)
+      assert_not_includes job[:args].inspect, "subject-1"
+      assert_not_includes job[:args].inspect, sid
     end
   end
 

@@ -93,9 +93,7 @@ class SignUpSequenceControllerSupportExtraCoverageTest < ActiveSupport::TestCase
 
     def sign_up_ticket_class
       Class.new do
-        def self.find_by(public_id:)
-          nil
-        end
+        def self.find_by(*) = nil
       end
     end
 

@@ -10,22 +10,32 @@ Bundler.require(*Rails.groups)
 
 require_relative "../lib/jit_security_active_record_encryption_key_provider"
 require_relative "../lib/app_config_loader"
+require_relative "../lib/trusted_forwarded_headers"
 
 module Jit
   module TrustedProxiesConfig
     module_function
 
-    def parse(value)
-      value.to_s.split(",").filter_map do |proxy|
-        normalized = proxy.strip
-        next if normalized.empty?
+    def parse(value, required: false)
+      proxies =
+        value.to_s.split(",").filter_map do |proxy|
+          normalized = proxy.strip
+          next if normalized.empty?
 
-        parse_proxy(normalized)
-      end
+          parse_proxy(normalized)
+        end
+      raise KeyError, "Missing required configuration: TRUSTED_PROXIES" if required && proxies.empty?
+
+      proxies
     end
 
     def parse_proxy(value)
-      IPAddr.new(value)
+      proxy = IPAddr.new(value)
+      if proxy == IPAddr.new("0.0.0.0/0") || proxy == IPAddr.new("::/0")
+        raise ArgumentError, "TRUSTED_PROXIES must not contain a catch-all network"
+      end
+
+      proxy
     rescue IPAddr::InvalidAddressError => e
       raise ArgumentError, "Invalid TRUSTED_PROXIES entry: #{value.inspect}", cause: e
     end
@@ -64,7 +74,16 @@ module Jit
     ### Added by user
     # Trust X-Forwarded-* headers from reverse proxy (Cloudflare Tunnel, Nginx, etc.)
     # This allows Rails to correctly determine the protocol (HTTP/HTTPS) and host
-    config.action_dispatch.trusted_proxies = TrustedProxiesConfig.parse(ENV["TRUSTED_PROXIES"])
+    trusted_proxies = TrustedProxiesConfig.parse(
+      ENV["TRUSTED_PROXIES"],
+      required: Rails.env.production?,
+    )
+    config.action_dispatch.trusted_proxies = trusted_proxies
+    config.middleware.insert_before(
+      ActionDispatch::RemoteIp,
+      TrustedForwardedHeaders,
+      trusted_proxies: trusted_proxies,
+    )
     config.x.boot_config = AppConfigLoader.load!
 
     # Active Record Encryption Configuration

@@ -208,6 +208,24 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     undef_method :sign_app_selector_path
   end
 
+  class OrgHarness < Harness
+    undef_method :sign_app_sign_in_session_path
+    undef_method :sign_app_selector_path
+
+    def sign_org_sign_in_session_path(**attrs) = "/org/session?#{attrs.compact.to_query}"
+
+    def sign_org_selector_path(**attrs) = "/org/selector?#{attrs.compact.to_query}"
+  end
+
+  class ComHarness < Harness
+    undef_method :sign_app_sign_in_session_path
+    undef_method :sign_app_selector_path
+
+    def sign_com_sign_in_session_path(**attrs) = "/com/session?#{attrs.compact.to_query}"
+
+    def sign_com_selector_path(**attrs) = "/com/selector?#{attrs.compact.to_query}"
+  end
+
   class LocatorHarness < Harness
     attr_accessor :surface
 
@@ -228,6 +246,9 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     fallback = FallbackHarness.new
 
     assert_equal "/in/session?pt=pt%3Atarget&ri=jp", fallback.sign_in_session_limit_path(pt: "target")
+
+    assert_equal "/org/session?pt=pt%3Atarget&ri=jp", OrgHarness.new.sign_in_session_limit_path(pt: "target")
+    assert_equal "/com/session?pt=pt%3Atarget&ri=jp", ComHarness.new.sign_in_session_limit_path(pt: "target")
   end
 
   test "legacy bulletin session state does not hold an otherwise clear checkpoint" do
@@ -243,6 +264,9 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     fallback = FallbackHarness.new
 
     assert_equal "/selector?pt=pt%3Atarget&ri=jp", fallback.sign_in_selector_path(pt: "target")
+
+    assert_equal "/org/selector?pt=pt%3Atarget&ri=jp", OrgHarness.new.sign_in_selector_path(pt: "target")
+    assert_equal "/com/selector?pt=pt%3Atarget&ri=jp", ComHarness.new.sign_in_selector_path(pt: "target")
   end
 
   test "sign-in helper paths canonicalize invalid region input" do
@@ -293,6 +317,36 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     ], @harness.redirected
   end
 
+  test "redirect_after_checkpoint_sequence! rejects, blocks, or advances a pending checkpoint cycle" do
+    @harness.cycle = FakeCycle.new(states: { checkpoint: false })
+
+    @harness.redirect_after_checkpoint_sequence!
+
+    assert_equal :bad_request, @harness.rendered[:status]
+
+    @harness.cycle = FakeCycle.new(states: { checkpoint: true }, return_to: "/after")
+    @harness.allowed_policy = false
+
+    @harness.redirect_after_checkpoint_sequence!
+
+    assert_equal :bad_request, @harness.rendered[:status]
+
+    @harness.cycle = FakeCycle.new(states: { checkpoint: true }, return_to: "/after")
+    @harness.allowed_policy = true
+    @harness.checkpoint_result = Result.new(true)
+
+    @harness.redirect_after_checkpoint_sequence!(pt: "fallback")
+
+    assert_equal ["/checkpoint?pt=/after", { allow_other_host: false }], @harness.redirected
+
+    @harness.cycle = FakeCycle.new(states: { checkpoint: true }, return_to: "/after")
+    @harness.checkpoint_result = Result.new(false)
+
+    @harness.redirect_after_checkpoint_sequence!(pt: "fallback")
+
+    assert_equal "/app/selector?pt=pt%3A%2Fafter&ri=jp", @harness.redirected.first
+  end
+
   test "issue_welcome_gate_and_path sets the gate and clears previous state" do
     @harness.session[@harness.send(:welcome_gate_key)] = { "remaining" => 1 }
 
@@ -313,6 +367,10 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     assert_not @harness.send(:consume_welcome_gate!)
 
     @harness.session[gate_key] = { "remaining" => 1, "expires_at" => 1.minute.ago.to_i }
+
+    assert_not @harness.send(:consume_welcome_gate!)
+
+    @harness.session[gate_key] = { "remaining" => 0, "expires_at" => 1.minute.from_now.to_i }
 
     assert_not @harness.send(:consume_welcome_gate!)
 
@@ -350,6 +408,60 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     @harness.cycle = FakeCycle.new(states: { guardrail: true })
 
     assert_equal "/checkpoint?pt=pt:/return", @harness.sign_in_sequence_redirect_path
+  end
+
+  test "continue_selector_sequence! rejects, advances, and rescues selector participant errors" do
+    assert_not @harness.continue_selector_sequence!
+    assert_equal :bad_request, @harness.rendered[:status]
+
+    @harness.cycle = FakeCycle.new(states: { selector: false })
+
+    assert_not @harness.continue_selector_sequence!
+    assert_equal :bad_request, @harness.rendered[:status]
+
+    @harness.cycle = FakeCycle.new(states: { selector: true })
+    @harness.allowed_policy = false
+
+    assert_not @harness.continue_selector_sequence!
+    assert_equal :bad_request, @harness.rendered[:status]
+
+    @harness.cycle = FakeCycle.new(states: { selector: true }, return_to: "/after")
+    @harness.allowed_policy = true
+    @harness.current_resource = Client.new(id: 123)
+    actor_authn = Struct.new(:login_public_id).new("login-1")
+
+    Actor.stub(:authn, actor_authn) do
+      SignInSelectorParticipant.stub(:new, Struct.new(:auto_commit_single!).new(true)) do
+        @harness.selector_result = { status: :success }
+
+        @harness.continue_selector_sequence!
+
+        assert_equal "/welcome?pt=/after", @harness.redirected.first
+      end
+
+      @harness.cycle = FakeCycle.new(states: { selector: true }, return_to: "/after")
+      SignInSelectorParticipant.stub(:new, Struct.new(:auto_commit_single!).new(true)) do
+        @harness.selector_result = { status: :failed }
+
+        assert_not @harness.continue_selector_sequence!
+        assert_equal :bad_request, @harness.rendered[:status]
+      end
+
+      @harness.cycle = FakeCycle.new(states: { selector: true }, return_to: "/after")
+      raiser = Object.new
+      raiser.define_singleton_method(:auto_commit_single!) { raise SignInSelectorParticipant::Error, "boom" }
+      SignInSelectorParticipant.stub(:new, raiser) do
+        assert_not @harness.continue_selector_sequence!
+        assert_equal :bad_request, @harness.rendered[:status]
+      end
+    end
+  end
+
+  test "dashboard_sequence_step_required? and sign_in_sequence_required_for_participant? default to true" do
+    plain_harness = Class.new { include AuthenticationSequenceGate }.new
+
+    assert plain_harness.send(:dashboard_sequence_step_required?)
+    assert plain_harness.send(:sign_in_sequence_required_for_participant?, :checkpoint)
   end
 
   test "begin_sign_in_sequence! returns a success result when current resource is present" do
@@ -454,6 +566,18 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
 
     assert_equal [["/after", "seq-1"]], issued
     assert_equal "/welcome?pt=/after", @harness.redirected.first
+  end
+
+  test "continue_checkpoint_sequence_without_content! redirects to after_login_path for an OIDC login challenge" do
+    @harness.current_resource = Client.new(id: 123)
+    @harness.cycle = FakeCycle.new(states: { checkpoint: true, dashboard: true }, return_to: "/after")
+    @harness.checkpoint_result = Result.new(false)
+    @harness.session[:oidc_authorization_login_challenge] = "challenge-1"
+    @harness.define_singleton_method(:after_login_path) { "/after-login" }
+
+    @harness.continue_checkpoint_sequence_without_content!
+
+    assert_equal ["/after-login", { allow_other_host: false }], @harness.redirected
   end
 
   test "continue_welcome_sequence_without_content! handles non-cycle and cycle paths" do

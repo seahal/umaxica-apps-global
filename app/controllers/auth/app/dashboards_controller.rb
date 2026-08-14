@@ -11,6 +11,7 @@ module Auth
       before_action :authenticate_client!
 
       def show
+        authorize!(current_client, to: :show?)
         render "auth/app/dashboards/show"
       end
     end

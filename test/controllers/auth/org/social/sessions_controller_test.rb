@@ -4,21 +4,10 @@
 require "test_helper"
 
 class Auth::Org::Social::SessionsControllerTest < ActionDispatch::IntegrationTest
-  TENANT_ID = "11111111-2222-3333-4444-555555555555"
-
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     host! @host
     Rails.configuration.x.rate_limit.fetch(:store).clear
-    OrganizationEntraConnectionState.ensure_defaults!
-
-    @connection = OrganizationEntraConnection.create!(
-      organization_id: 1,
-      entra_tenant_id: TENANT_ID,
-      entra_client_id: "org-social-sessions-controller-test-client",
-      entra_credential_key: "org-social-sessions-controller-test-secret",
-      status_id: OrganizationEntraConnectionState::ACTIVE,
-    )
   end
 
   teardown do
@@ -32,49 +21,27 @@ class Auth::Org::Social::SessionsControllerTest < ActionDispatch::IntegrationTes
     assert_select "form[action=?][method=?]", auth_org_social_entra_session_path(ri: "jp"), "post"
   end
 
-  test "POST without a connection renders the cushion page rather than starting a ceremony" do
+  # The tenant is fixed in configuration, so the ceremony starts on the press
+  # alone -- the same shape as the app surface's Google and Apple buttons.
+  test "POST hands the ceremony off with a 307" do
     post auth_org_social_entra_session_path(ri: "jp")
-
-    assert_response :success
-    assert_select "input[name=?]", "connection_public_id"
-    assert_select "form[action=?]", "/social/entra", count: 0
-  end
-
-  test "POST with an active connection hands the ceremony off with a 307" do
-    post auth_org_social_entra_session_path(ri: "jp"),
-         params: { connection_public_id: @connection.public_id }
 
     assert_response :temporary_redirect
     assert_equal "http://#{@host}/social/entra", response.location
   end
 
-  test "POST with an unknown connection renders the same generic error as an inactive one" do
-    post auth_org_social_entra_session_path(ri: "jp"),
-         params: { connection_public_id: "does-not-exist" }
+  test "POST refuses a provider that does not belong to this surface" do
+    post "/social/google/session", params: {}
 
-    assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.org.authentication.entra.new.connection_not_found")
-    assert_select "form[action=?]", "/social/entra", count: 0
-
-    @connection.update!(status_id: OrganizationEntraConnectionState::REVOKED)
-
-    post auth_org_social_entra_session_path(ri: "jp"),
-         params: { connection_public_id: @connection.public_id }
-
-    # Status, message, and absence of the ceremony form must match the unknown
-    # case exactly, or this endpoint would disclose which organizations have an
-    # Entra connection configured.
-    assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.org.authentication.entra.new.connection_not_found")
-    assert_select "form[action=?]", "/social/entra", count: 0
+    assert_response :not_found
   end
 
-  test "GET new still honours the ?connection= link contract" do
-    get new_auth_org_social_entra_session_path(connection: @connection.public_id, ri: "jp")
+  test "GET new renders the ceremony form and asks the operator for nothing" do
+    get new_auth_org_social_entra_session_path(ri: "jp")
 
     assert_response :success
     assert_select "form[action=?]", "/social/entra"
-    assert_select "input[name=?][value=?]", "connection_public_id", @connection.public_id
+    assert_select "input[type=?]", "text", count: 0
   end
 
   test "GET new renders a form and cannot start the ceremony on its own" do
@@ -82,7 +49,7 @@ class Auth::Org::Social::SessionsControllerTest < ActionDispatch::IntegrationTes
     # login CSRF (CVE-2015-9284) - the reason the app surface has no GET entry
     # at all. This GET is a landing page only: it renders the button and sends
     # nothing to Microsoft until a person presses it. Only #create hands off.
-    get new_auth_org_social_entra_session_path(connection: @connection.public_id, ri: "jp")
+    get new_auth_org_social_entra_session_path(ri: "jp")
 
     assert_response :success
     assert_no_match(
@@ -107,8 +74,7 @@ class Auth::Org::Social::SessionsControllerTest < ActionDispatch::IntegrationTes
     }
 
     ExternalAuthentication::ProviderAvailabilityFactory.stub(:current, disabled) do
-      post auth_org_social_entra_session_path(ri: "jp"),
-           params: { connection_public_id: @connection.public_id }
+      post auth_org_social_entra_session_path(ri: "jp")
     end
 
     assert_response :service_unavailable
@@ -118,8 +84,7 @@ class Auth::Org::Social::SessionsControllerTest < ActionDispatch::IntegrationTes
 
   test "POST is rate limited per client address" do
     21.times do
-      post auth_org_social_entra_session_path(ri: "jp"),
-           params: { connection_public_id: "does-not-exist" }
+      post auth_org_social_entra_session_path(ri: "jp")
     end
 
     assert_response :too_many_requests

@@ -1,6 +1,10 @@
 # typed: false
 # frozen_string_literal: true
 
+# Environment files are evaluated before autoloading is set up, so this is required explicitly rather
+# than resolved from lib/ by Zeitwerk.
+require_relative "../../lib/health_probe_paths"
+
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
@@ -129,9 +133,9 @@ Rails.application.configure do
     read_timeout: 10,
   }
 
-  # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
-  # the I18n.default_locale when a translation cannot be found).
-  config.i18n.fallbacks = true
+  # Locale fallbacks are configured in config/initializers/locale.rb, which is the single source of
+  # truth for the load path, available locales, and the fallback chain. Setting them here as well
+  # would be overwritten by that initializer and hide which value actually applies.
 
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
@@ -192,8 +196,21 @@ Rails.application.configure do
   # production. Add the real ingress hosts here (preferably via boot_config) before serving
   # either surface publicly.
 
-  # Skip DNS rebinding protection only for health checks and load balancer probes.
-  config.host_authorization = { exclude: ->(request) { request.path == "/health" } }
+  # Skip DNS rebinding protection for the internal health probes, and only for them.
+  #
+  # This previously matched `"/health"` alone, while the probe set this application mounts is four
+  # paths. `/health/liveness`, `/health/readiness` and `/health/startup` were therefore answered by
+  # Host Authorization rather than by the probe whenever the caller addressed the origin by container
+  # name or pod IP -- the normal orchestrator case, since those names are deliberately not in
+  # `config.hosts`.
+  #
+  # `HealthProbePaths` matches the four paths exactly rather than by `/health/` prefix, so a probe
+  # added later cannot inherit the exemption without a deliberate decision. See that file for what
+  # the exemption costs and why it is acceptable for these four responses.
+  #
+  # Preferred over widening this list: give the probe a `Host` that is already in `config.hosts`.
+  # A probe that sets its own `Host` header needs no exemption at all.
+  config.host_authorization = { exclude: ->(request) { HealthProbePaths.probe?(request) } }
 
   ### Added by owner
   # We've configured this production environment to prevent the delivery of public static content.

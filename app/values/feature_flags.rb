@@ -100,6 +100,13 @@ module FeatureFlags
         name: :social_ceremony_org_entra, polarity: :availability,
         effect: "Permits the Entra ceremony on the org surface.",
       ),
+      *FqdnAvailabilityRegistry::SLOT_NAMES.map do |slot|
+        Flag.new(
+          name: FqdnAvailabilityRegistry.flag_name_for(slot), polarity: :availability,
+          effect: "Serves requests for the #{slot} FQDN. Off or unset returns 503 before rate " \
+                  "limiting and before authentication. Health probes are unaffected.",
+        )
+      end,
     ].index_by(&:name).freeze
 
   module_function

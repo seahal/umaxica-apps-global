@@ -22,7 +22,7 @@ module SignUpSequenceControllerSupport
     @sign_up_ticket = current_sign_up_flow_ticket
     return if @sign_up_ticket
 
-    render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
+    render plain: I18n.t("errors.messages.not_found"), status: :not_found
   end
 
   def load_sign_up_checkpoint_ticket
@@ -182,7 +182,7 @@ module SignUpSequenceControllerSupport
 
     actor = sign_up_pending_actor
     unless actor
-      render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
+      render plain: I18n.t("errors.messages.not_found"), status: :not_found
       return false
     end
 
@@ -202,7 +202,7 @@ module SignUpSequenceControllerSupport
 
     actor = sign_up_pending_actor
     unless actor
-      render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
+      render plain: I18n.t("errors.messages.not_found"), status: :not_found
       return
     end
 

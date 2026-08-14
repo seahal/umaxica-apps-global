@@ -80,6 +80,8 @@ Current content-model references:
 - `docs/security/security-headers.md`
 - `docs/operations/health-check.md`
 - `docs/operations/search-engine-webmaster-tools.md`
+- `docs/architecture/search-metadata-boundary.md` records deferred direction for search metadata and
+  structured data; it is not an implementation contract.
 - `docs/operations/external-scan-cadence.md`
 - `docs/architecture/controller-boundaries.md`
 - `docs/security/turnstile.md`

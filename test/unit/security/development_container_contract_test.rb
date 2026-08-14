@@ -85,6 +85,26 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     end
   end
 
+  test "the tunnel connector joins both the Rails frontend and the external Edge network" do
+    overlay = YAML.safe_load_file(REPOSITORY_ROOT.join("compose.custom.yaml"))
+    connector_networks = overlay.fetch("services").fetch("cloudflare-tunnel").fetch("networks")
+
+    assert_includes connector_networks, "frontend",
+                    "a service-level networks: list in an overlay replaces the base list rather " \
+                    "than merging with it, so removing frontend here silently detaches the " \
+                    "connector from the private *.localhost Rails origins"
+    assert_includes connector_networks, "edge-tunnel",
+                    "without the Edge network the connector shares no network with the Edge Core " \
+                    "origin, cannot resolve it, and every Edge ingress rule returns 502"
+
+    assert_equal(
+      { "external" => true, "name" => "umaxica-edge-tunnel" },
+      overlay.fetch("networks").fetch("edge-tunnel"),
+      "the Edge network is created by the Edge compose project; declaring it non-external " \
+      "or under another name makes this project create a separate empty network",
+    )
+  end
+
   test "PostgreSQL health checks authenticate through the runtime writer secret" do
     compose = REPOSITORY_ROOT.join("compose.yaml").read
 

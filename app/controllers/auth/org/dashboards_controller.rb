@@ -11,6 +11,7 @@ module Auth
       before_action :authenticate_operator!
 
       def show
+        authorize!(current_operator, to: :show?)
         render "auth/org/dashboards/show"
       end
     end

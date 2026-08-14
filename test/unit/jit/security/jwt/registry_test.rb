@@ -174,6 +174,30 @@ module Jit
           end
         end
 
+        test "rejects unknown issuer and namespace identifiers" do
+          with_registry_inputs do
+            JitSecurityJwtRegistry.reload!
+
+            unknown_issuer =
+              assert_raises(JitSecurityJwtRegistry::ConfigurationError) do
+                JitSecurityJwtRegistry.issuer("missing")
+              end
+            assert_match(/unknown JWT issuer registry id/, unknown_issuer.message)
+
+            unsupported_surface =
+              assert_raises(JitSecurityJwtRegistry::ConfigurationError) do
+                JitSecurityJwtRegistry.surface("missing")
+              end
+            assert_match(/unsupported JWT issuer namespace/, unsupported_surface.message)
+
+            unsupported_client =
+              assert_raises(JitSecurityJwtRegistry::ConfigurationError) do
+                JitSecurityJwtRegistry.oidc_client("missing")
+              end
+            assert_match(/unsupported OIDC client JWT namespace/, unsupported_client.message)
+          end
+        end
+
         test "does not allow insecure default kid outside local environments" do
           with_registry_inputs(
             "AUTH_JWT_ACTIVE_KID" => "default",

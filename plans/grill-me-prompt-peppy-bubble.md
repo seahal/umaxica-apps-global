@@ -379,5 +379,5 @@ ActionPolicy（current actor / ownership / tenant・org 境界）。scope チェ
   - **Side**: service token なしで拒否、user
     cookie 付与でも拒否、verify/rotate/revoke が機能（secret lifecycle テスト）。
   - **エラー契約**: 形状一致 + `detail` に内部情報が漏れないこと + `request_id` 常在。
-- JS 側に変更が及ぶ場合は Vitest（`vp test`）でも CSRF/fetch 経路を検証。
+- JS 側に変更が及ぶ場合は Vitest（`pnpm test`）でも CSRF/fetch 経路を検証。
 - narrowest test を先に、その後 surface 横断の broader test。実行できないテストは明記。

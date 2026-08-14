@@ -24,6 +24,9 @@ class HostConfigurationConsistencyTest < ActiveSupport::TestCase
     base_service: "PUBLIC_BASE_SERVICE_URL",
     base_corporate: "PUBLIC_BASE_CORPORATE_URL",
     base_staff: "PUBLIC_BASE_STAFF_URL",
+    core_service: "PUBLIC_CORE_SERVICE_URL",
+    core_corporate: "PUBLIC_CORE_CORPORATE_URL",
+    core_staff: "PUBLIC_CORE_STAFF_URL",
   }.freeze
 
   test "boot_config resolves every public host to the value the environment still holds" do

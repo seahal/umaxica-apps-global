@@ -336,7 +336,7 @@ module Auth
           end
 
           def email_locked_message
-            t("sign.app.authentication.email.locked", default: t("errors.otp_locked"))
+            t("sign.app.authentication.email.locked")
           end
 
           def email_params(*keys)

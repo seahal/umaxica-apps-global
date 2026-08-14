@@ -8,6 +8,7 @@ module Base
       declare_authentication_mode! :private
 
       def show
+        authorize!(current_operator, to: :show?)
         render "base/shared/dashboards/show"
       end
     end

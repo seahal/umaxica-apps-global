@@ -11,8 +11,9 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
 
     get "/?ri=jp", headers: { "Host" => host }
 
-    assert_response :success
-    assert_homepage_html title: "Base App", message: I18n.t("landing.thin_endpoint")
+    # The gateway root canonicalizes to the regional root instead of serving a page.
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.app/", response.location
 
     get "/health", headers: { "Host" => host }
 
@@ -33,18 +34,18 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "base public host family renders standalone homepages" do
+  test "base public host family canonicalizes to its regional roots" do
     [
-      [ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"), "Base App", "base.app.roots.message"],
-      [ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"), "Base Com", "base.com.roots.message"],
-      [ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"), "Base Org", "base.org.roots.message"],
-    ].each do |host, title, _key|
+      [ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"), "https://jp.umaxica.app/"],
+      [ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"), "https://jp.umaxica.com/"],
+      [ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"), "https://jp.umaxica.org/"],
+    ].each do |host, expected_location|
       host! host
 
       get "/?ri=jp", headers: { "Host" => host }
 
-      assert_response :success
-      assert_homepage_html title: title, message: I18n.t("landing.thin_endpoint")
+      assert_response :moved_permanently
+      assert_equal expected_location, response.location
     end
   end
 

@@ -16,7 +16,7 @@ class Auth::App::Settings::Passkeys::OptionsController < ::Auth::App::Applicatio
   before_action :require_recovery_passcodes_for_mfa_registration!, only: :create
   before_action :verify_settings_passkey_turnstile!, only: :create
 
-  def create = render_passkey_registration_options
+  def create = (authorize!(ClientPasskey, to: :create?); render_passkey_registration_options)
 
   private
 

@@ -16,12 +16,13 @@ module Auth
       # only verified, minimal claims (tid, oid, iss, sub,
       # connection_public_id -- never raw tokens, never email/UPN/name).
       #
-      # This controller is Rails glue only: it re-resolves the
-      # OrganizationEntraConnection, delegates identity lookup to the
-      # existing ExternalSignIn::OrgEntraResolver (no JIT provisioning), and
-      # routes through the same session-establishment, MFA, session-limit,
-      # and audit path as the passkey/secret-credential/legacy Entra
-      # ceremonies. See adr/org-entra-id-sign-in-boundary.md.
+      # This controller is Rails glue only: it normalizes the AuthHash through
+      # the same ExternalAuthentication adapter interface the app surface uses
+      # for Google and Apple, delegates identity lookup to
+      # ExternalSignIn::OrgEntraResolver (no JIT provisioning), and routes
+      # through the same session-establishment, MFA, session-limit, and audit
+      # path as the passkey and secret-credential ceremonies.
+      # See adr/org-entra-id-sign-in-boundary.md.
       class OmniauthCallbacksController < ::Auth::Org::ApplicationController
         include SessionLimitGate
         include ExternalAuthenticationEndpoint
@@ -57,12 +58,14 @@ module Auth
             return render_entra_error(:provider_unavailable)
           end
 
-          connection = active_connection(auth.extra&.raw_info&.[]("connection_public_id"))
-          return render_entra_error(:connection_not_found) if connection.nil?
+          callback = ExternalAuthentication::ProviderAdapterFactory.build(
+            provider: "entra",
+            audience: ExternalAuthentication::ProviderRegistry.audience("entra"),
+          ).call(auth_hash: auth, verified_at: Time.current)
+          return render_entra_error(:invalid_callback) if callback.failed?
 
           resolution = ExternalSignIn::OrgEntraResolver.new(
-            auth_result: normalized_auth_result(auth),
-            connection: connection,
+            tenant_context: callback.principal.tenant_context,
           ).call
           identity = resolution.identity
           operator = resolution.operator
@@ -98,10 +101,15 @@ module Auth
         end
 
         # GET /social/entra/failure
+        # `message` is an unauthenticated, unthrottled request parameter (the
+        # rate_limit above is scoped to :omniauth), so it is classified through
+        # the same allowlist used for rendering before it reaches the log. Only
+        # the classification is retained; the raw parameter is never logged
+        # (adr/application-logging-boundary.md).
         def failure
-          message = params[:message].presence || "unknown_error"
-          log_entra_failure("omniauth_failure", message: message)
-          render_entra_error(entra_failure_reason(message))
+          reason = entra_failure_reason(params[:message].presence || "unknown_error")
+          log_entra_failure("omniauth_failure", message: reason)
+          render_entra_error(reason)
         end
 
         private
@@ -114,25 +122,6 @@ module Auth
           else
             :entra_error
           end
-        end
-
-        def normalized_auth_result(auth)
-          raw = auth.extra.raw_info
-          ExternalSignIn::NormalizedAuthResult.new(
-            tenant_id: raw["tid"],
-            entra_object_id: raw["oid"],
-            evidence_issuer: raw["iss"],
-            evidence_subject: raw["sub"],
-          )
-        end
-
-        def active_connection(public_id)
-          return if public_id.blank?
-
-          OrganizationEntraConnection.find_by(
-            public_id: public_id,
-            status_id: OrganizationEntraConnectionState::ACTIVE,
-          )
         end
 
         def consume_pt!

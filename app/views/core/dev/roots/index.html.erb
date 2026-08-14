@@ -1,4 +1,3 @@
-<% content_for :page_title, "Core Dev React Aria Probe" %>
 <!doctype html>
 <html lang="<%= I18n.locale %>">
   <head>
@@ -6,12 +5,13 @@
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1">
-    <title>Core Dev React Aria Probe</title>
+    <%= display_meta_tags site: "#{ENV.fetch("BRAND_NAME").upcase} (DEV)", separator: "—", reverse: true %>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%= vite_client_tag nonce: true %>
     <%= vite_react_refresh_tag nonce: true %>
-    <%= vite_typescript_tag "entrypoints/core/dev", nonce: true, "data-turbo-eval": "false" %>
+    <%= vite_stylesheet_tag "~/styles/surfaces/core_dev.css", nonce: true %>
+    <%= vite_typescript_tag "entrypoints/core/dev", nonce: content_security_policy_nonce, "data-turbo-eval": "false" %>
   </head>
   <body>
     <div

@@ -8,6 +8,7 @@ module Base
       declare_authentication_mode! :private
 
       def show
+        authorize!(current_operator, to: :show?)
         BaseSelectorBootstrapAuthority.call(surface: :org, principal: current_operator)
         render json: BaseSelectorAuthority.prepare(
           surface: :org, principal: current_operator,
@@ -16,6 +17,7 @@ module Base
       end
 
       def update
+        authorize!(current_operator, to: :update?)
         render json: BaseSelectorAuthority.select(
           surface: :org,
           principal: current_operator,

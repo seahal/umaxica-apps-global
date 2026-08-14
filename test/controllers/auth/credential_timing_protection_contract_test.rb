@@ -60,23 +60,18 @@ class AuthCredentialTimingProtectionContractTest < ActiveSupport::TestCase
     assert_includes controller.private_methods, :ensure_min_elapsed
   end
 
-  # Entra ID's connection-lookup timing protection moved out of a Rails
-  # controller and into the OmniAuth strategy itself
-  # (lib/omniauth/strategies/umaxica_entra.rb#request_phase) when the legacy
-  # Auth::Org::Sign::In::Entra::AuthorizationsController was retired (see
-  # adr/org-entra-omniauth-strategy-migration.md). A Rack/OmniAuth::Strategy
-  # is not an ActionController and cannot include MinimumResponseBudget, so
-  # this checks the inlined equivalent instead of a registered callback.
-  test "Entra OmniAuth strategy's request phase applies the same minimum response budget" do
+  # The Entra strategy's request phase used to pad its response time so a valid
+  # and an invalid connection_public_id could not be told apart by timing. The
+  # org surface now federates a single tenant read from configuration, so the
+  # request phase performs no per-request record lookup and there is no pair of
+  # inputs whose timing could differ. The protection was removed with the lookup
+  # rather than left as a pad over nothing; this asserts the lookup really is
+  # gone, which is what made it unnecessary.
+  test "Entra OmniAuth strategy's request phase performs no timing-sensitive record lookup" do
     strategy_class = OmniAuth::Strategies::UmaxicaEntra
+    body = File.read(strategy_class.instance_method(:request_phase).source_location.first)
 
-    assert_in_delta(150.0, strategy_class::MINIMUM_RESPONSE_BUDGET_MS)
-    assert_in_delta(250.0, strategy_class::MAXIMUM_RESPONSE_BUDGET_SLEEP_MS)
-    assert_includes strategy_class.private_instance_methods, :pad_to_minimum_response_budget!
-
-    source = strategy_class.instance_method(:request_phase).source_location
-    body = File.read(source.first)
-
-    assert_match(/pad_to_minimum_response_budget!/, body)
+    assert_not_includes strategy_class.private_instance_methods, :active_connection
+    assert_no_match(/OrganizationEntraConnection/, body)
   end
 end

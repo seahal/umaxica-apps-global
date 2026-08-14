@@ -8,10 +8,6 @@ class SignRecoveryPasscodeRequirement
     new(actor: actor, credential_class: credential_class, now: now).usable_unused_count
   end
 
-  def self.satisfied?(...)
-    usable_unused_count(...) >= MINIMUM_USABLE_UNUSED_RECOVERY_PASSCODES
-  end
-
   def initialize(actor:, credential_class:, now: Time.current)
     @actor = actor
     @credential_class = credential_class

@@ -5,11 +5,13 @@
   "module": "index.ts",
   "scripts": {
     "prepare": "lefthook install",
+    "dev": "vite dev",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt src spec e2e vite.config.ts vitest.config.ts playwright.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json package.json pnpm-workspace.yaml lefthook.yml .oxfmtrc.json .oxlintrc.json",
     "format:check": "oxfmt --check src spec e2e vite.config.ts vitest.config.ts playwright.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json package.json pnpm-workspace.yaml lefthook.yml .oxfmtrc.json .oxlintrc.json",
     "typecheck": "tsc --noEmit",
+    "build": "NODE_ENV=production vite build --mode production",
     "check": "pnpm -s format:check && pnpm -s lint && pnpm -s typecheck",
     "ci": "pnpm -s check && pnpm -s test:coverage",
     "ci:js": "pnpm -s run ci",

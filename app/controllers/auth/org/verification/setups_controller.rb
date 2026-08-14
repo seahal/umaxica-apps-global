@@ -10,6 +10,7 @@ module Auth
         before_action :authenticate_operator!
 
         def new
+          authorize!(current_operator, to: :show?)
           @pt = params[:pt].to_s.presence
           @pt_destination = setup_pt_path(@pt, root_path: auth_org_settings_path(ri: params[:ri]))
           @missing_methods = step_up_supported_methods - configured_step_up_methods

@@ -11,6 +11,7 @@ module Base
 
           before_action :authenticate_client!
           def create
+            authorize!(ClientToken, to: :revoke_others?)
             AuthenticationOtherSessionsRevoker.call(
               owner: current_client,
               sessions: current_client.client_tokens.session_inventory,

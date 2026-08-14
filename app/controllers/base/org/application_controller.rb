@@ -4,6 +4,7 @@
 module Base
   module Org
     class ApplicationController < ActionController::Base
+      include ::FqdnAvailabilityGate
       include ::RateLimit
       include ::JumpRtReturnVerification
 

@@ -4,6 +4,11 @@
 require "net/http"
 
 class OidcRpTokenClient < ApplicationService
+  # RFC 7523 client assertion type. Held here rather than borrowed from an
+  # Entra-specific class: this client is the generic OIDC RP token exchange and
+  # must not depend on a provider-specific one.
+  CLIENT_ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+
   Result =
     Data.define(:success, :token_response, :error) do
       def success? = success
@@ -50,7 +55,7 @@ class OidcRpTokenClient < ApplicationService
     }
     if client_assertion.present?
       return params.merge(
-        client_assertion_type: ExternalAuthentication::EntraClientAssertionAdapter::ASSERTION_TYPE,
+        client_assertion_type: CLIENT_ASSERTION_TYPE,
         client_assertion: client_assertion,
       )
     end

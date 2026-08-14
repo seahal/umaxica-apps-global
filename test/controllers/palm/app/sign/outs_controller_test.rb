@@ -35,9 +35,39 @@ module Palm
             state: "client-state",
           )
 
+          # Palm participates in the ri contract, so a GET without a region is canonicalized first.
+          assert_response :redirect
+          assert_equal "jp", Rack::Utils.parse_nested_query(URI.parse(response.location).query)["ri"]
+
+          follow_redirect!
+
           assert_response :success
           assert_select "h1", text: "Signed out"
           assert_select "code", text: "client-state"
+        end
+
+        test "get sign out renders directly when the region is already present" do
+          transaction = AcmeLogoutTransaction.create!(
+            origin_surface: "palm",
+            initiating_client_id: "app-ios-rp",
+            completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "palm"),
+            actor_ref: clients(:one).public_id,
+            session_ref: "session-public-id",
+            callback_state: "client-state",
+            expected_step: AcmeLogoutTransaction.step_sequence_for("palm").first,
+            status: AcmeLogoutTransaction::STATUS_FINALIZED,
+            expires_at: 10.minutes.from_now,
+            completed_steps: %w(origin_cleared acme_cleared sign_cleared finalized),
+          )
+
+          get palm_app_sign_out_url(
+            logout_challenge: transaction.logout_challenge,
+            state: "client-state",
+            ri: "us",
+          )
+
+          assert_response :success
+          assert_select "h1", text: "Signed out"
         end
 
         test "post sign out revokes the current bearer token and returns opaque browser launch data" do

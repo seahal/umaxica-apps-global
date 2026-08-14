@@ -135,6 +135,8 @@ gem "lograge"
 gem "json-canonicalization"
 # ?
 gem "svix"
+gem "mcp"
+
 # Switch
 # Sourced from git rather than the 1.4.2 release: that release calls
 # `Arel::Table.new(name)` positionally in the ActiveRecord adapter's `get_all`,

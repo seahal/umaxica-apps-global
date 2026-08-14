@@ -58,9 +58,6 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
         "PUBLIC_CORE_STAFF_URL",
         ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"),
       ) => "core/org/oidc/callbacks",
-      "core.app.localhost" => "core/app/oidc/callbacks",
-      "core.com.localhost" => "core/com/oidc/callbacks",
-      "core.org.localhost" => "core/org/oidc/callbacks",
     }
 
     expectations.each do |host, controller|

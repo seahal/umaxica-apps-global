@@ -21,13 +21,18 @@ class AppleNotificationJwksCacheTest < ActiveSupport::TestCase
         payload
       },
     )
-    loader = cache.loader
+    cache_store = ActiveSupport::Cache::MemoryStore.new
 
-    assert_equal payload, loader.call({})
-    assert_equal payload, loader.call({})
-    assert_equal 1, calls
+    Rails.stub(:cache, cache_store) do
+      loader = cache.loader
 
-    assert_equal payload, loader.call(kid_not_found: true)
+      assert_equal payload, loader.call({})
+      assert_equal payload, loader.call({})
+      assert_equal 1, calls
+
+      assert_equal payload, loader.call(kid_not_found: true)
+    end
+
     assert_equal 2, calls
   end
 

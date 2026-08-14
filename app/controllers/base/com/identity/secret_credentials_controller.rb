@@ -22,6 +22,7 @@ module Base
         before_action :verify_secret_credential_turnstile!, only: :create
 
         def index
+          authorize!(VisitorSecretCredential, to: :index?)
           @secret_credentials = current_visitor.visitor_secret_credentials.order(created_at: :asc)
         end
 

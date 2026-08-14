@@ -19,6 +19,9 @@ scope(module: :auth, as: :auth) do
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
+
       resource(:health, only: :show)
       namespace(:health) do
         resource(:liveness, only: :show)
@@ -236,6 +239,9 @@ scope(module: :auth, as: :auth) do
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
+
       resource(:health, only: :show)
       namespace(:health) do
         resource(:liveness, only: :show)
@@ -388,6 +394,9 @@ scope(module: :auth, as: :auth) do
       namespace(:well_known, path: ".well-known") do
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
+
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
 
       resource(:health, only: :show)
       namespace(:health) do

@@ -10,6 +10,9 @@ scope module: :palm, as: :palm do
       # Thin landing endpoint.
       root to: "roots#index"
 
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       # Basic health summary.
       resource :health, only: :show
 

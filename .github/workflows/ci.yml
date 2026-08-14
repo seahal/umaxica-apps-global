@@ -52,6 +52,32 @@ jobs:
           persist-credentials: false
       - name: Run actionlint
         uses: devops-actions/actionlint@v0.1.10
+  build-assets:
+    name: Production Asset Build (Vite)
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
+    env:
+      NODE_ENV: production      # ワークフロー既定の test を上書きするのが要点
+      VITE_RUBY_MODE: production
+      LEFTHOOK: 0
+    steps:
+      - uses: actions/checkout@v6.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile --prod=false
+      - run: pnpm exec vite build --mode production
+      - name: Assert the production React runtime
+        run: |
+          if grep -rql "jsx-dev-runtime\|jsxDEV" public/vite/assets; then
+            echo "::error::Production bundle contains the React development JSX runtime."
+            exit 1
+          fi
   security:
     name: Security Checks (Brakeman, Bundle Audit)
     runs-on: ubuntu-latest

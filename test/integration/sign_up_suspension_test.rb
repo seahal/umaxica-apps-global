@@ -50,12 +50,12 @@ class SignUpSuspensionRequestTest < ActionDispatch::IntegrationTest
     Flipper.enable(:sign_up_suspended_app)
 
     host! SURFACES.fetch(:com).fetch(:host)
-    get auth_com_sign_up_path
+    get auth_com_sign_up_path(ri: "jp")
 
     assert_response :success
 
     host! SURFACES.fetch(:org).fetch(:host)
-    get auth_org_sign_up_path
+    get auth_org_sign_up_path(ri: "jp")
 
     assert_response :success
   end
@@ -99,11 +99,13 @@ class SignUpSuspensionRequestTest < ActionDispatch::IntegrationTest
 
   private
 
+  # `ri` is supplied so the region normalization that precedes the guard does not answer first;
+  # these assertions are about the guard, not about that redirect.
   def sign_up_path_for(surface)
-    public_send(:"auth_#{surface}_sign_up_path")
+    public_send(:"auth_#{surface}_sign_up_path", ri: "jp")
   end
 
   def sign_in_path_for(surface)
-    public_send(:"auth_#{surface}_sign_in_path")
+    public_send(:"auth_#{surface}_sign_in_path", ri: "jp")
   end
 end

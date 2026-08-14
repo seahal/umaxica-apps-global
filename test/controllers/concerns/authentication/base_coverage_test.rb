@@ -30,6 +30,11 @@ class AuthenticationBaseTestController < ApplicationController
     downgrade_pending_dbsc_to_nothing! dbsc_registration_eligible_kind? default_dbsc_token_attributes
     refresh_dpop_allowed? refresh_idle_allowed? handle_refresh_idle_timeout
     detect_session_network_change!
+    resource_class token_class audit_class resource_type resource_foreign_key
+    sign_in_url_with_pt am_i_user? am_i_operator? am_i_owner?
+    network_hmac_for_request device_session_refresh_allowed?
+    revoke_refresh_session_after_dbsc_failure! token_expired_or_revoked?
+    withdrawal_required_session_entry_path
   )
 
   def index
@@ -458,6 +463,34 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal "route missing", error.message
   end
 
+  test "session_management_path and default_after_login_path prefer org/com surface helpers" do
+    # The real route helper module resolves sign_app_sign_in_session_path/auth_app_root_path
+    # dynamically (respond_to_missing?), so it can't be undef'd; stub respond_to? instead to
+    # exercise the org/com fallback branches the same way a Sign::Org/Sign::Com controller would.
+    hidden = %i(sign_app_sign_in_session_path auth_app_root_path)
+    @controller.define_singleton_method(:respond_to?) do |name, include_private = false|
+      return false if hidden.include?(name.to_sym)
+
+      super(name, include_private)
+    end
+    @controller.define_singleton_method(:sign_org_sign_in_session_path) { "/org/sign/in/session" }
+
+    assert_equal "/org/sign/in/session", @controller.session_management_path
+
+    @controller.define_singleton_method(:respond_to?) do |name, include_private = false|
+      return false if (hidden + [:sign_org_sign_in_session_path]).include?(name.to_sym)
+
+      super(name, include_private)
+    end
+    @controller.define_singleton_method(:sign_com_sign_in_session_path) { "/com/sign/in/session" }
+
+    assert_equal "/com/sign/in/session", @controller.session_management_path
+
+    @controller.define_singleton_method(:auth_org_root_path) { "/org/root" }
+
+    assert_equal "/org/root", @controller.default_after_login_path
+  end
+
   test "session limit gate flow raises resource type errors" do
     original_respond_to = @controller.method(:respond_to?)
     @controller.define_singleton_method(:respond_to?) do |name, include_private = false|
@@ -508,6 +541,43 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert_nil @controller.decode_base64_urlsafe("%%%")
 
     assert_equal "/sign/in/challenge?ri=jp", @controller.mfa_entry_path(ri: "jp")
+  end
+
+  test "mfa_entry_path falls back to org helper then the literal path" do
+    @controller.define_singleton_method(:respond_to?) do |name, include_private = false|
+      return false if name.to_sym == :sign_app_sign_in_challenge_path
+
+      super(name, include_private)
+    end
+    @controller.define_singleton_method(:sign_org_sign_in_challenge_path) { |ri:| "/org/sign/in/challenge?ri=#{ri}" }
+
+    assert_equal "/org/sign/in/challenge?ri=jp", @controller.mfa_entry_path(ri: "jp")
+
+    @controller.define_singleton_method(:respond_to?) do |name, include_private = false|
+      return false if %i(sign_app_sign_in_challenge_path sign_org_sign_in_challenge_path).include?(name.to_sym)
+
+      super(name, include_private)
+    end
+
+    assert_equal "/sign/in/challenge", @controller.mfa_entry_path(ri: "jp")
+  end
+
+  test "withdrawal_required_session_entry_path resolves per controller surface" do
+    @controller.define_singleton_method(:controller_path) { "base/app/identity/removals" }
+
+    assert_match %r{\A/}, @controller.withdrawal_required_session_entry_path
+
+    @controller.define_singleton_method(:controller_path) { "base/com/identity/removals" }
+
+    assert_match %r{\A/}, @controller.withdrawal_required_session_entry_path
+
+    @controller.define_singleton_method(:controller_path) { "auth/com/settings/removals" }
+
+    assert_match %r{\A/}, @controller.withdrawal_required_session_entry_path
+
+    @controller.define_singleton_method(:controller_path) { "some/unrelated/controller" }
+
+    assert_match %r{\A/}, @controller.withdrawal_required_session_entry_path
   end
 
   test "policy response helpers render and redirect expected shapes" do
@@ -766,6 +836,67 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.send(:cookies)[AuthenticationBase::DBSC_COOKIE_KEY] = "session-1"
 
     assert @controller.refresh_dbsc_allowed?(token)
+  end
+
+  test "device_session_refresh_allowed? verifies a DBSC-bound device session" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    user = clients(:one)
+    token_record = ClientToken.create!(user: user)
+    token_record.device_session.bind_dbsc!(session_id: "session-1")
+
+    # No session id/proof headers presented: rejected before calling the verification service.
+    assert_not @controller.device_session_refresh_allowed?(token_record)
+    assert_equal "missing_proof", @controller.instance_variable_get(:@refresh_dbsc_reason)
+
+    @request.headers[AuthIoKeys::Headers::DBSC_SESSION_ID] = "wrong-session"
+    @request.headers[AuthIoKeys::Headers::DBSC_RESPONSE] = "proof"
+
+    # Presented session id digest does not match the bound device session: rejected.
+    assert_not @controller.device_session_refresh_allowed?(token_record)
+    assert_equal "session_id_mismatch", @controller.instance_variable_get(:@refresh_dbsc_reason)
+
+    @request.headers[AuthIoKeys::Headers::DBSC_SESSION_ID] = "session-1"
+
+    DbscVerificationService.stub(:call, { ok: false, error_code: "invalid_signature" }) do
+      assert_not @controller.device_session_refresh_allowed?(token_record)
+      assert_equal "invalid_signature", @controller.instance_variable_get(:@refresh_dbsc_reason)
+    end
+
+    DbscVerificationService.stub(:call, { ok: true }) do
+      assert @controller.device_session_refresh_allowed?(token_record)
+    end
+
+    assert_nil token_record.reload.dbsc_challenge
+    assert_nil token_record.dbsc_challenge_issued_at
+  end
+
+  test "revoke_refresh_session_after_dbsc_failure! revokes the device session and its tokens" do
+    user = clients(:one)
+    token_record = ClientToken.create!(user: user)
+    device_session = token_record.device_session
+
+    @controller.revoke_refresh_session_after_dbsc_failure!(token_record)
+
+    assert_predicate device_session.reload, :revoked?
+    assert_predicate token_record.reload, :revoked?
+  end
+
+  test "token_expired_or_revoked? covers nil, infinite, and future/past expiry branches" do
+    record = Struct.new(:expiry).new(nil)
+
+    assert @controller.token_expired_or_revoked?(record, :expiry)
+
+    record.expiry = Float::INFINITY
+
+    assert_not @controller.token_expired_or_revoked?(record, :expiry)
+
+    record.expiry = 1.hour.from_now
+
+    assert_not @controller.token_expired_or_revoked?(record, :expiry)
+
+    record.expiry = 1.hour.ago
+
+    assert @controller.token_expired_or_revoked?(record, :expiry)
   end
 
   test "refresh source helpers cover dbsc branches" do
@@ -1295,6 +1426,12 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     )
 
     assert_not @controller.refresh_dpop_allowed?(bound)
+
+    # jkt-bound token with a structurally invalid DPoP proof is refused (validator error).
+    @request.headers["DPoP"] = "not-a-valid-jwt"
+
+    assert_not @controller.refresh_dpop_allowed?(bound)
+    assert_equal "malformed_proof", @controller.instance_variable_get(:@refresh_dpop_reason)
   end
 
   # ---------------------------------------------------------------
@@ -1557,6 +1694,34 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
 
     assert_raises(AuthenticationBase::SkipNotAllowedError) do
       controller_class.skip_action_callback(:process_action, :before, :enforce_access_policy!)
+    end
+
+    controller_class.define_method(:noop_before_action) { nil }
+    controller_class.before_action(:noop_before_action)
+    assert_nothing_raised { controller_class.skip_before_action(:noop_before_action) }
+  end
+
+  test "abstract contract methods raise NotImplementedError until a surface overrides them" do
+    assert_raises(NotImplementedError) { @controller.resource_class }
+    assert_raises(NotImplementedError) { @controller.token_class }
+    assert_raises(NotImplementedError) { @controller.audit_class }
+    assert_raises(NotImplementedError) { @controller.resource_type }
+    assert_raises(NotImplementedError) { @controller.resource_foreign_key }
+    assert_raises(NotImplementedError) { @controller.sign_in_url_with_pt("/return") }
+    assert_raises(NotImplementedError) { @controller.am_i_user? }
+    assert_raises(NotImplementedError) { @controller.am_i_operator? }
+    assert_raises(NotImplementedError) { @controller.am_i_owner? }
+  end
+
+  test "occurrence_model_class returns nil for an unknown resource type" do
+    @controller.define_singleton_method(:resource_type) { "unknown" }
+
+    assert_nil @controller.occurrence_model_class
+  end
+
+  test "network_hmac_for_request returns nil when the HMAC secret credential is missing" do
+    OccurrenceHmac.stub(:secret_credential, -> { raise OccurrenceHmac::MissingSecretError }) do
+      assert_nil @controller.network_hmac_for_request
     end
   end
 end

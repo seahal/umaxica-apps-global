@@ -71,14 +71,6 @@ class AuthenticationCredentialInventory
       def removable_login_credential? = removable_aal1_credential?
 
       def removable_step_up_credential? = removable_aal2_credential?
-
-      def after_excluding(credential, reload: false)
-        self.class.inventory_class.call(actor, excluding: credential, reload: reload)
-      end
-
-      def self.inventory_class
-        AuthenticationCredentialInventory
-      end
     end
 
   def self.call(actor, excluding: nil, reload: false)
@@ -296,10 +288,6 @@ class AuthenticationCredentialInventory
   def count_scope(scope, class_name)
     scope = scope.where.not(id: excluding.id) if excluding_record?(class_name)
     scope.count
-  end
-
-  def excluded?(record)
-    excluding.present? && excluding.respond_to?(:id) && excluding.class == record.class && excluding.id == record.id
   end
 
   def excluding_record?(class_name)

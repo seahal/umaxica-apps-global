@@ -1,0 +1,25 @@
+/*
+ * Stylesheet for the base/org FQDN.
+ *
+ * One trust boundary links exactly one of these files and nothing else, so a rule written for
+ * another surface cannot reach this one. `source(none)` turns off Tailwind's automatic source
+ * detection, which scans the whole Vite root and would otherwise generate every surface's
+ * utilities into every surface's stylesheet; the `@source` lines below name the only markup this
+ * surface renders.
+ */
+@import "tailwindcss" source(none);
+@import "../base.css";
+@import "../base_family.css";
+
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
+
+@source "../../pages/base/org";
+@source "../../features/preferences";
+@source "../../controllers";
+
+/* Surface-owned background: one colour per TLD, overriding the shared default in
+   `base.css` so each FQDN is identifiable on sight. */
+body {
+  background-color: #e2ffe2;
+}

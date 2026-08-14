@@ -32,6 +32,7 @@ require_relative "support/form_action_policy_helper"
 require_relative "support/fetch_metadata_defaults"
 require_relative "support/turnstile_verifier_stub"
 require_relative "support/login_cooldown_helper"
+require_relative "support/inertia_page_object"
 
 # Inject the Turnstile stub for the whole suite. Application code resolves the verifier
 # through Turnstile::VerifierFactory, so no production class knows about the test suite.
@@ -283,6 +284,12 @@ module ActiveSupport
     setup do
       ExternalAuthentication::FlipperProviderAvailabilityAdapter::PROVIDER_FEATURE_NAMES
         .each_value { |feature| Flipper.enable(feature) }
+    end
+
+    # Same reasoning for the per-FQDN availability kill switch: it fails closed, so every served
+    # FQDN is on by default here and a test that wants a surface switched off disables it itself.
+    setup do
+      FqdnAvailabilityRegistry.flag_names.each { |feature| Flipper.enable(feature) }
     end
 
     # I18n.locale is thread-local and is set by controller `set_locale`

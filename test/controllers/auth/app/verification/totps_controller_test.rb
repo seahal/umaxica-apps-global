@@ -142,6 +142,42 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     assert_redirected_to auth_app_settings_url(ri: "jp")
   end
 
+  test "rejects a totp window already consumed by another authentication flow" do
+    private_key = "JBSWY3DPEHPK3PXP"
+    credential = ClientTotpCredential.create!(
+      user: @user,
+      private_key: private_key,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
+      last_otp_at: Time.zone.at(0),
+    )
+    return_to = "/settings/emails?ri=jp"
+    pt = signed_step_up_pt(return_to)
+    grant = signed_step_up_grant_for(
+      actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
+    )
+
+    with_prosopite_paused do
+      get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
+          headers: @headers
+    end
+
+    assert_response :success
+
+    code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
+    consumed_window = ROTP::TOTP.new(private_key).verify(code)
+    credential.update!(last_otp_at: Time.zone.at(consumed_window))
+
+    with_prosopite_paused do
+      post auth_app_verification_totp_url(ri: "jp"),
+           params: { verification: { code: code } },
+           headers: @headers
+    end
+
+    assert_response :unprocessable_content
+    assert_equal consumed_window, credential.reload.last_otp_at.to_i
+    assert_equal 1, ClientStepUpSession.where(user_token: @token).count
+  end
+
   test "renders new on failure" do
     private_key = "JBSWY3DPEHPK3PXP"
     ClientTotpCredential.create!(

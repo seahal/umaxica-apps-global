@@ -8,6 +8,7 @@ class Base::Com::Identity::Revocations::AllsController < ::Base::Com::Applicatio
   step_up only: %i(create destroy)
 
   def create
+    authorize!(current_visitor, to: :revoke_all?)
     logout_all_sessions_for!(resource: current_visitor, reason: "settings.session.revoke_all")
     redirect_to(auth_com_sign_out_path(ri: params[:ri]), status: :see_other)
   end

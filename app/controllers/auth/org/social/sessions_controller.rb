@@ -9,30 +9,24 @@ module Auth
       # GET  /social/entra/session/new
       # POST /social/entra/session
       #
-      # Both actions render a POST form (CSRF-protected via
-      # omniauth-rails_csrf_protection) targeting /social/entra, carrying the
-      # operator's chosen OrganizationEntraConnection#public_id.
+      # Mirrors Auth::App::Social::SessionsController: both implement the
+      # surface-neutral SocialCeremonyEntry, which validates the provider,
+      # applies the availability gate, and hands the POST to the OmniAuth
+      # request phase with a 307.
       #
-      # Unlike the app surface's Google and Apple buttons, which post straight
-      # to the OmniAuth request phase, Entra needs one cushion step: the
-      # strategy resolves the tenant, client id, and credential key per request
-      # from the connection (lib/omniauth/strategies/umaxica_entra.rb), so
-      # without a connection there is no Entra tenant to send the operator to.
-      # #create hands off with a 307 once the connection is known, mirroring
-      # Auth::App::Social::AuthenticationsController#handoff_social_ceremony!.
-      #
-      # See adr/org-entra-id-sign-in-boundary.md and
-      # adr/org-entra-omniauth-strategy-migration.md.
+      # The org surface has no social sign-up and no link/step-up intent: Entra
+      # sign-in performs no JIT provisioning, so an operator without a
+      # pre-provisioned OperatorEntraIdentity cannot become one by signing in
+      # (adr/org-entra-id-sign-in-boundary.md). The neutral concern's defaults
+      # already express that, so only the three required hooks are implemented.
       class SessionsController < ::Auth::Org::ApplicationController
-        include ExternalAuthenticationEndpoint
+        include SocialCeremonyEntry
 
         AUTHENTICATION_MODE = :guest
 
         PT_SESSION_KEY = :auth_org_entra_omniauth_pt
 
-        # The OmniAuth request phase this action hands off to; a fixed path
-        # owned by the middleware rather than a named route.
-        OMNIAUTH_REQUEST_PATH = "/social/entra"
+        PROVIDERS = %w(entra).freeze
 
         rate_limit(
           to: 20,
@@ -50,14 +44,9 @@ module Auth
         def new
           stash_pt!
           @provider_available = entra_start_available?
-          @connection = active_connection(requested_connection_public_id) if @provider_available
         end
 
         # POST /social/entra/session
-        #
-        # Reached by the sign-in page button (no connection yet, so the cushion
-        # page is rendered) and by the cushion page's own form (connection
-        # supplied, so the ceremony starts).
         def create
           stash_pt!
 
@@ -66,43 +55,19 @@ module Auth
             return render(:new, status: :service_unavailable)
           end
 
-          @provider_available = true
-          @connection = active_connection(requested_connection_public_id)
-
-          if @connection.present?
-            # 307 preserves the method, body, and CSRF token, handing this same
-            # POST to the OmniAuth request phase, which requires a
-            # token-protected POST of its own
-            # (OmniAuth.config.allowed_request_methods = [:post]).
-            return redirect_to(OMNIAUTH_REQUEST_PATH, status: :temporary_redirect)
-          end
-
-          # Blank input is the button's first arrival, not a failed lookup.
-          @connection_error = requested_connection_public_id.present?
-          render(:new, status: @connection_error ? :unprocessable_content : :ok)
+          handoff_social_ceremony!
         end
 
         private
 
+        def social_ceremony_surface = "org"
+
+        def social_ceremony_providers = PROVIDERS
+
+        def social_ceremony_abort_path = auth_org_sign_in_path(ri: params[:ri])
+
         def stash_pt!
           session[PT_SESSION_KEY] = signed_pt_param if signed_pt_param.present?
-        end
-
-        # Accepts both the link contract (?connection=) used by administrator-
-        # distributed URLs and the cushion form's field name.
-        def requested_connection_public_id
-          @requested_connection_public_id ||=
-            params[:connection_public_id].presence.to_s.strip.presence ||
-            params[:connection].to_s.strip
-        end
-
-        def active_connection(public_id)
-          return if public_id.blank?
-
-          OrganizationEntraConnection.find_by(
-            public_id: public_id,
-            status_id: OrganizationEntraConnectionState::ACTIVE,
-          )
         end
 
         # Mirrors the strategy's own request-phase gate

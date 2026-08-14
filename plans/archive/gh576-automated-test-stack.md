@@ -1,5 +1,12 @@
 # GH-576: Fill Gaps in the Automated Test Stack
 
+> **Superseded — historical record only.** Vite Plus (`vp`) was removed from this repository on
+> 2026-07-10. The current frontend toolchain is pnpm + Vite (via `vite-plugin-ruby`) + Vitest +
+> Oxlint + Oxfmt; JavaScript commands are `package.json` scripts run through pnpm. Any statement
+> below that Vite Plus or Rails Importmap is the current toolchain is out of date, and the `vp`
+> commands below must not be run. See `notes/implementation/2026-07-10-vite-plus-removal.md` and
+> `adr/frontend-architecture-toolchain.md`.
+
 GitHub: #576
 
 ## Summary

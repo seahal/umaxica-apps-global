@@ -24,9 +24,10 @@ class Base::App::GroupsControllerTest < ActionDispatch::IntegrationTest
     assert_select "title", /Groups/
     assert_select "script[data-page='app'][type='application/json']"
     assert_includes response.body, '"component":"base/app/groups/index"'
-    # The inertia entrypoint is referenced by name in dev mode and by a hashed asset path in
-    # manifest/built mode (e.g. /vite-test/assets/inertia-XXXX.js); match either form.
-    assert_select "script[src*=?]", "inertia"
+    # base/app boots its own Inertia application. The entrypoint is referenced by name in dev mode
+    # and by a hashed asset path in manifest/built mode (e.g. /vite-test/assets/base_app-XXXX.js);
+    # match either form.
+    assert_select "script[src*=?]", "base_app"
   end
 
   test "unauthenticated cannot access groups" do

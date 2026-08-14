@@ -7,6 +7,7 @@ class Base::Com::Identity::Revocations::OthersController < ::Base::Com::Applicat
   before_action :authenticate_visitor!
 
   def create
+    authorize!(VisitorToken, to: :revoke_others?)
     AuthenticationOtherSessionsRevoker.call(
       owner: current_visitor,
       sessions: current_visitor.visitor_tokens.session_inventory,

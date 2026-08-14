@@ -27,13 +27,19 @@ class OidcBackchannelLogoutDeliveryJobTest < ActiveSupport::TestCase
                    "jwt-token"
                  },
       ) do
-        OidcBackchannelLogoutDeliveryJob.perform_now(
-          "https://id.app.localhost/oidc/backchannel_logout",
-          "sign-rp",
-          "client",
-          "subject-1",
-          sid,
+        encrypted_payload = OutboundSensitivePayload.encrypt_oidc_backchannel_logout(
+          uri: "https://id.app.localhost/oidc/backchannel_logout",
+          client_id: "sign-rp",
+          resource_type: "client",
+          subject: "subject-1",
+          sid: sid,
         )
+        OidcClientRegistry.stub(
+          :backchannel_logout_uris_for,
+          ["https://id.app.localhost/oidc/backchannel_logout"],
+        ) do
+          OidcBackchannelLogoutDeliveryJob.perform_now(encrypted_payload)
+        end
       end
     end
 
@@ -84,13 +90,18 @@ class OidcBackchannelLogoutDeliveryJobTest < ActiveSupport::TestCase
 
     Net::HTTP.stub(:start, http_stub) do
       OidcLogoutTokenCodec.stub(:encode, codec_stub) do
-        OidcBackchannelLogoutDeliveryJob.perform_now(
-          "https://id.app.localhost/oidc/backchannel_logout",
-          client_id,
-          "client",
-          "subject-1",
-          SecureRandom.uuid,
-        )
+        OidcClientRegistry.stub(
+          :backchannel_logout_uris_for,
+          ["https://id.app.localhost/oidc/backchannel_logout"],
+        ) do
+          OidcBackchannelLogoutDeliveryJob.perform_now(
+            "https://id.app.localhost/oidc/backchannel_logout",
+            client_id,
+            "client",
+            "subject-1",
+            SecureRandom.uuid,
+          )
+        end
       end
     end
 

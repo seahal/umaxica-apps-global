@@ -60,7 +60,7 @@ module Auth
                 @sign_up_actor = sign_up_pending_actor
                 return if @sign_up_actor
 
-                render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
+                render plain: I18n.t("errors.messages.not_found"), status: :not_found
               end
 
               def passcode_registration_secret_credentials = @sign_up_actor.client_secret_credentials

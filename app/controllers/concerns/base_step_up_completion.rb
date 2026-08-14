@@ -41,7 +41,7 @@ module BaseStepUpCompletion
     ) if defined?(Actor)
 
     return_to = consumption.transaction.return_to.presence
-    flash[:notice] = I18n.t("auth.step_up.completed", default: "Verification completed")
+    flash[:notice] = I18n.t("auth.step_up.completed")
     safe_redirect_to(return_to, fallback: fallback, status: :see_other)
   rescue KeyError, ActiveRecord::RecordNotFound, IdentityStepUpCeremonyContract::Error => e
     Rails.logger.info(

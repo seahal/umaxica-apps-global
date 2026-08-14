@@ -4,7 +4,7 @@
 module Palm
   module App
     module Sign
-      class OutsController < Palm::App::BareController
+      class OutsController < Palm::App::ApplicationController
         AUTHENTICATION_MODE = :bare
         layout "palm/app/application"
 
@@ -25,7 +25,7 @@ module Palm
         def create
           response.set_header("Cache-Control", "no-store")
           response.set_header("Referrer-Policy", "no-referrer")
-          result = PalmLogoutCoordinator.call(request: request, ri: params[:ri])
+          result = PalmLogoutCoordinator.call(request: request, ri: current_region_identifier)
           return render json: { error: result.error, error_description: result.error_description },
                         status: :unauthorized unless result.success?
 

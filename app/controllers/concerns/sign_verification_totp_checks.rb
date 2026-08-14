@@ -13,9 +13,9 @@ module SignVerificationTotpChecks
       return false
     end
 
-    result = active_totp_credentials.any? { |totp| ROTP::TOTP.new(totp.private_key).verify(code) }
-    @verification_errors = ["確認コードが正しくありません"] unless result
-    result
+    result = TotpWindowConsumer.call(credentials: active_totp_credentials, token: code)
+    @verification_errors = ["確認コードが正しくありません"] unless result.accepted?
+    result.accepted?
   end
 
   def active_totp_credentials

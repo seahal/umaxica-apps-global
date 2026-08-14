@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Info Staff</title>
+    <%= display_meta_tags site: "#{ENV.fetch("BRAND_NAME").upcase} (ORG)", separator: "—", reverse: true %>
     <style>
       :root {
         color-scheme: light dark;

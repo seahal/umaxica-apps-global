@@ -10,6 +10,7 @@ module Side
       before_action :authenticate_operator!
 
       def show
+        authorize!(current_operator, to: :show?)
         render "side/shared/dashboards/show"
       end
     end

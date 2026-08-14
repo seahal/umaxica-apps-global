@@ -33,6 +33,9 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       get public_send("base_#{surface}_preference_url", ri: "jp", host: host)
 
       assert_response :success
+      # The index renders through Inertia, and the surface Inertia layout keeps the same ERB header
+      # and footer as its Turbo counterpart, including the footer theme control.
+      assert_select "script[data-page='app'][type='application/json']", count: 1
       assert_select "[data-controller='theme']", count: 1
       assert_predicate cookies[PreferenceCookieName.access(surface: surface)], :present?
       assert_predicate cookies[PreferenceCookieName.refresh(surface: surface)], :present?
@@ -48,7 +51,10 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_select "[data-controller='theme']", count: 0
-      assert_select "select[name='preference_theme[option_id]']", count: 1
+      assert_equal "base/#{surface}/preference/option", inertia_component
+      assert_equal "preference_theme", inertia_props.dig("form", "scope")
+      assert_equal "option_id", inertia_props.dig("form", "field")
+      assert_predicate inertia_choice_pairs, :any?
     end
   end
 
@@ -61,8 +67,11 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_no_match(/translation missing/i, response.body)
-      assert_select "form[action*='/preference/cookie']", count: 1
-      assert_select "input[type='checkbox'][name='preference_cookie[consented]']", count: 1
+      assert_equal "base/#{surface}/preference/cookie", inertia_component
+      assert_equal "/preference/cookie", preference_form_action_path
+      assert_equal "preference_cookie", inertia_props.dig("form", "scope")
+      assert_includes inertia_props.dig("form", "categories").map { |category| category.fetch("key") },
+                      "consented"
     end
   end
 
@@ -76,10 +85,7 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_no_match(/id\.umaxica/, response.body)
       assert_no_match(%r{/sign/[^"]*/preference}, response.body)
-      assert_match(
-        %r{action="(?:https?://#{Regexp.escape(host)})?/preference/language(?:\?[^"]*)?"},
-        response.body,
-      )
+      assert_equal "/preference/language", preference_form_action_path
     end
   end
 
@@ -93,10 +99,7 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_no_match(/id\.umaxica/, response.body)
       assert_no_match(%r{/sign/[^"]*/preference}, response.body)
-      assert_match(
-        %r{action="(?:https?://#{Regexp.escape(host)})?/preference/customization(?:\?[^"]*)?"},
-        response.body,
-      )
+      assert_equal "/preference/customization", preference_form_action_path
     end
   end
 
@@ -109,10 +112,7 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_no_match(/id\.umaxica/, response.body)
     assert_no_match(%r{/sign/[^"]*/preference}, response.body)
-    assert_match(
-      %r{action="(?:https?://#{Regexp.escape(host)})?/preference/region(?:\?[^"]*)?"},
-      response.body,
-    )
+    assert_equal "/preference/region", preference_form_action_path
   end
 
   test "base preference region edit renders localized region names for every surface" do
@@ -123,25 +123,18 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       get public_send("edit_base_#{surface}_preference_region_url", ri: "jp", host: host)
 
       assert_response :success
-      assert_select "select[name='preference_region[option_id]'] option", 2
-      assert_select "select[name='preference_region[option_id]'] option[value='']", 0
-      assert_select "select[name='preference_region[option_id]'] option", text: "日本"
-      assert_select "select[name='preference_region[option_id]'] option", text: "アメリカ合衆国 (USA)"
-      assert_select "select[name='preference_region[option_id]'] option", text: "JP", count: 0
-      assert_select "select[name='preference_region[option_id]'] option", text: "US", count: 0
-      assert_select "select[name='preference_region[option_id]'] option", text: "Jp", count: 0
-      assert_select "select[name='preference_region[option_id]'] option", text: "Us", count: 0
+
+      labels = inertia_choice_labels
+
+      assert_equal 2, labels.size
+      assert_equal ["アメリカ合衆国 (USA)", "日本"], labels.sort
 
       get public_send("edit_base_#{surface}_preference_region_url", ri: "us", host: host)
 
       assert_response :success
       assert_select "html[lang='en']"
-      assert_select "h1", text: "Region & Language Settings"
-      assert_select "select[name='preference_region[option_id]'] option", text: "United States - USA"
-      assert_select "select[name='preference_region[option_id]'] option", text: "Japan - 日本"
-      assert_select "select[name='preference_region[option_id]'] option", text: "US", count: 0
-      assert_select "select[name='preference_region[option_id]'] option", text: "JP", count: 0
-      assert_select "select[name='preference_region[option_id]'] option", text: "English", count: 0
+      assert_equal "Region & Language Settings", inertia_props.fetch("title")
+      assert_equal ["Japan - 日本", "United States - USA"], inertia_choice_labels.sort
     end
   end
 
@@ -154,10 +147,7 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_no_match(/id\.umaxica/, response.body)
     assert_no_match(%r{/sign/[^"]*/preference}, response.body)
-    assert_match(
-      %r{action="(?:https?://#{Regexp.escape(host)})?/preference/timezone(?:\?[^"]*)?"},
-      response.body,
-    )
+    assert_equal "/preference/timezone", preference_form_action_path
   end
 
   test "base app preference timezone edit renders localized timezone option labels" do
@@ -167,17 +157,20 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
     get edit_base_app_preference_timezone_url(ri: "us", lx: "ja", host: host)
 
     assert_response :success
-    assert_select "select[name='preference_timezone[option_id]'] option", text: "協定世界時 (UTC)"
-    assert_select "select[name='preference_timezone[option_id]'] option", text: "日本標準時 (Asia/Tokyo)"
-    assert_select "select[name='preference_timezone[option_id]'] option", text: "Etc/UTC", count: 0
-    assert_select "select[name='preference_timezone[option_id]'] option", text: "Asia/Tokyo", count: 0
+
+    labels = inertia_choice_labels
+
+    assert_includes labels, "協定世界時 (UTC)"
+    assert_includes labels, "日本標準時 (Asia/Tokyo)"
+    assert_not_includes labels, "Etc/UTC"
+    assert_not_includes labels, "Asia/Tokyo"
 
     get edit_base_app_preference_timezone_url(ri: "us", lx: "en", host: host)
 
     assert_response :success
     assert_select "html[lang='en']"
-    assert_select "select[name='preference_timezone[option_id]'] option", text: "Coordinated Universal Time (UTC)"
-    assert_select "select[name='preference_timezone[option_id]'] option", text: "Japan Standard Time (Asia/Tokyo)"
+    assert_includes inertia_choice_labels, "Coordinated Universal Time (UTC)"
+    assert_includes inertia_choice_labels, "Japan Standard Time (Asia/Tokyo)"
   end
 
   test "base preference write updates app user preference" do
@@ -245,6 +238,12 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  # The screen forms live in the Inertia page object, so the action a screen posts to is a prop
+  # rather than a form element attribute.
+  def preference_form_action_path
+    URI.parse(inertia_props.fetch("form").fetch("action")).path
+  end
 
   def session_headers(host, token, user)
     bearer_headers(

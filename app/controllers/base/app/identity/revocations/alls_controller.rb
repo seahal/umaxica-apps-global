@@ -18,6 +18,7 @@ module Base
           # auth cookies, and resets the Rails session. A bare token revoke
           # loop skips all four.
           def create
+            authorize!(current_client, to: :revoke_all?)
             logout_all_sessions_for!(resource: current_client, reason: "settings.session.revoke_all")
             redirect_to(base_app_sign_out_path(ri: params[:ri]), status: :see_other)
           end

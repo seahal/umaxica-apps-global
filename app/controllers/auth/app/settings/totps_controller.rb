@@ -23,6 +23,7 @@ module Auth
         before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create)
 
         def index
+          authorize!(ClientTotpCredential, to: :index?)
           @totps = current_client.client_totp_credentials.order(created_at: :asc)
         end
 

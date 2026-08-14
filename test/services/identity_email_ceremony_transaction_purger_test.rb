@@ -37,7 +37,7 @@ class IdentityEmailCeremonyTransactionPurgerTest < ActiveSupport::TestCase
     model.create_transaction!(
       actor_ref: "actor-#{SecureRandom.hex(4)}",
       session_ref: "session-#{SecureRandom.hex(4)}",
-      operation: "enrollment",
+      operation: "registration",
       expires_at: expires_at,
     )
   end

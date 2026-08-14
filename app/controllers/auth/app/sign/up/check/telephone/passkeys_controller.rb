@@ -68,7 +68,7 @@ module Auth
                 @sign_up_actor = sign_up_pending_actor
                 return if @sign_up_actor
 
-                render json: { error: I18n.t("errors.messages.not_found", default: "Not found") },
+                render json: { error: I18n.t("errors.messages.not_found") },
                        status: :not_found
               end
 

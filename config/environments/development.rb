@@ -251,7 +251,7 @@ Rails.application.configure do
   )
 
   ## file watcher
-  config.file_watcher = ActiveSupport::EventedFileUpdateChecker
+  config.file_watcher = ActiveSupport::FileUpdateChecker
 
   ## Email Settings
   config.action_mailer.delivery_method = :smtp

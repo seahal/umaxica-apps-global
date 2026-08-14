@@ -43,7 +43,7 @@ module CommonRedirect
     return redirect_to(result.value, allow_other_host: false, **) if result.ok?
 
     log_redirect_target_failure(result)
-    render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+    render plain: I18n.t("errors.messages.invalid_request"),
            status: :unprocessable_content
   end
 
@@ -52,7 +52,7 @@ module CommonRedirect
     return redirect_to_jump_url(result.value, dst: "external", **) if result.ok?
 
     log_redirect_target_failure(result)
-    render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+    render plain: I18n.t("errors.messages.invalid_request"),
            status: :unprocessable_content
   end
 
@@ -61,7 +61,7 @@ module CommonRedirect
     return redirect_to_jump_url(result.value, dst: "external", **) if result.ok?
 
     log_redirect_target_failure(result)
-    render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+    render plain: I18n.t("errors.messages.invalid_request"),
            status: :unprocessable_content
   end
 
@@ -70,7 +70,7 @@ module CommonRedirect
     return redirect_to(result.value, allow_other_host: true, **) if result.ok?
 
     log_redirect_target_failure(result)
-    render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+    render plain: I18n.t("errors.messages.invalid_request"),
            status: :unprocessable_content
   end
 
@@ -111,7 +111,7 @@ module CommonRedirect
       end
 
       log_redirect_target_failure(result)
-      return render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+      return render plain: I18n.t("errors.messages.invalid_request"),
                     status: :unprocessable_content
     end
 
@@ -129,7 +129,7 @@ module CommonRedirect
       unsafe_value: url,
     )
     log_redirect_target_failure(result)
-    render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+    render plain: I18n.t("errors.messages.invalid_request"),
            status: :unprocessable_content
   end
 

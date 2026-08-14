@@ -21,11 +21,9 @@ class OidcBackchannelLogoutNotifier < ApplicationService
           resource_type: resource_type,
         ).map do |uri|
           OidcBackchannelLogoutDeliveryJob.new(
-            uri,
-            client.client_id,
-            resource_type,
-            subject,
-            sid,
+            OutboundSensitivePayload.encrypt_oidc_backchannel_logout(
+              uri:, client_id: client.client_id, resource_type:, subject:, sid:,
+            ),
           )
         end
       end

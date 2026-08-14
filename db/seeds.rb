@@ -83,3 +83,10 @@ staff_secret.save!
 # flag an operator disabled locally is re-enabled by the next seed run.
 ExternalAuthentication::FlipperProviderAvailabilityAdapter::PROVIDER_FEATURE_NAMES
   .each_value { |feature_name| Flipper.enable(feature_name) }
+
+# `fqdn_available_*` carries the same `:availability` polarity, so an unwritten flag closes the
+# FQDN: a fresh platform database answers every request with 503 `fqdn_unavailable` before routing.
+# Every slot the router serves is opened here so a freshly seeded development environment serves the
+# hosts its own routes declare. Production is untouched (this file returns above) -- switching a
+# public FQDN on stays an explicit operator decision made through the Flipper UI.
+FqdnAvailabilityRegistry.flag_names.each { |feature_name| Flipper.enable(feature_name) }

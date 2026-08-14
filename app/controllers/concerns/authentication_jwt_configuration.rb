@@ -30,19 +30,37 @@ module AuthenticationJwtConfiguration
   # already fails this way.
   def self.audiences(resource_type = nil)
     normalized_resource_type = normalize_resource_type(resource_type)
-    resource_key = normalized_resource_type&.upcase
-    raw =
-      if resource_key.present?
-        ENV["AUTH_JWT_#{resource_key}_AUDIENCES"].presence || ENV.fetch("AUTH_JWT_AUDIENCES")
-      else
-        ENV.fetch("AUTH_JWT_AUDIENCES")
-      end
-    audiences = raw.split(",").map(&:strip)
-    audiences.reject!(&:empty?)
-    return audiences if audiences.present?
+    if normalized_resource_type.nil?
+      raise ArgumentError, "unsupported auth resource type: #{resource_type.inspect}"
+    end
 
-    raise KeyError, "AUTH_JWT_AUDIENCES (or AUTH_JWT_#{resource_key}_AUDIENCES) is set but contains no audience"
+    env_key = "AUTH_JWT_#{normalized_resource_type.upcase}_AUDIENCES"
+    audiences = parse_audiences(ENV.fetch(env_key), env_key:)
+    assert_distinct_audiences!(normalized_resource_type, audiences)
+    audiences
   end
+
+  def self.parse_audiences(raw, env_key:)
+    values = raw.split(",").map(&:strip)
+    values.reject!(&:empty?)
+    values.uniq!
+    raise KeyError, "#{env_key} is set but contains no audience" if values.empty?
+
+    values
+  end
+  private_class_method :parse_audiences
+
+  def self.assert_distinct_audiences!(resource_type, audiences)
+    VALID_RESOURCE_TYPES.excluding(resource_type).each do |other_type|
+      other_key = "AUTH_JWT_#{other_type.upcase}_AUDIENCES"
+      other = parse_audiences(ENV.fetch(other_key), env_key: other_key)
+      overlap = audiences & other
+      next if overlap.empty?
+
+      raise ArgumentError, "JWT audiences overlap between #{resource_type} and #{other_type}: #{overlap.join(", ")}"
+    end
+  end
+  private_class_method :assert_distinct_audiences!
 
   def self.token_type(resource_type)
     normalized_resource_type = normalize_resource_type(resource_type)

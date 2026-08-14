@@ -4,7 +4,7 @@
 # Core owns the BFF surface.
 scope module: :core, as: :core do
   # Application BFF host.
-  constraints host: [ENV["PUBLIC_CORE_SERVICE_URL"] || ENV["CORE_SERVICE_URL"], "core.app.localhost"].compact do
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).core_service.host] do
     scope module: :app, as: :app do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -14,6 +14,9 @@ scope module: :core, as: :core do
         # JWKS endpoint; keep fixed JSON suffix.
         resource :jwks, only: :show, path: "jwks.json", format: false
       end
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
 
       # Health summary and probes.
       resource :health, only: :show
@@ -83,7 +86,7 @@ scope module: :core, as: :core do
   end
 
   # Corporate BFF host.
-  constraints host: [ENV["PUBLIC_CORE_CORPORATE_URL"] || ENV["CORE_CORPORATE_URL"], "core.com.localhost"].compact do
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).core_corporate.host] do
     scope module: :com, as: :com do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -93,6 +96,9 @@ scope module: :core, as: :core do
         # JWKS endpoint; keep fixed JSON suffix.
         resource :jwks, only: :show, path: "jwks.json", format: false
       end
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
 
       # Health summary and probes.
       resource :health, only: :show
@@ -162,7 +168,7 @@ scope module: :core, as: :core do
   end
 
   # Staff BFF host.
-  constraints host: [ENV["PUBLIC_CORE_STAFF_URL"] || ENV["CORE_STAFF_URL"], "core.org.localhost"].compact do
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).core_staff.host] do
     scope module: :org, as: :org do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -172,6 +178,9 @@ scope module: :core, as: :core do
         # JWKS endpoint; keep fixed JSON suffix.
         resource :jwks, only: :show, path: "jwks.json", format: false
       end
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
 
       # Health summary and probes.
       resource :health, only: :show
@@ -249,6 +258,9 @@ scope module: :core, as: :core do
       # Thin landing endpoint.
       root to: "roots#index"
 
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       # Health summary and probes.
       resource :health, only: :show
       namespace :health do
@@ -267,6 +279,9 @@ scope module: :core, as: :core do
     scope module: :dev, as: :developer do
       # Thin landing endpoint.
       root to: "roots#index"
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
 
       # Health summary and probes.
       resource :health, only: :show

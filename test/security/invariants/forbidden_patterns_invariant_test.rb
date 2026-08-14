@@ -191,7 +191,7 @@ module Security
         {
           pattern: "cross-host redirect escape hatch",
           path: "app/controllers/auth/app/sign/ins_controller.rb",
-          line: /redirect_to\(base_app_dashboard_url\(ri: params\[:ri\], host: base_authority_host\), allow_other_host: true\)/,
+          line: /\A\s*allow_other_host: true,\s*\z/,
           reason: "Auth app sign-in sends authenticated browsers to the reviewed Base dashboard host.",
         },
         {
@@ -210,7 +210,7 @@ module Security
         {
           pattern: "cross-host redirect escape hatch",
           path: "app/controllers/auth/app/sign/ups_controller.rb",
-          line: /redirect_to\(base_app_dashboard_url\(ri: params\[:ri\], host: base_authority_host\), allow_other_host: true\)/,
+          line: /\A\s*allow_other_host: true,\s*\z/,
           reason: "Auth app sign-up sends authenticated browsers to the reviewed Base dashboard host.",
         },
         {

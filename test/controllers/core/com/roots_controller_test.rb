@@ -5,12 +5,14 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class Core::Com::RootsControllerTest < ActionDispatch::IntegrationTest
+  BRAND = ENV.fetch("BRAND_NAME").upcase
+
   test "renders a thin landing page" do
     host! ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"))
     get core_com_root_url(ri: "jp")
 
     assert_response :success
-    assert_select "title", "Core Com"
+    assert_select "title", "#{BRAND} (COM)"
     assert_select "h1", text: "Core Com"
   end
 

@@ -29,6 +29,7 @@ class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationControll
   # For show/update/destroy, user must be logged in (even if restricted)
   before_action :require_authentication_or_gate
   prepend_before_action :render_expired_restricted_session_locked, only: :show
+  ensure_fqdn_gate_first!
 
   # Display active and restricted sessions for the user
   def show

@@ -22,12 +22,14 @@ module Base
         Base::App::Health::ReadinessesController
         Base::App::Health::StartupsController
         Base::App::HealthsController
+        Base::App::McpsController
         Base::App::Oauth::JwksController
         Base::App::Oauth::RevocationsController
         Base::App::Oauth::UserinfosController
         Base::App::WellKnown::DiscoveriesController
         Base::App::WellKnown::JwksController
         Base::App::Preference::EmailsController
+        Base::App::RevisionsController
         Base::App::RobotsController
         Base::App::SitemapsController
       ).freeze

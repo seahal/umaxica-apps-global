@@ -39,10 +39,19 @@ class ExternalSignIn::OrgEntraResolverTest < ActiveSupport::TestCase
     assert_equal @operator.id, result.identity.operator_id
   end
 
-  test "returns an identity with its connection preloaded" do
-    result = resolve(tenant_id: TENANT_ID, object_id: OBJECT_ID)
+  test "resolves an identity that has no connection reference" do
+    detached_oid = "99999999-8888-7777-6666-555555555555"
+    OperatorEntraIdentity.create!(
+      operator_id: 9101,
+      connection_id: nil,
+      entra_tenant_id: TENANT_ID,
+      entra_object_id: detached_oid,
+      status_id: OperatorEntraIdentityState::ACTIVE,
+    )
 
-    assert_predicate result.identity.association(:connection), :loaded?
+    result = resolve(tenant_id: TENANT_ID, object_id: detached_oid)
+
+    assert_equal detached_oid, result.identity.entra_object_id
   end
 
   test "returns the Operator for the resolved identity" do
@@ -66,17 +75,22 @@ class ExternalSignIn::OrgEntraResolverTest < ActiveSupport::TestCase
     assert_nil result.operator
   end
 
-  test "raises IdentityNotFoundError when identity belongs to a different connection" do
-    other_connection = OrganizationEntraConnection.create!(
-      organization_id: 2,
-      entra_tenant_id: TENANT_ID,
-      entra_client_id: "resolver-test-other-client-id",
-      entra_credential_key: "resolver-test-other-secret",
-      status_id: OrganizationEntraConnectionState::ACTIVE,
+  # The tenant is part of the lookup key, so an oid that exists under a
+  # different tenant must not resolve. Tenant restriction itself is enforced
+  # upstream by the strategy's ID token verification against the single
+  # configured tenant.
+  test "raises IdentityNotFoundError when the oid belongs to a different tenant" do
+    other_tenant = "44444444-5555-6666-7777-888888888888"
+    OperatorEntraIdentity.create!(
+      operator_id: 9102,
+      connection_id: nil,
+      entra_tenant_id: other_tenant,
+      entra_object_id: OBJECT_ID,
+      status_id: OperatorEntraIdentityState::ACTIVE,
     )
 
     assert_raises(ExternalSignIn::IdentityNotFoundError) do
-      resolve(tenant_id: TENANT_ID, object_id: OBJECT_ID, connection: other_connection)
+      resolve(tenant_id: "55555555-6666-7777-8888-999999999999", object_id: OBJECT_ID)
     end
   end
 
@@ -130,53 +144,11 @@ class ExternalSignIn::OrgEntraResolverTest < ActiveSupport::TestCase
     end
   end
 
-  # --- connection not active ---
-
-  test "raises IdentityNotFoundError when connection is NOTHING (not yet activated)" do
-    inactive_connection = OrganizationEntraConnection.create!(
-      organization_id: 2,
-      entra_tenant_id: "22222222-3333-4444-5555-666666666666",
-      entra_client_id: "inactive-conn-client",
-      entra_credential_key: "secret",
-      status_id: OrganizationEntraConnectionState::NOTHING,
-    )
-
-    other_oid = "eeeeeeee-ffff-0000-1111-222222222222"
-    OperatorEntraIdentity.create!(
-      operator_id: 9005,
-      connection_id: inactive_connection.id,
-      entra_tenant_id: "22222222-3333-4444-5555-666666666666",
-      entra_object_id: other_oid,
-      status_id: OperatorEntraIdentityState::ACTIVE,
-    )
-
-    assert_raises(ExternalSignIn::IdentityNotFoundError) do
-      resolve(tenant_id: "22222222-3333-4444-5555-666666666666", object_id: other_oid)
-    end
-  end
-
-  test "raises IdentityNotFoundError when connection is SUSPENDED" do
-    suspended_connection = OrganizationEntraConnection.create!(
-      organization_id: 3,
-      entra_tenant_id: "33333333-4444-5555-6666-777777777777",
-      entra_client_id: "suspended-conn-client",
-      entra_credential_key: "secret",
-      status_id: OrganizationEntraConnectionState::SUSPENDED,
-    )
-
-    other_oid = "ffffffff-0000-1111-2222-333333333333"
-    OperatorEntraIdentity.create!(
-      operator_id: 9006,
-      connection_id: suspended_connection.id,
-      entra_tenant_id: "33333333-4444-5555-6666-777777777777",
-      entra_object_id: other_oid,
-      status_id: OperatorEntraIdentityState::ACTIVE,
-    )
-
-    assert_raises(ExternalSignIn::IdentityNotFoundError) do
-      resolve(tenant_id: "33333333-4444-5555-6666-777777777777", object_id: other_oid)
-    end
-  end
+  # Connection-state cases were removed with the connection concept: the org
+  # surface federates one tenant configured in Rails credentials, so
+  # OrganizationEntraConnection is no longer read during sign-in. Revoking
+  # access is now an identity-state change, covered by the SUSPENDED and
+  # REVOKED cases above.
 
   # --- no provisioning side-effects ---
 
@@ -192,19 +164,12 @@ class ExternalSignIn::OrgEntraResolverTest < ActiveSupport::TestCase
 
   private
 
-  def auth_result(tenant_id:, object_id:)
-    ExternalSignIn::NormalizedAuthResult.new(
-      tenant_id: tenant_id,
-      entra_object_id: object_id,
-      evidence_issuer: "https://login.microsoftonline.com/#{tenant_id}/v2.0",
-      evidence_subject: "pairwise-sub",
-    )
-  end
-
-  def resolve(tenant_id:, object_id:, connection: @active_connection)
+  def resolve(tenant_id:, object_id:)
     ExternalSignIn::OrgEntraResolver.new(
-      auth_result: auth_result(tenant_id: tenant_id, object_id: object_id),
-      connection: connection,
+      tenant_context: ExternalAuthentication::EntraTenantContext.new(
+        tenant_id: tenant_id,
+        object_identifier: object_id,
+      ),
     ).call
   end
 end

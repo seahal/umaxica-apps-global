@@ -7,15 +7,17 @@ class OidcBackchannelLogoutDeliveryJob < ApplicationJob
   OPEN_TIMEOUT = 2
   READ_TIMEOUT = 3
 
-  def perform(uri, client_id, resource_type, subject, sid)
+  def perform(encrypted_payload, *legacy_payload)
+    payload = delivery_payload(encrypted_payload, legacy_payload)
+    client_id = payload.fetch(:client_id)
     return log_suspended(client_id) if suspended?(client_id)
 
-    parsed_uri = URI.parse(uri.to_s)
+    parsed_uri = registered_uri!(payload)
     logout_token = OidcLogoutTokenCodec.encode(
       client_id: client_id,
-      resource_type: resource_type,
-      subject: subject,
-      sid: sid,
+      resource_type: payload.fetch(:resource_type),
+      subject: payload.fetch(:subject),
+      sid: payload.fetch(:sid),
     )
     response = post_logout_token(parsed_uri, logout_token)
     Rails.logger.info(
@@ -30,7 +32,7 @@ class OidcBackchannelLogoutDeliveryJob < ApplicationJob
     Rails.logger.info(
       JitLogEvent.format(
         "oidc.backchannel_logout.delivery_failed",
-        client_id: client_id,
+        client_id: defined?(client_id) ? client_id : nil,
         error_class: e.class.name,
       ),
     )
@@ -38,16 +40,27 @@ class OidcBackchannelLogoutDeliveryJob < ApplicationJob
 
   private
 
-  # One feature covers both scopes: Flipper's boolean gate short-circuits every
-  # actor check, so `Flipper.enable(:oidc_backchannel_logout_suspended)` stops
-  # delivery to every relying party while
-  # `Flipper.enable_actor(:oidc_backchannel_logout_suspended, actor)` stops only
-  # the named one. The check runs before the logout token is minted so a
-  # suspended RP never has a token created on its behalf.
-  #
-  # Polarity matches OutboundChannelSuspension: the feature names a suspension,
-  # so an unset flag delivers normally. A lost flag store must not silently
-  # strand RPs with sessions the identity provider believes are closed.
+  # Five-argument jobs may remain in a deployed queue during rollout. New
+  # producers only enqueue the versioned encrypted envelope.
+  def delivery_payload(encrypted_payload, legacy_payload)
+    return OutboundSensitivePayload.decrypt_oidc_backchannel_logout(encrypted_payload) if legacy_payload.empty?
+
+    raise ArgumentError, "Invalid legacy OIDC back-channel logout payload" unless legacy_payload.size == 4
+
+    uri, client_id, resource_type, subject, sid = [encrypted_payload, *legacy_payload]
+    { uri:, client_id:, resource_type:, subject:, sid: }
+  end
+
+  def registered_uri!(payload)
+    client_id = payload.fetch(:client_id)
+    resource_type = payload.fetch(:resource_type)
+    uri = payload.fetch(:uri)
+    registered = OidcClientRegistry.backchannel_logout_uris_for(client_id:, resource_type:)
+    raise ArgumentError, "OIDC back-channel logout destination is no longer registered" unless registered.include?(uri)
+
+    URI.parse(uri)
+  end
+
   def suspended?(client_id)
     FeatureFlags.enabled?(
       :oidc_backchannel_logout_suspended,

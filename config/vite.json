@@ -1,7 +1,8 @@
 {
   "all": {
     "sourceCodeDir": "src",
-    "watchAdditionalPaths": []
+    "watchAdditionalPaths": [],
+    "additionalEntrypoints": ["~/{assets,fonts,icons,images}/**/*", "~/styles/surfaces/*.css"]
   },
   "development": {
     "autoBuild": true,

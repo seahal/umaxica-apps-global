@@ -22,6 +22,7 @@ module Security
     DOCUMENTED_CATEGORY_IDS = %w(
       PUBLIC_ROOTS
       PUBLIC_HEALTH
+      PUBLIC_REVISION
       PUBLIC_CSP_REPORTS
       PUBLIC_WELL_KNOWN
       PUBLIC_ROBOTS_SITEMAPS
@@ -42,6 +43,7 @@ module Security
       PUBLIC_AUTH_ORG_REDIRECTS
       PUBLIC_SIDE_SETTINGS
       PUBLIC_APPLE_NOTIFICATIONS
+      PUBLIC_MCP
     ).freeze
 
     RouteEntry = Struct.new(:verb, :path, :controller_path, :action, :controller_class, :mode, keyword_init: true)
@@ -165,6 +167,7 @@ module Security
 
       public_root?(entry) ||
         public_health?(entry) ||
+        public_revision?(entry) ||
         public_csp_report?(entry) ||
         public_well_known?(entry) ||
         public_robots_or_sitemap?(entry) ||
@@ -183,12 +186,22 @@ module Security
         public_palm_api?(entry) ||
         public_auth_org_redirect?(entry) ||
         public_side_settings?(entry) ||
-        public_apple_notification?(entry)
+        public_apple_notification?(entry) ||
+        public_mcp?(entry)
+    end
+
+    # Base and Side only. Auth and the content surfaces do not serve MCP, so an MCP route appearing
+    # under them is an undocumented entrypoint rather than a covered one.
+    def public_mcp?(entry)
+      post?(entry) && entry.path == "/mcp" &&
+        entry.controller_path.match?(%r{\A(base|side)/(app|com|org)/mcps\z})
     end
 
     def public_root?(entry) = get?(entry) && entry.path == "/"
 
     def public_health?(entry) = get?(entry) && entry.path.start_with?("/health")
+
+    def public_revision?(entry) = get?(entry) && entry.path == "/revision"
 
     def public_csp_report?(entry) = post?(entry) && entry.path == "/csp-violation-report"
 

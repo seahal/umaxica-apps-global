@@ -8,6 +8,7 @@ module Base
       declare_authentication_mode! :private
 
       def index
+        authorize!(current_client, to: :show?)
         render "base/app/billings/index"
       end
     end

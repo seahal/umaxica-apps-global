@@ -103,6 +103,56 @@ class OmniauthGoogleStrategyContractTest < ActiveSupport::TestCase
     assert_raises(OmniAuth::Strategies::OAuth2::CallbackError) { strategy.uid }
   end
 
+  test "callback without the server-issued nonce cannot establish a uid" do
+    strategy = OmniAuth::Strategies::GoogleOauth2.new(
+      ->(_env) { [200, {}, ["ok"]] },
+      "contract-client",
+      "contract-secret",
+    )
+    env = Rack::MockRequest.env_for("/social/google/callback")
+    env["rack.session"] = {}
+    strategy.instance_variable_set(:@env, env)
+
+    error = assert_raises(OmniAuth::Strategies::OAuth2::CallbackError) { strategy.uid }
+
+    assert_equal :invalid_nonce, error.error
+  end
+
+  test "stale Google ID token cannot establish a uid" do
+    travel_to Time.zone.local(2026, 7, 24, 12, 0, 0) do
+      nonce = "contract-nonce"
+      signing_key = OpenSSL::PKey::RSA.generate(2048)
+      id_token = JWT.encode(
+        {
+          "iss" => "https://accounts.google.com",
+          "aud" => "contract-client",
+          "sub" => "stale-subject",
+          "nonce" => nonce,
+          "iat" => 12.minutes.ago.to_i,
+          "exp" => 5.minutes.from_now.to_i,
+        },
+        signing_key,
+        "RS256",
+        { kid: "contract-key" },
+      )
+      strategy = OmniAuth::Strategies::GoogleOauth2.new(
+        ->(_env) { [200, {}, ["ok"]] },
+        "contract-client",
+        "contract-secret",
+      )
+      env = Rack::MockRequest.env_for("/social/google/callback")
+      env["rack.session"] = { "omniauth.nonce" => nonce }
+      strategy.instance_variable_set(:@env, env)
+      oauth_client = OAuth2::Client.new("contract-client", "contract-secret")
+      strategy.access_token = OAuth2::AccessToken.new(oauth_client, "callback-access-token", "id_token" => id_token)
+      jwks = { "keys" => [JWT::JWK.new(signing_key.public_key, kid: "contract-key").export] }
+
+      assert_raises(OmniAuth::Strategies::OAuth2::CallbackError) do
+        strategy.stub(:google_jwks_loader, ->(_options = {}) { jwks }) { strategy.uid }
+      end
+    end
+  end
+
   test "authorization code exchange failure returns an OmniAuth failure without auth" do
     strategy = OmniAuth::Strategies::GoogleOauth2.new(
       ->(_env) { [200, {}, ["unexpected success"]] },

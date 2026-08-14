@@ -4,6 +4,7 @@
 module BasePreferenceScreenDispatch
   extend ActiveSupport::Concern
   include ::PreferenceSignScreenActions
+  include ::BasePreferenceScreenPage
 
   SCREEN_ACTIONS = {
     "region" => %i(edit_region_preference_screen update_region_preference_screen),
@@ -21,7 +22,7 @@ module BasePreferenceScreenDispatch
 
   def edit
     dispatch_preference_screen(:edit)
-    render(preference_screen_template) unless performed?
+    render(inertia: preference_screen_component, props: preference_screen_page_props) unless performed?
   end
 
   def update
@@ -54,7 +55,7 @@ module BasePreferenceScreenDispatch
   def edit_selectable_preference_screen(screen)
     set_selectable_preference_edit(screen)
     set_selectable_preference_view_context(screen)
-    render "base/shared/preference/selectable"
+    render inertia: preference_screen_component, props: preference_screen_page_props
   end
 
   def dispatch_preference_screen(action)
@@ -70,21 +71,6 @@ module BasePreferenceScreenDispatch
       end
     else
       send((action == :edit) ? config.first : config.second)
-    end
-  end
-
-  def preference_screen_template
-    "base/shared/preference/#{preference_screen_template_name}"
-  end
-
-  def preference_screen_template_name
-    case preference_key.to_s
-    when "region", "timezone", "language", "theme"
-      "option"
-    when "cookie"
-      "cookie"
-    else
-      preference_key.to_s.pluralize
     end
   end
 end

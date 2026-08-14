@@ -10,7 +10,7 @@ module Auth
       # default; an explicit `intent` param may upgrade the ceremony to
       # "link" or "step_up" when arriving from settings.
       class SessionsController < ::Auth::App::ApplicationController
-        include SocialCeremonyEntry
+        include AppSocialCeremonyEntry
 
         AUTHENTICATION_MODE = :open
 

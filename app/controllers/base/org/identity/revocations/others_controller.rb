@@ -7,6 +7,7 @@ class Base::Org::Identity::Revocations::OthersController < ::Base::Org::Applicat
   before_action :authenticate_operator!
 
   def create
+    authorize!(OperatorToken, to: :revoke_others?)
     AuthenticationOtherSessionsRevoker.call(
       owner: current_operator,
       sessions: current_operator.staff_tokens.session_inventory,

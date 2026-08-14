@@ -5,40 +5,64 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class Base::Com::RootsControllerTest < ActionDispatch::IntegrationTest
-  test "should get index" do
+  test "permanently redirects the jp region to the canonical jp regional root" do
     host! ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
     get base_com_root_url(ri: "jp")
 
-    assert_response :success
-    assert_select "title", "Base Com"
-    assert_select "h1", text: "Base Com"
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.com/", response.location
   end
 
-  test "creates preference cookies on root" do
+  test "permanently redirects the us region to the canonical us regional root" do
     host! ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
+    get base_com_root_url(ri: "us")
 
-    assert_difference("ComPreference.count", 1) do
-      get base_com_root_url(ri: "jp")
-    end
-
-    assert_response :success
-    assert_predicate cookies[PreferenceCookieName.access(surface: :com)], :present?
-    assert_predicate cookies[PreferenceCookieName.refresh(surface: :com)], :present?
+    assert_response :moved_permanently
+    assert_equal "https://us.umaxica.com/", response.location
   end
 
-  test "creates preference cookies on root when optional URL preferences are present" do
+  test "drops every request context parameter from the regional redirect target" do
+    host! ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
+    get base_com_root_url(ri: "jp", ct: "dr", lx: "en", tz: "asia/tokyo")
+
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.com/", response.location
+    assert_not_includes response.location, "?"
+    assert_not_includes response.location, "ri="
+    assert_not_includes response.location, "ct="
+    assert_not_includes response.location, "lx="
+    assert_not_includes response.location, "tz="
+  end
+
+  test "does not regionally redirect an unknown region" do
+    host! ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
+    get base_com_root_url(ri: "xx")
+
+    assert_response :found
+    assert_equal base_com_root_url(ri: "jp"), response.location
+  end
+
+  test "does not regionally redirect a missing region" do
+    host! ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
+    get "/"
+
+    assert_response :found
+    assert_equal base_com_root_url(ri: "jp"), response.location
+  end
+
+  test "mints no preference state on the gateway host it redirects away from" do
     host! ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
 
-    assert_difference("ComPreference.count", 1) do
+    assert_no_difference("ComPreference.count") do
       get base_com_root_url(ct: "dr", lx: "en", ri: "us", tz: "asia/tokyo")
     end
 
-    assert_response :success
-    assert_predicate cookies[PreferenceCookieName.access(surface: :com)], :present?
-    assert_predicate cookies[PreferenceCookieName.refresh(surface: :com)], :present?
+    assert_response :moved_permanently
+    assert_nil cookies[PreferenceCookieName.access(surface: :com)].presence
+    assert_nil cookies[PreferenceCookieName.refresh(surface: :com)].presence
   end
 
-  test "redirects to dashboard when logged in" do
+  test "regional redirect takes precedence over the logged in dashboard redirect" do
     host! ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
     visitor = create_verified_visitor_with_email(email_address: "base-com-root-logged-in@example.com")
     visitor.visitor_telephones.create!(
@@ -49,13 +73,8 @@ class Base::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     get base_com_root_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"))
 
-    assert_response :redirect
-    assert_redirected_to base_com_dashboard_url(
-      ri: "jp",
-      host: ENV.fetch(
-        "PUBLIC_BASE_CORPORATE_URL", "base.com.localhost",
-      ),
-    )
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.com/", response.location
   end
   private
 

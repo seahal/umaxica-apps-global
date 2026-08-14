@@ -28,7 +28,6 @@ class SignOtpCeremony
 
   def issue!
     validate_scope!
-    return result(false, :missing_subject, error: :missing_subject) unless subject
 
     record = bound_record
     return result(false, :missing_destination, error: :missing_destination) unless record
@@ -50,7 +49,6 @@ class SignOtpCeremony
 
   def verify!
     validate_scope!
-    return result(false, :missing_subject, error: :missing_subject) unless subject
 
     record = bound_record
     return result(false, :missing_destination, error: :missing_destination) unless record

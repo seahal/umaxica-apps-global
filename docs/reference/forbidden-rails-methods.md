@@ -54,7 +54,14 @@ Enforced boundary (the only sanctioned exceptions):
   `SENSITIVE_SKIP_ALLOWLIST`, mechanically enforced by
   `test/unit/security/forbidden_rails_patterns_test.rb`. A new file that skips one of these fails
   that test until the boundary change is deliberately reviewed.
-- Skipping non-security context/preference callbacks (for example `:set_region`,
+- Skipping `:set_region` is permitted only for controllers listed in `RI_SKIP_ALLOWLIST`,
+  mechanically enforced by `test/unit/security/ri_routing_contract_test.rb`. The list is compared by
+  equality, so both a new skip and a silently removed one fail that test. Every entry must be a
+  machine-to-machine endpoint that renders no regional HTML: skipping the callback on a controller
+  that renders HTML strips `ri` from every URL that controller generates, because
+  `PreferenceGlobal#default_url_options` reads the request params only and has no fallback. That is
+  the auth sign-in/sign-up regression recorded in `plans/ri-preference-routing-regression-audit.md`.
+- Skipping the remaining non-security context/preference callbacks (for example
   `:set_preferences_cookie`, `:set_color_theme`) is allowed where an endpoint legitimately does not
   participate in that context, and is not a security relaxation.
 

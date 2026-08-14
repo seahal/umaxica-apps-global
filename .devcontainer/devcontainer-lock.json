@@ -19,6 +19,11 @@
       "version": "1.0.0",
       "resolved": "ghcr.io/jsburckhardt/devcontainer-features/codex@sha256:e6ec5fabc4c804ddda9e0aee677d13e989decc7fbbdcf27f70551f986bb9b28a",
       "integrity": "sha256:e6ec5fabc4c804ddda9e0aee677d13e989decc7fbbdcf27f70551f986bb9b28a"
+    },
+    "ghcr.io/jsburckhardt/devcontainer-features/herdr:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/jsburckhardt/devcontainer-features/herdr@sha256:6cd1417ff2af435e4b320612f494288b219d3f5dd4ce5f967b510897f5c663f2",
+      "integrity": "sha256:6cd1417ff2af435e4b320612f494288b219d3f5dd4ce5f967b510897f5c663f2"
     }
   }
 }

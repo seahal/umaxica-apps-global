@@ -7,7 +7,6 @@ module Auth
       class InsController < ::Auth::App::ApplicationController
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
-        skip_before_action :set_region, raise: false
 
         def show
           return redirect_logged_in_direct_entry! if logged_in? && params[:login_challenge].blank?
@@ -20,7 +19,7 @@ module Auth
           @oidc_authorization_intent = transaction.intent
           render "auth/app/sign_ins/new"
         rescue ActiveRecord::RecordNotFound
-          render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+          render plain: I18n.t("errors.messages.invalid_request"),
                  status: :bad_request
         end
 
@@ -35,7 +34,10 @@ module Auth
         end
 
         def redirect_logged_in_direct_entry!
-          redirect_to(base_app_dashboard_url(ri: params[:ri], host: base_authority_host), allow_other_host: true)
+          redirect_to(
+            base_app_dashboard_url(ri: current_region_identifier, host: base_authority_host),
+            allow_other_host: true,
+          )
         end
 
         def redirect_signed_in_authorization_transaction!(transaction)

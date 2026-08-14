@@ -111,8 +111,8 @@ concerns scoped.
    Turnstile, rate limiting, redirect sanitization). Models inherit from base records
    (`IdentitiesRecord`, `ComPrincipalRecord`, etc.) to target specific DB clusters. Services (e.g.,
    `Outbound::Sms`, `AccountService`) encapsulate integration logic.
-3. **Integration**: ActionMailer namespaces, Sms providers, Active Storage/Shrine, OpenTelemetry
-   instrumentation, Redis/Valkey caching, external CDNs/cloud providers.
+3. **Integration**: ActionMailer namespaces, Sms providers, OpenTelemetry instrumentation,
+   Redis/Valkey caching, external CDNs/cloud providers.
 
 ---
 
@@ -277,7 +277,7 @@ Sensitive columns leverage Active Record encryption.
 | SMS            | HTTPS         | `Outbound::Sms` sends OTP codes through the configured provider. SMS job arguments carry encrypted message bodies.                          |
 | Redis/Valkey   | RESP          | Sessions, rate limiting, Memorize store.                                                                                                    |
 | OTLP           | HTTP/gRPC     | OpenTelemetry exporter pushes spans to Tempo (`http://tempo:4318/v1/traces`).                                                               |
-| Object storage | S3-compatible | Opt-in RustFS smoke-test integration for local development; production storage is deferred.                                                |
+| Object storage | S3-compatible | Opt-in RustFS smoke-test integration for local development; production storage is deferred.                                                 |
 
 ---
 

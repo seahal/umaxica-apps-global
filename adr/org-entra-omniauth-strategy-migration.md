@@ -1,6 +1,14 @@
 # ADR: Org Entra ID Sign-In Migrates to an OmniAuth Strategy
 
-**Status:** Accepted (2026-07-31)
+**Status:** Accepted (2026-07-31), partially superseded (2026-08-11)
+
+**Partially superseded by:** `adr/org-entra-single-tenant-credential-configuration.md`. Tenant and
+client are no longer resolved per request from an `OrganizationEntraConnection` but read from Rails
+credentials for a single tenant; client authentication is a client secret rather than a
+certificate-based `private_key_jwt`; and Entra is once again built through
+`ExternalAuthentication::ProviderAdapterFactory`, as `EntraProviderAdapter`. The OmniAuth strategy
+itself, tenant fixation, disabled Discovery, the provider/surface allow matrix, the `fail!`-versus-
+raise handling, and AuthHash minimality are unchanged and still govern.
 
 **Supersedes:** the "OmniAuth is not used on the org surface" decision in
 `adr/org-entra-id-sign-in-boundary.md`. Every other decision in that ADR (data model placement,
@@ -13,18 +21,17 @@ Apple and Google sign-in on the app surface already run through OmniAuth (`omnia
 `omniauth-google-oauth2`). Entra ID sign-in on the org surface was hand-built: its own
 state/nonce/PKCE generation, its own authorization-URL construction, its own token-exchange
 orchestration (`ExternalAuthentication::EntraProviderAdapter`, `OidcRpTokenClient`), and its own
-ceremony store (`ExternalAuthenticationOrgEntraCeremonyStore`). This asymmetry -- two providers on
-a shared, actively-maintained interface and one on bespoke protocol code -- was flagged as a
-long-term maintenance and correctness risk: bespoke OAuth2/OIDC code does not benefit from the
-gem's own security fixes and review, and every new edge case is the app's own to find.
+ceremony store (`ExternalAuthenticationOrgEntraCeremonyStore`). This asymmetry -- two providers on a
+shared, actively-maintained interface and one on bespoke protocol code -- was flagged as a long-term
+maintenance and correctness risk: bespoke OAuth2/OIDC code does not benefit from the gem's own
+security fixes and review, and every new edge case is the app's own to find.
 
-The original ADR deliberately deferred this: `omniauth_openid_connect` stayed out of the
-production Entra path until its correctness could be demonstrated, specifically because a generic
-OIDC client's default token-endpoint authentication (`client_secret` or a plain `jwt_bearer`
-assertion) cannot produce the certificate-based `private_key_jwt` with an `x5t#S256` thumbprint
-that Entra requires -- and the org surface's `OmniAuthNonAppSocialGuard` blocked all `/social/*`
-traffic on non-app hosts outright, which would have to change for Entra to use the shared `/social`
-mount point at all.
+The original ADR deliberately deferred this: `omniauth_openid_connect` stayed out of the production
+Entra path until its correctness could be demonstrated, specifically because a generic OIDC client's
+default token-endpoint authentication (`client_secret` or a plain `jwt_bearer` assertion) cannot
+produce the certificate-based `private_key_jwt` with an `x5t#S256` thumbprint that Entra requires --
+and the org surface's `OmniAuthNonAppSocialGuard` blocked all `/social/*` traffic on non-app hosts
+outright, which would have to change for Entra to use the shared `/social` mount point at all.
 
 ## Decision
 
@@ -33,43 +40,43 @@ mount point at all.
 Apple and Google keep their existing dedicated gems unchanged. Entra ID is now
 `OmniAuth::Strategies::UmaxicaEntra` (`lib/omniauth/strategies/umaxica_entra.rb`), a subclass of
 `omniauth_openid_connect`'s `OmniAuth::Strategies::OpenIDConnect` (gem version `0.8.0`, pinned; see
-"Gem version" below). No off-the-shelf Entra-specific OmniAuth gem is used -- none of the
-available ones expose the certificate-assertion injection point this app requires, and building
-that on top of a generic strategy is more auditable than trusting a third-party Entra wrapper's
-own security claims.
+"Gem version" below). No off-the-shelf Entra-specific OmniAuth gem is used -- none of the available
+ones expose the certificate-assertion injection point this app requires, and building that on top of
+a generic strategy is more auditable than trusting a third-party Entra wrapper's own security
+claims.
 
 Only the following methods are overridden, each because the base gem's behavior is wrong or
 insufficient for Entra, not merely different:
 
-| Override | Why the base gem doesn't cover it |
-|---|---|
-| `request_phase` / `callback_phase` | Tenant and `client_id` are per-`OrganizationEntraConnection`, resolved from a `connection_public_id` param/session reference; the base gem assumes one static issuer configured at boot. |
-| `access_token` | The base gem only knows `client_secret` or a generic (non-certificate) `jwt_bearer` assertion. Entra requires PS256 + `x5t#S256`. |
-| `verify_id_token!` | The base gem's `decode_id_token(...).verify!` is generic OIDC only; Entra-specific claims (`tid`, `oid`, `acct`) require the existing `ExternalSign::Providers::EntraId` verifier. |
+| Override                                 | Why the base gem doesn't cover it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `request_phase` / `callback_phase`       | Tenant and `client_id` are per-`OrganizationEntraConnection`, resolved from a `connection_public_id` param/session reference; the base gem assumes one static issuer configured at boot.                                                                                                                                                                                                                                                                                                                                           |
+| `access_token`                           | The base gem only knows `client_secret` or a generic (non-certificate) `jwt_bearer` assertion. Entra requires PS256 + `x5t#S256`.                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `verify_id_token!`                       | The base gem's `decode_id_token(...).verify!` is generic OIDC only; Entra-specific claims (`tid`, `oid`, `acct`) require the existing `ExternalSign::Providers::EntraId` verifier.                                                                                                                                                                                                                                                                                                                                                 |
 | `uid` / `info` / `extra` / `credentials` | The base gem's `info`/`extra`/`credentials` **block DSL merges every ancestor's block** (`OmniAuth::Strategy.compile_stack` walks `self.class.ancestors`), so a block-based override still additionally evaluates the base class's blocks -- which call `user_info` (the UserInfo endpoint) and expose raw tokens. These four are overridden as **plain instance methods**, which shadow the base method entirely instead of merging with it. This was caught by a contract test, not by inspection -- see "Contract tests" below. |
 
 State generation/consumption, nonce generation, and PKCE S256 verifier/challenge handling are the
-base gem's own mechanism (`session['omniauth.state']`, `'omniauth.nonce'`, `'omniauth.pkce.verifier'`)
-and are not reimplemented.
+base gem's own mechanism (`session['omniauth.state']`, `'omniauth.nonce'`,
+`'omniauth.pkce.verifier'`) and are not reimplemented.
 
 ### `fail!` inside nested calls does not halt execution -- raise instead
 
-`OmniAuth::Strategy#fail!` only produces a correct response when it is the *direct return value* of
+`OmniAuth::Strategy#fail!` only produces a correct response when it is the _direct return value_ of
 a phase method (`request_phase`/`callback_phase`); `OmniAuth::Strategy#call!` uses that return value
-as the Rack response. Calling `fail!` from a method nested inside `super`'s call graph (`access_token`,
-`verify_id_token!`) does not stop the caller -- execution continues past it, and the caller (`super`'s
-own `callback_phase` body) proceeds to build a "successful" AuthHash from whatever state exists,
-including `nil`. `UmaxicaEntra::Error` is raised instead from those nested methods and rescued at the
-top of `callback_phase`, converting it to `fail!` only once execution has actually unwound to the
-phase-level method. This, too, was found by a contract test that exercised the full `callback_phase`,
-not by code review.
+as the Rack response. Calling `fail!` from a method nested inside `super`'s call graph
+(`access_token`, `verify_id_token!`) does not stop the caller -- execution continues past it, and
+the caller (`super`'s own `callback_phase` body) proceeds to build a "successful" AuthHash from
+whatever state exists, including `nil`. `UmaxicaEntra::Error` is raised instead from those nested
+methods and rescued at the top of `callback_phase`, converting it to `fail!` only once execution has
+actually unwound to the phase-level method. This, too, was found by a contract test that exercised
+the full `callback_phase`, not by code review.
 
 ### private_key_jwt injection
 
 `rack-oauth2`'s `Client#access_token!` (which `openid_connect`'s `Client`, and therefore
 `omniauth_openid_connect`, inherits from) accepts a pre-built `client_assertion` directly when
-`client_auth_method: :jwt_bearer` is passed -- it does not require the gem to generate the
-assertion itself. `access_token` calls the existing, unchanged
+`client_auth_method: :jwt_bearer` is passed -- it does not require the gem to generate the assertion
+itself. `access_token` calls the existing, unchanged
 `ExternalAuthentication::EntraClientAssertionAdapter` (PS256, `x5t#S256` certificate thumbprint) to
 build the assertion and passes it straight through:
 
@@ -87,18 +94,18 @@ No `client_secret` is ever sent. No gem source was copied or monkey-patched to m
 ### Tenant fixation, no Discovery
 
 `options.issuer`, `options.client_options.{host,port,authorization_endpoint,token_endpoint}` are set
-per-request from the resolved `OrganizationEntraConnection#entra_tenant_id` /
-`#entra_client_id`; `common`/`organizations`/`consumers` are never used. `options.discovery` is
-`false` -- Discovery is a network round trip this single-tenant-per-connection model doesn't need
-and an extra tenant-confusion surface it doesn't want.
+per-request from the resolved `OrganizationEntraConnection#entra_tenant_id` / `#entra_client_id`;
+`common`/`organizations`/`consumers` are never used. `options.discovery` is `false` -- Discovery is
+a network round trip this single-tenant-per-connection model doesn't need and an extra
+tenant-confusion surface it doesn't want.
 
 ### Connection resolution, not a new service class
 
-Connection lookup lives inside the strategy (`active_connection_from_params` /
-`active_connection`) and the controller (`OmniauthCallbacksController#active_connection`), each a
-`OrganizationEntraConnection.find_by(public_id:, status_id: ACTIVE)` -- no new service/adapter
-class was introduced for this. The controller re-validates the connection independently of the
-strategy's own validation, matching the same trust-boundary-revalidation pattern the legacy
+Connection lookup lives inside the strategy (`active_connection_from_params` / `active_connection`)
+and the controller (`OmniauthCallbacksController#active_connection`), each a
+`OrganizationEntraConnection.find_by(public_id:, status_id: ACTIVE)` -- no new service/adapter class
+was introduced for this. The controller re-validates the connection independently of the strategy's
+own validation, matching the same trust-boundary-revalidation pattern the legacy
 `Auth::Org::Sign::In::Entra::CallbacksController` already used.
 
 ### Connection-lookup timing protection
@@ -115,21 +122,21 @@ connection lookup instead.
 
 `OmniAuthNonAppSocialGuard` (host-only, block-everything-on-non-app) is replaced by
 `OmniAuthSocialProviderHostMatrix` (`config/initializers/omniauth.rb`): app hosts allow
-`apple`/`google` only, the org (staff) host allows `entra` only (restricted to
-`/social/entra`, `/social/entra/callback`, `/social/entra/failure` -- prefix-matched safely, so
-`/social/entrax` is not accidentally allowed), com hosts allow no external OmniAuth strategy.
-Unknown providers are denied on every surface.
+`apple`/`google` only, the org (staff) host allows `entra` only (restricted to `/social/entra`,
+`/social/entra/callback`, `/social/entra/failure` -- prefix-matched safely, so `/social/entrax` is
+not accidentally allowed), com hosts allow no external OmniAuth strategy. Unknown providers are
+denied on every surface.
 
 Not every `/social/*` path is a provider path: `/social/authentication/{continuation,completion}`
 (app-surface social sign-up continuation/completion) share the `/social` prefix but aren't
 OmniAuth-strategy-owned. An initial version of this guard treated any first path segment as a
-"provider" and denied these as unrecognized, which would have 404'd real app-surface social
-sign-up traffic (caught by the existing `test/integration/social_auth_login_test.rb`,
+"provider" and denied these as unrecognized, which would have 404'd real app-surface social sign-up
+traffic (caught by the existing `test/integration/social_auth_login_test.rb`,
 `apple_social_flows_test.rb`, `omniauth_callbacks_test.rb`, and
-`acme_social_link_completion_test.rb` suites failing when run end-to-end -- not by this
-migration's own new tests, which never exercised that path). The guard now checks the segment
-against a fixed `KNOWN_PROVIDERS` list first; anything else falls back to the pre-existing
-app-only behavior instead of being denied outright.
+`acme_social_link_completion_test.rb` suites failing when run end-to-end -- not by this migration's
+own new tests, which never exercised that path). The guard now checks the segment against a fixed
+`KNOWN_PROVIDERS` list first; anything else falls back to the pre-existing app-only behavior instead
+of being denied outright.
 
 ### AuthHash minimality
 
@@ -140,11 +147,11 @@ Microsoft Graph call is ever made (scope is fixed to `openid profile`).
 
 ### Routing
 
-`/social/entra/session/new` (a real Rails `resource :session, only: :new`, `Auth::Org::Social::SessionsController`)
-renders a CSRF-protected POST form. `/social/entra/callback` and `/social/entra/failure` are
-non-resourceful `get` routes -- OmniAuth middleware owns the callback path, the same documented
-exception already used for Apple/Google (`config/routes/auth.rb`). No `match` route was introduced
-anywhere in this migration.
+`/social/entra/session/new` (a real Rails `resource :session, only: :new`,
+`Auth::Org::Social::SessionsController`) renders a CSRF-protected POST form.
+`/social/entra/callback` and `/social/entra/failure` are non-resourceful `get` routes -- OmniAuth
+middleware owns the callback path, the same documented exception already used for Apple/Google
+(`config/routes/auth.rb`). No `match` route was introduced anywhere in this migration.
 
 `OmniAuth.config.allowed_request_methods = [:post]` is global and already applied to Apple/Google
 before this migration; it applies to Entra automatically, with no per-provider override needed.
@@ -154,21 +161,21 @@ before this migration; it applies to Entra automatically, with no per-provider o
 The legacy `Auth::Org::Sign::In::Entra::{AuthorizationsController,CallbacksController}`,
 `Auth::Org::Sign::In::EntrasController`, `ExternalAuthenticationOrgEntraCeremonyStore`,
 `ExternalAuthentication::EntraProviderAdapter`, the `/sign/in/entra/*` routes, and their dedicated
-tests have been removed. This was gated on a test-based parity check, not a live-traffic
-comparison: `test/controllers/auth/org/omniauth/omniauth_callbacks_controller_test.rb` covers every
-behavior the legacy suite covered (state/nonce/replay rejection, no-JIT, operator-not-allowed,
+tests have been removed. This was gated on a test-based parity check, not a live-traffic comparison:
+`test/controllers/auth/org/omniauth/omniauth_callbacks_controller_test.rb` covers every behavior the
+legacy suite covered (state/nonce/replay rejection, no-JIT, operator-not-allowed,
 authentication-method lock, ceremony-disabled, app/com surface unreachability) plus a real
 successful round trip and a query-count budget the legacy suite never had.
 
 Reusable pieces the new strategy already depends on were kept unchanged:
-`EntraClientAssertionAdapter`, `ExternalSignIn::Providers::EntraId`, `ExternalSignIn::OrgEntraResolver`,
-`OrganizationEntraConnection`, `OperatorEntraIdentity`, the JWKS cache, and the shared
-session/BAN/lock/audit concerns.
+`EntraClientAssertionAdapter`, `ExternalSignIn::Providers::EntraId`,
+`ExternalSignIn::OrgEntraResolver`, `OrganizationEntraConnection`, `OperatorEntraIdentity`, the JWKS
+cache, and the shared session/BAN/lock/audit concerns.
 
-**Still required before this is live for real Entra sign-ins:** `https://<staff-host>/social/entra/callback`
-must be registered as a Redirect URI on the Entra app registration (an out-of-repo console change);
-the old `/sign/in/entra/callback` Redirect URI can be removed from the app registration once that is
-done and confirmed working.
+**Still required before this is live for real Entra sign-ins:**
+`https://<staff-host>/social/entra/callback` must be registered as a Redirect URI on the Entra app
+registration (an out-of-repo console change); the old `/sign/in/entra/callback` Redirect URI can be
+removed from the app registration once that is done and confirmed working.
 
 `ExternalAuthenticationEntraRedirectUri::CALLBACK_PATH` now points at `/social/entra/callback` (the
 only remaining path); the `/sign/in/entra/callback` constant was removed with the controller that
@@ -188,16 +195,17 @@ merge behavior described above.
 
 ### Contract tests (what gates further changes)
 
-`test/lib/omniauth/strategies/umaxica_entra_test.rb`: connection resolution (found/missing/inactive),
-tenant-fixed endpoint configuration (no Discovery, no `common`/`organizations`), PKCE/state/nonce
-presence in the authorization URL, `private_key_jwt` injection (`client_auth_method`, assertion
-header/claims, `code_verifier`), `verify_id_token!` delegation to the existing Entra verifier,
-AuthHash minimality, and the `fail!`-inside-nested-calls fix above.
+`test/lib/omniauth/strategies/umaxica_entra_test.rb`: connection resolution
+(found/missing/inactive), tenant-fixed endpoint configuration (no Discovery, no
+`common`/`organizations`), PKCE/state/nonce presence in the authorization URL, `private_key_jwt`
+injection (`client_auth_method`, assertion header/claims, `code_verifier`), `verify_id_token!`
+delegation to the existing Entra verifier, AuthHash minimality, and the `fail!`-inside-nested-calls
+fix above.
 
 `test/controllers/auth/org/omniauth/omniauth_callbacks_controller_test.rb`: full request-phase →
 callback-phase round trip against a real `OrganizationEntraConnection` and a real signed ID token
-(only the token-endpoint HTTP POST is stubbed), state replay rejection, no-JIT rejection, app-surface
-providers rejected on the org host, GET rejected on the request path.
+(only the token-endpoint HTTP POST is stubbed), state replay rejection, no-JIT rejection,
+app-surface providers rejected on the org host, GET rejected on the request path.
 
 `test/controllers/auth/org/omniauth/omniauth_callback_query_count_test.rb`: real
 `ActiveSupport::Notifications`-based SQL counts for the callback's connection/identity/operator
@@ -207,7 +215,8 @@ re-validation + the resolver's own pre-existing eager-load, none of them looped)
 
 `test/unit/security/entra_omniauth_secret_filtering_test.rb`: `code`, `id_token`, `access_token`,
 `refresh_token`, `client_assertion`, `client_secret`, `code_verifier`, `nonce`, `state`,
-`private_key_pem`, `certificate_pem` are all filtered from `Rails.application.config.filter_parameters`.
+`private_key_pem`, `certificate_pem` are all filtered from
+`Rails.application.config.filter_parameters`.
 
 Any future `omniauth_openid_connect`/`openid_connect`/`rack-oauth2` version bump must re-run all of
 the above before merging.
@@ -215,8 +224,8 @@ the above before merging.
 ## Consequences
 
 - Apple/Google are unaffected; they keep `omniauth-apple`/`omniauth-google-oauth2`.
-- `OmniAuthNonAppSocialGuard` no longer exists; `OmniAuthSocialProviderHostMatrix` is the new,
-  more precise guard.
+- `OmniAuthNonAppSocialGuard` no longer exists; `OmniAuthSocialProviderHostMatrix` is the new, more
+  precise guard.
 - The org surface now runs OmniAuth, scoped to exactly one allow-listed strategy.
 - The legacy Entra ceremony remains the production path in every practical sense (it is what real
   Entra sign-ins use) until the cutover steps above are completed; this ADR covers only the new,

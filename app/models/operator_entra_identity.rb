@@ -48,9 +48,14 @@ class OperatorEntraIdentity < OrgRpRecord
              foreign_key: :status_id,
              inverse_of: :operator_entra_identities
 
+  # Optional: the org surface federates a single Entra tenant configured in
+  # Rails credentials, so sign-in resolves an identity by (tid, oid) alone and
+  # never reads a connection. The association remains for records provisioned
+  # before that change.
   belongs_to :connection,
              class_name: "OrganizationEntraConnection",
-             inverse_of: :operator_entra_identities
+             inverse_of: :operator_entra_identities,
+             optional: true
 
   validates :operator_id, :entra_tenant_id, :entra_object_id,
             presence: true

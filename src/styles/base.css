@@ -1,4 +1,66 @@
+/*
+ * Shared typography baseline. Every surface stylesheet under `surfaces/` imports this file, so it
+ * is the one place that reaches all fourteen FQDNs.
+ *
+ * Sources:
+ * - https://ics.media/entry/240411/  line wrapping
+ * - https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-wrap
+ * - https://developer.mozilla.org/en-US/docs/Web/CSS/line-break
+ */
+
+/*
+ * Unlayered, so the surface background wins over every Tailwind layer. The surface stylesheet
+ * overrides the colour after this import; the font stack is the shared default.
+ */
 body {
+  background-color: #eee;
   font-family:
     "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+}
+
+/*
+ * The rules below sit in Tailwind's `base` layer rather than unlayered, so a utility class still
+ * wins where a component needs different wrapping. Unlayered declarations beat every layer,
+ * including `utilities`, which would silently disable `wrap-anywhere`, `break-all` and
+ * `text-wrap-*` on Japanese pages.
+ */
+@layer base {
+  /*
+   * Line breaking is a property of the language, not of the surface, so it hangs off `:lang(ja)`
+   * and an English page keeps the engine's own behaviour. `<html lang>` is rendered on every
+   * layout and standalone view, which is what this selector matches.
+   */
+  :lang(ja) {
+    /* Kinsoku: keeps small kana, the prolonged sound mark and 、。 off a line head. */
+    line-break: strict;
+
+    /* The initial value, stated so a future utility cannot quietly apply break-all to Japanese. */
+    word-break: normal;
+
+    /*
+     * Overflow protection for URLs, UUIDs and FQDNs. `break-word` rather than `anywhere`: the two
+     * wrap the same text, but `anywhere` also feeds its soft wrap opportunities into min-content
+     * intrinsic sizing, which shrinks flex and grid tracks that size to their content.
+     */
+    overflow-wrap: break-word;
+  }
+
+  /* Elements that do carry unbreakable runs take the stronger value and its sizing effect. */
+  :is(code, kbd, samp, pre) {
+    overflow-wrap: anywhere;
+  }
+
+  /*
+   * Running text only. `pretty` asks the engine to even out the rag and avoid a short last line.
+   * WebKit evaluates every line of the paragraph, Chromium the last four; an engine without it
+   * ignores the declaration.
+   */
+  :is(p, li, dd, blockquote, figcaption) {
+    text-wrap: pretty;
+  }
+
+  /* Headings are short enough for the engine to balance line lengths across the whole block. */
+  :is(h1, h2, h3, h4, h5, h6) {
+    text-wrap: balance;
+  }
 }

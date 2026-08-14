@@ -10,6 +10,7 @@ module Side
       before_action :authenticate_client!
 
       def show
+        authorize!(current_client, to: :show?)
         render "side/shared/dashboards/show"
       end
     end

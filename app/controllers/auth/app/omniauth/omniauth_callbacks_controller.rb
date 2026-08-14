@@ -28,6 +28,24 @@ module Auth
         include SocialOmniauthCallbackFlow
 
         AUTHENTICATION_MODE = :deny_all
+
+        # OmniAuth failure reasons this surface can produce. Used to classify the
+        # `message` parameter on GET /social/failure before it is logged; see
+        # #classified_failure_message.
+        OMNIAUTH_FAILURE_MESSAGES = %w(
+          access_denied
+          csrf_detected
+          invalid_credentials
+          invalid_request
+          invalid_response
+          missing_id_token
+          nonce_mismatch
+          provider_unavailable
+          session_expired
+          timeout
+          unknown_error
+        ).freeze
+
         rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
         rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
         before_action :verify_social_callback_request!, only: [:omniauth], raise: false
@@ -82,12 +100,19 @@ module Auth
         def failure
           message = params[:message] || "unknown_error"
           strategy = params[:strategy] || "unknown"
+          # `message`/`strategy` are unauthenticated request parameters on a
+          # directly reachable endpoint. The raw values are still needed for the
+          # duplicate-callback and translation-key decisions below, but only the
+          # allowlisted classifications are logged
+          # (adr/application-logging-boundary.md).
+          logged_message = classified_failure_message(message)
+          logged_strategy = classified_failure_strategy(strategy)
 
           Rails.logger.debug(
             JitLogEvent.format(
               "sign.social.omniauth.failure_callback",
-              message: message,
-              strategy: strategy,
+              message: logged_message,
+              strategy: logged_strategy,
             ),
           )
 
@@ -97,8 +122,8 @@ module Auth
             Rails.logger.info(
               JitLogEvent.format(
                 "sign.social.omniauth.duplicate_callback_failure_ignored",
-                message: message,
-                strategy: strategy,
+                message: logged_message,
+                strategy: logged_strategy,
               ),
             )
             return redirect_to(social_auth_success_redirect_path)
@@ -107,8 +132,8 @@ module Auth
           Rails.logger.info(
             JitLogEvent.format(
               "sign.social.omniauth_failure",
-              message: message,
-              strategy: strategy,
+              message: logged_message,
+              strategy: logged_strategy,
             ),
           )
 
@@ -665,6 +690,22 @@ module Auth
 
         def social_auth_success_redirect_path
           auth_app_settings_path
+        end
+
+        # Reduces the attacker-controlled `message` parameter to one of the
+        # OmniAuth failure reasons this surface can actually produce. Anything
+        # else classifies to "other" so an unauthenticated caller cannot write
+        # arbitrary text into the log.
+        def classified_failure_message(message)
+          value = message.to_s
+          OMNIAUTH_FAILURE_MESSAGES.include?(value) ? value : "other"
+        end
+
+        # `strategy` is classified against the registered provider list rather
+        # than a local literal so a newly registered provider stays loggable.
+        def classified_failure_strategy(strategy)
+          value = SocialIdentifiable.normalize_provider(strategy).to_s
+          ExternalAuthentication::ProviderRegistry.providers.map(&:to_s).include?(value) ? value : "other"
         end
 
         def duplicate_google_callback_failure_after_success?(message, strategy)

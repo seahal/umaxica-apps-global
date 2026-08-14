@@ -4,6 +4,12 @@ This repository exposes Rails to Cloudflare Tunnel only through the Podman `fron
 same tunnel supports published browser hostnames and a future Workers VPC Service, but those ingress
 paths do not change Rails authentication, authorization, or surface ownership.
 
+The connector itself is not `frontend`-only. `compose.custom.yaml` also attaches it to
+`umaxica-edge-tunnel`, an `external: true` network created and owned by the Edge compose project,
+because the Next.js Core origin runs there and shares no network with this project otherwise. That
+attachment is what makes Edge-bound ingress rules resolve; it grants no new path to Rails, which
+stays reachable only over `frontend`, and Edge Core stays unreachable from `frontend`.
+
 ## Invariants and Verification Gates
 
 The private transport invariant is:
@@ -23,11 +29,10 @@ The gates are intentionally independent:
    `GET /health` through every private surface alias and requires HTTP `200`.
 2. **Host Authorization**: `ruby test/config/host_authorization_contract_test.rb` boots a separate
    Rails development process, constructs the middleware from the effective development settings,
-   requests the non-excluded `/` path, accepts the private origins and the published site
-   hostnames, and rejects both an unknown host and an Umaxica-owned hostname that no
-   `PUBLIC_*_URL` names.
-3. **Surface routing**: the route contract tests recognize non-health application resources for
-   the private Host values and assert the matching `app`, `com`, `org`, `net`, or `dev` controller.
+   requests the non-excluded `/` path, accepts the private origins and the published site hostnames,
+   and rejects both an unknown host and an Umaxica-owned hostname that no `PUBLIC_*_URL` names.
+3. **Surface routing**: the route contract tests recognize non-health application resources for the
+   private Host values and assert the matching `app`, `com`, `org`, `net`, or `dev` controller.
 4. **Podman DNS aliases**: `podman compose config` must show the private aliases on `core`'s
    `frontend` network and no new host port publication.
 5. **Workers VPC connector prerequisites**: cloudflared is pinned at `2025.7.0`, runs with QUIC,
@@ -49,8 +54,8 @@ section of `docs/architecture/cloudflare-request-paths.md` for how each family r
 `config.hosts`, and for the `FORCE_SECURE_COOKIES` trade-off between the tunnel path and the
 plain-`http` local path.
 
-Access is the control that keeps the development surface non-public, and it lives in the
-Cloudflare account rather than in this repository — see "External Checks" below.
+Access is the control that keeps the development surface non-public, and it lives in the Cloudflare
+account rather than in this repository — see "External Checks" below.
 
 ## Browser Traffic Through Access
 
@@ -68,16 +73,18 @@ and the tunnel Access options in
 ## Workers VPC Traffic
 
 Configure the future VPC Service as HTTP. Its target hostname is a private alias resolvable on the
-Podman `frontend` network. Use port `3000` for this development compose stack and port `8080` for the
-production image. The Worker binding belongs to the Worker repository, not this Rails repository.
+Podman `frontend` network. Use port `3000` for this development compose stack and port `8080` for
+the production image. The Worker binding belongs to the Worker repository, not this Rails
+repository.
 
 The VPC Service target selects the private route. The hostname in the Worker's `fetch()` URL remains
-the origin Host/SNI, so it must be a narrowly allowlisted Umaxica surface hostname and must match the
-surface route constraint. See Cloudflare's
+the origin Host/SNI, so it must be a narrowly allowlisted Umaxica surface hostname and must match
+the surface route constraint. See Cloudflare's
 [VPC Services configuration](https://developers.cloudflare.com/workers-vpc/configuration/vpc-services/).
 
 Cloudflare documents cloudflared `2025.7.0` or newer, QUIC, and outbound UDP 7844 for Workers VPC
-tunnels in [Connect with Cloudflare Tunnel](https://developers.cloudflare.com/workers-vpc/configuration/tunnel/).
+tunnels in
+[Connect with Cloudflare Tunnel](https://developers.cloudflare.com/workers-vpc/configuration/tunnel/).
 Do not switch this connector to HTTP/2 for Workers VPC DNS routing.
 
 Access and Workers VPC are separate route types. Based on that separation, this repository does not
@@ -105,10 +112,16 @@ to Rails, or receive HTTP `200` makes the command fail nonzero.
 Repository checks cannot prove these Cloudflare-account and network controls:
 
 - outbound UDP 7844 is allowed from the connector environment;
-- the Access application exists before its published hostname, including the development
-  hostnames;
+- the Access application exists before its published hostname, including the development hostnames;
 - the published route enables Access validation;
-- the VPC Service target, port, and Worker binding match this contract.
+- the VPC Service target, port, and Worker binding match this contract;
+- the Edge compose project is running, so `umaxica-edge-tunnel` exists before the connector is
+  created. The network is `external: true` here, so bringing the Edge stack down removes it and the
+  connector then fails to start rather than degrading to Rails-only reachability;
+- every Edge-bound tunnel ingress rule names an unambiguous address. Podman registers a service name
+  as a network alias, so `core` resolves both on `frontend` (Rails) and on `umaxica-edge-tunnel`
+  (Edge Core) once the connector joins both. Ingress lives in the Cloudflare account, not in this
+  repository.
 
 Treat each as blocked until verified in the deployment environment. Do not infer them from a local
 `/health` response.
@@ -118,8 +131,8 @@ Rails hostnames: every unauthenticated external request returned an Access login
 probe confirmed no such request reached the origin, and authenticated browser traffic was observed
 arriving at Rails from a public client address. Evidence is in
 `notes/implementation/2026-08-10-development-tunnel-access-verification.md`. That run covers
-development only; the first and fourth items remain unverified, and production remains blocked on all
-four. A dated verification run is evidence, not a substitute for re-checking after any account
+development only; the first and fourth items remain unverified, and production remains blocked on
+all four. A dated verification run is evidence, not a substitute for re-checking after any account
 change.
 
 That run also found that `palm-jp.umaxica.app` currently carries an interactive Access application.

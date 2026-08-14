@@ -3,7 +3,7 @@
 
 module Palm
   module App
-    class RootsController < Palm::App::BareController
+    class RootsController < Palm::App::ApplicationController
       AUTHENTICATION_MODE = :bare
       layout false
 

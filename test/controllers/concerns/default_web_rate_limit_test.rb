@@ -18,17 +18,21 @@ class DefaultWebRateLimitTest < ActionDispatch::IntegrationTest
   setup { Rails.configuration.x.rate_limit.fetch(:store).clear }
   teardown { Rails.configuration.x.rate_limit.fetch(:store).clear }
 
+  # The Host below must be one the application actually serves. FqdnAvailabilityGate runs ahead of
+  # the rate limiter and refuses an unregistered hostname with 503, so a synthetic Host would never
+  # reach the limit this test is about.
+
   test "surface base enforces the 300/min default web limit and renders the json 429" do
     with_routing do |set|
       set.draw { get "/default_web_probe", to: "default_web_rate_limit_probe#index" }
 
       300.times do
-        get "/default_web_probe", headers: { "Host" => "example.com", "Accept" => "application/json" }
+        get "/default_web_probe", headers: { "Host" => "base.net.localhost", "Accept" => "application/json" }
 
         assert_response :success
       end
 
-      get "/default_web_probe", headers: { "Host" => "example.com", "Accept" => "application/json" }
+      get "/default_web_probe", headers: { "Host" => "base.net.localhost", "Accept" => "application/json" }
 
       assert_response :too_many_requests
       assert_equal "rails", response.headers["X-RateLimit-Layer"]

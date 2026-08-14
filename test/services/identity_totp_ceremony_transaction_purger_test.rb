@@ -11,13 +11,13 @@ class IdentityTotpCeremonyTransactionPurgerTest < ActiveSupport::TestCase
     stale = ClientTotpCeremonyTransaction.create_transaction!(
       actor_ref: "actor-#{SecureRandom.hex(4)}",
       session_ref: "session-#{SecureRandom.hex(4)}",
-      operation: "enrollment",
+      operation: "registration",
       expires_at: now - retention - 1.hour,
     )
     fresh = ClientTotpCeremonyTransaction.create_transaction!(
       actor_ref: "actor-#{SecureRandom.hex(4)}",
       session_ref: "session-#{SecureRandom.hex(4)}",
-      operation: "enrollment",
+      operation: "registration",
       expires_at: now + 1.hour,
     )
 

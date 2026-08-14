@@ -29,13 +29,6 @@ class SocialAuthSignupFinalizer
         principal: principal,
         credential_candidate: credential_candidate,
       )
-      if existing_identity
-        repository.refresh_credentials!(
-          identity,
-          principal: principal,
-          credential_candidate: credential_candidate,
-        )
-      end
       identity.user = user
       identity.save!
       identity.touch_authenticated!

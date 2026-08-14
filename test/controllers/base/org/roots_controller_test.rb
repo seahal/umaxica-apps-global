@@ -7,53 +7,72 @@ require "test_helper"
 class Base::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses
 
-  test "should get index" do
+  test "permanently redirects the jp region to the canonical jp regional root" do
     host! ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
     get base_org_root_url(ri: "jp")
 
-    assert_response :success
-    assert_select "title", "Base Org"
-    assert_select "h1", text: "Base Org"
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.org/", response.location
   end
 
-  test "creates preference cookies on root" do
+  test "permanently redirects the us region to the canonical us regional root" do
     host! ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
+    get base_org_root_url(ri: "us")
 
-    assert_difference("OrgPreference.count", 1) do
-      get base_org_root_url(ri: "jp")
-    end
-
-    assert_response :success
-    assert_predicate cookies[PreferenceCookieName.access(surface: :org)], :present?
-    assert_predicate cookies[PreferenceCookieName.refresh(surface: :org)], :present?
+    assert_response :moved_permanently
+    assert_equal "https://us.umaxica.org/", response.location
   end
 
-  test "creates preference cookies on root when optional URL preferences are present" do
+  test "drops every request context parameter from the regional redirect target" do
+    host! ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
+    get base_org_root_url(ri: "jp", ct: "dr", lx: "en", tz: "asia/tokyo")
+
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.org/", response.location
+    assert_not_includes response.location, "?"
+    assert_not_includes response.location, "ri="
+    assert_not_includes response.location, "ct="
+    assert_not_includes response.location, "lx="
+    assert_not_includes response.location, "tz="
+  end
+
+  test "does not regionally redirect an unknown region" do
+    host! ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
+    get base_org_root_url(ri: "xx")
+
+    assert_response :found
+    assert_equal base_org_root_url(ri: "jp"), response.location
+  end
+
+  test "does not regionally redirect a missing region" do
+    host! ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
+    get "/"
+
+    assert_response :found
+    assert_equal base_org_root_url(ri: "jp"), response.location
+  end
+
+  test "mints no preference state on the gateway host it redirects away from" do
     host! ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
 
-    assert_difference("OrgPreference.count", 1) do
+    assert_no_difference("OrgPreference.count") do
       get base_org_root_url(ct: "dr", lx: "en", ri: "us", tz: "asia/tokyo")
     end
 
-    assert_response :success
-    assert_predicate cookies[PreferenceCookieName.access(surface: :org)], :present?
-    assert_predicate cookies[PreferenceCookieName.refresh(surface: :org)], :present?
+    assert_response :moved_permanently
+    assert_nil cookies[PreferenceCookieName.access(surface: :org)].presence
+    assert_nil cookies[PreferenceCookieName.refresh(surface: :org)].presence
   end
 
-  test "redirects to dashboard when logged in" do
+  test "regional redirect takes precedence over the logged in dashboard redirect" do
     host! ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
     staff = operators(:one)
 
     get base_org_root_url(ri: "jp"),
         headers: as_staff_headers(staff, host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"))
 
-    assert_response :redirect
-    assert_redirected_to base_org_dashboard_url(
-      ri: "jp",
-      host: ENV.fetch(
-        "PUBLIC_BASE_STAFF_URL", "base.org.localhost",
-      ),
-    )
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.org/", response.location
   end
   private
 

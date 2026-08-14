@@ -4,6 +4,7 @@
 module Base
   module Dev
     class ApplicationController < ActionController::Base
+      include ::FqdnAvailabilityGate
       include ::RateLimit
 
       include ::Session

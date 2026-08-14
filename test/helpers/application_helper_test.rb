@@ -106,14 +106,10 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_equal "Test Title", view.content_for(:page_title)
   end
 
-  test "page_title returns translation default when no title set" do
+  test "page_title returns blank when no title set so the site title stands alone" do
     view.extend(ApplicationHelper)
 
-    result = view.page_title
-
-    expected = I18n.t("meta.default_title")
-
-    assert_equal expected, result
+    assert_predicate view.page_title, :blank?
   end
 
   test "theme_class is backward compatible alias for theme_html_class" do

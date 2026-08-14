@@ -11,12 +11,33 @@ module ApplicationHelper
     com: %w(PUBLIC_EDGE_CORPORATE_URL EDGE_CORPORATE_URL),
   }.freeze
 
+  # Brand title editions, matched against the labels of the host actually serving
+  # the response. Surface layouts name their TLD literally because the route's
+  # `scope(module:)` fixes it; this exists for the two shared views that answer on
+  # more than one edition (health, served by Base::App::HealthsController on the
+  # .app/.net/.dev hosts, and the PWA offline page, shared across auth and palm).
+  BRAND_TLD_LABELS = %w(app com org net dev).freeze
+
+  def brand_tld
+    label = request.host.to_s.downcase.split(".").reverse.find { |part| BRAND_TLD_LABELS.include?(part) }
+
+    unless label
+      raise ArgumentError, "Cannot derive a brand TLD from host #{request.host.inspect}; " \
+                           "expected one of #{BRAND_TLD_LABELS.join(", ")} among its labels"
+    end
+
+    label.upcase
+  end
+
   def page_title(title = nil)
     if title.present?
       content_for(:page_title, title)
       title
     else
-      content_for(:page_title) || t("meta.default_title")
+      # Brand and TLD are a locale-independent contract owned by the layout's
+      # meta-tags `site:` value, so there is no translated default here. A page
+      # without a title renders the site title alone, which is the root contract.
+      content_for(:page_title)
     end
   end
 

@@ -11,6 +11,9 @@ module Side
         include ::OidcRpLogoutLauncher
 
         AUTHENTICATION_MODE = :open
+        # Bare on purpose, but the sign-out pages are full HTML documents shown to a
+        # person, so they need a layout to carry <head> and its title.
+        layout "side/app/application"
         skip_before_action :transparent_refresh_access_token, raise: false
 
         before_action :authenticate!, only: :create

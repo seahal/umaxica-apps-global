@@ -39,9 +39,9 @@ The application has three independent user-facing trust boundaries:
 - `org` — staff and organization surface
 - `com` — public and corporate surface
 
-Keep each surface's controllers, routes, views, policies, sessions, and state separate unless current
-code provides an explicit shared abstraction. Cross-surface leakage is a security defect. Read
-`.agents/harnesses/rules/project/surfaces.mdc` for any surface-related work.
+Keep each surface's controllers, routes, views, policies, sessions, and state separate unless
+current code provides an explicit shared abstraction. Cross-surface leakage is a security defect.
+Read `.agents/harnesses/rules/project/surfaces.mdc` for any surface-related work.
 
 ## Required Task Context
 
@@ -105,7 +105,8 @@ Write repository prose in English except explicit localization content, translat
 non-English customer copy, or necessary quotations. Conversation language does not override this
 rule. Follow `docs/reference/repository-language-policy.md` for prose changes.
 
-- `.agents/skills/` contains Codex skills, each within its own directory with a `SKILL.md` entrypoint.
+- `.agents/skills/` contains Codex skills, each within its own directory with a `SKILL.md`
+  entrypoint.
 - `.agents/harnesses/rules/` is the only harness directory; do not invent other harness locations.
 - Keep task scope in the conversation or Codex goal surface. Do not add `.agents/goals/` files.
 
@@ -141,3 +142,8 @@ Lead with the outcome and keep responses proportional to the task. Preserve requ
 decisions, caveats, and next actions; remove repetition and optional background first. Do not add a
 separate verifier pass or delegate verification. Delegate only independent, substantial work whose
 parallel execution outweighs the cost of re-establishing context.
+
+## Design Principle
+
+Never forget the spirit of YAGNI (You Aren't Gonna Need It): build only what is needed now, and
+avoid speculative abstractions or features for imagined future requirements.

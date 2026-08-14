@@ -21,6 +21,7 @@ module Base
         before_action :verify_secret_credential_turnstile!, only: :create
 
         def index
+          authorize!(OperatorSecretCredential, to: :index?)
           @secret_credentials = current_operator.staff_secret_credentials.order(created_at: :asc)
         end
 

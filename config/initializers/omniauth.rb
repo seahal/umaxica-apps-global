@@ -59,6 +59,16 @@ apple_team_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_TEAM_ID)
 apple_key_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_KEY_ID)
 apple_pem = Rails.app.creds.option(:OMNI_AUTH_APPLE_PRIVATE_KEY)
 
+# Org (staff) Microsoft Entra ID credential. Tenant id and client id are read
+# through ExternalAuthentication::ProviderRegistry, which names them on the
+# provider entry; only the secret is needed here, because it is the one value
+# the OmniAuth client options must carry. Absence fails the boot rather than
+# registering a provider that cannot complete a token exchange.
+entra_client_secret = Rails.app.creds.option(:OMNI_AUTH_ENTRA_ORG_CLIENT_SECRET).to_s
+if entra_client_secret.blank?
+  raise KeyError, "credential OMNI_AUTH_ENTRA_ORG_CLIENT_SECRET is required for the entra provider"
+end
+
 module OmniAuthCallbackOrigin
   module_function
 
@@ -263,10 +273,10 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
   # Microsoft Entra ID - Org (staff) sign-in only, no JIT provisioning
   # ---------------------------------------------------------------------------
   # Umaxica-specific subclass of omniauth_openid_connect
-  # (lib/omniauth/strategies/umaxica_entra.rb). Tenant/client are resolved
-  # per-request from an OrganizationEntraConnection; nothing tenant-specific
-  # is configured here. Callback: GET /social/entra/callback.
-  # See adr/org-entra-id-sign-in-boundary.md.
+  # (lib/omniauth/strategies/umaxica_entra.rb). Single tenant: the tenant id
+  # and client id come from ProviderRegistry, which reads the credentials the
+  # registry entry names, and the strategy applies the tenant-fixed endpoints
+  # per request. Callback: GET /social/entra/callback.
   provider :umaxica_entra,
            {
              name: "entra",
@@ -277,6 +287,7 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
              send_nonce: true,
              pkce: true,
              discovery: false,
+             client_options: { secret: entra_client_secret },
            }
 end
 

@@ -17,7 +17,7 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
       params: authorize_params,
     )
 
-    get auth_app_sign_in_url(login_challenge: issuance.transaction.login_challenge),
+    get auth_app_sign_in_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @sign_host }
 
     assert_response :success
@@ -31,7 +31,7 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
       params: authorize_params(screen_hint: "signup"),
     )
 
-    get auth_app_sign_up_url(login_challenge: issuance.transaction.login_challenge),
+    get auth_app_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @sign_host }
 
     assert_response :success

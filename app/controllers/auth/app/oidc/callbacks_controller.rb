@@ -20,6 +20,7 @@ module Auth
         # pipeline runs. The OIDC callback establishes a new session; an expired
         # credential from a prior session must not block it in :open mode.
         prepend_before_action :clear_auth_cookies!
+        ensure_fqdn_gate_first!
 
         private
 

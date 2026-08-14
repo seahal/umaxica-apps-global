@@ -6,38 +6,51 @@ require "test_helper"
 # require "helpers/root_theme_cookie_helper"
 
 class Auth::Com::RootsControllerTest < ActionDispatch::IntegrationTest
+  BRAND = ENV.fetch("BRAND_NAME").upcase
+
   # include RootThemeCookieHelper
 
   setup do
     host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
   end
 
-  test "GET / renders root page" do
+  test "permanently redirects the jp region to the sign in entry point" do
     get auth_com_root_url(ri: "jp")
 
-    assert_response :success
-    assert_select "title", "Sign Com"
-    assert_select "h1", text: "Sign Com"
+    assert_response :moved_permanently
+    assert_equal auth_com_sign_in_url(ri: "jp", host: ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")),
+                 response.location
+    assert_includes response.location, "/sign/in?ri=jp"
   end
 
-  test "creates preference cookies on root" do
-    assert_difference("ComPreference.count", 1) do
-      get auth_com_root_url(ri: "jp")
+  test "permanently redirects the us region to the sign in entry point" do
+    get auth_com_root_url(ri: "us")
+
+    assert_response :moved_permanently
+    assert_equal auth_com_sign_in_url(ri: "us", host: ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")),
+                 response.location
+    assert_includes response.location, "/sign/in?ri=us"
+  end
+
+  test "an unrecognized region falls through to the shared region normalization" do
+    get auth_com_root_url(ri: "xx")
+
+    assert_response :found
+    assert_equal auth_com_root_url(ri: "jp"), response.location
+  end
+
+  test "the sign in entry point terminates the redirect chain for both regions" do
+    %w(jp us).each do |region|
+      get auth_com_root_url(ri: region)
+
+      assert_response :moved_permanently
+      follow_redirect!
+
+      assert_response :success, "the #{region} sign in entry point must not redirect again"
     end
-
-    assert_response :success
-    assert_predicate cookies[PreferenceCookieName.access(surface: :com)], :present?
-    assert_predicate cookies[PreferenceCookieName.refresh(surface: :com)], :present?
   end
 
-  test "sets theme cookie" do
-    assert_theme_cookie_for(
-      "sy",
-      path: auth_com_root_path(ri: "jp"),
-    )
-  end
-
-  test "GET / redirects to dashboard when logged in" do
+  test "the root redirect takes precedence over the logged in dashboard redirect" do
     visitor = create_verified_visitor_with_email(email_address: "com-root-logged-in@example.com")
     visitor.visitor_telephones.create!(
       number: "+15550002223",
@@ -47,13 +60,8 @@ class Auth::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     get auth_com_root_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost"))
 
-    assert_response :redirect
-    assert_redirected_to base_com_dashboard_url(
-      ri: "jp",
-      host: ENV.fetch(
-        "PUBLIC_BASE_CORPORATE_URL", Rails.configuration.x.boot_config.fetch(:hosts).base_corporate.host,
-      ),
-    )
+    assert_response :moved_permanently
+    assert_includes response.location, "/sign/in?ri=jp"
   end
   private
 

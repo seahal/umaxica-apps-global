@@ -11,6 +11,7 @@ module Auth
       layout "auth/app/application"
 
       prepend_before_action :redirect_localhost_preference_authority!
+      ensure_fqdn_gate_first!
       before_action :authorize_preference_write!, if: :preference_write_request?
 
       private

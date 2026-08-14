@@ -289,21 +289,6 @@ class OidcTokenExchangeCoordinator < ApplicationService
     usage.refresh_token_digest.present? ? usage.rotate_refresh_token! : usage.issue_refresh_token!
   end
 
-  def operator_client?(client)
-    %w(operator staff).include?(client.resource_type)
-  end
-
-  def visitor_client?(client)
-    %w(visitor customer).include?(client.resource_type)
-  end
-
-  def token_resource_type(client)
-    return "operator" if operator_client?(client)
-    return "visitor" if visitor_client?(client)
-
-    client.resource_type
-  end
-
   def token_usage_oidc_jti(usage)
     usage.oidc_jti.presence || raise(ArgumentError, "OIDC token usage is missing oidc_jti")
   end
@@ -386,14 +371,6 @@ class OidcTokenExchangeCoordinator < ApplicationService
     case authorization_code
     when OperatorAuthorizationCode then "operator"
     when VisitorAuthorizationCode then "visitor"
-    else "client"
-    end
-  end
-
-  def resource_type_for_authorized_resource(resource)
-    case resource
-    when ::Operator then "operator"
-    when ::Visitor then "visitor"
     else "client"
     end
   end

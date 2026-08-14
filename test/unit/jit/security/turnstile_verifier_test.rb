@@ -13,14 +13,14 @@ module Jit
       self.fixture_table_names = []
 
       def setup
-        # Ensure clean state
-        TurnstileVerifierStub.enabled = false
-        TurnstileVerifierStub.response = nil
+        # All four stub slots, not just the two this file sets: the challenge slot wins over the
+        # verifier slot inside the stub, so a value left behind by another test would answer these
+        # assertions instead of the injected response.
+        TurnstileVerifierStub.reset!
       end
 
       def teardown
-        TurnstileVerifierStub.enabled = false
-        TurnstileVerifierStub.response = nil
+        TurnstileVerifierStub.reset!
       end
 
       test "returns failure on missing token when validation active" do

@@ -174,11 +174,20 @@ services:
       # --- JWT leeway ---
       PREFERENCE_JWT_LEEWAY_SECONDS: "30"
       AUTH_JWT_LEEWAY_SECONDS: "30"
+      AUTH_JWT_CLIENT_AUDIENCES: umaxica-api-client
+      AUTH_JWT_VISITOR_AUDIENCES: umaxica-api-visitor
+      AUTH_JWT_OPERATOR_AUDIENCES: umaxica-api-operator
       # --- Vite ---
       VITE_RUBY_PACKAGE_MANAGER: pnpm
       VITE_RUBY_HOST: "0.0.0.0"
       VITE_RUBY_PORT: "3036"
       VITE_GIT_HOOKS: "0"
+      # --- pnpm ---
+      # Pin the store instead of letting pnpm resolve it: node_modules lives on its
+      # own named volume, so pnpm's default resolution falls back to a workspace-local
+      # .pnpm-store, which conflicts with the store vite-ruby's own pnpm calls used and
+      # fails every session with ERR_PNPM_UNEXPECTED_STORE.
+      npm_config_store_dir: /home/global/.local/share/pnpm/store
     restart: always
     # PID 1 owns only fixed initialization and Tailscale responsibilities.
     # core-entrypoint drops the application workload to CORE_WORKLOAD_USER;
@@ -186,7 +195,7 @@ services:
     user: root
     # Named volumes for high-write paths prevent rootless podman UID-mapping
     # from rewriting host file ownership on the bind-mounted workspace:
-    #   - umaxica-home-cache  → pnpm / corepack / Vite+ / YJIT scratch
+    #   - umaxica-home-cache  → pnpm / Vite / YJIT scratch
     #   - umaxica-home-share  → pnpm store, devcontainer feature state
     #   - umaxica-node-modules → workspace node_modules (off the repo tree)
     #   - umaxica-bundle       → vendor/bundle (off the repo tree)
@@ -422,7 +431,14 @@ services:
       # basebackup attempts before the role exists.
       test:
         - CMD-SHELL
-        - export PGPASSWORD="$$(cat "$${POSTGRES_PASSWORD_FILE}")" && pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc 'SELECT pg_is_in_recovery()')" = f && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc "SELECT count(*) FROM pg_roles WHERE rolname = '$${POSTGRES_REPLICATION_USER}' AND rolreplication")" = 1 && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc "SELECT count(*) FROM pg_replication_slots WHERE slot_name = 'replication_slot_slave1'")" = 1
+        - export PGPASSWORD="$$(cat "$${POSTGRES_PASSWORD_FILE}")" && pg_isready -U
+          "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 && test "$$(psql -U
+          "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc 'SELECT pg_is_in_recovery()')"
+          = f && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc
+          "SELECT count(*) FROM pg_roles WHERE rolname = '$${POSTGRES_REPLICATION_USER}' AND
+          rolreplication")" = 1 && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h
+          127.0.0.1 -Atqc "SELECT count(*) FROM pg_replication_slots WHERE slot_name =
+          'replication_slot_slave1'")" = 1
       interval: 3s
       timeout: 3s
       retries: 40
@@ -461,7 +477,11 @@ services:
       # nest correctly inside "$(...)".
       test:
         - CMD-SHELL
-        - export PGPASSWORD="$$(cat "$${POSTGRES_PASSWORD_FILE}")" && pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc 'SELECT pg_is_in_recovery()')" = t && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc "SELECT count(*) > 0 FROM pg_stat_wal_receiver WHERE status = 'streaming'")" = t
+        - export PGPASSWORD="$$(cat "$${POSTGRES_PASSWORD_FILE}")" && pg_isready -U
+          "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 && test "$$(psql -U
+          "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc 'SELECT pg_is_in_recovery()')"
+          = t && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc
+          "SELECT count(*) > 0 FROM pg_stat_wal_receiver WHERE status = 'streaming'")" = t
       interval: 3s
       timeout: 3s
       retries: 30

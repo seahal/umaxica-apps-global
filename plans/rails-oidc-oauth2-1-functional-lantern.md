@@ -201,7 +201,7 @@ bundle exec rubocop
 bundle exec brakeman
 ```
 
-JS 側変更は想定なし(`vp test` 不要)。public endpoint は test 環境で公開ホスト設定を擬似し、
+JS 側変更は想定なし(`pnpm test` 不要)。public endpoint は test 環境で公開ホスト設定を擬似し、
 `get` + ヘッダ assertion で `curl -i` 相当を固定する。
 
 ## スコープ外 / 注意

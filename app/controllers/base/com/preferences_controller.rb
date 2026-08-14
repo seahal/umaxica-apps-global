@@ -4,10 +4,14 @@
 module Base
   module Com
     class PreferencesController < PreferencesBaseController
+      include ::BasePreferenceIndexPage
+
       AUTHENTICATION_MODE = :open
 
       def show
-        render "base/shared/preferences/show"
+        # `inertia: true` resolves the component through the configured component_path_resolver,
+        # which is controller_path + action_name: "base/com/preferences/show".
+        render inertia: true, props: preference_index_page_props
       end
     end
   end

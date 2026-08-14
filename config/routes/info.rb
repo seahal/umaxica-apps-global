@@ -9,6 +9,9 @@ scope module: :info, as: :info do
     scope module: :app, as: :app do
       root to: "roots#index"
 
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
@@ -34,6 +37,9 @@ scope module: :info, as: :info do
     scope module: :com, as: :com do
       root to: "roots#index"
 
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
@@ -58,6 +64,9 @@ scope module: :info, as: :info do
                      "info.umaxica.org",].compact do
     scope module: :org, as: :org do
       root to: "roots#index"
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
 
       resource :health, only: :show
       namespace :health do

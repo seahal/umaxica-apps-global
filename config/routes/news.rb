@@ -10,6 +10,9 @@ scope module: :news, as: :news do
       # Thin landing endpoint.
       root to: "roots#index"
 
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       # Basic health summary.
       resource :health, only: :show
 
@@ -47,6 +50,9 @@ scope module: :news, as: :news do
       # Thin landing endpoint.
       root to: "roots#index"
 
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       # Basic health summary.
       resource :health, only: :show
 
@@ -83,6 +89,9 @@ scope module: :news, as: :news do
     scope module: :org, as: :org do
       # Thin landing endpoint.
       root to: "roots#index"
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
 
       # Basic health summary.
       resource :health, only: :show

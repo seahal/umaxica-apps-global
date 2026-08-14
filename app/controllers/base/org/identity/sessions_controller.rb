@@ -13,14 +13,17 @@ module Base
         helper_method :current_session_record?
 
         def index
+          authorize!(OperatorToken, to: :index?)
           @sessions = visible_sessions.order(created_at: :desc)
         end
 
         def show
+          authorize!(@session)
           render :show
         end
 
         def destroy
+          authorize!(@session)
           revoke_selected_session!(@session) unless current_session_record?(@session)
           redirect_to(base_org_identity_sessions_path(ri: params[:ri]), status: :see_other)
         end

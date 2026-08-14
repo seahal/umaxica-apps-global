@@ -63,6 +63,11 @@ public/assets
 !public/assets/.manifest.json
 public/packs/
 public/packs-test/
+# Vite output is produced by the production-assets stage. Copying a host build in would ship
+# whatever the developer last compiled, including a development-mode React bundle.
+public/vite
+public/vite-dev
+public/vite-test
 
 # Test and coverage
 test/

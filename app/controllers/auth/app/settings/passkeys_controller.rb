@@ -31,6 +31,7 @@ module Auth
 
         # GET /settings/passkeys
         def index
+          authorize!(ClientPasskey, to: :index?)
           @passkeys = current_client.client_passkeys.order(created_at: :asc)
         end
 
@@ -42,6 +43,7 @@ module Auth
 
         # GET /settings/passkeys/new
         def new
+          authorize!(ClientPasskey, to: :new?)
           @passkey = current_client.client_passkeys.new
           start_passkey_ceremony!(_surface: "app", _actor: current_client, _session_ref: current_session_public_id)
         end
@@ -74,10 +76,10 @@ module Auth
         end
 
         # POST /settings/passkeys/options
-        def options = render_passkey_registration_options
+        def options = (authorize!(ClientPasskey, to: :create?); render_passkey_registration_options)
 
         # POST /settings/passkeys/verification
-        def verification = verify_passkey_registration
+        def verification = (authorize!(ClientPasskey, to: :create?); verify_passkey_registration)
 
         # PATCH/PUT /settings/passkeys/:id
         def update

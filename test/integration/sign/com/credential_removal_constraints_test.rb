@@ -104,6 +104,32 @@ class SignComCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "visitor can browse and rename an active secret credential" do
+    visitor = create_visitor
+    create_verified_telephone(visitor, "+819022220005")
+    create_active_passkey(visitor)
+    secret_credential = create_active_secret_credential(visitor)
+    headers = visitor_headers(visitor, scope: "settings_secret_credential", host: @base_host)
+
+    get base_com_identity_secrets_url(ri: "jp", host: @base_host), headers: headers
+
+    assert_response :success
+    assert_includes response.body, secret_credential.name
+
+    get base_com_identity_secret_url(secret_credential.public_id, ri: "jp", host: @base_host), headers: headers
+
+    assert_response :success
+    assert_includes response.body, secret_credential.name
+
+    patch base_com_identity_secret_url(secret_credential.public_id, ri: "jp", host: @base_host),
+          params: { visitor_secret_credential: { name: "Renamed credential", enabled: "1" } },
+          headers: headers
+
+    assert_redirected_to base_com_identity_secret_url(secret_credential.public_id, ri: "jp", host: @base_host)
+    assert_equal "Renamed credential", secret_credential.reload.name
+    assert_predicate secret_credential, :active?
+  end
+
   private
 
   def create_visitor

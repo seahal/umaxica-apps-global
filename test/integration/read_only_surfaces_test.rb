@@ -6,10 +6,15 @@ require "test_helper"
 
 class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   STATIC_SURFACES = [
-    ["base_app_root_url", "BASE_SERVICE_URL", "base.app.localhost", I18n.t("landing.thin_endpoint")],
-    ["base_com_root_url", "BASE_CORPORATE_URL", "base.com.localhost", I18n.t("landing.thin_endpoint")],
-    ["base_org_root_url", "BASE_STAFF_URL", "base.org.localhost", I18n.t("landing.thin_endpoint")],
     ["palm_app_root_url", "PUBLIC_PALM_SERVICE_URL", "palm.app.localhost", "Palm API is available"],
+  ].freeze
+
+  # The base gateway roots answer with a canonical redirect to the regional root instead of a
+  # page, so they are asserted on their `Location` rather than on a body.
+  BASE_GATEWAY_ROOTS = [
+    ["base_app_root_url", "BASE_SERVICE_URL", "base.app.localhost", "https://jp.umaxica.app/"],
+    ["base_com_root_url", "BASE_CORPORATE_URL", "base.com.localhost", "https://jp.umaxica.com/"],
+    ["base_org_root_url", "BASE_STAFF_URL", "base.org.localhost", "https://jp.umaxica.org/"],
   ].freeze
 
   CONTENT_SURFACES = [
@@ -36,7 +41,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     ["news_org_api_v0_entry_url", "PRIVATE_NEWS_STAFF_URL", "news.org.localhost", "news", "org"],
   ].freeze
 
-  test "static base and palm roots respond without auth redirects" do
+  test "static palm roots respond without auth redirects" do
     STATIC_SURFACES.each do |helper, env_key, fallback, expected|
       host = ENV.fetch(env_key, fallback)
       host! host
@@ -44,6 +49,17 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.body, expected
+    end
+  end
+
+  test "base gateway roots answer with the canonical regional redirect" do
+    BASE_GATEWAY_ROOTS.each do |helper, env_key, fallback, expected_location|
+      host = ENV.fetch(env_key, fallback)
+      host! host
+      get public_send(helper, ri: "jp", host: host)
+
+      assert_response :moved_permanently
+      assert_equal expected_location, response.location
     end
   end
 

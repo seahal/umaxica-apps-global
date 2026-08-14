@@ -10,6 +10,7 @@ module Auth
         before_action :authenticate_visitor!
 
         def new
+          authorize!(current_visitor, to: :show?)
           @pt = params[:pt].to_s.presence
           @pt_destination = setup_pt_path(@pt, root_path: auth_com_settings_path(ri: params[:ri]))
           @missing_methods = %i(email_otp passkey) - configured_step_up_methods

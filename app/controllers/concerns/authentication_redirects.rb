@@ -389,7 +389,7 @@ module AuthenticationRedirects
 
   def render_invalid_return_target!
     render(
-      plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+      plain: I18n.t("errors.messages.invalid_request"),
       status: :unprocessable_content,
     )
   end

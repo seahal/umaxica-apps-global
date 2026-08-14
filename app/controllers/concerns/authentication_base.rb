@@ -29,6 +29,10 @@ module AuthenticationBase
   # 8) MFA/session helper decisions ................................. L1873-L1966
   # ==========================================================================
 
+  included do
+    after_action :verify_private_action_authorized! if respond_to?(:after_action)
+  end
+
   # ==========================================================================
   # 1) JWT & AuthenticationToken primitives
   # ==========================================================================
@@ -709,7 +713,34 @@ module AuthenticationBase
       else
         redirect_to_jump_url(url, **redirect_options)
       end
+
+      convert_redirect_to_inertia_location!
     end
+  end
+
+  # An Inertia visit is a `fetch` call, so a 3xx is followed by the browser transparently and the
+  # client ends up parsing the credential ceremony's HTML as though it were an Inertia response. It
+  # raises "All Inertia requests must receive a valid Inertia response" and the application stays on
+  # the page it was already showing, with no way to reach sign-in.
+  #
+  # The Inertia protocol reserves 409 + X-Inertia-Location for leaving the Inertia application; the
+  # client turns it into a full document visit. Authentication redirects always leave the
+  # application -- they go to the OIDC authorization endpoint or the jump gateway, neither of which
+  # renders an Inertia response -- so the conversion applies to every branch above.
+  def convert_redirect_to_inertia_location!
+    return unless request.respond_to?(:inertia?) && request.inertia?
+    return unless response.redirect?
+
+    location = response.location
+
+    # This is `InertiaRails::Controller#inertia_location` written out. That helper calls `head`,
+    # which refuses to run once a response body exists, and the redirect above has already written
+    # one. Assigning the status, the header and the body directly replaces the redirect in place
+    # without tripping AbstractController::DoubleRenderError.
+    response.headers.delete("Location")
+    response.headers["X-Inertia-Location"] = location
+    self.status = :conflict
+    self.response_body = ""
   end
 
   # Abstract methods - must be implemented by including modules
@@ -1787,6 +1818,12 @@ module AuthenticationBase
   # 7) Policy/domain decisions
   # ======================================================================
   # --- Policy enforcement methods ---
+
+  def verify_private_action_authorized!
+    return unless self.class.authentication_mode_for(action_name) == :private
+
+    verify_authorized
+  end
 
   def enforce_access_policy!
     mode = self.class.authentication_mode_for(action_name)
@@ -2936,6 +2973,8 @@ module AuthenticationBase
     else
       redirect_to(path, allow_other_host: false, alert: message)
     end
+
+    convert_redirect_to_inertia_location!
   end
 
   def withdrawal_required_session_entry_path

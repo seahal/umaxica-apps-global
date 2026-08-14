@@ -40,7 +40,7 @@ class ComSocialLoginBlockedTest < ActionDispatch::IntegrationTest
 
   test "corporate sign-in page does not contain social login buttons" do
     host! @corporate_host
-    get "/sign/in", params: { login_challenge: login_challenge_for("com") }
+    get "/sign/in", params: { ri: "jp", login_challenge: login_challenge_for("com") }
 
     assert_response :success
     assert_not_includes response.body, "/auth/google_app"

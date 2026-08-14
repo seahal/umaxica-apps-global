@@ -10,7 +10,7 @@ module Auth
       # marker arrive as route defaults; the shared ceremony entry issues the
       # sign-up flow ticket when the entry is a sign-up.
       class RegistrationsController < ::Auth::App::ApplicationController
-        include SocialCeremonyEntry
+        include AppSocialCeremonyEntry
 
         AUTHENTICATION_MODE = :open
 

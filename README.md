@@ -48,6 +48,22 @@ bin/rails assets:clobber        # Remove compiled assets
 - Node.js `24.19.0` (Active LTS)
 - `pnpm@11.20.0`
 
+### The pnpm toolchain
+
+The development image installs pnpm from the npm registry at the `PNPM_VERSION` build argument in
+`Containerfile`, and that is the only pnpm the container provides: `/usr/local/bin/pnpm`. Do not
+install pnpm separately inside the container — a second copy on `PATH` makes which pnpm ran depend
+on shell state.
+
+`package.json#packageManager` declares the version the project expects. This is pnpm's own pin, read
+by pnpm and by the CI setup action; it is not a Corepack setting. `pnpm-workspace.yaml` sets
+`pmOnFail: error`, so a pnpm whose version differs from that declaration fails and names the
+mismatch rather than downloading a second pnpm behind your back. Changing the pinned version means
+changing `package.json#packageManager` and `Containerfile`'s `ARG PNPM_VERSION` together, then
+rebuilding the container.
+
+Corepack is not used, not installed in the image, and no `corepack enable` step is required.
+
 Start the local stack, install dependencies, and boot the app:
 
 ```bash
@@ -106,8 +122,8 @@ needed.
 Local hosts follow the `<service>.<surface>.localhost` order, and every surface is served by the
 single Rails process on port `3000`.
 
-| Surface                    | URL                                                                          |
-| :------------------------- | :--------------------------------------------------------------------------- |
+| Surface                    | URL                                                                           |
+| :------------------------- | :---------------------------------------------------------------------------- |
 | Base                       | `http://base.{app,com,org}.localhost:3000`                                    |
 | Base (developer / network) | `http://base.{dev,net}.localhost:3000`                                        |
 | Auth                       | `http://auth.{app,com,org}.localhost:3000`                                    |

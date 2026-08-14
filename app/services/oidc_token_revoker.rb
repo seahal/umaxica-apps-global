@@ -78,12 +78,6 @@ class OidcTokenRevoker < ApplicationService
     context.connected_to(role: :writing) { usage_class.find_by(public_id: public_id) }
   end
 
-  def find_token_by_public_id(public_id, resource_type:)
-    context, token_class = token_context_and_class(resource_type)
-
-    context.connected_to(role: :writing) { token_class.find_by(public_id: public_id) }
-  end
-
   def find_usage_by_sid(resource_type, sid)
     return if sid.blank?
 

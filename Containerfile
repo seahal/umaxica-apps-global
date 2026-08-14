@@ -9,6 +9,12 @@ ARG DOCKER_GID=1000
 ARG DOCKER_USER=global
 ARG DOCKER_GROUP=umaxica
 ARG GITHUB_ACTIONS=""
+# Deployment identifier consumed by Rails.application.revision. `.git` is
+# excluded from the build context, so the Rails git fallback cannot resolve
+# anything inside the image; the commit SHA has to be passed in at build time
+# (`--build-arg REVISION="$(git rev-parse HEAD)"`). Empty means the revision
+# endpoints report null rather than a wrong value.
+ARG REVISION=""
 # Node.js Active LTS (v24 "Krypton"; maintenance starts 2026-10-20). Pinned to an
 # exact patch so Global and Edge cannot drift to different Node builds.
 ARG NODE_VERSION=24.19.0
@@ -16,7 +22,7 @@ ARG NODE_VERSION=24.19.0
 ARG PNPM_VERSION=11.20.0
 
 # ============================================================================
-# Node.js toolchain (binaries copied into the development image)
+# Node.js toolchain (binaries copied into the development and asset images)
 # ============================================================================
 FROM node:${NODE_VERSION}-trixie-slim AS node-toolchain
 
@@ -79,6 +85,56 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && rm -f /usr/local/bin/gosu /usr/local/bin/gosu-*
 
 # ============================================================================
+# Production assets — Vite/Inertia client bundles
+#
+# Runs on the pinned Node image rather than inside the Ruby build stage: vite-plugin-ruby reads
+# config/vite.json directly, so compiling the bundles needs Node and pnpm but no Ruby.
+#
+# NODE_ENV is set to production here and nowhere else in the build. @vitejs/plugin-react keys the
+# JSX runtime off it, so a build inheriting the development compose environment ships the React
+# development runtime (jsx-dev-runtime) and its warning machinery to end users.
+# ============================================================================
+FROM node:${NODE_VERSION}-trixie-slim AS production-assets
+ARG PNPM_VERSION
+ENV NODE_ENV=production \
+    VITE_RUBY_MODE=production \
+    CI=true \
+    LEFTHOOK=0
+
+WORKDIR /assets
+
+# The npm registry install is pnpm's single installation source in every image
+# target; npm verifies the tarball against the integrity the registry publishes.
+# The assertion makes the resulting version a build-time fact instead of an
+# assumption — `npm install -g pnpm@X` resolving to anything but X fails here
+# rather than surfacing later as a lockfile or engine mismatch.
+RUN npm install -g "pnpm@${PNPM_VERSION}" \
+    && test "$(pnpm --version)" = "${PNPM_VERSION}"
+
+# Dependencies resolve from the lockfile alone, so this layer is reused until a dependency
+# changes. `--prod=false` is required: Vite and its plugins are devDependencies, and pnpm would
+# otherwise skip them because NODE_ENV is production.
+# The cache target is the store path pnpm-workspace.yaml pins (`storeDir`), which wins over any
+# store configured here; mounting anywhere else would leave the cache unused.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prod=false
+
+COPY config/vite.json ./config/vite.json
+COPY vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json ./
+COPY src ./src
+
+# The manifest check catches a build that produced no entrypoints; the runtime resolves every
+# `vite_typescript_tag` through it. The React-runtime check is the tripwire for a lost NODE_ENV:
+# the build still succeeds in that case, it just ships the development bundle.
+RUN pnpm exec vite build --mode production \
+    && test -f public/vite/.vite/manifest.json \
+    && if grep -rql "jsx-dev-runtime\|jsxDEV" public/vite/assets; then \
+    echo "Production bundle contains the React development JSX runtime" >&2; \
+    exit 1; \
+    fi
+
+# ============================================================================
 # Production build — gems + asset/bootsnap precompile
 # ============================================================================
 FROM production-base AS production-build
@@ -109,6 +165,11 @@ RUN --mount=type=cache,target=/tmp/bundle-cache,uid=${DOCKER_UID},gid=${DOCKER_G
 
 COPY . .
 
+# The Vite manifest is what `vite_javascript_tag` resolves entrypoints through, so the runtime
+# image cannot render a single layout without it. `public/vite` is excluded from the build context
+# (.dockerignore/.containerignore) precisely so this copy is the only source of it.
+COPY --from=production-assets /assets/public/vite ./public/vite
+
 RUN install -d tmp/pids log \
     && rm -rf tmp/cache \
     && find log -type f -exec truncate -s 0 {} + \
@@ -122,6 +183,8 @@ FROM production-base AS production
 ARG DOCKER_UID
 ARG DOCKER_GID
 ARG DOCKER_USER
+ARG REVISION
+ENV REVISION=${REVISION}
 ENV PORT=8080 \
     RUBY_YJIT_ENABLE=1 \
     RAILS_LOG_TO_STDOUT=1 \
@@ -221,9 +284,13 @@ COPY --from=node-toolchain /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-toolchain /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY --from=tailscale-toolchain /usr/local/bin/tailscale /usr/local/bin/tailscale
 COPY --from=tailscale-toolchain /usr/local/bin/tailscaled /usr/local/bin/tailscaled
+# Only npm and npx are wired up. Corepack is deliberately not linked: nothing in
+# this repository invokes it, and pnpm is installed directly below. Node.js
+# bundles Corepack only up to (not including) v25, so a link here would become a
+# dangling symlink the moment NODE_VERSION moves to a newer major — `ln -sf`
+# does not fail on a missing target, so that breakage would be silent.
 RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
-    && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
-    && ln -sf ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack
+    && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 RUN tailscale version
 
@@ -271,10 +338,19 @@ RUN if [ -z "${GITHUB_ACTIONS}" ]; then \
     mkdir -p "${HOME}"; \
     fi
 
-# Install pnpm for development use only (available by default on PATH). The
-# version is pinned to keep image builds reproducible and to stay in step with
-# package.json#packageManager.
+# Install pnpm for development use only (available by default on PATH). This npm
+# registry install is the single installation source for pnpm; nothing else in
+# the image, compose stack, or Dev Container features provides one, so
+# /usr/local/bin/pnpm is the only pnpm on PATH.
+#
+# PNPM_VERSION and package.json#packageManager declare the same version but are
+# separate concerns: this ARG decides what the image ships, while
+# `packageManager` is pnpm's own pin (pnpm 11 reads it through `pmOnFail`, which
+# pnpm-workspace.yaml sets to `error`) and is what CI reads. It is not a Corepack
+# artefact. The assertion below keeps the image side honest; `pmOnFail: error`
+# catches the two declarations drifting apart.
 RUN npm install -g "pnpm@${PNPM_VERSION}" \
+    && test "$(pnpm --version)" = "${PNPM_VERSION}" \
     && rm -rf "${HOME}/.cache" "${HOME}/.local"
 
 # `pn` is the project's short form of `pnpm`. Declaring it here rather than
@@ -295,7 +371,21 @@ RUN rm -f /usr/local/bin/pn \
 # Final ownership fix for the home directory, workspace, and bundler's own
 # GEM_HOME (gem install bundler above runs as root; production handles this
 # via COPY --chown, development has no equivalent step).
+#
+# The XDG directories are load-bearing, not cosmetic. `npm install -g pnpm`
+# above deletes ${HOME}/.cache and ${HOME}/.local, and compose mounts named
+# volumes at .cache and .local/share. Podman creates any missing mount-point
+# *parent* as root:root, so an absent ${HOME}/.local reappears root-owned and
+# every tool that writes ${HOME}/.local/state (opencode, among others) fails
+# with EACCES until someone chowns it by hand — once per container recreate.
+# Materializing the full XDG tree here means Podman never has to invent a
+# parent, and the chown below stamps the workload owner on all of it.
 RUN mkdir -p "${HOME}/workspace" \
+    "${HOME}/.cache" \
+    "${HOME}/.config" \
+    "${HOME}/.local/bin" \
+    "${HOME}/.local/share" \
+    "${HOME}/.local/state" \
     && chown -R "${DOCKER_UID}:${DOCKER_GID}" "${HOME}" /usr/local/bundle
 
 COPY --chown=0:0 podman/core/entrypoint.sh /usr/local/bin/core-entrypoint

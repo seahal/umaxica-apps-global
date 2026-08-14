@@ -40,10 +40,7 @@ Rails.application.configure do
   config.action_dispatch.show_exceptions = :rescuable
 
   # Keep request forgery protection off by default so the existing suite can migrate in batches.
-  # Enable it for inventory runs with:
-  #   ACTION_CONTROLLER_ALLOW_FORGERY_PROTECTION=true bin/rails test
-  config.action_controller.allow_forgery_protection =
-    ActiveModel::Type::Boolean.new.cast(ENV.fetch("ACTION_CONTROLLER_ALLOW_FORGERY_PROTECTION", false))
+  config.action_controller.allow_forgery_protection = false
 
   # Store uploaded files on the local file system in a temporary directory.
   # config.active_storage.service = :test

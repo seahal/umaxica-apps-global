@@ -13,6 +13,7 @@ module Base
       declare_authentication_mode! :private
 
       def show
+        authorize!(current_client, to: :show?)
         @switcher = current_context
 
         respond_to do |format|
@@ -22,6 +23,7 @@ module Base
       end
 
       def update
+        authorize!(current_client, to: :update?)
         BaseSwitcherAuthority.switch(
           surface: :app,
           principal: current_client,

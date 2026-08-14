@@ -17,6 +17,10 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
     @user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
   end
 
+  # The stub slots are process-wide, so leaving the challenge enabled would answer every later
+  # Turnstile call in this worker with a success and hide a real verification failure elsewhere.
+  teardown { TurnstileVerifierStub.reset! }
+
   test "social login flow does not trigger email verification and enters guardrail" do
     OmniAuth.config.test_mode = true
 

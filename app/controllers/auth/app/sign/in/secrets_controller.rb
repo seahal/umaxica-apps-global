@@ -67,6 +67,27 @@ module Auth
               render_rate_limited(rule_name: "auth_app_sign_in_secret_credential_create_account", retry_after: 900)
             },
           )
+          rate_limit(
+            to: 10,
+            within: 15.minutes,
+            by: -> {
+              AuthenticationRateLimitKey.for(
+                surface: :app,
+                identifier: request.request_parameters.dig("secret_credential_login_form", "identifier"),
+              )
+            },
+            scope: "auth_app_sign_in",
+            name: "secret_credential_create_identifier",
+            store: rate_limit_store,
+            only: :create,
+            unless: -> { pending_mfa_valid? },
+            with: -> {
+              render_rate_limited(
+                rule_name: "auth_app_sign_in_secret_credential_create_identifier",
+                retry_after: 900,
+              )
+            },
+          )
           before_action :start_minimum_response_budget
           after_action :enforce_minimum_response_budget
 

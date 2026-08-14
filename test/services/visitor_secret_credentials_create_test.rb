@@ -7,6 +7,12 @@ class VisitorSecretCredentialsCreateTest < ActiveSupport::TestCase
   setup do
     ensure_visitor_reference_records!
     @visitor = Visitor.create!(status_id: VisitorStatus::NOTHING, visibility_id: VisitorVisibility::VISITOR)
+    VisitorEmail.create!(
+      visitor: @visitor,
+      address: "visitor-#{SecureRandom.hex(4)}@example.com",
+      confirm_policy: "1",
+      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
+    )
   end
 
   test "creates an active secret credential with a generated raw secret" do
@@ -55,6 +61,7 @@ class VisitorSecretCredentialsCreateTest < ActiveSupport::TestCase
   def ensure_visitor_reference_records!
     VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)
     VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
+    VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
     VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::ACTIVE)
     VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::REVOKED)
     VisitorSecretCredentialKind.find_or_create_by!(id: VisitorSecretCredentialKind::LOGIN)

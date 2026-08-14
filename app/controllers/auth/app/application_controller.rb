@@ -4,6 +4,7 @@
 module Auth
   module App
     class ApplicationController < ActionController::Base
+      include ::FqdnAvailabilityGate
       include ::RateLimit
       include ::WebauthnSurfaceDeclarable
 

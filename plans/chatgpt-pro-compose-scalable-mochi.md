@@ -81,7 +81,7 @@ the bind-mounted workspace:
 
 | Path inside container                  | Volume                 | Reason                                                                           |
 | -------------------------------------- | ---------------------- | -------------------------------------------------------------------------------- |
-| `/home/global/.cache`                  | `umaxica-home-cache`   | pnpm, corepack, Vite+, Ruby YJIT scratch                                         |
+| `/home/global/.cache`                  | `umaxica-home-cache`   | pnpm, corepack, Vite, Ruby YJIT scratch                                          |
 | `/home/global/.local/share`            | `umaxica-home-share`   | pnpm store, devcontainer feature payloads                                        |
 | `/home/global/workspace/node_modules`  | `umaxica-node-modules` | keep off the bind mount → host stays clean, no perm war                          |
 | `/home/global/workspace/vendor/bundle` | `umaxica-bundle`       | same reasoning; also lets the bundle path stay readable to the in-container user |

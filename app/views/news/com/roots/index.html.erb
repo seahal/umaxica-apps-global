@@ -1,10 +1,9 @@
-<% content_for :page_title, "News Com" %>
 <!doctype html>
 <html lang="<%= I18n.locale %>">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>News Com</title>
+    <%= display_meta_tags site: "#{ENV.fetch("BRAND_NAME").upcase} (COM)", separator: "—", reverse: true %>
     <style>
       :root {
         color-scheme: light dark;

@@ -22,16 +22,24 @@ class ExternalAuthenticationProviderAdapterFactoryTest < ActiveSupport::TestCase
     assert_instance_of ExternalAuthentication::GoogleProviderAdapter, adapter
   end
 
-  # Entra ID is not built by this factory; see
-  # adr/org-entra-omniauth-strategy-migration.md and
-  # test/lib/omniauth/strategies/umaxica_entra_test.rb.
-  test "rejects the Entra provider (no longer routed through this factory)" do
+  # Entra ID is built by this factory like every other provider; see
+  # test/adapters/external_authentication/entra_provider_adapter_test.rb.
+  test "builds the Entra adapter" do
+    adapter = ExternalAuthentication::ProviderAdapterFactory.build(
+      provider: "entra",
+      audience: "22222222-3333-4444-5555-666666666666",
+    )
+
+    assert_instance_of ExternalAuthentication::EntraProviderAdapter, adapter
+  end
+
+  test "requires an audience for the Entra provider" do
     error =
       assert_raises(ArgumentError) do
         ExternalAuthentication::ProviderAdapterFactory.build(provider: "entra")
       end
 
-    assert_equal "adapter is unsupported", error.message
+    assert_equal "audience is required", error.message
   end
 
   test "rejects unknown providers without dynamic class lookup" do

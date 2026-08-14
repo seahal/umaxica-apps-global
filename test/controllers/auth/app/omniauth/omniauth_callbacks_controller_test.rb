@@ -545,6 +545,71 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     assert ClientExternalIdentity.exists?(identity.id)
   end
 
+  # GET /social/failure is directly reachable and unauthenticated, so the
+  # `message`/`strategy` parameters must be reduced to an allowlisted
+  # classification before they reach the log (adr/application-logging-boundary.md).
+  test "failure classification allowlists the message parameter" do
+    controller = Auth::App::Omniauth::OmniauthCallbacksController.new
+
+    assert_equal "invalid_credentials", controller.send(:classified_failure_message, "invalid_credentials")
+    assert_equal "access_denied", controller.send(:classified_failure_message, "access_denied")
+    assert_equal "other", controller.send(:classified_failure_message, "attacker-supplied-marker-9f3c")
+    assert_equal "other", controller.send(:classified_failure_message, nil)
+    assert_equal "other", controller.send(:classified_failure_message, "a" * 10_000)
+  end
+
+  test "failure classification allowlists the strategy parameter against the provider registry" do
+    controller = Auth::App::Omniauth::OmniauthCallbacksController.new
+
+    ExternalAuthentication::ProviderRegistry.providers.each do |provider|
+      assert_equal provider.to_s, controller.send(:classified_failure_strategy, provider.to_s)
+    end
+
+    # google_oauth2 is the OmniAuth strategy name; SocialIdentifiable normalizes
+    # it to the registered "google" provider rather than discarding it.
+    assert_equal "google", controller.send(:classified_failure_strategy, "google_oauth2")
+    assert_equal "other", controller.send(:classified_failure_strategy, "attacker-supplied-strategy")
+    assert_equal "other", controller.send(:classified_failure_strategy, nil)
+  end
+
+  test "failure logs the classification and never the raw parameters" do
+    controller = Auth::App::Omniauth::OmniauthCallbacksController.new
+    injected_message = "attacker-supplied-marker-9f3c"
+    injected_strategy = "attacker-supplied-strategy-7b1d"
+    session_hash = {}
+
+    controller.request = ActionDispatch::TestRequest.create("REQUEST_METHOD" => "GET")
+    controller.response = ActionDispatch::TestResponse.new
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) {
+      ActionController::Parameters.new(message: injected_message, strategy: injected_strategy)
+    }
+    controller.define_singleton_method(:redirect_to) { |*, **| nil }
+    controller.define_singleton_method(:auth_app_sign_in_path) { |**| "/sign/in" }
+    controller.define_singleton_method(:auth_app_sign_up_path) { |**| "/sign/up" }
+    controller.define_singleton_method(:clear_social_auth_intent!) { nil }
+    controller.define_singleton_method(:logged_in?) { false }
+
+    buffer = StringIO.new
+    previous_logger = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(buffer)
+    Rails.logger.level = Logger::DEBUG
+
+    begin
+      controller.failure
+    ensure
+      Rails.logger = previous_logger
+    end
+
+    logs = buffer.string
+
+    assert_not_includes logs, injected_message
+    assert_not_includes logs, injected_strategy
+    assert_includes logs, "sign.social.omniauth_failure"
+    assert_includes logs, %("message":"other")
+    assert_includes logs, %("strategy":"other")
+  end
+
   test "direct action early exits and csrf helpers" do
     controller = Auth::App::Omniauth::OmniauthCallbacksController.new
     session_hash = {}

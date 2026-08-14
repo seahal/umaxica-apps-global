@@ -41,6 +41,7 @@ module Auth
         end
 
         def new
+          authorize!(OperatorPasskey, to: :new?)
           @passkey = current_operator.staff_passkeys.new
           start_passkey_ceremony!(_surface: "org", _actor: current_operator, _session_ref: current_session_public_id)
         end
@@ -68,9 +69,9 @@ module Auth
           end
         end
 
-        def options = render_passkey_registration_options
+        def options = (authorize!(OperatorPasskey, to: :create?); render_passkey_registration_options)
 
-        def verification = verify_passkey_registration
+        def verification = (authorize!(OperatorPasskey, to: :create?); verify_passkey_registration)
 
         def update
           authorize!(@passkey)

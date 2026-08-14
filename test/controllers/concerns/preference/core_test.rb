@@ -462,10 +462,24 @@ class PreferenceCoreTest < ActiveSupport::TestCase
     assert_nil @controller.instance_variable_get(:@refresh_token_value)
   end
 
-  test "preference option label falls back to titleized default and localized lookup" do
-    I18n.stub(:t, ->(key, default:) { (key == "acme.app.preference.theme.options.dark") ? "Dark mode" : default }) do
-      assert_equal "Dark mode", @controller.send(:preference_option_label, :theme, "dark")
-      assert_equal "Page Size", @controller.send(:preference_option_label, :page_size, "page_size")
+  # There is no titleized fallback any more: a missing option label has to raise so it is caught in
+  # development and test rather than shown to a user as a humanized key fragment.
+  test "preference option label reads the surface scoped translation" do
+    I18n.stub(:t, ->(key) { "translated:#{key}" }) do
+      assert_equal "translated:acme.app.preference.theme.options.dark",
+                   @controller.send(:preference_option_label, :theme, "dark")
+    end
+  end
+
+  test "preference option label suffixes the currency code" do
+    I18n.stub(:t, ->(_key) { "US Dollar" }) do
+      assert_equal "US Dollar (USD)", @controller.send(:preference_option_label, :currency, "usd")
+    end
+  end
+
+  test "preference option label raises when the option has no translation" do
+    assert_raises(I18n::MissingTranslationData) do
+      @controller.send(:preference_option_label, :theme, "no_such_option")
     end
   end
 

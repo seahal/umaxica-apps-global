@@ -7,7 +7,6 @@ module Auth
       class InsController < ::Auth::Com::ApplicationController
         AUTHENTICATION_MODE = :guest
         declare_authentication_mode! :guest, no_redirect: true
-        skip_before_action :set_region, raise: false
 
         def show
           return reject_logged_in_direct_entry! if logged_in? && params[:login_challenge].blank?
@@ -28,7 +27,7 @@ module Auth
           @oidc_authorization_intent = transaction.intent
           render "auth/com/sign_ins/new"
         rescue ActiveRecord::RecordNotFound
-          render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+          render plain: I18n.t("errors.messages.invalid_request"),
                  status: :bad_request
         end
 

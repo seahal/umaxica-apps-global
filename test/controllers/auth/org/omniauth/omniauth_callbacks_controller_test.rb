@@ -5,7 +5,32 @@ require "test_helper"
 
 class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
   TENANT_ID = "11111111-2222-3333-4444-555555555555"
+  CLIENT_ID = "22222222-3333-4444-5555-666666666666"
   OBJECT_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
+  # The strategy reads tenant and client from ProviderRegistry, which reads the
+  # deployment's credentials. They are replaced with fixed test values for the
+  # duration of each test so the suite never depends on, or asserts against,
+  # real credential values. Swapped as singleton methods rather than with a
+  # `stub` block because the strategy runs inside the request, outside any
+  # block this test could wrap.
+  def stub_configured_tenant!
+    registry = ExternalAuthentication::ProviderRegistry
+    @registry_originals =
+      %i(tenant_id audience issuer_for).index_with do |name|
+        registry.method(name)
+      end
+    tenant = TENANT_ID
+    client = CLIENT_ID
+    registry.define_singleton_method(:tenant_id) { |_provider| tenant }
+    registry.define_singleton_method(:audience) { |_provider| client }
+    registry.define_singleton_method(:issuer_for) { |_provider| "https://login.microsoftonline.com/#{tenant}/v2.0" }
+  end
+
+  def restore_configured_tenant!
+    registry = ExternalAuthentication::ProviderRegistry
+    @registry_originals&.each { |name, method| registry.define_singleton_method(name, method) }
+  end
 
   setup do
     # Other suites (e.g. test/integration/social_auth_login_test.rb) set
@@ -19,36 +44,23 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
     Rails.configuration.x.rate_limit.fetch(:store).clear
     OrganizationEntraConnectionState.ensure_defaults!
     OperatorEntraIdentityState.ensure_defaults!
-
-    @connection = OrganizationEntraConnection.create!(
-      organization_id: 1,
-      entra_tenant_id: TENANT_ID,
-      entra_client_id: "entra-omniauth-callback-test-client",
-      entra_credential_key: "entra-omniauth-callback-test-secret",
-      status_id: OrganizationEntraConnectionState::ACTIVE,
-    )
+    stub_configured_tenant!
   end
 
   teardown do
+    restore_configured_tenant!
     Rails.configuration.x.rate_limit.fetch(:store).clear
     OmniAuth.config.test_mode = @previous_omniauth_test_mode
   end
 
-  test "GET /social/entra/session/new is routable and renders the start form for an active connection" do
-    get new_auth_org_social_entra_session_path(connection: @connection.public_id, ri: "jp")
+  test "GET /social/entra/session/new is routable and renders the start form" do
+    get new_auth_org_social_entra_session_path(ri: "jp")
 
     assert_response :success
   end
 
-  test "POST /social/entra with an unknown connection fails closed via the strategy request phase" do
-    post "/social/entra", params: { connection_public_id: "does-not-exist" }
-
-    assert_response :found
-    assert_match %r{\A/social/entra/failure}, response.location
-  end
-
-  test "POST /social/entra with an active connection redirects to the tenant-fixed Microsoft authorize endpoint" do
-    post "/social/entra", params: { connection_public_id: @connection.public_id }
+  test "POST /social/entra redirects to the tenant-fixed Microsoft authorize endpoint" do
+    post "/social/entra", params: {}
 
     assert_response :found
     uri = URI.parse(response.location)
@@ -68,13 +80,13 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
     operator = operators(:one)
     OperatorEntraIdentity.create!(
       operator_id: operator.id,
-      connection_id: @connection.id,
+      connection_id: nil,
       entra_tenant_id: TENANT_ID,
       entra_object_id: OBJECT_ID,
       status_id: OperatorEntraIdentityState::ACTIVE,
     )
 
-    post "/social/entra", params: { connection_public_id: @connection.public_id }
+    post "/social/entra", params: {}
 
     assert_response :found
     authorize_uri = URI.parse(response.location)
@@ -89,7 +101,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
     id_token = JWT.encode(
       {
         "iss" => "https://login.microsoftonline.com/#{TENANT_ID}/v2.0",
-        "aud" => @connection.entra_client_id,
+        "aud" => CLIENT_ID,
         "tid" => TENANT_ID,
         "oid" => OBJECT_ID,
         "sub" => "pairwise-sub",
@@ -119,7 +131,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
   end
 
   test "callback fails closed when no OperatorEntraIdentity is provisioned (no JIT)" do
-    post "/social/entra", params: { connection_public_id: @connection.public_id }
+    post "/social/entra", params: {}
     authorize_query = Rack::Utils.parse_nested_query(URI.parse(response.location).query)
     state = authorize_query.fetch("state")
     nonce = authorize_query.fetch("nonce")
@@ -131,7 +143,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
     id_token = JWT.encode(
       {
         "iss" => "https://login.microsoftonline.com/#{TENANT_ID}/v2.0",
-        "aud" => @connection.entra_client_id,
+        "aud" => CLIENT_ID,
         "tid" => TENANT_ID,
         "oid" => OBJECT_ID,
         "sub" => "pairwise-sub",
@@ -160,7 +172,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
   end
 
   test "callback rejects a replayed state" do
-    post "/social/entra", params: { connection_public_id: @connection.public_id }
+    post "/social/entra", params: {}
     state = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("state")
 
     get "/social/entra/callback", params: { state: state, code: "authorization-code" }
@@ -189,7 +201,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
   # mounted strategy, including Entra -- there is no per-provider override
   # to verify separately.
   test "GET /social/entra (request phase) is rejected; only POST starts the ceremony" do
-    get "/social/entra", params: { connection_public_id: @connection.public_id }
+    get "/social/entra", params: {}
 
     assert_response :not_found
   end
@@ -199,7 +211,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
   test "session/new is unreachable from the app surface host" do
     host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
 
-    get new_auth_org_social_entra_session_path(connection: @connection.public_id, ri: "jp")
+    get new_auth_org_social_entra_session_path(ri: "jp")
 
     assert_response :not_found
   end
@@ -207,7 +219,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
   test "session/new is unreachable from the com surface host" do
     host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
 
-    get new_auth_org_social_entra_session_path(connection: @connection.public_id, ri: "jp")
+    get new_auth_org_social_entra_session_path(ri: "jp")
 
     assert_response :not_found
   end
@@ -215,7 +227,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
   test "POST /social/entra is unreachable from the app surface host" do
     host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
 
-    post "/social/entra", params: { connection_public_id: @connection.public_id }
+    post "/social/entra", params: {}
 
     assert_response :not_found
   end
@@ -223,7 +235,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
   test "POST /social/entra is unreachable from the com surface host" do
     host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
 
-    post "/social/entra", params: { connection_public_id: @connection.public_id }
+    post "/social/entra", params: {}
 
     assert_response :not_found
   end
@@ -256,7 +268,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
     # Stubs the availability factory rather than mutating real ENV, so this
     # test cannot leak state into other tests under parallel execution.
     ExternalAuthentication::ProviderAvailabilityFactory.stub(:current, disabled) do
-      post("/social/entra", params: { connection_public_id: @connection.public_id })
+      post("/social/entra", params: {})
     end
 
     assert_response :found
@@ -268,7 +280,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
     admin_operator = operators(:two)
     OperatorEntraIdentity.create!(
       operator_id: operator.id,
-      connection_id: @connection.id,
+      connection_id: nil,
       entra_tenant_id: TENANT_ID,
       entra_object_id: OBJECT_ID,
       status_id: OperatorEntraIdentityState::ACTIVE,
@@ -291,7 +303,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
     )
     the_case.apply!
 
-    post "/social/entra", params: { connection_public_id: @connection.public_id }
+    post "/social/entra", params: {}
     authorize_query = Rack::Utils.parse_nested_query(URI.parse(response.location).query)
     state = authorize_query.fetch("state")
     nonce = authorize_query.fetch("nonce")
@@ -303,7 +315,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
     id_token = JWT.encode(
       {
         "iss" => "https://login.microsoftonline.com/#{TENANT_ID}/v2.0",
-        "aud" => @connection.entra_client_id,
+        "aud" => CLIENT_ID,
         "tid" => TENANT_ID,
         "oid" => OBJECT_ID,
         "sub" => "pairwise-sub",
@@ -334,7 +346,79 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
     assert_response :unprocessable_content
   end
 
+  test "failure endpoint renders the classified error for a known message" do
+    get "/social/entra/failure", params: { message: "connection_not_found" }
+
+    assert_response :unprocessable_content
+  end
+
+  test "failure endpoint classifies an unknown message and keeps it out of the response" do
+    injected = "attacker-supplied-marker-9f3c"
+
+    get "/social/entra/failure", params: { message: injected }
+
+    assert_response :unprocessable_content
+    assert_not_includes response.body, injected
+  end
+
+  # Asserted against the application event this controller emits, not the whole
+  # buffer: Rails' own request logger always echoes the request URL and
+  # parameters for every endpoint, which is generic framework behavior. The
+  # boundary under test is the callback_failure event
+  # (adr/application-logging-boundary.md).
+  test "failure endpoint never emits the raw message parameter in its failure event" do
+    injected = "attacker-supplied-marker-9f3c"
+
+    logs =
+      capture_logs do
+        get("/social/entra/failure", params: { message: injected })
+      end
+
+    event = entra_callback_failure_event(logs)
+
+    assert_not_includes event, injected
+    assert_equal "entra_error", JSON.parse(event).fetch("data").fetch("message")
+  end
+
+  test "failure endpoint emits the allowlisted classification for a known message" do
+    logs =
+      capture_logs do
+        get("/social/entra/failure", params: { message: "pkce_verifier_missing" })
+      end
+
+    event = entra_callback_failure_event(logs)
+
+    assert_equal "pkce_verifier_missing", JSON.parse(event).fetch("data").fetch("message")
+  end
+
   private
+
+  # Both Rails.logger and ActionController::Base.logger are swapped: the
+  # controller logs through Rails.logger, but request logging goes through the
+  # controller logger, and an unswapped one would let the raw parameter reach
+  # the real log without the assertion noticing.
+  def capture_logs
+    buffer = StringIO.new
+    capture_logger = ActiveSupport::Logger.new(buffer)
+    previous_rails_logger = Rails.logger
+    previous_controller_logger = ActionController::Base.logger
+    Rails.logger = capture_logger
+    ActionController::Base.logger = capture_logger
+
+    yield
+
+    buffer.string
+  ensure
+    Rails.logger = previous_rails_logger
+    ActionController::Base.logger = previous_controller_logger
+  end
+
+  def entra_callback_failure_event(logs)
+    line = logs.lines.find { |candidate| candidate.include?("sign.org.authentication.entra.callback_failure") }
+
+    assert_not_nil line, "expected a callback_failure event in the captured log"
+    line
+  end
 
   def stub_entra_access_token(id_token, &)
     strategy_class = OmniAuth::Strategies::UmaxicaEntra

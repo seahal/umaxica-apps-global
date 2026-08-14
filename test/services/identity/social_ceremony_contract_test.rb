@@ -101,6 +101,36 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
     end
   end
 
+  test "candidate store rejects an unverified callback or provider mismatch" do
+    callback_result = ExternalAuthentication::CallbackResult.verified(
+      principal: ExternalAuthentication::VerifiedPrincipal.new(
+        provider: "google",
+        subject: "candidate-google",
+        issuer: "https://accounts.google.com",
+        audience: "google-client-id",
+        verified_at: @now,
+        verification_authority: "omniauth-google-oauth2/contract",
+      ),
+      credential_candidate: nil,
+    )
+
+    assert_no_difference -> { IdentitySocialCeremonyCandidate.count } do
+      assert_social_ceremony_error("social auth candidate is required") do
+        IdentitySocialCeremonyCandidateStore.store!(
+          surface: "app", actor_ref: "anonymous", session_ref: "session-1", transaction_id: "txn-1",
+          operation: "login", provider: "google", callback_result: Object.new, expires_at: @now + 5.minutes,
+        )
+      end
+
+      assert_social_ceremony_error("social auth candidate provider does not match") do
+        IdentitySocialCeremonyCandidateStore.store!(
+          surface: "app", actor_ref: "anonymous", session_ref: "session-1", transaction_id: "txn-1",
+          operation: "login", provider: "apple", callback_result: callback_result, expires_at: @now + 5.minutes,
+        )
+      end
+    end
+  end
+
   test "candidate store rejects expired deleted malformed records and does not call Rails cache" do
     travel_to(@now) do
       cache = Minitest::Mock.new

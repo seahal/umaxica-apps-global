@@ -17,8 +17,12 @@ services:
     command: tunnel --protocol quic run
     environment:
       TUNNEL_TOKEN: "${CLOUDFLARED_TOKEN:?CLOUDFLARED_TOKEN must be set in .env}"
+    # This list replaces, rather than merges with, any `networks:` the base file gives the
+    # service, so `frontend` must stay written out here. Dropping it would strip the private
+    # `*.localhost` Rails origins from the connector and break every working ingress rule.
     networks:
       - frontend
+      - edge-tunnel
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: unless-stopped
@@ -38,6 +42,17 @@ services:
       - type: volume
         source: tailscale-core-state
         target: /var/lib/tailscale-core
+networks:
+  # Created and owned by the Edge compose project (umaxica-apps-edge-dc), which is where the
+  # Next.js Core origin runs. Declared external so this project attaches to that network instead
+  # of creating a second one of the same purpose; cross-project reachability is the only way
+  # cloudflared can resolve the Edge origin at all. The Edge stack must therefore be running
+  # before `cloudflare-tunnel` is created -- podman fails the `up` loudly when the network is
+  # absent, which is the intended behaviour rather than a silent fallback to a connector that
+  # can only reach Rails. Attaching here grants no new path to Rails: Rails stays on `frontend`.
+  edge-tunnel:
+    external: true
+    name: umaxica-edge-tunnel
 volumes:
   # Persistent identity for direct-core Tailscale SSH and HTTPS Serve.
   tailscale-core-state: {}
