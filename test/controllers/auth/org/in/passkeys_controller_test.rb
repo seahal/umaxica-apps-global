@@ -42,17 +42,18 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     get new_auth_org_sign_in_passkey_url(ri: "jp")
 
     assert_response :success
-    assert_select "label", text: "ID"
-    assert_select "input#identifier[required]"
-    assert_select "input#identifier[minlength='16']"
-    assert_select "input#identifier[maxlength='16']"
-    assert_select "input#identifier[pattern='[0-9A-FGHJKMNPQRSTVWXYZ]{16}']"
-    assert_select "input#identifier[autocapitalize='characters']"
-    assert_select "input#identifier[spellcheck='false']"
-    assert_select "[data-passkey-authentication-options-url-value=?]", auth_org_sign_in_passkey_options_path(ri: "jp")
-    assert_select "[data-passkey-authentication-verification-url-value=?]",
-                  auth_org_sign_in_passkey_verification_path(ri: "jp")
-    assert_select "[data-passkey-authentication-region-value=?]", "jp"
+    assert_equal "auth/org/sign/in/passkeys/new", inertia_component
+
+    panel = inertia_props.fetch("panel")
+    field = panel.fetch("field")
+
+    assert_equal "ID", field.fetch("label")
+    assert_equal 16, field.fetch("min_length")
+    assert_equal 16, field.fetch("max_length")
+    assert_equal "[0-9A-FGHJKMNPQRSTVWXYZ]{16}", field.fetch("pattern")
+    assert_equal auth_org_sign_in_passkey_options_path(ri: "jp"), panel.fetch("options_url")
+    assert_equal auth_org_sign_in_passkey_verification_path(ri: "jp"), panel.fetch("verification_url")
+    assert_equal "jp", panel.fetch("region")
   end
 
   test "options returns error if identifier blank" do

@@ -10,7 +10,11 @@ module Auth
       # default; an explicit `intent` param may upgrade the ceremony to
       # "link" or "step_up" when arriving from settings.
       class SessionsController < ::Auth::App::ApplicationController
+        # The only page either action renders is the sign-up suspension notice, which is now the
+        # Inertia entry page rather than an ERB template; the OmniAuth handoff is untouched.
+        include ::SurfaceInertiaPage
         include AppSocialCeremonyEntry
+        include AppSignUpEntryPage
 
         AUTHENTICATION_MODE = :open
 

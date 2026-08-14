@@ -17,7 +17,7 @@ module Auth
               def show
                 if dummy_existing_email_flow?
                   @user_email = ClientEmail.new
-                  return render "auth/app/sign/up/emails/edit" if valid_email_session?
+                  return render_sign_up_email_edit if valid_email_session?
 
                   return redirect_invalid_session
                 end
@@ -27,7 +27,7 @@ module Auth
                 @user_email = current_registration_email
                 return redirect_invalid_session unless valid_email_session?
 
-                render "auth/app/sign/up/emails/edit"
+                render_sign_up_email_edit
               end
 
               def create
@@ -111,22 +111,22 @@ module Auth
               def render_otp_ceremony_result(result)
                 if result.status == :rate_limited
                   @user_email.errors.add(:base, t("sign.app.registration.email.create.otp_resend_too_soon"))
-                  return render "auth/app/sign/up/emails/edit", status: :too_many_requests
+                  return render_sign_up_email_edit(status: :too_many_requests)
                 end
 
                 @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.invalid_code"))
-                render "auth/app/sign/up/emails/edit", status: :unprocessable_content
+                render_sign_up_email_edit(status: :unprocessable_content)
               end
 
               def render_code_required
                 @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.code_required"))
-                render "auth/app/sign/up/emails/edit", status: :unprocessable_content
+                render_sign_up_email_edit(status: :unprocessable_content)
               end
 
               def handle_locked_result
                 reset_email_flow!
                 @user_email.errors.add(:base, t("sign.app.registration.email.update.attempts_exceeded"))
-                render "auth/app/sign/up/emails/edit", status: :too_many_requests
+                render_sign_up_email_edit(status: :too_many_requests)
               end
 
               def redirect_invalid_session

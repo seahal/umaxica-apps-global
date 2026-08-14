@@ -6,6 +6,8 @@ module Base
     module Identity
       module Recovery
         class AppealsController < ::Base::Com::ApplicationController
+          include ::SurfaceInertiaPage
+          include ::ComIdentityRecoveryPage
           include CommonRedirect
           include EnforcementRecoveryCeremonyCookie
 
@@ -28,7 +30,11 @@ module Base
           rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
             @appeal_error = e.message
             @enforcement_cases = appealable_cases
-            render "base/com/identity/recoveries/show", status: :unprocessable_content
+            render_com_identity_recovery(
+              enforcement_cases: @enforcement_cases,
+              appeal_error: @appeal_error,
+              status: :unprocessable_content,
+            )
           end
 
           private

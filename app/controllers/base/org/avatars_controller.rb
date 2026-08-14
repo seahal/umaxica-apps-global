@@ -4,6 +4,8 @@
 module Base
   module Org
     class AvatarsController < Base::Org::FullAccessController
+      include ::SurfaceInertiaPage
+
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
 
@@ -11,10 +13,12 @@ module Base
 
       def show
         authorize!(current_operator, to: :show?)
+        render inertia: true, props: { title: "Avatar", body: "avatar" }
       end
 
       def edit
         authorize!(current_operator, to: :update?)
+        render inertia: true, props: { title: "Avatar", body: "avatar" }
       end
 
       def update

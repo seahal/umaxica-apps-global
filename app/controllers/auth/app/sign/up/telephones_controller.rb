@@ -8,6 +8,8 @@ module Auth
     module Sign
       module Up
         class TelephonesController < ::Auth::App::ApplicationController
+          include ::SurfaceInertiaPage
+          include ::TurnstilePageProps
           include CloudflareTurnstile
 
           include CommonRedirect
@@ -17,6 +19,7 @@ module Auth
           include EnforcementIdentifierGate
 
           include SignUpSuspensionGuard
+          include AppSignUpEntryPage
 
           AUTHENTICATION_MODE = :guest
 
@@ -36,11 +39,12 @@ module Auth
               "sign.signup.telephone.new.rendered",
               sign_signup_request_flags.merge(step: "telephone_otp"),
             )
+            render_sign_up_telephone_new
           end
 
           def edit
             @user_telephone = current_registration_telephone
-            return if valid_telephone_session?
+            return render_sign_up_telephone_edit if valid_telephone_session?
 
             redirect_to(
               new_auth_app_sign_up_telephone_path,
@@ -65,7 +69,7 @@ module Auth
                 "sign.signup.telephone.create.rejected",
                 sign_signup_request_flags.merge(step: "telephone_otp", reason: "telephone_blank").compact,
               )
-              render :new, status: :unprocessable_content
+              render_sign_up_telephone_new(status: :unprocessable_content)
               return
             end
 
@@ -79,7 +83,7 @@ module Auth
             )
               @user_telephone = ClientTelephone.new
               @user_telephone.errors.add(:raw_number, :blank)
-              render :new, status: :unprocessable_content
+              render_sign_up_telephone_new(status: :unprocessable_content)
               return
             end
 
@@ -96,7 +100,7 @@ module Auth
                 "sign.signup.telephone.create.rejected",
                 sign_signup_request_flags.merge(step: "telephone_otp", reason: "turnstile_failed").compact,
               )
-              render :new, status: :unprocessable_content
+              render_sign_up_telephone_new(status: :unprocessable_content)
               return
             end
 
@@ -113,7 +117,7 @@ module Auth
                 "sign.signup.telephone.create.rejected",
                 sign_signup_request_flags.merge(step: "telephone_otp", reason: "telephone_invalid").compact,
               )
-              render :new, status: :unprocessable_content
+              render_sign_up_telephone_new(status: :unprocessable_content)
               return
             end
 
@@ -161,7 +165,7 @@ module Auth
                 "sign.signup.telephone.create.rejected",
                 sign_signup_request_flags.merge(step: "telephone_otp", reason: "unexpected_error").compact,
               )
-              render :new, status: :unprocessable_content
+              render_sign_up_telephone_new(status: :unprocessable_content)
             end
           end
 
@@ -193,6 +197,105 @@ module Auth
 
           def sign_up_surface = :app
 
+          # The registration form. `pt` travels in the generated action URL rather than as a prop,
+          # so the signed target never becomes page data the browser holds separately.
+          def render_sign_up_telephone_new(status: :ok)
+            render inertia: "auth/app/sign/up/telephones/new",
+                   props: sign_up_telephone_new_props,
+                   status: status
+          end
+
+          def sign_up_telephone_new_props
+            errors = sign_up_telephone_errors
+
+            {
+              title: t("sign.app.registration.telephone.new.page_title"),
+              action: auth_app_sign_up_telephone_path(pt: signed_pt_param),
+              scope: "client_telephone",
+              field: {
+                name: "raw_number",
+                label: ClientTelephone.human_attribute_name(:number),
+                type: "tel",
+                autocomplete: "tel",
+              },
+              checkboxes: [
+                {
+                  name: "confirm_policy",
+                  label: t("views.sign.app.up.telephones.new.confirm_policy_label"),
+                  description: nil,
+                },
+                {
+                  name: "confirm_using_mfa",
+                  label: t("views.sign.app.up.telephones.new.confirm_using_mfa_label"),
+                  description: nil,
+                },
+              ],
+              error_heading: errors.any? ? sign_up_telephone_error_heading(errors.count) : nil,
+              errors: errors,
+              turnstile: turnstile_visible_props,
+              submit_label: sign_up_telephone_submit_label,
+              links: [
+                {
+                  key: "other_methods",
+                  label: t("sign.app.registration.telephone.new.link_to_other_methods"),
+                  href: auth_app_sign_up_path,
+                },
+                {
+                  key: "sign_in",
+                  label: t("sign.app.registration.telephone.new.link_to_sign_in"),
+                  href: auth_app_sign_in_path,
+                },
+              ],
+            }
+          end
+
+          # The OTP step. Only what the page shows crosses: never the code, the ceremony nonce or
+          # the number the server already holds in the flow.
+          def render_sign_up_telephone_edit(status: :ok)
+            render inertia: "auth/app/sign/up/telephones/edit",
+                   props: sign_up_telephone_edit_props,
+                   status: status
+          end
+
+          def sign_up_telephone_edit_props
+            errors = sign_up_telephone_errors
+
+            {
+              title: t("sign.app.registration.telephone.edit.page_title"),
+              description: t("sign.app.registration.telephone.create.verification_code_sent"),
+              action: auth_app_sign_up_check_telephone_otp_path(ri: params[:ri]),
+              scope: "client_telephone",
+              code_label: t("sign.app.registration.telephone.edit.code_label"),
+              code_placeholder: t("sign.app.registration.telephone.edit.code_placeholder"),
+              submit_label: t("sign.app.registration.telephone.edit.submit"),
+              delivery_help: t("sign.app.registration.telephone.edit.delivery_help"),
+              error_heading: errors.any? ? sign_up_telephone_error_heading(errors.count) : nil,
+              errors: errors,
+              return_link: {
+                label: t("controller.sign.app.registration.telephone.edit.return_page"),
+                href: auth_app_sign_up_path,
+              },
+            }
+          end
+
+          def sign_up_telephone_errors
+            @user_telephone&.errors&.map(&:full_message) || []
+          end
+
+          # The wording the ERB built with `pluralize`, kept verbatim.
+          def sign_up_telephone_error_heading(count)
+            "#{helpers.pluralize(count, "error")} prohibited this telephone from being saved:"
+          end
+
+          # Mirrors the label `form.submit` looked up, so the button keeps its wording.
+          def sign_up_telephone_submit_label
+            I18n.t(
+              :"helpers.submit.#{ClientTelephone.model_name.param_key}.create",
+              model: ClientTelephone.model_name.human,
+              default: [:"helpers.submit.create", "Create %{model}"],
+            )
+          end
+
           def valid_telephone_session?
             return dummy_existing_telephone_session_valid? if dummy_existing_telephone_flow?
             return false unless @user_telephone.present? && !@user_telephone.otp_expired?
@@ -221,7 +324,7 @@ module Auth
 
           def render_telephone_session_expired
             @user_telephone.errors.add(:base, t("sign.app.registration.telephone.edit.session_expired"))
-            render :edit, status: :unprocessable_content
+            render_sign_up_telephone_edit(status: :unprocessable_content)
           end
 
           def telephone_signup_params

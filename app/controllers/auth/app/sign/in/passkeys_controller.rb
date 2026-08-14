@@ -18,6 +18,8 @@ module Auth
         # planned for a future phase. Currently, email is required to look up
         # the user's registered passkeys.
         class PasskeysController < ::Auth::App::ApplicationController
+          include ::SurfaceInertiaPage
+
           include ::PasskeySignInFlow
 
           include EmailValidation
@@ -83,9 +85,40 @@ module Auth
           # GET /in/passkeys/new
           # Render login page with email input and passkey button
           def new
+            render inertia: true, props: passkey_new_props
           end
 
           private
+
+          def passkey_new_props
+            scope = "sign.app.authentication.passkey.new"
+            pt = signed_pt_param
+            ri = current_region_identifier
+
+            {
+              title: t("#{scope}.page_title"),
+              description: t("#{scope}.description"),
+              panel: {
+                options_url: auth_app_sign_in_passkey_options_path(pt: pt, ri: ri),
+                verification_url: auth_app_sign_in_passkey_verification_path(pt: pt, ri: ri),
+                region: ri.to_s,
+                identifier_param: "identifier",
+                # The stealth site key is public by design and the ERB already published it in the
+                # rendered HTML; the secret key and the token verification stay server side.
+                turnstile_site_key: JitSecurityTurnstileConfig.stealth_site_key.to_s,
+                turnstile_error_message: t("turnstile_error"),
+                field: {
+                  label: t("#{scope}.pii_label"),
+                  placeholder: t("#{scope}.pii_placeholder"),
+                },
+                submit_label: t("#{scope}.submit"),
+              },
+              back_link: {
+                label: t("sign.app.authentication.new.back"),
+                href: auth_app_sign_in_path(pt: pt, ri: ri),
+              },
+            }
+          end
 
           def find_active_passkey_actor(identifier)
             user = find_user_by_identifier(identifier)

@@ -15,6 +15,7 @@ module EnforcementRecoveryCeremonyFlow
   def new
     @email_record = identity_email_model.new
     @reentry_state = recovery_reentry_state
+    render_recovery_reentry_new
   end
 
   def create
@@ -43,7 +44,14 @@ module EnforcementRecoveryCeremonyFlow
 
     @email_record = identity_email_model.new(address: recovery_reentry_address)
     @reentry_state = recovery_reentry_state
-    render :new, status: :ok
+    render_recovery_reentry_new(status: :ok)
+  end
+
+  # The re-entry screen, as its surface renders it. `render :new` resolves the including
+  # controller's own template; a surface whose page is an Inertia component overrides this one
+  # method, so the flow control, the statuses and the timing guards stay identical everywhere.
+  def render_recovery_reentry_new(status: :ok)
+    render :new, status: status
   end
 
   def verify_recovery_otp
@@ -74,7 +82,7 @@ module EnforcementRecoveryCeremonyFlow
     ensure_min_elapsed(started_at)
     @email_record = identity_email_model.new(address: recovery_reentry_address)
     @reentry_state = recovery_reentry_state
-    render :new, status: :unprocessable_content
+    render_recovery_reentry_new(status: :unprocessable_content)
   end
 
   def recovery_reentry_state

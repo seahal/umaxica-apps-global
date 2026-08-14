@@ -17,6 +17,8 @@ module Auth
           include MinimumResponseBudget
 
           include SessionLimitGate
+          include ::SurfaceInertiaPage
+          include ::TurnstilePageProps
 
           AUTHENTICATION_MODE = :guest
 
@@ -94,6 +96,7 @@ module Auth
 
           def new
             @secret_credential_form = SecretLoginForm.new
+            render inertia: true, props: sign_in_secret_new_props
           end
 
           def create
@@ -148,6 +151,28 @@ module Auth
           end
 
           private
+
+          def sign_in_secret_new_props
+            pt = signed_pt_param
+            ri = current_region_identifier
+
+            {
+              title: t("sign.app.authentication.secret_credential.new.page_title"),
+              action: auth_com_sign_in_secret_path,
+              pt: pt,
+              ri: ri,
+              validation_failed_title: t("errors.messages.validation_failed"),
+              identifier_label: t("sign.app.authentication.secret_credential.new.pii_label"),
+              identifier_placeholder: t("sign.app.authentication.secret_credential.new.pii_placeholder"),
+              secret_label: t("sign.app.authentication.secret_credential.new.secret_credential_label"),
+              submit_label: t("actions.submit"),
+              back_link: {
+                label: t("sign.app.authentication.new.back"),
+                href: auth_com_sign_in_path(pt: pt, ri: ri),
+              },
+              turnstile: turnstile_visible_props,
+            }
+          end
 
           def identity_email_model
             VisitorEmail
@@ -263,7 +288,13 @@ module Auth
 
             SignRiskEmitter.emit("auth_failed", visitor_id: visitor&.id) if visitor
 
-            render :new, status: :unprocessable_content, formats: :html
+            # The Inertia contract carries a rejected attempt as a redirect back with the errors
+            # hash. The message stays the same single message for every reason.
+            redirect_to(
+              new_auth_com_sign_in_secret_path(pt: signed_pt_param, ri: current_region_identifier),
+              status: :see_other,
+              inertia: { errors: @secret_credential_form.errors.to_hash(true).transform_values(&:first) },
+            )
           end
 
           def minimum_response_budget_enabled?

@@ -6,6 +6,8 @@ module Base
     module Identity
       module Emails
         class RegistrationsController < ::Base::Com::ApplicationController
+          include ::SurfaceInertiaPage
+          include ::TurnstilePageProps
           include ::CloudflareTurnstile
 
           include CommonOtp
@@ -30,12 +32,13 @@ module Base
           def new
             @user_email = VisitorEmail.new
             reset_email_registration_flow!
+            render inertia: true, props: new_page_props
           end
 
           def edit
             @user_email = current_registration_email
             @verification_token = params[:token]
-            return if valid_registration_email_session?
+            return render inertia: true, props: edit_page_props if valid_registration_email_session?
 
             reset_email_registration_flow!
             redirect_to(new_registration_path_with_notice)
@@ -54,7 +57,7 @@ module Base
             )
               @user_email = VisitorEmail.new
               @user_email.errors.add(:address, :blank)
-              render :new, status: :unprocessable_content
+              render_registration_new_failure
               return
             end
 
@@ -62,7 +65,7 @@ module Base
               email_address,
               email_preferences: email_params.slice(:notifiable),
             )
-              render :new, status: :unprocessable_content
+              render_registration_new_failure
               return
             end
 
@@ -93,7 +96,7 @@ module Base
             submitted_code = params.dig(:visitor_email, :pass_code)
             if submitted_code.blank?
               @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.code_required"))
-              render :edit, status: :unprocessable_content
+              render_registration_edit_failure
               return
             end
 
@@ -108,7 +111,7 @@ module Base
               end
 
               @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.invalid_code"))
-              render :edit, status: :unprocessable_content
+              render_registration_edit_failure
               return
             end
 
@@ -133,6 +136,75 @@ module Base
           end
 
           private
+
+          # Both failure paths keep the page and the 422 the ERB flow answered with; only the
+          # transport changed.
+          def render_registration_new_failure
+            render inertia: "base/com/identity/emails/registrations/new",
+                   props: new_page_props,
+                   status: :unprocessable_content
+          end
+
+          def render_registration_edit_failure
+            render inertia: "base/com/identity/emails/registrations/edit",
+                   props: edit_page_props,
+                   status: :unprocessable_content
+          end
+
+          def new_page_props
+            {
+              title: t("sign.app.settings.email.new.page_title"),
+              back_link: {
+                label: t("sign.app.settings.show.back"),
+                href: base_com_identity_emails_path(ri: params[:ri]),
+              },
+              errors: @user_email.errors.map(&:full_message),
+              form: {
+                url: base_com_identity_emails_registration_path,
+                method: "post",
+                scope: "visitor_email",
+                # The ERB used a bare `form.submit`, whose label is Rails' create default.
+                submit_label: t("helpers.submit.create", model: VisitorEmail.model_name.human),
+              },
+              address_label: VisitorEmail.human_attribute_name(:address),
+              address_value: @user_email.address.to_s,
+              notifiable: {
+                label: t("sign.com.settings.email.edit.notifiable_label"),
+                description: t("sign.com.settings.email.edit.notifiable_description"),
+                checked: @user_email.notifiable?,
+              },
+              cancel_link: {
+                label: t("actions.cancel"),
+                href: base_com_identity_emails_path(ri: params[:ri]),
+              },
+              turnstile: turnstile_stealth_props,
+            }
+          end
+
+          # The verification token is the one the visitor already holds from the delivery link; it is
+          # echoed back so the submit carries it, exactly as the ERB hidden field did.
+          def edit_page_props
+            {
+              title: t("sign.app.authentication.email.edit.page_title"),
+              description: t("sign.app.authentication.email.edit.description"),
+              errors: @user_email.errors.map(&:full_message),
+              form: {
+                url: base_com_identity_emails_registration_path,
+                method: "patch",
+                scope: "visitor_email",
+                submit_label: t("sign.app.authentication.email.edit.submit"),
+              },
+              verification_token: @verification_token.presence,
+              code_label: t("sign.app.authentication.email.edit.code_label"),
+              code_placeholder: t("sign.app.authentication.email.edit.code_placeholder"),
+              delivery_help: t("sign.app.authentication.email.edit.delivery_help"),
+              cancel_link: {
+                label: t("sign.app.common.cancel"),
+                href: base_com_identity_emails_path(ri: params[:ri]),
+              },
+              turnstile: turnstile_stealth_props,
+            }
+          end
 
           def authorize_email_registration!
             authorize!(VisitorEmail, to: :create?)

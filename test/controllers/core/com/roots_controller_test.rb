@@ -13,7 +13,10 @@ class Core::Com::RootsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "title", "#{BRAND} (COM)"
-    assert_select "h1", text: "Core Com"
+    assert_equal "core/com/roots/index", inertia_component
+    assert_nil inertia_props.fetch("title")
+    assert_equal "Core Com", inertia_props.fetch("heading")
+    assert_equal I18n.t("landing.thin_endpoint"), inertia_props.fetch("description")
   end
 
   test "creates preference cookies on root" do

@@ -156,10 +156,13 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
     get "/", params: { ri: "jp" }
 
     assert_response :success
-    assert_select "a[href=?]", palm_app_oidc_authorization_path(client_id: "app-ios-rp", ri: "jp"),
-                  text: "Sign up on iOS"
-    assert_select "a[href=?]", palm_app_oidc_authorization_path(client_id: "app-android-rp", ri: "jp"),
-                  text: "Sign up on Android"
+    assert_equal(
+      [
+        ["Sign up on iOS", palm_app_oidc_authorization_path(client_id: "app-ios-rp", ri: "jp")],
+        ["Sign up on Android", palm_app_oidc_authorization_path(client_id: "app-android-rp", ri: "jp")],
+      ],
+      inertia_props.fetch("links").map { |link| [link.fetch("label"), link.fetch("href")] },
+    )
   end
 end
 

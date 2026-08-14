@@ -12,10 +12,15 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_nil session[:oidc_authorization_login_challenge]
-    assert_select "a[href=?]", new_auth_app_sign_up_email_path(ri: "jp")
-    assert_select "a[href=?]", new_auth_app_sign_up_telephone_path(ri: "jp")
-    assert_select "form[action=?][method=?]", auth_app_social_google_registration_path(ri: "jp"), "post"
-    assert_select "form[action=?][method=?]", auth_app_social_apple_registration_path(ri: "jp"), "post"
+    assert_equal "auth/app/sign_ups/new", inertia_component
+    assert_equal(
+      [new_auth_app_sign_up_email_path(ri: "jp"), new_auth_app_sign_up_telephone_path(ri: "jp")],
+      inertia_props.fetch("methods").map { |method| method.fetch("href") },
+    )
+    assert_equal(
+      [auth_app_social_google_registration_path(ri: "jp"), auth_app_social_apple_registration_path(ri: "jp")],
+      inertia_props.fetch("social_providers").map { |provider| provider.fetch("url") },
+    )
   end
 
   test "direct entry without a login challenge starts no OIDC handoff state" do
@@ -49,7 +54,8 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_select "[data-test-id=?]", "registration-method", count: 4
+    # The four entry points the page offers: two contact methods and two providers.
+    assert_equal 4, inertia_props.fetch("methods").size + inertia_props.fetch("social_providers").size
   end
 
   test "shows telephone registration link" do
@@ -57,7 +63,10 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
         headers: { "Host" => host }
 
     assert_response :success
-    assert_select "a[href=?]", new_auth_app_sign_up_telephone_path(ri: "jp"), count: 1
+    assert_equal(
+      [new_auth_app_sign_up_telephone_path(ri: "jp")],
+      inertia_props.fetch("methods").filter_map { |method| method.fetch("href") if method.fetch("key") == "telephone" },
+    )
   end
 
   test "shows social login buttons" do
@@ -65,20 +74,15 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
         headers: { "Host" => host }
 
     assert_response :success
-    assert_select "form[action=?][method=?][data-turbo=?]",
-                  auth_app_social_google_registration_path(ri: "jp"),
-                  "post",
-                  "false",
-                  count: 1
-    assert_select "form[action=?][method=?][data-turbo=?]",
-                  auth_app_social_apple_registration_path(ri: "jp"),
-                  "post",
-                  "false",
-                  count: 1
-    assert_select "form[action=?] input[name=?]",
-                  auth_app_social_google_registration_path(ri: "jp"),
-                  "authenticity_token",
-                  count: 1
+    # The provider buttons keep posting to the ceremony endpoints; the button markup and its
+    # CSRF field are covered by spec/features/auth/signup/social_provider_button.test.tsx.
+    providers = inertia_props.fetch("social_providers")
+
+    assert_equal(
+      [["google", auth_app_social_google_registration_path(ri: "jp")],
+       ["apple", auth_app_social_apple_registration_path(ri: "jp")],],
+      providers.map { |provider| [provider.fetch("provider"), provider.fetch("url")] },
+    )
   end
 
   test "renders registration layout structure" do
@@ -88,17 +92,12 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     expected_brand = brand_name
-    escaped_brand = Regexp.escape(expected_brand)
 
+    # The header, the main region and the footer are the React surface layout's; what the server
+    # still owns is the chrome payload it renders them from.
     assert_select "head", count: 1
-    # Skip favicon check - may not be present in all layouts
-    assert_select "body", count: 1 do
-      assert_select "header", minimum: 1
-      assert_select "main", count: 1
-      assert_select "footer", count: 1 do
-        assert_select ".opacity-50", text: /^©.*#{escaped_brand}$/
-      end
-    end
+    assert_select "body", count: 1
+    assert_match(/^©.*#{Regexp.escape(expected_brand)}$/, inertia_props.fetch("chrome").fetch("copyright"))
   end
 
   test "page contains navigation and registration heading" do
@@ -106,8 +105,8 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
         headers: { "Host" => host }
 
     assert_response :success
-    assert_select "header nav", minimum: 1
-    assert_select "main h1", text: I18n.t("sign.app.registration.new.page_title")
+    assert_not_empty inertia_props.fetch("chrome").fetch("primary_navigation")
+    assert_equal I18n.t("sign.app.registration.new.page_title"), inertia_props.fetch("title")
   end
 
   test "footer contains navigation links" do
@@ -115,10 +114,9 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
         headers: { "Host" => host }
 
     assert_response :success
-    assert_select "footer" do
-      # Footer should contain copyright and links
-      assert_select "a"
-    end
+    # Footer should contain copyright and links
+    assert_not_empty inertia_props.fetch("chrome").fetch("footer_navigation")
+    assert_not_empty inertia_props.fetch("chrome").fetch("copyright")
   end
 
   test "renders specific cta text" do
@@ -127,7 +125,7 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     # Check for Japanese text (since previous test asserted lang=ja)
-    assert_select "a", text: "メールで登録する"
+    assert_includes inertia_props.fetch("methods").map { |method| method.fetch("label") }, "メールで登録する"
   end
 
   test "logged in direct entry redirects to dashboard" do

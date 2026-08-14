@@ -44,11 +44,14 @@ module Auth::App::In
       get new_auth_app_sign_in_passkey_path(ri: "jp")
 
       assert_response :success
-      assert_select "[data-passkey-authentication-options-url-value=?]", auth_app_sign_in_passkey_options_path(ri: "jp")
-      assert_select "[data-passkey-authentication-verification-url-value=?]",
-                    auth_app_sign_in_passkey_verification_path(ri: "jp")
-      assert_select "[data-passkey-authentication-region-value=?]", "jp"
-      assert_select "a[href=?]", auth_app_sign_in_path(ri: "jp")
+      assert_equal "auth/app/sign/in/passkeys/new", inertia_component
+
+      panel = inertia_props.fetch("panel")
+
+      assert_equal auth_app_sign_in_passkey_options_path(ri: "jp"), panel.fetch("options_url")
+      assert_equal auth_app_sign_in_passkey_verification_path(ri: "jp"), panel.fetch("verification_url")
+      assert_equal "jp", panel.fetch("region")
+      assert_equal auth_app_sign_in_path(ri: "jp"), inertia_props.fetch("back_link").fetch("href")
     end
 
     # Case F-1: Identifier does not exist

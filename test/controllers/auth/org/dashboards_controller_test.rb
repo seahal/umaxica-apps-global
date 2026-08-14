@@ -18,18 +18,28 @@ class Auth::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
     get auth_org_dashboard_url(ri: "jp"), headers: as_staff_headers(@staff, host: @host)
 
     assert_response :success
-    assert_select "h1", text: "Dashboard"
-    assert_select "p", text: /Sign org signed-in landing/
-    assert_select "a[href=?]", auth_org_root_path(ri: "jp")
-    assert_select "a[href=?]", auth_org_sign_in_path(ri: "jp")
-    assert_select "a[href=?]", auth_org_sign_up_path(ri: "jp")
-    assert_select "a[href=?]", auth_org_settings_path(ri: "jp")
-    assert_select "a[href=?]", new_auth_org_sign_out_path(ri: "jp")
-    assert_select "a[href=?]", auth_org_sign_in_guard_path(ri: "jp")
-    assert_select "a[href=?]", auth_org_sign_in_check_path(ri: "jp")
-    assert_select "a[href=?]", auth_org_sign_in_challenge_path(ri: "jp")
-    assert_select "li", text: "Selector: handled by the sign-in guard sequence, no direct dashboard route"
-    assert_no_match(/<a[^>]+>Selector<\/a>/, response.body)
+    assert_equal "auth/org/dashboards/show", inertia_component
+    assert_equal "Dashboard", inertia_props.fetch("title")
+    assert_match(/Sign org signed-in landing/, inertia_props.fetch("description"))
+
+    items = inertia_props.fetch("sections").flat_map { |section| section.fetch("items") }
+    hrefs = items.filter_map { |item| item["href"] }
+
+    assert_includes hrefs, auth_org_root_path(ri: "jp")
+    assert_includes hrefs, auth_org_sign_in_path(ri: "jp")
+    assert_includes hrefs, auth_org_sign_up_path(ri: "jp")
+    assert_includes hrefs, auth_org_settings_path(ri: "jp")
+    assert_includes hrefs, new_auth_org_sign_out_path(ri: "jp")
+    assert_includes hrefs, auth_org_sign_in_guard_path(ri: "jp")
+    assert_includes hrefs, auth_org_sign_in_check_path(ri: "jp")
+    assert_includes hrefs, auth_org_sign_in_challenge_path(ri: "jp")
+
+    selector = items.find { |item| item.fetch("label").start_with?("Selector:") }
+
+    assert_equal "Selector: handled by the sign-in guard sequence, no direct dashboard route",
+                 selector.fetch("label")
+    # The selector has no direct route, so it must stay a note rather than become a link.
+    assert_nil selector["href"]
     assert_no_match(%r{//example|umaxica\.example|evil\.example}, response.body)
   end
 

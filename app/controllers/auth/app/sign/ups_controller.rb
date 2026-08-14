@@ -5,7 +5,9 @@ module Auth
   module App
     module Sign
       class UpsController < ::Auth::App::ApplicationController
+        include ::SurfaceInertiaPage
         include SignUpSuspensionGuard
+        include AppSignUpEntryPage
 
         # Use :open instead of :guest so already-authenticated users reach the
         # action body and get redirected to their dashboard (see
@@ -33,7 +35,7 @@ module Auth
 
           session[:oidc_authorization_login_challenge] = transaction.login_challenge
           @oidc_authorization_intent = transaction.intent
-          render "auth/app/sign_ups/new"
+          render_sign_up_entry_page!
         rescue ActiveRecord::RecordNotFound
           render plain: I18n.t("errors.messages.invalid_request"),
                  status: :bad_request
@@ -60,7 +62,13 @@ module Auth
         # `oidc_authorization_login_challenge`; it hands off to the sign-in sequence, which already
         # branches on a missing challenge.
         def render_method_selection!
-          render "auth/app/sign_ups/new"
+          render_sign_up_entry_page!
+        end
+
+        # The action's component name would be `auth/app/sign/ups/show`; the page it renders is the
+        # registration entry page, so it is named for the page rather than for the route.
+        def render_sign_up_entry_page!
+          render inertia: AppSignUpEntryPage::SIGN_UP_ENTRY_COMPONENT, props: sign_up_entry_page_props
         end
       end
     end

@@ -6,6 +6,8 @@ module Base
     module Identity
       module Telephones
         class RegistrationsController < ::Base::Com::ApplicationController
+          include ::SurfaceInertiaPage
+          include ::TurnstilePageProps
           include CloudflareTurnstile
 
           include CommonOtp
@@ -28,11 +30,12 @@ module Base
           def new
             @user_telephone = VisitorTelephone.new
             reset_registration_session!
+            render inertia: true, props: new_page_props
           end
 
           def edit
             @user_telephone = current_registration_telephone
-            return if valid_registration_session?
+            return render inertia: true, props: edit_page_props if valid_registration_session?
 
             reset_registration_session!
             redirect_to(
@@ -47,7 +50,7 @@ module Base
             unless cloudflare_turnstile_stealth_validation["success"]
               @user_telephone = VisitorTelephone.new
               @user_telephone.errors.add(:base, t("turnstile_error"))
-              render(:new, status: :unprocessable_content)
+              render_registration_new_failure
               return
             end
 
@@ -63,12 +66,12 @@ module Base
             )
               @user_telephone = VisitorTelephone.new
               @user_telephone.errors.add(:raw_number, :blank)
-              render :new, status: :unprocessable_content
+              render_registration_new_failure
               return
             end
 
             unless initiate_visitor_telephone_verification(visitor, number, auto_accept_confirmations: true)
-              render :new, status: :unprocessable_content
+              render_registration_new_failure
               return
             end
 
@@ -97,14 +100,14 @@ module Base
 
             unless cloudflare_turnstile_stealth_validation["success"]
               @user_telephone.errors.add(:base, t("turnstile_error"))
-              render(:edit, status: :unprocessable_content)
+              render_registration_edit_failure
               return
             end
 
             submitted_code = params.dig(:user_telephone, :pass_code)
             if submitted_code.blank?
               @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
-              render :edit, status: :unprocessable_content
+              render_registration_edit_failure
               return
             end
 
@@ -114,6 +117,65 @@ module Base
           end
 
           private
+
+          # The failure paths keep the page and the 422 the ERB flow answered with.
+          def render_registration_new_failure
+            render inertia: "base/com/identity/telephones/registrations/new",
+                   props: new_page_props,
+                   status: :unprocessable_content
+          end
+
+          def render_registration_edit_failure
+            render inertia: "base/com/identity/telephones/registrations/edit",
+                   props: edit_page_props,
+                   status: :unprocessable_content
+          end
+
+          def new_page_props
+            {
+              title: t("sign.app.settings.telephone.new.title"),
+              description: t("views.sign.com.settings.telephones.registrations.new.description"),
+              errors: @user_telephone.errors.map(&:full_message),
+              form: {
+                url: base_com_identity_telephones_registration_path(ri: params[:ri]),
+                method: "post",
+                scope: "visitor_telephone",
+                submit_label: t("actions.submit"),
+              },
+              number_label: VisitorTelephone.human_attribute_name(:number),
+              number_placeholder: "+819012345678",
+              help_text: t("views.sign.com.settings.telephones.registrations.new.help_text"),
+              cancel_link: {
+                label: t("actions.cancel"),
+                href: base_com_identity_telephones_path(ri: params[:ri]),
+              },
+              turnstile: turnstile_stealth_props,
+            }
+          end
+
+          def edit_page_props
+            {
+              title: t("sign.app.registration.telephone.edit.page_title"),
+              description: t("sign.app.registration.telephone.create.verification_code_sent"),
+              errors: @user_telephone.errors.map(&:full_message),
+              form: {
+                url: base_com_identity_telephones_registration_path(ri: params[:ri]),
+                method: "patch",
+                # The ERB form was `form_with model: @user_telephone`, so the wire scope is the
+                # model name. Keeping it identical keeps the request shape unchanged.
+                scope: "visitor_telephone",
+                submit_label: t("sign.app.registration.telephone.edit.submit"),
+              },
+              code_label: t("sign.app.registration.telephone.edit.code_label"),
+              code_placeholder: t("sign.app.registration.telephone.edit.code_placeholder"),
+              delivery_help: t("sign.app.registration.telephone.edit.delivery_help"),
+              cancel_link: {
+                label: t("actions.cancel"),
+                href: base_com_identity_telephones_path(ri: params[:ri]),
+              },
+              turnstile: turnstile_stealth_props,
+            }
+          end
 
           def authorize_telephone_registration!
             authorize!(VisitorTelephone, to: :create?)
@@ -142,7 +204,7 @@ module Base
                 new_base_com_identity_telephones_registration_path(ri: params[:ri]),
               )
             else
-              render :edit, status: :unprocessable_content
+              render_registration_edit_failure
             end
           end
 

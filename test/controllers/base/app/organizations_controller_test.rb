@@ -17,7 +17,9 @@ class Base::App::OrganizationsControllerTest < ActionDispatch::IntegrationTest
     get base_app_organizations_url(ri: "jp", host: @host), headers: as_user_headers(@user, host: @host)
 
     assert_response :success
-    assert_select "body", text: /organization/i
+    assert_equal "base/app/organizations/index", inertia_component
+    assert_equal "Organizations", inertia_props.fetch("title")
+    assert_equal "organizations", inertia_props.fetch("body")
   end
 
   test "show resolves by public_id" do
@@ -25,7 +27,8 @@ class Base::App::OrganizationsControllerTest < ActionDispatch::IntegrationTest
         headers: as_user_headers(@user, host: @host)
 
     assert_response :success
-    assert_select "body", text: /organization/i
+    assert_equal "base/app/organizations/show", inertia_component
+    assert_equal "organization", inertia_props.fetch("body")
   end
 
   test "show rejects organization outside the current client membership set" do

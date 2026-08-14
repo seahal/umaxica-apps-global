@@ -15,6 +15,8 @@ module Auth
           include CommonOtp
 
           include SessionLimitGate
+          include ::SurfaceInertiaPage
+          include ::TurnstilePageProps
 
           AUTHENTICATION_MODE = :guest
 
@@ -53,9 +55,14 @@ module Auth
 
           def new
             @user_email = VisitorEmail.new
+            render inertia: true, props: sign_in_email_new_props
           end
 
           def edit
+            # `load_user_email` redirects when the ceremony has no live email session.
+            return if performed?
+
+            render inertia: true, props: sign_in_email_edit_props
           end
 
           def create
@@ -63,14 +70,14 @@ module Auth
             address = address_params[:address]
             unless cloudflare_turnstile_validation["success"] && address.present?
               @user_email = VisitorEmail.new(address: address)
-              return render :new, status: :unprocessable_content
+              return redirect_to_sign_in_email_new_with_errors
             end
 
             normalized_address = validate_and_normalize_email(address)
             unless normalized_address
               @user_email = VisitorEmail.new(address: address)
               @user_email.errors.add(:address, t("sign.app.authentication.email.create.invalid_format"))
-              return render :new, status: :unprocessable_content
+              return redirect_to_sign_in_email_new_with_errors
             end
 
             if sign_in_email_cooldown_active?(normalized_address)
@@ -97,6 +104,58 @@ module Auth
           end
 
           private
+
+          # The Inertia contract carries a validation failure as a redirect back with the errors
+          # hash. Which guard rejected the submission, and what it says, is unchanged.
+          def redirect_to_sign_in_email_new_with_errors
+            redirect_to(
+              new_auth_com_sign_in_email_path(pt: signed_pt_param, ri: current_region_identifier),
+              status: :see_other,
+              inertia: { errors: @user_email.errors.to_hash(true).transform_values(&:first) },
+            )
+          end
+
+          def sign_in_email_new_props
+            pt = signed_pt_param
+
+            {
+              title: t("sign.app.authentication.email.new.page_title"),
+              description: t("sign.app.registration.new.social.disclaimer", product: "UMAXICA"),
+              action: auth_com_sign_in_email_path,
+              pt: pt,
+              field_label: VisitorEmail.human_attribute_name(:address),
+              submit_label: t("actions.submit"),
+              back_link: { label: t("sign.app.authentication.new.back"), href: auth_com_sign_in_path(pt: pt) },
+              turnstile: turnstile_visible_props,
+            }
+          end
+
+          def sign_in_email_edit_props
+            pt = signed_pt_param
+
+            {
+              title: t("sign.app.authentication.email.edit.page_title"),
+              description: t("sign.app.authentication.email.edit.description"),
+              action: auth_com_sign_in_email_path,
+              pt: pt,
+              field_label: t("sign.app.authentication.email.edit.code_label"),
+              field_placeholder: t("sign.app.authentication.email.edit.code_placeholder"),
+              submit_label: t("sign.app.authentication.email.edit.submit"),
+              delivery_help: t("sign.app.authentication.email.edit.delivery_help"),
+              return_link: { label: t("sign.app.authentication.email.edit.return_page"), href: new_auth_com_sign_in_email_path(pt: pt) },
+              resend: {
+                endpoint: auth_com_web_v0_in_email_otp_path,
+                state: @otp_resend_state.to_s,
+                messages: {
+                  button_label: t("otp.resend.button"),
+                  sent_message: t("otp.resend.sent"),
+                  too_soon_message: t("otp.resend.too_soon"),
+                  failed_message: t("otp.resend.failed"),
+                },
+              },
+              turnstile: turnstile_visible_props,
+            }
+          end
 
           def load_user_email
             if session[:user_email_authentication_id].present?

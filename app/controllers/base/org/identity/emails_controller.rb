@@ -7,6 +7,8 @@ module Base
       class EmailsController < ::Base::Org::ApplicationController
         include CloudflareTurnstile
         include ::VerificationOperator
+        include ::SurfaceInertiaPage
+        include ::TurnstilePageProps
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
@@ -16,11 +18,13 @@ module Base
 
         def index
           @staff_emails = current_operator.staff_emails.order(created_at: :asc)
+          render inertia: true, props: index_page_props
         end
 
         def edit
           @staff_email = current_operator.staff_emails.find_by!(public_id: params.expect(:id))
           authorize!(@staff_email)
+          render inertia: true, props: edit_page_props
         end
 
         def update
@@ -29,7 +33,7 @@ module Base
 
           unless cloudflare_turnstile_stealth_validation["success"]
             @staff_email.errors.add(:base, t("turnstile_error"))
-            render(:edit, status: :unprocessable_content)
+            render_edit_failure
             return
           end
 
@@ -40,7 +44,7 @@ module Base
             )
           else
             @staff_email.errors.add(:base, t("sign.org.settings.email.update.failure"))
-            render(:edit, status: :unprocessable_content)
+            render_edit_failure
           end
         end
 
@@ -70,6 +74,74 @@ module Base
         end
 
         private
+
+        def render_edit_failure
+          render inertia: "base/org/identity/emails/edit",
+                 props: edit_page_props,
+                 status: :unprocessable_content
+        end
+
+        def index_page_props
+          {
+            title: t("controller.sign.app.setting.index.email"),
+            back_link: { label: t("sign.org.settings.show.back"), href: base_org_identity_path },
+            new_link: {
+              label: t("sign.org.settings.email.index.new_link"),
+              href: new_base_org_identity_emails_registration_path,
+            },
+            columns: {
+              value: t("activerecord.attributes.staff_email.address"),
+              status: t("activerecord.attributes.staff_email.status"),
+              actions: "Actions",
+            },
+            empty_message: t("sign.org.settings.email.index.empty"),
+            entries: @staff_emails.map { |email| serialize_email(email) },
+          }
+        end
+
+        def serialize_email(email)
+          verified = [OperatorEmailStatus::ACTIVE, OperatorEmailStatus::VERIFIED]
+            .include?(email.staff_email_status_id)
+          status_key = verified ? "verified" : "unverified"
+
+          {
+            public_id: email.public_id,
+            value: email.address,
+            status: t("views.sign.org.settings.emails.index.#{status_key}"),
+            edit_link: {
+              label: t("sign.org.settings.email.index.edit"),
+              href: edit_base_org_identity_email_path(email.public_id),
+            },
+          }
+        end
+
+        def edit_page_props
+          {
+            title: t("sign.org.settings.email.edit.title"),
+            address: @staff_email.address,
+            form: {
+              action: base_org_identity_email_path(@staff_email.public_id, ri: params[:ri]),
+              scope: "staff_email",
+              promotional: @staff_email.promotional,
+              notifiable: @staff_email.notifiable,
+              always_on_label: t("sign.org.settings.email.edit.always_on"),
+              always_on_description: t("sign.org.settings.email.edit.always_on_description"),
+              promotional_label: t("sign.org.settings.email.edit.promotional_label"),
+              promotional_description: t("sign.org.settings.email.edit.promotional_description"),
+              notifiable_label: t("sign.org.settings.email.edit.notifiable_label"),
+              notifiable_description: t("sign.org.settings.email.edit.notifiable_description"),
+              submit: t("sign.org.settings.email.edit.save"),
+              turnstile: turnstile_stealth_props,
+            },
+            delete: {
+              label: t("sign.org.settings.email.index.delete"),
+              href: base_org_identity_email_path(@staff_email.public_id),
+              confirm: t("sign.org.settings.email.index.delete_confirm"),
+            },
+            cancel_link: { label: t("sign.common.cancel"), href: base_org_identity_emails_path },
+            error_messages: @staff_email.errors.full_messages,
+          }
+        end
 
         def authorize_emails!
           authorize!(OperatorEmail, to: :index?)

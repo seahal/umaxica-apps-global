@@ -42,8 +42,9 @@ module Palm
           follow_redirect!
 
           assert_response :success
-          assert_select "h1", text: "Signed out"
-          assert_select "code", text: "client-state"
+          assert_equal "palm/app/sign_outs/show", inertia_component
+          assert_equal I18n.t("palm.app.sign_out.heading"), inertia_props.fetch("heading")
+          assert_equal "client-state", inertia_props.fetch("state")
         end
 
         test "get sign out renders directly when the region is already present" do
@@ -67,7 +68,8 @@ module Palm
           )
 
           assert_response :success
-          assert_select "h1", text: "Signed out"
+          assert_equal "palm/app/sign_outs/show", inertia_component
+          assert_equal I18n.t("palm.app.sign_out.heading"), inertia_props.fetch("heading")
         end
 
         test "post sign out revokes the current bearer token and returns opaque browser launch data" do

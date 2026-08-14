@@ -251,7 +251,7 @@ module SignUpSequenceControllerSupport
       end
     @sign_up_age_restricted_message = I18n.t(i18n_key)
     @sign_up_age_restricted_restart_path = sign_up_restart_path
-    render "auth/app/sign/up/checkpoints/age_restricted", status: :ok
+    render "auth/#{sign_up_surface}/sign/up/checkpoints/age_restricted", status: :ok
   end
 
   def finalize_sign_up_from_checkpoint!(json: false)

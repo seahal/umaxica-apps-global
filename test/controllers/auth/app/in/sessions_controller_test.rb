@@ -61,16 +61,15 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     assert_response :success
     assert_not response.redirect?
-    assert_select "form[data-turbo=false][action=?]", auth_app_sign_in_session_path(ri: "jp")
-    assert_select "input[type=radio][name=ref]"
-    assert_select "input[type=checkbox][name='revoke_refs[]']", false
-    assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
-    assert_select "form[data-turbo=false][method=post][action=?]",
-                  auth_app_sign_in_session_path(ri: "jp")
-    assert_select "form[data-turbo=false][action=?] input[name=_method][value=delete]",
-                  auth_app_sign_in_session_path(ri: "jp")
-    assert_select "form[data-turbo=false][action=?] input[name=_method][value=delete]",
-                  auth_app_sign_in_session_path(ri: "jp")
+    assert_equal "auth/app/sign/in/sessions/show", inertia_component
+    assert_equal auth_app_sign_in_session_path(ri: "jp"), inertia_props.fetch("form").fetch("action")
+    # A session is selected by its signed reference, the same opaque value the radio button carried.
+    refs = inertia_props.fetch("active_sessions").fetch("items").filter_map { |item| item["ref"] }
+
+    assert_predicate refs, :any?
+    assert_equal I18n.t("sign.app.in.session.cancel_logout"), inertia_props.fetch("cancel").fetch("label")
+    # Cancelling the sign-in stays a DELETE to the session route.
+    assert_equal auth_app_sign_in_session_path(ri: "jp"), inertia_props.fetch("cancel").fetch("action")
   end
 
   test "show counts only usable active sessions" do
@@ -87,7 +86,8 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     get auth_app_sign_in_session_url(ri: "jp"), headers: headers
 
     assert_response :success
-    assert_includes response.body, "(2/#{ClientToken::MAX_SESSIONS_PER_USER})"
+    assert_equal "(2/#{ClientToken::MAX_SESSIONS_PER_USER})",
+                 inertia_props.fetch("active_sessions").fetch("count_label")
     assert_not_equal active_token.public_id, current_active.public_id
   end
 

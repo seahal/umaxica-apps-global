@@ -3,14 +3,26 @@
 // It used to be a self-contained ERB document with its own inline stylesheet, one copy per surface.
 // The surfaces differ only in their heading and their sign-up destination, so both arrive as props
 // and the markup is shared.
+export type RootLandingLink = { label: string; href: string };
+
 export type RootLandingProps = {
-  title: string;
+  // A root document renders the brand alone, so a surface whose landing carries no page title of
+  // its own sends null and the layout falls back to that contract.
+  title: string | null;
   heading: string;
   description: string;
-  sign_up: { label: string; href: string } | null;
+  sign_up: RootLandingLink | null;
+  // Surfaces that offer more than one destination (side settings, palm per-platform sign-up) send
+  // them here; the server has already decided which ones the visitor may see.
+  links?: RootLandingLink[] | null;
 };
 
-export default function RootLanding({ heading, description, sign_up: signUp }: RootLandingProps) {
+export default function RootLanding({
+  heading,
+  description,
+  sign_up: signUp,
+  links,
+}: RootLandingProps) {
   const headingId = "root-landing-title";
 
   return (
@@ -31,6 +43,11 @@ export default function RootLanding({ heading, description, sign_up: signUp }: R
             <a href={signUp.href}>{signUp.label}</a>
           </p>
         ) : null}
+        {links?.map((link) => (
+          <p key={link.href}>
+            <a href={link.href}>{link.label}</a>
+          </p>
+        ))}
       </div>
     </section>
   );

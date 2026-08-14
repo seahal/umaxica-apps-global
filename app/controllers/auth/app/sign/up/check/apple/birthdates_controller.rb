@@ -14,6 +14,9 @@ module Auth
 
               include SignUpSocialCheckBirthdateControllerSupport
 
+              include ::SurfaceInertiaPage
+              include AppSignUpCheckpointPage
+
               AUTHENTICATION_MODE = :open
 
               before_action :hide_sign_up_auth_navigation

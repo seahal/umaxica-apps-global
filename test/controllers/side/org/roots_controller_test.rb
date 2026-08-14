@@ -20,7 +20,16 @@ class Side::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     get side_org_root_url(ri: "jp")
 
     assert_response :success
-    assert_select "h1", text: "Side Org"
+    assert_equal "side/org/roots/index", inertia_component
+    assert_equal "Side Org", inertia_props.fetch("heading")
+    assert_equal I18n.t("base.org.roots.message"), inertia_props.fetch("description")
+    assert_equal(
+      [
+        ["Settings", side_org_settings_path(ri: "jp")],
+        ["Sign up", side_org_oidc_authorization_path(ri: "jp")],
+      ],
+      inertia_props.fetch("links").map { |link| [link.fetch("label"), link.fetch("href")] },
+    )
   end
 
   test "redirects signed-in operator to dashboard" do

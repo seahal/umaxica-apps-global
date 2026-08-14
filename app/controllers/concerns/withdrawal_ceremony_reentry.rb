@@ -17,6 +17,7 @@ module WithdrawalCeremonyReentry
   def new
     @email_record = identity_email_model.new
     @reentry_state = withdrawal_reentry_state
+    render_withdrawal_reentry_new
   end
 
   def create
@@ -51,7 +52,14 @@ module WithdrawalCeremonyReentry
     @generic_message = withdrawal_reentry_generic_message
     @reentry_state = withdrawal_reentry_state
     @email_record = identity_email_model.new(address: withdrawal_reentry_address)
-    render :new, status: :ok
+    render_withdrawal_reentry_new(status: :ok)
+  end
+
+  # The re-entry screen, as its surface renders it. `render :new` resolves the including
+  # controller's own template; a surface whose page is an Inertia component overrides this one
+  # method, so the flow control, the statuses and the timing guards stay identical everywhere.
+  def render_withdrawal_reentry_new(status: :ok)
+    render :new, status: status
   end
 
   def verify_withdrawal_reentry_otp
@@ -85,7 +93,7 @@ module WithdrawalCeremonyReentry
     @generic_message = withdrawal_reentry_generic_message
     @reentry_state = withdrawal_reentry_state
     @email_record = identity_email_model.new(address: withdrawal_reentry_address)
-    render :new, status: :unprocessable_content
+    render_withdrawal_reentry_new(status: :unprocessable_content)
   end
 
   def withdrawal_reentry_state

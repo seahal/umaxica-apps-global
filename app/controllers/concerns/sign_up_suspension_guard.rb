@@ -36,8 +36,15 @@ module SignUpSuspensionGuard
       JitLogEvent.format("sign_up.suspended", surface: sign_up_surface.to_s),
     )
     @sign_up_available = false
-    render(suspended_sign_up_template, status: :service_unavailable)
+    render_suspended_sign_up!
     true
+  end
+
+  # The status and the "re-render the sign-up entry page" shape are fixed; how that page is
+  # rendered is not. A surface whose entry page is an Inertia component overrides this to render
+  # the component with the same status, rather than an ERB template that no longer exists.
+  def render_suspended_sign_up!
+    render(suspended_sign_up_template, status: :service_unavailable)
   end
 
   def suspended_sign_up_template

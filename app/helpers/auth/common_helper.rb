@@ -92,6 +92,28 @@ module Auth::CommonHelper
     end
   end
 
+  # The same fields `sign_up_birthdate_fields` renders, serialized for an Inertia page instead of
+  # built into markup. One implementation of the ordering, the bounds and the labels serves both,
+  # so a surface that has migrated and a surface that has not cannot drift apart.
+  def sign_up_birthdate_prop_parts(value)
+    parts = sign_up_birthdate_value_parts(value)
+
+    sign_up_birthdate_part_order.map do |part|
+      {
+        part: part,
+        label: sign_up_birthdate_part_label(part),
+        placeholder: sign_up_birthdate_part_placeholder(part),
+        value: parts[part],
+        min: sign_up_birthdate_part_min(part),
+        max: sign_up_birthdate_part_max(part),
+      }
+    end
+  end
+
+  def sign_up_birthdate_prop_separator(format = sign_up_birthdate_date_format)
+    sign_up_birthdate_separator(format)
+  end
+
   private
 
   def sign_up_birthdate_value_parts(value)

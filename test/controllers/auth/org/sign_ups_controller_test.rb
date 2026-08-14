@@ -24,7 +24,8 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     get auth_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "a[href=?]", auth_org_sign_in_path(ri: "jp")
+    assert_equal "auth/org/sign/ups/show", inertia_component
+    assert_equal auth_org_sign_in_path(ri: "jp"), inertia_props.fetch("sign_in_link").fetch("href")
   end
 
   test "local ceremony does not render sign in link on sign up page" do
@@ -38,7 +39,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
         headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "a[href=?]", auth_org_sign_in_path(ri: "jp"), count: 0
+    assert_nil inertia_props["sign_in_link"]
   end
 
   test "valid login challenge renders local ceremony" do
@@ -66,10 +67,9 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
         headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "[data-test-id=?]", "registration-method", count: 0
-    assert_select "a[href=?]", "/sign/up/email/new?ri=jp", count: 0
-    assert_select "form[action*=?]", "/social/auth/google", count: 0
-    assert_select "form[action*=?]", "/social/auth/apple", count: 0
+    # The org surface has no registration methods at all: recruitment is the only entry point.
+    assert_nil inertia_props["methods"]
+    assert_no_match(%r{/sign/up/email/new|/social/auth/google|/social/auth/apple}, response.body)
   end
 
   test "local ceremony does not show google signup button even if legacy flag is set" do
@@ -85,8 +85,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "form[action*=?]", "/social/auth/google", count: 0
-    assert_select "form[action*=?]", "/auth/google", count: 0
+    assert_no_match(%r{/social/auth/google|/auth/google}, response.body)
   end
 
   test "local ceremony renders recruit contact and home links" do
@@ -101,13 +100,10 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    link = css_select("div a").find { |a| a.text == I18n.t("sign.org.ups.new.recruit_link_text") }
+    recruit = inertia_props.fetch("recruit")
 
-    assert_not_nil link,
-                   "Could not find link with text: #{I18n.t("sign.org.ups.new.recruit_link_text").inspect}"
-    href = link["href"]
-
-    assert_match(/ri=jp/, href)
+    assert_equal I18n.t("sign.org.ups.new.recruit_link_text"), recruit.fetch("label")
+    assert_match(/ri=jp/, recruit.fetch("href"))
   end
 
   test "direct app-style email sign up route is not available" do

@@ -6,6 +6,7 @@ module Base
     module Identity
       module Emails
         class RegistrationsController < BaseController
+          include ::SurfaceInertiaPage
           include CloudflareTurnstile
           include CommonRedirect
           include CommonOtp
@@ -34,6 +35,68 @@ module Base
           def resend = super
 
           private
+
+          def render_email_registration_new(status: :ok)
+            render inertia: "base/app/identity/emails/registrations/new",
+                   props: email_registration_new_props,
+                   status: status
+          end
+
+          def render_email_registration_edit(status: :ok)
+            render inertia: "base/app/identity/emails/registrations/edit",
+                   props: email_registration_edit_props,
+                   status: status
+          end
+
+          def email_registration_new_props
+            {
+              title: "Add an email address",
+              back_link: { label: t("sign.app.settings.show.back"), href: preference_return_url },
+              cancel_link: { label: "Cancel", href: preference_return_url },
+              form: {
+                action: base_app_identity_emails_registration_path,
+                address_label: t("activerecord.attributes.user_email.address"),
+                address: @user_email&.address.to_s,
+                submit_label: "Submit",
+                promotional: {
+                  checked: @user_email&.promotional.present?,
+                  label: t("sign.app.settings.email.edit.promotional_label"),
+                  description: t("sign.app.settings.email.edit.promotional_description"),
+                },
+                notifiable: {
+                  checked: @user_email&.notifiable.present?,
+                  label: t("sign.app.settings.email.edit.notifiable_label"),
+                  description: t("sign.app.settings.email.edit.notifiable_description"),
+                },
+              },
+              errors: Array(@user_email&.errors&.full_messages),
+            }
+          end
+
+          def email_registration_edit_props
+            {
+              title: "Verify your email address",
+              description: "Enter the verification code that was sent to the address you added.",
+              cancel_link: { label: "Cancel", href: preference_return_url },
+              form: {
+                action: base_app_identity_emails_registration_path,
+                code_label: "Verification code",
+                code_placeholder: "123456",
+                delivery_help: "The code expires after a short time. Request a new one if it does not arrive.",
+                submit_label: "Verify",
+                verification_token: @verification_token.presence,
+              },
+              resend: {
+                label: t("otp.resend.button"),
+                url: base_app_identity_emails_registration_redelivery_path(ri: params[:ri], pt: signed_pt_param),
+              },
+              errors: Array(@user_email&.errors&.full_messages),
+            }
+          end
+
+          def preference_return_url
+            "https://#{ENV.fetch("PRIVATE_BASE_SERVICE_URL")}/preference?ri=#{params[:ri]}"
+          end
 
           def authorize_email_registration! = authorize!(ClientEmail, to: :create?)
 

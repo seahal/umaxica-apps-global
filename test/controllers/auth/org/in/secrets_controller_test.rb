@@ -37,15 +37,17 @@ class Auth::Org::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
     get new_auth_org_sign_in_secret_url(ri: "jp")
 
     assert_response :success
-    assert_select "label", text: "ID"
-    assert_select "input[name='secret_credential_login_form[identifier]'][required]"
-    assert_select "input[name='secret_credential_login_form[identifier]'][minlength='16']"
-    assert_select "input[name='secret_credential_login_form[identifier]'][maxlength='16']"
-    assert_select "input[name='secret_credential_login_form[identifier]'][pattern='[0-9A-FGHJKMNPQRSTVWXYZ]{16}']"
-    assert_select "input[name='secret_credential_login_form[identifier]'][autocapitalize='characters']"
-    assert_select "input[name='secret_credential_login_form[identifier]'][spellcheck='false']"
-    assert_select "input[type='hidden'][name='ri'][value='jp']"
-    assert_select "a[href=?]", auth_org_sign_in_path(ri: "jp")
+    assert_equal "auth/org/sign/in/secrets/new", inertia_component
+
+    identifier = inertia_props.fetch("identifier")
+
+    assert_equal "ID", identifier.fetch("label")
+    assert_equal "secret_credential_login_form[identifier]", identifier.fetch("name")
+    assert_equal 16, identifier.fetch("min_length")
+    assert_equal 16, identifier.fetch("max_length")
+    assert_equal "[0-9A-FGHJKMNPQRSTVWXYZ]{16}", identifier.fetch("pattern")
+    assert_equal "jp", inertia_props.fetch("hidden_fields").fetch("ri")
+    assert_equal auth_org_sign_in_path(ri: "jp"), inertia_props.fetch("back_link").fetch("href")
   end
 
   test "create signs in with staff public_id and secret_credential" do
@@ -255,7 +257,8 @@ class Auth::Org::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          }
 
     assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.org.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("errors"),
+                    I18n.t("sign.org.authentication.secret_credential.create.invalid")
   end
 
   test "create rejects direct secret credential login when logical staff limit is reached despite rotated rows" do

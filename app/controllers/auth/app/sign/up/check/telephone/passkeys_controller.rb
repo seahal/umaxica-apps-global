@@ -12,6 +12,8 @@ module Auth
               include ::PasskeyRegistrationFlow
               include SignUpSequenceControllerSupport
               include SignUpExplicitStepControllerSupport
+              include ::SurfaceInertiaPage
+              include AppSignUpCheckpointPage
 
               AUTHENTICATION_MODE = :guest
 
@@ -26,7 +28,7 @@ module Auth
 
                 @sign_up_actor = sign_up_pending_actor
                 @success_redirect_url = success_redirect_url
-                render "auth/app/sign/up/checkpoint/passkeys/new"
+                render_sign_up_passkey_page
               end
 
               def create
@@ -59,6 +61,26 @@ module Auth
               end
 
               private
+
+              # The same two endpoints the Stimulus registration controller used, and the same
+              # checkpoint version the server re-validates before it clears the requirement.
+              def render_sign_up_passkey_page
+                path = auth_app_sign_up_check_telephone_passkey_path(ri: params[:ri], pt: signed_pt_param)
+
+                render inertia: "auth/app/sign/up/checkpoint/passkeys/new",
+                       props: {
+                         title: t("sign.app.registration.checkpoint.show.passkey.title"),
+                         begin_url: path,
+                         finish_url: path,
+                         success_redirect_url: @success_redirect_url,
+                         checkpoint_version: (
+                           params[:checkpoint_version].presence || @sign_up_ticket.checkpoint_version
+                         ).to_i,
+                         description_label: t("sign.app.settings.passkeys.new.description_label"),
+                         description_placeholder: t("sign.app.settings.passkeys.new.description_placeholder"),
+                         submit_label: t("sign.app.settings.passkeys.new.submit"),
+                       }
+              end
 
               def success_redirect_url
                 auth_app_sign_up_check_telephone_passcode_path(ri: params[:ri], pt: signed_pt_param)

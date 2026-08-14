@@ -6,6 +6,8 @@ module Auth
     module Sign
       module Up
         class EmailsController < ::Auth::App::ApplicationController
+          include ::SurfaceInertiaPage
+          include ::TurnstilePageProps
           include ::CloudflareTurnstile
           include CommonRedirect
           include CommonOtp
@@ -13,6 +15,7 @@ module Auth
           include EnforcementIdentifierGate
 
           include SignUpSuspensionGuard
+          include AppSignUpEntryPage
 
           AUTHENTICATION_MODE = :guest
 
@@ -64,6 +67,7 @@ module Auth
 
           def new
             @user_email = ClientEmail.new
+            render_sign_up_email_new
           end
 
           def edit
@@ -79,7 +83,7 @@ module Auth
             end
 
             # Security: Validate the email belongs to the current registration flow
-            return if valid_email_session?
+            return render_sign_up_email_edit if valid_email_session?
 
             reset_email_flow!
             redirect_params = build_notice_params(t("sign.app.registration.email.edit.session_expired"))
@@ -124,7 +128,7 @@ module Auth
                 "sign.signup.email.create.rejected",
                 sign_signup_request_flags.merge(step: "email_otp", reason: "unexpected_error").compact,
               )
-              render :new, status: :unprocessable_content
+              render_sign_up_email_new(status: :unprocessable_content)
               return
             end
 
@@ -139,6 +143,105 @@ module Auth
 
           def sign_up_surface = :app
 
+          # The registration form. `pt` travels in the generated action URL rather than as a prop,
+          # so the signed target never becomes page data the browser holds separately.
+          def render_sign_up_email_new(status: :ok)
+            render inertia: "auth/app/sign/up/emails/new",
+                   props: sign_up_email_new_props,
+                   status: status
+          end
+
+          def sign_up_email_new_props
+            {
+              title: t("sign.app.registration.email.new.page_title"),
+              action: auth_app_sign_up_email_path(pt: signed_pt_param),
+              scope: "client_email",
+              field: {
+                name: "raw_address",
+                label: ClientEmail.human_attribute_name(:address),
+                type: "email",
+                autocomplete: "email",
+              },
+              checkboxes: sign_up_email_checkboxes,
+              error_heading: sign_up_email_errors.any? ? t("sign.app.registration.email.new.error_summary") : nil,
+              errors: sign_up_email_errors,
+              turnstile: turnstile_visible_props,
+              submit_label: sign_up_submit_label(ClientEmail),
+              links: [
+                {
+                  key: "other_methods",
+                  label: t("sign.app.registration.new.page_title"),
+                  href: auth_app_sign_up_path,
+                },
+                {
+                  key: "sign_in",
+                  label: t("sign.app.registration.email.new.link_to_sign_in"),
+                  href: new_auth_app_sign_in_email_path,
+                },
+              ],
+            }
+          end
+
+          def sign_up_email_checkboxes
+            [
+              {
+                name: "confirm_policy",
+                label: t("views.sign.app.up.emails.new.confirm_policy_label"),
+                description: nil,
+              },
+              {
+                name: "promotional",
+                label: t("sign.app.settings.email.edit.promotional_label"),
+                description: t("sign.app.settings.email.edit.promotional_description"),
+              },
+              {
+                name: "notifiable",
+                label: t("sign.app.settings.email.edit.notifiable_label"),
+                description: t("sign.app.settings.email.edit.notifiable_description"),
+              },
+            ]
+          end
+
+          # The OTP step. Only what the page shows crosses: never the code, the ceremony nonce or
+          # the address the server already holds in the flow.
+          def render_sign_up_email_edit(status: :ok)
+            render inertia: "auth/app/sign/up/emails/edit",
+                   props: sign_up_email_edit_props,
+                   status: status
+          end
+
+          def sign_up_email_edit_props
+            {
+              title: t("sign.app.authentication.email.edit.page_title"),
+              description: t("sign.app.registration.email.create.verification_code_sent"),
+              action: auth_app_sign_up_check_email_otp_path(ri: params[:ri], pt: signed_pt_param),
+              scope: "client_email",
+              code_label: t("sign.app.authentication.email.edit.code_label"),
+              code_placeholder: t("sign.app.authentication.email.edit.code_placeholder"),
+              submit_label: t("sign.app.authentication.email.edit.submit"),
+              delivery_help: t("sign.app.authentication.email.edit.delivery_help"),
+              error_heading: nil,
+              errors: sign_up_email_errors,
+              return_link: {
+                label: t("sign.app.registration.email.edit.return_page"),
+                href: auth_app_sign_up_path,
+              },
+            }
+          end
+
+          def sign_up_email_errors
+            @user_email&.errors&.map(&:full_message) || []
+          end
+
+          # Mirrors the label `form.submit` looked up, so the button keeps its wording.
+          def sign_up_submit_label(model_class)
+            I18n.t(
+              :"helpers.submit.#{model_class.model_name.param_key}.create",
+              model: model_class.model_name.human,
+              default: [:"helpers.submit.create", "Create %{model}"],
+            )
+          end
+
           def render_blank_registration_email!(email_address)
             return false if email_address.present?
 
@@ -148,7 +251,7 @@ module Auth
               "sign.signup.email.create.rejected",
               sign_signup_request_flags.merge(step: "email_otp", reason: "email_blank").compact,
             )
-            render :new, status: :unprocessable_content
+            render_sign_up_email_new(status: :unprocessable_content)
             true
           end
 
@@ -164,7 +267,7 @@ module Auth
 
             @user_email = ClientEmail.new
             @user_email.errors.add(:base, t("sign.app.registration.email.create.address_required"))
-            render :new, status: :unprocessable_content
+            render_sign_up_email_new(status: :unprocessable_content)
             true
           end
 

@@ -31,6 +31,8 @@ class Base::App::AvatarsControllerTest < ActionDispatch::IntegrationTest
     get base_app_avatars_url(ri: "jp", host: @host), headers: as_user_headers(@user, host: @host)
 
     assert_response :success
+    assert_equal "base/app/avatars/index", inertia_component
+    assert_equal "Avatars", inertia_props.fetch("title")
   end
 
   test "full login can show, edit and update own avatar" do
@@ -40,11 +42,15 @@ class Base::App::AvatarsControllerTest < ActionDispatch::IntegrationTest
         headers: as_user_headers(@user, host: @host)
 
     assert_response :success
+    assert_equal "base/app/avatars/show", inertia_component
+    assert_equal result.avatar.moniker, inertia_props.fetch("moniker")
 
     get edit_base_app_avatar_url(result.avatar.public_id, ri: "jp", host: @host),
         headers: as_user_headers(@user, host: @host)
 
     assert_response :success
+    assert_equal "base/app/avatars/edit", inertia_component
+    assert_equal "patch", inertia_props.fetch("method")
 
     patch base_app_avatar_url(result.avatar.public_id, ri: "jp", host: @host),
           params: { avatar: { moniker: "Updated Avatar" } },
@@ -60,6 +66,9 @@ class Base::App::AvatarsControllerTest < ActionDispatch::IntegrationTest
     get new_base_app_avatar_url(ri: "jp", host: @host), headers: as_user_headers(@user, host: @host)
 
     assert_response :success
+    assert_equal "base/app/avatars/new", inertia_component
+    assert_equal "post", inertia_props.fetch("method")
+    assert_equal "New Avatar", inertia_props.fetch("title")
   end
 
   test "create avatar persists owned avatar" do
@@ -93,6 +102,7 @@ class Base::App::AvatarsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_content
+    assert_equal "base/app/avatars/new", inertia_component
   end
 
   test "cannot show another client's avatar" do

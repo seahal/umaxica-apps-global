@@ -62,15 +62,12 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     assert_response :success
     assert_not response.redirect?
-    assert_select "form[data-turbo=false][action=?]", auth_org_sign_in_session_path(ri: "jp")
-    assert_select "input[type=radio][name=ref]"
-    assert_select "input[type=checkbox][name='revoke_session_ids[]']", false
-    assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
-    assert_select "form[data-turbo=false][method=post][action=?]",
-                  auth_org_sign_in_session_path(ri: "jp")
-    assert_select "form[data-turbo=false][action=?] input[name=_method][value=delete]",
-                  auth_org_sign_in_session_path(ri: "jp")
-    rendered_ref = css_select("input[type=radio][name=ref]").first["value"]
+    assert_equal "auth/org/sign/in/sessions/show", inertia_component
+    assert_equal auth_org_sign_in_session_path(ri: "jp"), inertia_props.fetch("form_action")
+    # Sessions are chosen one at a time by signed reference, never by a multi-select of ids.
+    assert_nil inertia_props["revoke_session_ids"]
+    assert_equal I18n.t("session_limit.edit.cancel_logout"), inertia_props.fetch("cancel_logout_label")
+    rendered_ref = inertia_props.fetch("sessions").first.fetch("ref")
 
     assert_equal active_token, OperatorToken.find_from_signed_ref(rendered_ref)
   end

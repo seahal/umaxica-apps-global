@@ -18,7 +18,10 @@ class Auth::Org::Social::SessionsControllerTest < ActionDispatch::IntegrationTes
     get "/sign/in", params: { ri: "jp" }
 
     assert_response :success
-    assert_select "form[action=?][method=?]", auth_org_social_entra_session_path(ri: "jp"), "post"
+    entra = inertia_props.fetch("methods").find { |method| method.fetch("key") == "entra" }
+
+    assert_equal "provider", entra.fetch("kind")
+    assert_equal auth_org_social_entra_session_path(ri: "jp"), entra.fetch("href")
   end
 
   # The tenant is fixed in configuration, so the ceremony starts on the press
@@ -40,7 +43,9 @@ class Auth::Org::Social::SessionsControllerTest < ActionDispatch::IntegrationTes
     get new_auth_org_social_entra_session_path(ri: "jp")
 
     assert_response :success
-    assert_select "form[action=?]", "/social/entra"
+    assert_equal "auth/org/social/sessions/new", inertia_component
+    assert_equal "/social/entra", inertia_props.fetch("form").fetch("action")
+    # The tenant is fixed in configuration, so the page asks the operator for nothing.
     assert_select "input[type=?]", "text", count: 0
   end
 
@@ -78,8 +83,9 @@ class Auth::Org::Social::SessionsControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :service_unavailable
-    assert_includes response.body, I18n.t("sign.org.authentication.entra.errors.provider_unavailable")
-    assert_select "form[action=?]", "/social/entra", count: 0
+    assert_equal I18n.t("sign.org.authentication.entra.errors.provider_unavailable"),
+                 inertia_props.fetch("unavailable_notice")
+    assert_nil inertia_props["form"]
   end
 
   test "POST is rate limited per client address" do

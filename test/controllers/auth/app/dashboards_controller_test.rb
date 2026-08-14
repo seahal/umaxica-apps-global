@@ -18,21 +18,33 @@ class Auth::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
     get auth_app_dashboard_url(ri: "jp"), headers: as_user_headers(@user, host: @host)
 
     assert_response :success
-    assert_select "h1", text: "Dashboard"
-    assert_select "p", text: /Sign app signed-in landing/
-    assert_select "a[href=?]", auth_app_root_path(ri: "jp")
-    assert_select "a[href=?]", auth_app_sign_in_path(ri: "jp")
-    assert_select "a[href=?]", auth_app_sign_up_path(ri: "jp")
-    assert_select "a[href=?]", auth_app_settings_path(ri: "jp")
-    assert_select "a[href=?]", new_auth_app_sign_out_path(ri: "jp")
-    assert_select "a[href=?]", auth_app_sign_in_guard_path(ri: "jp")
-    assert_select "a[href=?]", auth_app_sign_in_check_path(ri: "jp")
-    assert_select "a[href=?]", auth_app_sign_in_challenge_path(ri: "jp")
-    assert_select "a[href=?]", new_auth_app_sign_in_challenge_totp_path(ri: "jp")
-    assert_select "a[href=?]", auth_app_verification_path(ri: "jp")
-    assert_select "a[href=?]", new_auth_app_verification_totp_path(ri: "jp")
-    assert_select "li", text: "Selector: handled by the sign-in guard sequence, no direct dashboard route"
-    assert_no_match(/<a[^>]+>Selector<\/a>/, response.body)
+    assert_equal "auth/app/dashboards/show", inertia_component
+    assert_equal "Dashboard", inertia_props.fetch("title")
+    assert_equal "Sign app signed-in landing.", inertia_props.fetch("description")
+
+    items = inertia_props.fetch("sections").flat_map { |section| section.fetch("items") }
+    hrefs = items.filter_map { |item| item["href"] }
+
+    assert_includes hrefs, auth_app_root_path(ri: "jp")
+    assert_includes hrefs, auth_app_sign_in_path(ri: "jp")
+    assert_includes hrefs, auth_app_sign_up_path(ri: "jp")
+    assert_includes hrefs, auth_app_settings_path(ri: "jp")
+    assert_includes hrefs, new_auth_app_sign_out_path(ri: "jp")
+    assert_includes hrefs, auth_app_sign_in_guard_path(ri: "jp")
+    assert_includes hrefs, auth_app_sign_in_check_path(ri: "jp")
+    assert_includes hrefs, auth_app_sign_in_challenge_path(ri: "jp")
+    assert_includes hrefs, new_auth_app_sign_in_challenge_totp_path(ri: "jp")
+    assert_includes hrefs, auth_app_verification_path(ri: "jp")
+    assert_includes hrefs, new_auth_app_verification_totp_path(ri: "jp")
+
+    selector =
+      items.find do |item|
+        item.fetch("label") == "Selector: handled by the sign-in guard sequence, no direct dashboard route"
+      end
+
+    assert selector, "the selector note must still be listed"
+    # The selector has no direct route, so the server sends no destination for it to link to.
+    assert_nil selector.fetch("href")
     assert_no_match(%r{//example|id\.umaxica|umaxica\.example|evil\.example}, response.body)
   end
 

@@ -6,8 +6,10 @@ module Base
     module Identity
       module Recovery
         class AppealsController < ::Base::App::Identity::BaseController
+          include ::SurfaceInertiaPage
           include CommonRedirect
           include EnforcementRecoveryCeremonyCookie
+          include IdentityRecoveryPage
 
           AUTHENTICATION_MODE = :open
           declare_authentication_mode! :open
@@ -26,9 +28,11 @@ module Base
                                                status: :see_other,
             )
           rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
-            @appeal_error = e.message
-            @enforcement_cases = appealable_cases
-            render "base/app/identity/recoveries/show", status: :unprocessable_content
+            render_identity_recovery(
+              enforcement_cases: appealable_cases,
+              appeal_error: e.message,
+              status: :unprocessable_content,
+            )
           end
 
           private

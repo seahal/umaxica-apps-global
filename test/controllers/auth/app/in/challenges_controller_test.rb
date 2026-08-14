@@ -60,7 +60,8 @@ class Auth::App::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
     # Check for translation key in body - translation may be missing or present
     # assert response.body.include?(I18n.t("sign.app.in.mfa.title")) || response.body.include?("translation missing")
     # Check that TOTP method link is present
-    assert response.body.include?("totp") || response.body.include?("Totp")
+    assert_equal "auth/app/sign/in/challenges/show", inertia_component
+    assert_includes inertia_props.fetch("methods").map { |method| method.fetch("key") }, "totp"
   end
 
   test "show does not display totp method when disabled" do
@@ -79,7 +80,8 @@ class Auth::App::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
     follow_redirect!
 
     assert_response :success
-    assert_not_includes response.body, I18n.t("sign.app.in.mfa.methods.totp")
+    assert_not_includes inertia_props.fetch("methods").map { |method| method.fetch("label") },
+                        I18n.t("sign.app.in.mfa.methods.totp")
   end
 
   test "show does not display passkey method when disabled" do
@@ -98,6 +100,7 @@ class Auth::App::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
     follow_redirect!
 
     assert_response :success
-    assert_not_includes response.body, I18n.t("sign.app.in.mfa.methods.passkey")
+    assert_not_includes inertia_props.fetch("methods").map { |method| method.fetch("label") },
+                        I18n.t("sign.app.in.mfa.methods.passkey")
   end
 end

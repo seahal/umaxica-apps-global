@@ -357,7 +357,11 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "table"
+    assert_equal "auth/app/settings/passkeys/index", inertia_component
+    assert_equal(
+      [@passkey.public_id],
+      inertia_props.fetch("passkeys").map { |row| row.fetch("public_id") },
+    )
   end
 
   test "should show up link on index page" do
@@ -366,7 +370,10 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "a[href=?]", new_auth_app_settings_passkey_path(ri: "jp")
+    assert_equal(
+      new_auth_app_settings_passkey_path(ri: "jp"),
+      inertia_props.fetch("new_link").fetch("href"),
+    )
   end
 
   test "should get new" do
@@ -376,7 +383,19 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "a[href=?]", auth_app_settings_passkeys_path(ri: "jp")
+    assert_equal "auth/app/settings/passkeys/new", inertia_component
+    assert_equal(
+      auth_app_settings_passkeys_path(ri: "jp"),
+      inertia_props.fetch("back_link").fetch("href"),
+    )
+    assert_equal(
+      auth_app_settings_passkeys_options_path(ri: "jp"),
+      inertia_props.fetch("panel").fetch("options_url"),
+    )
+    assert_equal(
+      auth_app_settings_passkeys_verification_path(ri: "jp"),
+      inertia_props.fetch("panel").fetch("verification_url"),
+    )
   end
 
   test "new denies with zero unused usable recovery passcodes" do
@@ -436,7 +455,11 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_includes response.body, I18n.t("defaults.never")
+    assert_equal "auth/app/settings/passkeys/show", inertia_component
+    assert_includes(
+      inertia_props.fetch("details").map { |detail| detail.fetch("value") },
+      I18n.t("defaults.never"),
+    )
   end
 
   test "show renders back link before passkey details" do
@@ -445,7 +468,10 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "a[href=?]", auth_app_settings_passkeys_path(ri: "jp")
+    assert_equal(
+      auth_app_settings_passkeys_path(ri: "jp"),
+      inertia_props.fetch("back_link").fetch("href"),
+    )
   end
 
   test "new allows bootstrap passkey registration with two recovery passcodes" do
@@ -514,7 +540,11 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "form[action=?]", auth_app_settings_passkey_path(@passkey.public_id, ri: "jp")
+    assert_equal "auth/app/settings/passkeys/edit", inertia_component
+    assert_equal(
+      auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"),
+      inertia_props.fetch("form").fetch("action"),
+    )
     assert_equal @passkey.public_id, request.path_parameters[:id]
     assert_nil request.path_parameters[:public_id]
   end
@@ -525,7 +555,10 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "a[href=?]", auth_app_settings_passkeys_path(ri: "jp")
+    assert_equal(
+      auth_app_settings_passkeys_path(ri: "jp"),
+      inertia_props.fetch("back_link").fetch("href"),
+    )
   end
 
   test "should update description with public_id" do
@@ -596,7 +629,10 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "a[href=?]", edit_auth_app_settings_passkey_path(@passkey.public_id, ri: "jp")
+    assert_includes(
+      inertia_props.fetch("passkeys").map { |row| row.fetch("edit_href") },
+      edit_auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"),
+    )
   end
 
   private

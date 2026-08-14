@@ -349,6 +349,33 @@ Status: Accepted. 21 helper files, 22 public methods.
   before deleting), 14 empty stub files. Rule: security/domain/server responsibility stays in Rails;
   no mechanical Ruby→TS copying.
 
+## 15b. Implementation Deviations (recorded during execution)
+
+Decisions taken while implementing, which differ from or refine the pre-implementation plan:
+
+1. **Document title stays server-rendered; Inertia `<Head>` is not adopted.** The plan proposed
+   moving per-page titles to `<Head>`. The shells already render the title from the page's own
+   `title` prop through `display_meta_tags`, which is correct before React boots and for clients
+   that never run it, and keeps exactly one source of truth. Adopting `<Head>` would have added a
+   second one for no gain. Every migrated page therefore sends a `title` prop.
+
+2. **Persistent layout is attached by the resolver, not by page modules.** Inertia's documented
+   pattern is `Page.layout = [Layout]` per page. With hundreds of pages that makes rendering
+   without chrome a mistake any page can make, so `surfacePageResolver` assigns the layout centrally
+   (`page.default.layout ??= [layout]`, still the array form Inertia 3 requires) while leaving a
+   page free to declare its own.
+
+3. **`CurrentBanner` keeps the helper's connection role and rescue.** The audit recommended an
+   explicit read role and failing loudly. The query was extracted unchanged instead: a banner is
+   optional chrome, and making an unreachable banner store fail every page of the surface is a
+   larger behaviour change than this migration should carry. Recorded as follow-up work.
+
+4. **The Turnstile API script moved into the Inertia shells.** It was loaded by the Turbo layouts
+   only, so an Inertia page carrying a challenge had no API to render it.
+
+5. **The unused `inertia_chrome` override hook was dropped** (YAGNI): family defaults in
+   `SurfaceChrome::FAMILY_CHROME` cover every surface, and no controller needed an override.
+
 ## 16. Open Questions
 
 - `shared/health/show.html.erb` HTML variant: keep as ERB diagnostic (recommended) or migrate.

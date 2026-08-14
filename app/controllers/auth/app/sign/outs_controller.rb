@@ -9,6 +9,7 @@ module Auth
         include ::SignOutNotice
         include ::SignOutCancellation
         include ::OidcRpLogoutLauncher
+        include ::SurfaceInertiaPage
 
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
@@ -22,7 +23,7 @@ module Auth
         end
 
         def edit
-          render "auth/shared/sign_outs/edit"
+          render inertia: "auth/app/sign/outs/edit", props: sign_out_confirmation_props
         end
 
         def create
@@ -45,6 +46,66 @@ module Auth
         end
 
         private
+
+        # The three shared sign-out templates become Inertia pages on this surface only. `auth/com`
+        # and `auth/org` still render the ERB under `app/views/auth/shared/sign_outs`, so the
+        # shared concerns keep their template renders and this controller overrides them locally.
+        def sign_out_confirmation_props
+          {
+            title: t("sign.shared.sign_out.title"),
+            heading: t("sign.shared.sign_out.title"),
+            active_context: sign_out_active_context_present?,
+            confirm_description: t("sign.shared.sign_out.confirm_description"),
+            already_signed_out: t("sign.shared.sign_out.already_signed_out"),
+            submit_label: t("sign.shared.sign_out.button"),
+            form: {
+              action: sign_out_confirmation_form_path,
+              logout_challenge: params[:logout_challenge].presence,
+            },
+            cancel: {
+              label: t("actions.cancel"),
+              action: sign_out_post_path,
+            },
+            home_link: sign_out_home_link,
+          }
+        end
+
+        def sign_out_completion_props
+          {
+            title: t("sign.shared.sign_out.completed_title"),
+            heading: t("sign.shared.sign_out.completed_title"),
+            description: sign_out_completed_description,
+            home_link: sign_out_home_link,
+          }
+        end
+
+        def sign_out_unavailable_props
+          {
+            title: t("sign.shared.sign_out.unavailable_title"),
+            heading: t("sign.shared.sign_out.unavailable_title"),
+            description: t("sign.shared.sign_out.unavailable_description"),
+            retry: {
+              label: t("sign.shared.sign_out.retry_button"),
+              action: sign_out_confirmation_form_path,
+            },
+            home_link: sign_out_home_link,
+          }
+        end
+
+        def sign_out_home_link
+          { label: t("sign.shared.sign_out.home_link"), href: sign_out_home_path }
+        end
+
+        def render_oidc_rp_logout_completion
+          @sign_out_notice = consume_sign_out_notice
+          render inertia: "auth/app/sign/outs/complete", props: sign_out_completion_props, status: :ok
+        end
+
+        def render_oidc_rp_logout_unavailable
+          render inertia: "auth/app/sign/outs/unavailable",
+                 props: sign_out_unavailable_props,
+                 status: :unprocessable_content
+        end
 
         def continue_coordinated_sign_out!
           cookies.delete(AuthenticationBase::REFRESH_COOKIE_KEY)

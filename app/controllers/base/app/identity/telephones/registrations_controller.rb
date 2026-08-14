@@ -6,6 +6,7 @@ module Base
     module Identity
       module Telephones
         class RegistrationsController < BaseController
+          include ::SurfaceInertiaPage
           include CloudflareTurnstile
           include CommonRedirect
           include CommonOtp
@@ -23,7 +24,7 @@ module Base
           def new
             @user_telephone = ClientTelephone.new
             reset_registration_session!
-            render "base/app/identity/telephones/registrations/new"
+            render_registration_new
           end
 
           def edit
@@ -34,14 +35,14 @@ module Base
                 new_base_app_identity_telephones_registration_path,
               )
             end
-            render "base/app/identity/telephones/registrations/edit"
+            render_registration_edit
           end
 
           def create
             unless cloudflare_turnstile_stealth_validation["success"]
               @user_telephone = ClientTelephone.new
               @user_telephone.errors.add(:base, t("turnstile_error"))
-              return render(:new, status: :unprocessable_content)
+              return render_registration_new(status: :unprocessable_content)
             end
             tel_params = params.expect(user_telephone: [:raw_number, :number])
             number = tel_params[:raw_number] || tel_params[:number]
@@ -55,10 +56,10 @@ module Base
             )
               @user_telephone = ClientTelephone.new
               @user_telephone.errors.add(:raw_number, :blank)
-              return render(:new, status: :unprocessable_content)
+              return render_registration_new(status: :unprocessable_content)
             end
 
-            return render(:new, status: :unprocessable_content) unless initiate_telephone_verification(
+            return render_registration_new(status: :unprocessable_content) unless initiate_telephone_verification(
               current_client,
               number, auto_accept_confirmations: true,
             )
@@ -83,7 +84,7 @@ module Base
             end
             unless cloudflare_turnstile_stealth_validation["success"]
               @user_telephone.errors.add(:base, t("turnstile_error"))
-              return render(:edit, status: :unprocessable_content)
+              return render_registration_edit(status: :unprocessable_content)
             end
             status = complete_telephone_verification(@user_telephone.id, params.dig(:user_telephone, :pass_code))
             handle_registration_update_status(status)
@@ -114,8 +115,96 @@ module Base
                 new_base_app_identity_telephones_registration_path,
               )
             else
-              render :edit, status: :unprocessable_content
+              render_registration_edit(status: :unprocessable_content)
             end
+          end
+
+          def render_registration_new(status: :ok)
+            render inertia: "base/app/identity/telephones/registrations/new",
+                   props: registration_new_props,
+                   status: status
+          end
+
+          def render_registration_edit(status: :ok)
+            render inertia: "base/app/identity/telephones/registrations/edit",
+                   props: registration_edit_props,
+                   status: status
+          end
+
+          def registration_new_props
+            {
+              title: t("sign.app.settings.telephone.new.title"),
+              description: t("views.sign.app.settings.telephones.registrations.new.description"),
+              help_text: t("views.sign.app.settings.telephones.registrations.new.help_text"),
+              number_label: "Number",
+              number_placeholder: "+819012345678",
+              form: {
+                action: base_app_identity_telephones_registration_path,
+                submit_label: "Submit",
+              },
+              cancel_link: { label: "Cancel", href: base_app_identity_telephones_path(ri: params[:ri]) },
+              errors: Array(@user_telephone&.errors&.full_messages),
+            }
+          end
+
+          def registration_edit_props
+            {
+              title: "Verify your telephone number",
+              description: t("sign.app.registration.telephone.create.verification_code_sent"),
+              code_label: "Verification code",
+              code_placeholder: "123456",
+              delivery_help: "The code expires after a short time. Request a new one if it does not arrive.",
+              form: {
+                action: base_app_identity_telephones_registration_path,
+                submit_label: "Verify",
+              },
+              cancel_link: { label: "Cancel", href: base_app_identity_telephones_path(ri: params[:ri]) },
+              errors: Array(@user_telephone&.errors&.full_messages),
+            }
+          end
+
+          def render_registration_new(status: :ok)
+            render inertia: "base/app/identity/telephones/registrations/new",
+                   props: registration_new_props,
+                   status: status
+          end
+
+          def render_registration_edit(status: :ok)
+            render inertia: "base/app/identity/telephones/registrations/edit",
+                   props: registration_edit_props,
+                   status: status
+          end
+
+          def registration_new_props
+            {
+              title: t("sign.app.settings.telephone.new.title"),
+              description: t("views.sign.app.settings.telephones.registrations.new.description"),
+              help_text: t("views.sign.app.settings.telephones.registrations.new.help_text"),
+              number_label: "Number",
+              number_placeholder: "+819012345678",
+              form: {
+                action: base_app_identity_telephones_registration_path,
+                submit_label: "Submit",
+              },
+              cancel_link: { label: "Cancel", href: base_app_identity_telephones_path(ri: params[:ri]) },
+              errors: Array(@user_telephone&.errors&.full_messages),
+            }
+          end
+
+          def registration_edit_props
+            {
+              title: "Verify your telephone number",
+              description: t("sign.app.registration.telephone.create.verification_code_sent"),
+              code_label: "Verification code",
+              code_placeholder: "123456",
+              delivery_help: "The code expires after a short time. Request a new one if it does not arrive.",
+              form: {
+                action: base_app_identity_telephones_registration_path,
+                submit_label: "Verify",
+              },
+              cancel_link: { label: "Cancel", href: base_app_identity_telephones_path(ri: params[:ri]) },
+              errors: Array(@user_telephone&.errors&.full_messages),
+            }
           end
 
           def preferred_base_service_host

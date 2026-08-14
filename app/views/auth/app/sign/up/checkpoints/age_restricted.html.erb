@@ -1,7 +1,0 @@
-<% content_for :page_title, t("sign.app.registration.checkpoint.age_restricted") %>
-
-<h1><%= t("sign.app.registration.checkpoint.age_restricted") %></h1>
-<p><%= @sign_up_age_restricted_message %></p>
-<p><%= t("sign.app.registration.checkpoint.age_restricted_retry") %></p>
-
-<%= button_to t("actions.back"), @sign_up_age_restricted_restart_path, method: :get, form: { data: { turbo: false } } %>

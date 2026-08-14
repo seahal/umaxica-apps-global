@@ -39,9 +39,17 @@ module Base
           get edit_base_org_preference_email_path(@email, ri: "jp", token: @token)
 
           assert_response :success
-          assert_match "Unsubscribe", response.body
-          assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-          assert_includes response.body, 'data-turnstile-mode-value="render"'
+          assert_equal "base/org/preference/emails/edit", inertia_component
+
+          props = inertia_props
+
+          assert props.fetch("promotional")
+          assert_equal "Unsubscribe", props.fetch("form").fetch("submit_label")
+          assert_equal base_org_preference_email_path(@email), props.fetch("form").fetch("action")
+          assert_equal @token, props.fetch("form").fetch("token")
+          # The challenge is rendered by the page from this key; the response token itself is
+          # produced in the browser and validated on the server.
+          assert_predicate props.fetch("form").fetch("turnstile_site_key"), :present?
         end
 
         test "DELETE destroy turns operator promotional email off after confirmation" do

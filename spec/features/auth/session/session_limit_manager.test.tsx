@@ -1,0 +1,194 @@
+import { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { renderToStaticMarkup } from "react-dom/server";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const patch = vi.fn();
+const deleteRequest = vi.fn();
+
+vi.mock("@inertiajs/react", () => ({
+  useForm: () => ({
+    processing: false,
+    patch,
+    delete: deleteRequest,
+    transform: () => ({ patch, delete: deleteRequest, processing: false }),
+  }),
+}));
+
+import type { SessionLimitManagerProps } from "@/features/auth/session/SessionLimitManager";
+
+const { default: SessionLimitManager } =
+  await import("@/features/auth/session/SessionLimitManager");
+const { default: AuthAppSessionsShow } = await import("@/pages/auth/app/sign/in/sessions/show");
+
+const props: SessionLimitManagerProps = {
+  title: "セッション管理",
+  heading: "セッション管理",
+  description: "同時にログインできるセッション数の上限に達しています。",
+  alert: null,
+  notice: null,
+  restricted_notice: "セッション枠を空けるまで、セッションは制限されています。",
+  form: { action: "/sign/in/session?ri=jp", submit_label: "選択したセッションを無効化して続行" },
+  cancel: {
+    action: "/sign/in/session?ri=jp",
+    label: "キャンセルしてログアウト",
+    confirm: "キャンセルしますか？",
+  },
+  active_sessions: {
+    heading: "アクティブなセッション",
+    count_label: "(2/2)",
+    revoke_label: "無効化",
+    items: [
+      {
+        label: "セッション",
+        current: false,
+        current_label: null,
+        created_at_label: "作成日時",
+        created_at: "2026-01-01 09:00",
+        last_used_at_label: "最終使用",
+        last_used_at: "2026-01-02 09:00",
+        ref: "signed-ref-one",
+      },
+      {
+        label: "セッション",
+        current: true,
+        current_label: "現在",
+        created_at_label: "作成日時",
+        created_at: "2026-01-03 09:00",
+        last_used_at_label: null,
+        last_used_at: null,
+        ref: null,
+      },
+    ],
+  },
+  restricted_sessions: {
+    heading: "保留中のセッション",
+    items: [
+      {
+        label: "保留中のセッション",
+        current: true,
+        current_label: "現在",
+        created_at_label: "作成日時",
+        created_at: "2026-01-03 09:05",
+        last_used_at_label: null,
+        last_used_at: null,
+        ref: null,
+      },
+    ],
+  },
+};
+
+let container: HTMLDivElement;
+let root: Root;
+
+const mount = (element: React.ReactElement) => {
+  container = document.createElement("div");
+  document.body.append(container);
+  root = createRoot(container);
+  act(() => {
+    root.render(element);
+  });
+};
+
+afterEach(() => {
+  if (root) {
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  }
+
+  patch.mockClear();
+  deleteRequest.mockClear();
+  vi.unstubAllGlobals();
+});
+
+describe("SessionLimitManager markup", () => {
+  it("offers a signed reference for every session the visitor may revoke", () => {
+    const markup = renderToStaticMarkup(<SessionLimitManager {...props} />);
+
+    expect(markup).toContain('name="ref" value="signed-ref-one"');
+    // The current session is never revocable through the reference form.
+    expect(markup).not.toContain('value="null"');
+    expect(markup).toContain("(2/2)");
+    expect(markup).toContain("現在");
+    expect(markup).toContain("最終使用: 2026-01-02 09:00");
+    expect(markup).toContain('<input type="hidden" name="_method" value="delete"/>');
+  });
+
+  it("shows the alert and the notice the server resolved", () => {
+    const markup = renderToStaticMarkup(
+      <SessionLimitManager
+        {...props}
+        alert="無効なセッション参照です。"
+        notice="セッションを無効化しました。"
+      />,
+    );
+
+    expect(markup).toContain('role="alert"');
+    expect(markup).toContain("無効なセッション参照です。");
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain("セッションを無効化しました。");
+  });
+
+  it("renders neither group when the server sent none", () => {
+    const markup = renderToStaticMarkup(
+      <SessionLimitManager
+        {...props}
+        restricted_notice={null}
+        active_sessions={null}
+        restricted_sessions={null}
+      />,
+    );
+
+    expect(markup).not.toContain("<ul>");
+    expect(markup).not.toContain("セッション枠を空けるまで");
+  });
+});
+
+describe("SessionLimitManager interaction", () => {
+  it("revokes the selected session with a PATCH", () => {
+    mount(<SessionLimitManager {...props} />);
+
+    const radio = container.querySelector('input[name="ref"]') as HTMLInputElement;
+
+    act(() => {
+      radio.click();
+    });
+
+    expect(radio.checked).toBe(true);
+
+    act(() => {
+      container
+        .querySelectorAll("form")[0]
+        .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(patch).toHaveBeenCalledWith("/sign/in/session?ri=jp");
+  });
+
+  it("cancels with a DELETE only after the visitor confirms", () => {
+    vi.stubGlobal("confirm", vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true));
+    mount(<SessionLimitManager {...props} />);
+
+    const cancelForm = container.querySelectorAll("form")[1];
+
+    act(() => {
+      cancelForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(deleteRequest).not.toHaveBeenCalled();
+
+    act(() => {
+      cancelForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(deleteRequest).toHaveBeenCalledWith("/sign/in/session?ri=jp");
+  });
+});
+
+describe("auth/app session page", () => {
+  it("re-exports the shared session manager", () => {
+    expect(AuthAppSessionsShow).toBe(SessionLimitManager);
+  });
+});

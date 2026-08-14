@@ -5,6 +5,7 @@ module Base
   module App
     module Identity
       class SecretsController < BaseController
+        include ::SurfaceInertiaPage
         include CloudflareTurnstile
         include VerificationClient
 
@@ -15,14 +16,14 @@ module Base
         before_action :authorize_secret_credentials!, only: %i(index show new edit create update destroy)
         step_up only: %i(new create), bootstrap: true
         def index
-          @secret_credentials = current_client.client_secret_credentials.order(created_at: :asc)
-          render "base/app/identity/secret_credentials/index"
+          secret_credentials = current_client.client_secret_credentials.order(created_at: :asc)
+          render inertia: true, props: secrets_index_props(secret_credentials)
         end
 
         def show
           set_secret_credential
           authorize!(@secret_credential)
-          render "base/app/identity/secret_credentials/show"
+          render inertia: true, props: secret_show_props(@secret_credential)
         end
 
         def new
@@ -32,16 +33,16 @@ module Base
             _surface: "app", _actor: current_client,
             _session_ref: current_session_public_id,
           )
-          @raw_secret_credential = ClientSecretCredential.generate_raw_secret_credential
-          session[:user_secret_credential_raw] = @raw_secret_credential
-          @secret_credential.name = @raw_secret_credential.first(4)
-          render "base/app/identity/secret_credentials/new"
+          raw_secret_credential = ClientSecretCredential.generate_raw_secret_credential
+          session[:user_secret_credential_raw] = raw_secret_credential
+          @secret_credential.name = raw_secret_credential.first(4)
+          render inertia: true, props: secret_new_props(@secret_credential, raw_secret_credential)
         end
 
         def edit
           set_secret_credential
           authorize!(@secret_credential)
-          render "base/app/identity/secret_credentials/edit"
+          render inertia: true, props: secret_edit_props(@secret_credential)
         end
 
         def create
@@ -70,7 +71,11 @@ module Base
               result.secret_credential.public_id,
               ri: params[:ri],
             ), status: :see_other,
-          ) : render("base/app/identity/secret_credentials/edit", status: :unprocessable_content)
+          ) : render(
+            inertia: "base/app/identity/secrets/edit",
+            props: secret_edit_props(result.secret_credential),
+            status: :unprocessable_content,
+          )
         end
 
         def destroy
@@ -96,6 +101,94 @@ module Base
         end
 
         def secret_credential_params = params.fetch(:user_secret_credential, {}).permit(:name, :enabled)
+
+        def secrets_index_props(secret_credentials)
+          {
+            title: "Secrets",
+            back_link: {
+              label: t("sign.app.settings.show.back"),
+              href: base_app_identity_path(ri: params[:ri]),
+            },
+            new_link: { label: "New secret", href: new_base_app_identity_secret_path },
+            table_headings: {
+              name: "Name",
+              created_at: "Created",
+              last_used_at: "Last used",
+              actions: "Actions",
+            },
+            edit_label: t("actions.edit"),
+            destroy_label: t("actions.destroy"),
+            destroy_confirm: t("messages.confirm_destroy"),
+            secret_credentials: secret_credentials.map { |secret_credential| serialize_secret(secret_credential) },
+          }
+        end
+
+        def serialize_secret(secret_credential)
+          {
+            public_id: secret_credential.public_id,
+            name: secret_credential.name.to_s,
+            created_at: I18n.l(secret_credential.created_at, format: :short),
+            last_used_at: secret_credential.last_used_at ? I18n.l(secret_credential.last_used_at, format: :short) : "-",
+            edit_url: edit_base_app_identity_secret_path(secret_credential.public_id, ri: params[:ri]),
+            destroy_url: base_app_identity_secret_path(secret_credential.public_id, ri: params[:ri]),
+          }
+        end
+
+        def secret_show_props(secret_credential)
+          {
+            title: "Secret",
+            description: "The details of this secret credential.",
+            name: secret_credential.name.to_s,
+            created_at_label: "Created",
+            created_at: I18n.l(secret_credential.created_at, format: :long),
+            last_used_at_label: "Last used",
+            last_used_at: secret_credential.last_used_at ?
+              I18n.l(secret_credential.last_used_at, format: :long) : t("defaults.never"),
+            back_link: { label: t("actions.back"), href: base_app_identity_secrets_path },
+            edit_link: {
+              label: t("actions.edit"),
+              href: edit_base_app_identity_secret_path(secret_credential.public_id),
+            },
+          }
+        end
+
+        def secret_new_props(secret_credential, raw_secret_credential)
+          {
+            title: "New secret",
+            description: "Save this secret now. It is shown only once.",
+            back_link: { label: t("actions.back"), href: base_app_identity_path(ri: params[:ri]) },
+            cancel_link: { label: "Cancel", href: base_app_identity_secrets_path },
+            form: {
+              action: base_app_identity_secrets_path,
+              name_label: "Name",
+              name: secret_credential.name.to_s,
+              enabled_label: t("views.sign.app.settings.secret_credentials.new.confirm_saved_label"),
+              submit_label: t("actions.save"),
+            },
+            raw_secret_credential: raw_secret_credential,
+            raw_secret_label: "Secret",
+            one_time_notice: t("views.sign.app.settings.secret_credentials.new.one_time_notice"),
+            errors: secret_credential.errors.full_messages,
+          }
+        end
+
+        def secret_edit_props(secret_credential)
+          {
+            title: "Edit secret",
+            description: "Rename this secret credential or disable it.",
+            back_link: { label: t("actions.back"), href: base_app_identity_path(ri: params[:ri]) },
+            cancel_link: { label: "Cancel", href: base_app_identity_secrets_path },
+            form: {
+              action: base_app_identity_secret_path(secret_credential.public_id, ri: params[:ri]),
+              name_label: "Name",
+              name: secret_credential.name.to_s,
+              enabled_label: "Enabled",
+              enabled: secret_credential.enabled?,
+              submit_label: "Update",
+            },
+            errors: secret_credential.errors.full_messages,
+          }
+        end
       end
     end
   end

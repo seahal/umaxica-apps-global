@@ -6,6 +6,7 @@ module Base
     module Identity
       module Recovery
         class SessionsController < ::Base::App::Identity::BaseController
+          include ::SurfaceInertiaPage
           include CommonRedirect
           include EnforcementRecoveryCeremonyCookie
           include EnforcementRecoveryCeremonyFlow
@@ -18,6 +19,30 @@ module Base
                      with: -> { render_rate_limited(rule_name: "base_app_enforcement_recovery_email_create_ip_burst", retry_after: 60) }
 
           private
+
+          def render_recovery_reentry_new(status: :ok)
+            render inertia: "base/app/identity/recovery/sessions/new",
+                   props: recovery_session_new_props,
+                   status: status
+          end
+
+          def recovery_session_new_props
+            {
+              title: "Account recovery",
+              description: "If an eligible account is found, a verification code will be sent.",
+              address_form: {
+                action: base_app_identity_recovery_session_path,
+                label: "Email address",
+                address: @email_record&.address.to_s,
+                submit_label: "Send verification code",
+              },
+              pass_code_form: @reentry_state.present? ? {
+                action: base_app_identity_recovery_session_path,
+                label: "Verification code",
+                submit_label: "Continue",
+              } : nil,
+            }
+          end
 
           def identity_email_model = ClientEmail
 

@@ -18,11 +18,16 @@ module Auth
 
         query = {}
 
-        assert_select "a[href=?]", new_auth_app_sign_in_email_path(query, ri: "jp")
-        assert_select "a[href=?]", new_auth_app_sign_in_passkey_path(query, ri: "jp")
-        assert_select "a[href=?]", new_auth_app_sign_in_secret_path(query, ri: "jp")
-        assert_select "form[action=?][method=?]", auth_app_social_google_session_path(ri: "jp"), "post"
-        assert_select "form[action=?][method=?]", auth_app_social_apple_session_path(ri: "jp"), "post"
+        assert_equal "auth/app/sign_ins/new", inertia_component
+        assert_equal [
+          new_auth_app_sign_in_email_path(query, ri: "jp"),
+          new_auth_app_sign_in_passkey_path(query, ri: "jp"),
+          new_auth_app_sign_in_secret_path(query, ri: "jp"),
+        ], inertia_props.fetch("methods").map { |method| method.fetch("href") }
+        assert_equal [
+          auth_app_social_google_session_path(ri: "jp"),
+          auth_app_social_apple_session_path(ri: "jp"),
+        ], inertia_props.fetch("social_providers").map { |provider| provider.fetch("action") }
       end
 
       test "direct entry without login challenge starts no OIDC handoff state" do
@@ -42,12 +47,14 @@ module Auth
 
         query = {}
 
-        assert_select "a[href=?]", new_auth_app_sign_in_email_path(query, ri: "jp"),
-                      I18n.t("sign.app.authentication.new.links.email")
-        assert_select "a[href=?]", new_auth_app_sign_in_passkey_path(query, ri: "jp"),
-                      I18n.t("sign.app.authentication.new.links.passkey")
-        assert_select "a[href=?]", new_auth_app_sign_in_secret_path(query, ri: "jp"),
-                      I18n.t("sign.app.authentication.new.links.secret_credential")
+        assert_equal [
+          [new_auth_app_sign_in_email_path(query, ri: "jp"), I18n.t("sign.app.authentication.new.links.email")],
+          [new_auth_app_sign_in_passkey_path(query, ri: "jp"), I18n.t("sign.app.authentication.new.links.passkey")],
+          [
+            new_auth_app_sign_in_secret_path(query, ri: "jp"),
+            I18n.t("sign.app.authentication.new.links.secret_credential"),
+          ],
+        ], inertia_props.fetch("methods").map { |method| [method.fetch("href"), method.fetch("label")] }
       end
 
       test "should get new with existing preference refresh cookie" do
@@ -76,9 +83,11 @@ module Auth
             headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "a[href=?]", new_auth_app_sign_in_email_path(ri: "jp")
-        assert_select "a[href=?]", new_auth_app_sign_in_passkey_path(ri: "jp")
-        assert_select "a[href=?]", new_auth_app_sign_in_secret_path(ri: "jp")
+        assert_equal [
+          new_auth_app_sign_in_email_path(ri: "jp"),
+          new_auth_app_sign_in_passkey_path(ri: "jp"),
+          new_auth_app_sign_in_secret_path(ri: "jp"),
+        ], inertia_props.fetch("methods").map { |method| method.fetch("href") }
       end
 
       test "sign up link includes pt when pt is present" do
@@ -86,16 +95,16 @@ module Auth
             headers: { "Host" => @host }
 
         assert_response :success
-        assert_includes response.body, "/sign/up?ri=jp"
-        assert_not_includes response.body, "pt=abc"
+        assert_equal "/sign/up?ri=jp", inertia_props.fetch("registration_link").fetch("href")
+        assert_not_includes inertia_props.fetch("registration_link").fetch("href"), "pt=abc"
       end
 
       test "sign up link includes only ri when pt is absent" do
         get auth_app_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
-        assert_includes response.body, "/sign/up?ri=jp"
-        assert_not_includes response.body, "pt="
+        assert_equal "/sign/up?ri=jp", inertia_props.fetch("registration_link").fetch("href")
+        assert_not_includes inertia_props.fetch("registration_link").fetch("href"), "pt="
       end
 
       test "sign up link preserves encoded-like pt value safely" do
@@ -104,8 +113,8 @@ module Auth
             headers: { "Host" => @host }
 
         assert_response :success
-        assert_includes response.body, "/sign/up?ri=jp"
-        assert_not_includes response.body, "pt="
+        assert_equal "/sign/up?ri=jp", inertia_props.fetch("registration_link").fetch("href")
+        assert_not_includes inertia_props.fetch("registration_link").fetch("href"), "pt="
       end
 
       test "should render in english when lx=en" do
@@ -114,51 +123,55 @@ module Auth
 
         assert_response :success
         assert_select "html[lang=en]"
-        assert_select "a", text: /Need an account/
+        assert_match(/Need an account/, inertia_props.fetch("registration_link").fetch("label"))
       end
 
       test "shows social login buttons" do
         get auth_app_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "form[action=?][method=?][data-turbo=?]",
-                      auth_app_social_google_session_path(ri: "jp"),
-                      "post",
-                      "false",
-                      count: 1
-        assert_select "form[action=?][method=?][data-turbo=?]",
-                      auth_app_social_apple_session_path(ri: "jp"),
-                      "post",
-                      "false",
-                      count: 1
-        assert_select "form[action=?] input[name=?]",
-                      auth_app_social_google_session_path(ri: "jp"),
-                      "authenticity_token",
-                      count: 1
+        providers = inertia_props.fetch("social_providers")
+
+        assert_equal [auth_app_social_google_session_path(ri: "jp")],
+                     providers.select { |provider| provider.fetch("key") == "google" }
+                       .map { |provider| provider.fetch("action") }
+        assert_equal [auth_app_social_apple_session_path(ri: "jp")],
+                     providers.select { |provider| provider.fetch("key") == "apple" }
+                       .map { |provider| provider.fetch("action") }
+        # The provider forms are native document POSTs, each carrying the global authenticity token
+        # the ERB form embedded.
+        assert_equal 1,
+                     providers.count { |provider|
+                       provider.fetch("key") == "google" && provider.fetch("authenticity_token").present?
+                     }
       end
 
       test "apple button carries a permitted call to action on the custom button element" do
         get auth_app_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "form[action=?] button.social-provider-button--apple",
-                      auth_app_social_apple_session_path(ri: "jp"),
-                      count: 1 do |buttons|
-          title = buttons.first.text.strip
+        apple = inertia_props.fetch("social_providers").find { |provider| provider.fetch("key") == "apple" }
 
-          assert_includes ["Sign in with Apple", "Sign up with Apple", "Continue with Apple", "Appleで続行"],
-                          title
-        end
+        assert_equal auth_app_social_apple_session_path(ri: "jp"), apple.fetch("action")
+        assert_includes ["Sign in with Apple", "Sign up with Apple", "Continue with Apple", "Appleで続行"],
+                        apple.fetch("label")
       end
 
       test "apple button renders the official logo artwork for both appearances" do
         get auth_app_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "button.social-provider-button--apple img[src=?][width=?][height=?]",
-                      "/images/social/apple_logo_white.svg", "28", "40", count: 1
-        assert_select "button.social-provider-button--apple img[src=?][width=?][height=?]",
-                      "/images/social/apple_logo_black.svg", "28", "40", count: 1
+        apple = inertia_props.fetch("social_providers").find { |provider| provider.fetch("key") == "apple" }
+
+        assert_equal(
+          {
+            "white" => "/images/social/apple_logo_white.svg",
+            "black" => "/images/social/apple_logo_black.svg",
+            "width" => 28,
+            "height" => 40,
+          },
+          apple.fetch("logos"),
+        )
       end
 
       test "rejects direct entry when logged in" do

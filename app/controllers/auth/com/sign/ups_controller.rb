@@ -6,6 +6,7 @@ module Auth
     module Sign
       class UpsController < ::Auth::Com::ApplicationController
         include SignUpSuspensionGuard
+        include ::SurfaceInertiaPage
 
         AUTHENTICATION_MODE = :guest
 
@@ -29,7 +30,7 @@ module Auth
 
           session[:oidc_authorization_login_challenge] = transaction.login_challenge
           @oidc_authorization_intent = transaction.intent
-          render "auth/com/sign_ups/new"
+          render inertia: "auth/com/sign_ups/new", props: sign_up_method_props
         rescue ActiveRecord::RecordNotFound
           render plain: I18n.t("errors.messages.invalid_request"),
                  status: :bad_request
@@ -47,7 +48,48 @@ module Auth
         # of bouncing through Base. Every page it links to is already reachable directly, and the
         # completion paths branch on a missing `oidc_authorization_login_challenge`.
         def render_method_selection!
-          render "auth/com/sign_ups/new"
+          render inertia: "auth/com/sign_ups/new", props: sign_up_method_props
+        end
+
+        # `@sign_up_available == false` means the sign_up_suspended_<surface> kill switch is on:
+        # send the notice instead of entry points that would start a registration the guard is
+        # about to reject anyway.
+        def sign_up_method_props
+          suspended = @sign_up_available == false
+          entry_params = { ct: params[:ct], ri: params[:ri] }
+
+          {
+            title: t("sign.app.registration.new.page_title"),
+            description: nil,
+            suspended_notice: suspended ? t("errors.messages.sign_up_suspended") : nil,
+            methods: suspended ? [] : sign_up_method_links(entry_params),
+            links: suspended ? [] : sign_up_footer_links(entry_params),
+          }
+        end
+
+        def sign_up_method_links(entry_params)
+          [
+            {
+              key: "email",
+              label: t("sign.app.registration.new.methods.email.cta"),
+              href: new_auth_com_sign_up_email_path(**entry_params),
+            },
+            {
+              key: "telephone",
+              label: t("sign.app.registration.new.methods.telephone.cta"),
+              href: new_auth_com_sign_up_telephone_path(**entry_params),
+            },
+          ]
+        end
+
+        def sign_up_footer_links(entry_params)
+          [
+            {
+              key: "sign_in",
+              label: t("sign.app.registration.new.links.sign_in"),
+              href: auth_com_sign_in_path(**entry_params),
+            },
+          ]
         end
       end
     end

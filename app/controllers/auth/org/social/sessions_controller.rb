@@ -21,6 +21,7 @@ module Auth
       # already express that, so only the three required hooks are implemented.
       class SessionsController < ::Auth::Org::ApplicationController
         include SocialCeremonyEntry
+        include ::SurfaceInertiaPage
 
         AUTHENTICATION_MODE = :guest
 
@@ -44,6 +45,7 @@ module Auth
         def new
           stash_pt!
           @provider_available = entra_start_available?
+          render inertia: true, props: entra_entry_props
         end
 
         # POST /social/entra/session
@@ -52,13 +54,32 @@ module Auth
 
           unless entra_start_available?
             @provider_available = false
-            return render(:new, status: :service_unavailable)
+            return render(
+              inertia: "auth/org/social/sessions/new",
+              props: entra_entry_props,
+              status: :service_unavailable,
+            )
           end
 
           handoff_social_ceremony!
         end
 
         private
+
+        # The request phase is a document POST to the OmniAuth endpoint, like the app surface's
+        # Google and Apple buttons. The tenant is fixed in configuration, so there is nothing for
+        # the operator to choose and the page carries no input.
+        def entra_entry_props
+          {
+            title: t("sign.org.authentication.entra.new.page_title"),
+            unavailable_notice: if @provider_available
+                                  nil
+                                else
+                                  t("sign.org.authentication.entra.errors.provider_unavailable")
+                                end,
+            form: (@provider_available ? { action: "/social/entra", submit_label: t("sign.org.authentication.entra.new.submit") } : nil),
+          }
+        end
 
         def social_ceremony_surface = "org"
 

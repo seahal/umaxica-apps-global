@@ -7,6 +7,8 @@ module Base
       module In
         # Base sign-in limitation ceremony for OIDC resume and social handoff.
         class LimitationsController < Base::App::ApplicationController
+          include ::SurfaceInertiaPage
+
           AUTHENTICATION_MODE = :open
           declare_authentication_mode! :open
 
@@ -16,6 +18,7 @@ module Base
             return render_invalid_resolution unless resolution_loaded?
 
             load_session_inventory
+            render inertia: true, props: limitation_page_props
           end
 
           def update
@@ -25,7 +28,7 @@ module Base
             unless token_belongs_to_actor?(token)
               @form_error = t("base.app.sign.in.limitations.revoke_failed")
               load_session_inventory
-              return render :show, status: :unprocessable_content
+              return render_limitation_page(status: :unprocessable_content)
             end
 
             @resolution&.mark_session_selected!(session_ref: params[:session_ref])
@@ -37,14 +40,14 @@ module Base
             unless revocation.success?
               @form_error = t("base.app.sign.in.limitations.revoke_failed")
               load_session_inventory
-              return render :show, status: :unprocessable_content
+              return render_limitation_page(status: :unprocessable_content)
             end
             token.reload.revoke! if token.currently_usable?
 
             if hard_reject_still_applies?
               @form_notice = t("base.app.sign.in.limitations.capacity_still_full")
               load_session_inventory
-              return render :show, status: :unprocessable_content
+              return render_limitation_page(status: :unprocessable_content)
             end
 
             if social_resolution?
@@ -78,6 +81,55 @@ module Base
           end
 
           private
+
+          def render_limitation_page(status:)
+            render inertia: "base/app/sign/in/limitations/show", props: limitation_page_props, status: status
+          end
+
+          def limitation_page_props
+            {
+              title: "Session limit",
+              heading: "Session limit",
+              description: "Your credential was verified, but this account already has the maximum number " \
+                           "of live sessions. Revoke one existing session to continue signing in.",
+              session_label: "Session",
+              error: @form_error.presence,
+              notice: @form_notice.presence,
+              action: base_app_sign_in_limitation_path,
+              cancel_action: base_app_sign_in_limitation_path(resolution_query_parameters),
+              submit_label: "Revoke and continue",
+              cancel_label: "Cancel sign-in",
+              resolution: resolution_field,
+              sessions: Array(@sessions).map { |session_record| serialize_limitation_session(session_record) },
+            }
+          end
+
+          def resolution_field
+            if @social_resolution_token.present?
+              { field: "social_resolution", value: @social_resolution_token }
+            else
+              { field: "resolution_challenge", value: @resolution_challenge }
+            end
+          end
+
+          def resolution_query_parameters
+            if @social_resolution_token.present?
+              { social_resolution: @social_resolution_token }
+            else
+              { resolution_challenge: @resolution_challenge }
+            end
+          end
+
+          def serialize_limitation_session(session_record)
+            {
+              session_ref: SessionLimitResolutionTokenRef.issue(session_record),
+              restriction_label: session_record.restricted? ? "Restricted" : "Normal",
+              created_label: "Created #{l(session_record.created_at, format: :short)}",
+              last_used_label: session_record.last_used_at.presence &&
+                "Last used #{l(session_record.last_used_at, format: :short)}",
+              revoke_label: "Revoke this session",
+            }
+          end
 
           def load_resolution
             @resolution_challenge = params[:resolution_challenge].to_s

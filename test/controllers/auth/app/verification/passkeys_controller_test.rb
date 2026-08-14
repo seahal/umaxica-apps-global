@@ -83,7 +83,12 @@ class Auth::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
             headers: @headers
 
         assert_response :success
-        assert_select "a[href^='#{new_auth_app_verification_passkey_path(ri: "jp")}']"
+        assert_equal "auth/app/verifications/show", inertia_component
+        assert(
+          inertia_props.fetch("methods").any? do |method|
+            method.fetch("href").start_with?(new_auth_app_verification_passkey_path(ri: "jp"))
+          end,
+        )
 
         get new_auth_app_verification_passkey_url(
           ri: "jp",

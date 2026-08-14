@@ -52,14 +52,22 @@ module Auth::App::In
       end
 
       assert_response :success
-      assert_select "input[name='cf-turnstile-response']"
-      assert_select "h1", text: I18n.t("sign.app.in.mfa.totp.title")
-      assert_select "label", text: I18n.t("sign.app.in.mfa.totp.token_label")
-      assert_select "input[placeholder=?]", I18n.t("sign.app.in.mfa.totp.token_placeholder")
-      assert_select "input[name='totp_challenge_form[token]'][autocomplete='one-time-code']", count: 0
-      assert_select "input[type=submit][value=?]", I18n.t("sign.app.in.mfa.totp.submit")
-      assert_includes response.body, "認証アプリ"
-      assert_includes response.body, I18n.t("sign.app.in.mfa.totp.help")
+      assert_equal "auth/app/sign/in/challenge/totps/new", inertia_component
+
+      form = inertia_props.fetch("form")
+      token_field = form.fetch("token_field")
+
+      # The stealth challenge runs invisibly; the widget writes the same field the server verifies.
+      assert_equal "execute", inertia_props.fetch("turnstile").fetch("mode")
+      assert_equal I18n.t("sign.app.in.mfa.totp.title"), inertia_props.fetch("title")
+      assert_equal I18n.t("sign.app.in.mfa.totp.token_label"), token_field.fetch("label")
+      assert_equal I18n.t("sign.app.in.mfa.totp.token_placeholder"), token_field.fetch("placeholder")
+      assert_equal "totp_challenge_form[token]", token_field.fetch("name")
+      # A time-based code is not a delivered one-time code, so the field offers no autocomplete.
+      assert_not token_field.key?("autocomplete")
+      assert_equal I18n.t("sign.app.in.mfa.totp.submit"), form.fetch("submit_label")
+      assert_includes inertia_props.fetch("description"), "認証アプリ"
+      assert_equal I18n.t("sign.app.in.mfa.totp.help"), token_field.fetch("help")
       assert_not_includes response.body, "届きます"
       assert_not_includes response.body, "送信され"
     end
@@ -151,7 +159,7 @@ module Auth::App::In
       end
 
       assert_response :unprocessable_content
-      assert_includes response.body, I18n.t("session_limit.turnstile_failed")
+      assert_includes inertia_props.fetch("form_errors"), I18n.t("session_limit.turnstile_failed")
       assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
     end
 

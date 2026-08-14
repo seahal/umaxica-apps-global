@@ -4,11 +4,29 @@
 module Side
   module Com
     class RootsController < Side::Com::ApplicationController
+      include ::SurfaceInertiaPage
+
       AUTHENTICATION_MODE = :open
-      layout false
 
       def index
-        redirect_to(side_com_dashboard_path(ri: params[:ri])) if logged_in?
+        redirect_to(side_com_dashboard_path(ri: params[:ri])) and return if logged_in?
+
+        render inertia: true, props: root_landing_props
+      end
+
+      private
+
+      def root_landing_props
+        {
+          title: nil,
+          heading: "Side Com",
+          description: t("base.com.roots.message"),
+          sign_up: nil,
+          links: [
+            { label: "Settings", href: side_com_settings_path(ri: params[:ri]) },
+            { label: "Sign up", href: side_com_oidc_authorization_path(ri: params[:ri]) },
+          ],
+        }
       end
     end
   end

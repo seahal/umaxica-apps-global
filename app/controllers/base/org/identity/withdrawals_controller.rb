@@ -6,6 +6,7 @@ module Base
     module Identity
       class WithdrawalsController < ::Base::Org::ApplicationController
         include ::VerificationOperator
+        include ::SurfaceInertiaPage
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
@@ -14,7 +15,17 @@ module Base
         before_action :authorize_withdrawal!, only: :show
 
         def show
-          render "base/org/identity/withdrawals/show"
+          render inertia: true, props: {
+            title: t("sign.org.settings.withdrawal.show.title"),
+            paragraphs: [
+              t("sign.org.settings.withdrawal.show.description"),
+              t("sign.org.settings.withdrawal.show.direct_message_unavailable"),
+            ],
+            back_link: {
+              label: t("sign.org.settings.show.back"),
+              href: base_org_identity_path,
+            },
+          }
         end
 
         private

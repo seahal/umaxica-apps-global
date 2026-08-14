@@ -7,6 +7,8 @@ module Auth
   module App
     module Settings
       class TotpsController < ::Auth::App::ApplicationController
+        include ::SurfaceInertiaPage
+        include ::TurnstilePageProps
         include ::CloudflareTurnstile
         include ::SignAuthorityRedirect
         include ::SignSettingsTotpRegistration
@@ -15,8 +17,11 @@ module Auth
         include ::VerificationClient
 
         AUTHENTICATION_MODE = :private
-
         MAX_TOTPS = 2
+        # `SignRequiresRecoveryPasscodes` still answers with the shared ERB template, and the slim
+        # Inertia shell has no `yield` to render one into, so the layout follows the render kind.
+        layout :settings_totps_layout
+
         before_action :authenticate_client!
         step_up only: %i(new create), bootstrap: true
         step_up only: :destroy
@@ -25,6 +30,7 @@ module Auth
         def index
           authorize!(ClientTotpCredential, to: :index?)
           @totps = current_client.client_totp_credentials.order(created_at: :asc)
+          render_inertia_page(props: index_page_props)
         end
 
         def new
@@ -36,11 +42,13 @@ module Auth
           @totp = ClientTotpCredential.new
           start_totp_ceremony!(_surface: "app", _actor: current_client, _session_ref: current_session_public_id)
           generate_totp_session
+          render_inertia_page(props: new_page_props)
         end
 
         def edit
           find_totp
           authorize!(@totp)
+          render_inertia_page(props: edit_page_props)
         end
 
         def create
@@ -57,7 +65,7 @@ module Auth
           unless cloudflare_turnstile_stealth_validation["success"]
             @totp.errors.add(:base, t("turnstile_error"))
             render_totp_qrcode(@totp.private_key)
-            render :new, status: :unprocessable_content
+            render_new_totp_page_with_errors
             return
           end
 
@@ -111,7 +119,7 @@ module Auth
           @totp.valid?
           @totp.errors.add(:first_token, t("sign.app.settings.totps.invalid_code"))
           render_totp_qrcode(@totp.private_key)
-          render :new, status: :unprocessable_content
+          render_new_totp_page_with_errors
         end
 
         def update
@@ -121,7 +129,11 @@ module Auth
           if @totp.update(update_params)
             redirect_to(auth_app_settings_totp_path(@totp.public_id, ri: params[:ri]), status: :see_other)
           else
-            render :edit, status: :unprocessable_content
+            render_inertia_page(
+              component: "auth/app/settings/totps/edit",
+              props: edit_page_props,
+              status: :unprocessable_content,
+            )
           end
         end
 
@@ -141,6 +153,140 @@ module Auth
         end
 
         private
+
+        # Renders one Inertia page and tells `settings_totps_layout` that the slim Inertia shell is
+        # the right layout for this response.
+        def render_inertia_page(props:, component: true, status: :ok)
+          @renders_inertia_page = true
+          render inertia: component, props: props, status: status
+        end
+
+        def settings_totps_layout
+          @renders_inertia_page ? "auth/app/inertia" : "auth/app/application"
+        end
+
+        def render_new_totp_page_with_errors
+          render_inertia_page(
+            component: "auth/app/settings/totps/new",
+            props: new_page_props,
+            status: :unprocessable_content,
+          )
+        end
+
+        def index_page_props
+          {
+            title: "Totps",
+            back_link: { label: t("sign.app.settings.show.back"), href: auth_app_settings_path },
+            new_link: {
+              label: t("sign.app.settings.totp.index.new_link"),
+              href: new_auth_app_settings_totp_path(ri: params[:ri]),
+            },
+            columns: {
+              title: t("activerecord.attributes.user_totp_credential.title"),
+              last_otp_at: t("activerecord.attributes.user_totp_credential.last_otp_at"),
+              actions: "Actions",
+            },
+            empty_message: t("messages.no_totp_found"),
+            edit_label: t("actions.edit"),
+            totps: @totps.map { |credential| serialize_totp_row(credential) },
+          }
+        end
+
+        def serialize_totp_row(credential)
+          {
+            public_id: credential.public_id,
+            title: credential.title.presence,
+            last_otp_at: formatted_last_otp_at(credential),
+            edit_href: edit_auth_app_settings_totp_path(credential.public_id, ri: params[:ri]),
+          }
+        end
+
+        # A credential that has never produced a code carries the epoch rather than nil, so it reads
+        # as "never used" exactly as the table did.
+        def formatted_last_otp_at(credential)
+          last_otp_at = credential.last_otp_at
+          usable =
+            (last_otp_at.is_a?(Time) || last_otp_at.is_a?(ActiveSupport::TimeWithZone)) &&
+            last_otp_at > Time.zone.at(0)
+
+          usable ? l(last_otp_at, format: :short) : "-"
+        end
+
+        def new_page_props
+          {
+            title: t("sign.app.settings.totp.new.page_title"),
+            description: t("sign.app.settings.totp.new.description"),
+            back_link: {
+              label: t("sign.app.settings.show.back"),
+              href: auth_app_settings_totps_path(ri: params[:ri]),
+            },
+            # The provisioning QR code is the same image the enrolment page already displayed; the
+            # shared secret itself never leaves the session.
+            qr_code_image: "data:image/png;base64,#{Base64.strict_encode64(@png.to_s)}",
+            qr_fallback: t("views.sign.app.settings.totps.new.qr_fallback"),
+            form: {
+              action: auth_app_settings_totps_path(ri: params[:ri]),
+              scope: "user_totp_credential",
+              title_label: t("activerecord.attributes.user_totp_credential.title"),
+              title_placeholder: t("messages.totp_title_placeholder"),
+              title_hint: t("sign.app.settings.totp.new.title_hint"),
+              title: @totp.title,
+              first_token_label: t("views.sign.app.settings.totps.new.first_token_label"),
+              first_token_placeholder: t("views.sign.app.settings.totps.new.first_token_placeholder"),
+              first_token_help: t("views.sign.app.settings.totps.new.first_token_help"),
+              first_token_delivery_help: t("views.sign.app.settings.totps.new.first_token_delivery_help"),
+              submit_label: t("views.sign.app.settings.totps.new.submit"),
+            },
+            cancel_link: {
+              label: t("actions.cancel"),
+              href: auth_app_settings_totps_path(ri: params[:ri]),
+            },
+            turnstile: turnstile_stealth_props,
+            error_header: totp_error_header(model: true),
+            error_messages: @totp.errors.full_messages,
+          }
+        end
+
+        def edit_page_props
+          {
+            title: t("sign.app.setting.totp.edit.title"),
+            description: t("sign.app.setting.totp.edit.description"),
+            back_link: {
+              label: t("sign.app.settings.show.back"),
+              href: auth_app_settings_totps_path(ri: params[:ri]),
+            },
+            form: {
+              action: auth_app_settings_totp_path(@totp.public_id, ri: params[:ri]),
+              scope: "user_totp_credential",
+              title_label: t("activerecord.attributes.user_totp_credential.title"),
+              title_placeholder: t("messages.totp_title_placeholder"),
+              title_hint: t("sign.app.setting.totp.edit.title_hint"),
+              title: @totp.title,
+              submit_label: t("actions.save"),
+            },
+            cancel_link: {
+              label: t("actions.cancel"),
+              href: auth_app_settings_totps_path(ri: params[:ri]),
+            },
+            destroy: {
+              action: auth_app_settings_totp_path(@totp.public_id, ri: params[:ri]),
+              submit_label: t("actions.delete"),
+              confirm_message: t("messages.confirm_delete_totp"),
+            },
+            error_header: totp_error_header(model: false),
+            error_messages: @totp.errors.full_messages,
+          }
+        end
+
+        def totp_error_header(model:)
+          return nil if @totp.errors.empty?
+
+          if model
+            t("errors.template.header", model: @totp.model_name.human, count: @totp.errors.count)
+          else
+            t("errors.template.header", count: @totp.errors.count)
+          end
+        end
 
         def find_totp
           @totp = current_client.client_totp_credentials.find_by!(public_id: params.expect(:id))

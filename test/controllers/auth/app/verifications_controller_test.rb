@@ -48,7 +48,9 @@ class Auth::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
         headers: @headers
 
     assert_response :success
-    assert_select "a[href^='#{new_auth_app_verification_email_path(ri: "jp")}']"
+    assert_equal "auth/app/verifications/show", inertia_component
+    assert_equal I18n.t("sign.app.verification.index.title"), inertia_props.fetch("title")
+    assert inertia_method_hrefs.any? { |href| href.start_with?(new_auth_app_verification_email_path(ri: "jp")) }
   end
 
   test "show handles bad request error" do
@@ -56,7 +58,7 @@ class Auth::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
         headers: @headers
 
     assert_response :success
-    assert_select "a[href^='#{new_auth_app_verification_email_path(ri: "jp")}']"
+    assert inertia_method_hrefs.any? { |href| href.start_with?(new_auth_app_verification_email_path(ri: "jp")) }
   end
 
   test "show handles scope and return target mismatch without redirecting back to verification" do
@@ -97,7 +99,12 @@ class Auth::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
     # Should show success or verification page
     assert_response :success
   end
+
   private
+
+  def inertia_method_hrefs
+    inertia_props.fetch("methods").map { |method| method.fetch("href") }
+  end
 
   def host_headers(host = nil)
     host_value = host || (respond_to?(:request, true) ? request&.host : nil) || ENV["DEFAULT_URL_HOST"]

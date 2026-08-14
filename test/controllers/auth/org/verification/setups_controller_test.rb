@@ -34,8 +34,10 @@ class Auth::Org::Verification::SetupsControllerTest < ActionDispatch::Integratio
     get new_auth_org_verification_setup_url(ri: "jp", pt: pt), headers: @headers
 
     assert_response :success
-    assert_select "a[href=?]", auth_org_settings_path(ri: "jp"), count: 0
-    assert_select "ul"
+    assert_equal "auth/org/verification/setups/new", inertia_component
+    # The back link, when there is one, points at the pt destination, not at the settings root.
+    assert_not_equal auth_org_settings_path(ri: "jp"), inertia_props["back_link"]&.fetch("href")
+    assert_not_empty inertia_props.fetch("methods")
   end
 end
 

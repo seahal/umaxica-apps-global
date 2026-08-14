@@ -7,6 +7,10 @@ module Auth
       module In
         module Challenge
           class TotpsController < ::Auth::App::ApplicationController
+            include ::SurfaceInertiaPage
+
+            include ::TurnstilePageProps
+
             include SessionLimitGate
 
             include ::CloudflareTurnstile
@@ -71,19 +75,20 @@ module Auth
 
             def new
               @totp_form = TotpChallengeForm.new
+              render_totp_new
             end
 
             def create
               @totp_form = TotpChallengeForm.new(totp_params)
               unless @totp_form.valid?
-                return render :new, status: :unprocessable_content
+                return render_totp_new(status: :unprocessable_content)
               end
 
               unless cloudflare_turnstile_stealth_validation["success"]
                 @totp_form.errors.add(
                   :base, t("session_limit.turnstile_failed"),
                 )
-                return render :new, status: :unprocessable_content
+                return render_totp_new(status: :unprocessable_content)
               end
 
               user = pending_mfa_user
@@ -95,11 +100,44 @@ module Auth
                 reason = result.replay? ? "totp_replay" : "totp_mismatch"
                 SignRiskEmitter.emit("auth_failed", user_id: user&.id, ip: request.remote_ip, reason: reason)
                 @totp_form.errors.add(:token, t("sign.app.in.mfa.verification_failed"))
-                render :new, status: :unprocessable_content
+                render_totp_new(status: :unprocessable_content)
               end
             end
 
             private
+
+            # Named rather than derived: `create` re-renders this same page on every failure branch.
+            def render_totp_new(status: :ok)
+              render inertia: "auth/app/sign/in/challenge/totps/new", props: totp_new_props, status: status
+            end
+
+            def totp_new_props
+              scope = "sign.app.in.mfa.totp"
+
+              {
+                title: t("#{scope}.title"),
+                description: t("#{scope}.description"),
+                form: {
+                  action: auth_app_sign_in_challenge_totp_path,
+                  method: "post",
+                  token_field: {
+                    scope: "totp_challenge_form",
+                    field: "token",
+                    name: "totp_challenge_form[token]",
+                    label: t("#{scope}.token_label"),
+                    placeholder: t("#{scope}.token_placeholder"),
+                    max_length: 6,
+                    inputmode: "numeric",
+                    help: t("#{scope}.help"),
+                  },
+                  submit_label: t("#{scope}.submit"),
+                },
+                error_heading: t("errors.messages.validation_failed"),
+                form_errors: @totp_form.errors.full_messages,
+                turnstile: turnstile_stealth_props,
+                back_link: { label: t("#{scope}.back"), href: auth_app_sign_in_challenge_path },
+              }
+            end
 
             def ensure_pending_mfa!
               return unless !pending_mfa_valid? || pending_mfa_user.nil?

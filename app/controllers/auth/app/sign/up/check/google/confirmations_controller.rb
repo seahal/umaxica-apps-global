@@ -9,13 +9,15 @@ module Auth
           module Google
             class ConfirmationsController < ::Auth::App::ApplicationController
               include SignUpExplicitStepControllerSupport
+              include ::SurfaceInertiaPage
+              include ::TurnstilePageProps
 
               AUTHENTICATION_MODE = :open
 
               def show
                 return unless load_gate_context!(gate_for_show)
 
-                render "auth/app/sign/up/check/social/confirmations/show"
+                render_social_signup_confirmation_page
               end
 
               def update
@@ -32,6 +34,43 @@ module Auth
               end
 
               private
+
+              # The Turnstile challenge is bound to this ceremony: the action and the ticket's
+              # public id travel as the widget's action and cdata, and `verify_social_signup_turnstile!`
+              # demands the same pair back. Only the public site key crosses.
+              def render_social_signup_confirmation_page
+                scope = "sign.app.registration.checkpoint.show.social"
+
+                render inertia: "auth/app/sign/up/check/social/confirmations/show",
+                       props: {
+                         title: t("#{scope}.confirm_title"),
+                         unregistered: t(
+                           "#{scope}.unregistered",
+                           provider: @sign_up_ticket.social_provider.to_s.titleize,
+                         ),
+                         create_identity: t("#{scope}.create_identity"),
+                         no_merge: t("#{scope}.no_merge"),
+                         cancel_if_wrong: t("#{scope}.cancel_if_wrong"),
+                         confirm_label: t("#{scope}.confirm_label"),
+                         submit_label: t("actions.continue"),
+                         cancel_label: t("actions.cancel"),
+                         action: sign_up_confirmation_action_path,
+                         checkpoint_version: @sign_up_ticket.checkpoint_version.to_i,
+                         turnstile: turnstile_visible_props(
+                           action: "social_signup_confirmation",
+                           cdata: @sign_up_ticket.public_id,
+                         ),
+                       }
+              end
+
+              # The template posted back to `request.path`; the signed target rides in the query so
+              # it never becomes a separate prop.
+              def sign_up_confirmation_action_path
+                pt = signed_pt_param
+                return request.path if pt.blank?
+
+                "#{request.path}?#{{ pt: pt }.to_query}"
+              end
 
               def sign_up_surface = :app
 

@@ -19,8 +19,13 @@
 # can manage their sessions. Invariant: max 1 restricted session per user.
 class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationController
   include SessionLimitGate
+  include ::SurfaceInertiaPage
 
   AUTHENTICATION_MODE = :deny_all
+
+  # `update` and `destroy` also answer with the session management page, so the component cannot be
+  # derived from the action name.
+  SESSION_PAGE_COMPONENT = "auth/app/sign/in/sessions/show"
 
   # This controller handles session management for both authenticated users
   # and users who are in the process of logging in (with a pending gate).
@@ -34,6 +39,7 @@ class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationControll
   # Display active and restricted sessions for the user
   def show
     load_session_data
+    render inertia: SESSION_PAGE_COMPONENT, props: session_page_props
   end
 
   # Revoke selected sessions and optionally promote restricted to active
@@ -52,7 +58,9 @@ class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationControll
       if refs.empty?
         @session_alert = I18n.t("sign.app.in.session.no_sessions_selected")
         load_session_data
-        return render :show, status: :unprocessable_content
+        return render inertia: SESSION_PAGE_COMPONENT,
+                      props: session_page_props,
+                      status: :unprocessable_content
       end
 
       revoke_sessions_by_refs(@current_client, refs)
@@ -85,7 +93,7 @@ class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationControll
     # Still restricted, stay on session management
     @session_notice = I18n.t("sign.app.in.session.sessions_revoked")
     load_session_data
-    render :show
+    render inertia: SESSION_PAGE_COMPONENT, props: session_page_props
   end
 
   # Cancel the restricted session (logout) or revoke a specific session
@@ -99,7 +107,7 @@ class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationControll
       # Revoke a specific session by signed reference
       revoke_session_by_ref(@current_client, ref)
       load_session_data
-      render :show
+      render inertia: SESSION_PAGE_COMPONENT, props: session_page_props
     else
       current_db_sign_in_flow_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
       consume_session_limit_gate!
@@ -207,6 +215,69 @@ class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationControll
     @active_sessions = @current_client.client_tokens.active_status.order(created_at: :desc)
     @restricted_sessions = @current_client.client_tokens.restricted_status.order(created_at: :desc)
     @current_session_public_id = current_session_public_id
+  end
+
+  # The session management page. Every string, timestamp and URL is finished here; the signed ref
+  # is the only session identifier that crosses, and it is the same opaque value the ERB radio
+  # button carried.
+  def session_page_props
+    active_sessions = @active_sessions.to_a
+    restricted_sessions = @restricted_sessions.to_a
+
+    {
+      title: I18n.t("sign.app.in.session.title"),
+      heading: I18n.t("sign.app.in.session.title"),
+      description: I18n.t("sign.app.in.session.description"),
+      alert: @session_alert.presence,
+      notice: @session_notice.presence,
+      restricted_notice: current_session_restricted? ? I18n.t("sign.app.in.session.restricted_notice") : nil,
+      form: {
+        action: auth_app_sign_in_session_path,
+        submit_label: I18n.t("sign.app.in.session.revoke_selected"),
+      },
+      cancel: {
+        action: auth_app_sign_in_session_path,
+        label: I18n.t("sign.app.in.session.cancel_logout"),
+        confirm: I18n.t("sign.app.in.session.cancel_logout_confirm"),
+      },
+      active_sessions: active_sessions.any? ? active_sessions_props(active_sessions) : nil,
+      restricted_sessions: restricted_sessions.any? ? restricted_sessions_props(restricted_sessions) : nil,
+    }
+  end
+
+  def active_sessions_props(sessions)
+    {
+      heading: I18n.t("sign.app.in.session.active_sessions"),
+      count_label: "(#{sessions.count}/#{ClientToken::MAX_SESSIONS_PER_USER})",
+      revoke_label: I18n.t("sign.app.in.session.revoke"),
+      items: sessions.map do |session|
+        session_item_props(session, label: I18n.t("sign.app.in.session.session_label"), revocable: true)
+      end,
+    }
+  end
+
+  def restricted_sessions_props(sessions)
+    {
+      heading: I18n.t("sign.app.in.session.restricted_sessions"),
+      items: sessions.map do |session|
+        session_item_props(session, label: I18n.t("sign.app.in.session.pending_session"), revocable: false)
+      end,
+    }
+  end
+
+  def session_item_props(session, label:, revocable:)
+    current = session.public_id == @current_session_public_id
+
+    {
+      label: label,
+      current: current,
+      current_label: current ? I18n.t("sign.app.in.session.current") : nil,
+      created_at_label: I18n.t("sign.app.in.session.created_at"),
+      created_at: l(session.created_at, format: :short),
+      last_used_at_label: session.last_used_at ? I18n.t("sign.app.in.session.last_used_at") : nil,
+      last_used_at: session.last_used_at ? l(session.last_used_at, format: :short) : nil,
+      ref: (revocable && !current) ? session.signed_ref : nil,
+    }
   end
 
   def can_promote_session?(user)

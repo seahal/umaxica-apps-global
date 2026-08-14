@@ -30,13 +30,21 @@ const LAYOUT = () => null;
 
 describe("surface page resolver", () => {
   test("resolves a page of its own surface from the surface-scoped glob", () => {
-    const resolve = surfacePageResolver(pageModules("base/app", ["groups/index"]), "base/app", LAYOUT);
+    const resolve = surfacePageResolver(
+      pageModules("base/app", ["groups/index"]),
+      "base/app",
+      LAYOUT,
+    );
 
     expect(resolve("base/app/groups/index")).toBeDefined();
   });
 
   test("attaches the surface layout so no page can render without chrome", () => {
-    const resolve = surfacePageResolver(pageModules("base/app", ["groups/index"]), "base/app", LAYOUT);
+    const resolve = surfacePageResolver(
+      pageModules("base/app", ["groups/index"]),
+      "base/app",
+      LAYOUT,
+    );
 
     expect(resolve("base/app/groups/index").default.layout).toEqual([LAYOUT]);
   });
@@ -44,28 +52,46 @@ describe("surface page resolver", () => {
   test("keeps a layout a page declared for itself", () => {
     const modules = pageModules("base/app", ["groups/index"]);
     const own = () => null;
-    (modules["../../pages/base/app/groups/index.tsx"] as { default: { layout?: unknown } }).default.layout = [own];
+    (
+      modules["../../pages/base/app/groups/index.tsx"] as { default: { layout?: unknown } }
+    ).default.layout = [own];
     const resolve = surfacePageResolver(modules, "base/app", LAYOUT);
 
     expect(resolve("base/app/groups/index").default.layout).toEqual([own]);
   });
 
   test("rejects a page belonging to another surface instead of attempting to resolve it", () => {
-    const resolve = surfacePageResolver(pageModules("base/app", ["groups/index"]), "base/app", LAYOUT);
+    const resolve = surfacePageResolver(
+      pageModules("base/app", ["groups/index"]),
+      "base/app",
+      LAYOUT,
+    );
 
-    expect(() => resolve("base/com/groups/index")).toThrow(/does not belong to the "base\/app" surface/);
+    expect(() => resolve("base/com/groups/index")).toThrow(
+      /does not belong to the "base\/app" surface/,
+    );
   });
 
   test("rejects an unqualified page name so a missing prefix is not silently accepted", () => {
-    const resolve = surfacePageResolver(pageModules("auth/org", ["groups/index"]), "auth/org", LAYOUT);
+    const resolve = surfacePageResolver(
+      pageModules("auth/org", ["groups/index"]),
+      "auth/org",
+      LAYOUT,
+    );
 
     expect(() => resolve("groups/index")).toThrow(/does not belong to the "auth\/org" surface/);
   });
 
   test("fails loudly when the surface has no component for a page the controller rendered", () => {
-    const resolve = surfacePageResolver(pageModules("base/app", ["groups/index"]), "base/app", LAYOUT);
+    const resolve = surfacePageResolver(
+      pageModules("base/app", ["groups/index"]),
+      "base/app",
+      LAYOUT,
+    );
 
-    expect(() => resolve("base/app/groups/show")).toThrow(/has no component in src\/pages\/base\/app/);
+    expect(() => resolve("base/app/groups/show")).toThrow(
+      /has no component in src\/pages\/base\/app/,
+    );
   });
 });
 

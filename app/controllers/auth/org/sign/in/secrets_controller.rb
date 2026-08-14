@@ -8,6 +8,9 @@ module Auth
         class SecretsController < ::Auth::Org::ApplicationController
           include ::CloudflareTurnstile
 
+          include ::TurnstilePageProps
+          include ::SurfaceInertiaPage
+
           include MinimumResponseBudget
 
           include SessionLimitGate
@@ -89,6 +92,7 @@ module Auth
 
           def new
             @secret_credential_form = SecretLoginForm.new
+            render inertia: true, props: secret_sign_in_props
           end
 
           def create
@@ -221,7 +225,44 @@ module Auth
 
             SignRiskEmitter.emit("auth_failed", staff_id: staff&.id) if staff
 
-            render :new, status: :unprocessable_content, formats: :html
+            render inertia: "auth/org/sign/in/secrets/new",
+                   props: secret_sign_in_props,
+                   status: :unprocessable_content
+          end
+
+          # The identifier the operator typed is never echoed back: the form starts empty on a
+          # failed attempt exactly as it did before, and only the generic failure message travels.
+          def secret_sign_in_props
+            pt = signed_pt_param
+            region = current_region_identifier
+            scope = "sign.org.authentication.secret_credential.new"
+
+            {
+              title: t("#{scope}.page_title"),
+              form_action: auth_org_sign_in_secret_path,
+              hidden_fields: { pt: pt.presence, ri: region.to_s },
+              errors_title: t("errors.messages.validation_failed"),
+              errors: @secret_credential_form.errors.full_messages,
+              identifier: {
+                name: "secret_credential_login_form[identifier]",
+                label: t("#{scope}.pii_label"),
+                placeholder: t("#{scope}.pii_placeholder"),
+                min_length: Operator::PUBLIC_ID_LENGTH,
+                max_length: Operator::PUBLIC_ID_LENGTH,
+                pattern: "[0-9A-FGHJKMNPQRSTVWXYZ]{16}",
+              },
+              secret: {
+                name: "secret_credential_login_form[secret_credential_value]",
+                label: t("#{scope}.secret_credential_label"),
+                placeholder: "••••••••••••••••",
+              },
+              submit_label: t("actions.submit"),
+              back_link: {
+                label: t("sign.org.authentication.new.back"),
+                href: auth_org_sign_in_path(pt: pt, ri: region),
+              },
+              turnstile: turnstile_visible_props,
+            }
           end
 
           def invalid_secret_credential_message

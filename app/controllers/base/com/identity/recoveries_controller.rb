@@ -5,6 +5,8 @@ module Base
   module Com
     module Identity
       class RecoveriesController < ::Base::Com::ApplicationController
+        include ::SurfaceInertiaPage
+        include ::ComIdentityRecoveryPage
         include CommonRedirect
         include EnforcementRecoveryCeremonyCookie
 
@@ -17,7 +19,7 @@ module Base
             principal_public_id: current_recovery_ceremony.subject.public_id, kind: "security_lock", visibility: "visible",
             release_mode: "verification_required",
           )
-          render "base/com/identity/recoveries/show"
+          render_com_identity_recovery(enforcement_cases: @enforcement_cases)
         end
 
         private

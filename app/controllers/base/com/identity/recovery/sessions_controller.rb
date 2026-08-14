@@ -6,6 +6,7 @@ module Base
     module Identity
       module Recovery
         class SessionsController < ::Base::Com::ApplicationController
+          include ::SurfaceInertiaPage
           include CommonRedirect
           include EnforcementRecoveryCeremonyCookie
           include EnforcementRecoveryCeremonyFlow
@@ -17,7 +18,49 @@ module Base
                      name: "email_create_ip_burst", store: rate_limit_store, only: :create,
                      with: -> { render_rate_limited(rule_name: "base_com_enforcement_recovery_email_create_ip_burst", retry_after: 60) }
 
+          # GET /identity/recovery/session/new
+          # EnforcementRecoveryCeremonyFlow#new only assigns the screen state and relies on an
+          # implicit render, so this surface makes the Inertia render explicit.
+          def new
+            super
+            render_recovery_reentry_new
+          end
+
           private
+
+          # Overrides the shared re-entry transport seam: this surface answers with an Inertia page.
+          def render_recovery_reentry_new(status: :ok)
+            render inertia: "base/com/identity/recovery/sessions/new",
+                   props: new_page_props,
+                   status: status
+          end
+
+          def new_page_props
+            {
+              title: "Account recovery",
+              description: "If an eligible account is found, a verification code will be sent.",
+              address_form: {
+                url: base_com_identity_recovery_session_path,
+                scope: "recovery_reentry",
+                field: "address",
+                label: "Email address",
+                value: @email_record&.address.to_s,
+                submit_label: "Send verification code",
+              },
+              pass_code_form: pass_code_form_props,
+            }
+          end
+
+          def pass_code_form_props
+            return if @reentry_state.blank?
+
+            {
+              url: base_com_identity_recovery_session_path,
+              field: "pass_code",
+              label: "Verification code",
+              submit_label: "Continue",
+            }
+          end
 
           def identity_email_model = VisitorEmail
 

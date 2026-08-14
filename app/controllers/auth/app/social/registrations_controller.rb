@@ -10,7 +10,11 @@ module Auth
       # marker arrive as route defaults; the shared ceremony entry issues the
       # sign-up flow ticket when the entry is a sign-up.
       class RegistrationsController < ::Auth::App::ApplicationController
+        # The only page either action renders is the sign-up suspension notice, which is now the
+        # Inertia entry page rather than an ERB template; the OmniAuth handoff is untouched.
+        include ::SurfaceInertiaPage
         include AppSocialCeremonyEntry
+        include AppSignUpEntryPage
 
         AUTHENTICATION_MODE = :open
 

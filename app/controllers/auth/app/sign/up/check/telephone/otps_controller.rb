@@ -16,7 +16,7 @@ module Auth
               def show
                 if dummy_existing_telephone_flow?
                   @user_telephone = ClientTelephone.new
-                  return render "auth/app/sign/up/telephones/edit" if valid_telephone_session?
+                  return render_sign_up_telephone_edit if valid_telephone_session?
 
                   return redirect_telephone_session_expired
                 end
@@ -26,7 +26,7 @@ module Auth
                 @user_telephone = current_registration_telephone
                 return redirect_telephone_session_expired unless valid_telephone_session?
 
-                render "auth/app/sign/up/telephones/edit"
+                render_sign_up_telephone_edit
               end
 
               def create
@@ -139,22 +139,22 @@ module Auth
               def render_otp_ceremony_result(result)
                 if result.status == :rate_limited
                   @user_telephone.errors.add(:base, t("sign.app.registration.email.create.otp_resend_too_soon"))
-                  return render "auth/app/sign/up/telephones/edit", status: :too_many_requests
+                  return render_sign_up_telephone_edit(status: :too_many_requests)
                 end
 
                 @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.invalid_code"))
-                render "auth/app/sign/up/telephones/edit", status: :unprocessable_content
+                render_sign_up_telephone_edit(status: :unprocessable_content)
               end
 
               def render_code_required
                 @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
-                render "auth/app/sign/up/telephones/edit", status: :unprocessable_content
+                render_sign_up_telephone_edit(status: :unprocessable_content)
               end
 
               def handle_locked_result
                 reset_telephone_flow!
                 @user_telephone.errors.add(:base, t("sign.app.registration.telephone.update.attempts_exceeded"))
-                render "auth/app/sign/up/telephones/edit", status: :too_many_requests
+                render_sign_up_telephone_edit(status: :too_many_requests)
               end
 
               def complete_update_and_redirect

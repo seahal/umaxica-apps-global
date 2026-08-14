@@ -26,7 +26,12 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     get edit_auth_app_sign_out_url(ri: "jp", host: @host), headers: rp_session_headers(user, token)
 
     assert_response :success
-    assert_select "form[action='#{auth_app_sign_out_path(ri: "jp")}'] input[name=_method][value=delete]"
+    assert_equal "auth/app/sign/outs/edit", inertia_component
+    assert_equal I18n.t("sign.shared.sign_out.title"), inertia_props.fetch("title")
+    assert inertia_props.fetch("active_context")
+    assert_equal auth_app_sign_out_path(ri: "jp"), inertia_props.fetch("form").fetch("action")
+    # Cancelling the pending logout stays a DELETE to the sign-out route.
+    assert_equal auth_app_sign_out_path(ri: "jp"), inertia_props.fetch("cancel").fetch("action")
     assert_predicate token.reload, :currently_usable?
 
     post auth_app_sign_out_url(ri: "jp", host: @host), headers: rp_session_headers(user, token)

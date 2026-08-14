@@ -9,6 +9,7 @@ module Base
         # (new/create, see WithdrawalCeremonyReentry) and ceremony sign-out
         # (destroy).
         class SessionsController < ::Base::App::Identity::BaseController
+          include ::SurfaceInertiaPage
           include CommonRedirect
           include WithdrawalCeremonyReentry
 
@@ -40,6 +41,30 @@ module Base
           end
 
           private
+
+          def render_withdrawal_reentry_new(status: :ok)
+            render inertia: "base/app/identity/withdrawal/sessions/new",
+                   props: withdrawal_session_new_props,
+                   status: status
+          end
+
+          def withdrawal_session_new_props
+            {
+              title: "Withdrawal session",
+              description: withdrawal_reentry_generic_message,
+              address_form: {
+                action: base_app_identity_withdrawal_session_path(ri: params[:ri]),
+                label: "Email address",
+                address: params.dig(:withdrawal_reentry, :address).to_s,
+                submit_label: "Send verification code",
+              },
+              pass_code_form: @reentry_state.present? ? {
+                action: base_app_identity_withdrawal_session_path(ri: params[:ri]),
+                label: "Verification code",
+                submit_label: "Continue",
+              } : nil,
+            }
+          end
 
           def identity_email_model = ClientEmail
 

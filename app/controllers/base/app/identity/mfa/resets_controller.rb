@@ -6,11 +6,23 @@ module Base
     module Identity
       module Mfa
         class ResetsController < BaseController
+          include ::SurfaceInertiaPage
+
           AUTHENTICATION_MODE = :private
           declare_authentication_mode! :private
 
           before_action :authenticate_client!
-          def show = (authorize!(current_client, to: :show?); render "base/app/identity/mfa/resets/show")
+          def show
+            authorize!(current_client, to: :show?)
+            render inertia: true, props: {
+              title: t("sign.app.settings.show.mfa_reset"),
+              reset_unavailable: t("sign.app.settings.mfa.show.reset_unavailable"),
+              back_link: {
+                label: t("sign.app.settings.show.back"),
+                href: base_app_identity_path(ri: params[:ri]),
+              },
+            }
+          end
 
           def create
             authorize!(current_client, to: :update?)

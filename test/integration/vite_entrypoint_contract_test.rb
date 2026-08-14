@@ -28,7 +28,7 @@ class ViteEntrypointContractTest < ActiveSupport::TestCase
   test "every Inertia layout loads the entrypoint belonging to its own surface" do
     layouts = inertia_layouts
 
-    assert_equal 10, layouts.size, "expected one Inertia layout per user-facing FQDN"
+    assert_equal 14, layouts.size, "expected one Inertia layout per user-facing FQDN"
 
     layouts.each do |layout|
       family, surface = layout.relative_path_from(LAYOUT_ROOT).each_filename.first(2)
@@ -47,9 +47,14 @@ class ViteEntrypointContractTest < ActiveSupport::TestCase
       source = ENTRYPOINT_ROOT.join("inertia/#{family}_#{surface}.tsx")
 
       assert_path_exists source
-      assert_includes source.read, %(path: "../../pages/#{family}/#{surface}"),
+
+      contents = source.read
+
+      assert_includes contents, "import.meta.glob(\"../../pages/#{family}/#{surface}/**/*.tsx\"",
                       "#{source} must resolve pages from src/pages/#{family}/#{surface} only"
-      assert_includes source.read, %(surfacePageTransform("#{family}/#{surface}")),
+      assert_includes contents, "surfacePageResolver(",
+                      "#{source} must resolve pages through the surface resolver"
+      assert_includes contents, "\"#{family}/#{surface}\",",
                       "#{source} must reject page names from other surfaces"
       assert_path_exists PAGE_ROOT.join(family, surface)
     end

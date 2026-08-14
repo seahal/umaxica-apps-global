@@ -8,6 +8,8 @@ module Auth
         class InvitationsController < ::Auth::Org::ApplicationController
           include CloudflareTurnstile
           include SignUpSuspensionGuard
+          include ::TurnstilePageProps
+          include ::SurfaceInertiaPage
 
           AUTHENTICATION_MODE = :guest
 
@@ -15,6 +17,7 @@ module Auth
 
           def new
             @invitation_code = params[:invitation_code].to_s
+            render inertia: true, props: invitation_props
           end
 
           def create
@@ -22,7 +25,9 @@ module Auth
 
             unless cloudflare_turnstile_validation["success"]
               @form_error = t(".turnstile_failed")
-              render :new, status: :unprocessable_content
+              render inertia: "auth/org/sign/up/invitations/new",
+                     props: invitation_props,
+                     status: :unprocessable_content
               return
             end
 
@@ -32,13 +37,42 @@ module Auth
               redirect_to(auth_org_sign_in_path)
             else
               @form_error = result.error
-              render :new, status: :unprocessable_content
+              render inertia: "auth/org/sign/up/invitations/new",
+                     props: invitation_props,
+                     status: :unprocessable_content
             end
           end
 
           private
 
+          def invitation_props
+            {
+              title: t("sign.org.up.invitations.new.title"),
+              description: t("sign.org.up.invitations.new.description"),
+              form_error: @form_error.presence,
+              form_action: auth_org_sign_up_invitations_path,
+              invitation_code_label: t("sign.org.up.invitations.form.invitation_code"),
+              invitation_code: @invitation_code.to_s,
+              submit_label: t("sign.org.up.invitations.form.submit"),
+              back_link: { label: t("sign.org.in.back"), href: auth_org_sign_in_path },
+              turnstile: turnstile_visible_props,
+            }
+          end
+
           def sign_up_surface = :org
+
+          def render_suspended_sign_up!
+            render inertia: "auth/org/sign/ups/show",
+                   props: {
+                     title: t("sign.org.ups.new.heading"),
+                     description: nil,
+                     suspended_notice: t("errors.messages.sign_up_suspended"),
+                     recruit: nil,
+                     sign_in_link: nil,
+                     back_to_root: nil,
+                   },
+                   status: :service_unavailable
+          end
         end
       end
     end

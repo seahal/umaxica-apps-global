@@ -1,0 +1,192 @@
+// React port of `src/controllers/passkey_registration_controller.js`.
+//
+// Same three-step ceremony against the same endpoints: solve an invisible Turnstile token, POST it
+// to the options endpoint, run `navigator.credentials.create`, and POST the attestation to the
+// verification endpoint. The attestation encoding keeps the `transports` field the Stimulus
+// controller sent, because the server stores it.
+import { useRef, useState } from "react";
+
+import { normalizePublicKeyOptions } from "@/controllers/webauthn_utils";
+import { csrfToken } from "@/features/auth/csrf";
+
+import { solveInvisibleTurnstile } from "./invisibleTurnstile";
+import { PASSKEY_MESSAGES, TURNSTILE_DEFAULT_ERROR, registrationErrorMessage } from "./messages";
+import { useCeremonyMessages } from "./useCeremonyMessages";
+import { bufferToBase64url, passkeysSupported } from "./webauthn";
+
+export type PasskeyRegistrationPanelProps = {
+  options_url: string;
+  verification_url: string;
+  turnstile_site_key: string;
+  turnstile_error_message: string;
+  description_label: string;
+  description_placeholder: string;
+  submit_label: string;
+};
+
+type RegistrationCredential = {
+  id: string;
+  rawId: string;
+  type: string;
+  authenticatorAttachment: string | null;
+  response: {
+    clientDataJSON: string;
+    attestationObject: string;
+    transports: string[];
+  };
+  clientExtensionResults: AuthenticationExtensionsClientOutputs;
+};
+
+async function postJson(url: string, body: unknown): Promise<Response> {
+  return fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "X-CSRF-Token": csrfToken(),
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+async function readFailure(response: Response, fallback: string): Promise<Error | null> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    const data: { error?: string } = await response.json();
+    return new Error(data.error || fallback);
+  }
+  if (response.status === 401 || response.status === 302) {
+    window.location.reload();
+    return null;
+  }
+  return new Error(fallback);
+}
+
+function encodeAttestation(credential: PublicKeyCredential): RegistrationCredential {
+  const response = credential.response as AuthenticatorAttestationResponse;
+
+  return {
+    id: credential.id,
+    rawId: bufferToBase64url(credential.rawId),
+    type: credential.type,
+    authenticatorAttachment: credential.authenticatorAttachment ?? null,
+    response: {
+      clientDataJSON: bufferToBase64url(response.clientDataJSON),
+      attestationObject: bufferToBase64url(response.attestationObject),
+      transports: typeof response.getTransports === "function" ? response.getTransports() : [],
+    },
+    clientExtensionResults: credential.getClientExtensionResults(),
+  };
+}
+
+export default function PasskeyRegistrationPanel({
+  options_url: optionsUrl,
+  verification_url: verificationUrl,
+  turnstile_site_key: turnstileSiteKey,
+  turnstile_error_message: turnstileErrorMessage,
+  description_label: descriptionLabel,
+  description_placeholder: descriptionPlaceholder,
+  submit_label: submitLabel,
+}: PasskeyRegistrationPanelProps) {
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const [description, setDescription] = useState("");
+  const { error, status, showError, showStatus, clearMessages } = useCeremonyMessages();
+
+  const register = async () => {
+    clearMessages();
+
+    if (!passkeysSupported()) {
+      showError(PASSKEY_MESSAGES.unsupported);
+      return;
+    }
+
+    try {
+      const token = await solveInvisibleTurnstile(
+        turnstileSiteKey,
+        turnstileErrorMessage || TURNSTILE_DEFAULT_ERROR,
+        hostRef.current,
+      );
+      showStatus(PASSKEY_MESSAGES.fetchingOptions);
+
+      const optionsResponse = await postJson(optionsUrl, { "cf-turnstile-response": token });
+      if (!optionsResponse.ok) {
+        const failure = await readFailure(optionsResponse, PASSKEY_MESSAGES.optionsFailed);
+        if (!failure) {
+          return;
+        }
+        throw failure;
+      }
+
+      const { challenge_id: challengeId, options } = (await optionsResponse.json()) as {
+        challenge_id: string;
+        options: unknown;
+      };
+
+      showStatus(PASSKEY_MESSAGES.creating);
+      const created = await navigator.credentials.create({
+        publicKey: normalizePublicKeyOptions(options),
+      });
+      if (!created) {
+        throw new Error(PASSKEY_MESSAGES.registrationFailed);
+      }
+
+      showStatus(PASSKEY_MESSAGES.verifying);
+      const verificationResponse = await postJson(verificationUrl, {
+        challenge_id: challengeId,
+        credential: encodeAttestation(created as PublicKeyCredential),
+        description,
+      });
+
+      if (!verificationResponse.ok) {
+        const failure = await readFailure(
+          verificationResponse,
+          PASSKEY_MESSAGES.registrationFailed,
+        );
+        if (!failure) {
+          return;
+        }
+        throw failure;
+      }
+
+      const result = (await verificationResponse.json()) as { redirect_url?: string };
+
+      showStatus(PASSKEY_MESSAGES.registrationComplete);
+      if (result.redirect_url) {
+        window.location.href = result.redirect_url;
+      } else {
+        window.location.reload();
+      }
+    } catch (caught) {
+      showError(registrationErrorMessage(caught));
+    }
+  };
+
+  return (
+    <div ref={hostRef}>
+      <div>
+        <label htmlFor="description">{descriptionLabel}</label>
+        <input
+          type="text"
+          id="description"
+          autoComplete="off"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          placeholder={descriptionPlaceholder}
+          maxLength={100}
+        />
+      </div>
+
+      {error ? <p role="alert">{error}</p> : null}
+      {status ? <p>{status}</p> : null}
+
+      <div>
+        <button
+          type="button"
+          onClick={() => void register()}
+        >
+          {submitLabel}
+        </button>
+      </div>
+    </div>
+  );
+}

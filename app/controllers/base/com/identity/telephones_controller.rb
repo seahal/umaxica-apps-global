@@ -5,6 +5,7 @@ module Base
   module Com
     module Identity
       class TelephonesController < ::Base::Com::ApplicationController
+        include ::SurfaceInertiaPage
         include CommonOtp
         include ::SignSettingsAuthorityRedirect
 
@@ -14,6 +15,11 @@ module Base
 
         TELEPHONE_VERIFICATION_RATE_LIMIT = 5
         TELEPHONE_VERIFICATION_RATE_WINDOW = 60
+        VERIFIED_TELEPHONE_STATUS_IDS = [
+          VisitorTelephoneStatus::VERIFIED,
+          VisitorTelephoneStatus::VERIFIED_WITH_SIGN_UP,
+        ].freeze
+
         before_action :authenticate_visitor!
         # Object-level authorization (ActionPolicy): new/create gate the actor type; edit
         # authorize the owned record (find_by! is owner-scoped, so a non-owner gets 404 first).
@@ -22,6 +28,7 @@ module Base
 
         def index
           @client_telephones = current_visitor.visitor_telephones.order(created_at: :asc)
+          render inertia: true, props: index_page_props
         end
 
         def new
@@ -31,6 +38,7 @@ module Base
         def edit
           @user_telephone = current_visitor.visitor_telephones.find_by!(public_id: params.expect(:id))
           authorize!(@user_telephone)
+          render inertia: true, props: edit_page_props
         end
 
         def create
@@ -67,6 +75,60 @@ module Base
         end
 
         private
+
+        def index_page_props
+          {
+            title: "Telephones",
+            back_link: {
+              label: t("sign.app.settings.show.back"),
+              href: base_com_identity_path(ri: params[:ri]),
+            },
+            new_link: {
+              label: t("sign.app.settings.telephone.index.new_link"),
+              href: new_base_com_identity_telephones_registration_path(ri: params[:ri]),
+            },
+            columns: {
+              number: VisitorTelephone.human_attribute_name(:number),
+              status: t("activerecord.attributes.user_telephone.status"),
+              actions: t("views.sign.com.settings.telephones.index.actions"),
+            },
+            empty_message: t("views.sign.com.settings.telephones.index.empty"),
+            telephones: @client_telephones.map { |telephone| serialize_telephone_row(telephone) },
+          }
+        end
+
+        def serialize_telephone_row(telephone)
+          verified = VERIFIED_TELEPHONE_STATUS_IDS.include?(telephone.visitor_telephone_status_id)
+          {
+            public_id: telephone.public_id,
+            number: telephone.number,
+            status_label: if verified
+                            t("views.sign.com.settings.telephones.index.verified")
+                          else
+                            t("views.sign.com.settings.telephones.index.unverified")
+                          end,
+            edit_link: {
+              label: t("sign.app.settings.telephone.index.edit"),
+              href: edit_base_com_identity_telephone_path(telephone.public_id, ri: params[:ri]),
+            },
+          }
+        end
+
+        def edit_page_props
+          {
+            title: t("sign.app.settings.telephone.edit.title"),
+            number: @user_telephone.number,
+            destroy: {
+              label: t("sign.app.settings.telephone.index.delete"),
+              url: base_com_identity_telephone_path(@user_telephone.public_id, ri: params[:ri]),
+              confirm: t("sign.app.settings.telephone.index.delete_confirm"),
+            },
+            cancel_link: {
+              label: t("sign.app.common.cancel"),
+              href: base_com_identity_telephones_path(ri: params[:ri]),
+            },
+          }
+        end
 
         def authorize_telephone_registration!
           authorize!(VisitorTelephone, to: :create?)

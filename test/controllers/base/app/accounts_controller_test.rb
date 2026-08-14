@@ -23,7 +23,9 @@ class Base::App::AccountsControllerTest < ActionDispatch::IntegrationTest
     get base_app_accounts_url(ri: "jp", host: @host), headers: as_user_headers(@user, host: @host)
 
     assert_response :success
-    assert_select "body", text: /account/i
+    assert_equal "base/app/accounts/index", inertia_component
+    assert_equal "Accounts", inertia_props.fetch("title")
+    assert_equal "account", inertia_props.fetch("body")
   end
 
   test "show resolves by public_id" do
@@ -31,7 +33,8 @@ class Base::App::AccountsControllerTest < ActionDispatch::IntegrationTest
         headers: as_user_headers(@user, host: @host)
 
     assert_response :success
-    assert_select "body", text: /account/i
+    assert_equal "base/app/accounts/show", inertia_component
+    assert_equal "account", inertia_props.fetch("body")
   end
 
   test "show rejects account outside the current client membership set" do

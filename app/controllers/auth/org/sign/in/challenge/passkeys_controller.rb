@@ -15,6 +15,8 @@ module Auth
 
             include ::CloudflareTurnstile
 
+            include ::SurfaceInertiaPage
+
             AUTHENTICATION_MODE = :guest
 
             rate_limit(
@@ -58,6 +60,7 @@ module Auth
 
               @passkey_challenge_id, @passkey_request_options =
                 issue_passkey_authentication_challenge(allow_credentials: passkeys, actor: @mfa_staff, uv_purpose: :mfa_challenge)
+              render inertia: true, props: mfa_passkey_props
             rescue Webauthn::RelyingPartyConfigResolver::MissingConfigurationError => e
               Rails.logger.error(JitLogEvent.format("webauthn.origin_validation_failed", message: e.message))
               redirect_to(
@@ -88,6 +91,24 @@ module Auth
             end
 
             private
+
+            def mfa_passkey_props
+              {
+                title: t("sign.org.in.mfa.passkey.title"),
+                description: t("sign.org.in.mfa.passkey.description"),
+                form: {
+                  action: auth_org_sign_in_challenge_passkey_path,
+                  param_scope: "mfa_passkey_form",
+                  challenge_id: @passkey_challenge_id.to_s,
+                  request_options: @passkey_request_options.as_json,
+                  submit_label: t("sign.org.in.mfa.passkey.authenticate"),
+                },
+                back_link: {
+                  label: t("sign.org.in.mfa.passkey.back"),
+                  href: auth_org_sign_in_challenge_path,
+                },
+              }
+            end
 
             def ensure_pending_mfa!
               return unless !pending_mfa_valid? || pending_mfa_user.nil?

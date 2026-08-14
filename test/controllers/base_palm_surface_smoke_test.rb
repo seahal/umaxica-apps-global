@@ -57,7 +57,8 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_homepage_html(
-      title: "Palm App",
+      component: "palm/app/roots/index",
+      heading: "Palm App",
       message: I18n.t("palm.app.roots.message"),
     )
 
@@ -73,13 +74,16 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
 
   private
 
-  def assert_homepage_html(title:, message:)
+  # The landing is an Inertia page now, so its content lives in the page object props and the
+  # header and footer are the React surface layout's, not the document's.
+  def assert_homepage_html(component:, heading:, message:)
     assert_equal "text/html", response.media_type
-    assert_includes response.body, "<!doctype html>"
-    assert_select "html body main section h1", text: title
-    assert_select "html body main section p", text: message
-    assert_select "header", count: 0
-    assert_select "footer", count: 0
+    assert_includes response.body, "<!DOCTYPE html>"
+    assert_equal component, inertia_component
+    assert_equal heading, inertia_props.fetch("heading")
+    assert_equal message, inertia_props.fetch("description")
+    assert_select "body header", count: 0
+    assert_select "body footer", count: 0
   end
 
   def json_headers

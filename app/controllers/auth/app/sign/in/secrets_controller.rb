@@ -6,6 +6,10 @@ module Auth
     module Sign
       module In
         class SecretsController < ::Auth::App::ApplicationController
+          include ::SurfaceInertiaPage
+
+          include ::TurnstilePageProps
+
           include ::CloudflareTurnstile
 
           include EmailValidation
@@ -133,6 +137,8 @@ module Auth
             else
               @secret_credential_form = SecretLoginForm.new
             end
+
+            render_secret_new
           end
 
           def create
@@ -456,7 +462,72 @@ module Auth
           end
 
           def render_new_with_unprocessable_entity
-            render :new, status: :unprocessable_content, formats: :html
+            render_secret_new(status: :unprocessable_content)
+          end
+
+          # Named rather than derived: `create` re-renders this same page on every failure branch.
+          def render_secret_new(status: :ok)
+            render inertia: "auth/app/sign/in/secrets/new",
+                   props: secret_new_props,
+                   status: status,
+                   formats: :html
+          end
+
+          def secret_new_props
+            scope = "sign.app.authentication.secret_credential.new"
+            pt = signed_pt_param
+            ri = current_region_identifier
+
+            {
+              title: t("#{scope}.page_title"),
+              form: {
+                action: auth_app_sign_in_secret_path,
+                method: "post",
+                pt: pt,
+                ri: ri,
+                identifier_field: secret_identifier_field(scope),
+                secret_field: {
+                  scope: secret_form_param_key,
+                  field: "secret_credential_value",
+                  name: "#{secret_form_param_key}[secret_credential_value]",
+                  label: t("#{scope}.secret_credential_label"),
+                  placeholder: "••••••••••••••••",
+                },
+                submit_label: t("actions.submit"),
+              },
+              hints: secret_credential_hints_prop(scope),
+              error_heading: t("errors.messages.validation_failed"),
+              form_errors: @secret_credential_form.errors.full_messages,
+              turnstile: turnstile_visible_props,
+              back_link: {
+                label: t("sign.app.authentication.new.back"),
+                href: auth_app_sign_in_path(pt: pt, ri: ri),
+              },
+            }
+          end
+
+          # The second-factor form identifies the actor from the pending MFA session, so it carries
+          # no identifier field at all rather than one React would hide.
+          def secret_identifier_field(scope)
+            return nil unless @secret_credential_form.respond_to?(:identifier)
+
+            {
+              scope: secret_form_param_key,
+              field: "identifier",
+              name: "#{secret_form_param_key}[identifier]",
+              label: t("#{scope}.pii_label"),
+              placeholder: t("#{scope}.pii_placeholder"),
+            }
+          end
+
+          def secret_credential_hints_prop(scope)
+            return nil if @secret_credential_hints.blank?
+
+            { label: t("#{scope}.hints"), value: @secret_credential_hints.join(", ") }
+          end
+
+          def secret_form_param_key
+            @secret_credential_form.class.model_name.param_key
           end
 
           def audit_recovery_code_used!(user, secret_credential)

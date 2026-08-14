@@ -2327,6 +2327,10 @@ en:
       roots:
         message:
           Palm API is available for native and handheld clients. Browser access is not a product UI.
+      sign_out:
+        completed: Your Palm session was revoked and the browser logout flow completed.
+        heading: Signed out
+        missing: There is no active Palm logout transaction to display.
   preference:
     cookie:
       banner:

@@ -32,9 +32,11 @@ class Auth::Org::Settings::EntrasControllerTest < ActionDispatch::IntegrationTes
     get auth_org_settings_entra_url(ri: "jp"), headers: @headers
 
     assert_response :success
-    assert_select "a[href=?]", auth_org_settings_path(ri: "jp")
-    assert_select "a[href=?]", edit_auth_org_settings_entra_path(ri: "jp")
-    assert_select "form[action=?]", auth_org_settings_entra_path(ri: "jp"), count: 0
+    assert_equal "auth/org/settings/entras/show", inertia_component
+    assert_equal auth_org_settings_path(ri: "jp"), inertia_props.fetch("back_link").fetch("href")
+    assert_equal edit_auth_org_settings_entra_path(ri: "jp"), inertia_props.fetch("edit_link").fetch("href")
+    # The read-only screen offers no connect form at all.
+    assert_nil inertia_props["form_action"]
   end
 
   test "edit offers existing Entra ceremony when an active connection exists" do
@@ -43,8 +45,10 @@ class Auth::Org::Settings::EntrasControllerTest < ActionDispatch::IntegrationTes
     get edit_auth_org_settings_entra_url(ri: "jp"), headers: @headers
 
     assert_response :success
-    assert_select "form[action=?]", auth_org_settings_entra_path(ri: "jp")
-    assert_includes response.body, connection.public_id
+    assert_equal "auth/org/settings/entras/edit", inertia_component
+    assert_equal auth_org_settings_entra_path(ri: "jp"), inertia_props.fetch("form_action")
+    assert_includes inertia_props.fetch("connections").map { |item| item.fetch("public_id") },
+                    connection.public_id
   end
 
   test "create redirects to the org Entra sign in ceremony" do

@@ -6,6 +6,10 @@ module Auth
     module Sign
       module In
         class EmailsController < ::Auth::App::ApplicationController
+          include ::SurfaceInertiaPage
+
+          include ::TurnstilePageProps
+
           include ::CloudflareTurnstile
 
           include EmailValidation
@@ -69,23 +73,25 @@ module Auth
 
           def new
             @user_email = ClientEmail.new
+            render_email_new
           end
 
           def edit
+            render_email_edit
           end
 
           def create
             address = email_params(:address)[:address]
             unless cloudflare_turnstile_validation["success"] && address.present?
               @user_email = ClientEmail.new(address: address)
-              return render :new, status: :unprocessable_content
+              return render_email_new(status: :unprocessable_content)
             end
 
             normalized_address = validate_and_normalize_email(address)
             unless normalized_address
               @user_email = ClientEmail.new(address: address)
               @user_email.errors.add(:address, t("sign.app.authentication.email.create.invalid_format"))
-              return render :new, status: :unprocessable_content
+              return render_email_new(status: :unprocessable_content)
             end
 
             if sign_in_email_cooldown_active?(normalized_address)
@@ -120,7 +126,7 @@ module Auth
 
             unless @user_email.valid?
               respond_to do |format|
-                format.html { render :edit, status: :unprocessable_content }
+                format.html { render_email_edit(status: :unprocessable_content) }
                 format.json {
                   render json: { error: @user_email.errors.full_messages.join(", ") }, status: :unprocessable_content
                 }
@@ -141,6 +147,93 @@ module Auth
           end
 
           private
+
+          # The two ceremony pages are rendered from more than one action, so the component name is
+          # named rather than derived: `render inertia: true` would derive it from `create`/`update`.
+          def render_email_new(status: :ok)
+            render inertia: "auth/app/sign/in/emails/new", props: email_new_props, status: status
+          end
+
+          def render_email_edit(status: :ok)
+            render inertia: "auth/app/sign/in/emails/edit", props: email_edit_props, status: status
+          end
+
+          def email_new_props
+            scope = "sign.app.authentication.email.new"
+            pt = signed_pt_param
+
+            {
+              title: t("#{scope}.page_title"),
+              description: t("sign.app.registration.new.social.disclaimer", product: "UMAXICA"),
+              form: {
+                action: auth_app_sign_in_email_path,
+                method: "post",
+                pt: pt,
+                address_field: {
+                  scope: "client_email",
+                  field: "address",
+                  name: "client_email[address]",
+                  label: ClientEmail.human_attribute_name(:address),
+                  placeholder: "name@example.com",
+                },
+                submit_label: t("actions.submit"),
+              },
+              turnstile: turnstile_visible_props,
+              form_errors: form_error_messages(@user_email),
+              back_link: {
+                label: t("sign.app.authentication.new.back"),
+                href: auth_app_sign_in_path(pt: pt),
+              },
+            }
+          end
+
+          def email_edit_props
+            scope = "sign.app.authentication.email.edit"
+            pt = signed_pt_param
+
+            {
+              title: t("#{scope}.page_title"),
+              description: t("#{scope}.description"),
+              form: {
+                action: auth_app_sign_in_email_path,
+                method: "patch",
+                pt: pt,
+                pass_code_field: {
+                  scope: "client_email",
+                  field: "pass_code",
+                  name: "client_email[pass_code]",
+                  label: t("#{scope}.code_label"),
+                  placeholder: t("#{scope}.code_placeholder"),
+                  max_length: 6,
+                  autocomplete: "one-time-code",
+                  inputmode: "numeric",
+                  pattern: "[0-9]*",
+                },
+                submit_label: t("#{scope}.submit"),
+              },
+              # The resend state is the same opaque handle the ERB published as a data attribute; it
+              # authorizes nothing on its own and the resend endpoint re-checks the cooldown.
+              otp_resend: {
+                endpoint: auth_app_web_v0_in_email_otp_path,
+                state: @otp_resend_state,
+                button_label: t("otp.resend.button"),
+                sent_message: t("otp.resend.sent"),
+                too_soon_message: t("otp.resend.too_soon"),
+                failed_message: t("otp.resend.failed"),
+              },
+              turnstile: turnstile_visible_props,
+              form_errors: form_error_messages(@user_email),
+              delivery_help: t("#{scope}.delivery_help"),
+              back_link: {
+                label: t("#{scope}.return_page"),
+                href: new_auth_app_sign_in_email_path(pt: pt),
+              },
+            }
+          end
+
+          def form_error_messages(record)
+            record&.errors&.map(&:full_message) || []
+          end
 
           def handle_guest_only_with_status_checks(options)
             if options[:no_redirect]
@@ -316,7 +409,7 @@ module Auth
           def respond_to_failed_email_login(result)
             @user_email.errors.add(:pass_code, result[:error])
             respond_to do |format|
-              format.html { render :edit, status: :unprocessable_content }
+              format.html { render_email_edit(status: :unprocessable_content) }
               format.json { render json: { error: result[:error] }, status: :unprocessable_content }
             end
           end

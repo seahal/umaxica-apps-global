@@ -18,9 +18,14 @@ module Auth::App::Settings
       get auth_app_settings_apple_url(ri: "jp"), headers: @headers
 
       assert_response :success
-      assert_select "a[href=?]", auth_app_settings_path(ri: "jp")
-      assert_select "a[href=?]", edit_auth_app_settings_apple_path(ri: "jp")
-      assert_select "form[action=?]", auth_app_settings_apple_path(ri: "jp"), count: 0
+      assert_equal "auth/app/settings/apples/show", inertia_component
+      assert_equal auth_app_settings_path(ri: "jp"), inertia_props.fetch("back_link").fetch("href")
+      assert_equal(
+        edit_auth_app_settings_apple_path(ri: "jp"),
+        inertia_props.fetch("edit_link").fetch("href"),
+      )
+      assert_not inertia_props.key?("unlink")
+      assert_not inertia_props.key?("connect")
     end
 
     test "show redirects when not logged in" do
@@ -70,7 +75,14 @@ module Auth::App::Settings
       get auth_app_settings_apple_url(ri: "jp"), headers: @headers
 
       assert_response :success
-      assert_select "a[href=?]", edit_auth_app_settings_apple_path(ri: "jp")
+      assert_equal(
+        edit_auth_app_settings_apple_path(ri: "jp"),
+        inertia_props.fetch("edit_link").fetch("href"),
+      )
+      assert_equal(
+        I18n.t("views.sign.app.settings.apples.show.unlinked"),
+        inertia_props.fetch("status"),
+      )
     end
 
     test "settings route uses create and destroy" do

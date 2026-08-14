@@ -52,13 +52,13 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
         follow_redirect!(headers: @headers)
 
         assert_response :success
-        assert_select "h1", text: I18n.t("sign.app.verification.edit.title")
-        assert_select "label", text: I18n.t("sign.app.verification.edit.code_label")
-        assert_select "input[placeholder=?]", I18n.t("sign.app.verification.edit.code_placeholder")
-        assert_select "input[name='verification[code]'][autocomplete='one-time-code']", count: 1
-        assert_select "input[type=submit][value=?]", I18n.t("sign.app.verification.edit.submit")
-        assert_includes response.body, "メールアドレス"
-        assert_includes response.body, I18n.t("sign.app.verification.edit.email_delivery_help")
+        assert_equal "auth/app/verification/emails/edit", inertia_component
+        assert_equal I18n.t("sign.app.verification.edit.title"), inertia_props.fetch("heading")
+        assert_equal I18n.t("sign.app.verification.edit.code_label"), inertia_form.fetch("code_label")
+        assert_equal I18n.t("sign.app.verification.edit.code_placeholder"), inertia_form.fetch("code_placeholder")
+        assert_equal I18n.t("sign.app.verification.edit.submit"), inertia_form.fetch("submit_label")
+        assert_includes inertia_props.fetch("description"), "メールアドレス"
+        assert_equal I18n.t("sign.app.verification.edit.email_delivery_help"), inertia_props.fetch("delivery_help")
       end
     end
   end
@@ -73,9 +73,10 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
       assert_response :success
 
+      assert_equal "auth/app/verifications/show", inertia_component
       assert_match(
-        %r{/verification/emails/new\?pt=.*&amp;ri=jp&amp;scope=settings_email},
-        response.body,
+        %r{/verification/emails/new\?pt=.*&ri=jp&scope=settings_email},
+        inertia_props.fetch("methods").map { |method| method.fetch("href") }.join(" "),
       )
 
       assert_enqueued_emails 1 do
@@ -90,12 +91,12 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
       follow_redirect!(headers: @headers)
 
       assert_response :success
-      assert_select "input[name='verification[code]']"
-      assert_select "h1", text: I18n.t("sign.app.verification.edit.title")
-      assert_select "label", text: I18n.t("sign.app.verification.edit.code_label")
-      assert_select "input[placeholder=?]", I18n.t("sign.app.verification.edit.code_placeholder")
-      assert_select "input[type=submit][value=?]", I18n.t("sign.app.verification.edit.submit")
-      assert_includes response.body, "メールアドレス"
+      assert_equal "auth/app/verification/emails/edit", inertia_component
+      assert_equal I18n.t("sign.app.verification.edit.title"), inertia_props.fetch("heading")
+      assert_equal I18n.t("sign.app.verification.edit.code_label"), inertia_form.fetch("code_label")
+      assert_equal I18n.t("sign.app.verification.edit.code_placeholder"), inertia_form.fetch("code_placeholder")
+      assert_equal I18n.t("sign.app.verification.edit.submit"), inertia_form.fetch("submit_label")
+      assert_includes inertia_props.fetch("description"), "メールアドレス"
     end
   end
 
@@ -225,7 +226,8 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     end
 
     assert_response :success
-    assert_select "input[name='verification[code]']"
+    assert_equal "auth/app/verification/emails/edit", inertia_component
+    assert_equal I18n.t("sign.app.verification.edit.code_label"), inertia_form.fetch("code_label")
   end
 
   test "edit does not resend otp when otp session is already active" do
@@ -253,7 +255,8 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     end
 
     assert_response :success
-    assert_select "input[name='verification[code]']"
+    assert_equal "auth/app/verification/emails/edit", inertia_component
+    assert_equal I18n.t("sign.app.verification.edit.code_label"), inertia_form.fetch("code_label")
   end
 
   test "update verifies otp and redirects to return_to" do
@@ -331,17 +334,15 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
           headers: @headers
 
     assert_response :unprocessable_content
-    assert_select "a", text: I18n.t("sign.app.verification.edit.back") do |elements|
-      href = elements.first["href"]
+    assert_equal "auth/app/verification/emails/edit", inertia_component
+    back = inertia_props.fetch("back")
 
-      assert_includes href, "/verification?"
-      assert_includes href, "ri=jp"
-      assert_includes href, "scope=settings_email"
-      assert_includes href, "pt="
-    end
-    assert_select "input[name='verification[pt]']" do |elements|
-      assert_predicate elements.first["value"], :present?
-    end
+    assert_equal I18n.t("sign.app.verification.edit.back"), back.fetch("label")
+    assert_includes back.fetch("href"), "/verification?"
+    assert_includes back.fetch("href"), "ri=jp"
+    assert_includes back.fetch("href"), "scope=settings_email"
+    assert_includes back.fetch("href"), "pt="
+    assert_predicate inertia_form.fetch("pt"), :present?
   end
 
   test "resend sends a new otp and returns to edit page" do
@@ -420,7 +421,12 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
           )
 
       assert_response :success
-      assert_select "form[action='#{base_app_identity_email_path(email.public_id, ri: "jp")}']"
+      # The destination page is a base/app Inertia page; its form action is the same contract the
+      # assert_select above checked, read from the props instead of the markup.
+      assert_equal(
+        base_app_identity_email_path(email.public_id, ri: "jp"),
+        inertia_props.fetch("form").fetch("action"),
+      )
     end
   end
 
@@ -450,6 +456,10 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   private
+
+  def inertia_form
+    inertia_props.fetch("form")
+  end
 
   def with_verify_email_otp_stub(result)
     original_method = Auth::App::Verification::EmailsController.instance_method(:verify_email_otp!)

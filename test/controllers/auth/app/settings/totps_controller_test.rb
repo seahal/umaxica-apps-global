@@ -106,7 +106,11 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :ok
-    assert_select "table"
+    assert_equal "auth/app/settings/totps/index", inertia_component
+    assert_equal(
+      [@totp.public_id],
+      inertia_props.fetch("totps").map { |row| row.fetch("public_id") },
+    )
   end
 
   test "index stays accessible when no totp is registered" do
@@ -131,7 +135,8 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :ok
-    assert_includes response.body, I18n.t("messages.no_totp_found")
+    assert_empty inertia_props.fetch("totps")
+    assert_equal I18n.t("messages.no_totp_found"), inertia_props.fetch("empty_message")
   end
 
   test "index requires step up when multi factor status is active even without totp" do
@@ -170,7 +175,10 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :ok
-    assert_select "a[href=?]", new_auth_app_settings_totp_path(ri: "jp")
+    assert_equal(
+      new_auth_app_settings_totp_path(ri: "jp"),
+      inertia_props.fetch("new_link").fetch("href"),
+    )
   end
 
   test "should get new" do
@@ -179,19 +187,34 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "a[href=?]", auth_app_settings_totps_path(ri: "jp")
-    assert_select "form[action=?]", auth_app_settings_totps_path(ri: "jp")
-    assert_select "input[name='user_totp_credential[title]']"
-    assert_select "input[name='user_totp_credential[first_token]'][pattern]", count: 0
-    assert_select "input[name='user_totp_credential[first_token]'][autocomplete='one-time-code']", count: 0
-    assert_select "label", text: I18n.t("views.sign.app.settings.totps.new.first_token_label")
-    assert_select "input[placeholder=?]", I18n.t("views.sign.app.settings.totps.new.first_token_placeholder")
-    assert_select "input[type=submit][value=?]", I18n.t("views.sign.app.settings.totps.new.submit")
+    assert_equal "auth/app/settings/totps/new", inertia_component
+    assert_equal(
+      auth_app_settings_totps_path(ri: "jp"),
+      inertia_props.fetch("back_link").fetch("href"),
+    )
+
+    form = inertia_props.fetch("form")
+
+    assert_equal auth_app_settings_totps_path(ri: "jp"), form.fetch("action")
+    assert_equal "user_totp_credential", form.fetch("scope")
+    assert_equal(
+      I18n.t("views.sign.app.settings.totps.new.first_token_label"),
+      form.fetch("first_token_label"),
+    )
+    assert_equal(
+      I18n.t("views.sign.app.settings.totps.new.first_token_placeholder"),
+      form.fetch("first_token_placeholder"),
+    )
+    assert_equal I18n.t("views.sign.app.settings.totps.new.submit"), form.fetch("submit_label")
     assert_includes response.body, "認証アプリ"
-    assert_includes response.body, I18n.t("views.sign.app.settings.totps.new.first_token_delivery_help")
+    assert_equal(
+      I18n.t("views.sign.app.settings.totps.new.first_token_delivery_help"),
+      form.fetch("first_token_delivery_help"),
+    )
     assert_not_includes response.body, "届きます"
     assert_not_includes response.body, "送信され"
-    assert_select "input[name='cf-turnstile-response']"
+    assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
+    assert_match %r{\Adata:image/png;base64,}, inertia_props.fetch("qr_code_image")
   end
 
   test "new allows bootstrap with zero unused usable recovery passcodes" do
@@ -252,7 +275,11 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :ok
-    assert_select "form[action=?]", auth_app_settings_totp_path(@totp.public_id, ri: "jp")
+    assert_equal "auth/app/settings/totps/edit", inertia_component
+    assert_equal(
+      auth_app_settings_totp_path(@totp.public_id, ri: "jp"),
+      inertia_props.fetch("form").fetch("action"),
+    )
     assert_equal @totp.public_id, request.path_parameters[:id]
     assert_nil request.path_parameters[:public_id]
   end
@@ -322,7 +349,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       end
 
       assert_response :success
-      assert_select "input[name='cf-turnstile-response']"
+      assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
       token = ROTP::TOTP.new(secret_credential).now
       step_up_before = Time.current
 
@@ -381,7 +408,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       end
 
       assert_response :success
-      assert_select "input[name='cf-turnstile-response']"
+      assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
       token = ROTP::TOTP.new(secret_credential).now
 
       with_prosopite_paused do
@@ -431,7 +458,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "input[name='cf-turnstile-response']"
+    assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
 
     assert_no_difference("ClientTotpCredential.count") do
       with_prosopite_paused do
@@ -460,7 +487,9 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.app.settings.totps.invalid_code")
+    assert_equal "auth/app/settings/totps/new", inertia_component
+    assert_includes inertia_props.fetch("error_messages").join("\n"),
+                    I18n.t("sign.app.settings.totps.invalid_code")
   end
 
   test "should not create totp when turnstile stealth fails" do
@@ -470,7 +499,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       end
 
       assert_response :success
-      assert_select "input[name='cf-turnstile-response']"
+      assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
 
       TurnstileVerifierStub.challenge_response = { "success" => false }
       token = ROTP::TOTP.new(secret_credential).now
@@ -487,7 +516,8 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("turnstile_error")
+    assert_equal "auth/app/settings/totps/new", inertia_component
+    assert_includes inertia_props.fetch("error_messages").join("\n"), I18n.t("turnstile_error")
   end
 
   test "initial setup user can access totp pages without step-up" do

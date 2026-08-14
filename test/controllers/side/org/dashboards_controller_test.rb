@@ -20,12 +20,23 @@ class Side::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
         headers: as_staff_headers(@operator, host: @host, session_public_id: @token.public_id)
 
     assert_response :success
-    assert_select "h1", text: "Dashboard"
-    assert_select "p", text: /Side org signed-in landing/
-    assert_select "a[href=?]", side_org_root_path(ri: "jp")
-    assert_select "a[href=?]", side_org_dashboard_path(ri: "jp")
-    assert_select "a[href=?]", side_org_settings_path(ri: "jp")
-    assert_select "a[href=?]", new_side_org_sign_out_path(ri: "jp")
+    assert_equal "side/org/dashboards/show", inertia_component
+    assert_equal "Dashboard", inertia_props.fetch("title")
+    assert_equal "Dashboard", inertia_props.fetch("heading")
+    assert_match(/Side org signed-in landing/, inertia_props.fetch("description"))
+    assert_equal(
+      [
+        ["Root", side_org_root_path(ri: "jp")],
+        ["Dashboard", side_org_dashboard_path(ri: "jp")],
+        ["Settings", side_org_settings_path(ri: "jp")],
+        ["Sign out", new_side_org_sign_out_path(ri: "jp")],
+        ["Authorize", side_org_oidc_authorization_path(ri: "jp")],
+      ],
+      inertia_props.fetch("sections").flat_map { |section| section.fetch("links") }
+        .map { |link| [link.fetch("label"), link.fetch("href")] },
+    )
+    assert_equal ["Primary links", "Protocol links"],
+                 inertia_props.fetch("sections").map { |section| section.fetch("title") }
     assert_no_match(%r{(?://example|evil\.example)}, response.body)
   end
 

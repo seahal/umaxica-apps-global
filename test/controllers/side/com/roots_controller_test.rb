@@ -15,7 +15,16 @@ class Side::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     get side_com_root_url(ri: "jp")
 
     assert_response :success
-    assert_select "h1", text: "Side Com"
+    assert_equal "side/com/roots/index", inertia_component
+    assert_equal "Side Com", inertia_props.fetch("heading")
+    assert_equal I18n.t("base.com.roots.message"), inertia_props.fetch("description")
+    assert_equal(
+      [
+        ["Settings", side_com_settings_path(ri: "jp")],
+        ["Sign up", side_com_oidc_authorization_path(ri: "jp")],
+      ],
+      inertia_props.fetch("links").map { |link| [link.fetch("label"), link.fetch("href")] },
+    )
   end
 
   test "redirects signed-in visitor to dashboard" do

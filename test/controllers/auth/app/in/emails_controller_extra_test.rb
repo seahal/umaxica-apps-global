@@ -139,7 +139,7 @@ class Auth::App::Sign::In::EmailsControllerExtraTest < ActionDispatch::Integrati
           headers: { "Host" => @host }
 
     assert_response :unprocessable_content
-    assert_includes response.body, "Userを入力してください"
+    assert_includes inertia_props.fetch("form_errors"), "Userを入力してください"
   end
 end
 

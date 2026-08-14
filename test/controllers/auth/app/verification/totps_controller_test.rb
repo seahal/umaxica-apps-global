@@ -52,14 +52,14 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     end
 
     assert_response :success
-    assert_select "input[name='cf-turnstile-response']"
-    assert_select "h1", text: I18n.t("sign.app.verification.edit.title")
-    assert_select "label", text: I18n.t("sign.app.verification.edit.code_label")
-    assert_select "input[placeholder=?]", I18n.t("sign.app.verification.edit.code_placeholder")
-    assert_select "input[name='verification[code]'][autocomplete='one-time-code']", count: 0
-    assert_select "input[type=submit][value=?]", I18n.t("sign.app.verification.edit.submit")
-    assert_includes response.body, "認証アプリ"
-    assert_includes response.body, I18n.t("sign.app.verification.edit.totp_help")
+    assert_equal "auth/app/verification/totps/new", inertia_component
+    assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
+    assert_equal I18n.t("sign.app.verification.edit.title"), inertia_props.fetch("heading")
+    assert_equal I18n.t("sign.app.verification.edit.code_label"), inertia_form.fetch("code_label")
+    assert_equal I18n.t("sign.app.verification.edit.code_placeholder"), inertia_form.fetch("code_placeholder")
+    assert_equal I18n.t("sign.app.verification.edit.submit"), inertia_form.fetch("submit_label")
+    assert_includes inertia_props.fetch("description"), "認証アプリ"
+    assert_equal I18n.t("sign.app.verification.edit.totp_help"), inertia_props.fetch("totp_help")
     assert_not_includes response.body, "届きます"
     assert_not_includes response.body, "送信され"
 
@@ -256,9 +256,10 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     end
 
     assert_response :success
-    assert_select "input[name='verification[scope]'][value='settings_email']"
-    assert_select "input[name='verification[pt]'][value='#{pt}']"
-    assert_select "input[name='cf-turnstile-response']"
+    assert_equal "auth/app/verification/totps/new", inertia_component
+    assert_equal "settings_email", inertia_form.fetch("scope")
+    assert_equal pt, inertia_form.fetch("pt")
+    assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
   end
 
   test "settings_totp flow keeps pt through method selection and returns to totps" do
@@ -283,8 +284,8 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       end
 
       assert_response :success
-      assert_select(
-        "a[href=?]",
+      assert_includes(
+        inertia_props.fetch("methods").map { |method| method.fetch("href") },
         new_auth_app_verification_totp_path(ri: "jp", scope: "settings_totp", pt: pt),
       )
 
@@ -297,9 +298,10 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       end
 
       assert_response :success
-      assert_select "input[name='verification[scope]'][value='settings_totp']"
-      assert_select "input[name='verification[pt]'][value='#{pt}']"
-      assert_select "input[name='cf-turnstile-response']"
+      assert_equal "auth/app/verification/totps/new", inertia_component
+      assert_equal "settings_totp", inertia_form.fetch("scope")
+      assert_equal pt, inertia_form.fetch("pt")
+      assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
 
       code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
       with_prosopite_paused do
@@ -351,7 +353,8 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     end
 
     assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("turnstile_error")
+    assert_equal "auth/app/verification/totps/new", inertia_component
+    assert_includes inertia_props.fetch("errors"), I18n.t("turnstile_error")
   end
 
   test "POST redirects to setup when bootstrap and no usable step-up methods exist" do
@@ -370,6 +373,10 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
   end
 
   private
+
+  def inertia_form
+    inertia_props.fetch("form")
+  end
 
   def signed_step_up_pt(return_to)
     signed_step_up_pt_for(

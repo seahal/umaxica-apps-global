@@ -4,6 +4,8 @@
 module Side
   module App
     class DashboardsController < Side::App::ApplicationController
+      include ::SideDashboardPage
+
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
 
@@ -11,7 +13,7 @@ module Side
 
       def show
         authorize!(current_client, to: :show?)
-        render "side/shared/dashboards/show"
+        render inertia: true, props: dashboard_page_props
       end
     end
   end

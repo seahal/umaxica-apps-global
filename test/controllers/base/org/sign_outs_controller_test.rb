@@ -21,8 +21,9 @@ class Base::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
     get edit_base_org_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
 
     assert_response :success
-    assert_select "p", text: I18n.t("sign.shared.sign_out.confirm_description")
-    assert_select "form[action*=?][method=?]", base_org_sign_out_path, "post"
+    assert_equal "base/org/sign_outs/edit", inertia_component
+    assert_equal I18n.t("sign.shared.sign_out.confirm_description"), inertia_props.fetch("description")
+    assert_includes inertia_props.fetch("form").fetch("action"), base_org_sign_out_path
     assert_predicate token.reload, :currently_usable?
   end
 
@@ -38,14 +39,16 @@ class Base::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
     get jump_rt_url_from_location(response.location)
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
+    assert_equal "base/org/sign_outs/complete", inertia_component
+    assert_equal I18n.t("sign.shared.sign_out.completed_title"), inertia_props.fetch("title")
   end
 
   test "post sign out without a resolved session renders friendly completion" do
     post base_org_sign_out_url(host: @host, ri: "jp")
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
+    assert_equal "base/org/sign_outs/complete", inertia_component
+    assert_equal I18n.t("sign.shared.sign_out.completed_title"), inertia_props.fetch("title")
   end
 
   private

@@ -34,8 +34,9 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
     get new_auth_app_sign_in_secret_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "input[type='hidden'][name='ri'][value='jp']"
-    assert_select "a[href=?]", auth_app_sign_in_path(ri: "jp")
+    assert_equal "auth/app/sign/in/secrets/new", inertia_component
+    assert_equal "jp", inertia_props.fetch("form").fetch("ri")
+    assert_equal auth_app_sign_in_path(ri: "jp"), inertia_props.fetch("back_link").fetch("href")
   end
 
   test "should return unprocessable_content with invalid params" do
@@ -44,7 +45,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
   test "identifier without @ or + is rejected" do
@@ -55,7 +57,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
   test "returns 403 when user is at session hard_reject limit" do
@@ -114,7 +117,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
   test "server-side Turnstile verifier failure rejects secret credential login" do
@@ -136,7 +140,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
 
     assert_response :unprocessable_entity
     assert_equal [{ token: "test_token", remote_ip: "127.0.0.1", mode: :visible }], calls
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   ensure
     TurnstileVerifierStub.challenge_enabled = true
   end
@@ -227,7 +232,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
   test "unknown user fails with unified message" do
@@ -239,7 +245,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
   test "known user with no secret_credential fails with unified message" do
@@ -250,7 +257,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
   test "legacy secret_credential still uses the legacy verifier" do
@@ -328,7 +336,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
     assert_equal ClientSecretCredentialStatus::ACTIVE, secret_credential.reload.user_secret_status_id
   end
 
@@ -343,7 +352,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
 
     user_without_verified_pii = Client.create!(status_id: ClientStatus::NOTHING)
     email_for_secret_credential_issue = user_without_verified_pii.client_emails.create!(
@@ -368,7 +378,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
   test "one-time secret_credential decrements uses and cannot be reused once exhausted" do
@@ -395,7 +406,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
   test "expired secret_credential fails authentication" do
@@ -406,7 +418,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
   test "one-time secret_credential with uses_remaining 0 fails authentication" do
@@ -421,7 +434,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
   test "secret_credential with disallowed status fails authentication" do
@@ -432,7 +446,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
   test "secret_credential with disallowed kind fails authentication" do
@@ -446,7 +461,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: default_headers
 
     assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
   test "secret_credential login succeeds without extra confirmation parameter" do

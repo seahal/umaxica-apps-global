@@ -5,6 +5,8 @@ module Base
   module Com
     module Identity
       class SecretsController < ::Base::Com::ApplicationController
+        include ::SurfaceInertiaPage
+
         AUTHENTICATION_MODE = :private
         REVEAL_PURPOSE = "visitor.recovery_secret_credential"
 
@@ -26,9 +28,28 @@ module Base
             @missing_recovery_passcodes = true
             @back_to_settings_url = base_com_identity_url(ri: params[:ri])
           end
+
+          render inertia: true, props: show_page_props
         end
 
         private
+
+        # The passcodes are the one-time reveal this action just consumed: the ERB printed them and
+        # so does the page. They are sent to the owner who redeemed the reveal token and nowhere else.
+        def show_page_props
+          {
+            title: t("sign.recovery_passcodes.show.title"),
+            description: t("sign.recovery_passcodes.show.description"),
+            one_time_notice: t("sign.recovery_passcodes.show.one_time_notice"),
+            inventory_notice: t("sign.recovery_passcodes.show.inventory_notice"),
+            missing_message: t("sign.recovery_passcodes.show.missing"),
+            passcodes: Array(@recovery_passcodes),
+            back_link: {
+              label: t("sign.recovery_passcodes.show.back_to_settings"),
+              href: @back_to_settings_url,
+            },
+          }
+        end
 
         def authorize_secrets!
           authorize!(current_visitor, to: :show?)

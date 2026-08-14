@@ -83,5 +83,4 @@ module ApplicationHelper
 
     CoreHostNormalization.normalize(ENV.fetch(env_key.first))
   end
-
 end

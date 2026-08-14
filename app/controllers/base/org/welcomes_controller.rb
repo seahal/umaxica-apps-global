@@ -4,6 +4,8 @@
 module Base
   module Org
     class WelcomesController < Base::Org::ApplicationController
+      include ::SurfaceInertiaPage
+
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
 
@@ -11,7 +13,13 @@ module Base
       before_action :continue_welcome_sequence_without_content!
 
       def show
-        render "base/shared/welcomes/show"
+        render inertia: true, props: {
+          title: "Welcome!",
+          next_link: {
+            label: "Next",
+            href: @welcome_next_path || base_org_dashboard_path(ri: params[:ri]),
+          },
+        }
       end
 
       private

@@ -47,7 +47,9 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     get auth_org_settings_passkeys_url(ri: "jp"), headers: @headers
 
     assert_response :success
-    assert_select "table"
+    assert_equal "auth/org/settings/passkeys/index", inertia_component
+    assert_equal I18n.t("sign.org.settings.passkeys.index.title"), inertia_props.fetch("title")
+    assert_kind_of Array, inertia_props.fetch("passkeys")
   end
 
   test "should get show" do
@@ -63,14 +65,16 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     get auth_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers
 
     assert_response :success
-    assert_includes response.body, "Test Passkey"
+    assert_equal "auth/org/settings/passkeys/show", inertia_component
+    assert_includes inertia_props.fetch("details").map { |detail| detail.fetch("value") }, "Test Passkey"
   end
 
   test "should get new" do
     get new_auth_org_settings_passkey_url(ri: "jp"), headers: @headers
 
     assert_response :success
-    assert_select "h1", I18n.t("sign.org.settings.passkeys.new.page_title")
+    assert_equal "auth/org/settings/passkeys/new", inertia_component
+    assert_equal I18n.t("sign.org.settings.passkeys.new.page_title"), inertia_props.fetch("title")
   end
 
   test "new allows bootstrap without recovery passcodes" do
