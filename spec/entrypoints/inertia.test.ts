@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
   reportInertiaBootFailure,
   surfaceInertiaDefaults,
-  surfacePageTransform,
+  surfacePageResolver,
 } from "@/inertia/surface";
 
 vi.mock("@inertiajs/react", () => ({
@@ -15,26 +15,57 @@ vi.mock("@inertiajs/react", () => ({
 // makes the mock's captured argument type impractical to narrow precisely; every real entrypoint
 // passes this shape, so tests below assert against it directly instead.
 type SurfaceInertiaConfig = {
-  pages: { path: string; lazy: boolean; transform: (name: string) => string };
+  resolve: (name: string) => { default: { layout?: unknown } };
   strictMode: boolean;
   defaults: typeof surfaceInertiaDefaults;
 };
 
-describe("surface page transform", () => {
-  test("strips the surface prefix Rails sends so the surface-scoped glob can resolve the page", () => {
-    expect(surfacePageTransform("base/app")("base/app/groups/index")).toBe("groups/index");
+function pageModules(surface: string, names: string[]) {
+  return Object.fromEntries(
+    names.map((name) => [`../../pages/${surface}/${name}.tsx`, { default: () => null }]),
+  );
+}
+
+const LAYOUT = () => null;
+
+describe("surface page resolver", () => {
+  test("resolves a page of its own surface from the surface-scoped glob", () => {
+    const resolve = surfacePageResolver(pageModules("base/app", ["groups/index"]), "base/app", LAYOUT);
+
+    expect(resolve("base/app/groups/index")).toBeDefined();
+  });
+
+  test("attaches the surface layout so no page can render without chrome", () => {
+    const resolve = surfacePageResolver(pageModules("base/app", ["groups/index"]), "base/app", LAYOUT);
+
+    expect(resolve("base/app/groups/index").default.layout).toEqual([LAYOUT]);
+  });
+
+  test("keeps a layout a page declared for itself", () => {
+    const modules = pageModules("base/app", ["groups/index"]);
+    const own = () => null;
+    (modules["../../pages/base/app/groups/index.tsx"] as { default: { layout?: unknown } }).default.layout = [own];
+    const resolve = surfacePageResolver(modules, "base/app", LAYOUT);
+
+    expect(resolve("base/app/groups/index").default.layout).toEqual([own]);
   });
 
   test("rejects a page belonging to another surface instead of attempting to resolve it", () => {
-    expect(() => surfacePageTransform("base/app")("base/com/groups/index")).toThrow(
-      /does not belong to the "base\/app" surface/,
-    );
+    const resolve = surfacePageResolver(pageModules("base/app", ["groups/index"]), "base/app", LAYOUT);
+
+    expect(() => resolve("base/com/groups/index")).toThrow(/does not belong to the "base\/app" surface/);
   });
 
   test("rejects an unqualified page name so a missing prefix is not silently accepted", () => {
-    expect(() => surfacePageTransform("auth/org")("groups/index")).toThrow(
-      /does not belong to the "auth\/org" surface/,
-    );
+    const resolve = surfacePageResolver(pageModules("auth/org", ["groups/index"]), "auth/org", LAYOUT);
+
+    expect(() => resolve("groups/index")).toThrow(/does not belong to the "auth\/org" surface/);
+  });
+
+  test("fails loudly when the surface has no component for a page the controller rendered", () => {
+    const resolve = surfacePageResolver(pageModules("base/app", ["groups/index"]), "base/app", LAYOUT);
+
+    expect(() => resolve("base/app/groups/show")).toThrow(/has no component in src\/pages\/base\/app/);
   });
 });
 
@@ -91,7 +122,7 @@ describe.each([
     vi.clearAllMocks();
   });
 
-  test("wires createInertiaApp to the surface-scoped page glob", async () => {
+  test("wires createInertiaApp to a resolver scoped to its own surface", async () => {
     await import(modulePath);
     await Promise.resolve();
 
@@ -101,9 +132,11 @@ describe.each([
     const config = vi.mocked(createInertiaApp).mock
       .calls[0]?.[0] as unknown as SurfaceInertiaConfig;
 
-    expect(config.pages).toMatchObject({ path: `../../pages/${surface}`, lazy: false });
     expect(config.strictMode).toBe(true);
     expect(config.defaults.visitOptions()).toEqual(surfaceInertiaDefaults.visitOptions());
-    expect(config.pages.transform(`${surface}/groups/index`)).toBe("groups/index");
+    // The resolver is built for this surface only, so another surface's page is refused.
+    expect(() => config.resolve("other/surface/groups/index")).toThrow(
+      new RegExp(`does not belong to the "${surface}" surface`),
+    );
   });
 });

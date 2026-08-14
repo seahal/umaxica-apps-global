@@ -3,26 +3,48 @@
 // Every trust boundary (base/app, base/com, auth/org, ...) boots its own Inertia application from
 // its own entrypoint and globs only its own page directory, so one surface can never resolve
 // another surface's page component. This module holds what is genuinely identical between them;
-// the surface-specific page root stays a literal in each entrypoint because `@inertiajs/vite`
-// rewrites that literal into an `import.meta.glob` at build time.
+// the glob itself stays a literal in each entrypoint because Vite can only rewrite a literal.
 
 /**
  * Rails sends surface-qualified component names ("base/app/groups/index") so the Inertia page
- * object stays self-describing in logs and in the browser devtools. Each entrypoint globs only its
- * own directory, so the prefix is stripped here before the lookup.
- *
- * A name that does not carry this surface's prefix is a cross-surface render and fails loudly
- * rather than falling through to a "Page not found" that looks like a missing file.
- *
- * Each entrypoint pairs this with `lazy: false`. `vite_javascript_tag` emits `modulepreload` links
- * by walking the manifest's static `imports` only, never `dynamicImports`, so a lazily resolved page
- * chunk is discovered a full round trip after the entry script runs and the Inertia root stays empty
- * for that long. Eager resolution puts the page in the preloaded static graph instead.
+ * object stays self-describing in logs and in the browser devtools, while each entrypoint globs
+ * only its own directory. A name that does not carry this surface's prefix is a cross-surface
+ * render and fails loudly rather than falling through to a "Page not found" that looks like a
+ * missing file.
  */
-export function surfacePageTransform(surface: string) {
-  const prefix = `${surface}/`;
+type PageModule = {
+  default: {
+    layout?: unknown;
+  };
+};
 
-  return (name: string): string => {
+/**
+ * Builds the `resolve` for one surface from its own eagerly globbed page directory.
+ *
+ * Resolution stays eager on purpose. `vite_javascript_tag` emits `modulepreload` links by walking
+ * the manifest's static `imports` only, never `dynamicImports`, so a lazily resolved page chunk is
+ * discovered a full round trip after the entry script runs and the Inertia root stays empty for
+ * that long. Eager resolution puts the page in the preloaded static graph instead.
+ *
+ * The surface layout is attached here rather than by each page module: a page that forgot to
+ * declare it would otherwise render without header, footer or cookie controls, and that is not a
+ * mistake a page should be able to make. It is assigned as an array because Inertia 3 no longer
+ * accepts a bare arrow component as `layout`.
+ */
+export function surfacePageResolver(
+  modules: Record<string, unknown>,
+  surface: string,
+  layout: unknown,
+) {
+  const prefix = `${surface}/`;
+  const pages = new Map<string, PageModule>();
+
+  for (const [path, module] of Object.entries(modules)) {
+    const name = path.replace(/^.*\/pages\//, "").replace(/\.tsx$/, "");
+    pages.set(name, module as PageModule);
+  }
+
+  return (name: string) => {
     if (!name.startsWith(prefix)) {
       throw new Error(
         `Inertia page "${name}" does not belong to the "${surface}" surface. ` +
@@ -30,7 +52,18 @@ export function surfacePageTransform(surface: string) {
       );
     }
 
-    return name.slice(prefix.length);
+    const page = pages.get(name);
+
+    if (!page) {
+      throw new Error(
+        `Inertia page "${name}" has no component in src/pages/${surface}. ` +
+          "The controller renders a page the surface cannot resolve.",
+      );
+    }
+
+    page.default.layout ??= [layout];
+
+    return page;
   };
 }
 

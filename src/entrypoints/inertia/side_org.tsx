@@ -1,20 +1,20 @@
 // Inertia application for the side/org FQDN. It resolves pages from src/pages/side/org only.
 import { createInertiaApp } from "@inertiajs/react";
 
-import "../../theme_cookie";
 import {
   cspNonce,
   reportInertiaBootFailure,
   surfaceInertiaDefaults,
-  surfacePageTransform,
+  surfacePageResolver,
 } from "@/inertia/surface";
+import SurfaceLayout from "@/layouts/SurfaceLayout";
 
 void createInertiaApp({
-  pages: {
-    path: "../../pages/side/org",
-    transform: surfacePageTransform("side/org"),
-    lazy: false,
-  },
+  resolve: surfacePageResolver(
+    import.meta.glob("../../pages/side/org/**/*.tsx", { eager: true }),
+    "side/org",
+    SurfaceLayout,
+  ),
 
   // Inertia builds its progress bar as a runtime <style>; without the nonce the policy
   // refuses it.

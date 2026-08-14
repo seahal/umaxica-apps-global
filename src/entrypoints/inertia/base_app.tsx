@@ -1,24 +1,20 @@
 // Inertia application for the base/app FQDN. It resolves pages from src/pages/base/app only.
 import { createInertiaApp } from "@inertiajs/react";
 
-// The surface Inertia layout renders the same ERB header and footer as its Turbo layout, and the
-// footer cookie and theme controls are Stimulus. Turbo is deliberately not imported: navigation out
-// of the Inertia application is a full document visit.
-import "../../controllers";
-import "../../theme_cookie";
 import {
   cspNonce,
   reportInertiaBootFailure,
   surfaceInertiaDefaults,
-  surfacePageTransform,
+  surfacePageResolver,
 } from "@/inertia/surface";
+import SurfaceLayout from "@/layouts/SurfaceLayout";
 
 void createInertiaApp({
-  pages: {
-    path: "../../pages/base/app",
-    transform: surfacePageTransform("base/app"),
-    lazy: false,
-  },
+  resolve: surfacePageResolver(
+    import.meta.glob("../../pages/base/app/**/*.tsx", { eager: true }),
+    "base/app",
+    SurfaceLayout,
+  ),
 
   // Inertia builds its progress bar as a runtime <style>; without the nonce the policy
   // refuses it.

@@ -1,4 +1,4 @@
-// Inertia application for the auth/com FQDN. It resolves pages from src/pages/auth/com only.
+// Inertia application for the core/dev FQDN. It resolves pages from src/pages/core/dev only.
 import { createInertiaApp } from "@inertiajs/react";
 
 import {
@@ -11,8 +11,8 @@ import SurfaceLayout from "@/layouts/SurfaceLayout";
 
 void createInertiaApp({
   resolve: surfacePageResolver(
-    import.meta.glob("../../pages/auth/com/**/*.tsx", { eager: true }),
-    "auth/com",
+    import.meta.glob("../../pages/core/dev/**/*.tsx", { eager: true }),
+    "core/dev",
     SurfaceLayout,
   ),
 

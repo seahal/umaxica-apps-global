@@ -5,10 +5,10 @@ module Base
   module App
     # Group resource surface for Avatar containers. Groups are not posting actors.
     class GroupsController < Base::App::FullAccessController
+      include ::SurfaceInertiaPage
+
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
-
-      layout "base/app/inertia"
 
       before_action :authenticate_client!
       before_action :set_group, only: %i(show update destroy)
@@ -17,7 +17,7 @@ module Base
         authorize!(AvatarGroup, to: :index?)
         groups = AvatarGroup.where(account_surface: "app", account_public_id: Actor.selection.account_public_id)
           .order(:created_at, :id)
-        render inertia: "base/app/groups/index", props: {
+        render inertia: true, props: {
           title: "Groups",
           groups: groups.map { |group| serialize_group(group) },
         }
