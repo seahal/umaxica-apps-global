@@ -77,10 +77,7 @@ const setInput = (selector: string, value: string) => {
     throw new Error(`no input for ${selector}`);
   }
   act(() => {
-    const setter = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      "value",
-    )?.set;
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
     setter?.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });

@@ -9,8 +9,14 @@ module Base
         include ::AuthenticationLogoutable
         include SignOutNotice
         include SignOidcLogout
+        include ::SurfaceInertiaPage
 
         AUTHENTICATION_MODE = :open
+        # `reject_oidc_logout_challenge!` still renders the shared `auth/shared/sign_outs/unavailable`
+        # ERB template, which needs the surface ERB layout; the Inertia shell renders only an Inertia
+        # response body.
+        layout -> { @render_surface_erb_layout ? "base/app/application" : "base/app/inertia" }
+
         declare_authentication_mode! :open
         COORDINATED_LOGOUT_TRUSTED_ORIGINS = JitHostOriginEnv.trusted_origins(
           ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),

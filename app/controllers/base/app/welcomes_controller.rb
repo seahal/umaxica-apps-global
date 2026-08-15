@@ -4,6 +4,8 @@
 module Base
   module App
     class WelcomesController < Base::App::ApplicationController
+      include ::SurfaceInertiaPage
+
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
 
@@ -11,7 +13,14 @@ module Base
       before_action :continue_welcome_sequence_without_content!
 
       def show
-        render "base/shared/welcomes/show"
+        render inertia: true, props: {
+          title: "Welcome!",
+          credential_warning: apple_only_credential_warning_props,
+          next_link: {
+            label: "Next",
+            href: @welcome_next_path || base_app_dashboard_path(ri: params[:ri]),
+          },
+        }
       end
 
       private

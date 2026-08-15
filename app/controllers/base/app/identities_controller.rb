@@ -4,6 +4,8 @@
 module Base
   module App
     class IdentitiesController < Base::App::ApplicationController
+      include ::SurfaceInertiaPage
+
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
 
@@ -11,7 +13,22 @@ module Base
 
       def show
         authorize!(current_client, to: :show?)
-        render "base/shared/identities/show", locals: { surface: :app, page_title: "Identity" }
+        render inertia: true, props: {
+          title: "Identity",
+          description: "Signed in",
+          credential_warning: apple_only_credential_warning_props,
+          sections: [
+            {
+              heading: "Account",
+              items: [
+                {
+                  label: t("sign.app.settings.show.logout"),
+                  href: new_base_app_sign_out_path,
+                },
+              ],
+            },
+          ],
+        }
       end
     end
   end

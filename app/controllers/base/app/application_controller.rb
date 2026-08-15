@@ -126,6 +126,31 @@ module Base
         AppleOnlyCredentialStatus.call(current_client)
       end
 
+      # The Inertia props for the "add another sign-in method" prompt, or nil when the actor already
+      # has another credential. Returning nil keeps the decision on the server: a page that is not
+      # given the prop cannot show the prompt.
+      def apple_only_credential_warning_props
+        return unless apple_only_credential?
+
+        {
+          heading: "Add another sign-in method",
+          body: "Adding another sign-in method helps you access your account if Apple sign-in is unavailable.",
+          items: [
+            { label: "Add a passkey", href: apple_only_credential_auth_url(:new_auth_app_settings_passkey_url) },
+            { label: "Link Google", href: apple_only_credential_auth_url(:edit_auth_app_settings_google_url) },
+          ],
+        }
+      end
+
+      def apple_only_credential_auth_url(route_helper)
+        public_send(
+          route_helper,
+          ri: params[:ri],
+          host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+          protocol: "https",
+        )
+      end
+
       def actor_verification_path(**args)
         base_app_verification_path(**args)
       end

@@ -18,7 +18,8 @@ vi.mock("@/lib/turnstile", () => ({
 
 const { default: TelephoneEdit } = await import("@/features/identity/TelephoneEdit");
 const { default: SessionIndex } = await import("@/features/identity/SessionIndex");
-const { default: SecretCredentialIndex } = await import("@/features/identity/SecretCredentialIndex");
+const { default: SecretCredentialIndex } =
+  await import("@/features/identity/SecretCredentialIndex");
 const { default: EmailPreferenceEdit } = await import("@/features/identity/EmailPreferenceEdit");
 
 let container: HTMLDivElement;

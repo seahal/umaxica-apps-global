@@ -100,12 +100,6 @@ module PreferenceSignScreenActions
     redirect_to(preference_index_path_without_context, status: :see_other)
   end
 
-  def edit_selectable_preference_screen(screen)
-    set_selectable_preference_edit(screen)
-    set_selectable_preference_view_context(screen)
-    render "auth/shared/preference/selectable"
-  end
-
   def update_selectable_preference_screen(screen)
     ensure_preference_access_token_audience_for_write!
     set_selectable_preference_update(screen)

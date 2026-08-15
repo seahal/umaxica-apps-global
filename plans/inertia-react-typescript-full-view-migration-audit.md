@@ -376,6 +376,25 @@ Decisions taken while implementing, which differ from or refine the pre-implemen
 5. **The unused `inertia_chrome` override hook was dropped** (YAGNI): family defaults in
    `SurfaceChrome::FAMILY_CHROME` cover every surface, and no controller needed an override.
 
+## 15c. Execution Status
+
+Recorded during the migration run (updated as phases land):
+
+- **Phase A (foundation)** — complete. `SurfaceChrome` + `inertia_share`, React `SurfaceLayout`,
+  React ports of the cookie-banner and theme controls, `CurrentBanner` query object,
+  `surfacePageResolver`, document-only Inertia shells for all 14 surfaces (the four `core` shells
+  were created by this work), `GroupsController` unified onto `SurfaceInertiaPage`.
+- **Phases B/C/E** — `core`, `side` and `palm` fully migrated, including every root landing;
+  `base/app` and most of `base/com`/`base/org` migrated; all `base` root landings migrated.
+- **Phase D** — `auth/app` fully migrated; `auth/com` and `auth/org` in progress.
+- Browser ERB count: 344 at the start, 47 remaining at the last checkpoint (the remainder are the
+  cross-surface `auth/shared` and `base/shared` templates and the `auth/com` sign-up ceremony).
+- Dead views deleted where proven unreferenced (`auth/app/welcomes/show`,
+  `auth/app/emails/registrations/_verification_fields`, the unrouted `accounts`/`organizations`
+  new/edit views, the unreachable `core`/`side` `sign_outs/show`).
+- Operational surfaces (`dev`, `net`) are expressible in chrome: their route prefix is named
+  explicitly and they render no preference controls, because they have no preference authority.
+
 ## 16. Open Questions
 
 - `shared/health/show.html.erb` HTML variant: keep as ERB diagnostic (recommended) or migrate.

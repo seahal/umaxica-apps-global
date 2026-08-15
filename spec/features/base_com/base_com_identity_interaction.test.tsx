@@ -32,7 +32,8 @@ vi.mock("@/features/turnstile/TurnstileWidget", () => ({
   ),
 }));
 
-const { default: DestructiveButton } = await import("@/features/base_com/identity/DestructiveButton");
+const { default: DestructiveButton } =
+  await import("@/features/base_com/identity/DestructiveButton");
 const { default: SessionsIndex } = await import("@/features/base_com/identity/SessionsIndex");
 const { default: SecretCredentialsIndex } =
   await import("@/features/base_com/identity/SecretCredentialsIndex");
@@ -45,7 +46,8 @@ const { default: OtpCodeForm } = await import("@/features/base_com/identity/OtpC
 const { default: OtpReentryNew } = await import("@/features/base_com/identity/OtpReentryNew");
 const { default: TelephoneRegistrationNew } =
   await import("@/features/base_com/identity/TelephoneRegistrationNew");
-const { default: PrivacyErasureNew } = await import("@/features/base_com/identity/PrivacyErasureNew");
+const { default: PrivacyErasureNew } =
+  await import("@/features/base_com/identity/PrivacyErasureNew");
 const { default: EnforcementRecoveryShow } =
   await import("@/features/base_com/identity/EnforcementRecoveryShow");
 const { default: WithdrawalNew } = await import("@/features/base_com/identity/WithdrawalNew");
@@ -79,10 +81,7 @@ const click = (selector: string) => {
 
 const setInput = (selector: string, value: string) => {
   const input = container.querySelector<HTMLInputElement>(selector);
-  const setter = Object.getOwnPropertyDescriptor(
-    window.HTMLInputElement.prototype,
-    "value",
-  )?.set;
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
   act(() => {
     setter?.call(input, value);
     input?.dispatchEvent(new Event("input", { bubbles: true }));
@@ -537,7 +536,11 @@ describe("PrivacyErasureNew", () => {
       <PrivacyErasureNew
         title="Early erasure"
         paragraphs={["Separate from withdrawal."]}
-        form={{ url: "/identity/privacy/erasure", jurisdiction: "unknown", submit_label: "Request" }}
+        form={{
+          url: "/identity/privacy/erasure",
+          jurisdiction: "unknown",
+          submit_label: "Request",
+        }}
       />,
     );
     submitForm();

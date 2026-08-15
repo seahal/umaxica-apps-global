@@ -1,6 +1,0 @@
-<% content_for :page_title, t("sign.org.in.checkpoints.show.title") %>
-
-<h1><%= t("sign.org.in.checkpoints.show.title") %></h1>
-<% @checkpoint_items.each do |item| %>
-  <p><%= item.message || item.key.to_s.humanize %></p>
-<% end %>

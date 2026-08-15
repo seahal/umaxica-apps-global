@@ -21,7 +21,8 @@ const { default: EmailRegistrationNew } =
   await import("@/pages/base/org/identity/emails/registrations/new");
 const { default: OtpVerification } =
   await import("@/pages/base/org/identity/emails/registrations/edit");
-const { default: TelephoneRegistrationNew } = await import("@/pages/base/org/identity/telephones/new");
+const { default: TelephoneRegistrationNew } =
+  await import("@/pages/base/org/identity/telephones/new");
 const { default: TelephoneEdit } = await import("@/pages/base/org/identity/telephones/edit");
 const { default: SessionIndex } = await import("@/pages/base/org/identity/sessions/index");
 const { default: SessionShow } = await import("@/pages/base/org/identity/sessions/show");
@@ -71,7 +72,12 @@ describe("credential index", () => {
   });
 
   it("shows the empty row when there is nothing to list", () => {
-    const markup = renderToStaticMarkup(<CredentialIndex {...props} entries={[]} />);
+    const markup = renderToStaticMarkup(
+      <CredentialIndex
+        {...props}
+        entries={[]}
+      />,
+    );
 
     expect(markup).toContain("No email addresses registered.");
   });
@@ -131,7 +137,7 @@ describe("email registration", () => {
     );
 
     expect(newMarkup).toContain('name="staff_email[address]"');
-    expect(newMarkup).not.toContain("role=\"alert\"");
+    expect(newMarkup).not.toContain('role="alert"');
 
     const editMarkup = renderToStaticMarkup(
       <OtpVerification
@@ -172,10 +178,15 @@ describe("telephone screens", () => {
       error_messages: [],
     };
 
-    expect(renderToStaticMarkup(<TelephoneRegistrationNew {...base} />)).not.toContain("cf-turnstile");
+    expect(renderToStaticMarkup(<TelephoneRegistrationNew {...base} />)).not.toContain(
+      "cf-turnstile",
+    );
     expect(
       renderToStaticMarkup(
-        <TelephoneRegistrationNew {...base} form={{ ...base.form, turnstile }} />,
+        <TelephoneRegistrationNew
+          {...base}
+          form={{ ...base.form, turnstile }}
+        />,
       ),
     ).toContain("cf-turnstile");
   });
@@ -303,7 +314,14 @@ describe("read-only identity screens", () => {
     };
 
     expect(renderToStaticMarkup(<BirthdateShow {...props} />)).toContain("2000-01-01");
-    expect(renderToStaticMarkup(<BirthdateShow {...props} birthdate={null} />)).toContain("Not set");
+    expect(
+      renderToStaticMarkup(
+        <BirthdateShow
+          {...props}
+          birthdate={null}
+        />,
+      ),
+    ).toContain("Not set");
   });
 
   it("renders each standing decision, with and without an end date", () => {
@@ -434,13 +452,21 @@ describe("secret credential screens", () => {
 
 describe("shared self-service screens", () => {
   it("renders the shell, the welcome and both sign-out screens", () => {
-    expect(renderToStaticMarkup(<SelfServiceShell title="Account" body="account" />)).toContain(
-      "Signed in",
-    );
+    expect(
+      renderToStaticMarkup(
+        <SelfServiceShell
+          title="Account"
+          body="account"
+        />,
+      ),
+    ).toContain("Signed in");
 
     expect(
       renderToStaticMarkup(
-        <WelcomeShow title="Welcome!" next_link={{ label: "Next", href: "/dashboard" }} />,
+        <WelcomeShow
+          title="Welcome!"
+          next_link={{ label: "Next", href: "/dashboard" }}
+        />,
       ),
     ).toContain('href="/dashboard"');
 
