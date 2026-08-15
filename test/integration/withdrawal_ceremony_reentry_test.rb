@@ -32,7 +32,9 @@ class WithdrawalCeremonyReentryTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "input[name='pass_code'][autocomplete='one-time-code']", count: 1
+    # The one-time-code field appears only when the server offers the pass-code form, which is the
+    # prop that drives it; its absence would mean the code step was never reached.
+    assert_predicate inertia_props.fetch("pass_code_form").fetch("action"), :present?
     otp_data = email.reload.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
@@ -97,7 +99,9 @@ class WithdrawalCeremonyReentryTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "input[name='pass_code'][autocomplete='one-time-code']", count: 1
+    # The one-time-code field appears only when the server offers the pass-code form, which is the
+    # prop that drives it; its absence would mean the code step was never reached.
+    assert_predicate inertia_props.fetch("pass_code_form").fetch("url"), :present?
     otp_data = email.reload.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 

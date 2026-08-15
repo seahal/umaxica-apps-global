@@ -153,7 +153,9 @@ module Palm
           get jump_rt_url_from_location(response.location)
 
           assert_response :success
-          assert_select "h1"
+          # The browser lands on the base surface's sign-out completion, which is an Inertia page.
+          assert_equal "base/app/sign_outs/complete", inertia_component
+          assert_predicate inertia_props.fetch("title"), :present?
         end
 
         private

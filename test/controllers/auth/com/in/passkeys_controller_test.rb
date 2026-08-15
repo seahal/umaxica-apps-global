@@ -37,10 +37,13 @@ class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     get new_auth_com_sign_in_passkey_path(ri: "jp"), headers: @origin_headers
 
     assert_response :success
-    assert_select "[data-passkey-authentication-options-url-value=?]", auth_com_sign_in_passkey_options_path(ri: "jp")
-    assert_select "[data-passkey-authentication-verification-url-value=?]",
-                  auth_com_sign_in_passkey_verification_path(ri: "jp")
-    assert_select "[data-passkey-authentication-region-value=?]", "jp"
+    assert_equal "auth/com/sign/in/passkeys/new", inertia_component
+
+    panel = inertia_props.fetch("panel")
+
+    assert_equal auth_com_sign_in_passkey_options_path(ri: "jp"), panel.fetch("options_url")
+    assert_equal auth_com_sign_in_passkey_verification_path(ri: "jp"), panel.fetch("verification_url")
+    assert_equal "jp", panel.fetch("region")
   end
 
   test "options returns challenge for known identifier" do
