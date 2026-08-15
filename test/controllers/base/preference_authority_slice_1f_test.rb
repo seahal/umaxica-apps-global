@@ -33,10 +33,10 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       get public_send("base_#{surface}_preference_url", ri: "jp", host: host)
 
       assert_response :success
-      # The index renders through Inertia, and the surface Inertia layout keeps the same ERB header
-      # and footer as its Turbo counterpart, including the footer theme control.
+      # The index renders through Inertia, and the footer theme control is part of the React
+      # surface layout, so its presence is carried by the shared chrome prop rather than by markup.
       assert_select "script[data-page='app'][type='application/json']", count: 1
-      assert_select "[data-controller='theme']", count: 1
+      assert_not inertia_props.dig("chrome", "theme_controls", "hidden")
       assert_predicate cookies[PreferenceCookieName.access(surface: surface)], :present?
       assert_predicate cookies[PreferenceCookieName.refresh(surface: surface)], :present?
     end
@@ -50,7 +50,9 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       get public_send("edit_base_#{surface}_preference_theme_url", ri: "jp", host: host)
 
       assert_response :success
-      assert_select "[data-controller='theme']", count: 0
+      # The theme screen owns the theme control while it is being edited, so the footer copy is
+      # suppressed through the chrome prop.
+      assert inertia_props.dig("chrome", "theme_controls", "hidden")
       assert_equal "base/#{surface}/preference/option", inertia_component
       assert_equal "preference_theme", inertia_props.dig("form", "scope")
       assert_equal "option_id", inertia_props.dig("form", "field")

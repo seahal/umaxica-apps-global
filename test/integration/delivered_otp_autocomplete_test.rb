@@ -70,7 +70,7 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: headers)
 
     assert_response :success
-    puts %(DBG user_email[pass_code] -> #{inertia_component} #{inertia_props.keys.inspect} #{inertia_props[%(form)].inspect})
+    assert_select "input[name='user_email[pass_code]'][autocomplete='one-time-code']", count: 1
 
     token.update!(last_step_up_scope: "settings_telephone")
     OtpAdapter.stub(:for, fake_adapter) do
@@ -83,7 +83,7 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: headers)
 
     assert_response :success
-    puts %(DBG client_telephone[pass_code] -> #{inertia_component} #{inertia_props.keys.inspect} #{inertia_props[%(form)].inspect})
+    assert_select "input[name='client_telephone[pass_code]'][autocomplete='one-time-code']", count: 1
   end
 
   test "com identity email and telephone otp inputs allow one time code autocomplete" do
@@ -140,7 +140,7 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: headers)
 
     assert_response :success
-    puts %(DBG visitor_email[pass_code] -> #{inertia_component} #{inertia_props.keys.inspect} #{inertia_props[%(form)].inspect})
+    assert_select "input[name='visitor_email[pass_code]'][autocomplete='one-time-code']", count: 1
 
     token.update!(last_step_up_scope: "settings_telephone")
     OtpAdapter.stub(:for, fake_adapter) do
@@ -153,7 +153,7 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: headers)
 
     assert_response :success
-    puts %(DBG visitor_telephone[pass_code] -> #{inertia_component} #{inertia_props.keys.inspect} #{inertia_props[%(form)].inspect})
+    assert_select "input[name='visitor_telephone[pass_code]'][autocomplete='one-time-code']", count: 1
   end
 
   test "org identity email and telephone otp inputs allow one time code autocomplete" do
@@ -210,7 +210,7 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: headers)
 
     assert_response :success
-    puts %(DBG staff_email[pass_code] -> #{inertia_component} #{inertia_props.keys.inspect} #{inertia_props[%(form)].inspect})
+    assert_select "input[name='staff_email[pass_code]'][autocomplete='one-time-code']", count: 1
 
     token.update!(last_step_up_scope: "settings_telephone")
     OtpAdapter.stub(:for, fake_adapter) do
@@ -223,7 +223,7 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: headers)
 
     assert_response :success
-    puts %(DBG operator_telephone[pass_code] -> #{inertia_component} #{inertia_props.keys.inspect} #{inertia_props[%(form)].inspect})
+    assert_select "input[name='operator_telephone[pass_code]'][autocomplete='one-time-code']", count: 1
   end
 
   test "com step up email otp template allows one time code autocomplete" do
