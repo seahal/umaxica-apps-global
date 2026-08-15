@@ -1,6 +1,7 @@
 // The single-telephone screen, whose only action is deletion.
 import { Link } from "@inertiajs/react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { ConfirmedAction, LabelledLink } from "@/features/identity/types";
 import { csrfToken } from "@/lib/csrf";
 
@@ -17,6 +18,19 @@ export default function TelephoneEdit({
   delete: destroy,
   cancel_link: cancelLink,
 }: TelephoneEditProps) {
+  const { confirm, dialog } = useConfirm();
+
+  // The submission is held back until the actor accepts, then replayed with `submit()`, which
+  // sends the same document DELETE without running this handler again.
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    confirm(
+      { message: destroy.confirm, confirmLabel: destroy.label, cancelLabel: cancelLink.label },
+      () => form.submit(),
+    );
+  };
+
   return (
     <section>
       <h1>{title}</h1>
@@ -26,11 +40,7 @@ export default function TelephoneEdit({
         action={destroy.href}
         method="post"
         data-turbo="false"
-        onSubmit={(event) => {
-          if (!window.confirm(destroy.confirm)) {
-            event.preventDefault();
-          }
-        }}
+        onSubmit={submit}
       >
         <input
           type="hidden"
@@ -51,6 +61,7 @@ export default function TelephoneEdit({
       <div>
         <Link href={cancelLink.href}>{cancelLink.label}</Link>
       </div>
+      {dialog}
     </section>
   );
 }

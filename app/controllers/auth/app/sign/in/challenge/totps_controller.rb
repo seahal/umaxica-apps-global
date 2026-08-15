@@ -115,8 +115,8 @@ module Auth
               scope = "sign.app.in.mfa.totp"
 
               {
-                title: t("#{scope}.title"),
-                description: t("#{scope}.description"),
+                title: page_t("#{scope}.title"),
+                description: page_t("#{scope}.description"),
                 form: {
                   action: auth_app_sign_in_challenge_totp_path,
                   method: "post",
@@ -124,18 +124,18 @@ module Auth
                     scope: "totp_challenge_form",
                     field: "token",
                     name: "totp_challenge_form[token]",
-                    label: t("#{scope}.token_label"),
-                    placeholder: t("#{scope}.token_placeholder"),
+                    label: page_t("#{scope}.token_label"),
+                    placeholder: page_t("#{scope}.token_placeholder"),
                     max_length: 6,
                     inputmode: "numeric",
-                    help: t("#{scope}.help"),
+                    help: page_t("#{scope}.help"),
                   },
-                  submit_label: t("#{scope}.submit"),
+                  submit_label: page_t("#{scope}.submit"),
                 },
                 error_heading: t("errors.messages.validation_failed"),
                 form_errors: @totp_form.errors.full_messages,
                 turnstile: turnstile_stealth_props,
-                back_link: { label: t("#{scope}.back"), href: auth_app_sign_in_challenge_path },
+                back_link: { label: page_t("#{scope}.back"), href: auth_app_sign_in_challenge_path },
               }
             end
 

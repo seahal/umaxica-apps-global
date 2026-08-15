@@ -1,5 +1,6 @@
 import { Link, router } from "@inertiajs/react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { IdentityLink } from "@/types/identity";
 
 type RecoverySection = {
@@ -38,7 +39,26 @@ export default function WithdrawalEdit({
   erasure_link: erasureLink,
   sign_out: signOut,
 }: Props) {
+  const { confirm, dialog } = useConfirm();
   const signOutNow = () => router.delete(signOut.url);
+
+  // Each action's URL, copy and label are read once so the click handlers work on values the
+  // compiler has already narrowed rather than on properties that may be absent.
+  const recoveryAction = recovery?.action ?? null;
+  const recoveryLabel = recovery?.submit_label ?? null;
+  const recoveryConfirm = recovery?.confirm ?? null;
+  const terminationAction = termination?.action ?? null;
+  const terminationLabel = termination?.submit_label ?? null;
+  const terminationConfirm = termination?.confirm ?? null;
+
+  // A section the server sent no confirmation copy for was never gated by one.
+  const gate = (message: string | null, label: string, send: () => void) => {
+    if (message) {
+      confirm({ message, confirmLabel: label }, send);
+      return;
+    }
+    send();
+  };
 
   if (terminated) {
     return (
@@ -65,17 +85,14 @@ export default function WithdrawalEdit({
         <>
           {recovery.available_message ? <p>{recovery.available_message}</p> : null}
           {recovery.unavailable_message ? <p>{recovery.unavailable_message}</p> : null}
-          {recovery.action && recovery.submit_label ? (
+          {recoveryAction && recoveryLabel ? (
             <button
               type="button"
-              onClick={() => {
-                if (recovery.confirm && !window.confirm(recovery.confirm)) {
-                  return;
-                }
-                router.post(recovery.action as string);
-              }}
+              onClick={() =>
+                gate(recoveryConfirm, recoveryLabel, () => router.post(recoveryAction))
+              }
             >
-              {recovery.submit_label}
+              {recoveryLabel}
             </button>
           ) : null}
         </>
@@ -84,17 +101,14 @@ export default function WithdrawalEdit({
       {termination ? (
         <>
           {termination.available_at_message ? <p>{termination.available_at_message}</p> : null}
-          {termination.action && termination.submit_label ? (
+          {terminationAction && terminationLabel ? (
             <button
               type="button"
-              onClick={() => {
-                if (termination.confirm && !window.confirm(termination.confirm)) {
-                  return;
-                }
-                router.delete(termination.action as string);
-              }}
+              onClick={() =>
+                gate(terminationConfirm, terminationLabel, () => router.delete(terminationAction))
+              }
             >
-              {termination.submit_label}
+              {terminationLabel}
             </button>
           ) : null}
         </>
@@ -112,6 +126,8 @@ export default function WithdrawalEdit({
           {signOut.label}
         </button>
       </p>
+
+      {dialog}
     </section>
   );
 }

@@ -4,6 +4,7 @@
 // the server, which refuses to leave an account without a way in.
 import { router, useForm } from "@inertiajs/react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { SettingsLink } from "@/features/auth/settings/links";
 
 type Props = {
@@ -36,6 +37,7 @@ export default function TotpsEdit({
   error_messages: errorMessages,
 }: Props) {
   const form = useForm({ title: formProps.title ?? "" });
+  const { confirm, dialog } = useConfirm();
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -44,11 +46,14 @@ export default function TotpsEdit({
   };
 
   const remove = () => {
-    if (!window.confirm(destroy.confirm_message)) {
-      return;
-    }
-
-    router.delete(destroy.action);
+    confirm(
+      {
+        message: destroy.confirm_message,
+        confirmLabel: destroy.submit_label,
+        cancelLabel: cancelLink.label,
+      },
+      () => router.delete(destroy.action),
+    );
   };
 
   return (
@@ -97,6 +102,7 @@ export default function TotpsEdit({
       >
         {destroy.submit_label}
       </button>
+      {dialog}
     </section>
   );
 }

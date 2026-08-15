@@ -137,7 +137,7 @@ module Base
         def secret_show_props(secret_credential)
           {
             title: "Secret",
-            description: "The details of this secret credential.",
+            description: t("base.app.identity.secrets.show.description"),
             name: secret_credential.name.to_s,
             created_at_label: "Created",
             created_at: I18n.l(secret_credential.created_at, format: :long),
@@ -155,7 +155,7 @@ module Base
         def secret_new_props(secret_credential, raw_secret_credential)
           {
             title: "New secret",
-            description: "Save this secret now. It is shown only once.",
+            description: t("base.app.identity.secrets.new.description"),
             back_link: { label: t("actions.back"), href: base_app_identity_path(ri: params[:ri]) },
             cancel_link: { label: "Cancel", href: base_app_identity_secrets_path },
             form: {
@@ -175,7 +175,7 @@ module Base
         def secret_edit_props(secret_credential)
           {
             title: "Edit secret",
-            description: "Rename this secret credential or disable it.",
+            description: t("base.app.identity.secrets.edit.description"),
             back_link: { label: t("actions.back"), href: base_app_identity_path(ri: params[:ri]) },
             cancel_link: { label: "Cancel", href: base_app_identity_secrets_path },
             form: {

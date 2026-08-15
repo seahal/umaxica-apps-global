@@ -1,5 +1,6 @@
 import { Link, router } from "@inertiajs/react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { IdentityLink } from "@/types/identity";
 
 type SecretRow = {
@@ -32,11 +33,10 @@ export default function SecretsIndex({
   destroy_confirm: destroyConfirm,
   secret_credentials: secretCredentials,
 }: Props) {
+  const { confirm, dialog } = useConfirm();
+
   const destroy = (url: string) => {
-    if (!window.confirm(destroyConfirm)) {
-      return;
-    }
-    router.delete(url);
+    confirm({ message: destroyConfirm, confirmLabel: destroyLabel }, () => router.delete(url));
   };
 
   return (
@@ -75,6 +75,7 @@ export default function SecretsIndex({
           ))}
         </tbody>
       </table>
+      {dialog}
     </section>
   );
 }

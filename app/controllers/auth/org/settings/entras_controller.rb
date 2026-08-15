@@ -71,7 +71,7 @@ module Auth
                                 "Disconnecting Microsoft Entra ID from settings is not available " \
                                   "until the operator lifecycle owner is defined."
                               end,
-            empty_notice: ("No active Microsoft Entra ID connection is available." if !connected && @entra_connections.empty?),
+            empty_notice: (t("auth.org.settings.entras.show.empty_notice") if !connected && @entra_connections.empty?),
             form_action: auth_org_settings_entra_path(ri: params[:ri]),
             submit_label: "Connect",
             connections: if connected

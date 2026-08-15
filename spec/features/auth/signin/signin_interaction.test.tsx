@@ -57,10 +57,10 @@ const mount = (element: React.ReactElement) => {
 // Going through the prototype setter clears that tracker, which is what a real keystroke does.
 const type = (selector: string, value: string) => {
   const input = container.querySelector<HTMLInputElement>(selector);
-  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
   act(() => {
-    if (input && setter) {
-      setter.call(input, value);
+    if (input && descriptor?.set) {
+      descriptor.set.call(input, value);
       input.dispatchEvent(new Event("input", { bubbles: true }));
     }
   });
@@ -82,7 +82,26 @@ const flush = async () => {
   });
 };
 
+declare global {
+  // React reads this flag off the global object to decide whether `act` is allowed.
+  var IS_REACT_ACT_ENVIRONMENT: boolean;
+}
+
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+// The production code only reads `status` and `json()`, but building a real Response keeps the stub
+// assignable to `fetch` without asserting a hand-written object into the type.
+const jsonResponse = (status: number, payload: unknown): Response =>
+  new Response(JSON.stringify(payload), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+
+const stubFetch = (status: number, payload: unknown) =>
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => jsonResponse(status, payload)),
+  );
 
 const turnstile = { site_key: "site-key", mode: "render" as const, action: null, cdata: null };
 const backLink = { label: "もどる", href: "/sign/in?ri=jp" };
@@ -204,15 +223,7 @@ describe("pass code form interaction", () => {
   });
 
   it("clears the code field when the server confirms a resend", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () =>
-        Promise.resolve({
-          status: 200,
-          json: async () => Promise.resolve({ resendable: true }),
-        } as Response),
-      ),
-    );
+    stubFetch(200, { resendable: true });
 
     mount(<EmailPassCodeForm {...props} />);
     click("button[type=button]");
@@ -232,14 +243,6 @@ describe("otp resend button", () => {
     too_soon_message: "しばらくお待ちください",
     failed_message: "失敗しました",
   };
-
-  const stubFetch = (status: number, payload: unknown) =>
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () =>
-        Promise.resolve({ status, json: async () => Promise.resolve(payload) } as Response),
-      ),
-    );
 
   afterEach(() => {
     vi.unstubAllGlobals();

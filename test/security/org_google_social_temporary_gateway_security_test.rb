@@ -33,7 +33,9 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
   end
 
   test "org sign in page exposes only local verifier entrypoints" do
-    source = read("app/views/auth/org/sign_ins/new.html.erb")
+    # The page is an Inertia component fed by the controller, so the entrypoints it can offer are
+    # exactly the ones this controller puts in its props.
+    source = read("app/controllers/auth/org/sign/ins_controller.rb")
 
     assert_match(/new_auth_org_sign_in_passkey_path/, source)
     assert_match(/new_auth_org_sign_in_secret_path/, source)
@@ -51,9 +53,12 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
   end
 
   test "com pages do not expose social auth helpers" do
+    # Both the controllers that build these pages\' props and the components that render them.
     source = [
-      "app/views/auth/com/sign_ins/new.html.erb",
-      "app/views/auth/com/sign_ups/new.html.erb",
+      "app/controllers/auth/com/sign/ins_controller.rb",
+      "app/controllers/auth/com/sign/ups_controller.rb",
+      "src/pages/auth/com/sign_ins/new.tsx",
+      "src/pages/auth/com/sign_ups/new.tsx",
     ].map { |path| read(path) }.join("\n")
 
     assert_no_match(/social_authentication|google|apple|microsoft/i, source)

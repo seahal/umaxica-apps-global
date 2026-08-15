@@ -37,7 +37,7 @@ module Base
             title: "Sessions",
             back_link: { label: "Back", href: base_com_identity_path(ri: params[:ri]) },
             columns: ["Session", "Kind", "Binding", "Last activity", "Created", "Refresh expires", ""],
-            empty_message: "No active sessions were found.",
+            empty_message: t("base.com.identity.sessions.index.empty_message"),
             current_label: "current",
             bulk_actions: bulk_session_action_props(sessions),
             sessions: sessions,
@@ -53,12 +53,12 @@ module Base
             revoke_others: {
               label: "Revoke other sessions",
               url: base_com_identity_other_sessions_path(ri: params[:ri]),
-              confirm: "Revoke other sessions?",
+              confirm: t("base.com.identity.sessions.index.revoke_others_confirm"),
             },
             revoke_all: {
               label: "Revoke all sessions",
               url: base_com_identity_session_set_path(ri: params[:ri]),
-              confirm: "Revoke all sessions?",
+              confirm: t("base.com.identity.sessions.index.revoke_all_confirm"),
             },
           }
         end
@@ -80,7 +80,7 @@ module Base
                       {
                         label: "Revoke",
                         url: base_com_identity_session_path(session.public_id, ri: params[:ri]),
-                        confirm: "Revoke this session?",
+                        confirm: t("base.com.identity.sessions.index.revoke_confirm"),
                       }
                     end,
           }

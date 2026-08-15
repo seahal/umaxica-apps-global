@@ -12,7 +12,13 @@ import { useState } from "react";
 import { normalizePublicKeyOptions } from "@/controllers/webauthn_utils";
 import { PASSKEY_MESSAGES, registrationErrorMessage } from "@/features/auth/passkeys/messages";
 import { useCeremonyMessages } from "@/features/auth/passkeys/useCeremonyMessages";
-import { bufferToBase64url, passkeysSupported } from "@/features/auth/passkeys/webauthn";
+import {
+  type AttestationCredential,
+  bufferToBase64url,
+  isAttestationCredential,
+  passkeysSupported,
+} from "@/features/auth/passkeys/webauthn";
+import { readObject, readString } from "@/lib/payload";
 
 import { csrfToken } from "./csrf";
 
@@ -55,8 +61,8 @@ async function readFailure(response: Response, fallback: string): Promise<Error 
   return new Error(fallback);
 }
 
-function encodeAttestation(credential: PublicKeyCredential) {
-  const response = credential.response as AuthenticatorAttestationResponse;
+function encodeAttestation(credential: AttestationCredential) {
+  const { response } = credential;
 
   return {
     id: credential.id,
@@ -104,23 +110,25 @@ export default function SignUpPasskeyRegistration({
         throw failure;
       }
 
-      const { challenge_id: challengeId, options } = (await optionsResponse.json()) as {
-        challenge_id: string;
-        options: unknown;
-      };
+      const optionsPayload: unknown = await optionsResponse.json();
+      const challengeId = readString(optionsPayload, "challenge_id");
+      const options = readObject(optionsPayload, "options");
+      if (!challengeId || options === undefined) {
+        throw new Error(PASSKEY_MESSAGES.optionsFailed);
+      }
 
       showStatus(PASSKEY_MESSAGES.creating);
       const created = await navigator.credentials.create({
         publicKey: normalizePublicKeyOptions(options),
       });
-      if (!created) {
+      if (!created || !isAttestationCredential(created)) {
         throw new Error(PASSKEY_MESSAGES.registrationFailed);
       }
 
       showStatus(PASSKEY_MESSAGES.verifying);
       const verificationResponse = await postJson(finishUrl, {
         challenge_id: challengeId,
-        credential: encodeAttestation(created as PublicKeyCredential),
+        credential: encodeAttestation(created),
         description,
         checkpoint_version: checkpointVersion,
       });
@@ -136,10 +144,10 @@ export default function SignUpPasskeyRegistration({
         throw failure;
       }
 
-      const result = (await verificationResponse.json()) as { redirect_url?: string };
+      const result: unknown = await verificationResponse.json();
 
       showStatus(PASSKEY_MESSAGES.registrationComplete);
-      const destination = result.redirect_url || successRedirectUrl;
+      const destination = readString(result, "redirect_url") || successRedirectUrl;
       if (destination) {
         window.location.href = destination;
       } else {

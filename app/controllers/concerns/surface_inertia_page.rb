@@ -26,4 +26,13 @@ module SurfaceInertiaPage
 
     layout "#{family}/#{surface}/inertia"
   end
+
+  private
+
+  # Page prop keys are composed from the screen scope, so they cannot be literals at the call site;
+  # passing the composed key through here keeps every page translation lookup in one place, the same
+  # way `SurfaceChrome#chrome_t` does for the chrome props.
+  def page_t(key, **)
+    t(key, **)
+  end
 end

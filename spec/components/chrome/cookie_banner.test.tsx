@@ -31,12 +31,15 @@ const stubFetch = (mock: ReturnType<typeof vi.fn>) => {
   vi.stubGlobal("fetch", mock);
 };
 
+const noop = () => {};
+
 const mount = async () => {
   container = document.createElement("div");
   document.body.append(container);
-  root = createRoot(container);
+  const mounted = createRoot(container);
+  root = mounted;
   await act(async () => {
-    root.render(<CookieBanner controls={controls} />);
+    mounted.render(<CookieBanner controls={controls} />);
   });
 };
 
@@ -66,9 +69,10 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  if (root) {
+  const mounted = root;
+  if (mounted) {
     act(() => {
-      root.unmount();
+      mounted.unmount();
     });
   }
   container?.remove();
@@ -121,7 +125,7 @@ describe("CookieBanner mount", () => {
 
   // The read is aborted on unmount so a late answer cannot update a component that is gone.
   test("ignores a consent answer that arrives after unmount", async () => {
-    let resolveRead: (value: unknown) => void = () => {};
+    let resolveRead: (value: unknown) => void = noop;
     stubFetch(
       vi.fn().mockReturnValue(
         new Promise((resolve) => {
@@ -131,8 +135,9 @@ describe("CookieBanner mount", () => {
     );
 
     await mount();
+    const mounted = root;
     act(() => {
-      root.unmount();
+      mounted?.unmount();
     });
 
     await act(async () => {
@@ -140,7 +145,7 @@ describe("CookieBanner mount", () => {
     });
 
     // Re-mounted in afterEach terms: unmounting twice is safe, and no state update was attempted.
-    expect(container.textContent).toBe("");
+    expect(container?.textContent).toBe("");
   });
 });
 
@@ -188,7 +193,7 @@ describe("CookieBanner actions", () => {
     await click(button(controls.reject_all));
 
     expect(banner()).not.toBeNull();
-    expect(button(controls.reject_all).disabled).toBe(false);
+    expect(button(controls.reject_all)?.disabled).toBe(false);
   });
 
   test("the close button dismisses the banner without recording a decision", async () => {

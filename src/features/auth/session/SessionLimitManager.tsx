@@ -1,6 +1,8 @@
 import { useForm } from "@inertiajs/react";
 import { useState } from "react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
+
 // The session-limit management page.
 //
 // A visitor who reached the concurrent session limit lands here with a restricted session and has
@@ -78,6 +80,7 @@ export default function SessionLimitManager({
   const [selectedRef, setSelectedRef] = useState("");
   const revocation = useForm({ ref: "" });
   const cancellation = useForm({});
+  const { confirm, dialog } = useConfirm();
 
   const submitRevocation = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -86,11 +89,9 @@ export default function SessionLimitManager({
 
   const submitCancellation = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!globalThis.confirm(cancel.confirm)) {
-      return;
-    }
-
-    cancellation.delete(cancel.action);
+    confirm({ message: cancel.confirm, confirmLabel: cancel.label }, () => {
+      cancellation.delete(cancel.action);
+    });
   };
 
   return (
@@ -197,6 +198,7 @@ export default function SessionLimitManager({
           {cancel.label}
         </button>
       </form>
+      {dialog}
     </section>
   );
 }

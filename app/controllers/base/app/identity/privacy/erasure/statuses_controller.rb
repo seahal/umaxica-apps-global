@@ -25,7 +25,7 @@ module Base
 
               render inertia: true, props: {
                 title: "Privacy erasure status",
-                empty_message: "No privacy erasure request is active.",
+                empty_message: t(".empty_message"),
                 privacy_request: serialize_privacy_request(@privacy_request),
               }
             end

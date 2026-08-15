@@ -231,7 +231,16 @@ class RiRoutingContractTest < ActiveSupport::TestCase
   def html_rendering_controllers
     routed_controllers
       .select { |controller| RI_PARTICIPATING_TARGETS.any? { |target| controller.start_with?("#{target}/") } }
-      .select { |controller| Rails.root.join("app/views", controller).glob("*.html.erb").any? }
+      .select { |controller| html_rendering_controller?(controller) }
+  end
+
+  # A controller renders a regional page whether that page is an ERB template or an Inertia
+  # component; after the Inertia migration most of these controllers own a page under `src/pages`
+  # instead of a template under `app/views`, and only counting templates would quietly empty this
+  # contract out.
+  def html_rendering_controller?(controller)
+    Rails.root.join("app/views", controller).glob("*.html.erb").any? ||
+      Rails.root.join("src/pages", controller).glob("*.tsx").any?
   end
 
   def routed_controllers

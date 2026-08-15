@@ -3,8 +3,9 @@
 // It is a directory of the ceremonies the surface owns. Every entry arrives resolved from the
 // server: an item with a href is a link the visitor may follow, an item without one is a note about
 // a ceremony that has no direct entry point.
-import CredentialWarning from "@/features/identity/CredentialWarning";
-import type { CredentialWarningProps } from "@/features/identity/CredentialWarning";
+import CredentialWarning, {
+  type CredentialWarningProps,
+} from "@/features/identity/CredentialWarning";
 
 export type DashboardItem = {
   label: string;

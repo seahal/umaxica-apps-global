@@ -1,6 +1,6 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 // These tests mount the screens and dispatch real DOM events, which is the only way to reach the
 // submit and confirm branches: the destructive actions must keep their verb and their confirmation.
@@ -55,9 +55,9 @@ const submitForm = () => {
 // React tracks the last value it wrote to a controlled input, so a plain assignment is ignored.
 // Writing through the native setter is what makes the change event reach the handler.
 const typeInto = (input: HTMLInputElement, value: string) => {
-  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
   act(() => {
-    setter.call(input, value);
+    descriptor?.set?.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
 };
@@ -71,19 +71,21 @@ const clickButton = (label: string) => {
   });
 };
 
+// The confirmation is a rendered dialog now: its cancel button is first and its confirm button
+// second, so answering it is a click rather than a stubbed `window.confirm`.
+const answerConfirmation = (accepted: boolean) => {
+  const buttons = [...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? [])];
+  act(() => {
+    buttons[accepted ? 1 : 0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+};
+
 const turnstile = {
   site_key: "site-key",
   mode: "execute" as const,
   action: null,
   cdata: null,
 };
-
-beforeEach(() => {
-  vi.stubGlobal(
-    "confirm",
-    vi.fn(() => true),
-  );
-});
 
 afterEach(() => {
   act(() => {
@@ -179,6 +181,7 @@ describe("passkey settings interaction", () => {
     mount(<PasskeysIndex {...indexProps} />);
 
     clickButton("削除");
+    answerConfirmation(true);
 
     expect(deleteRequest).toHaveBeenCalledWith("/settings/passkeys/pk_1?ri=jp", {
       data: { "cf-turnstile-response": "" },
@@ -186,13 +189,10 @@ describe("passkey settings interaction", () => {
   });
 
   it("keeps the row when the confirmation is declined", () => {
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => false),
-    );
     mount(<PasskeysIndex {...indexProps} />);
 
     clickButton("削除");
+    answerConfirmation(false);
 
     expect(deleteRequest).not.toHaveBeenCalled();
   });
@@ -238,6 +238,7 @@ describe("passkey settings interaction", () => {
     mount(<PasskeysEdit {...editProps} />);
 
     clickButton("削除");
+    answerConfirmation(true);
 
     expect(deleteRequest).toHaveBeenCalledWith("/settings/passkeys/pk_1?ri=jp", {
       data: { "cf-turnstile-response": "" },
@@ -245,13 +246,10 @@ describe("passkey settings interaction", () => {
   });
 
   it("keeps the passkey when the removal is declined", () => {
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => false),
-    );
     mount(<PasskeysEdit {...editProps} />);
 
     clickButton("削除");
+    answerConfirmation(false);
 
     expect(deleteRequest).not.toHaveBeenCalled();
   });
@@ -343,18 +341,16 @@ describe("totp settings interaction", () => {
     mount(<TotpsEdit {...editProps} />);
 
     clickButton("削除");
+    answerConfirmation(true);
 
     expect(deleteRequest).toHaveBeenCalledWith("/settings/totps/totp_1?ri=jp");
   });
 
   it("keeps the authenticator when the removal is declined", () => {
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => false),
-    );
     mount(<TotpsEdit {...editProps} />);
 
     clickButton("削除");
+    answerConfirmation(false);
 
     expect(deleteRequest).not.toHaveBeenCalled();
   });

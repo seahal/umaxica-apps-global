@@ -1,6 +1,7 @@
 import { Link, router } from "@inertiajs/react";
 import { useState } from "react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { PageLink } from "@/features/base_com/identity/types";
 
 // Replaces `app/views/base/com/identity/withdrawals/edit.html.erb`, the recovery and early
@@ -38,12 +39,9 @@ function ActionButton({
   method: "post" | "delete";
 }) {
   const [processing, setProcessing] = useState(false);
+  const { confirm: requestConfirmation, dialog } = useConfirm();
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (confirm && !window.confirm(confirm)) {
-      return;
-    }
+  const send = () => {
     const options = {
       onStart: () => setProcessing(true),
       onFinish: () => setProcessing(false),
@@ -55,15 +53,28 @@ function ActionButton({
     }
   };
 
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    // An action the server sent no confirmation copy for was never gated by one.
+    if (confirm) {
+      requestConfirmation({ message: confirm, confirmLabel: label }, send);
+      return;
+    }
+    send();
+  };
+
   return (
-    <form onSubmit={submit}>
-      <button
-        type="submit"
-        disabled={processing}
-      >
-        {label}
-      </button>
-    </form>
+    <>
+      <form onSubmit={submit}>
+        <button
+          type="submit"
+          disabled={processing}
+        >
+          {label}
+        </button>
+      </form>
+      {dialog}
+    </>
   );
 }
 

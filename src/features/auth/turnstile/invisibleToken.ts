@@ -8,15 +8,6 @@
 // must surface - it is never treated as a passed challenge. The server still verifies the token.
 import { waitForTurnstileApi, type TurnstileOptions } from "@/lib/turnstile";
 
-/** `size` is not part of the shared options type because only the invisible flow sets it. */
-type InvisibleOptions = Partial<TurnstileOptions> & {
-  sitekey: string;
-  size: "invisible";
-  callback: (token: string) => void;
-  "error-callback": () => void;
-  "expired-callback": () => void;
-};
-
 export async function solveInvisibleTurnstile(
   siteKey: string,
   errorMessage: string,
@@ -34,7 +25,7 @@ export async function solveInvisibleTurnstile(
       container.style.display = "none";
       (host ?? document.body).append(container);
 
-      const options: InvisibleOptions = {
+      const options: TurnstileOptions = {
         sitekey: siteKey,
         size: "invisible",
         callback: (token: string) => resolve(token),
@@ -42,7 +33,7 @@ export async function solveInvisibleTurnstile(
         "expired-callback": () => reject(new Error(errorMessage)),
       };
 
-      api.render(container, options as unknown as TurnstileOptions);
+      api.render(container, options);
     } catch (error) {
       // oxlint-disable-next-line no-console
       console.error("Turnstile token request failed:", error);

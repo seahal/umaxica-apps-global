@@ -1,6 +1,7 @@
 import { Link, router } from "@inertiajs/react";
 import { useState } from "react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { PageLink, TurnstileProps } from "@/features/base_com/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -40,32 +41,35 @@ function DestroyForm({
 }) {
   const [token, setToken] = useState("");
   const [processing, setProcessing] = useState(false);
+  const { confirm: requestConfirmation, dialog } = useConfirm();
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!window.confirm(confirm)) {
-      return;
-    }
-    router.delete(url, {
-      data: { "cf-turnstile-response": token },
-      onStart: () => setProcessing(true),
-      onFinish: () => setProcessing(false),
+    requestConfirmation({ message: confirm, confirmLabel: label }, () => {
+      router.delete(url, {
+        data: { "cf-turnstile-response": token },
+        onStart: () => setProcessing(true),
+        onFinish: () => setProcessing(false),
+      });
     });
   };
 
   return (
-    <form onSubmit={submit}>
-      <TurnstileWidget
-        {...turnstile}
-        onToken={setToken}
-      />
-      <button
-        type="submit"
-        disabled={processing}
-      >
-        {label}
-      </button>
-    </form>
+    <>
+      <form onSubmit={submit}>
+        <TurnstileWidget
+          {...turnstile}
+          onToken={setToken}
+        />
+        <button
+          type="submit"
+          disabled={processing}
+        >
+          {label}
+        </button>
+      </form>
+      {dialog}
+    </>
   );
 }
 

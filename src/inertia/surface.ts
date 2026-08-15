@@ -18,6 +18,15 @@ type PageModule = {
   };
 };
 
+function isPageModule(module: unknown): module is PageModule {
+  if (typeof module !== "object" || module === null || !("default" in module)) {
+    return false;
+  }
+
+  const { default: component } = module;
+  return typeof component === "object" || typeof component === "function";
+}
+
 /**
  * Builds the `resolve` for one surface from its own eagerly globbed page directory.
  *
@@ -41,7 +50,15 @@ export function surfacePageResolver(
 
   for (const [path, module] of Object.entries(modules)) {
     const name = path.replace(/^.*\/pages\//, "").replace(/\.tsx$/, "");
-    pages.set(name, module as PageModule);
+
+    if (!isPageModule(module)) {
+      throw new Error(
+        `Inertia page "${name}" in src/pages/${surface} has no default export. ` +
+          "A page module must export its component as the default.",
+      );
+    }
+
+    pages.set(name, module);
   }
 
   return (name: string) => {

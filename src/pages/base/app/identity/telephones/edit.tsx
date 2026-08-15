@@ -1,5 +1,6 @@
 import { Link, router } from "@inertiajs/react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { IdentityDestructiveAction, IdentityLink } from "@/types/identity";
 
 type Props = {
@@ -15,11 +16,13 @@ export default function TelephoneEdit({
   delete: destroy,
   cancel_link: cancelLink,
 }: Props) {
+  const { confirm, dialog } = useConfirm();
+
   const remove = () => {
-    if (!window.confirm(destroy.confirm)) {
-      return;
-    }
-    router.delete(destroy.url);
+    confirm(
+      { message: destroy.confirm, confirmLabel: destroy.label, cancelLabel: cancelLink.label },
+      () => router.delete(destroy.url),
+    );
   };
 
   return (
@@ -35,6 +38,7 @@ export default function TelephoneEdit({
       </button>
 
       <Link href={cancelLink.href}>{cancelLink.label}</Link>
+      {dialog}
     </section>
   );
 }

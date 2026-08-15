@@ -29,7 +29,7 @@ module Base
           def recovery_session_new_props
             {
               title: "Account recovery",
-              description: "If an eligible account is found, a verification code will be sent.",
+              description: t("base.app.identity.recovery.sessions.new.description"),
               address_form: {
                 action: base_app_identity_recovery_session_path,
                 label: "Email address",

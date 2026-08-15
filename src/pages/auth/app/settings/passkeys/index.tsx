@@ -6,6 +6,7 @@
 import { router } from "@inertiajs/react";
 import { useState } from "react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { SettingsLink, SettingsTurnstile } from "@/features/auth/settings/links";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -48,13 +49,12 @@ export default function PasskeysIndex({
   passkeys,
 }: Props) {
   const [token, setToken] = useState("");
+  const { confirm, dialog } = useConfirm();
 
   const destroy = (href: string) => {
-    if (!window.confirm(destroyConfirm)) {
-      return;
-    }
-
-    router.delete(href, { data: { "cf-turnstile-response": token } });
+    confirm({ message: destroyConfirm, confirmLabel: destroyLabel }, () => {
+      router.delete(href, { data: { "cf-turnstile-response": token } });
+    });
   };
 
   return (
@@ -113,6 +113,7 @@ export default function PasskeysIndex({
           ) : null}
         </tbody>
       </table>
+      {dialog}
     </section>
   );
 }

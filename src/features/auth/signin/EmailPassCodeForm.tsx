@@ -7,6 +7,7 @@ import { useForm } from "@inertiajs/react";
 import { useRef } from "react";
 
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
+import { readString } from "@/lib/payload";
 
 import OtpResendButton, { type OtpResend } from "./OtpResendButton";
 import type { SignInLink, SignInTurnstile } from "./types";
@@ -62,7 +63,7 @@ export default function EmailPassCodeForm({
     pt: form.pt,
   });
 
-  const value = (data[field.scope] as Record<string, string>)[field.field] ?? "";
+  const value = readString(data[field.scope], field.field) ?? "";
   const fieldId = `${field.scope}_${field.field}`;
 
   return (

@@ -1,5 +1,6 @@
 import { router } from "@inertiajs/react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { IdentityLink } from "@/types/identity";
 
 type SessionRow = {
@@ -53,11 +54,10 @@ export default function SessionsIndex({
   bulk_revocation: bulkRevocation,
   sessions,
 }: Props) {
-  const revoke = (url: string, confirmation: string) => {
-    if (!window.confirm(confirmation)) {
-      return;
-    }
-    router.delete(url);
+  const { confirm, dialog } = useConfirm();
+
+  const revoke = (url: string, message: string, label: string) => {
+    confirm({ message, confirmLabel: label }, () => router.delete(url));
   };
 
   return (
@@ -70,13 +70,21 @@ export default function SessionsIndex({
         <div>
           <button
             type="button"
-            onClick={() => revoke(bulkRevocation.others_url, bulkRevocation.others_confirm)}
+            onClick={() =>
+              revoke(
+                bulkRevocation.others_url,
+                bulkRevocation.others_confirm,
+                bulkRevocation.others_label,
+              )
+            }
           >
             {bulkRevocation.others_label}
           </button>
           <button
             type="button"
-            onClick={() => revoke(bulkRevocation.all_url, bulkRevocation.all_confirm)}
+            onClick={() =>
+              revoke(bulkRevocation.all_url, bulkRevocation.all_confirm, bulkRevocation.all_label)
+            }
           >
             {bulkRevocation.all_label}
           </button>
@@ -115,7 +123,7 @@ export default function SessionsIndex({
                   {session.current ? null : (
                     <button
                       type="button"
-                      onClick={() => revoke(session.revoke_url, revokeConfirm)}
+                      onClick={() => revoke(session.revoke_url, revokeConfirm, revokeLabel)}
                     >
                       {revokeLabel}
                     </button>
@@ -126,6 +134,7 @@ export default function SessionsIndex({
           </tbody>
         </table>
       )}
+      {dialog}
     </section>
   );
 }

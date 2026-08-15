@@ -44,7 +44,6 @@ const { default: WithdrawalEdit } = await import("@/pages/base/app/identity/with
 
 let container: HTMLDivElement;
 let root: Root;
-let confirmResult = true;
 
 const mount = (element: React.ReactElement) => {
   container = document.createElement("div");
@@ -71,14 +70,23 @@ const clickButton = (label: string) => {
   });
 };
 
+// The confirmation is a rendered dialog now: its cancel button is first and its confirm button
+// second, so answering it is a click rather than a stubbed `window.confirm`.
+const answerConfirmation = (accepted: boolean) => {
+  const buttons = [...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? [])];
+  act(() => {
+    buttons[accepted ? 1 : 0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+};
+
 const setInput = (selector: string, value: string) => {
   const input = container.querySelector<HTMLInputElement>(selector);
   if (!input) {
     throw new Error(`no input for ${selector}`);
   }
   act(() => {
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
-    setter?.call(input, value);
+    const descriptor = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value");
+    descriptor?.set?.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
 };
@@ -92,11 +100,6 @@ const toggleCheckbox = (selector: string) => {
     input.click();
   });
 };
-
-beforeEach(() => {
-  confirmResult = true;
-  vi.stubGlobal("confirm", () => confirmResult);
-});
 
 afterEach(() => {
   act(() => {
@@ -146,12 +149,12 @@ describe("email edit interaction", () => {
 
   it("deletes only after confirmation", () => {
     mount(<EmailEdit {...props} />);
-    confirmResult = false;
     clickButton("Delete");
+    answerConfirmation(false);
     expect(destroy).not.toHaveBeenCalled();
 
-    confirmResult = true;
     clickButton("Delete");
+    answerConfirmation(true);
     expect(destroy).toHaveBeenCalledWith("/identity/emails/eml_1");
   });
 });
@@ -371,12 +374,12 @@ describe("secret interaction", () => {
       />,
     );
 
-    confirmResult = false;
     clickButton("Delete");
+    answerConfirmation(false);
     expect(destroy).not.toHaveBeenCalled();
 
-    confirmResult = true;
     clickButton("Delete");
+    answerConfirmation(true);
     expect(destroy).toHaveBeenCalledWith("/identity/secrets/sec_1");
   });
 
@@ -486,18 +489,20 @@ describe("session revocation interaction", () => {
       />,
     );
 
-    confirmResult = false;
     clickButton("Revoke");
+    answerConfirmation(false);
     expect(destroy).not.toHaveBeenCalled();
 
-    confirmResult = true;
     clickButton("Revoke");
+    answerConfirmation(true);
     expect(destroy).toHaveBeenCalledWith("/identity/sessions/tok_1");
 
     clickButton("Sign out other sessions");
+    answerConfirmation(true);
     expect(destroy).toHaveBeenCalledWith("/identity/other_sessions");
 
     clickButton("Sign out everywhere");
+    answerConfirmation(true);
     expect(destroy).toHaveBeenCalledWith("/identity/sessions");
   });
 });
@@ -581,12 +586,12 @@ describe("telephone interaction", () => {
       />,
     );
 
-    confirmResult = false;
     clickButton("Delete");
+    answerConfirmation(false);
     expect(destroy).not.toHaveBeenCalled();
 
-    confirmResult = true;
     clickButton("Delete");
+    answerConfirmation(true);
     expect(destroy).toHaveBeenCalledWith("/identity/telephones/tel_1");
   });
 });
@@ -654,13 +659,13 @@ describe("withdrawal interaction", () => {
     submitForm(0);
     expect(get).toHaveBeenCalledWith("/identity/withdrawal", { ack_schedule_purge: "1" });
 
-    confirmResult = false;
     submitForm(1);
+    answerConfirmation(false);
     expect(patch).not.toHaveBeenCalled();
 
-    confirmResult = true;
     toggleCheckbox("#ack_deactivate_today");
     submitForm(1);
+    answerConfirmation(true);
     expect(patch).toHaveBeenCalledWith("/identity/withdrawal", {
       data: { ack_deactivate_today: "1" },
     });
@@ -691,17 +696,19 @@ describe("withdrawal interaction", () => {
       />,
     );
 
-    confirmResult = false;
     clickButton("Recover");
+    answerConfirmation(false);
     clickButton("Terminate now");
+    answerConfirmation(false);
     expect(post).not.toHaveBeenCalled();
     expect(destroy).not.toHaveBeenCalled();
 
-    confirmResult = true;
     clickButton("Recover");
+    answerConfirmation(true);
     expect(post).toHaveBeenCalledWith("/identity/withdrawal");
 
     clickButton("Terminate now");
+    answerConfirmation(true);
     expect(destroy).toHaveBeenCalledWith("/identity/withdrawal");
 
     clickButton("Sign out");

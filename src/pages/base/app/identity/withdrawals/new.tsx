@@ -1,6 +1,7 @@
 import { Link, router } from "@inertiajs/react";
 import { useState } from "react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { IdentityLink } from "@/types/identity";
 
 type ScheduleSection = {
@@ -40,6 +41,7 @@ export default function WithdrawalNew({
 }: Props) {
   const [ackSchedule, setAckSchedule] = useState(schedule.acknowledged);
   const [ackDeactivate, setAckDeactivate] = useState(false);
+  const { confirm, dialog } = useConfirm();
 
   if (alreadyDeactivated) {
     return (
@@ -100,12 +102,14 @@ export default function WithdrawalNew({
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              if (!window.confirm(deactivate.confirm)) {
-                return;
-              }
-              router.patch(deactivate.action, {
-                data: { ack_deactivate_today: ackDeactivate ? "1" : "0" },
-              });
+              confirm(
+                { message: deactivate.confirm, confirmLabel: deactivate.submit_label },
+                () => {
+                  router.patch(deactivate.action, {
+                    data: { ack_deactivate_today: ackDeactivate ? "1" : "0" },
+                  });
+                },
+              );
             }}
           >
             <input
@@ -119,6 +123,7 @@ export default function WithdrawalNew({
           </form>
         </section>
       ) : null}
+      {dialog}
     </section>
   );
 }

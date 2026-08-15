@@ -33,8 +33,10 @@ class VerificationI18nTest < ActionDispatch::IntegrationTest
     get auth_app_verification_url(ri: "jp"), headers: @headers
 
     assert_response :success
-    assert_select "main h1", text: I18n.t("sign.app.verification.index.title", locale: :ja)
-    assert_select "h2", text: I18n.t("sign.app.verification.new.title", locale: :ja)
+    # The headings arrive as props and the React page renders them, so the translated strings the
+    # server chose for this locale are what the page object carries.
+    assert_equal I18n.t("sign.app.verification.index.title", locale: :ja), inertia_props.fetch("title")
+    assert_equal I18n.t("sign.app.verification.new.title", locale: :ja), inertia_props.fetch("section_title")
   end
 
   test "verification view displays translated strings in English" do
@@ -43,8 +45,10 @@ class VerificationI18nTest < ActionDispatch::IntegrationTest
     get auth_app_verification_url(ri: "us", lx: "en"), headers: @headers
 
     assert_response :success
-    assert_select "main h1", text: I18n.t("sign.app.verification.index.title", locale: :en)
-    assert_select "h2", text: I18n.t("sign.app.verification.new.title", locale: :en)
+    # The headings arrive as props and the React page renders them, so the translated strings the
+    # server chose for this locale are what the page object carries.
+    assert_equal I18n.t("sign.app.verification.index.title", locale: :en), inertia_props.fetch("title")
+    assert_equal I18n.t("sign.app.verification.new.title", locale: :en), inertia_props.fetch("section_title")
   end
   private
 

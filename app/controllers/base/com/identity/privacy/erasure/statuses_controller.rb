@@ -29,7 +29,7 @@ module Base
             def show_page_props
               {
                 title: "Privacy erasure status",
-                empty_message: "No privacy erasure request is active.",
+                empty_message: t("base.com.identity.privacy.erasure.statuses.show.empty_message"),
                 privacy_request: serialize_privacy_request(@privacy_request),
               }
             end

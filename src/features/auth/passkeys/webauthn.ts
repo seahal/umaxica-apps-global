@@ -23,6 +23,46 @@ export function bufferToBase64url(buffer: ArrayBuffer): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 
+// `navigator.credentials` answers the base `Credential` type, and an authenticator may in
+// principle answer another kind of it. These predicates check the parts this module reads instead
+// of asserting the WebAuthn shape onto whatever came back.
+type AssertionCredential = Credential & {
+  rawId: ArrayBuffer;
+  authenticatorAttachment: string | null;
+  response: AuthenticatorAssertionResponse;
+  getClientExtensionResults: () => AuthenticationExtensionsClientOutputs;
+};
+
+export type AttestationCredential = Credential & {
+  rawId: ArrayBuffer;
+  authenticatorAttachment: string | null;
+  response: AuthenticatorAttestationResponse;
+  getClientExtensionResults: () => AuthenticationExtensionsClientOutputs;
+};
+
+function hasCredentialParts(credential: Credential, responseKeys: string[]): boolean {
+  if (!("rawId" in credential) || !("response" in credential)) {
+    return false;
+  }
+
+  const { response } = credential;
+  if (typeof response !== "object" || response === null) {
+    return false;
+  }
+
+  return responseKeys.every((key) => key in response);
+}
+
+function isAssertionCredential(credential: Credential): credential is AssertionCredential {
+  return hasCredentialParts(credential, ["clientDataJSON", "authenticatorData", "signature"]);
+}
+
+export function isAttestationCredential(
+  credential: Credential,
+): credential is AttestationCredential {
+  return hasCredentialParts(credential, ["clientDataJSON", "attestationObject"]);
+}
+
 export function passkeysSupported(): boolean {
   return typeof window !== "undefined" && Boolean(window.PublicKeyCredential);
 }
@@ -36,8 +76,12 @@ export async function getAssertion(options: unknown): Promise<SerializedCredenti
     throw new Error("No credential was returned by the authenticator");
   }
 
-  const assertion = credential as PublicKeyCredential;
-  const response = assertion.response as AuthenticatorAssertionResponse;
+  if (!isAssertionCredential(credential)) {
+    throw new Error("The authenticator returned a credential that is not a WebAuthn assertion");
+  }
+
+  const assertion = credential;
+  const { response } = assertion;
 
   return {
     id: assertion.id,
@@ -63,8 +107,12 @@ export async function createCredential(options: unknown): Promise<SerializedCred
     throw new Error("No credential was returned by the authenticator");
   }
 
-  const attestation = credential as PublicKeyCredential;
-  const response = attestation.response as AuthenticatorAttestationResponse;
+  if (!isAttestationCredential(credential)) {
+    throw new Error("The authenticator returned a credential that is not a WebAuthn attestation");
+  }
+
+  const attestation = credential;
+  const { response } = attestation;
 
   return {
     id: attestation.id,

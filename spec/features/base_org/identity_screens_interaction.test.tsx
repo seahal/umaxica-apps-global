@@ -34,6 +34,21 @@ const mount = (element: React.ReactElement) => {
   });
 };
 
+// The destructive forms hold their submission back until the dialog is answered and then replay it
+// with `form.submit()`, which jsdom does not implement; the spy stands in for the navigation.
+const submitted = vi.fn();
+
+const confirmationButtons = () => [
+  ...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? []),
+];
+
+const answerConfirmation = (accepted: boolean) => {
+  const button = confirmationButtons()[accepted ? 1 : 0];
+  act(() => {
+    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+};
+
 // jsdom has no navigation, so the submit is observed rather than performed.
 const submitFirstForm = () => {
   const form = container.querySelector("form");
@@ -46,7 +61,7 @@ const submitFirstForm = () => {
 };
 
 beforeEach(() => {
-  vi.spyOn(window, "confirm");
+  vi.spyOn(HTMLFormElement.prototype, "submit").mockImplementation(submitted);
 });
 
 afterEach(() => {
@@ -54,6 +69,7 @@ afterEach(() => {
     root.unmount();
   });
   container.remove();
+  submitted.mockClear();
   vi.restoreAllMocks();
 });
 
@@ -68,24 +84,18 @@ describe("destructive identity forms", () => {
       cancel_link: { label: "Cancel", href: "/identity/telephones" },
     };
 
-    vi.mocked(window.confirm).mockReturnValue(false);
     mount(<TelephoneEdit {...props} />);
 
     expect(submitFirstForm().defaultPrevented).toBe(true);
+    answerConfirmation(false);
+    expect(submitted).not.toHaveBeenCalled();
 
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
-
-    vi.mocked(window.confirm).mockReturnValue(true);
-    mount(<TelephoneEdit {...props} />);
-
-    expect(submitFirstForm().defaultPrevented).toBe(false);
+    submitFirstForm();
+    answerConfirmation(true);
+    expect(submitted).toHaveBeenCalledTimes(1);
   });
 
   it("guards a session revocation", () => {
-    vi.mocked(window.confirm).mockReturnValue(false);
     mount(
       <SessionIndex
         title="Sessions"
@@ -108,11 +118,12 @@ describe("destructive identity forms", () => {
     );
 
     expect(submitFirstForm().defaultPrevented).toBe(true);
-    expect(window.confirm).toHaveBeenCalledWith("Sure?");
+    expect(container.querySelector("dialog[open]")?.textContent).toContain("Sure?");
+    answerConfirmation(false);
+    expect(submitted).not.toHaveBeenCalled();
   });
 
   it("guards a secret credential deletion", () => {
-    vi.mocked(window.confirm).mockReturnValue(false);
     mount(
       <SecretCredentialIndex
         title="Secrets"
@@ -142,10 +153,11 @@ describe("destructive identity forms", () => {
     );
 
     expect(submitFirstForm().defaultPrevented).toBe(true);
+    answerConfirmation(false);
+    expect(submitted).not.toHaveBeenCalled();
   });
 
   it("guards an email address deletion without blocking the preference update", () => {
-    vi.mocked(window.confirm).mockReturnValue(false);
     mount(
       <EmailPreferenceEdit
         title="Email settings"
@@ -173,12 +185,20 @@ describe("destructive identity forms", () => {
     // The first form is the preference update, which carries no confirmation.
     expect(submitFirstForm().defaultPrevented).toBe(false);
 
-    const deleteForm = container.querySelectorAll("form")[1];
+    const [, deleteForm] = container.querySelectorAll("form");
     const event = new Event("submit", { bubbles: true, cancelable: true });
     act(() => {
       deleteForm?.dispatchEvent(event);
     });
 
     expect(event.defaultPrevented).toBe(true);
+    answerConfirmation(false);
+    expect(submitted).not.toHaveBeenCalled();
+
+    act(() => {
+      deleteForm?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    answerConfirmation(true);
+    expect(submitted).toHaveBeenCalledTimes(1);
   });
 });

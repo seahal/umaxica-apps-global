@@ -27,10 +27,10 @@ module Auth
             any_method = @can_use_totp || @can_use_passkey
 
             {
-              title: t("#{scope}.title"),
-              description: t("#{scope}.description"),
+              title: page_t("#{scope}.title"),
+              description: page_t("#{scope}.description"),
               methods: mfa_challenge_methods(scope),
-              no_methods_notice: any_method ? nil : t("#{scope}.no_methods_available"),
+              no_methods_notice: any_method ? nil : page_t("#{scope}.no_methods_available"),
               back_link: any_method ? nil : mfa_challenge_back_link,
             }
           end
@@ -40,14 +40,14 @@ module Auth
             if @can_use_totp
               methods << {
                 key: "totp",
-                label: t("#{scope}.methods.totp"),
+                label: page_t("#{scope}.methods.totp"),
                 href: new_auth_app_sign_in_challenge_totp_path,
               }
             end
             if @can_use_passkey
               methods << {
                 key: "passkey",
-                label: t("#{scope}.methods.passkey"),
+                label: page_t("#{scope}.methods.passkey"),
                 href: new_auth_app_sign_in_challenge_passkey_path,
               }
             end

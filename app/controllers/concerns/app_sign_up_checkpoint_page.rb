@@ -44,15 +44,15 @@ module AppSignUpCheckpointPage
     scope = "sign.app.registration.checkpoint.show.birthdate"
 
     {
-      title: t("#{scope}.title"),
-      description: t("#{scope}.description"),
-      label: t("#{scope}.label"),
+      title: page_t("#{scope}.title"),
+      description: page_t("#{scope}.description"),
+      label: page_t("#{scope}.label"),
       action: public_send(
         :"auth_app_sign_up_check_#{@sign_up_ticket.entry_method}_birthdate_path",
         ri: params[:ri],
         pt: signed_pt_param,
       ),
-      submit_label: t("#{scope}.submit"),
+      submit_label: page_t("#{scope}.submit"),
       checkpoint_version: @sign_up_ticket.checkpoint_version,
       fields: {
         format: helpers.sign_up_birthdate_date_format,
@@ -66,9 +66,9 @@ module AppSignUpCheckpointPage
     scope = "sign.app.registration.checkpoint.show.passkey"
 
     {
-      title: t("#{scope}.title"),
-      description: t("#{scope}.description"),
-      label: t("#{scope}.action"),
+      title: page_t("#{scope}.title"),
+      description: page_t("#{scope}.description"),
+      label: page_t("#{scope}.action"),
       href: auth_app_sign_up_check_telephone_passkey_path(
         ri: params[:ri],
         pt: signed_pt_param,
@@ -81,9 +81,9 @@ module AppSignUpCheckpointPage
     scope = "sign.app.registration.checkpoint.show.passcode"
 
     {
-      title: t("#{scope}.title"),
-      description: t("#{scope}.description"),
-      label: t("#{scope}.action"),
+      title: page_t("#{scope}.title"),
+      description: page_t("#{scope}.description"),
+      label: page_t("#{scope}.action"),
       href: auth_app_sign_up_check_telephone_passcode_path(
         ri: params[:ri],
         pt: signed_pt_param,

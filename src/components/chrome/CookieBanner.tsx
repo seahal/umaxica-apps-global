@@ -5,15 +5,9 @@
 // because the verified preference JWT is minted server-side.
 import { useEffect, useState } from "react";
 
+import { readBoolean } from "@/lib/payload";
 import { csrfToken, preferenceQueryParameters } from "@/lib/request";
 import type { ChromeCookieControls } from "@/types/inertia";
-
-type CookieConsentState = {
-  consented?: boolean;
-  functional?: boolean;
-  performant?: boolean;
-  targetable?: boolean;
-};
 
 function cookieEndpointUrl(): string {
   const endpoint = new URL("/web/v0/cookie", window.location.origin);
@@ -36,8 +30,8 @@ export default function CookieBanner({ controls }: { controls: ChromeCookieContr
         if (!response.ok) {
           return;
         }
-        const state = (await response.json()) as CookieConsentState;
-        if (active && state.consented) {
+        const state: unknown = await response.json();
+        if (active && readBoolean(state, "consented") === true) {
           setVisible(false);
         }
       } catch {

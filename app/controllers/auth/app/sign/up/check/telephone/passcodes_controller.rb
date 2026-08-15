@@ -65,8 +65,8 @@ module Auth
 
                 render inertia: "auth/app/sign/up/checkpoint/passcodes/new",
                        props: {
-                         title: t("#{scope}.title"),
-                         description: t("#{scope}.description"),
+                         title: page_t("#{scope}.title"),
+                         description: page_t("#{scope}.description"),
                          action: auth_app_sign_up_check_telephone_passcode_path(
                            ri: params[:ri],
                            pt: signed_pt_param,

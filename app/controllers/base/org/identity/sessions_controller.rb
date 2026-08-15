@@ -44,7 +44,7 @@ module Base
               label: t("sign.org.settings.show.back"),
               href: base_org_identity_path(ri: params[:ri]),
             },
-            empty_message: "No active sessions were found.",
+            empty_message: t("base.org.identity.sessions.index.empty_message"),
             columns: {
               session: "Session",
               kind: "Kind",
@@ -97,7 +97,7 @@ module Base
           {
             label: "Revoke",
             href: base_org_identity_session_path(session.public_id, ri: params[:ri]),
-            confirm: "Revoke this session?",
+            confirm: t("base.org.identity.sessions.index.revoke_confirm"),
           }
         end
 

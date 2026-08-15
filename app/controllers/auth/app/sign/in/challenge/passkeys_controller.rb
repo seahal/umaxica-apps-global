@@ -97,8 +97,8 @@ module Auth
               scope = "sign.app.in.mfa.passkey"
 
               {
-                title: t("#{scope}.title"),
-                description: t("#{scope}.description"),
+                title: page_t("#{scope}.title"),
+                description: page_t("#{scope}.description"),
                 form: {
                   action: auth_app_sign_in_challenge_passkey_path,
                   # The assertion is posted as a native document POST, so the form carries the same
@@ -109,9 +109,9 @@ module Auth
                   # The challenge options are the payload `navigator.credentials.get` needs, and the
                   # ERB already embedded exactly this object in the page.
                   request_options: @passkey_request_options,
-                  submit_label: t("#{scope}.authenticate"),
+                  submit_label: page_t("#{scope}.authenticate"),
                 },
-                back_link: { label: t("#{scope}.back"), href: auth_app_sign_in_challenge_path },
+                back_link: { label: page_t("#{scope}.back"), href: auth_app_sign_in_challenge_path },
               }
             end
 

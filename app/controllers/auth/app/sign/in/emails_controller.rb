@@ -163,7 +163,7 @@ module Auth
             pt = signed_pt_param
 
             {
-              title: t("#{scope}.page_title"),
+              title: page_t("#{scope}.page_title"),
               description: t("sign.app.registration.new.social.disclaimer", product: "UMAXICA"),
               form: {
                 action: auth_app_sign_in_email_path,
@@ -192,8 +192,8 @@ module Auth
             pt = signed_pt_param
 
             {
-              title: t("#{scope}.page_title"),
-              description: t("#{scope}.description"),
+              title: page_t("#{scope}.page_title"),
+              description: page_t("#{scope}.description"),
               form: {
                 action: auth_app_sign_in_email_path,
                 method: "patch",
@@ -202,14 +202,14 @@ module Auth
                   scope: "client_email",
                   field: "pass_code",
                   name: "client_email[pass_code]",
-                  label: t("#{scope}.code_label"),
-                  placeholder: t("#{scope}.code_placeholder"),
+                  label: page_t("#{scope}.code_label"),
+                  placeholder: page_t("#{scope}.code_placeholder"),
                   max_length: 6,
                   autocomplete: "one-time-code",
                   inputmode: "numeric",
                   pattern: "[0-9]*",
                 },
-                submit_label: t("#{scope}.submit"),
+                submit_label: page_t("#{scope}.submit"),
               },
               # The resend state is the same opaque handle the ERB published as a data attribute; it
               # authorizes nothing on its own and the resend endpoint re-checks the cooldown.
@@ -223,9 +223,9 @@ module Auth
               },
               turnstile: turnstile_visible_props,
               form_errors: form_error_messages(@user_email),
-              delivery_help: t("#{scope}.delivery_help"),
+              delivery_help: page_t("#{scope}.delivery_help"),
               back_link: {
-                label: t("#{scope}.return_page"),
+                label: page_t("#{scope}.return_page"),
                 href: new_auth_app_sign_in_email_path(pt: pt),
               },
             }

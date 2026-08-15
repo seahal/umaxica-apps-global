@@ -6,6 +6,7 @@
 import { useForm } from "@inertiajs/react";
 
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
+import { readString } from "@/lib/payload";
 
 import type { SignInLink, SignInTurnstile } from "./types";
 
@@ -53,7 +54,7 @@ export default function TotpChallengeForm({
     "cf-turnstile-response": "",
   });
 
-  const value = (data[field.scope] as Record<string, string>)[field.field] ?? "";
+  const value = readString(data[field.scope], field.field) ?? "";
   const fieldId = `${field.scope}_${field.field}`;
 
   return (

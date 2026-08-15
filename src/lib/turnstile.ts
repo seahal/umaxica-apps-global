@@ -7,11 +7,15 @@ export type TurnstileOptions = {
   sitekey: string;
   action?: string;
   cData?: string;
+  /** Only the invisible flow sets this; a rendered widget leaves it out. */
+  size?: "invisible";
   callback: (token: string) => void;
-  "error-callback": (errorCode: string) => boolean;
-  "expired-callback": () => void;
-  "timeout-callback": () => void;
-  "unsupported-callback": () => void;
+  // A handler may answer whether Turnstile should retry, or answer nothing at all. Each callback
+  // is optional because a caller only wires the outcomes it acts on.
+  "error-callback"?: (errorCode: string) => boolean | void;
+  "expired-callback"?: () => void;
+  "timeout-callback"?: () => void;
+  "unsupported-callback"?: () => void;
 };
 
 export type TurnstileApi = {

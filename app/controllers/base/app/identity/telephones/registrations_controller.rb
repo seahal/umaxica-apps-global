@@ -153,7 +153,7 @@ module Base
               description: t("sign.app.registration.telephone.create.verification_code_sent"),
               code_label: "Verification code",
               code_placeholder: "123456",
-              delivery_help: "The code expires after a short time. Request a new one if it does not arrive.",
+              delivery_help: t("base.app.identity.telephones.registrations.edit.delivery_help"),
               form: {
                 action: base_app_identity_telephones_registration_path,
                 submit_label: "Verify",
@@ -197,7 +197,7 @@ module Base
               description: t("sign.app.registration.telephone.create.verification_code_sent"),
               code_label: "Verification code",
               code_placeholder: "123456",
-              delivery_help: "The code expires after a short time. Request a new one if it does not arrive.",
+              delivery_help: t("base.app.identity.telephones.registrations.edit.delivery_help"),
               form: {
                 action: base_app_identity_telephones_registration_path,
                 submit_label: "Verify",

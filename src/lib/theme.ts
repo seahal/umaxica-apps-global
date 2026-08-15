@@ -8,6 +8,8 @@
 // The wire format is the two-letter code the preference store uses; `Theme` is the name the UI
 // works in. Converting at the boundary keeps the codes out of the components.
 
+import { readString } from "@/lib/payload";
+
 export type Theme = "dark" | "light" | "system";
 
 const THEME_BY_CODE: Record<string, Theme> = {
@@ -87,8 +89,8 @@ export async function fetchStoredTheme(): Promise<Theme | null> {
     if (!response.ok) {
       return null;
     }
-    const data = (await response.json()) as { theme?: string };
-    return themeFromCode(data.theme);
+    const data: unknown = await response.json();
+    return themeFromCode(readString(data, "theme"));
   } catch {
     return null;
   }
@@ -111,8 +113,9 @@ export async function persistTheme(theme: Theme, csrf: string): Promise<Theme> {
       return theme;
     }
 
-    const data = (await response.json()) as { theme?: string };
-    return data.theme ? themeFromCode(data.theme) : theme;
+    const data: unknown = await response.json();
+    const code = readString(data, "theme");
+    return code ? themeFromCode(code) : theme;
   } catch {
     return theme;
   }

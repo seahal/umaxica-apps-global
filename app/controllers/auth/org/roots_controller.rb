@@ -23,7 +23,7 @@ module Auth
         {
           title: "Sign Org",
           heading: "Sign Org",
-          description: "Thin landing endpoint.",
+          description: t("landing.thin_endpoint"),
           # The org root is staff-only and has no self-service registration to offer.
           sign_up: nil,
         }

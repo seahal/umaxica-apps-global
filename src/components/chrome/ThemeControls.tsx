@@ -31,12 +31,15 @@ export default function ThemeControls({ controls }: { controls: ChromeThemeContr
   useEffect(() => {
     const stopWatching = watchSystemTheme(() => themeRef.current);
 
-    void fetchStoredTheme().then((stored) => {
+    const reconcile = async () => {
+      const stored = await fetchStoredTheme();
       if (stored && !chosen.current) {
         setTheme(stored);
         applyTheme(stored);
       }
-    });
+    };
+
+    void reconcile();
 
     return stopWatching;
   }, []);
@@ -50,10 +53,13 @@ export default function ThemeControls({ controls }: { controls: ChromeThemeContr
     setTheme(next);
     applyTheme(next);
 
-    void persistTheme(next, csrfToken()).then((stored) => {
+    const persist = async () => {
+      const stored = await persistTheme(next, csrfToken());
       setTheme(stored);
       applyTheme(stored);
-    });
+    };
+
+    void persist();
   };
 
   return (

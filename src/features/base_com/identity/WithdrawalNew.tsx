@@ -1,6 +1,7 @@
 import { Link, router } from "@inertiajs/react";
 import { useState } from "react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import ErrorList from "@/features/base_com/identity/ErrorList";
 import type { PageLink } from "@/features/base_com/identity/types";
 
@@ -31,13 +32,9 @@ export type WithdrawalNewProps = {
 function AckSection({ form }: { form: WithdrawalAckForm }) {
   const [checked, setChecked] = useState(form.checked ?? false);
   const [processing, setProcessing] = useState(false);
+  const { confirm: requestConfirmation, dialog } = useConfirm();
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (form.confirm && !window.confirm(form.confirm)) {
-      return;
-    }
-
+  const send = () => {
     const payload = { [form.field]: checked ? "1" : "0" };
     const options = {
       onStart: () => setProcessing(true),
@@ -49,6 +46,16 @@ function AckSection({ form }: { form: WithdrawalAckForm }) {
     } else {
       router.get(form.url, payload, options);
     }
+  };
+
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    // The acknowledgement step the server sent no confirmation copy for was never gated by one.
+    if (form.confirm) {
+      requestConfirmation({ message: form.confirm, confirmLabel: form.submit_label }, send);
+      return;
+    }
+    send();
   };
 
   return (
@@ -74,6 +81,7 @@ function AckSection({ form }: { form: WithdrawalAckForm }) {
           {form.submit_label}
         </button>
       </form>
+      {dialog}
     </section>
   );
 }

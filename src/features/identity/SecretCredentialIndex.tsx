@@ -4,6 +4,7 @@
 // types, and the server holds the digest.
 import { Link } from "@inertiajs/react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { LabelledLink, TurnstileProps } from "@/features/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
@@ -28,6 +29,61 @@ export type SecretCredentialIndexProps = {
   turnstile: TurnstileProps;
   secret_credentials: SecretCredentialRow[];
 };
+
+function DestroyForm({
+  href,
+  label,
+  message,
+  turnstile,
+}: {
+  href: string;
+  label: string;
+  message: string;
+  turnstile: TurnstileProps;
+}) {
+  const { confirm, dialog } = useConfirm();
+
+  // The submission is held back until the actor accepts, then replayed with `submit()`, which
+  // sends the same document DELETE without running this handler again.
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    confirm({ message, confirmLabel: label }, () => form.submit());
+  };
+
+  return (
+    <>
+      <form
+        action={href}
+        method="post"
+        data-turbo="false"
+        onSubmit={submit}
+      >
+        <input
+          type="hidden"
+          name="_method"
+          value="delete"
+        />
+        <input
+          type="hidden"
+          name="authenticity_token"
+          value={csrfToken()}
+        />
+        <TurnstileWidget
+          site_key={turnstile.site_key}
+          mode={turnstile.mode}
+          action={turnstile.action}
+          cdata={turnstile.cdata}
+        />
+        <input
+          type="submit"
+          value={label}
+        />
+      </form>
+      {dialog}
+    </>
+  );
+}
 
 export default function SecretCredentialIndex({
   title,
@@ -68,37 +124,12 @@ export default function SecretCredentialIndex({
               <td>{credential.last_used_at}</td>
               <td>
                 <Link href={credential.edit_href}>{editLabel}</Link>
-                <form
-                  action={credential.destroy_href}
-                  method="post"
-                  data-turbo="false"
-                  onSubmit={(event) => {
-                    if (!window.confirm(destroyConfirm)) {
-                      event.preventDefault();
-                    }
-                  }}
-                >
-                  <input
-                    type="hidden"
-                    name="_method"
-                    value="delete"
-                  />
-                  <input
-                    type="hidden"
-                    name="authenticity_token"
-                    value={csrfToken()}
-                  />
-                  <TurnstileWidget
-                    site_key={turnstile.site_key}
-                    mode={turnstile.mode}
-                    action={turnstile.action}
-                    cdata={turnstile.cdata}
-                  />
-                  <input
-                    type="submit"
-                    value={destroyLabel}
-                  />
-                </form>
+                <DestroyForm
+                  href={credential.destroy_href}
+                  label={destroyLabel}
+                  message={destroyConfirm}
+                  turnstile={turnstile}
+                />
               </td>
             </tr>
           ))}

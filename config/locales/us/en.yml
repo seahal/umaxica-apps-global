@@ -844,6 +844,9 @@ en:
     webauthn_id: WebAuthn ID
   auth:
     app:
+      dashboards:
+        show:
+          description: Sign app signed-in landing.
       settings:
         activity:
           events:
@@ -872,6 +875,9 @@ en:
           update:
             page_title: Email verification
     com:
+      dashboards:
+        show:
+          description: Sign com signed-in landing.
       settings:
         activity:
           events:
@@ -879,6 +885,9 @@ en:
             login_success: Login success
             unknown: Unknown event (%{event_id})
     org:
+      dashboards:
+        show:
+          description: Sign org signed-in landing.
       settings:
         activity:
           events:
@@ -886,6 +895,9 @@ en:
             login_success: Login success
             social_unlinked: Social account unlinked
             unknown: Unknown event (%{event_id})
+        entras:
+          show:
+            empty_notice: No active Microsoft Entra ID connection is available.
       sign:
         in:
           passkeys:
@@ -916,9 +928,35 @@ en:
           heading: Add another sign-in method
           passkey: Add a passkey
         emails:
+          registrations:
+            edit:
+              delivery_help: The code expires after a short time. Request a new one if it does not arrive.
+              description: Enter the verification code that was sent to the address you added.
           show:
             page_title: Email address
+        privacy:
+          erasure:
+            statuses:
+              show:
+                empty_message: No privacy erasure request is active.
+        recoveries:
+          show:
+            description: Complete verification to restore access.
+        recovery:
+          sessions:
+            new:
+              description: If an eligible account is found, a verification code will be sent.
+        secrets:
+          edit:
+            description: Rename this secret credential or disable it.
+          new:
+            description: Save this secret now. It is shown only once.
+          show:
+            description: The details of this secret credential.
         sessions:
+          index:
+            empty_message: No active sessions were found.
+            revoke_confirm: Revoke this session?
           show:
             page_title: Session
         telephones:
@@ -926,6 +964,9 @@ en:
             page_title: Telephone added
           destroy:
             page_title: Telephone removed
+          registrations:
+            edit:
+              delivery_help: The code expires after a short time. Request a new one if it does not arrive.
           show:
             page_title: Telephone
           update:
@@ -951,6 +992,9 @@ en:
             page_title: Request a preference link
             submit: Email me the link
             success: If the address is registered, we have emailed you a secure link.
+          unsubscribe:
+            description: Stop promotional email for this address.
+            disabled_description: Promotional email is already turned off for this address.
       preferences:
         back_to_settings: Back to settings
         cookie_settings: Cookie Settings
@@ -980,6 +1024,31 @@ en:
           limitations:
             invalid_or_expired: This sign-in limitation link is invalid or expired.
     com:
+      identity:
+        privacy:
+          erasure:
+            statuses:
+              show:
+                empty_message: No privacy erasure request is active.
+          erasures:
+            new:
+              paragraphs:
+                privacy_request: This is a privacy request for personal data deletion or restriction. It is separate from normal withdrawal.
+                records: Messages, posts, audit logs, billing records, and similar records may follow separate retention policies.
+                retention: After processing, recovery may no longer be available. Some data may be retained for legal, safety, audit, billing, or dispute handling reasons.
+        recoveries:
+          show:
+            description: Complete verification to restore access.
+        recovery:
+          sessions:
+            new:
+              description: If an eligible account is found, a verification code will be sent.
+        sessions:
+          index:
+            empty_message: No active sessions were found.
+            revoke_all_confirm: Revoke all sessions?
+            revoke_confirm: Revoke this session?
+            revoke_others_confirm: Revoke other sessions?
       preference:
         emails:
           edit:
@@ -1001,6 +1070,9 @@ en:
             page_title: Request a preference link
             submit: Email me the link
             success: If the address is registered, we have emailed you a secure link.
+          unsubscribe:
+            description: Stop promotional email for this address.
+            disabled_description: Promotional email is already turned off for this address.
         resets:
           back: Back to Preferences
           button: Clear preference data
@@ -1035,6 +1107,9 @@ en:
     org:
       identity:
         sessions:
+          index:
+            empty_message: No active sessions were found.
+            revoke_confirm: Revoke this session?
           show:
             page_title: Session
       preference:
@@ -1059,6 +1134,9 @@ en:
             page_title: Request a staff preference link
             submit: Send staff link
             success: If the address exists, an email with the link has been sent.
+          unsubscribe:
+            description: Stop promotional email for this address.
+            disabled_description: Promotional email is already turned off for this address.
         resets:
           back: Back to Preferences
           button: Clear preference data

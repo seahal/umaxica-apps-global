@@ -238,22 +238,22 @@ module Auth
             scope = "sign.org.authentication.secret_credential.new"
 
             {
-              title: t("#{scope}.page_title"),
+              title: page_t("#{scope}.page_title"),
               form_action: auth_org_sign_in_secret_path,
               hidden_fields: { pt: pt.presence, ri: region.to_s },
               errors_title: t("errors.messages.validation_failed"),
               errors: @secret_credential_form.errors.full_messages,
               identifier: {
                 name: "secret_credential_login_form[identifier]",
-                label: t("#{scope}.pii_label"),
-                placeholder: t("#{scope}.pii_placeholder"),
+                label: page_t("#{scope}.pii_label"),
+                placeholder: page_t("#{scope}.pii_placeholder"),
                 min_length: Operator::PUBLIC_ID_LENGTH,
                 max_length: Operator::PUBLIC_ID_LENGTH,
                 pattern: "[0-9A-FGHJKMNPQRSTVWXYZ]{16}",
               },
               secret: {
                 name: "secret_credential_login_form[secret_credential_value]",
-                label: t("#{scope}.secret_credential_label"),
+                label: page_t("#{scope}.secret_credential_label"),
                 placeholder: "••••••••••••••••",
               },
               submit_label: t("actions.submit"),

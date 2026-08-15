@@ -6,6 +6,8 @@
 // token; the browser only echoes it back.
 import { useEffect, useRef, useState } from "react";
 
+import { readBoolean, readNumber } from "@/lib/payload";
+
 export type OtpResendMessages = {
   button_label: string;
   sent_message: string;
@@ -39,7 +41,7 @@ export default function OtpResendButton({
 
   useEffect(() => {
     if (remaining <= 0) {
-      return;
+      return undefined;
     }
 
     const timer = window.setInterval(() => {
@@ -65,9 +67,9 @@ export default function OtpResendButton({
         body: JSON.stringify({ state: state }),
       });
 
-      const payload = (await response.json()) as { resendable?: boolean; retry_after?: number };
+      const payload: unknown = await response.json();
 
-      if (response.status === 200 && payload.resendable === true) {
+      if (response.status === 200 && readBoolean(payload, "resendable") === true) {
         onResent?.();
         setStatus(messages.sent_message);
         setRemaining(0);
@@ -76,7 +78,7 @@ export default function OtpResendButton({
 
       if (response.status === 429) {
         setStatus(messages.too_soon_message);
-        setRemaining(Math.max(Math.ceil(Number(payload.retry_after || 0)), 0));
+        setRemaining(Math.max(Math.ceil(readNumber(payload, "retry_after") ?? 0), 0));
         return;
       }
 

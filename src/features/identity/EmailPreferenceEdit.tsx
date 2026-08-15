@@ -4,6 +4,7 @@
 // them unconditionally; only the two preferences the operator may actually change have inputs.
 import { Link } from "@inertiajs/react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import FormErrors from "@/features/identity/FormErrors";
 import type { ConfirmedAction, LabelledLink, TurnstileProps } from "@/features/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
@@ -39,6 +40,19 @@ export default function EmailPreferenceEdit({
   cancel_link: cancelLink,
   error_messages: errorMessages,
 }: EmailPreferenceEditProps) {
+  const { confirm, dialog } = useConfirm();
+
+  // The deletion is held back until the actor accepts, then replayed with `submit()`, which sends
+  // the same document DELETE without running this handler again.
+  const submitDeletion = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const deletionForm = event.currentTarget;
+    confirm(
+      { message: destroy.confirm, confirmLabel: destroy.label, cancelLabel: cancelLink.label },
+      () => deletionForm.submit(),
+    );
+  };
+
   return (
     <section>
       <h1>{title}</h1>
@@ -118,11 +132,7 @@ export default function EmailPreferenceEdit({
         action={destroy.href}
         method="post"
         data-turbo="false"
-        onSubmit={(event) => {
-          if (!window.confirm(destroy.confirm)) {
-            event.preventDefault();
-          }
-        }}
+        onSubmit={submitDeletion}
       >
         <input
           type="hidden"
@@ -143,6 +153,7 @@ export default function EmailPreferenceEdit({
       <div>
         <Link href={cancelLink.href}>{cancelLink.label}</Link>
       </div>
+      {dialog}
     </section>
   );
 }

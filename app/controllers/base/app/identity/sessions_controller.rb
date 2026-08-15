@@ -55,7 +55,7 @@ module Base
 
           {
             title: "Sessions",
-            empty_message: "No active sessions were found.",
+            empty_message: t("base.app.identity.sessions.index.empty_message"),
             back_link: {
               label: t("sign.app.settings.show.back"),
               href: base_app_identity_path(ri: params[:ri]),
@@ -70,7 +70,7 @@ module Base
             },
             current_label: "current",
             revoke_label: "Revoke",
-            revoke_confirm: "Revoke this session?",
+            revoke_confirm: t("base.app.identity.sessions.index.revoke_confirm"),
             bulk_revocation: (serialized.any? { |session| !session.fetch(:current) }) ? bulk_revocation_props : nil,
             sessions: serialized,
           }

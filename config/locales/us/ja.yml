@@ -840,11 +840,17 @@ ja:
     webauthn_id: WebAuthn ID
   auth:
     app:
+      dashboards:
+        show:
+          description: Sign App のサインイン後のランディングです。
       verification:
         emails:
           update:
             page_title: メールアドレスの確認
     com:
+      dashboards:
+        show:
+          description: Sign Com のサインイン後のランディングです。
       settings:
         activity:
           events:
@@ -852,6 +858,13 @@ ja:
             login_success: ログイン
             unknown: 不明なイベント %{event_id}
     org:
+      dashboards:
+        show:
+          description: Sign Org のサインイン後のランディングです。
+      settings:
+        entras:
+          show:
+            empty_notice: 有効な Microsoft Entra ID の接続はありません。
       sign:
         in:
           passkeys:
@@ -887,9 +900,35 @@ ja:
           heading: 別のサインイン方法を追加
           passkey: パスキーを追加
         emails:
+          registrations:
+            edit:
+              delivery_help: コードは短時間で有効期限が切れます。届かない場合は再送信を依頼してください。
+              description: 追加したアドレス宛に送信された確認コードを入力してください。
           show:
             page_title: メールアドレス
+        privacy:
+          erasure:
+            statuses:
+              show:
+                empty_message: 有効な個人データ消去リクエストはありません。
+        recoveries:
+          show:
+            description: 本人確認を完了してアクセスを回復してください。
+        recovery:
+          sessions:
+            new:
+              description: 対象のアカウントが見つかった場合は、確認コードを送信します。
+        secrets:
+          edit:
+            description: このシークレット認証情報の名前を変更するか、無効にします。
+          new:
+            description: このシークレットは一度しか表示されません。今すぐ保存してください。
+          show:
+            description: このシークレット認証情報の詳細です。
         sessions:
+          index:
+            empty_message: 有効なセッションはありません。
+            revoke_confirm: このセッションを失効させますか？
           show:
             page_title: セッション
         telephones:
@@ -897,10 +936,18 @@ ja:
             page_title: 電話番号を追加しました
           destroy:
             page_title: 電話番号を削除しました
+          registrations:
+            edit:
+              delivery_help: コードは短時間で有効期限が切れます。届かない場合は再送信を依頼してください。
           show:
             page_title: 電話番号
           update:
             page_title: 電話番号を更新しました
+      preference:
+        emails:
+          unsubscribe:
+            description: このアドレス宛のプロモーションメールを停止します。
+            disabled_description: このアドレス宛のプロモーションメールはすでに停止されています。
       preferences:
         back_to_settings: 設定に戻る
         cookie_settings: クッキー設定
@@ -919,7 +966,36 @@ ja:
           limitations:
             invalid_or_expired: このサインイン制限リンクは無効または期限切れです。
     com:
+      identity:
+        privacy:
+          erasure:
+            statuses:
+              show:
+                empty_message: 有効な個人データ消去リクエストはありません。
+          erasures:
+            new:
+              paragraphs:
+                privacy_request: これは個人データの削除または利用制限に関するプライバシーリクエストです。通常の退会手続きとは異なります。
+                records: メッセージ、投稿、監査ログ、請求記録などは、別の保持ポリシーに従う場合があります。
+                retention: 処理後は復旧できなくなる場合があります。法令、安全、監査、請求、紛争対応のために一部のデータを保持することがあります。
+        recoveries:
+          show:
+            description: 本人確認を完了してアクセスを回復してください。
+        recovery:
+          sessions:
+            new:
+              description: 対象のアカウントが見つかった場合は、確認コードを送信します。
+        sessions:
+          index:
+            empty_message: 有効なセッションはありません。
+            revoke_all_confirm: すべてのセッションを失効させますか？
+            revoke_confirm: このセッションを失効させますか？
+            revoke_others_confirm: 他のセッションを失効させますか？
       preference:
+        emails:
+          unsubscribe:
+            description: このアドレス宛のプロモーションメールを停止します。
+            disabled_description: このアドレス宛のプロモーションメールはすでに停止されています。
         resets:
           back: 設定一覧に戻る
           button: 設定をリセットする
@@ -951,6 +1027,9 @@ ja:
     org:
       identity:
         sessions:
+          index:
+            empty_message: 有効なセッションはありません。
+            revoke_confirm: このセッションを失効させますか？
           show:
             page_title: セッション
       preference:
@@ -988,6 +1067,10 @@ ja:
           options:
             compact: コンパクト
             standard: 標準
+        emails:
+          unsubscribe:
+            description: このアドレス宛のプロモーションメールを停止します。
+            disabled_description: このアドレス宛のプロモーションメールはすでに停止されています。
         language:
           edit:
             description: アプリケーションの表示言語を変更します。

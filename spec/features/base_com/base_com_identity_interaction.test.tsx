@@ -79,11 +79,31 @@ const click = (selector: string) => {
   });
 };
 
+// The confirmation is a rendered dialog now, so accepting it is a click on its confirm button
+// rather than a stubbed `window.confirm`.
+const confirmationButtons = () => [
+  ...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? []),
+];
+
+const acceptConfirmation = () => {
+  const button = confirmationButtons()[1];
+  act(() => {
+    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+};
+
+const declineConfirmation = () => {
+  const button = confirmationButtons()[0];
+  act(() => {
+    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+};
+
 const setInput = (selector: string, value: string) => {
   const input = container.querySelector<HTMLInputElement>(selector);
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+  const descriptor = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value");
   act(() => {
-    setter?.call(input, value);
+    descriptor?.set?.call(input, value);
     input?.dispatchEvent(new Event("input", { bubbles: true }));
   });
 };
@@ -94,10 +114,6 @@ const toggle = (selector: string) => {
     input?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
 };
-
-beforeEach(() => {
-  vi.spyOn(window, "confirm").mockReturnValue(true);
-});
 
 afterEach(() => {
   act(() => {
@@ -119,14 +135,15 @@ describe("DestructiveButton", () => {
   it("issues the DELETE the route expects once the confirmation is accepted", () => {
     mount(<DestructiveButton action={action} />);
     submitForm();
+    acceptConfirmation();
 
     expect(destroy).toHaveBeenCalledWith("/identity/emails/e1", expect.objectContaining({}));
   });
 
   it("does nothing when the confirmation is declined", () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     mount(<DestructiveButton action={action} />);
     submitForm();
+    declineConfirmation();
 
     expect(destroy).not.toHaveBeenCalled();
   });
@@ -134,11 +151,16 @@ describe("DestructiveButton", () => {
   it("toggles the processing state around the request", () => {
     mount(<DestructiveButton action={action} />);
     submitForm();
+    acceptConfirmation();
 
-    const options = destroy.mock.calls[0][1];
-    act(() => options.onStart());
+    const [[, options]] = destroy.mock.calls;
+    act(() => {
+      options.onStart();
+    });
     expect(container.querySelector("button")?.disabled).toBe(true);
-    act(() => options.onFinish());
+    act(() => {
+      options.onFinish();
+    });
     expect(container.querySelector("button")?.disabled).toBe(false);
   });
 });
@@ -172,14 +194,15 @@ describe("SessionsIndex", () => {
   it("revokes the selected session with DELETE", () => {
     mount(<SessionsIndex {...props} />);
     submitForm(2);
+    acceptConfirmation();
 
     expect(destroy).toHaveBeenCalledWith("/identity/sessions/sess-2", expect.objectContaining({}));
   });
 
   it("keeps the bulk revocations behind their confirmation", () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     mount(<SessionsIndex {...props} />);
     submitForm(0);
+    declineConfirmation();
 
     expect(destroy).not.toHaveBeenCalled();
   });
@@ -187,10 +210,15 @@ describe("SessionsIndex", () => {
   it("disables the button while the revocation is in flight", () => {
     mount(<SessionsIndex {...props} />);
     submitForm(0);
+    acceptConfirmation();
 
-    const options = destroy.mock.calls[0][1];
-    act(() => options.onStart());
-    act(() => options.onFinish());
+    const [[, options]] = destroy.mock.calls;
+    act(() => {
+      options.onStart();
+    });
+    act(() => {
+      options.onFinish();
+    });
     expect(destroy).toHaveBeenCalledWith("/identity/other_sessions", expect.objectContaining({}));
   });
 });
@@ -221,20 +249,25 @@ describe("SecretCredentialsIndex", () => {
     mount(<SecretCredentialsIndex {...props} />);
     click("[data-testid='solve-turnstile']");
     submitForm();
+    acceptConfirmation();
 
     expect(destroy).toHaveBeenCalledWith(
       "/identity/secrets/s1",
       expect.objectContaining({ data: { "cf-turnstile-response": "turnstile-token" } }),
     );
-    const options = destroy.mock.calls[0][1];
-    act(() => options.onStart());
-    act(() => options.onFinish());
+    const [[, options]] = destroy.mock.calls;
+    act(() => {
+      options.onStart();
+    });
+    act(() => {
+      options.onFinish();
+    });
   });
 
   it("does not remove when the confirmation is declined", () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     mount(<SecretCredentialsIndex {...props} />);
     submitForm();
+    declineConfirmation();
 
     expect(destroy).not.toHaveBeenCalled();
   });
@@ -278,9 +311,13 @@ describe("SecretCredentialForm", () => {
       },
       expect.objectContaining({}),
     );
-    const options = post.mock.calls[0][2];
-    act(() => options.onStart());
-    act(() => options.onFinish());
+    const [[, , options]] = post.mock.calls;
+    act(() => {
+      options.onStart();
+    });
+    act(() => {
+      options.onFinish();
+    });
   });
 
   it("renames with PATCH", () => {
@@ -334,9 +371,13 @@ describe("EmailEdit", () => {
       },
       expect.objectContaining({}),
     );
-    const options = patch.mock.calls[0][2];
-    act(() => options.onStart());
-    act(() => options.onFinish());
+    const [[, , options]] = patch.mock.calls;
+    act(() => {
+      options.onStart();
+    });
+    act(() => {
+      options.onFinish();
+    });
   });
 });
 
@@ -373,9 +414,13 @@ describe("EmailRegistrationNew", () => {
       },
       expect.objectContaining({}),
     );
-    const options = post.mock.calls[0][2];
-    act(() => options.onStart());
-    act(() => options.onFinish());
+    const [[, , options]] = post.mock.calls;
+    act(() => {
+      options.onStart();
+    });
+    act(() => {
+      options.onFinish();
+    });
   });
 });
 
@@ -411,9 +456,13 @@ describe("OtpCodeForm", () => {
       },
       expect.objectContaining({}),
     );
-    const options = patch.mock.calls[0][2];
-    act(() => options.onStart());
-    act(() => options.onFinish());
+    const [[, , options]] = patch.mock.calls;
+    act(() => {
+      options.onStart();
+    });
+    act(() => {
+      options.onFinish();
+    });
   });
 
   it("carries the verification token back when the server sent one", () => {
@@ -467,9 +516,13 @@ describe("TelephoneRegistrationNew", () => {
       },
       expect.objectContaining({}),
     );
-    const options = post.mock.calls[0][2];
-    act(() => options.onStart());
-    act(() => options.onFinish());
+    const [[, , options]] = post.mock.calls;
+    act(() => {
+      options.onStart();
+    });
+    act(() => {
+      options.onFinish();
+    });
   });
 });
 
@@ -500,9 +553,13 @@ describe("OtpReentryNew", () => {
       { recovery_reentry: { address: "person@example.com" } },
       expect.objectContaining({}),
     );
-    const options = post.mock.calls[0][2];
-    act(() => options.onStart());
-    act(() => options.onFinish());
+    const [[, , options]] = post.mock.calls;
+    act(() => {
+      options.onStart();
+    });
+    act(() => {
+      options.onFinish();
+    });
   });
 
   it("posts the delivered code on the second form", () => {
@@ -550,9 +607,13 @@ describe("PrivacyErasureNew", () => {
       { jurisdiction: "unknown" },
       expect.objectContaining({}),
     );
-    const options = post.mock.calls[0][2];
-    act(() => options.onStart());
-    act(() => options.onFinish());
+    const [[, , options]] = post.mock.calls;
+    act(() => {
+      options.onStart();
+    });
+    act(() => {
+      options.onFinish();
+    });
   });
 });
 
@@ -588,9 +649,13 @@ describe("EnforcementRecoveryShow", () => {
       { enforcement_case_id: "c1" },
       expect.objectContaining({}),
     );
-    const restoreOptions = post.mock.calls[0][2];
-    act(() => restoreOptions.onStart());
-    act(() => restoreOptions.onFinish());
+    const [[, , restoreOptions]] = post.mock.calls;
+    act(() => {
+      restoreOptions.onStart();
+    });
+    act(() => {
+      restoreOptions.onFinish();
+    });
 
     submitForm(1);
     expect(post).toHaveBeenCalledWith(
@@ -600,9 +665,13 @@ describe("EnforcementRecoveryShow", () => {
       },
       expect.objectContaining({}),
     );
-    const appealOptions = post.mock.calls[1][2];
-    act(() => appealOptions.onStart());
-    act(() => appealOptions.onFinish());
+    const [, [, , appealOptions]] = post.mock.calls;
+    act(() => {
+      appealOptions.onStart();
+    });
+    act(() => {
+      appealOptions.onFinish();
+    });
   });
 
   it("falls back to an empty reason when the server offered no choices", () => {
@@ -681,14 +750,19 @@ describe("WithdrawalNew", () => {
       { ack_schedule_purge: "1" },
       expect.objectContaining({}),
     );
-    const options = get.mock.calls[0][2];
-    act(() => options.onStart());
-    act(() => options.onFinish());
+    const [[, , options]] = get.mock.calls;
+    act(() => {
+      options.onStart();
+    });
+    act(() => {
+      options.onFinish();
+    });
   });
 
   it("deactivates with PATCH behind its confirmation", () => {
     mount(<WithdrawalNew {...props} />);
     submitForm(1);
+    acceptConfirmation();
 
     expect(patch).toHaveBeenCalledWith(
       "/identity/withdrawal",
@@ -698,9 +772,9 @@ describe("WithdrawalNew", () => {
   });
 
   it("does not deactivate when the confirmation is declined", () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     mount(<WithdrawalNew {...props} />);
     submitForm(1);
+    declineConfirmation();
 
     expect(patch).not.toHaveBeenCalled();
   });
@@ -731,16 +805,26 @@ describe("WithdrawalEdit", () => {
     mount(<WithdrawalEdit {...props} />);
 
     submitForm(0);
+    acceptConfirmation();
     expect(post).toHaveBeenCalledWith("/identity/withdrawal", {}, expect.objectContaining({}));
-    const postOptions = post.mock.calls[0][2];
-    act(() => postOptions.onStart());
-    act(() => postOptions.onFinish());
+    const [[, , postOptions]] = post.mock.calls;
+    act(() => {
+      postOptions.onStart();
+    });
+    act(() => {
+      postOptions.onFinish();
+    });
 
     submitForm(1);
+    acceptConfirmation();
     expect(destroy).toHaveBeenCalledWith("/identity/withdrawal", expect.objectContaining({}));
-    const deleteOptions = destroy.mock.calls[0][1];
-    act(() => deleteOptions.onStart());
-    act(() => deleteOptions.onFinish());
+    const [[, deleteOptions]] = destroy.mock.calls;
+    act(() => {
+      deleteOptions.onStart();
+    });
+    act(() => {
+      deleteOptions.onFinish();
+    });
   });
 
   it("signs out of the ceremony with DELETE and no confirmation", () => {
@@ -754,9 +838,9 @@ describe("WithdrawalEdit", () => {
   });
 
   it("keeps the restore behind its confirmation", () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     mount(<WithdrawalEdit {...props} />);
     submitForm(0);
+    declineConfirmation();
 
     expect(post).not.toHaveBeenCalled();
   });

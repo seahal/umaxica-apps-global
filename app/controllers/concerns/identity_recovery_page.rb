@@ -23,7 +23,7 @@ module IdentityRecoveryPage
   def identity_recovery_props(enforcement_cases:, appeal_error: nil)
     {
       title: "Account recovery",
-      description: "Complete verification to restore access.",
+      description: t("base.app.identity.recoveries.show.description"),
       appeal_error: appeal_error,
       enforcement_cases: enforcement_cases.map { |enforcement_case| serialize_recovery_case(enforcement_case) },
     }

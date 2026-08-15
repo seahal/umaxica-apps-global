@@ -18,14 +18,6 @@ module Base
                      name: "email_create_ip_burst", store: rate_limit_store, only: :create,
                      with: -> { render_rate_limited(rule_name: "base_com_enforcement_recovery_email_create_ip_burst", retry_after: 60) }
 
-          # GET /identity/recovery/session/new
-          # EnforcementRecoveryCeremonyFlow#new only assigns the screen state and relies on an
-          # implicit render, so this surface makes the Inertia render explicit.
-          def new
-            super
-            render_recovery_reentry_new
-          end
-
           private
 
           # Overrides the shared re-entry transport seam: this surface answers with an Inertia page.
@@ -38,7 +30,7 @@ module Base
           def new_page_props
             {
               title: "Account recovery",
-              description: "If an eligible account is found, a verification code will be sent.",
+              description: t("base.com.identity.recovery.sessions.new.description"),
               address_form: {
                 url: base_com_identity_recovery_session_path,
                 scope: "recovery_reentry",

@@ -43,15 +43,15 @@ module Auth
 
                 render inertia: "auth/app/sign/up/check/social/confirmations/show",
                        props: {
-                         title: t("#{scope}.confirm_title"),
-                         unregistered: t(
+                         title: page_t("#{scope}.confirm_title"),
+                         unregistered: page_t(
                            "#{scope}.unregistered",
                            provider: @sign_up_ticket.social_provider.to_s.titleize,
                          ),
-                         create_identity: t("#{scope}.create_identity"),
-                         no_merge: t("#{scope}.no_merge"),
-                         cancel_if_wrong: t("#{scope}.cancel_if_wrong"),
-                         confirm_label: t("#{scope}.confirm_label"),
+                         create_identity: page_t("#{scope}.create_identity"),
+                         no_merge: page_t("#{scope}.no_merge"),
+                         cancel_if_wrong: page_t("#{scope}.cancel_if_wrong"),
+                         confirm_label: page_t("#{scope}.confirm_label"),
                          submit_label: t("actions.continue"),
                          cancel_label: t("actions.cancel"),
                          action: sign_up_confirmation_action_path,

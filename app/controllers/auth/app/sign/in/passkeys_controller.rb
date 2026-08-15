@@ -96,8 +96,8 @@ module Auth
             ri = current_region_identifier
 
             {
-              title: t("#{scope}.page_title"),
-              description: t("#{scope}.description"),
+              title: page_t("#{scope}.page_title"),
+              description: page_t("#{scope}.description"),
               panel: {
                 options_url: auth_app_sign_in_passkey_options_path(pt: pt, ri: ri),
                 verification_url: auth_app_sign_in_passkey_verification_path(pt: pt, ri: ri),
@@ -108,10 +108,10 @@ module Auth
                 turnstile_site_key: JitSecurityTurnstileConfig.stealth_site_key.to_s,
                 turnstile_error_message: t("turnstile_error"),
                 field: {
-                  label: t("#{scope}.pii_label"),
-                  placeholder: t("#{scope}.pii_placeholder"),
+                  label: page_t("#{scope}.pii_label"),
+                  placeholder: page_t("#{scope}.pii_placeholder"),
                 },
-                submit_label: t("#{scope}.submit"),
+                submit_label: page_t("#{scope}.submit"),
               },
               back_link: {
                 label: t("sign.app.authentication.new.back"),

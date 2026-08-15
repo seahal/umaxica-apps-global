@@ -4,8 +4,9 @@
 // destination, so the page never guesses the next step.
 import { Link } from "@inertiajs/react";
 
-import CredentialWarning from "@/features/identity/CredentialWarning";
-import type { CredentialWarningProps } from "@/features/identity/CredentialWarning";
+import CredentialWarning, {
+  type CredentialWarningProps,
+} from "@/features/identity/CredentialWarning";
 
 export type WelcomeShowProps = {
   title: string;

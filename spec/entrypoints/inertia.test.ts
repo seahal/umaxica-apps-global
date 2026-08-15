@@ -20,13 +20,17 @@ type SurfaceInertiaConfig = {
   defaults: typeof surfaceInertiaDefaults;
 };
 
-function pageModules(surface: string, names: string[]) {
+type PageModuleFixture = { default: { (): null; layout?: unknown } };
+
+function pageModules(surface: string, names: string[]): Record<string, PageModuleFixture> {
   return Object.fromEntries(
     names.map((name) => [`../../pages/${surface}/${name}.tsx`, { default: () => null }]),
   );
 }
 
 const LAYOUT = () => null;
+
+const own = () => null;
 
 describe("surface page resolver", () => {
   test("resolves a page of its own surface from the surface-scoped glob", () => {
@@ -51,10 +55,7 @@ describe("surface page resolver", () => {
 
   test("keeps a layout a page declared for itself", () => {
     const modules = pageModules("base/app", ["groups/index"]);
-    const own = () => null;
-    (
-      modules["../../pages/base/app/groups/index.tsx"] as { default: { layout?: unknown } }
-    ).default.layout = [own];
+    modules["../../pages/base/app/groups/index.tsx"].default.layout = [own];
     const resolve = surfacePageResolver(modules, "base/app", LAYOUT);
 
     expect(resolve("base/app/groups/index").default.layout).toEqual([own]);

@@ -4,6 +4,7 @@
 // `revoke` action, and the bulk revocations are absent when there is no other session to revoke.
 import { Link } from "@inertiajs/react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import { csrfToken } from "@/lib/csrf";
 
 export type SessionAction = {
@@ -44,32 +45,41 @@ export type SessionIndexProps = {
 // Revocation stays a DELETE submitted as a document, exactly as `button_to` did: it ends session
 // state the current page depends on, so the server's redirect drives the next screen.
 function RevokeButton({ action }: { action: SessionAction }) {
+  const { confirm, dialog } = useConfirm();
+
+  // The confirmation is asynchronous now, so the submission is held back and replayed with
+  // `submit()`, which sends the same document POST without running this handler again.
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    confirm({ message: action.confirm, confirmLabel: action.label }, () => form.submit());
+  };
+
   return (
-    <form
-      action={action.href}
-      method="post"
-      data-turbo="false"
-      onSubmit={(event) => {
-        if (!window.confirm(action.confirm)) {
-          event.preventDefault();
-        }
-      }}
-    >
-      <input
-        type="hidden"
-        name="_method"
-        value="delete"
-      />
-      <input
-        type="hidden"
-        name="authenticity_token"
-        value={csrfToken()}
-      />
-      <input
-        type="submit"
-        value={action.label}
-      />
-    </form>
+    <>
+      <form
+        action={action.href}
+        method="post"
+        data-turbo="false"
+        onSubmit={submit}
+      >
+        <input
+          type="hidden"
+          name="_method"
+          value="delete"
+        />
+        <input
+          type="hidden"
+          name="authenticity_token"
+          value={csrfToken()}
+        />
+        <input
+          type="submit"
+          value={action.label}
+        />
+      </form>
+      {dialog}
+    </>
   );
 }
 

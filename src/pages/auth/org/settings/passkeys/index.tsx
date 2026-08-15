@@ -2,6 +2,7 @@
 //
 // Deletion stays a document DELETE form: it carries a stealth Turnstile token in the same
 // `cf-turnstile-response` field the server already verifies, so the request shape is unchanged.
+import { useConfirm } from "@/components/ConfirmDialog";
 import { csrfToken } from "@/features/auth/csrf";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -32,6 +33,62 @@ export type OrgPasskeySettingsIndexProps = {
   turnstile: TurnstileConfiguration;
   passkeys: PasskeyRow[];
 };
+
+function DestroyForm({
+  action,
+  label,
+  message,
+  turnstile,
+}: {
+  action: string;
+  label: string;
+  message: string;
+  turnstile: TurnstileConfiguration;
+}) {
+  const { confirm, dialog } = useConfirm();
+
+  // The submission is held back until the operator accepts, then replayed with `submit()`, which
+  // sends the same document DELETE without running this handler again.
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    confirm({ message, confirmLabel: label }, () => form.submit());
+  };
+
+  return (
+    <>
+      <form
+        action={action}
+        method="post"
+        onSubmit={submit}
+      >
+        <input
+          type="hidden"
+          name="_method"
+          value="delete"
+          readOnly
+        />
+        <input
+          type="hidden"
+          name="authenticity_token"
+          value={csrfToken()}
+          readOnly
+        />
+        <TurnstileWidget
+          site_key={turnstile.site_key}
+          mode={turnstile.mode}
+          action={turnstile.action}
+          cdata={turnstile.cdata}
+        />
+        <input
+          type="submit"
+          value={label}
+        />
+      </form>
+      {dialog}
+    </>
+  );
+}
 
 export default function OrgPasskeySettingsIndex({
   title,
@@ -71,38 +128,12 @@ export default function OrgPasskeySettingsIndex({
               <td>{passkey.created_at}</td>
               <td>
                 <a href={passkey.edit_href}>{editLabel}</a>
-                <form
+                <DestroyForm
                   action={passkey.destroy_action}
-                  method="post"
-                  onSubmit={(event) => {
-                    if (!window.confirm(destroyConfirm)) {
-                      event.preventDefault();
-                    }
-                  }}
-                >
-                  <input
-                    type="hidden"
-                    name="_method"
-                    value="delete"
-                    readOnly
-                  />
-                  <input
-                    type="hidden"
-                    name="authenticity_token"
-                    value={csrfToken()}
-                    readOnly
-                  />
-                  <TurnstileWidget
-                    site_key={turnstile.site_key}
-                    mode={turnstile.mode}
-                    action={turnstile.action}
-                    cdata={turnstile.cdata}
-                  />
-                  <input
-                    type="submit"
-                    value={destroyLabel}
-                  />
-                </form>
+                  label={destroyLabel}
+                  message={destroyConfirm}
+                  turnstile={turnstile}
+                />
               </td>
             </tr>
           ))}

@@ -1,4 +1,5 @@
 // One registered passkey, with the same DELETE form the index row carries.
+import { useConfirm } from "@/components/ConfirmDialog";
 import { csrfToken } from "@/features/auth/csrf";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -30,6 +31,16 @@ export default function OrgPasskeySettingsShow({
   destroy_confirm: destroyConfirm,
   turnstile,
 }: OrgPasskeySettingsShowProps) {
+  const { confirm, dialog } = useConfirm();
+
+  // The submission is held back until the actor accepts, then replayed with `submit()`, which
+  // sends the same document DELETE without running this handler again.
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    confirm({ message: destroyConfirm, confirmLabel: destroyLabel }, () => form.submit());
+  };
+
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <a href={backLink.href}>{backLink.label}</a>
@@ -51,11 +62,7 @@ export default function OrgPasskeySettingsShow({
         <form
           action={destroyAction}
           method="post"
-          onSubmit={(event) => {
-            if (!window.confirm(destroyConfirm)) {
-              event.preventDefault();
-            }
-          }}
+          onSubmit={submit}
         >
           <input
             type="hidden"
@@ -81,6 +88,7 @@ export default function OrgPasskeySettingsShow({
           />
         </form>
       </div>
+      {dialog}
     </section>
   );
 }

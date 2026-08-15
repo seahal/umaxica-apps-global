@@ -99,10 +99,21 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
   end
 
   test "social confirmation step includes turnstile before durable signup completion" do
-    form = file_content("app/views/auth/app/sign/up/check/social/confirmations/show.html.erb")
+    # The confirmation step is an Inertia page now: the component draws the widget and the
+    # confirmation field, and the controller is what binds the visible challenge to this ceremony.
+    form = file_content("src/features/auth/signup/SocialSignUpConfirmation.tsx")
 
-    assert_includes form, 'render "shared/cloudflare_turnstile_visible"'
+    assert_includes form, "<TurnstileWidget {...turnstile} />"
     assert_includes form, "confirm_new_social_identity"
+
+    %w(google apple).each do |provider|
+      controller = file_content(
+        "app/controllers/auth/app/sign/up/check/#{provider}/confirmations_controller.rb",
+      )
+
+      assert_includes controller, "turnstile: turnstile_visible_props("
+      assert_includes controller, "confirm_new_social_identity"
+    end
   end
 
   private

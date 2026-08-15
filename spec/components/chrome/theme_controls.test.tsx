@@ -25,12 +25,15 @@ let mediaMatches: boolean;
 let listeners: MediaListener[];
 let removedListeners: MediaListener[];
 
+const noop = () => {};
+
 const mount = async (overrides: Partial<ChromeThemeControls> = {}) => {
   container = document.createElement("div");
   document.body.append(container);
-  root = createRoot(container);
+  const mounted = createRoot(container);
+  root = mounted;
   await act(async () => {
-    root.render(<ThemeControls controls={{ ...controls, ...overrides }} />);
+    mounted.render(<ThemeControls controls={{ ...controls, ...overrides }} />);
   });
 };
 
@@ -65,7 +68,7 @@ const stubFetch = (patch: { theme?: string } | Error) => {
 
 function clearCookies() {
   for (const part of document.cookie.split(";")) {
-    const key = part.trim().split("=")[0];
+    const [key] = part.trim().split("=");
     if (key) {
       document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
     }
@@ -99,9 +102,10 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  if (root) {
+  const mounted = root;
+  if (mounted) {
     act(() => {
-      root.unmount();
+      mounted.unmount();
     });
   }
   container?.remove();
@@ -179,7 +183,7 @@ describe("ThemeControls mount", () => {
 
   // The visitor is more current than an in-flight read, so a choice made first must win.
   test("does not overwrite a choice made before the stored preference arrives", async () => {
-    let resolveRead: (value: unknown) => void = () => {};
+    let resolveRead: (value: unknown) => void = noop;
     const fetchMock = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
       if (init?.method === "PATCH") {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ theme: "dr" }) });
@@ -203,8 +207,9 @@ describe("ThemeControls mount", () => {
   test("stops following the system setting once unmounted", async () => {
     await mount();
 
+    const mounted = root;
     act(() => {
-      root.unmount();
+      mounted?.unmount();
     });
 
     expect(removedListeners).toEqual(listeners);

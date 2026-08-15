@@ -24,7 +24,7 @@ module Auth
 
         {
           title: "Dashboard",
-          description: "Sign org signed-in landing.",
+          description: t("auth.org.dashboards.show.description"),
           sections: [
             {
               heading: "Primary links",

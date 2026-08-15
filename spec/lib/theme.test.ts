@@ -36,7 +36,7 @@ function stubMatchMedia() {
 
 function clearCookies() {
   for (const part of document.cookie.split(";")) {
-    const key = part.trim().split("=")[0];
+    const [key] = part.trim().split("=");
     if (key) {
       document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
     }

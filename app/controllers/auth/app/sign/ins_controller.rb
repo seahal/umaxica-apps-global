@@ -39,13 +39,13 @@ module Auth
           scope = "sign.app.authentication.new"
 
           {
-            title: t("#{scope}.page_title"),
-            description: t("#{scope}.description"),
+            title: page_t("#{scope}.page_title"),
+            description: page_t("#{scope}.description"),
             methods: method_selection_links(scope),
             social_providers: [google_provider_button(scope), apple_provider_button(scope)],
             registration_link: {
               key: "registration",
-              label: t("#{scope}.links.registration"),
+              label: page_t("#{scope}.links.registration"),
               href: auth_app_sign_up_path(ri: params[:ri], pt: signed_pt_param),
             },
           }
@@ -55,11 +55,11 @@ module Auth
           pt = signed_pt_param
 
           [
-            { key: "email", label: t("#{scope}.links.email"), href: new_auth_app_sign_in_email_path(pt: pt) },
-            { key: "passkey", label: t("#{scope}.links.passkey"), href: new_auth_app_sign_in_passkey_path(pt: pt) },
+            { key: "email", label: page_t("#{scope}.links.email"), href: new_auth_app_sign_in_email_path(pt: pt) },
+            { key: "passkey", label: page_t("#{scope}.links.passkey"), href: new_auth_app_sign_in_passkey_path(pt: pt) },
             {
               key: "secret_credential",
-              label: t("#{scope}.links.secret_credential"),
+              label: page_t("#{scope}.links.secret_credential"),
               href: new_auth_app_sign_in_secret_path(pt: pt),
             },
           ]
@@ -75,7 +75,7 @@ module Auth
         def google_provider_button(scope)
           {
             key: "google",
-            label: t("#{scope}.links.google"),
+            label: page_t("#{scope}.links.google"),
             action: auth_app_social_google_session_path,
             authenticity_token: form_authenticity_token,
             aria_label: "Sign in with Google",
@@ -97,7 +97,7 @@ module Auth
 
           {
             key: "apple",
-            label: t("#{scope}.links.apple"),
+            label: page_t("#{scope}.links.apple"),
             action: auth_app_social_apple_session_path,
             authenticity_token: form_authenticity_token,
             aria_label: nil,

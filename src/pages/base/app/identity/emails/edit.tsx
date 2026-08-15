@@ -1,6 +1,7 @@
 import { Link, router } from "@inertiajs/react";
 import { useState } from "react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type {
   IdentityDestructiveAction,
   IdentityLink,
@@ -37,6 +38,7 @@ export default function EmailEdit({
   const [promotional, setPromotional] = useState(form.promotional.checked);
   const [notifiable, setNotifiable] = useState(form.notifiable.checked);
   const [processing, setProcessing] = useState(false);
+  const { confirm, dialog } = useConfirm();
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -53,10 +55,10 @@ export default function EmailEdit({
   };
 
   const remove = () => {
-    if (!window.confirm(destroy.confirm)) {
-      return;
-    }
-    router.delete(destroy.url);
+    confirm(
+      { message: destroy.confirm, confirmLabel: destroy.label, cancelLabel: cancelLink.label },
+      () => router.delete(destroy.url),
+    );
   };
 
   return (
@@ -112,6 +114,7 @@ export default function EmailEdit({
       </button>
 
       <Link href={cancelLink.href}>{cancelLink.label}</Link>
+      {dialog}
     </section>
   );
 }

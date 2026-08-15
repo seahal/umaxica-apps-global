@@ -6,6 +6,7 @@
 import { router } from "@inertiajs/react";
 import { useState } from "react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
 export type TurnstileConfiguration = {
@@ -29,13 +30,12 @@ export default function PasskeyDeleteButton({
   turnstile,
 }: PasskeyDeleteButtonProps) {
   const [token, setToken] = useState("");
+  const { confirm, dialog } = useConfirm();
 
   const destroy = () => {
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
-
-    router.delete(action, { data: { "cf-turnstile-response": token } });
+    confirm({ message: confirmMessage, confirmLabel: label }, () => {
+      router.delete(action, { data: { "cf-turnstile-response": token } });
+    });
   };
 
   return (
@@ -53,6 +53,7 @@ export default function PasskeyDeleteButton({
       >
         {label}
       </button>
+      {dialog}
     </div>
   );
 }

@@ -7,6 +7,7 @@
 import { useForm } from "@inertiajs/react";
 
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
+import { readRecord } from "@/lib/payload";
 
 import type { SignInField, SignInLink, SignInTurnstile } from "./types";
 
@@ -59,7 +60,7 @@ export default function SecretSignInForm({
     ri: form.ri,
   });
 
-  const scoped = data[secretField.scope] as Record<string, string>;
+  const scoped = readRecord(data[secretField.scope]);
   const setScoped = (field: string, value: string) =>
     setData(secretField.scope, { ...scoped, [field]: value });
 

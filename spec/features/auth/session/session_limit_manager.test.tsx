@@ -81,6 +81,14 @@ const props: SessionLimitManagerProps = {
 let container: HTMLDivElement;
 let root: Root;
 
+const requireInput = (selector: string): HTMLInputElement => {
+  const input = container.querySelector<HTMLInputElement>(selector);
+  if (!input) {
+    throw new Error(`no input matched ${selector}`);
+  }
+  return input;
+};
+
 const mount = (element: React.ReactElement) => {
   container = document.createElement("div");
   document.body.append(container);
@@ -150,7 +158,7 @@ describe("SessionLimitManager interaction", () => {
   it("revokes the selected session with a PATCH", () => {
     mount(<SessionLimitManager {...props} />);
 
-    const radio = container.querySelector('input[name="ref"]') as HTMLInputElement;
+    const radio = requireInput('input[name="ref"]');
 
     act(() => {
       radio.click();
@@ -168,20 +176,30 @@ describe("SessionLimitManager interaction", () => {
   });
 
   it("cancels with a DELETE only after the visitor confirms", () => {
-    vi.stubGlobal("confirm", vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true));
     mount(<SessionLimitManager {...props} />);
 
-    const cancelForm = container.querySelectorAll("form")[1];
+    const [, cancelForm] = container.querySelectorAll("form");
+    const answerConfirmation = (accepted: boolean) => {
+      const buttons = [
+        ...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? []),
+      ];
+      act(() => {
+        buttons[accepted ? 1 : 0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+    };
 
     act(() => {
       cancelForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
 
+    expect(container.querySelector("dialog[open]")?.textContent).toContain("キャンセルしますか？");
+    answerConfirmation(false);
     expect(deleteRequest).not.toHaveBeenCalled();
 
     act(() => {
       cancelForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
+    answerConfirmation(true);
 
     expect(deleteRequest).toHaveBeenCalledWith("/sign/in/session?ri=jp");
   });

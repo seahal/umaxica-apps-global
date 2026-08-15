@@ -24,7 +24,7 @@ module Auth
 
         {
           title: "Dashboard",
-          description: "Sign app signed-in landing.",
+          description: t("auth.app.dashboards.show.description"),
           sections: [
             {
               heading: "Primary links",

@@ -105,7 +105,7 @@ describe("SignOutUnavailable interaction", () => {
       />,
     );
 
-    submit(container.querySelector("form") as HTMLFormElement);
+    submit(container.querySelectorAll("form")[0]);
 
     expect(post).toHaveBeenCalledWith("/sign/out?ri=jp");
   });

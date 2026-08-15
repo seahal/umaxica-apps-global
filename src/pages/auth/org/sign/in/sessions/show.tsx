@@ -3,6 +3,7 @@
 // Both forms are document submissions, as the ERB forms were: PATCH revokes the selected session
 // and may promote the restricted one, DELETE cancels the ceremony and signs the operator out. The
 // value on each choice is the server's signed reference, which is all the server accepts.
+import { useConfirm } from "@/components/ConfirmDialog";
 import { csrfToken } from "@/features/auth/csrf";
 
 type SessionRow = {
@@ -44,6 +45,16 @@ export default function OrgSessionLimitPage({
   cancel_logout_confirm: cancelLogoutConfirm,
   sessions,
 }: OrgSessionLimitPageProps) {
+  const { confirm, dialog } = useConfirm();
+
+  // The cancellation is held back until the operator accepts, then replayed with `submit()`, which
+  // sends the same document DELETE without running this handler again.
+  const submitCancellation = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    confirm({ message: cancelLogoutConfirm, confirmLabel: cancelLogoutLabel }, () => form.submit());
+  };
+
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <div>
@@ -119,11 +130,7 @@ export default function OrgSessionLimitPage({
       <form
         action={formAction}
         method="post"
-        onSubmit={(event) => {
-          if (!window.confirm(cancelLogoutConfirm)) {
-            event.preventDefault();
-          }
-        }}
+        onSubmit={submitCancellation}
       >
         <input
           type="hidden"
@@ -139,6 +146,7 @@ export default function OrgSessionLimitPage({
         />
         <button type="submit">{cancelLogoutLabel}</button>
       </form>
+      {dialog}
     </section>
   );
 }

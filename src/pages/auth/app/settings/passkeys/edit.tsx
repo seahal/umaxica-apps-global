@@ -6,6 +6,7 @@
 import { router, useForm } from "@inertiajs/react";
 import { useState } from "react";
 
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { SettingsLink, SettingsTurnstile } from "@/features/auth/settings/links";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -40,6 +41,7 @@ export default function PasskeysEdit({
 }: Props) {
   const [token, setToken] = useState("");
   const form = useForm({ description: formProps.description ?? "" });
+  const { confirm, dialog } = useConfirm();
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -51,11 +53,16 @@ export default function PasskeysEdit({
   };
 
   const remove = () => {
-    if (!window.confirm(destroy.confirm_message)) {
-      return;
-    }
-
-    router.delete(destroy.action, { data: { "cf-turnstile-response": token } });
+    confirm(
+      {
+        message: destroy.confirm_message,
+        confirmLabel: destroy.submit_label,
+        cancelLabel: cancelLink.label,
+      },
+      () => {
+        router.delete(destroy.action, { data: { "cf-turnstile-response": token } });
+      },
+    );
   };
 
   return (
@@ -110,6 +117,7 @@ export default function PasskeysEdit({
       >
         {destroy.submit_label}
       </button>
+      {dialog}
     </section>
   );
 }

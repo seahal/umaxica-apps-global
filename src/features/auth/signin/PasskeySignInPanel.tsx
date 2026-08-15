@@ -16,6 +16,7 @@ import {
 import { useCeremonyMessages } from "@/features/auth/passkeys/useCeremonyMessages";
 import { getAssertion, passkeysSupported } from "@/features/auth/passkeys/webauthn";
 import { solveInvisibleTurnstile } from "@/features/auth/turnstile/invisibleToken";
+import { readObject, readString } from "@/lib/payload";
 
 import { csrfToken } from "./csrf";
 
@@ -47,8 +48,8 @@ async function postJson(url: string, body: unknown): Promise<Response> {
 async function readFailure(response: Response, fallback: string): Promise<Error | null> {
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
-    const data = (await response.json()) as { error?: string };
-    return new Error(data.error || fallback);
+    const data: unknown = await response.json();
+    return new Error(readString(data, "error") || fallback);
   }
   if (response.status === 401 || response.status === 302) {
     window.location.reload();
@@ -107,10 +108,12 @@ export default function PasskeySignInPanel({
         throw failure;
       }
 
-      const { challenge_id: challengeId, options } = (await optionsResponse.json()) as {
-        challenge_id: string;
-        options: unknown;
-      };
+      const optionsPayload: unknown = await optionsResponse.json();
+      const challengeId = readString(optionsPayload, "challenge_id");
+      const options = readObject(optionsPayload, "options");
+      if (!challengeId || options === undefined) {
+        throw new Error(PASSKEY_MESSAGES.optionsFailed);
+      }
 
       showStatus(PASSKEY_MESSAGES.confirming);
       const credential = await getAssertion(options);
@@ -133,17 +136,16 @@ export default function PasskeySignInPanel({
         throw failure;
       }
 
-      const result = (await verificationResponse.json()) as {
-        status: string;
-        redirect_url: string;
-      };
+      const result: unknown = await verificationResponse.json();
+      const outcome = readString(result, "status");
+      const redirectUrl = readString(result, "redirect_url");
 
-      if (result.status === "totp_required") {
+      if (outcome === "totp_required" && redirectUrl) {
         showStatus(PASSKEY_MESSAGES.totpRequired);
-        window.location.href = result.redirect_url;
-      } else if (result.status === "ok") {
+        window.location.href = redirectUrl;
+      } else if (outcome === "ok" && redirectUrl) {
         showStatus(PASSKEY_MESSAGES.loginComplete);
-        window.location.href = result.redirect_url;
+        window.location.href = redirectUrl;
       } else {
         throw new Error(PASSKEY_MESSAGES.unexpectedResponse);
       }

@@ -5,6 +5,8 @@
 // client-side countdown, which is a courtesy - the server re-checks the cooldown on every request.
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { readBoolean, readNumber } from "@/lib/payload";
+
 import { csrfToken } from "./csrf";
 
 export type OtpResend = {
@@ -71,9 +73,9 @@ export default function OtpResendButton({
         body: JSON.stringify({ state: resend.state }),
       });
 
-      const payload = (await response.json()) as { resendable?: boolean; retry_after?: number };
+      const payload: unknown = await response.json();
 
-      if (response.status === 200 && payload.resendable === true) {
+      if (response.status === 200 && readBoolean(payload, "resendable") === true) {
         onResent();
         setStatus(resend.sent_message);
         stopCountdown();
@@ -83,7 +85,7 @@ export default function OtpResendButton({
 
       if (response.status === 429) {
         setStatus(resend.too_soon_message);
-        startCountdown(Number(payload.retry_after || 0));
+        startCountdown(readNumber(payload, "retry_after") ?? 0);
         return;
       }
 

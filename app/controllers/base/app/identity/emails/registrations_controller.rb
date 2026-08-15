@@ -76,13 +76,13 @@ module Base
           def email_registration_edit_props
             {
               title: "Verify your email address",
-              description: "Enter the verification code that was sent to the address you added.",
+              description: t("base.app.identity.emails.registrations.edit.description"),
               cancel_link: { label: "Cancel", href: preference_return_url },
               form: {
                 action: base_app_identity_emails_registration_path,
                 code_label: "Verification code",
                 code_placeholder: "123456",
-                delivery_help: "The code expires after a short time. Request a new one if it does not arrive.",
+                delivery_help: t("base.app.identity.emails.registrations.edit.delivery_help"),
                 submit_label: "Verify",
                 verification_token: @verification_token.presence,
               },

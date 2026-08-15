@@ -55,10 +55,18 @@ const mount = (element: React.ReactElement) => {
 // React tracks the DOM value of a controlled input, so assigning `.value` directly is ignored.
 // Writing through the native setter first is what makes the change event reach `onChange`.
 const type = (input: HTMLInputElement, value: string) => {
-  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-  setter?.call(input, value);
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+  descriptor?.set?.call(input, value);
   act(() => {
     input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+};
+
+// The confirmation is a rendered dialog, so it is answered by clicking one of its two buttons.
+const answerConfirmation = (accepted: boolean) => {
+  const buttons = [...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? [])];
+  act(() => {
+    buttons[accepted ? 1 : 0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
 };
 
@@ -93,7 +101,6 @@ const turnstile = {
 
 describe("PasskeyDeleteButton", () => {
   it("sends the DELETE with the challenge token once the actor confirms", () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     mount(
       <PasskeyDeleteButton
         action="/settings/passkey/pk_1"
@@ -104,6 +111,7 @@ describe("PasskeyDeleteButton", () => {
     );
 
     click(container.querySelector("button")!);
+    answerConfirmation(true);
 
     expect(deleteRequest).toHaveBeenCalledWith("/settings/passkey/pk_1", {
       data: { "cf-turnstile-response": "turnstile-token" },
@@ -111,7 +119,6 @@ describe("PasskeyDeleteButton", () => {
   });
 
   it("sends nothing when the actor declines the confirmation", () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     mount(
       <PasskeyDeleteButton
         action="/settings/passkey/pk_1"
@@ -122,10 +129,21 @@ describe("PasskeyDeleteButton", () => {
     );
 
     click(container.querySelector("button")!);
+    answerConfirmation(false);
 
     expect(deleteRequest).not.toHaveBeenCalled();
   });
 });
+
+const answer = (status: number, payload: unknown) => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      status,
+      json: async () => payload,
+    }),
+  );
+};
 
 describe("OtpResendButton", () => {
   const messages = {
@@ -133,16 +151,6 @@ describe("OtpResendButton", () => {
     sent_message: "送信しました",
     too_soon_message: "しばらく待ってください",
     failed_message: "失敗しました",
-  };
-
-  const answer = (status: number, payload: unknown) => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        status,
-        json: async () => payload,
-      }),
-    );
   };
 
   const resend = async () => {

@@ -20,7 +20,7 @@ class Auth::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal "auth/app/dashboards/show", inertia_component
     assert_equal "Dashboard", inertia_props.fetch("title")
-    assert_equal "Sign app signed-in landing.", inertia_props.fetch("description")
+    assert_equal I18n.t("auth.app.dashboards.show.description"), inertia_props.fetch("description")
 
     items = inertia_props.fetch("sections").flat_map { |section| section.fetch("items") }
     hrefs = items.filter_map { |item| item["href"] }

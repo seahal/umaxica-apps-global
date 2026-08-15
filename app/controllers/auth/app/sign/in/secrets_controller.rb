@@ -479,7 +479,7 @@ module Auth
             ri = current_region_identifier
 
             {
-              title: t("#{scope}.page_title"),
+              title: page_t("#{scope}.page_title"),
               form: {
                 action: auth_app_sign_in_secret_path,
                 method: "post",
@@ -490,7 +490,7 @@ module Auth
                   scope: secret_form_param_key,
                   field: "secret_credential_value",
                   name: "#{secret_form_param_key}[secret_credential_value]",
-                  label: t("#{scope}.secret_credential_label"),
+                  label: page_t("#{scope}.secret_credential_label"),
                   placeholder: "••••••••••••••••",
                 },
                 submit_label: t("actions.submit"),
@@ -515,15 +515,15 @@ module Auth
               scope: secret_form_param_key,
               field: "identifier",
               name: "#{secret_form_param_key}[identifier]",
-              label: t("#{scope}.pii_label"),
-              placeholder: t("#{scope}.pii_placeholder"),
+              label: page_t("#{scope}.pii_label"),
+              placeholder: page_t("#{scope}.pii_placeholder"),
             }
           end
 
           def secret_credential_hints_prop(scope)
             return nil if @secret_credential_hints.blank?
 
-            { label: t("#{scope}.hints"), value: @secret_credential_hints.join(", ") }
+            { label: page_t("#{scope}.hints"), value: @secret_credential_hints.join(", ") }
           end
 
           def secret_form_param_key

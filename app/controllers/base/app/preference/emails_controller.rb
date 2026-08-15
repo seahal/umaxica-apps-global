@@ -30,9 +30,9 @@ module Base
             promotional: promotional,
             description:
               if promotional
-                "Stop promotional email for this address."
+                t("base.app.preference.emails.unsubscribe.description")
               else
-                "Promotional email is already turned off for this address."
+                t("base.app.preference.emails.unsubscribe.disabled_description")
               end,
             form: promotional ? unsubscribe_form_props : nil,
           }

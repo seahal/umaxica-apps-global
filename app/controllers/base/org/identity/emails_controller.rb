@@ -107,7 +107,7 @@ module Base
           {
             public_id: email.public_id,
             value: email.address,
-            status: t("views.sign.org.settings.emails.index.#{status_key}"),
+            status: page_t("views.sign.org.settings.emails.index.#{status_key}"),
             edit_link: {
               label: t("sign.org.settings.email.index.edit"),
               href: edit_base_org_identity_email_path(email.public_id),

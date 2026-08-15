@@ -31,12 +31,9 @@ module Base
             {
               title: "Early personal data erasure",
               paragraphs: [
-                "This is a privacy request for personal data deletion or restriction. " \
-                "It is separate from normal withdrawal.",
-                "After processing, recovery may no longer be available. Some data may be retained " \
-                "for legal, safety, audit, billing, or dispute handling reasons.",
-                "Messages, posts, audit logs, billing records, and similar records may follow " \
-                "separate retention policies.",
+                t("base.com.identity.privacy.erasures.new.paragraphs.privacy_request"),
+                t("base.com.identity.privacy.erasures.new.paragraphs.retention"),
+                t("base.com.identity.privacy.erasures.new.paragraphs.records"),
               ],
               form: {
                 url: base_com_identity_privacy_erasure_path(ri: params[:ri]),
