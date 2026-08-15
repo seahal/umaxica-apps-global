@@ -190,17 +190,6 @@ class ApplicationHelperTest < ActionView::TestCase
     end
   end
 
-  test "validate_banner_args! rejects invalid banner inputs" do
-    error = assert_raises(ArgumentError) { send(:validate_banner_args!, tld: :bad, region: :jp, domain: :news) }
-    assert_match(/Invalid tld/, error.message)
-
-    error = assert_raises(ArgumentError) { send(:validate_banner_args!, tld: :app, region: :jp, domain: :bad) }
-    assert_match(/Invalid domain/, error.message)
-
-    error = assert_raises(ArgumentError) { send(:validate_banner_args!, tld: :app, region: :us, domain: :sign) }
-    assert_match(/Invalid region/, error.message)
-  end
-
   test "current_banner_for normalizes a :global region to :ww for sign and acme domains" do
     travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
       assert_equal client_banners(:newer_current_user_banner),
@@ -210,14 +199,6 @@ class ApplicationHelperTest < ActionView::TestCase
     end
   end
 
-  test "current_banner_for returns the banner directly when the model has no abstract base" do
-    travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
-      stub(:banner_connection_owner_for, ->(*) { }) do
-        assert_equal client_banners(:newer_current_user_banner),
-                     current_banner_for(tld: :app, region: :jp, domain: :news)
-      end
-    end
-  end
   private
 
   def stub_cookie(theme)

@@ -142,8 +142,12 @@ class StylesheetTagsTest < ActiveSupport::TestCase
                           "layout #{path} does not load Turbo, so it must not declare a Turbo refresh contract"
       assert_not_includes contents, "turbo-refresh-scroll",
                           "layout #{path} does not load Turbo, so it must not declare a Turbo refresh contract"
-      assert_not_includes contents, 'render "layouts/shared/',
-                          "layout #{path} must leave header and footer chrome to the React surface layout"
+      # The head-level Turnstile API script is the one shared partial a shell still renders: the
+      # challenge is drawn by React but its script has to be in the document first.
+      chrome_partials = contents.scan(/render "layouts\/shared\/(\w+)"/).flatten - ["cloudflare_turnstile_api"]
+
+      assert_empty chrome_partials,
+                   "layout #{path} must leave header and footer chrome to the React surface layout"
       assert_includes contents, %(vite_typescript_tag "#{entrypoint}")
       # A stylesheet reached through the entrypoint's JavaScript is dropped by
       # `ViteRuby::Manifest#resolve_entries` while the dev server runs, so it cannot style the first

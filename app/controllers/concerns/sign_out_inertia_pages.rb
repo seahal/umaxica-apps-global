@@ -19,7 +19,9 @@ module SignOutInertiaPages
     # Captured at include time so the completion controller, which subclasses the sign-out
     # controller, keeps naming the sign-out pages of its own surface rather than deriving
     # `auth/<surface>/sign/outs/completions/complete` from its own controller_path.
-    class_attribute :sign_out_page_prefix, instance_predicate: false, default: controller_path
+    prefix = controller_path
+    define_method(:sign_out_page_prefix) { prefix }
+    private :sign_out_page_prefix
   end
 
   private

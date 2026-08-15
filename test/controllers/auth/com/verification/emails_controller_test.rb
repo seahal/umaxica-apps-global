@@ -270,7 +270,8 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     controller.instance_variable_set(:@verify_email_for_test, false)
     controller.update
 
-    assert_equal [[:edit], { status: :unprocessable_content }], renders.last
+    assert_equal "auth/com/verification/emails/edit", renders.last.last.fetch(:inertia)
+    assert_equal :unprocessable_content, renders.last.last.fetch(:status)
 
     controller.instance_variable_set(:@verify_email_for_test, true)
     controller.update
