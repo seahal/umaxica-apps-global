@@ -82,11 +82,14 @@ export default function StepUpPasskeyForm({
         value={challengeId}
         readOnly
       />
+      {/* Uncontrolled: `authenticate` writes the assertion into this field imperatively so the
+          value is in the DOM before `requestSubmit`, which a controlled value would miss by a
+          render. */}
       <input
+        ref={credentialRef}
         type="hidden"
         name={`${paramScope}[credential_json]`}
-        value={credentialJson}
-        readOnly
+        defaultValue=""
       />
 
       <button

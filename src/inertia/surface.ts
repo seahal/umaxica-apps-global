@@ -1,3 +1,5 @@
+import type { ReactComponent } from "@inertiajs/react";
+
 // Shared pieces for the per-FQDN Inertia entrypoints.
 //
 // Every trust boundary (base/app, base/com, auth/org, ...) boots its own Inertia application from
@@ -12,11 +14,7 @@
  * render and fails loudly rather than falling through to a "Page not found" that looks like a
  * missing file.
  */
-type PageModule = {
-  default: {
-    layout?: unknown;
-  };
-};
+type PageModule = { default: ReactComponent };
 
 function isPageModule(module: unknown): module is PageModule {
   if (typeof module !== "object" || module === null || !("default" in module)) {
@@ -43,8 +41,8 @@ function isPageModule(module: unknown): module is PageModule {
 export function surfacePageResolver(
   modules: Record<string, unknown>,
   surface: string,
-  layout: unknown,
-) {
+  layout: ReactComponent,
+): (name: string) => PageModule {
   const prefix = `${surface}/`;
   const pages = new Map<string, PageModule>();
 
