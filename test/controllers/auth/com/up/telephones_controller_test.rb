@@ -119,11 +119,13 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
     get auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.app.registration.telephone.edit.page_title")
-    assert_select "label", text: I18n.t("sign.app.registration.telephone.edit.code_label")
-    assert_select "input[placeholder=?]", I18n.t("sign.app.registration.telephone.edit.code_placeholder")
-    assert_select "input[name='visitor_telephone[pass_code]'][autocomplete='one-time-code']", count: 1
-    assert_select "input[type=submit][value=?]", I18n.t("sign.app.registration.telephone.edit.submit")
+    assert_equal "auth/com/sign/up/telephones/edit", inertia_component
+    assert_equal I18n.t("sign.app.registration.telephone.edit.page_title"), inertia_props.fetch("title")
+    assert_equal I18n.t("sign.app.registration.telephone.edit.code_label"), inertia_props.fetch("code_label")
+    assert_equal I18n.t("sign.app.registration.telephone.edit.code_placeholder"),
+                 inertia_props.fetch("code_placeholder")
+    assert_equal "visitor_telephone", inertia_props.fetch("scope")
+    assert_equal I18n.t("sign.app.registration.telephone.edit.submit"), inertia_props.fetch("submit_label")
     assert_includes response.body, "電話番号"
     assert_includes response.body, "SMS"
     assert_includes response.body, I18n.t("sign.app.registration.telephone.edit.delivery_help")

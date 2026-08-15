@@ -41,7 +41,8 @@ class Auth::Com::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
     get auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.app.registration.telephone.edit.page_title")
+    assert_equal "auth/com/sign/up/telephones/edit", inertia_component
+    assert_equal I18n.t("sign.app.registration.telephone.edit.page_title"), inertia_props.fetch("title")
   end
 
   test "show returns to the start when there is no sign-up flow at all" do

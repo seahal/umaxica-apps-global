@@ -31,19 +31,25 @@ class Base::Com::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     get base_com_dashboard_url(ri: "jp"), headers: session_headers(token)
 
     assert_response :success
-    assert_select "h1", "Dashboard"
+    assert_equal "base/com/dashboards/show", inertia_component
+    assert_equal "Dashboard", inertia_props.fetch("title")
     assert_no_match(/id\.umaxica/, response.body)
-    assert_select "a[href=?]", base_com_root_path(ri: "jp")
-    assert_select "a[href=?]", base_com_dashboard_path(ri: "jp")
-    assert_select "a[href=?]", base_com_accounts_path(ri: "jp"), text: "Account"
-    assert_select "a[href=?]", base_com_organizations_path(ri: "jp"), text: "Organization"
-    assert_select "a[href=?]", base_com_selector_path(ri: "jp")
-    assert_select "a[href=?]", new_base_com_sign_out_path(ri: "jp")
-    assert_select "a[href=?]", base_com_oidc_authorization_path(ri: "jp", screen_hint: "signin")
-    assert_select "a[href=?]", base_com_oidc_authorization_path(ri: "jp", screen_hint: "signup")
-    assert_select "a", text: "OIDC discovery"
-    assert_select "a", text: "JWKS"
-    assert_select "a", text: "UserInfo"
+
+    links = inertia_props.fetch("sections").flat_map { |section| section.fetch("items") }
+    hrefs = links.map { |link| link.fetch("href") }
+    labelled = links.to_h { |link| [link.fetch("label"), link.fetch("href")] }
+
+    assert_includes hrefs, base_com_root_path(ri: "jp")
+    assert_includes hrefs, base_com_dashboard_path(ri: "jp")
+    assert_equal base_com_accounts_path(ri: "jp"), labelled.fetch("Account")
+    assert_equal base_com_organizations_path(ri: "jp"), labelled.fetch("Organization")
+    assert_includes hrefs, base_com_selector_path(ri: "jp")
+    assert_includes hrefs, new_base_com_sign_out_path(ri: "jp")
+    assert_includes hrefs, base_com_oidc_authorization_path(ri: "jp", screen_hint: "signin")
+    assert_includes hrefs, base_com_oidc_authorization_path(ri: "jp", screen_hint: "signup")
+    assert_includes labelled.keys, "OIDC discovery"
+    assert_includes labelled.keys, "JWKS"
+    assert_includes labelled.keys, "UserInfo"
     assert_no_match(%r{//example|umaxica\.example|evil\.example}, response.body)
   end
 

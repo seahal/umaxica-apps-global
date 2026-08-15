@@ -925,6 +925,11 @@ en:
   base:
     app:
       identity:
+        credential_warning:
+          body: Adding another sign-in method helps you access your account if Apple sign-in is unavailable.
+          google: Link Google
+          heading: Add another sign-in method
+          passkey: Add a passkey
         emails:
           show:
             page_title: Email address

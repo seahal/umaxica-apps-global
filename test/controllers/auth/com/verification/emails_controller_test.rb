@@ -198,6 +198,14 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     controller.define_singleton_method(:edit_auth_com_verification_email_path) { |nonce, **kwargs|
       "/verification/emails/#{nonce}/edit?#{kwargs.to_query}"
     }
+    controller.define_singleton_method(:auth_com_verification_emails_path) { |**kwargs|
+      "/verification/emails?#{kwargs.to_query}"
+    }
+    controller.define_singleton_method(:form_authenticity_token) { "test-token" }
+    controller.define_singleton_method(:auth_com_verification_path) { |params = {}| "/verification?#{params.to_query}" }
+    controller.define_singleton_method(:incoming_scope) { "settings_email" }
+    controller.define_singleton_method(:incoming_pt) { "return-token" }
+    controller.define_singleton_method(:t) { |key| key.to_s }
     controller.define_singleton_method(:send_email_otp!) { @send_email_for_test }
     controller.define_singleton_method(:verify_email_otp!) { @verify_email_for_test }
     controller.define_singleton_method(:consume_step_up_session!) do |*|
@@ -231,7 +239,8 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     controller.instance_variable_set(:@send_email_for_test, false)
     controller.create
 
-    assert_equal [[:new], { status: :unprocessable_content }], renders.last
+    assert_equal "auth/com/verification/emails/new", renders.last.last.fetch(:inertia)
+    assert_equal :unprocessable_content, renders.last.last.fetch(:status)
 
     controller.instance_variable_set(:@send_email_for_test, true)
     controller.create

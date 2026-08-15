@@ -1053,6 +1053,11 @@ ja:
   base:
     app:
       identity:
+        credential_warning:
+          body: 別のサインイン方法を追加すると、Apple サインインを利用できないときもアカウントにアクセスできます。
+          google: Google と連携する
+          heading: 別のサインイン方法を追加
+          passkey: パスキーを追加
         emails:
           show:
             page_title: メールアドレス

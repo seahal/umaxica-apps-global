@@ -133,11 +133,17 @@ module Base
         return unless apple_only_credential?
 
         {
-          heading: "Add another sign-in method",
-          body: "Adding another sign-in method helps you access your account if Apple sign-in is unavailable.",
+          heading: t("base.app.identity.credential_warning.heading"),
+          body: t("base.app.identity.credential_warning.body"),
           items: [
-            { label: "Add a passkey", href: apple_only_credential_auth_url(:new_auth_app_settings_passkey_url) },
-            { label: "Link Google", href: apple_only_credential_auth_url(:edit_auth_app_settings_google_url) },
+            {
+              label: t("base.app.identity.credential_warning.passkey"),
+              href: apple_only_credential_auth_url(:new_auth_app_settings_passkey_url),
+            },
+            {
+              label: t("base.app.identity.credential_warning.google"),
+              href: apple_only_credential_auth_url(:edit_auth_app_settings_google_url),
+            },
           ],
         }
       end

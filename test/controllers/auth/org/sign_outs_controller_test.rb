@@ -31,7 +31,12 @@ class Auth::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :success
-    assert_select "form[action='#{auth_org_sign_out_path(ri: "jp")}'] input[name=_method][value=delete]"
+    assert_equal "auth/org/sign/outs/edit", inertia_component
+    assert_equal I18n.t("sign.shared.sign_out.title"), inertia_props.fetch("title")
+    assert inertia_props.fetch("active_context")
+    assert_equal auth_org_sign_out_path(ri: "jp"), inertia_props.fetch("form").fetch("action")
+    # Cancelling the pending logout stays a DELETE to the sign-out route.
+    assert_equal auth_org_sign_out_path(ri: "jp"), inertia_props.fetch("cancel").fetch("action")
 
     post auth_org_sign_out_url(ri: "jp", host: host), headers: {
       "X-TEST-CURRENT-STAFF" => staff.id.to_s,

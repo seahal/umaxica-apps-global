@@ -45,24 +45,27 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     )
 
     assert_response :success
-    assert_select "#apple-only-credential-warning", "Add another sign-in method"
-    assert_select(
-      "a[href=?]",
+    warning = inertia_props.fetch("credential_warning")
+
+    assert_equal "Add another sign-in method", warning.fetch("heading")
+
+    hrefs = warning.fetch("items").to_h { |item| [item.fetch("label"), item.fetch("href")] }
+
+    assert_equal(
       new_auth_app_settings_passkey_url(
         ri: "jp",
         host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
         protocol: "https",
       ),
-      text: "Add a passkey",
+      hrefs.fetch("Add a passkey"),
     )
-    assert_select(
-      "a[href=?]",
+    assert_equal(
       edit_auth_app_settings_google_url(
         ri: "jp",
         host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
         protocol: "https",
       ),
-      text: "Link Google",
+      hrefs.fetch("Link Google"),
     )
   end
 
@@ -141,8 +144,7 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     get(url, headers: headers)
 
     assert_response :success
-    assert_select "h1", title
-    assert_includes response.body, "Signed in"
+    assert_equal title, inertia_props.fetch("title")
     assert_no_match(/id\.umaxica/, response.body)
   end
   private

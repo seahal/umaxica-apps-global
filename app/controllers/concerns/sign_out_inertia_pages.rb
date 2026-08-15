@@ -15,10 +15,17 @@
 module SignOutInertiaPages
   extend ActiveSupport::Concern
 
+  included do
+    # Captured at include time so the completion controller, which subclasses the sign-out
+    # controller, keeps naming the sign-out pages of its own surface rather than deriving
+    # `auth/<surface>/sign/outs/completions/complete` from its own controller_path.
+    class_attribute :sign_out_page_prefix, instance_predicate: false, default: controller_path
+  end
+
   private
 
   def sign_out_page_component(name)
-    "#{controller_path}/#{name}"
+    "#{sign_out_page_prefix}/#{name}"
   end
 
   def sign_out_confirmation_props

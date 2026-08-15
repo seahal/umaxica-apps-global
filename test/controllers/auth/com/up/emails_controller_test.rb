@@ -33,10 +33,14 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get new_auth_com_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "[data-controller='turnstile'][data-turnstile-mode-value='render']"
-    assert_select "h2", I18n.t("sign.com.registration.email.new.page_title")
-    assert_select "input[type=checkbox][name='visitor_email[notifiable]']", count: 1
-    assert_select "input[type=checkbox][name='visitor_email[promotional]']", count: 0
+    assert_equal "auth/com/sign/up/emails/new", inertia_component
+    assert_equal "render", inertia_props.fetch("turnstile").fetch("mode")
+    assert_equal I18n.t("sign.com.registration.email.new.page_title"), inertia_props.fetch("title")
+    assert_equal "visitor_email", inertia_props.fetch("scope")
+    checkbox_names = inertia_props.fetch("checkboxes").map { |checkbox| checkbox.fetch("name") }
+
+    assert_includes checkbox_names, "notifiable"
+    assert_not_includes checkbox_names, "promotional"
     assert_no_match(/UMAXICA \(sign, app\)/, response.body)
   end
 
@@ -54,13 +58,16 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get auth_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")
-    assert_select "label", text: I18n.t("sign.app.authentication.email.edit.code_label")
-    assert_select "input[placeholder=?]", I18n.t("sign.app.authentication.email.edit.code_placeholder")
-    assert_select "input[name='visitor_email[pass_code]'][autocomplete='one-time-code']", count: 1
-    assert_select "input[type=submit][value=?]", I18n.t("sign.app.authentication.email.edit.submit")
+    assert_equal "auth/com/sign/up/emails/edit", inertia_component
+    assert_equal I18n.t("sign.app.authentication.email.edit.page_title"), inertia_props.fetch("title")
+    assert_equal I18n.t("sign.app.authentication.email.edit.code_label"), inertia_props.fetch("code_label")
+    assert_equal I18n.t("sign.app.authentication.email.edit.code_placeholder"),
+                 inertia_props.fetch("code_placeholder")
+    assert_equal "visitor_email", inertia_props.fetch("scope")
+    assert_equal I18n.t("sign.app.authentication.email.edit.submit"), inertia_props.fetch("submit_label")
     assert_includes response.body, "メールアドレス"
-    assert_includes response.body, I18n.t("sign.app.authentication.email.edit.delivery_help")
+    assert_equal I18n.t("sign.app.authentication.email.edit.delivery_help"),
+                 inertia_props.fetch("delivery_help")
   end
 
   test "new rejects when visitor is already logged in" do
@@ -109,8 +116,9 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get new_auth_com_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "a[href=?]", auth_com_sign_up_path(ri: "jp"), count: 1
-    assert_select "a[href=?]", auth_com_sign_in_path(ri: "jp"), count: 1
+    link_hrefs = inertia_props.fetch("links").map { |link| link.fetch("href") }
+
+    assert_equal [auth_com_sign_up_path(ri: "jp"), auth_com_sign_in_path(ri: "jp")], link_hrefs
   end
 
   test "create redirects to edit and allows edit page" do
@@ -144,7 +152,8 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.com.registration.email.create.address_required")
+    assert_includes inertia_props.fetch("errors").join(" "),
+                    I18n.t("sign.com.registration.email.create.address_required")
   end
 
   test "create renders unprocessable when turnstile fails" do
@@ -163,7 +172,8 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.com.registration.email.create.turnstile_validation_failed")
+    assert_includes inertia_props.fetch("errors").join(" "),
+                    I18n.t("sign.com.registration.email.create.turnstile_validation_failed")
   end
 
   test "create with existing email still redirects and does not create a new record" do
@@ -224,7 +234,8 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get auth_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.app.registration.email.edit.session_expired")
+    assert_includes inertia_props.fetch("errors").join(" "),
+                    I18n.t("sign.app.registration.email.edit.session_expired")
     assert_equal completed_requirements, cycle.reload.completed_requirements
     assert_equal flow_count, VisitorSignUpFlow.count
   end
@@ -241,7 +252,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
          headers: default_headers
 
     assert_response :unprocessable_content
-    assert_not_includes response.body, "Visitorを入力してください"
+    assert_not_includes inertia_props.fetch("errors").join(" "), "Visitorを入力してください"
   end
 
   test "create with unconfirmed policy fails" do
@@ -348,7 +359,8 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :unprocessable_content
-    assert_select "*", text: I18n.t("sign.com.registration.email.create.address_required")
+    assert_includes inertia_props.fetch("errors").join(" "),
+                    I18n.t("sign.com.registration.email.create.address_required")
   end
 
   def default_headers
