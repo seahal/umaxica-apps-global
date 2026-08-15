@@ -84,7 +84,10 @@ export default function SessionLimitManager({
 
   const submitRevocation = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    revocation.transform(() => ({ ref: selectedRef })).patch(form.action);
+    // `transform` returns void in Inertia 3, so the request is issued separately rather than
+    // chained off it.
+    revocation.transform(() => ({ ref: selectedRef }));
+    revocation.patch(form.action);
   };
 
   const submitCancellation = (event: React.FormEvent<HTMLFormElement>) => {

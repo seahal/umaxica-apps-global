@@ -46,7 +46,7 @@ export default function SecretSignInForm({
 }: SecretSignInFormProps) {
   const { identifier_field: identifierField, secret_field: secretField } = form;
   const { data, setData, post, processing } = useForm<{
-    [key: string]: unknown;
+    [key: string]: string | null | Record<string, string>;
     "cf-turnstile-response": string;
     pt: string | null;
     ri: string | null;

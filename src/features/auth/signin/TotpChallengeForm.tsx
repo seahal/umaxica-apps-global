@@ -47,7 +47,7 @@ export default function TotpChallengeForm({
 }: TotpChallengeFormProps) {
   const field = form.token_field;
   const { data, setData, post, processing } = useForm<{
-    [key: string]: unknown;
+    [key: string]: string | null | Record<string, string>;
     "cf-turnstile-response": string;
   }>({
     [field.scope]: { [field.field]: "" },

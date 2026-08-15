@@ -54,7 +54,7 @@ export default function EmailPassCodeForm({
   const field = form.pass_code_field;
   const input = useRef<HTMLInputElement>(null);
   const { data, setData, patch, processing } = useForm<{
-    [key: string]: unknown;
+    [key: string]: string | null | Record<string, string>;
     "cf-turnstile-response": string;
     pt: string | null;
   }>({

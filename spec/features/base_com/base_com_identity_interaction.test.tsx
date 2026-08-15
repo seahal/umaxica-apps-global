@@ -1,6 +1,6 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 // Unlike the static markup spec, these tests mount the components and fire real DOM events, which
 // is the only way to reach the submit handlers, the confirmation branches and the verb each form
@@ -86,14 +86,14 @@ const confirmationButtons = () => [
 ];
 
 const acceptConfirmation = () => {
-  const button = confirmationButtons()[1];
+  const [, button] = confirmationButtons();
   act(() => {
     button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
 };
 
 const declineConfirmation = () => {
-  const button = confirmationButtons()[0];
+  const [button] = confirmationButtons();
   act(() => {
     button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });

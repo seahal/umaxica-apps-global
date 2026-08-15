@@ -35,7 +35,7 @@ export default function EmailSignInForm({
 }: EmailSignInFormProps) {
   const field = form.address_field;
   const { data, setData, post, processing } = useForm<{
-    [key: string]: unknown;
+    [key: string]: string | null | Record<string, string>;
     "cf-turnstile-response": string;
     pt: string | null;
   }>({

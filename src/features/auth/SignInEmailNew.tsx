@@ -7,6 +7,7 @@ import { useForm } from "@inertiajs/react";
 
 import type { TurnstileConfiguration } from "@/features/auth/settings/PasskeyDeleteButton";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
+import { readString } from "@/lib/payload";
 
 export type SignInEmailNewProps = {
   title: string;
@@ -34,7 +35,7 @@ export default function SignInEmailNew({
     pt: pt ?? "",
     "cf-turnstile-response": "",
   });
-  const error = form.errors.address;
+  const error = readString(form.errors, "address");
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

@@ -6,6 +6,7 @@ import { useForm } from "@inertiajs/react";
 
 import type { TurnstileConfiguration } from "@/features/auth/settings/PasskeyDeleteButton";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
+import { readString } from "@/lib/payload";
 
 export type PasskeyEditProps = {
   title: string;
@@ -31,7 +32,7 @@ export default function PasskeyEdit({
     visitor_passkey: { description: description },
     "cf-turnstile-response": "",
   });
-  const error = form.errors.description;
+  const error = readString(form.errors, "description");
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

@@ -8,6 +8,7 @@ import { useForm } from "@inertiajs/react";
 import OtpResendButton, { type OtpResendMessages } from "@/features/auth/otp/OtpResendButton";
 import type { TurnstileConfiguration } from "@/features/auth/settings/PasskeyDeleteButton";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
+import { readString } from "@/lib/payload";
 
 export type SignInEmailEditProps = {
   title: string;
@@ -41,7 +42,7 @@ export default function SignInEmailEdit({
     pt: pt ?? "",
     "cf-turnstile-response": "",
   });
-  const error = form.errors.pass_code;
+  const error = readString(form.errors, "pass_code");
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
