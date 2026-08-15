@@ -40,8 +40,12 @@ class Auth::Com::Verification::SetupsControllerTest < ActionDispatch::Integratio
     get new_auth_com_verification_setup_url(ri: "jp", pt: pt), headers: @headers
 
     assert_response :success
-    assert_select "a[href=?]", auth_com_settings_path(ri: "jp"), count: 0
-    assert_select "ul"
+    assert_equal "auth/com/verification/setups/new", inertia_component
+
+    props = inertia_props
+
+    assert_not_equal auth_com_settings_path(ri: "jp"), props.dig("back_link", "href")
+    assert_predicate props.fetch("methods"), :present?
   end
 end
 

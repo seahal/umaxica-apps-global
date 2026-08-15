@@ -28,9 +28,12 @@ class Auth::App::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
     get auth_app_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.app.registration.telephone.edit.page_title")
-    assert_select "label", text: I18n.t("sign.app.registration.telephone.edit.code_label")
-    assert_select "input[type=submit][value=?]", I18n.t("sign.app.registration.telephone.edit.submit")
+    assert_equal "auth/app/sign/up/telephones/edit", inertia_component
+    props = inertia_props
+
+    assert_equal I18n.t("sign.app.registration.telephone.edit.page_title"), props.fetch("title")
+    assert_equal I18n.t("sign.app.registration.telephone.edit.code_label"), props.fetch("code_label")
+    assert_equal I18n.t("sign.app.registration.telephone.edit.submit"), props.fetch("submit_label")
   end
 
   test "show redirects expired otp sessions to the start" do

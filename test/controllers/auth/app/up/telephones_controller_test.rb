@@ -78,15 +78,22 @@ module Auth::App::Up
       assert_response :success
       assert_nil request.path_parameters[:id]
       assert_equal telephone.public_id, session.dig(:user_telephone_registration, "public_id")
-      assert_select "h1", text: I18n.t("sign.app.registration.telephone.edit.page_title")
-      assert_select "label", text: I18n.t("sign.app.registration.telephone.edit.code_label")
-      assert_select "input[placeholder=?]", I18n.t("sign.app.registration.telephone.edit.code_placeholder")
-      assert_select "input[name='client_telephone[pass_code]'][autocomplete='one-time-code']", count: 1
-      assert_select "input[type=submit][value=?]", I18n.t("sign.app.registration.telephone.edit.submit")
-      assert_includes response.body, "電話番号"
-      assert_includes response.body, "SMS"
-      assert_includes response.body, I18n.t("sign.app.registration.telephone.edit.delivery_help")
-      assert_not_includes response.body, "prohibited this sample from being saved"
+      assert_equal "auth/app/sign/up/telephones/edit", inertia_component
+      props = inertia_props
+
+      assert_equal I18n.t("sign.app.registration.telephone.edit.page_title"), props.fetch("title")
+      assert_equal I18n.t("sign.app.registration.telephone.edit.code_label"), props.fetch("code_label")
+      assert_equal I18n.t("sign.app.registration.telephone.edit.code_placeholder"),
+                   props.fetch("code_placeholder")
+      # The page builds the one-time-code field from this scope: client_telephone[pass_code].
+      assert_equal "client_telephone", props.fetch("scope")
+      assert_equal I18n.t("sign.app.registration.telephone.edit.submit"), props.fetch("submit_label")
+      assert_includes props.fetch("description"), "電話番号"
+      assert_includes props.fetch("description"), "SMS"
+      assert_equal I18n.t("sign.app.registration.telephone.edit.delivery_help"),
+                   props.fetch("delivery_help")
+      assert_empty props.fetch("errors")
+      assert_nil props.fetch("error_heading")
     end
 
     test "should create telephone and redirect to edit" do
@@ -382,7 +389,9 @@ module Auth::App::Up
       get auth_app_sign_up_check_telephone_passkey_url(regional_defaults)
 
       assert_response :success
-      assert_select "[data-controller='passkey-registration']"
+      assert_equal "auth/app/sign/up/checkpoint/passkeys/new", inertia_component
+      assert_equal auth_app_sign_up_check_telephone_passkey_path(regional_defaults),
+                   inertia_props.fetch("begin_url")
     end
 
     test "abandoned telephone sign up after otp can re-register the same number" do

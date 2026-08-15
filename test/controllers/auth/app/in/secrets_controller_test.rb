@@ -597,6 +597,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
     )
     failures = []
     redirects = []
+    renders = []
     target_user = @user
 
     controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => host)
@@ -607,6 +608,9 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs|
       failures << kwargs.merge(reason: :hard_reject)
     }
+    # `new` renders the Inertia page; this bare controller is exercised for its branch logic and
+    # is reused across branches, so the single-render rule is satisfied by recording the render.
+    controller.define_singleton_method(:render_secret_new) { |status: :ok| renders << status }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
     controller.define_singleton_method(:redirect_to_pt_or_default!) { |pt, default_path:|
       redirects << [pt || default_path, {}]
@@ -729,6 +733,8 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
     controller.handle_standard_login
 
     assert_equal :secret_credential_mismatch, failures.last[:reason]
+    # Every `new` above answered by rendering the sign-in page with a 200.
+    assert_equal %i(ok ok ok ok), renders
   end
 
   test "direct controller success handlers cover mfa and standard redirects" do

@@ -16,16 +16,21 @@ module Auth
 
         assert_response :success
         assert_nil session[:oidc_authorization_login_challenge]
-        assert_select "a[href=?]", new_auth_com_sign_in_email_path(ri: "jp")
-        assert_select "a[href=?]", new_auth_com_sign_in_passkey_path(ri: "jp")
-        assert_select "a[href=?]", new_auth_com_sign_in_secret_path(ri: "jp")
+        assert_equal "auth/com/sign_ins/new", inertia_component
+
+        hrefs = inertia_props.fetch("methods").map { |method| method.fetch("href") }
+
+        assert_includes hrefs, new_auth_com_sign_in_email_path(ri: "jp")
+        assert_includes hrefs, new_auth_com_sign_in_passkey_path(ri: "jp")
+        assert_includes hrefs, new_auth_com_sign_in_secret_path(ri: "jp")
       end
 
       test "valid login challenge renders local ceremony" do
         get auth_com_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "h1", text: I18n.t("sign.com.authentication.new.page_title")
+        assert_equal "auth/com/sign_ins/new", inertia_component
+        assert_equal I18n.t("sign.com.authentication.new.page_title"), inertia_props.fetch("title")
       end
 
       test "authentication links carry pt" do
@@ -35,19 +40,21 @@ module Auth
             headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "a[href=?]", new_auth_com_sign_in_email_path(ri: "jp")
-        assert_select "a[href=?]", new_auth_com_sign_in_passkey_path(ri: "jp")
-        assert_select "a[href=?]", new_auth_com_sign_in_secret_path(ri: "jp")
+        assert_equal "auth/com/sign_ins/new", inertia_component
+
+        hrefs = inertia_props.fetch("methods").map { |method| method.fetch("href") }
+
+        assert_includes hrefs, new_auth_com_sign_in_email_path(ri: "jp")
+        assert_includes hrefs, new_auth_com_sign_in_passkey_path(ri: "jp")
+        assert_includes hrefs, new_auth_com_sign_in_secret_path(ri: "jp")
       end
 
       test "does not show social login buttons" do
         get auth_com_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "form[action='/auth/google_app']", count: 0
-        assert_select "form[action='/auth/apple']", count: 0
-        assert_select "form[action*=?]", "/social/auth/", count: 0
-        assert_select "form[action*=?]", "/auth/google", count: 0
+        assert_equal "auth/com/sign_ins/new", inertia_component
+        assert_empty inertia_props.fetch("social_providers")
       end
 
       test "does not show temporary google signin button when legacy flag is set" do
@@ -57,8 +64,8 @@ module Auth
         end
 
         assert_response :success
-        assert_select "form[action*=?]", "/social/auth/google", count: 0
-        assert_select "form[action*=?]", "/auth/google", count: 0
+        assert_equal "auth/com/sign_ins/new", inertia_component
+        assert_empty inertia_props.fetch("social_providers")
       end
 
       test "rejects direct entry when logged in" do

@@ -144,9 +144,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     get response.location, headers: browser_headers
 
     assert_response :success
-    assert_select "h1", "Session limit"
+    assert_equal "Session limit", inertia_props.fetch("heading")
 
-    session_ref = css_select("input[name=session_ref]").first["value"]
+    session_ref = inertia_props.fetch("sessions").first.fetch("session_ref")
     selected_session = SessionLimitResolutionTokenRef.find_client_token(session_ref)
 
     patch acme_app_sign_in_limitation_url(host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")),
@@ -381,7 +381,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "新しいUmaxica Identityを作成します。"
     assert_includes response.body, "既存アカウントとは後から統合できません。"
     assert_includes response.body, "間違いならキャンセルしてください。"
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+    # created; the page object names that component and carries the label it asks agreement to.
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
     assert_select "script:not([nonce])", false
 
     cycle = ClientSignUpFlow.order(:id).last
@@ -523,7 +526,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert_includes response.body, "このAppleアカウントは未登録です。"
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+    # created; the page object names that component and carries the label it asks agreement to.
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
 
     cycle = ClientSignUpFlow.order(:id).last
 

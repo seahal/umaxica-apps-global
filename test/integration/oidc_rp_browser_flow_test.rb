@@ -259,8 +259,8 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       end
 
       assert_response :success
-      assert_select "h1", "Session limit"
-      assert_select "input[name=session_ref]", count: 3
+      assert_equal "Session limit", inertia_props.fetch("heading")
+      assert_equal 3, inertia_props.fetch("sessions").count
       assert_not_predicate issuance.transaction.reload, :consumed?
     end
   end

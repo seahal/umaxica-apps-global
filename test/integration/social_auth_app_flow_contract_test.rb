@@ -224,8 +224,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :ok
-    assert_select "input[name=confirm_new_social_identity]"
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+    # created; the page object names that component and carries the label it asks agreement to.
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
 
     cycle = ClientSignUpFlow.order(:id).last
 

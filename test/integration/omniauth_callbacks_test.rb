@@ -64,7 +64,13 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_sign_up_check_google_confirmation_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+
+    # created; the page object names that component and carries the label it asks agreement to.
+
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
   end
 
   test "google callback without region parameter is processed without regional redirect" do
@@ -123,7 +129,13 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_sign_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+
+    # created; the page object names that component and carries the label it asks agreement to.
+
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
   end
 
   test "unknown Apple GET callback enters sign up checkpoint instead of signing in" do
@@ -157,7 +169,13 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_sign_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+
+    # created; the page object names that component and carries the label it asks agreement to.
+
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
   end
 
   test "apple social login with MFA enabled does not require additional MFA challenge" do

@@ -22,18 +22,32 @@ class Auth::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
     get auth_com_dashboard_url(ri: "jp"), headers: request_headers
 
     assert_response :success
-    assert_select "h1", text: "Dashboard"
-    assert_select "p", text: /Sign com signed-in landing/
-    assert_select "a[href=?]", auth_com_root_path(ri: "jp")
-    assert_select "a[href=?]", auth_com_sign_in_path(ri: "jp")
-    assert_select "a[href=?]", auth_com_sign_up_path(ri: "jp")
-    assert_select "a[href=?]", auth_com_settings_path(ri: "jp")
-    assert_select "a[href=?]", new_auth_com_sign_out_path(ri: "jp")
-    assert_select "a[href=?]", auth_com_sign_in_guard_path(ri: "jp")
-    assert_select "a[href=?]", auth_com_sign_in_check_path(ri: "jp")
-    assert_select "a[href=?]", auth_com_sign_in_challenge_path(ri: "jp")
-    assert_select "li", text: "Selector: handled by the sign-in guard sequence, no direct dashboard route"
-    assert_no_match(/<a[^>]+>Selector<\/a>/, response.body)
+    assert_equal "auth/com/dashboards/show", inertia_component
+
+    props = inertia_props
+
+    assert_equal "Dashboard", props.fetch("title")
+    assert_match(/Sign com signed-in landing/, props.fetch("description"))
+
+    items = props.fetch("sections").flat_map { |section| section.fetch("items") }
+    hrefs = items.filter_map { |item| item["href"] }
+
+    assert_includes hrefs, auth_com_root_path(ri: "jp")
+    assert_includes hrefs, auth_com_sign_in_path(ri: "jp")
+    assert_includes hrefs, auth_com_sign_up_path(ri: "jp")
+    assert_includes hrefs, auth_com_settings_path(ri: "jp")
+    assert_includes hrefs, new_auth_com_sign_out_path(ri: "jp")
+    assert_includes hrefs, auth_com_sign_in_guard_path(ri: "jp")
+    assert_includes hrefs, auth_com_sign_in_check_path(ri: "jp")
+    assert_includes hrefs, auth_com_sign_in_challenge_path(ri: "jp")
+
+    selector =
+      items.find do |item|
+        item.fetch("label") == "Selector: handled by the sign-in guard sequence, no direct dashboard route"
+      end
+
+    assert selector, "expected the selector note among the dashboard items"
+    assert_nil selector["href"], "the selector note must not be a link"
     assert_no_match(%r{(?://example|umaxica\.example|evil\.example)}, response.body)
   end
 

@@ -33,7 +33,9 @@ class SignUpSuspensionRequestTest < ActionDispatch::IntegrationTest
       get sign_up_path_for(surface)
 
       assert_response :service_unavailable
-      assert_select "[data-test-id=?]", "sign-up-suspended"
+      # The suspension notice is the prop the entry page renders in place of its registration
+      # entry points; its presence is what "the page says sign-up is suspended" means now.
+      assert_equal I18n.t("errors.messages.sign_up_suspended"), inertia_props.fetch("suspended_notice")
     end
 
     test "#{surface} sign-in entry is unaffected by the sign-up switch" do

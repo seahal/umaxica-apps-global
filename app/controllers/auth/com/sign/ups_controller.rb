@@ -40,6 +40,12 @@ module Auth
 
         def sign_up_surface = :com
 
+        # `SignUpSuspensionGuard` re-renders this surface's own entry page; that page is an Inertia
+        # component rather than a template, and the 503 stays exactly as it was.
+        def render_suspended_sign_up!
+          render inertia: "auth/com/sign_ups/new", props: sign_up_method_props, status: :service_unavailable
+        end
+
         def reject_logged_in_direct_entry!
           render plain: I18n.t("errors.messages.already_authenticated"), status: :forbidden
         end

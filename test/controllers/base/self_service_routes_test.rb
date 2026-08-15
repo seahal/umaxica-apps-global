@@ -47,7 +47,7 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     assert_response :success
     warning = inertia_props.fetch("credential_warning")
 
-    assert_equal "Add another sign-in method", warning.fetch("heading")
+    assert_equal I18n.t("base.app.identity.credential_warning.heading"), warning.fetch("heading")
 
     hrefs = warning.fetch("items").to_h { |item| [item.fetch("label"), item.fetch("href")] }
 
@@ -57,7 +57,7 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
         host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
         protocol: "https",
       ),
-      hrefs.fetch("Add a passkey"),
+      hrefs.fetch(I18n.t("base.app.identity.credential_warning.passkey")),
     )
     assert_equal(
       edit_auth_app_settings_google_url(
@@ -65,7 +65,7 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
         host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
         protocol: "https",
       ),
-      hrefs.fetch("Link Google"),
+      hrefs.fetch(I18n.t("base.app.identity.credential_warning.google")),
     )
   end
 

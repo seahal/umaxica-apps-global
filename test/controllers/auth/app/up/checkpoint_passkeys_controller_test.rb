@@ -30,17 +30,18 @@ module Auth::App::Up
       get auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
 
       assert_response :success
-      assert_select "[data-controller='passkey-registration']"
+      assert_equal "auth/app/sign/up/checkpoint/passkeys/new", inertia_component
+      props = inertia_props
       begin_path = auth_app_sign_up_check_telephone_passkey_path(ri: "jp")
 
-      assert_select "[data-passkey-registration-begin-url-value='#{begin_path}']"
+      assert_equal begin_path, props.fetch("begin_url")
       finish_path = auth_app_sign_up_check_telephone_passkey_path(ri: "jp")
 
-      assert_select "[data-passkey-registration-finish-url-value='#{finish_path}']"
+      assert_equal finish_path, props.fetch("finish_url")
       passcode_path = auth_app_sign_up_check_telephone_passcode_path(ri: "jp")
 
-      assert_select "[data-passkey-registration-success-redirect-url-value='#{passcode_path}']"
-      assert_select "[data-passkey-registration-checkpoint-version-value='#{cycle.checkpoint_version}']"
+      assert_equal passcode_path, props.fetch("success_redirect_url")
+      assert_equal cycle.checkpoint_version, props.fetch("checkpoint_version")
     end
 
     test "POST begin returns challenge and options" do

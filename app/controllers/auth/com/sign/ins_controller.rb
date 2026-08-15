@@ -69,17 +69,17 @@ module Auth
             {
               key: "email",
               label: t("sign.com.authentication.new.links.email"),
-              href: new_auth_com_sign_in_email_path(pt: pt),
+              href: new_auth_com_sign_in_email_path(ri: params[:ri], pt: pt),
             },
             {
               key: "passkey",
               label: t("sign.com.authentication.new.links.passkey"),
-              href: new_auth_com_sign_in_passkey_path(pt: pt),
+              href: new_auth_com_sign_in_passkey_path(ri: params[:ri], pt: pt),
             },
             {
               key: "secret_credential",
               label: t("sign.com.authentication.new.links.secret_credential"),
-              href: new_auth_com_sign_in_secret_path(pt: pt),
+              href: new_auth_com_sign_in_secret_path(ri: params[:ri], pt: pt),
             },
           ]
         end
