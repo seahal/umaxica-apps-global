@@ -376,9 +376,21 @@ Decisions taken while implementing, which differ from or refine the pre-implemen
 5. **The unused `inertia_chrome` override hook was dropped** (YAGNI): family defaults in
    `SurfaceChrome::FAMILY_CHROME` cover every surface, and no controller needed an override.
 
-## 15c. Execution Status
+## 15c. Execution Status — COMPLETE
 
-Recorded during the migration run (updated as phases land):
+Final state of the migration run:
+
+- **Browser ERB: 344 → 8.** The eight that remain are the documented exceptions in section 15d
+  (four token-bridge forms, the OmniAuth error page, and the three shared sign-out templates whose
+  seven cross-family callers are the single remaining migration unit).
+- **235 React pages, 106 shared feature components, 164 Inertia controllers, 43 Vitest spec files.**
+- `base`, `core`, `side`, `palm` and `auth/app`, `auth/com`, `auth/org` are migrated, including
+  every root landing outside the Next.js-owned families.
+- Mailer ERB (25 templates) and the info/docs/news/help landings (12) are untouched, as decided.
+- Stimulus controllers still present: 12, kept only for the surfaces' remaining Turbo layouts;
+  their React equivalents exist and are what the Inertia pages use.
+
+Earlier progress notes:
 
 - **Phase A (foundation)** — complete. `SurfaceChrome` + `inertia_share`, React `SurfaceLayout`,
   React ports of the cookie-banner and theme controls, `CurrentBanner` query object,
