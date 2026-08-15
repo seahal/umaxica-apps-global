@@ -395,6 +395,34 @@ Recorded during the migration run (updated as phases land):
 - Operational surfaces (`dev`, `net`) are expressible in chrome: their route prefix is named
   explicitly and they render no preference controls, because they have no preference authority.
 
+## 15d. Accepted ERB Exceptions (found during execution)
+
+Browser templates that stay ERB, with the reason each one is not a page:
+
+1. **`auth/shared/sign_outs/handoff`, `social_completion`, `step_up_completion`,
+   `step_up_cancellation`.** These are auto-submitting bridge forms whose entire payload is a token
+   (`logout_challenge`, `social_ceremony_result`, `step_up_ceremony_result`, plus the authenticity
+   token) posted through a nonce'd inline script. Turning them into Inertia pages would mean
+   shipping those tokens as props, which the prop contract forbids. They belong with the OAuth/OIDC
+   callback category the migration already excludes: they are transport between ceremonies, not
+   pages a visitor reads.
+
+2. **`auth/org/omniauth/omniauth_callbacks/error.html.erb`.** The Inertia page object always embeds
+   `request.original_fullpath`, so rendering the OmniAuth `failure` endpoint through Inertia would
+   reflect the attacker-supplied `?message=` parameter back into the response body — the exact thing
+   `omniauth_callbacks_controller_test.rb` asserts must not happen. It stays ERB with its 422 status
+   until that reflection question has an answer that does not weaken the guard.
+
+3. **`auth/shared/sign_outs/{edit,complete,unavailable}`.** Still rendered by name from the
+   `auth/com`, `core/{app,com,org}` and `side/{app,com,org}` sign-out controllers. Migrating them
+   means turning seven more controllers across three families Inertia in one step, inside the
+   coordinated sign-out ceremony. Left as the single remaining migration unit rather than being
+   half-changed; the `auth/app` and `auth/org` surfaces already render their own Inertia sign-out
+   pages through `SignOutInertiaPages`.
+
+4. **`info`, `docs`, `news`, `help` root landings** and **all mailer templates**, per Decisions 2
+   and the mailer boundary.
+
 ## 16. Open Questions
 
 - `shared/health/show.html.erb` HTML variant: keep as ERB diagnostic (recommended) or migrate.
