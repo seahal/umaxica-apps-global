@@ -38,15 +38,11 @@ export default function PreferenceCustomization({
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.delete(
-      form.action,
-      { [form.field]: confirmed ? "1" : "" },
-      {
-        onStart: () => setProcessing(true),
-
-        onFinish: () => setProcessing(false),
-      },
-    );
+    router.delete(form.action, {
+      data: { [form.field]: confirmed ? "1" : "" },
+      onStart: () => setProcessing(true),
+      onFinish: () => setProcessing(false),
+    });
   };
 
   return (
