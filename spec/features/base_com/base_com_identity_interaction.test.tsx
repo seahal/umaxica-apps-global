@@ -253,9 +253,10 @@ describe("SecretCredentialsIndex", () => {
 
     expect(destroy).toHaveBeenCalledWith(
       "/identity/secrets/s1",
-      expect.objectContaining({ data: { "cf-turnstile-response": "turnstile-token" } }),
+      { "cf-turnstile-response": "turnstile-token" },
+      expect.anything(),
     );
-    const [[, options]] = destroy.mock.calls;
+    const [[, , options]] = destroy.mock.calls;
     act(() => {
       options.onStart();
     });

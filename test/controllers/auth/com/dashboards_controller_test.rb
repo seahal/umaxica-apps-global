@@ -27,7 +27,7 @@ class Auth::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
     props = inertia_props
 
     assert_equal "Dashboard", props.fetch("title")
-    assert_match(/Sign com signed-in landing/, props.fetch("description"))
+    assert_equal I18n.t("auth.com.dashboards.show.description"), props.fetch("description")
 
     items = props.fetch("sections").flat_map { |section| section.fetch("items") }
     hrefs = items.filter_map { |item| item["href"] }

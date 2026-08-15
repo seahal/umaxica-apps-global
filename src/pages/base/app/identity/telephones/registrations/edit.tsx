@@ -29,11 +29,15 @@ export default function TelephoneRegistrationEdit({
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.patch(form.action, {
-      data: { user_telephone: { pass_code: passCode } },
-      onStart: () => setProcessing(true),
-      onFinish: () => setProcessing(false),
-    });
+    router.patch(
+      form.action,
+      { user_telephone: { pass_code: passCode } },
+      {
+        onStart: () => setProcessing(true),
+
+        onFinish: () => setProcessing(false),
+      },
+    );
   };
 
   return (

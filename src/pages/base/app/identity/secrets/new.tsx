@@ -40,11 +40,15 @@ export default function SecretNew({
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.post(form.action, {
-      data: { user_secret_credential: { name, enabled: enabled ? "1" : "0" } },
-      onStart: () => setProcessing(true),
-      onFinish: () => setProcessing(false),
-    });
+    router.post(
+      form.action,
+      { user_secret_credential: { name, enabled: enabled ? "1" : "0" } },
+      {
+        onStart: () => setProcessing(true),
+
+        onFinish: () => setProcessing(false),
+      },
+    );
   };
 
   return (

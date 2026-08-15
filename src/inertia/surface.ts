@@ -1,4 +1,4 @@
-import type { ReactComponent } from "@inertiajs/react";
+import type { ComponentType } from "react";
 
 // Shared pieces for the per-FQDN Inertia entrypoints.
 //
@@ -14,7 +14,10 @@ import type { ReactComponent } from "@inertiajs/react";
  * render and fails loudly rather than falling through to a "Page not found" that looks like a
  * missing file.
  */
-type PageModule = { default: ReactComponent };
+// The adapter's own component type is not exported from the package root, so the shape a page
+// module must have is stated here: a component that may carry a persistent layout.
+type PageComponent = ComponentType<never> & { layout?: unknown };
+type PageModule = { default: PageComponent };
 
 function isPageModule(module: unknown): module is PageModule {
   if (typeof module !== "object" || module === null || !("default" in module)) {
@@ -41,7 +44,7 @@ function isPageModule(module: unknown): module is PageModule {
 export function surfacePageResolver(
   modules: Record<string, unknown>,
   surface: string,
-  layout: ReactComponent,
+  layout: PageComponent,
 ): (name: string) => PageModule {
   const prefix = `${surface}/`;
   const pages = new Map<string, PageModule>();

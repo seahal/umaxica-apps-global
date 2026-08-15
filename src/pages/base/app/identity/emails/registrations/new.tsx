@@ -34,17 +34,21 @@ export default function EmailRegistrationNew({
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.post(form.action, {
-      data: {
+    router.post(
+      form.action,
+      {
         user_email: {
           address,
           promotional: promotional ? "1" : "0",
           notifiable: notifiable ? "1" : "0",
         },
       },
-      onStart: () => setProcessing(true),
-      onFinish: () => setProcessing(false),
-    });
+      {
+        onStart: () => setProcessing(true),
+
+        onFinish: () => setProcessing(false),
+      },
+    );
   };
 
   return (

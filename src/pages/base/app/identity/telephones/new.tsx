@@ -29,11 +29,15 @@ export default function TelephoneNew({
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.post(form.action, {
-      data: { user_telephone: { raw_number: rawNumber } },
-      onStart: () => setProcessing(true),
-      onFinish: () => setProcessing(false),
-    });
+    router.post(
+      form.action,
+      { user_telephone: { raw_number: rawNumber } },
+      {
+        onStart: () => setProcessing(true),
+
+        onFinish: () => setProcessing(false),
+      },
+    );
   };
 
   return (

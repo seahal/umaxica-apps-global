@@ -35,11 +35,15 @@ export default function SecretEdit({
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.patch(form.action, {
-      data: { user_secret_credential: { name, enabled: enabled ? "1" : "0" } },
-      onStart: () => setProcessing(true),
-      onFinish: () => setProcessing(false),
-    });
+    router.patch(
+      form.action,
+      { user_secret_credential: { name, enabled: enabled ? "1" : "0" } },
+      {
+        onStart: () => setProcessing(true),
+
+        onFinish: () => setProcessing(false),
+      },
+    );
   };
 
   return (

@@ -12,11 +12,15 @@ export default function PrivacyErasureNew({ title, notices, form }: Props) {
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.post(form.action, {
-      data: { jurisdiction: form.jurisdiction },
-      onStart: () => setProcessing(true),
-      onFinish: () => setProcessing(false),
-    });
+    router.post(
+      form.action,
+      { jurisdiction: form.jurisdiction },
+      {
+        onStart: () => setProcessing(true),
+
+        onFinish: () => setProcessing(false),
+      },
+    );
   };
 
   return (

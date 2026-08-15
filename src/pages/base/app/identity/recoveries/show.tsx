@@ -31,17 +31,21 @@ function AppealSection({ form, casePublicId }: { form: AppealForm; casePublicId:
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.post(form.url, {
-      data: {
+    router.post(
+      form.url,
+      {
         appeal: {
           enforcement_case_id: casePublicId,
           reason_code: reasonCode,
           statement,
         },
       },
-      onStart: () => setProcessing(true),
-      onFinish: () => setProcessing(false),
-    });
+      {
+        onStart: () => setProcessing(true),
+
+        onFinish: () => setProcessing(false),
+      },
+    );
   };
 
   return (

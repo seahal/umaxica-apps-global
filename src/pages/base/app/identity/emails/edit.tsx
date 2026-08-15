@@ -42,16 +42,20 @@ export default function EmailEdit({
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.patch(form.action, {
-      data: {
+    router.patch(
+      form.action,
+      {
         user_email: {
           promotional: promotional ? "1" : "0",
           notifiable: notifiable ? "1" : "0",
         },
       },
-      onStart: () => setProcessing(true),
-      onFinish: () => setProcessing(false),
-    });
+      {
+        onStart: () => setProcessing(true),
+
+        onFinish: () => setProcessing(false),
+      },
+    );
   };
 
   const remove = () => {

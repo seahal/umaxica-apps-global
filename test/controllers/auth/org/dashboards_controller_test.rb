@@ -20,7 +20,7 @@ class Auth::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal "auth/org/dashboards/show", inertia_component
     assert_equal "Dashboard", inertia_props.fetch("title")
-    assert_match(/Sign org signed-in landing/, inertia_props.fetch("description"))
+    assert_equal I18n.t("auth.org.dashboards.show.description"), inertia_props.fetch("description")
 
     items = inertia_props.fetch("sections").flat_map { |section| section.fetch("items") }
     hrefs = items.filter_map { |item| item["href"] }

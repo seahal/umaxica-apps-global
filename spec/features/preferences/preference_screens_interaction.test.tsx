@@ -194,14 +194,11 @@ describe("PreferenceCustomization interaction", () => {
 
     expect(deleteRequest).toHaveBeenCalledWith(
       "/preference/customization?ri=jp",
-      expect.objectContaining({
-        data: { confirm_reset: "1" },
-        onStart: expect.any(Function),
-        onFinish: expect.any(Function),
-      }),
+      { confirm_reset: "1" },
+      expect.objectContaining({ onStart: expect.any(Function), onFinish: expect.any(Function) }),
     );
 
-    const [[, options]] = deleteRequest.mock.calls;
+    const [[, , options]] = deleteRequest.mock.calls;
 
     act(() => {
       options.onStart();

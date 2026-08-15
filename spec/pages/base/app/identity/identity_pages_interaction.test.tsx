@@ -141,9 +141,8 @@ describe("email edit interaction", () => {
 
     expect(patch).toHaveBeenCalledWith(
       "/identity/emails/eml_1",
-      expect.objectContaining({
-        data: { user_email: { promotional: "1", notifiable: "1" } },
-      }),
+      { user_email: { promotional: "1", notifiable: "1" } },
+      expect.anything(),
     );
   });
 
@@ -183,11 +182,10 @@ describe("email registration interaction", () => {
 
     expect(post).toHaveBeenCalledWith(
       "/identity/emails/registration",
-      expect.objectContaining({
-        data: {
-          user_email: { address: "someone@example.com", promotional: "1", notifiable: "0" },
-        },
-      }),
+      {
+        user_email: { address: "someone@example.com", promotional: "1", notifiable: "0" },
+      },
+      expect.anything(),
     );
   });
 
@@ -218,9 +216,8 @@ describe("email registration interaction", () => {
 
     expect(patch).toHaveBeenCalledWith(
       "/identity/emails/registration",
-      expect.objectContaining({
-        data: { user_email: { pass_code: "123456", token: "tok_1" } },
-      }),
+      { user_email: { pass_code: "123456", token: "tok_1" } },
+      expect.anything(),
     );
   });
 
@@ -241,7 +238,8 @@ describe("email registration interaction", () => {
     submitForm();
     expect(patch).toHaveBeenCalledWith(
       "/identity/emails/registration",
-      expect.objectContaining({ data: { user_email: { pass_code: "" } } }),
+      { user_email: { pass_code: "" } },
+      expect.anything(),
     );
 
     clickButton("Resend");
@@ -266,7 +264,8 @@ describe("privacy erasure interaction", () => {
 
     expect(post).toHaveBeenCalledWith(
       "/identity/privacy/erasure",
-      expect.objectContaining({ data: { jurisdiction: "unknown" } }),
+      { jurisdiction: "unknown" },
+      expect.anything(),
     );
   });
 });
@@ -304,11 +303,10 @@ describe("recovery interaction", () => {
     submitForm(1);
     expect(post).toHaveBeenCalledWith(
       "/identity/recovery/appeals",
-      expect.objectContaining({
-        data: {
-          appeal: { enforcement_case_id: "case_1", reason_code: "other", statement: "" },
-        },
-      }),
+      {
+        appeal: { enforcement_case_id: "case_1", reason_code: "other", statement: "" },
+      },
+      expect.anything(),
     );
   });
 
@@ -410,9 +408,8 @@ describe("secret interaction", () => {
 
     expect(post).toHaveBeenCalledWith(
       "/identity/secrets",
-      expect.objectContaining({
-        data: { user_secret_credential: { name: "deploy", enabled: "1" } },
-      }),
+      { user_secret_credential: { name: "deploy", enabled: "1" } },
+      expect.anything(),
     );
   });
 
@@ -440,9 +437,8 @@ describe("secret interaction", () => {
 
     expect(patch).toHaveBeenCalledWith(
       "/identity/secrets/sec_1",
-      expect.objectContaining({
-        data: { user_secret_credential: { name: "deploy", enabled: "0" } },
-      }),
+      { user_secret_credential: { name: "deploy", enabled: "0" } },
+      expect.anything(),
     );
   });
 });
@@ -530,9 +526,8 @@ describe("telephone interaction", () => {
 
     expect(post).toHaveBeenCalledWith(
       "/identity/telephones",
-      expect.objectContaining({
-        data: { user_telephone: { raw_number: "+819012345678" } },
-      }),
+      { user_telephone: { raw_number: "+819012345678" } },
+      expect.anything(),
     );
   });
 
@@ -548,9 +543,8 @@ describe("telephone interaction", () => {
 
     expect(post).toHaveBeenCalledWith(
       "/identity/telephones/registration",
-      expect.objectContaining({
-        data: { user_telephone: { raw_number: "+819012345678" } },
-      }),
+      { user_telephone: { raw_number: "+819012345678" } },
+      expect.anything(),
     );
   });
 
@@ -572,7 +566,8 @@ describe("telephone interaction", () => {
 
     expect(patch).toHaveBeenCalledWith(
       "/identity/telephones/registration",
-      expect.objectContaining({ data: { user_telephone: { pass_code: "123456" } } }),
+      { user_telephone: { pass_code: "123456" } },
+      expect.anything(),
     );
   });
 

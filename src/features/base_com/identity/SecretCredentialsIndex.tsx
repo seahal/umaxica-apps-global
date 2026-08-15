@@ -46,11 +46,15 @@ function DestroyForm({
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     requestConfirmation({ message: confirm, confirmLabel: label }, () => {
-      router.delete(url, {
-        data: { "cf-turnstile-response": token },
-        onStart: () => setProcessing(true),
-        onFinish: () => setProcessing(false),
-      });
+      router.delete(
+        url,
+        { "cf-turnstile-response": token },
+        {
+          onStart: () => setProcessing(true),
+
+          onFinish: () => setProcessing(false),
+        },
+      );
     });
   };
 

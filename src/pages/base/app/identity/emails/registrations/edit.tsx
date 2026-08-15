@@ -34,16 +34,20 @@ export default function EmailRegistrationEdit({
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.patch(form.action, {
-      data: {
+    router.patch(
+      form.action,
+      {
         user_email: {
           pass_code: passCode,
           ...(form.verification_token ? { token: form.verification_token } : {}),
         },
       },
-      onStart: () => setProcessing(true),
-      onFinish: () => setProcessing(false),
-    });
+      {
+        onStart: () => setProcessing(true),
+
+        onFinish: () => setProcessing(false),
+      },
+    );
   };
 
   return (
