@@ -116,8 +116,8 @@ class SocialCeremonyEntryContractTest < ActionDispatch::IntegrationTest
 
   def social_button_token(provider)
     action = public_send(:"auth_app_social_#{provider}_session_path", ri: "jp")
-    form = response.parsed_body.at_css("form[action='#{action}']")
+    button = inertia_props.fetch("social_providers").find { |entry| entry.fetch("action") == action }
 
-    form&.at_css("input[name='authenticity_token']")&.[]("value")
+    button&.fetch("authenticity_token")
   end
 end

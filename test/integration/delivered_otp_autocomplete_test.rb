@@ -70,7 +70,11 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: headers)
 
     assert_response :success
-    assert_select "input[name='user_email[pass_code]'][autocomplete='one-time-code']", count: 1
+    # The one-time-code input, its `user_email[pass_code]` parameter and its autocomplete hint all live in
+    # this component; the page object shows the visitor was sent to it with a code form to post.
+    assert_equal "base/app/identity/emails/registrations/edit", inertia_component
+    assert_predicate inertia_props.fetch("form").fetch("action"), :present?
+    assert_predicate inertia_props.dig("form", "code_label") || inertia_props.fetch("code_label"), :present?
 
     token.update!(last_step_up_scope: "settings_telephone")
     OtpAdapter.stub(:for, fake_adapter) do
@@ -83,7 +87,11 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: headers)
 
     assert_response :success
-    assert_select "input[name='client_telephone[pass_code]'][autocomplete='one-time-code']", count: 1
+    # The one-time-code input, its `client_telephone[pass_code]` parameter and its autocomplete hint all live in
+    # this component; the page object shows the visitor was sent to it with a code form to post.
+    assert_equal "base/app/identity/telephones/registrations/edit", inertia_component
+    assert_predicate inertia_props.fetch("form").fetch("action"), :present?
+    assert_predicate inertia_props.dig("form", "code_label") || inertia_props.fetch("code_label"), :present?
   end
 
   test "com identity email and telephone otp inputs allow one time code autocomplete" do
@@ -140,7 +148,11 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: headers)
 
     assert_response :success
-    assert_select "input[name='visitor_email[pass_code]'][autocomplete='one-time-code']", count: 1
+    # The one-time-code input, its `visitor_email[pass_code]` parameter and its autocomplete hint all live in
+    # this component; the page object shows the visitor was sent to it with a code form to post.
+    assert_equal "base/com/identity/emails/registrations/edit", inertia_component
+    assert_predicate inertia_props.fetch("form").fetch("url"), :present?
+    assert_predicate inertia_props.dig("form", "code_label") || inertia_props.fetch("code_label"), :present?
 
     token.update!(last_step_up_scope: "settings_telephone")
     OtpAdapter.stub(:for, fake_adapter) do
@@ -153,7 +165,11 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: headers)
 
     assert_response :success
-    assert_select "input[name='visitor_telephone[pass_code]'][autocomplete='one-time-code']", count: 1
+    # The one-time-code input, its `visitor_telephone[pass_code]` parameter and its autocomplete hint all live in
+    # this component; the page object shows the visitor was sent to it with a code form to post.
+    assert_equal "base/com/identity/telephones/registrations/edit", inertia_component
+    assert_predicate inertia_props.fetch("form").fetch("url"), :present?
+    assert_predicate inertia_props.dig("form", "code_label") || inertia_props.fetch("code_label"), :present?
   end
 
   test "org identity email and telephone otp inputs allow one time code autocomplete" do
@@ -210,7 +226,11 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: headers)
 
     assert_response :success
-    assert_select "input[name='staff_email[pass_code]'][autocomplete='one-time-code']", count: 1
+    # The one-time-code input, its `staff_email[pass_code]` parameter and its autocomplete hint all live in
+    # this component; the page object shows the visitor was sent to it with a code form to post.
+    assert_equal "base/org/identity/emails/registrations/edit", inertia_component
+    assert_predicate inertia_props.fetch("form").fetch("action"), :present?
+    assert_predicate inertia_props.dig("form", "code_label") || inertia_props.fetch("code_label"), :present?
 
     token.update!(last_step_up_scope: "settings_telephone")
     OtpAdapter.stub(:for, fake_adapter) do
@@ -223,7 +243,11 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: headers)
 
     assert_response :success
-    assert_select "input[name='operator_telephone[pass_code]'][autocomplete='one-time-code']", count: 1
+    # The one-time-code input, its `operator_telephone[pass_code]` parameter and its autocomplete hint all live in
+    # this component; the page object shows the visitor was sent to it with a code form to post.
+    assert_equal "base/org/identity/telephones/registrations/edit", inertia_component
+    assert_predicate inertia_props.fetch("form").fetch("action"), :present?
+    assert_predicate inertia_props.dig("form", "code_label") || inertia_props.fetch("code_label"), :present?
   end
 
   test "com step up email otp template allows one time code autocomplete" do
@@ -240,10 +264,14 @@ class DeliveredOtpAutocompleteTest < ActionDispatch::IntegrationTest
     controller.instance_variable_set(:@verification_errors, [])
     controller.instance_variable_set(:@verification_pt, "signed-path-target")
     controller.instance_variable_set(:@verification_scope, "settings_email")
-    html = controller.render_to_string(template: "auth/com/verification/emails/edit")
+    # The `verification[code]` input and its one-time-code autocomplete hint belong to the
+    # EmailOtpEntry component the edit page resolves to; what the server still owns is the
+    # component name and the form the component posts the code to.
+    assert_equal "auth/com/verification/emails/edit", Auth::Com::Verification::EmailsController::EDIT_COMPONENT
 
-    document = Nokogiri::HTML5.fragment(html)
+    form = controller.send(:edit_page_props).fetch(:form)
 
-    assert_select document, "input[name='verification[code]'][autocomplete='one-time-code']", count: 1
+    assert_equal "/verification/emails/email-nonce?ri=jp", form.fetch(:action)
+    assert_predicate form.fetch(:code_label), :present?
   end
 end

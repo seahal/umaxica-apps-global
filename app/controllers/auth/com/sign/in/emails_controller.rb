@@ -70,14 +70,14 @@ module Auth
             address = address_params[:address]
             unless cloudflare_turnstile_validation["success"] && address.present?
               @user_email = VisitorEmail.new(address: address)
-              return redirect_to_sign_in_email_new_with_errors
+              return render_sign_in_email_new_with_errors
             end
 
             normalized_address = validate_and_normalize_email(address)
             unless normalized_address
               @user_email = VisitorEmail.new(address: address)
               @user_email.errors.add(:address, t("sign.app.authentication.email.create.invalid_format"))
-              return redirect_to_sign_in_email_new_with_errors
+              return render_sign_in_email_new_with_errors
             end
 
             if sign_in_email_cooldown_active?(normalized_address)
@@ -105,13 +105,15 @@ module Auth
 
           private
 
-          # The Inertia contract carries a validation failure as a redirect back with the errors
-          # hash. Which guard rejected the submission, and what it says, is unchanged.
-          def redirect_to_sign_in_email_new_with_errors
-            redirect_to(
-              new_auth_com_sign_in_email_path(pt: signed_pt_param, ri: current_region_identifier),
-              status: :see_other,
-              inertia: { errors: @user_email.errors.to_hash(true).transform_values(&:first) },
+          # A rejected submission re-renders this page with 422 and the errors the page reads.
+          # Which guard rejected the submission, and what it says, is unchanged.
+          def render_sign_in_email_new_with_errors
+            render(
+              inertia: "auth/com/sign/in/emails/new",
+              props: sign_in_email_new_props.merge(
+                errors: @user_email.errors.to_hash(true).transform_values(&:first),
+              ),
+              status: :unprocessable_content,
             )
           end
 

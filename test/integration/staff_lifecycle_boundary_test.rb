@@ -21,7 +21,8 @@ class StaffLifecycleBoundaryTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_nil @staff.reload.deactivated_at
-    assert_select "a[href=?]", base_org_identity_path(ri: "jp")
+    # The page is informational: the only route it offers back is the identity settings screen.
+    assert_equal base_org_identity_path(ri: "jp"), inertia_props.fetch("back_link").fetch("href")
   end
 
   test "org withdrawal endpoint does not accept app com destructive withdrawal verbs" do

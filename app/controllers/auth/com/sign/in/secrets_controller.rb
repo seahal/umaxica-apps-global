@@ -288,12 +288,16 @@ module Auth
 
             SignRiskEmitter.emit("auth_failed", visitor_id: visitor&.id) if visitor
 
-            # The Inertia contract carries a rejected attempt as a redirect back with the errors
-            # hash. The message stays the same single message for every reason.
-            redirect_to(
-              new_auth_com_sign_in_secret_path(pt: signed_pt_param, ri: current_region_identifier),
-              status: :see_other,
-              inertia: { errors: @secret_credential_form.errors.to_hash(true).transform_values(&:first) },
+            # A rejected attempt re-renders this page with 422 and the errors the page reads, so the
+            # rejection stays a response to this request rather than a redirect the client could
+            # replay. The message stays the same single message for every reason.
+            render(
+              inertia: "auth/com/sign/in/secrets/new",
+              props: sign_in_secret_new_props.merge(
+                errors: @secret_credential_form.errors.to_hash(true).transform_values(&:first),
+              ),
+              status: :unprocessable_content,
+              formats: :html,
             )
           end
 

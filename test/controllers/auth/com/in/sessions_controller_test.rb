@@ -51,9 +51,13 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     assert_response :success
     assert_not response.redirect?
-    assert_select "form[data-turbo=false][action=?]", auth_com_sign_in_session_path(ri: "jp")
-    assert_select "input[type=radio][name=ref]"
-    assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
+    assert_equal "auth/com/sign/in/sessions/show", inertia_component
+
+    props = inertia_props
+
+    assert_equal auth_com_sign_in_session_path(ri: "jp"), props.fetch("form").fetch("action")
+    assert_predicate props.fetch("active_sessions").fetch("items").filter_map { |item| item["ref"] }, :present?
+    assert_equal I18n.t("sign.app.in.session.cancel_logout"), props.fetch("cancel").fetch("label")
   end
 
   test "update without selections flashes alert and re-renders show" do
@@ -240,13 +244,14 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     controller.update
 
-    assert_equal [[:show], { status: :unprocessable_content }], renders.last
+    assert_equal "auth/com/sign/in/sessions/show", renders.last.second[:inertia]
+    assert_equal :unprocessable_content, renders.last.second[:status]
 
     destroy_token = create_active_session(@visitor)
     controller.params[:ref] = destroy_token.signed_ref
     controller.destroy
 
-    assert_equal [:show], renders.last.first
+    assert_equal "auth/com/sign/in/sessions/show", renders.last.second[:inertia]
 
     controller.params.delete(:ref)
     restricted_token.update!(visitor_token_status_id: VisitorTokenStatus::RESTRICTED)

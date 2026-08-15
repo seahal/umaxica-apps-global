@@ -46,8 +46,12 @@ class Auth::Com::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
     get new_auth_com_sign_in_secret_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "input[type='hidden'][name='ri'][value='jp']"
-    assert_select "a[href=?]", auth_com_sign_in_path(ri: "jp")
+    assert_equal "auth/com/sign/in/secrets/new", inertia_component
+
+    props = inertia_props
+
+    assert_equal "jp", props.fetch("ri")
+    assert_equal auth_com_sign_in_path(ri: "jp"), props.fetch("back_link").fetch("href")
   end
 
   test "create signs in with visitor identifier and secret credential" do
@@ -111,7 +115,9 @@ class Auth::Com::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          headers: { "Host" => @host }
 
     assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+    assert_equal "auth/com/sign/in/secrets/new", inertia_component
+    assert_includes inertia_props.fetch("errors").values,
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 end
 

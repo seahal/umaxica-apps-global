@@ -33,9 +33,16 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     get new_auth_com_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
-    assert_includes response.body, I18n.t("sign.app.authentication.email.new.page_title")
-    assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-    assert_includes response.body, 'data-turnstile-mode-value="render"'
+    assert_equal "auth/com/sign/in/emails/new", inertia_component
+
+    props = inertia_props
+
+    assert_equal I18n.t("sign.app.authentication.email.new.page_title"), props.fetch("title")
+
+    turnstile = props.fetch("turnstile")
+
+    assert_equal "render", turnstile.fetch("mode")
+    assert_predicate turnstile.fetch("site_key"), :present?
   end
 
   test "post create with unknown email redirects to edit without visitor email session id" do
@@ -70,7 +77,8 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     follow_redirect!
 
     assert_response :success
-    assert_select "input[name='user_email[pass_code]'][autocomplete='one-time-code']", count: 1
+    assert_equal "auth/com/sign/in/emails/edit", inertia_component
+    assert_equal I18n.t("sign.app.authentication.email.edit.code_label"), inertia_props.fetch("field_label")
   end
 
   test "post create with invalid email format" do
