@@ -12,12 +12,11 @@ module Auth
         include ::SignSocialAuthenticationEndpoint
         include ::VerificationClient
 
+        AUTHENTICATION_MODE = :private
         # Any ERB response that still leaves this controller - an error page, a shared ceremony
         # template - needs the ERB layout, because the slim Inertia shell has no `yield` and would
         # silently drop the body.
         layout :social_settings_layout
-
-        AUTHENTICATION_MODE = :private
 
         before_action :authenticate_client!
         before_action :authorize_google_settings!, only: %i(show edit create destroy)

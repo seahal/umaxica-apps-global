@@ -16,6 +16,9 @@
 @plugin "@tailwindcss/forms";
 
 @source "../../pages/auth/org";
+@source "../../layouts";
+@source "../../components";
+@source "../../features";
 
 /* Surface-owned background: one colour per TLD, overriding the shared default in
    `base.css` so each FQDN is identifiable on sight. */

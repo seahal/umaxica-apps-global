@@ -10,6 +10,11 @@
 @import "tailwindcss" source(none);
 @import "../base.css";
 
+@source "../../pages/core/app";
+@source "../../layouts";
+@source "../../components";
+@source "../../features";
+
 @plugin "@tailwindcss/typography";
 @plugin "@tailwindcss/forms";
 

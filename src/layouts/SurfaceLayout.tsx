@@ -62,10 +62,12 @@ export default function SurfaceLayout({ children }: { children: ReactNode }) {
           </nav>
         ) : null}
 
-        <aside aria-label="Preferences">
-          <CookieBanner controls={chrome.cookie_controls} />
-          <ThemeControls controls={chrome.theme_controls} />
-        </aside>
+        {chrome.cookie_controls || chrome.theme_controls ? (
+          <aside aria-label="Preferences">
+            {chrome.cookie_controls ? <CookieBanner controls={chrome.cookie_controls} /> : null}
+            {chrome.theme_controls ? <ThemeControls controls={chrome.theme_controls} /> : null}
+          </aside>
+        ) : null}
 
         <div>
           <span className="opacity-50">{chrome.copyright}</span>

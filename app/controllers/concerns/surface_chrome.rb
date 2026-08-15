@@ -32,6 +32,15 @@ module SurfaceChrome
     "palm" => { family_label: "PALM", banner_domain: nil, footer_navigation: false },
   }.freeze
 
+  # The operational surfaces are mounted with a route prefix that does not match their controller
+  # module, so route helpers cannot be composed from the module name alone.
+  SURFACE_ROUTE_NAMES = { "dev" => "developer", "net" => "network" }.freeze
+
+  # Only the three user-facing surfaces have a preference authority to send a visitor to, so the
+  # operational surfaces render no cookie or theme controls rather than linking to a host that
+  # does not exist.
+  PREFERENCE_SURFACES = %w(app com org).freeze
+
   included do
     inertia_share chrome: -> { surface_chrome }
   end
@@ -63,8 +72,8 @@ module SurfaceChrome
       banner: chrome_banner(configuration.fetch(:banner_domain)),
       primary_navigation: chrome_primary_navigation,
       footer_navigation: configuration.fetch(:footer_navigation) ? chrome_footer_navigation : nil,
-      cookie_controls: chrome_cookie_controls,
-      theme_controls: chrome_theme_controls,
+      cookie_controls: chrome_preference_surface? ? chrome_cookie_controls : nil,
+      theme_controls: chrome_preference_surface? ? chrome_theme_controls : nil,
       copyright: chrome_copyright,
     }
   end
@@ -72,8 +81,16 @@ module SurfaceChrome
   def chrome_brand
     {
       name: ENV.fetch("BRAND_NAME"),
-      href: chrome_url("#{chrome_configuration.fetch(:family)}_#{chrome_configuration.fetch(:surface)}_root_path"),
+      href: chrome_url("#{chrome_configuration.fetch(:family)}_#{chrome_route_surface}_root_path"),
     }
+  end
+
+  def chrome_route_surface
+    SURFACE_ROUTE_NAMES.fetch(chrome_configuration.fetch(:surface)) { chrome_configuration.fetch(:surface) }
+  end
+
+  def chrome_preference_surface?
+    PREFERENCE_SURFACES.include?(chrome_configuration.fetch(:surface))
   end
 
   # The banner query previously ran inside a layout partial on every response. It stays server-side

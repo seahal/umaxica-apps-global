@@ -15,6 +15,10 @@
 
 @source "../../features/react_aria_probe";
 @source "../../entrypoints/react_islands.tsx";
+@source "../../pages/core/dev";
+@source "../../layouts";
+@source "../../components";
+@source "../../features";
 
 /* Surface-owned background: one colour per TLD, overriding the shared default in
    `base.css` so each FQDN is identifiable on sight. */

@@ -17,6 +17,9 @@
 @source "../../pages/base/com";
 @source "../../features/preferences";
 @source "../../controllers";
+@source "../../layouts";
+@source "../../components";
+@source "../../features";
 
 /* Surface-owned background: one colour per TLD, overriding the shared default in
    `base.css` so each FQDN is identifiable on sight. */

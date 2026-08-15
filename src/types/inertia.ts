@@ -43,8 +43,9 @@ export type SurfaceChrome = {
   banner: ChromeBanner | null;
   primary_navigation: ChromeLink[] | null;
   footer_navigation: ChromeLink[] | null;
-  cookie_controls: ChromeCookieControls;
-  theme_controls: ChromeThemeControls;
+  /** Absent on the operational surfaces, which have no preference authority to link to. */
+  cookie_controls: ChromeCookieControls | null;
+  theme_controls: ChromeThemeControls | null;
   copyright: string;
 };
 

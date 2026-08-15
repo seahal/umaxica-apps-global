@@ -14,6 +14,7 @@ class Core::Dev::RootsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "title", "#{BRAND} (DEV)"
-    assert_select "[data-react-component='ReactAriaProbe']"
+    # The probe is an Inertia page now rather than a mount point the islands entrypoint hydrates.
+    assert_equal "core/dev/roots/index", inertia_component
   end
 end
