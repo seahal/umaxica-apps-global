@@ -41,6 +41,7 @@ vi.mock("@/features/auth/passkeys/PasskeyRegistrationPanel", () => ({
 }));
 
 const { default: AuthMethodChoice } = await import("@/features/auth/AuthMethodChoice");
+const { default: SignInMethodChoice } = await import("@/features/auth/signin/SignInMethodChoice");
 const { default: MfaChallengeChoice } = await import("@/features/auth/MfaChallengeChoice");
 const { default: VerificationSetup } = await import("@/features/auth/VerificationSetup");
 const { default: SignInEmailNew } = await import("@/features/auth/SignInEmailNew");
@@ -390,7 +391,8 @@ describe("passkey settings screens", () => {
 
 describe("auth/com page modules", () => {
   it("re-export the shared screens rather than defining their own", () => {
-    expect(ComSignInsNew).toBe(AuthMethodChoice);
+    // Signing in and signing up offer different method sets, so they are different screens.
+    expect(ComSignInsNew).toBe(SignInMethodChoice);
     expect(ComSignUpsNew).toBe(AuthMethodChoice);
     expect(ComChallengesShow).toBe(MfaChallengeChoice);
     expect(ComSetupsNew).toBe(VerificationSetup);

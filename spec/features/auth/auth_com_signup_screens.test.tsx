@@ -16,28 +16,21 @@ vi.mock("@/features/turnstile/TurnstileWidget", () => ({
 const { default: ComSignUpEmailNew } = await import("@/pages/auth/com/sign/up/emails/new");
 const { default: ComSignUpEmailEdit } = await import("@/pages/auth/com/sign/up/emails/edit");
 const { default: ComSignUpTelephoneNew } = await import("@/pages/auth/com/sign/up/telephones/new");
-const { default: ComSignUpTelephoneEdit } = await import(
-  "@/pages/auth/com/sign/up/telephones/edit"
-);
+const { default: ComSignUpTelephoneEdit } =
+  await import("@/pages/auth/com/sign/up/telephones/edit");
 const { default: ComCheckpointShow } = await import("@/pages/auth/com/sign/up/checkpoints/show");
-const { default: ComCheckpointAgeRestricted } = await import(
-  "@/pages/auth/com/sign/up/checkpoints/age_restricted"
-);
-const { default: ComCheckpointPasscodeNew } = await import(
-  "@/pages/auth/com/sign/up/checkpoint/passcodes/new"
-);
-const { default: ComCheckpointPasskeyNew } = await import(
-  "@/pages/auth/com/sign/up/checkpoint/passkeys/new"
-);
-const { default: ComVerificationEmailNew } = await import(
-  "@/pages/auth/com/verification/emails/new"
-);
-const { default: ComVerificationEmailEdit } = await import(
-  "@/pages/auth/com/verification/emails/edit"
-);
-const { default: ComVerificationPasskeyNew } = await import(
-  "@/pages/auth/com/verification/passkeys/new"
-);
+const { default: ComCheckpointAgeRestricted } =
+  await import("@/pages/auth/com/sign/up/checkpoints/age_restricted");
+const { default: ComCheckpointPasscodeNew } =
+  await import("@/pages/auth/com/sign/up/checkpoint/passcodes/new");
+const { default: ComCheckpointPasskeyNew } =
+  await import("@/pages/auth/com/sign/up/checkpoint/passkeys/new");
+const { default: ComVerificationEmailNew } =
+  await import("@/pages/auth/com/verification/emails/new");
+const { default: ComVerificationEmailEdit } =
+  await import("@/pages/auth/com/verification/emails/edit");
+const { default: ComVerificationPasskeyNew } =
+  await import("@/pages/auth/com/verification/passkeys/new");
 
 const turnstile = {
   site_key: "site-key",

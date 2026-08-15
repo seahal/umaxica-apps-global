@@ -203,6 +203,12 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     }
     controller.define_singleton_method(:form_authenticity_token) { "test-token" }
     controller.define_singleton_method(:auth_com_verification_path) { |params = {}| "/verification?#{params.to_query}" }
+    controller.define_singleton_method(:auth_com_verification_email_path) { |id, **kwargs|
+      "/verification/emails/#{id}?#{kwargs.to_query}"
+    }
+    controller.define_singleton_method(:auth_com_verification_email_redelivery_path) { |id, **kwargs|
+      "/verification/emails/#{id}/redelivery?#{kwargs.to_query}"
+    }
     controller.define_singleton_method(:incoming_scope) { "settings_email" }
     controller.define_singleton_method(:incoming_pt) { "return-token" }
     controller.define_singleton_method(:t) { |key| key.to_s }
