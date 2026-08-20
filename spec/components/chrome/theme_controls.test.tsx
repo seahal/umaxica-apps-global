@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import ThemeControls from "@/components/chrome/ThemeControls";
 import type { ChromeThemeControls } from "@/types/inertia";
 
+import { jsonResponse, stubFetchByMethod } from "../../support/http";
+
 // The React port of the `theme` Stimulus controller is verified against the same behaviour: the
 // stored preference read on mount, a choice applied to the document and persisted, the server
 // answer reconciled back into the control, and the system setting followed while "system" is
@@ -25,8 +27,6 @@ let mediaMatches: boolean;
 let listeners: MediaListener[];
 let removedListeners: MediaListener[];
 
-const noop = () => {};
-
 const mount = async (overrides: Partial<ChromeThemeControls> = {}) => {
   container = document.createElement("div");
   document.body.append(container);
@@ -37,11 +37,13 @@ const mount = async (overrides: Partial<ChromeThemeControls> = {}) => {
   });
 };
 
+// React Aria's RadioGroup generates the shared `name` itself, so the radios are located by type
+// and value rather than by a name this component no longer chooses.
 const radio = (value: string) =>
-  container?.querySelector<HTMLInputElement>(`input[name="theme"][value="${value}"]`);
+  container?.querySelector<HTMLInputElement>(`input[type="radio"][value="${value}"]`);
 
 const selectedTheme = () =>
-  [...(container?.querySelectorAll<HTMLInputElement>('input[name="theme"]') ?? [])].find(
+  [...(container?.querySelectorAll<HTMLInputElement>('input[type="radio"]') ?? [])].find(
     (input) => input.checked,
   )?.value;
 
@@ -81,7 +83,7 @@ beforeEach(() => {
   removedListeners = [];
   clearCookies();
   document.documentElement.className = "";
-  delete document.documentElement.dataset.theme;
+  delete document.documentElement.dataset["theme"];
   document.head.innerHTML = '<meta name="csrf-token" content="csrf-token">';
   window.history.replaceState({}, "", "/?ri=jp");
 
@@ -133,22 +135,24 @@ describe("ThemeControls rendering", () => {
     expect(container?.textContent).toBe("");
   });
 
-  test("starts from the theme the ct cookie rendered the first paint with", async () => {
-    document.cookie = "ct=dr; path=/";
+  // Rails renders `data-theme` from the `ct` cookie, so the attribute is what the first paint
+  // already shows and what the control starts from; the cookie itself is read asynchronously now.
+  test("starts from the theme the document was rendered with", async () => {
+    document.documentElement.dataset["theme"] = "dark";
 
     await mount();
 
     expect(selectedTheme()).toBe("dark");
   });
 
-  test("starts from system when no theme cookie is present", async () => {
+  test("starts from system when the document carries no theme", async () => {
     await mount();
 
     expect(selectedTheme()).toBe("system");
   });
 
-  // Rendered without a document there is no cookie to read, so the control starts from system
-  // rather than reaching for one.
+  // Rendered without a document there is no rendered theme to read, so the control starts from
+  // system rather than reaching for one.
   test("starts from system when rendered without a document", () => {
     vi.stubGlobal("document", undefined);
 
@@ -170,11 +174,11 @@ describe("ThemeControls mount", () => {
     await mount();
 
     expect(selectedTheme()).toBe("light");
-    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(document.documentElement.dataset["theme"]).toBe("light");
   });
 
-  test("keeps the cookie theme when the stored preference cannot be read", async () => {
-    document.cookie = "ct=dr; path=/";
+  test("keeps the rendered theme when the stored preference cannot be read", async () => {
+    document.documentElement.dataset["theme"] = "dark";
 
     await mount();
 
@@ -183,22 +187,14 @@ describe("ThemeControls mount", () => {
 
   // The visitor is more current than an in-flight read, so a choice made first must win.
   test("does not overwrite a choice made before the stored preference arrives", async () => {
-    let resolveRead: (value: unknown) => void = noop;
-    const fetchMock = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
-      if (init?.method === "PATCH") {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ theme: "dr" }) });
-      }
-      return new Promise((resolve) => {
-        resolveRead = resolve;
-      });
-    });
-    vi.stubGlobal("fetch", fetchMock);
+    // The PATCH answers at once; the GET is held open until this test decides it lands.
+    const { settlePending } = stubFetchByMethod({ PATCH: jsonResponse({ theme: "dr" }) });
 
     await mount();
     await choose("dark");
 
     await act(async () => {
-      resolveRead({ ok: true, json: () => Promise.resolve({ theme: "li" }) });
+      settlePending(jsonResponse({ theme: "li" }));
     });
 
     expect(selectedTheme()).toBe("dark");
@@ -213,6 +209,33 @@ describe("ThemeControls mount", () => {
     });
 
     expect(removedListeners).toEqual(listeners);
+  });
+
+  // The control sits in the persistent layout, so a visit never remounts it. The theme preference
+  // screen writes the same cookie through the server, and the radio has to follow it.
+  test("follows the cookie when the server changes it", async () => {
+    await mount();
+    expect(selectedTheme()).toBe("system");
+
+    await act(async () => {
+      await cookieStore.set({ name: "ct", value: "dr" });
+    });
+
+    expect(selectedTheme()).toBe("dark");
+  });
+
+  test("stops following the cookie once unmounted", async () => {
+    await mount();
+
+    const mounted = root;
+    act(() => {
+      mounted?.unmount();
+    });
+    await act(async () => {
+      await cookieStore.set({ name: "ct", value: "dr" });
+    });
+
+    expect(container?.textContent).toBe("");
   });
 });
 
@@ -245,7 +268,7 @@ describe("ThemeControls selection", () => {
     await choose("dark");
 
     expect(selectedTheme()).toBe("light");
-    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(document.documentElement.dataset["theme"]).toBe("light");
   });
 
   test("keeps the choice applied when the write fails", async () => {
@@ -255,7 +278,7 @@ describe("ThemeControls selection", () => {
     await choose("light");
 
     expect(selectedTheme()).toBe("light");
-    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(document.documentElement.dataset["theme"]).toBe("light");
   });
 
   test("follows the system setting while system is the selected theme", async () => {

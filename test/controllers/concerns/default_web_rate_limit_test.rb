@@ -35,15 +35,15 @@ class DefaultWebRateLimitTest < ActionDispatch::IntegrationTest
       get "/default_web_probe", headers: { "Host" => "base.net.localhost", "Accept" => "application/json" }
 
       assert_response :too_many_requests
-      assert_equal "rails", response.headers["X-RateLimit-Layer"]
-      assert_equal "base_net_default_web", response.headers["X-RateLimit-Rule"]
       assert_equal "60", response.headers["Retry-After"]
+      assert_nil response.headers["X-RateLimit-Rule"]
+      assert_equal "application/problem+json", response.media_type
 
       body = response.parsed_body
 
-      assert_equal "rate_limited", body["error"]
-      assert_equal "base_net_default_web", body["rule"]
-      assert_equal I18n.t("errors.rate_limit.exceeded"), body["message"]
+      assert_equal "urn:umaxica:problem:rate-limited", body.fetch("type")
+      assert_equal I18n.t("errors.rate_limit.exceeded"), body.fetch("detail")
+      assert_not_includes response.body, "base_net_default_web"
     end
   end
 

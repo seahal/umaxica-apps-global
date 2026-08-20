@@ -1,5 +1,5 @@
 import { router, useForm } from "@inertiajs/react";
-import type { FormEvent } from "react";
+import type { SyntheticEvent } from "react";
 
 type SessionEntry = {
   session_ref: string;
@@ -45,7 +45,7 @@ export default function SignInLimitationShow({
   });
   const { data, setData, errors, processing } = form;
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     form.patch(action);
   };
@@ -58,7 +58,7 @@ export default function SignInLimitationShow({
 
       {error ? <p role="alert">{error}</p> : null}
       {notice ? <p>{notice}</p> : null}
-      {errors.session_ref ? <p role="alert">{errors.session_ref}</p> : null}
+      {errors["session_ref"] ? <p role="alert">{errors["session_ref"]}</p> : null}
 
       <form onSubmit={submit}>
         <ul>

@@ -35,10 +35,7 @@ module Auth
             within: RateLimitProfiles.interactive_post_ip.within,
             by: -> { "sign_up_email_ip:#{request.remote_ip}" },
             with: -> {
-              render_rate_limited(
-                rule_name: "sign_up_email_ip",
-                retry_after: RateLimitProfiles.interactive_post_ip.retry_after,
-              )
+              render_rate_limited(retry_after: RateLimitProfiles.interactive_post_ip.retry_after)
             },
             store: rate_limit_store,
             name: "ip_burst",
@@ -54,10 +51,7 @@ module Auth
             },
             if: -> { sign_up_email_digest_for_rate_limit.present? },
             with: -> {
-              render_rate_limited(
-                rule_name: "sign_up_email_addr",
-                retry_after: RateLimitProfiles.email_address_submit.retry_after,
-              )
+              render_rate_limited(retry_after: RateLimitProfiles.email_address_submit.retry_after)
             },
             store: rate_limit_store,
             name: "email_sustained",

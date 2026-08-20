@@ -12,10 +12,10 @@ module SocialAuth
       assert_equal "errors.social_auth.last_identity", error.i18n_key
     end
 
-    test "initializes with unprocessable_entity status code" do
+    test "initializes with unprocessable_content status code" do
       error = LastIdentityError.new
 
-      assert_equal :unprocessable_entity, error.status_code
+      assert_equal :unprocessable_content, error.status_code
     end
 
     test "accepts custom i18n key" do

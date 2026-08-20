@@ -27,7 +27,9 @@ async function install(): Promise<ServiceWorkerRegistration | null> {
   }
 
   if (!window.isSecureContext) {
-    // eslint-disable-next-line no-console
+    // A service worker refused for this origin has no other channel, and nothing on the page is
+    // waiting on the result.
+    // oxlint-disable-next-line no-console
     console.error(
       `Offline service worker not registered: ${window.location.origin} is not a secure context. ` +
         "Service workers require HTTPS or a localhost origin.",
@@ -43,7 +45,7 @@ async function install(): Promise<ServiceWorkerRegistration | null> {
   } catch (error) {
     // Reported rather than swallowed, and deliberately not rethrown: a failed offline fallback must
     // not take down the page that asked for it.
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line no-console -- see the comment above.
     console.error(`Offline service worker registration failed for ${SERVICE_WORKER_URL}:`, error);
     return null;
   }

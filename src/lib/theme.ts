@@ -8,6 +8,7 @@
 // The wire format is the two-letter code the preference store uses; `Theme` is the name the UI
 // works in. Converting at the boundary keeps the codes out of the components.
 
+import { readCookie, watchCookie } from "@/lib/cookies";
 import { readString } from "@/lib/payload";
 
 export type Theme = "dark" | "light" | "system";
@@ -35,13 +36,32 @@ export function codeFromTheme(theme: Theme): string {
   return CODE_BY_THEME[theme];
 }
 
-export function readThemeCookie(): Theme {
-  const cookie = document.cookie
-    .split(";")
-    .map((part) => part.trim().split("="))
-    .find(([key]) => key === "ct");
+/** The stored theme, read from the `ct` cookie. */
+export async function readThemeCookie(): Promise<Theme> {
+  return themeFromCode(await readCookie("ct"));
+}
 
-  return themeFromCode(cookie?.[1] ? decodeURIComponent(cookie[1]) : null);
+/**
+ * Calls back with the theme whenever the `ct` cookie changes. Returns an unsubscribe function.
+ *
+ * The theme preference screen saves through the server, so the cookie is what actually carries the
+ * new choice back to the document - on every surface, under either navigation model, and whether
+ * or not a navigation happens at all.
+ */
+export function watchThemeCookie(listener: (theme: Theme) => void): () => void {
+  return watchCookie("ct", (value) => listener(themeFromCode(value)));
+}
+
+/**
+ * The theme the document is currently rendered in.
+ *
+ * Rails writes `data-theme` from the `ct` cookie and `applyTheme` keeps it in step, so this is the
+ * same answer `readThemeCookie` gives - available synchronously, which the cookie no longer is.
+ * It is what a React initial state and the system-theme watcher read, so neither has to wait for a
+ * cookie read to render the theme the visitor is already looking at.
+ */
+export function themeFromDocument(): Theme {
+  return themeFromCode(document.documentElement.dataset["theme"]);
 }
 
 export function applyTheme(theme: Theme): void {
@@ -53,7 +73,7 @@ export function applyTheme(theme: Theme): void {
         : "light"
       : theme;
 
-  html.dataset.theme = theme;
+  html.dataset["theme"] = theme;
   html.classList.remove("theme-dark", "theme-light", "theme-system");
   html.classList.add(`theme-${theme}`);
   html.classList.toggle("dark", applied === "dark");

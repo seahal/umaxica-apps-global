@@ -38,7 +38,7 @@ export default function SecretNew({
   const [enabled, setEnabled] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     router.post(
       form.action,

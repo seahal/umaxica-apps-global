@@ -35,7 +35,9 @@ function ActionButton({
 }: {
   url: string;
   label: string;
-  confirm?: string;
+  // `| undefined` is explicit because the caller forwards an optional server prop straight
+  // through; an absent value means the action was never gated by a confirmation.
+  confirm?: string | undefined;
   method: "post" | "delete";
 }) {
   const [processing, setProcessing] = useState(false);
@@ -53,7 +55,7 @@ function ActionButton({
     }
   };
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     // An action the server sent no confirmation copy for was never gated by one.
     if (confirm) {

@@ -1,9 +1,9 @@
+import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 // Redeeming an operator invitation code.
 //
 // A document POST so the visible Turnstile token travels in the form body; a rejected code comes
 // back as this page re-rendered at 422 with the failure inline, never as a flash.
-import { csrfToken } from "@/features/auth/csrf";
-import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
+import { csrfToken } from "@/lib/csrf";
 
 type TurnstileConfiguration = {
   site_key: string;

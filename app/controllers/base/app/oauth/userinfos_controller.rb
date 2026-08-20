@@ -22,10 +22,7 @@ module Base
           store: rate_limit_store,
           only: :show,
           with: -> {
-            render_rate_limited(
-              rule_name: "base_app_oauth_userinfo_userinfo_ip",
-              retry_after: 60,
-            )
+            render_rate_limited(retry_after: 60)
           },
         )
 

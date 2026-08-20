@@ -32,7 +32,7 @@ export default function EmailRegistrationNew({
   const [notifiable, setNotifiable] = useState(form.notifiable.checked);
   const [processing, setProcessing] = useState(false);
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     router.post(
       form.action,

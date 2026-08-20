@@ -60,7 +60,9 @@
 .ssh
 .gnupg
 .envrc
-.vscode/
+!.vscode/
+.vscode/*
+!.vscode/extensions.json
 .config/
 .bun
 .node_repl_history

@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  "entry": ["src/entrypoints/**/*.{ts,tsx}", "spec/**/*.{test,spec}.{ts,tsx}", "e2e/**/*.spec.ts"],
+  "project": ["src/**/*.{ts,tsx}", "spec/**/*.{ts,tsx}", "e2e/**/*.ts"],
+  "ignore": ["src/types/**"],
+  "ignoreDependencies": [
+    "tailwindcss",
+    "tailwindcss-react-aria-components",
+    "@tailwindcss/forms",
+    "@tailwindcss/typography",
+    "@mermaid-js/mermaid-cli",
+    "linkinator"
+  ],
+  "includeEntryExports": false,
+  "exclude": ["types", "duplicates", "nsExports", "nsTypes", "catalog"]
+}

@@ -8,6 +8,10 @@ module Palm
         # Palm API endpoints are bearer-token resource-server endpoints and do
         # not inherit browser/session callbacks from any HTML controller.
         class BaseController < ActionController::Base # rubocop:disable Rails/ApplicationController
+          include ::ProblemDetailsRendering
+          include ::ApiContentNegotiation
+          include ::ApiV0LegacyErrorMember
+
           AUTHENTICATION_MODE = :bare
 
           protect_from_forgery using: :header_or_legacy_token, with: :exception
@@ -40,27 +44,17 @@ module Palm
             true
           end
 
+          # RFC 6750 3.1 requires the bearer error to be named in `WWW-Authenticate`, which is where a
+          # bearer client looks; the Problem Details document carries the same outcome for a human
+          # reader. `insufficient_scope` is 403 and `invalid_token` is 401, per the same section.
           def render_palm_authentication_error(error)
             if error == "insufficient_scope"
-              render_error(:authorization_denied, "Authorization denied.", status: :forbidden) # rubocop:disable I18n/RailsI18n/DecorateString
+              response.set_header("WWW-Authenticate", %(Bearer error="insufficient_scope"))
+              render_problem(:authorization_denied)
             else
-              render_error(:authentication_required, "Authentication is required.", status: :unauthorized) # rubocop:disable I18n/RailsI18n/DecorateString
+              response.set_header("WWW-Authenticate", %(Bearer error="invalid_token"))
+              render_problem(:authentication_required)
             end
-          end
-
-          def render_error(code, message, status:, fields: [])
-            render(
-              json: {
-                error: {
-                  code: code.to_s,
-                  message: message,
-                  request_id: request.request_id,
-                  detail: nil,
-                  fields: fields,
-                },
-              },
-              status: status,
-            )
           end
 
           def authorization_access_token

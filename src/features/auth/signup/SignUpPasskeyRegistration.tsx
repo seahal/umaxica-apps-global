@@ -9,7 +9,7 @@
 // token, so the ported ceremony has no Turnstile step. Nothing the server checks changed.
 import { useState } from "react";
 
-import { normalizePublicKeyOptions } from "@/controllers/webauthn_utils";
+import { normalizeCreationOptions } from "@/controllers/webauthn_utils";
 import { PASSKEY_MESSAGES, registrationErrorMessage } from "@/features/auth/passkeys/messages";
 import { useCeremonyMessages } from "@/features/auth/passkeys/useCeremonyMessages";
 import {
@@ -51,8 +51,8 @@ async function postJson(url: string, body: unknown): Promise<Response> {
 async function readFailure(response: Response, fallback: string): Promise<Error | null> {
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
-    const data: { error?: string } = await response.json();
-    return new Error(data.error || fallback);
+    const data: unknown = await response.json();
+    return new Error(readString(data, "error") || fallback);
   }
   if (response.status === 401 || response.status === 302) {
     window.location.reload();
@@ -119,7 +119,7 @@ export default function SignUpPasskeyRegistration({
 
       showStatus(PASSKEY_MESSAGES.creating);
       const created = await navigator.credentials.create({
-        publicKey: normalizePublicKeyOptions(options),
+        publicKey: normalizeCreationOptions(options),
       });
       if (!created || !isAttestationCredential(created)) {
         throw new Error(PASSKEY_MESSAGES.registrationFailed);

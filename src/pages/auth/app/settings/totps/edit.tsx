@@ -39,7 +39,7 @@ export default function TotpsEdit({
   const form = useForm({ title: formProps.title ?? "" });
   const { confirm, dialog } = useConfirm();
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     form.transform((data) => ({ [formProps.scope]: data }));
     form.patch(formProps.action);

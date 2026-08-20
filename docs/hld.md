@@ -64,7 +64,7 @@ host—marketing, authentication, docs/news, help/support, BFF, and API—consis
 ### 2.3 Constraints
 
 - Ruby 3.4.7 / Rails 8.x
-- pnpm 11.20.0 / Node 24.19.0 (Active LTS) for JavaScript tooling (Vite-backed)
+- pnpm 11.22.0 / Node 24.19.0 (Active LTS) for JavaScript tooling (Vite-backed)
 - PostgreSQL 18 primaries/replicas per logical database
 - Valkey for caching/rate limiting
 - Cloudflare/ Fastly handle TLS and CDN duties

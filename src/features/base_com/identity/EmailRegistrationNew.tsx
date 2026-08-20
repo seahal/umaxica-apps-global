@@ -35,7 +35,7 @@ export default function EmailRegistrationNew({
   const [token, setToken] = useState("");
   const [processing, setProcessing] = useState(false);
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     router.post(
       form.url,

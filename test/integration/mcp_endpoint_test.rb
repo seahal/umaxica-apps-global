@@ -241,9 +241,14 @@ class McpEndpointTest < ActionDispatch::IntegrationTest
 
     post("/mcp", params: { jsonrpc: "2.0", id: 61, method: "tools/list" }.to_json, headers: JSON_HEADERS)
 
+    # A 429 is refused before the MCP transport runs, so it is not a JSON-RPC response and the
+    # protocol exemption does not cover it. Which rule fired is deliberately not disclosed; the
+    # per-endpoint budget is proven by the sibling test instead.
     assert_response :too_many_requests
     assert_equal "60", response.headers["Retry-After"]
-    assert_equal "base_app_mcp_request_ip", response.headers["X-RateLimit-Rule"]
+    assert_equal "application/problem+json", response.media_type
+    assert_equal "urn:umaxica:problem:rate-limited", response.parsed_body.fetch("type")
+    assert_not_includes response.body, "base_app_mcp_request_ip"
   ensure
     Rails.configuration.x.rate_limit.fetch(:store).clear
   end

@@ -4,7 +4,7 @@
 // and may promote the restricted one, DELETE cancels the ceremony and signs the operator out. The
 // value on each choice is the server's signed reference, which is all the server accepts.
 import { useConfirm } from "@/components/ConfirmDialog";
-import { csrfToken } from "@/features/auth/csrf";
+import { csrfToken } from "@/lib/csrf";
 
 type SessionRow = {
   ref: string;
@@ -49,7 +49,7 @@ export default function OrgSessionLimitPage({
 
   // The cancellation is held back until the operator accepts, then replayed with `submit()`, which
   // sends the same document DELETE without running this handler again.
-  const submitCancellation = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitCancellation = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     confirm({ message: cancelLogoutConfirm, confirmLabel: cancelLogoutLabel }, () => form.submit());

@@ -1,28 +1,36 @@
 <% title "Manage Passkey" %>
 
-<div class="flex flex-col items-center justify-center min-h-[60vh]">
-  <div class="w-full max-w-md p-8 bg-white dark:bg-zinc-900 rounded-3xl shadow-xl">
-    <h1 class="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">Passkey Settings</h1>
-    <p class="text-sm text-zinc-500 mb-6">Domain: <code class="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded"><%= @current_host %></code></p>
+<%# Colours come from the shared tokens rather than palette steps, so this page follows the theme
+    the visitor chose. It previously paired `bg-white` with `dark:bg-zinc-900`, which resolved
+    against the operating system and ignored an explicit light or dark choice. %>
+<div class="flex min-h-[60vh] flex-col items-center justify-center">
+  <div class="w-full max-w-md rounded-xl border border-line bg-surface p-8 shadow-sm">
+    <h1 class="mb-2 text-2xl font-bold text-fg">Passkey Settings</h1>
+    <p class="mb-6 text-sm text-fg-muted">Domain: <code class="rounded bg-surface-muted px-2 py-1"><%= @current_host %></code></p>
 
-    <div id="passkey-status" class="mb-6">
+    <div id="passkey-status" class="mb-6 flex flex-col gap-2">
       <% if @passkey_exists %>
-        <p class="text-green-600 dark:text-green-400 mb-2">✅ Passkey is registered.</p>
-        <button id="register-btn" data-update="true" class="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors">
+        <%# The tick is decorative; "registered" is carried by the sentence, not by the glyph or
+            by colour alone. %>
+        <p class="text-sm text-fg"><span aria-hidden="true">✅</span> Passkey is registered.</p>
+        <button id="register-btn" data-update="true" class="w-full rounded-md bg-accent px-6 py-3 font-medium text-accent-fg transition-colors hover:bg-accent-hover">
           Update Passkey (Replace)
         </button>
-        <button id="delete-btn" class="w-full mt-2 py-3 px-6 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 font-bold rounded-xl transition-colors">
+        <button id="delete-btn" class="w-full rounded-md bg-danger px-6 py-3 font-medium text-danger-fg transition-colors hover:bg-danger-hover">
           Remove Passkey
         </button>
       <% else %>
-        <p class="text-zinc-500 dark:text-zinc-400 mb-2">No passkey registered.</p>
-        <button id="register-btn" data-update="false" class="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors">
+        <p class="text-sm text-fg-muted">No passkey registered.</p>
+        <button id="register-btn" data-update="false" class="w-full rounded-md bg-accent px-6 py-3 font-medium text-accent-fg transition-colors hover:bg-accent-hover">
           Register Passkey
         </button>
       <% end %>
     </div>
 
-    <div id="message" class="text-sm font-mono mt-4 hidden"></div>
+    <%# The `hidden` attribute, not the `hidden` utility: the script clears it by setting the
+        property, and a class would keep `display:none` applied after that. `role="status"`
+        means the outcome is announced rather than only shown. %>
+    <div id="message" hidden role="status" class="mt-4 font-mono text-sm"></div>
   </div>
 </div>
 
@@ -31,8 +39,10 @@
     const msg = document.getElementById('message');
     if (msg) {
       msg.textContent = text;
-      msg.className = `text-sm font-mono mt-4 block ${isError ? 'text-red-500' : 'text-zinc-500'}`;
-      msg.style.display = 'block';
+      // Tokens rather than palette steps, and `hidden` rather than an inline style, so the
+      // message follows the chosen theme and the policy never sees a style attribute.
+      msg.className = `mt-4 font-mono text-sm ${isError ? 'text-danger' : 'text-fg-muted'}`;
+      msg.hidden = false;
     }
   }
 

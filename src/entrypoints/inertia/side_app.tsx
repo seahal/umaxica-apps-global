@@ -1,26 +1,7 @@
 // Inertia application for the side/app FQDN. It resolves pages from src/pages/side/app only.
-import { createInertiaApp } from "@inertiajs/react";
+import { bootSurfaceInertiaApp } from "@/inertia/surface";
 
-import {
-  cspNonce,
-  reportInertiaBootFailure,
-  surfaceInertiaDefaults,
-  surfacePageResolver,
-} from "@/inertia/surface";
-import SurfaceLayout from "@/layouts/SurfaceLayout";
-
-void createInertiaApp({
-  resolve: surfacePageResolver(
-    import.meta.glob("../../pages/side/app/**/*.tsx", { eager: true }),
-    "side/app",
-    SurfaceLayout,
-  ),
-
-  // Inertia builds its progress bar as a runtime <style>; without the nonce the policy
-  // refuses it.
-  nonce: cspNonce(),
-
-  strictMode: true,
-
-  defaults: surfaceInertiaDefaults,
-}).catch(reportInertiaBootFailure);
+void bootSurfaceInertiaApp(
+  import.meta.glob("../../pages/side/app/**/*.tsx", { eager: true }),
+  "side/app",
+);

@@ -22,7 +22,7 @@ export default function TelephoneEdit({
 
   // The submission is held back until the actor accepts, then replayed with `submit()`, which
   // sends the same document DELETE without running this handler again.
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     confirm(

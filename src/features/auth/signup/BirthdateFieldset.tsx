@@ -26,8 +26,7 @@ export default function BirthdateFieldset({
   parts,
 }: BirthdateFieldsetProps) {
   return (
-    <div
-      role="group"
+    <fieldset
       aria-labelledby={labelledby}
       data-birthdate-format={format}
     >
@@ -52,6 +51,6 @@ export default function BirthdateFieldset({
           </label>
         </span>
       ))}
-    </div>
+    </fieldset>
   );
 }

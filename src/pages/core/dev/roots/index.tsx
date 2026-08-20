@@ -1,4 +1,2 @@
-// The core/dev host serves one page: the React Aria probe used to verify that the component
-// library renders under this surface's build. The probe is a named export, so it is adapted to the
-// default export an Inertia page resolves to.
-export { ReactAriaProbe as default } from "@/features/react_aria_probe/ReactAriaProbe";
+// The dev surface's root page: the shared UI primitives, rendered for visual checking.
+export { UiGallery as default } from "@/features/ui_gallery/UiGallery";

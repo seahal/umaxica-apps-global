@@ -49,7 +49,7 @@ function RevokeButton({ action }: { action: SessionAction }) {
 
   // The confirmation is asynchronous now, so the submission is held back and replayed with
   // `submit()`, which sends the same document POST without running this handler again.
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     confirm({ message: action.confirm, confirmLabel: action.label }, () => form.submit());

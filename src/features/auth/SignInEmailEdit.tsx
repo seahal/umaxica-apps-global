@@ -44,7 +44,7 @@ export default function SignInEmailEdit({
   });
   const error = readString(form.errors, "pass_code");
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     form.patch(action);
   };

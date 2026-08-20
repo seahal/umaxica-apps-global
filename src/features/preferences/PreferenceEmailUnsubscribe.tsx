@@ -28,7 +28,7 @@ export default function PreferenceEmailUnsubscribe({
 }: PreferenceEmailUnsubscribeProps) {
   const [challenge, setChallenge] = useState("");
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!form) {
       return;

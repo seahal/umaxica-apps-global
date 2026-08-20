@@ -25,12 +25,20 @@ module Core
 
           def actor_payload
             {
-              id: current_resource.public_id.presence || current_resource.id.to_s,
+              id: actor_public_id,
               display_name: current_resource.try(:display_name).presence ||
                 current_resource.try(:name).presence ||
-                current_resource.try(:public_id).presence ||
-                current_resource.id.to_s,
+                actor_public_id,
             }
+          end
+
+          # `public_id` is `null: false, default: ""`, so a record written around the model layer can
+          # carry a blank one. The previous fallback answered that case with the database primary
+          # key, putting an internal identifier on the public wire. Failing loudly is correct: a
+          # blank `public_id` is a data-integrity fault, not a display problem.
+          def actor_public_id
+            current_resource.public_id.presence ||
+              raise(BlankPublicIdentifierError.new(record_class: current_resource.class))
           end
         end
       end

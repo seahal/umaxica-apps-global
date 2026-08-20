@@ -1,14 +1,21 @@
+import type { router as inertiaRouter } from "@inertiajs/react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { acceptConfirmation, confirmationButtons } from "../../support/confirmation";
+import { present } from "../../support/present";
+import { finishVisit, startVisit } from "../../support/visit";
+
 // Unlike the static markup spec, these tests mount the components and fire real DOM events, which
 // is the only way to reach the submit handlers, the confirmation branches and the verb each form
 // chooses.
-const get = vi.fn();
-const post = vi.fn();
-const patch = vi.fn();
-const destroy = vi.fn();
+// Typed from the adapter's own signatures, so an assertion on a recorded call is checked against
+// the arguments Inertia actually passes rather than against `any`.
+const get = vi.fn<typeof inertiaRouter.get>();
+const post = vi.fn<typeof inertiaRouter.post>();
+const patch = vi.fn<typeof inertiaRouter.patch>();
+const destroy = vi.fn<typeof inertiaRouter.delete>();
 
 vi.mock("@inertiajs/react", () => ({
   Link: ({ href, children }: { href: string; children: React.ReactNode }) => (
@@ -66,7 +73,7 @@ const mount = (element: React.ReactElement) => {
 };
 
 const submitForm = (index = 0) => {
-  const form = container.querySelectorAll("form")[index];
+  const form = present(container.querySelectorAll("form")[index], `form ${index}`);
   act(() => {
     form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   });
@@ -81,16 +88,6 @@ const click = (selector: string) => {
 
 // The confirmation is a rendered dialog now, so accepting it is a click on its confirm button
 // rather than a stubbed `window.confirm`.
-const confirmationButtons = () => [
-  ...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? []),
-];
-
-const acceptConfirmation = () => {
-  const [, button] = confirmationButtons();
-  act(() => {
-    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-  });
-};
 
 const declineConfirmation = () => {
   const [button] = confirmationButtons();
@@ -153,13 +150,13 @@ describe("DestructiveButton", () => {
     submitForm();
     acceptConfirmation();
 
-    const [[, options]] = destroy.mock.calls;
+    const [, options] = present(destroy.mock.calls[0], "the first router.delete call");
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     expect(container.querySelector("button")?.disabled).toBe(true);
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
     expect(container.querySelector("button")?.disabled).toBe(false);
   });
@@ -212,12 +209,12 @@ describe("SessionsIndex", () => {
     submitForm(0);
     acceptConfirmation();
 
-    const [[, options]] = destroy.mock.calls;
+    const [, options] = present(destroy.mock.calls[0], "the first router.delete call");
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
     expect(destroy).toHaveBeenCalledWith("/identity/other_sessions", expect.objectContaining({}));
   });
@@ -255,12 +252,12 @@ describe("SecretCredentialsIndex", () => {
       "/identity/secrets/s1",
       expect.objectContaining({ data: { "cf-turnstile-response": "turnstile-token" } }),
     );
-    const [[, options]] = destroy.mock.calls;
+    const [, options] = present(destroy.mock.calls[0], "the first router.delete call");
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
   });
 
@@ -311,12 +308,12 @@ describe("SecretCredentialForm", () => {
       },
       expect.objectContaining({}),
     );
-    const [[, , options]] = post.mock.calls;
+    const [, , options] = present(post.mock.calls[0], "the first router.post call");
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
   });
 
@@ -371,12 +368,12 @@ describe("EmailEdit", () => {
       },
       expect.objectContaining({}),
     );
-    const [[, , options]] = patch.mock.calls;
+    const [, , options] = present(patch.mock.calls[0], "the first router.patch call");
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
   });
 });
@@ -414,12 +411,12 @@ describe("EmailRegistrationNew", () => {
       },
       expect.objectContaining({}),
     );
-    const [[, , options]] = post.mock.calls;
+    const [, , options] = present(post.mock.calls[0], "the first router.post call");
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
   });
 });
@@ -456,12 +453,12 @@ describe("OtpCodeForm", () => {
       },
       expect.objectContaining({}),
     );
-    const [[, , options]] = patch.mock.calls;
+    const [, , options] = present(patch.mock.calls[0], "the first router.patch call");
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
   });
 
@@ -516,12 +513,12 @@ describe("TelephoneRegistrationNew", () => {
       },
       expect.objectContaining({}),
     );
-    const [[, , options]] = post.mock.calls;
+    const [, , options] = present(post.mock.calls[0], "the first router.post call");
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
   });
 });
@@ -553,12 +550,12 @@ describe("OtpReentryNew", () => {
       { recovery_reentry: { address: "person@example.com" } },
       expect.objectContaining({}),
     );
-    const [[, , options]] = post.mock.calls;
+    const [, , options] = present(post.mock.calls[0], "the first router.post call");
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
   });
 
@@ -607,12 +604,12 @@ describe("PrivacyErasureNew", () => {
       { jurisdiction: "unknown" },
       expect.objectContaining({}),
     );
-    const [[, , options]] = post.mock.calls;
+    const [, , options] = present(post.mock.calls[0], "the first router.post call");
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
   });
 });
@@ -649,12 +646,12 @@ describe("EnforcementRecoveryShow", () => {
       { enforcement_case_id: "c1" },
       expect.objectContaining({}),
     );
-    const [[, , restoreOptions]] = post.mock.calls;
+    const [, , restoreOptions] = present(post.mock.calls[0], "the first router.post call");
     act(() => {
-      restoreOptions.onStart();
+      startVisit(restoreOptions);
     });
     act(() => {
-      restoreOptions.onFinish();
+      finishVisit(restoreOptions);
     });
 
     submitForm(1);
@@ -665,12 +662,12 @@ describe("EnforcementRecoveryShow", () => {
       },
       expect.objectContaining({}),
     );
-    const [, [, , appealOptions]] = post.mock.calls;
+    const [, , appealOptions] = present(post.mock.calls[1], "the second router.post call");
     act(() => {
-      appealOptions.onStart();
+      startVisit(appealOptions);
     });
     act(() => {
-      appealOptions.onFinish();
+      finishVisit(appealOptions);
     });
   });
 
@@ -750,12 +747,12 @@ describe("WithdrawalNew", () => {
       { ack_schedule_purge: "1" },
       expect.objectContaining({}),
     );
-    const [[, , options]] = get.mock.calls;
+    const [, , options] = present(get.mock.calls[0], "the first router.get call");
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
   });
 
@@ -807,23 +804,23 @@ describe("WithdrawalEdit", () => {
     submitForm(0);
     acceptConfirmation();
     expect(post).toHaveBeenCalledWith("/identity/withdrawal", {}, expect.objectContaining({}));
-    const [[, , postOptions]] = post.mock.calls;
+    const [, , postOptions] = present(post.mock.calls[0], "the first router.post call");
     act(() => {
-      postOptions.onStart();
+      startVisit(postOptions);
     });
     act(() => {
-      postOptions.onFinish();
+      finishVisit(postOptions);
     });
 
     submitForm(1);
     acceptConfirmation();
     expect(destroy).toHaveBeenCalledWith("/identity/withdrawal", expect.objectContaining({}));
-    const [[, deleteOptions]] = destroy.mock.calls;
+    const [, deleteOptions] = present(destroy.mock.calls[0], "the first router.delete call");
     act(() => {
-      deleteOptions.onStart();
+      startVisit(deleteOptions);
     });
     act(() => {
-      deleteOptions.onFinish();
+      finishVisit(deleteOptions);
     });
   });
 

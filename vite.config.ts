@@ -11,15 +11,8 @@ const srcRoot = fileURLToPath(new URL("./src", import.meta.url));
 export default defineConfig({
   plugins: [RubyPlugin(), tailwindcss(), inertia(), react()],
   resolve: {
-    alias: {
-      "@": srcRoot,
-      "@components": fileURLToPath(new URL("./src/components", import.meta.url)),
-      "@controllers": fileURLToPath(new URL("./src/controllers", import.meta.url)),
-      "@entrypoints": fileURLToPath(new URL("./src/entrypoints", import.meta.url)),
-      "@styles": fileURLToPath(new URL("./src/styles", import.meta.url)),
-      "react-aria-components": fileURLToPath(
-        new URL("./src/vendor/react-aria-components.tsx", import.meta.url),
-      ),
-    },
+    // One alias, matching `paths` in tsconfig.app.json. Every additional alias is a second
+    // spelling for a path TypeScript and Vite must both agree on, so they are kept to one.
+    alias: { "@": srcRoot },
   },
 });

@@ -65,7 +65,7 @@ module Auth
         scope: "auth_org_default_web",
         name: "default_web",
         store: rate_limit_store,
-        with: -> { render_rate_limited(rule_name: "auth_org_default_web", retry_after: 60) },
+        with: -> { render_rate_limited(retry_after: 60) },
       )
       before_action :set_current_context
       before_action :reset_flash

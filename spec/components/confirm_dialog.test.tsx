@@ -1,49 +1,21 @@
-import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 // The shared confirmation the destructive actions go through. Every string it shows is a prop, so
 // these tests assert the copy travels through untouched and that the action fires only on accept.
-const { ConfirmDialog, useConfirm } = await import("@/components/ConfirmDialog");
-
-let container: HTMLDivElement | undefined;
-let root: Root | undefined;
-
-const mount = (element: React.ReactElement) => {
-  container = document.createElement("div");
-  document.body.append(container);
-  const created = createRoot(container);
-  root = created;
-  act(() => {
-    created.render(element);
-  });
-};
-
-const dialogButtons = () => [
-  ...(container?.querySelector("dialog[open]")?.querySelectorAll("button") ?? []),
-];
-
-const click = (element: Element | undefined) => {
-  act(() => {
-    element?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-  });
-};
-
-afterEach(() => {
-  if (root) {
-    act(() => {
-      root?.unmount();
-    });
-    container?.remove();
-    root = undefined;
-    container = undefined;
-  }
-});
+//
+// The dialog is a React Aria `Modal`, so the assertions below are about behaviour a visitor can
+// observe — what is announced, where focus sits, what Escape does — rather than about which element
+// it renders. That is the point of the migration: the previous native `<dialog>` had no focus trap
+// and no Escape under jsdom, so those properties could not be tested at all.
+const { useConfirm } = await import("@/components/ConfirmDialog");
 
 const accepted = vi.fn();
 
-function Subject({ cancelLabel }: { cancelLabel?: string }) {
+// `| undefined` is explicit because the harness forwards its own optional argument straight
+// through, and under exactOptionalPropertyTypes a bare `cancelLabel?: string` would refuse that.
+function Subject({ cancelLabel }: { cancelLabel?: string | undefined }) {
   const { confirm, dialog } = useConfirm();
 
   return (
@@ -52,8 +24,16 @@ function Subject({ cancelLabel }: { cancelLabel?: string }) {
         type="button"
         onClick={() =>
           confirm(
-            { message: "セッションを失効しますか？", confirmLabel: "失効", cancelLabel },
-            () => accepted(),
+            {
+              message: "セッションを失効しますか？",
+              confirmLabel: "失効",
+              // Omitted rather than passed as undefined, which is what a screen whose props
+              // carry no decline label actually sends.
+              ...(cancelLabel === undefined ? {} : { cancelLabel }),
+            },
+            () => {
+              accepted();
+            },
           )
         }
       >
@@ -64,88 +44,92 @@ function Subject({ cancelLabel }: { cancelLabel?: string }) {
   );
 }
 
-describe("ConfirmDialog markup", () => {
-  it("renders nothing until a confirmation is pending", () => {
-    const markup = renderToStaticMarkup(
-      <ConfirmDialog
-        pending={null}
-        onDismiss={() => undefined}
-      />,
-    );
+const openDialog = async (cancelLabel?: string) => {
+  const user = userEvent.setup();
+  render(<Subject cancelLabel={cancelLabel} />);
+  await user.click(screen.getByRole("button", { name: "revoke" }));
+  return user;
+};
 
-    expect(markup).toContain("<dialog");
-    expect(markup).not.toContain("<button");
+describe("ConfirmDialog", () => {
+  it("stays closed until a confirmation is pending", () => {
+    render(<Subject />);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("labels itself with the server's confirmation copy", () => {
-    const markup = renderToStaticMarkup(
-      <ConfirmDialog
-        pending={{ message: "本当に削除しますか？", confirmLabel: "削除", accept: () => undefined }}
-        onDismiss={() => undefined}
-      />,
-    );
+  it("is named by the server's confirmation copy", async () => {
+    await openDialog();
 
-    expect(markup).toContain("本当に削除しますか？");
-    expect(markup).toContain("削除");
-    expect(markup).toMatch(/aria-labelledby="[^"]+"/);
+    expect(screen.getByRole("dialog", { name: "セッションを失効しますか？" })).toBeTruthy();
   });
-});
 
-describe("useConfirm", () => {
-  afterEach(() => {
+  it("runs the action only once the actor accepts", async () => {
+    const user = await openDialog();
     accepted.mockClear();
-  });
 
-  it("runs the action only once the actor accepts", () => {
-    mount(<Subject />);
+    await user.click(screen.getByRole("button", { name: "失効" }));
 
-    click(container?.querySelector("button") ?? undefined);
-    expect(container?.querySelector("dialog[open]")?.textContent).toContain(
-      "セッションを失効しますか？",
-    );
-
-    click(dialogButtons()[1]);
     expect(accepted).toHaveBeenCalledTimes(1);
-    expect(container?.querySelector("dialog[open]")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("runs nothing when the actor declines", () => {
-    mount(<Subject />);
+  it("runs nothing when the actor declines", async () => {
+    const user = await openDialog("やめる");
+    accepted.mockClear();
 
-    click(container?.querySelector("button") ?? undefined);
-    click(dialogButtons()[0]);
+    await user.click(screen.getByRole("button", { name: "やめる" }));
 
     expect(accepted).not.toHaveBeenCalled();
-    expect(container?.querySelector("dialog[open]")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("closes on Escape without running the action", () => {
-    mount(<Subject />);
+  it("closes on Escape without running the action", async () => {
+    const user = await openDialog();
+    accepted.mockClear();
 
-    click(container?.querySelector("button") ?? undefined);
-    const dialog = container?.querySelector("dialog");
-    act(() => {
-      dialog?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    });
+    await user.keyboard("{Escape}");
 
     expect(accepted).not.toHaveBeenCalled();
-    expect(container?.querySelector("dialog[open]")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("shows the server's decline label when the screen carries one", () => {
-    mount(<Subject cancelLabel="やめる" />);
+  it("shows the server's decline label when the screen carries one", async () => {
+    await openDialog("やめる");
 
-    click(container?.querySelector("button") ?? undefined);
-
-    expect(dialogButtons()[0]?.textContent).toBe("やめる");
-    expect(dialogButtons()[1]?.textContent).toBe("失効");
+    expect(screen.getByRole("button", { name: "やめる" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "失効" })).toBeTruthy();
   });
 
-  it("focuses the decline control, which is the safe answer", () => {
-    mount(<Subject cancelLabel="やめる" />);
+  it("moves focus into the dialog, onto declining, which is the safe answer", async () => {
+    await openDialog("やめる");
 
-    click(container?.querySelector("button") ?? undefined);
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "やめる" }));
+  });
 
-    expect(document.activeElement).toBe(dialogButtons()[0]);
+  it("keeps Tab inside the dialog", async () => {
+    const user = await openDialog("やめる");
+    const decline = screen.getByRole("button", { name: "やめる" });
+    const confirm = screen.getByRole("button", { name: "失効" });
+
+    await user.tab();
+    expect(document.activeElement).toBe(confirm);
+
+    // The trap is the property the native <dialog> fallback never had: tabbing past the last
+    // control returns to the first rather than escaping to the page behind.
+    await user.tab();
+    expect(document.activeElement).toBe(decline);
+  });
+
+  it("hides the page behind it from assistive technology", async () => {
+    await openDialog();
+
+    // Queried through the DOM rather than by role: the trigger is deliberately no longer in the
+    // accessibility tree, which is the property under test.
+    const trigger = document.querySelector("button");
+
+    expect(trigger?.textContent).toBe("revoke");
+    expect(trigger?.closest("[aria-hidden='true']")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "revoke" })).toBeNull();
   });
 });

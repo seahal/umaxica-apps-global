@@ -11,8 +11,6 @@ module Info
 
       AUTHENTICATION_MODE = :bare
 
-      allow_browser versions: :modern
-
       protect_from_forgery using: :header_or_legacy_token, with: :exception
     end
   end

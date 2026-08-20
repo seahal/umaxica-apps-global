@@ -79,7 +79,7 @@ jobs:
             exit 1
           fi
   security:
-    name: Security Checks (Brakeman, Bundle Audit)
+    name: Security Checks (Brakeman)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -104,8 +104,6 @@ jobs:
           sarif_file: brakeman.sarif
           category: brakeman
         continue-on-error: true
-      - name: Run bundle-audit
-        run: bin/bundler-audit check --update
   gitleaks:
     name: Secret Leaks Detection
     runs-on: ubuntu-slim
@@ -478,3 +476,86 @@ jobs:
           path: coverage/vite/
           retention-days: 30
           compression-level: 6
+  scan-gems:
+    name: Dependency Scan (Gemfile.lock)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          cache-version: 1
+      - name: Scan Gemfile.lock for known gem vulnerabilities
+        run: bin/bundler-audit check --update --format json --output bundler-audit.json
+      - name: Summarize advisories by criticality
+        if: always() && hashFiles('bundler-audit.json') != ''
+        run: |
+          jq -r '
+            [.results[]? | .advisory.criticality // "unknown"]
+            | group_by(.)
+            | map("\(.[0]): \(length)")
+            | if length == 0 then ["no advisories"] else . end
+            | .[]
+          ' bundler-audit.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Upload bundler-audit report
+        if: always() && hashFiles('bundler-audit.json') != ''
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: bundler-audit-report-${{ github.sha }}
+          path: bundler-audit.json
+          retention-days: 30
+  scan-npm:
+    name: Dependency Scan (pnpm-lock.yaml)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Scan JavaScript dependencies for known vulnerabilities
+        run: |
+          # pnpm audit exits non-zero on findings; gate on the parsed report instead.
+          pnpm audit --json > pnpm-audit.json || true
+          if ! jq -e '.metadata.vulnerabilities | type == "object"' pnpm-audit.json >/dev/null; then
+            echo "::error::pnpm audit did not produce a usable report:"
+            cat pnpm-audit.json
+            exit 1
+          fi
+          jq -r '
+            .metadata.vulnerabilities
+            | to_entries
+            | map("\(.key): \(.value)")
+            | .[]
+          ' pnpm-audit.json | tee -a "$GITHUB_STEP_SUMMARY"
+          # Fail when a vulnerability is moderate severity or higher.
+          jq -e '
+            [ .metadata.vulnerabilities.critical // 0,
+              .metadata.vulnerabilities.high // 0,
+              .metadata.vulnerabilities.moderate // 0
+            ] | any(. > 0) | not
+          ' pnpm-audit.json > /dev/null
+      - name: Upload pnpm audit report
+        if: always() && hashFiles('pnpm-audit.json') != ''
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: pnpm-audit-report-${{ github.sha }}
+          path: pnpm-audit.json
+          retention-days: 30

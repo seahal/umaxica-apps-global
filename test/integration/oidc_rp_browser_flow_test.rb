@@ -722,7 +722,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
     get "/oidc/callback", params: { code: "code", state: "wrong" }, headers: browser_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
   end
 
   test "callback rejects nonce mismatch" do

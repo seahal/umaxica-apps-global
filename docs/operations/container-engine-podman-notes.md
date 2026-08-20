@@ -2,36 +2,52 @@
 
 ## Compose provider for the Dev Container
 
-Start the Dev Container with `podman/tools/dcup`. `podman compose` delegates
-to an external provider and prefers `docker-compose` when both providers are
-installed. Docker Compose reports `unsupported external secret` for this stack
-because it cannot attach external Podman secrets through the Podman API. The
-repository launcher therefore passes `/usr/bin/podman-compose` directly to the
-Dev Containers CLI and registers local service secrets first.
+VS Code is the primary entry point. Complete the one-time Podman user settings
+in [VS Code Dev Containers on Rootless
+Podman](devcontainer-cli-podman-startup.md), then run **Dev Containers: Rebuild
+and Reopen in Container**.
+
+For diagnostics or automation, use the equivalent standard CLI command from
+the repository root:
+
+```sh
+PODMAN_COMPOSE_PROVIDER=/usr/bin/podman-compose \
+devcontainer up \
+  --docker-path /usr/bin/podman \
+  --docker-compose-path /usr/bin/podman-compose \
+  --workspace-folder .
+```
+
+`PODMAN_COMPOSE_PROVIDER` is not optional. Once `--docker-path` points at
+Podman, the Dev Containers CLI invokes the `podman compose` subcommand, and
+`podman compose` delegates to an external provider that prefers `docker-compose`
+when one is installed. Docker Compose reports `unsupported external secret` for
+this stack because it cannot attach external Podman secrets through the Podman
+API, and on a host with no running Docker daemon it fails earlier still, against
+a missing `podman.sock`. The variable is what pins the provider;
+`--docker-compose-path` alone does not, because the subcommand form does not
+consult it.
 
 This is a security requirement. Do not replace external Podman secrets with
 host credential bind mounts or Compose `file:` secrets. The Dev Container
-`initializeCommand` also registers the internal service secrets. This
-repository supports the Dev Containers CLI workflow; start it through the
-repository launcher:
+`initializeCommand` registers the internal service secrets through
+`bin/setup-dev-secrets` before the container starts.
 
-```bash
-podman/tools/dcup
-```
+`--docker-path` is equally required. Without it the Dev Containers CLI runs
+lifecycle queries such as `docker ps` through its default Docker executable,
+which on a host that also has Docker installed silently drives the wrong engine.
+Neither the flags nor the variable have a `devcontainer.json` equivalent, so
+none of them can be moved into repository configuration.
 
-The launcher supplies both `--docker-path /usr/bin/podman` and
-`--docker-compose-path /usr/bin/podman-compose`. Both are required: selecting
-only the Compose provider still leaves the Dev Containers CLI running lifecycle
-queries such as `docker ps` through its default Docker executable.
-These executable paths are intentionally fixed rather than configurable through
-ambient environment variables. This Podman-only entry point must not silently
-fall back to Docker Compose, which cannot attach the external Podman secrets.
+There is intentionally no repository launcher. VS Code invokes the standard
+Dev Containers CLI, keeping one lifecycle instead of adding a project-specific
+bootstrap interface. The remaining Podman-specific properties live in Compose
+configuration.
 
 If an interrupted start leaves `global-devcontainer-core` in Created or Exited
-state, the launcher removes only that stopped container by its stable Compose
-name before invoking the CLI. This prevents the CLI from adding
-`compose up --no-recreate` and reusing stale health-check configuration. A
-running core, other service containers, and all named volumes are preserved.
+state, use **Dev Containers: Rebuild and Reopen in Container**. The CLI
+equivalent is the same `devcontainer up` command with
+`--remove-existing-container`.
 
 Compose networks are repository-managed rootless Podman networks. In
 particular, `outer.external` is a YAML boolean and is not environment-variable
@@ -39,8 +55,8 @@ interpolated. Interpolation turns this field into a string; affected
 podman-compose releases then fail in network argument construction with
 `AttributeError: 'str' object has no attribute 'get'`.
 
-The launcher and `bin/setup-dev-secrets` report secret names and state only;
-they never print secret values.
+`bin/setup-dev-secrets` reports secret names and state only; it never prints
+secret values.
 
 The compose stack at `compose.yaml` is exercised with rootless Podman. Some
 Compose-compatible tooling remains useful for static validation, but it is not

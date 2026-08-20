@@ -1,19 +1,28 @@
+import type { router as inertiaRouter } from "@inertiajs/react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { A_FUNCTION, containing } from "../../support/matchers";
+import { present } from "../../support/present";
+import { finishVisit, startVisit } from "../../support/visit";
+
 // Unlike preference_screens.test.tsx (static markup only), these tests mount the components and
 // fire real DOM events to exercise the onChange/onSubmit handlers - the branches static rendering
 // cannot reach.
-const patch = vi.fn();
-const deleteRequest = vi.fn();
+// Typed from the adapter's own signatures, so an assertion on a recorded call is checked against
+// the arguments Inertia actually passes rather than against `any`.
+const patch = vi.fn<typeof inertiaRouter.patch>();
+const deleteRequest = vi.fn<typeof inertiaRouter.delete>();
 
 vi.mock("@inertiajs/react", () => ({
   Link: ({ href, children }: { href: string; children: React.ReactNode }) => (
     <a href={href}>{children}</a>
   ),
   router: { patch, delete: deleteRequest },
-  usePage: () => ({ props: {} }),
+  // The server runs with `always_include_errors_hash`, so `errors` is present on every response;
+  // a mock that omits it would let a component read `undefined` that production never sees.
+  usePage: () => ({ props: { errors: {} } }),
 }));
 
 const { default: PreferenceSelect } = await import("@/features/preferences/PreferenceSelect");
@@ -87,18 +96,18 @@ describe("PreferenceSelect interaction", () => {
     expect(patch).toHaveBeenCalledWith(
       "/preference/region?ri=jp",
       { preference_region: { option_id: "1" } },
-      expect.objectContaining({ onStart: expect.any(Function), onFinish: expect.any(Function) }),
+      containing({ onStart: A_FUNCTION, onFinish: A_FUNCTION }),
     );
 
-    const [[, , options]] = patch.mock.calls;
+    const [, , options] = present(patch.mock.calls[0], "the first router.patch call");
 
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     expect(container.querySelector("button")?.textContent).toBe("送信中");
 
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
     expect(container.querySelector("button")?.textContent).toBe("更新");
   });
@@ -142,18 +151,18 @@ describe("PreferenceCookie interaction", () => {
     expect(patch).toHaveBeenCalledWith(
       "/preference/cookie?ri=jp",
       { preference_cookie: { functional: true } },
-      expect.objectContaining({ onStart: expect.any(Function), onFinish: expect.any(Function) }),
+      containing({ onStart: A_FUNCTION, onFinish: A_FUNCTION }),
     );
 
-    const [[, , options]] = patch.mock.calls;
+    const [, , options] = present(patch.mock.calls[0], "the first router.patch call");
 
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     expect(container.querySelector("button")?.textContent).toBe("送信中");
 
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
     expect(container.querySelector("button")?.textContent).toBe("更新");
   });
@@ -194,22 +203,22 @@ describe("PreferenceCustomization interaction", () => {
 
     expect(deleteRequest).toHaveBeenCalledWith(
       "/preference/customization?ri=jp",
-      expect.objectContaining({
+      containing({
         data: { confirm_reset: "1" },
-        onStart: expect.any(Function),
-        onFinish: expect.any(Function),
+        onStart: A_FUNCTION,
+        onFinish: A_FUNCTION,
       }),
     );
 
-    const [[, options]] = deleteRequest.mock.calls;
+    const [, options] = present(deleteRequest.mock.calls[0], "the first router.delete call");
 
     act(() => {
-      options.onStart();
+      startVisit(options);
     });
     expect(container.querySelector("button")?.textContent).toBe("送信中");
 
     act(() => {
-      options.onFinish();
+      finishVisit(options);
     });
     expect(container.querySelector("button")?.textContent).toBe("リセット");
   });

@@ -52,12 +52,28 @@ class ViteEntrypointContractTest < ActiveSupport::TestCase
 
       assert_includes contents, "import.meta.glob(\"../../pages/#{family}/#{surface}/**/*.tsx\"",
                       "#{source} must resolve pages from src/pages/#{family}/#{surface} only"
-      assert_includes contents, "surfacePageResolver(",
-                      "#{source} must resolve pages through the surface resolver"
+      assert_includes contents, "bootSurfaceInertiaApp(",
+                      "#{source} must boot through the shared surface application"
       assert_includes contents, "\"#{family}/#{surface}\",",
                       "#{source} must reject page names from other surfaces"
       assert_path_exists PAGE_ROOT.join(family, surface)
     end
+  end
+
+  # The entrypoints hand their glob and their surface name to one shared boot function, so the
+  # resolver that refuses another surface's page name is asserted where it now lives. Without this
+  # the check above would pass for a boot function that ignored the surface it was given.
+  test "the shared surface application resolves pages through the surface resolver" do
+    source = Rails.root.join("src/inertia/surface.ts")
+
+    assert_path_exists source
+
+    contents = source.read
+
+    assert_includes contents, "export function bootSurfaceInertiaApp(",
+                    "#{source} must expose the shared boot function the entrypoints call"
+    assert_includes contents, "surfacePageResolver(modules, surface, SurfaceLayout)",
+                    "#{source} must resolve pages through the surface resolver"
   end
 
   # The base family typography is not a surface of its own: it is imported by the three base surface

@@ -37,7 +37,7 @@ module Auth
             store: rate_limit_store,
             only: :create,
             with: -> {
-              render_rate_limited(rule_name: "auth_app_sign_in_secret_credential_create_ip_burst", retry_after: 60)
+              render_rate_limited(retry_after: 60)
             },
           )
           rate_limit(
@@ -49,7 +49,7 @@ module Auth
             store: rate_limit_store,
             only: :create,
             with: -> {
-              render_rate_limited(rule_name: "auth_app_sign_in_secret_credential_create_ip_sustained", retry_after: 900)
+              render_rate_limited(retry_after: 900)
             },
           )
           # Per-account limit for the second-factor path. The two rules above are
@@ -68,7 +68,7 @@ module Auth
             store: rate_limit_store,
             only: :create,
             with: -> {
-              render_rate_limited(rule_name: "auth_app_sign_in_secret_credential_create_account", retry_after: 900)
+              render_rate_limited(retry_after: 900)
             },
           )
           rate_limit(
@@ -86,10 +86,7 @@ module Auth
             only: :create,
             unless: -> { pending_mfa_valid? },
             with: -> {
-              render_rate_limited(
-                rule_name: "auth_app_sign_in_secret_credential_create_identifier",
-                retry_after: 900,
-              )
+              render_rate_limited(retry_after: 900)
             },
           )
           before_action :start_minimum_response_budget
@@ -454,14 +451,14 @@ module Auth
 
             SignRiskEmitter.emit("auth_failed", user_id: user&.id) if user
 
-            render_new_with_unprocessable_entity
+            render_new_with_unprocessable_content
           end
 
           def minimum_response_budget_enabled?
             action_name == "create"
           end
 
-          def render_new_with_unprocessable_entity
+          def render_new_with_unprocessable_content
             render_secret_new(status: :unprocessable_content)
           end
 

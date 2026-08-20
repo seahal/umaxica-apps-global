@@ -40,12 +40,12 @@ export default function SignOutConfirmation({
   const confirmation = useForm({ logout_challenge: form.logout_challenge ?? "" });
   const cancellation = useForm({});
 
-  const submitConfirmation = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitConfirmation = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     confirmation.post(form.action);
   };
 
-  const submitCancellation = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitCancellation = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     cancellation.delete(cancel.action);
   };

@@ -2,6 +2,9 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { answerConfirmation } from "../../../../support/confirmation";
+import { present } from "../../../../support/present";
+
 // These tests mount the screens and dispatch real DOM events, which is the only way to reach the
 // submit and confirm branches: the destructive actions must keep their verb and their confirmation.
 const patch = vi.fn();
@@ -73,12 +76,6 @@ const clickButton = (label: string) => {
 
 // The confirmation is a rendered dialog now: its cancel button is first and its confirm button
 // second, so answering it is a click rather than a stubbed `window.confirm`.
-const answerConfirmation = (accepted: boolean) => {
-  const buttons = [...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? [])];
-  act(() => {
-    buttons[accepted ? 1 : 0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-  });
-};
 
 const turnstile = {
   site_key: "site-key",
@@ -284,11 +281,9 @@ describe("totp settings interaction", () => {
       />,
     );
 
-    const [title, firstToken] = [
-      ...container.querySelectorAll<HTMLInputElement>("input[type=text]"),
-    ];
-    typeInto(title, "iPhone");
-    typeInto(firstToken, "123456");
+    const inputs = [...container.querySelectorAll<HTMLInputElement>("input[type=text]")];
+    typeInto(present(inputs[0], "the title field"), "iPhone");
+    typeInto(present(inputs[1], "the first token field"), "123456");
 
     expect(setData).toHaveBeenCalledWith("title", "iPhone");
     expect(setData).toHaveBeenCalledWith("first_token", "123456");

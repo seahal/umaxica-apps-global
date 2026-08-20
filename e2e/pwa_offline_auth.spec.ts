@@ -11,7 +11,7 @@ import { authSurfaceUrl } from "../playwright.config";
 
 const OFFLINE_HEADING = "ネットワークに接続できません";
 
-const origin = () => authSurfaceUrl().replace(/\/$/, "");
+const origin = () => authSurfaceUrl().replace(/\/$/u, "");
 
 const cachedUrls = (page: import("playwright/test").Page) =>
   page.evaluate(async () => {

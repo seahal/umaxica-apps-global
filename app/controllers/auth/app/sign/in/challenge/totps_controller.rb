@@ -25,7 +25,7 @@ module Auth
               name: "mfa_totp_create_ip_burst",
               store: rate_limit_store,
               only: :create,
-              with: -> { render_rate_limited(rule_name: "auth_app_sign_in_mfa_totp_create_ip_burst", retry_after: 60) },
+              with: -> { render_rate_limited(retry_after: 60) },
             )
             rate_limit(
               to: 20,
@@ -36,7 +36,7 @@ module Auth
               store: rate_limit_store,
               only: :create,
               with: -> {
-                render_rate_limited(rule_name: "auth_app_sign_in_mfa_totp_create_ip_sustained", retry_after: 900)
+                render_rate_limited(retry_after: 900)
               },
             )
             # Per-account limit. The two rules above are keyed by source IP, so a
@@ -55,7 +55,7 @@ module Auth
               store: rate_limit_store,
               only: :create,
               with: -> {
-                render_rate_limited(rule_name: "auth_app_sign_in_mfa_totp_create_account", retry_after: 900)
+                render_rate_limited(retry_after: 900)
               },
             )
 

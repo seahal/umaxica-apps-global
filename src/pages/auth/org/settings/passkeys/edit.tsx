@@ -1,10 +1,10 @@
+import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 // Renaming a registered passkey.
 //
 // The form is a document PATCH so the stealth Turnstile token travels in the same field the server
 // verifies; the server answers a rejected update by re-rendering this page with 422 and the model's
 // error messages, exactly as the ERB form did.
-import { csrfToken } from "@/features/auth/csrf";
-import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
+import { csrfToken } from "@/lib/csrf";
 
 type TurnstileConfiguration = {
   site_key: string;

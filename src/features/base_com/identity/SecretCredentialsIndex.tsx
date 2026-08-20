@@ -43,7 +43,7 @@ function DestroyForm({
   const [processing, setProcessing] = useState(false);
   const { confirm: requestConfirmation, dialog } = useConfirm();
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     requestConfirmation({ message: confirm, confirmLabel: label }, () => {
       router.delete(url, {

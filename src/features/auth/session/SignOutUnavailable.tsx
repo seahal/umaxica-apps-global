@@ -23,7 +23,7 @@ export default function SignOutUnavailable({
 }: SignOutUnavailableProps) {
   const form = useForm({});
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     form.post(retry.action);
   };

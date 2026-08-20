@@ -22,10 +22,7 @@ module Base
           store: rate_limit_store,
           only: :create,
           with: -> {
-            render_rate_limited(
-              rule_name: "base_com_oauth_revoke_revocation_ip",
-              retry_after: 60,
-            )
+            render_rate_limited(retry_after: 60)
           },
         )
 

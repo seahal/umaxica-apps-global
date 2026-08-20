@@ -22,8 +22,8 @@ class ApplicationErrorTest < ActiveSupport::TestCase
   test "specialized application errors expose their status codes" do
     assert_equal :forbidden, AlreadyAuthenticatedError.new.status_code
     assert_equal :unauthorized, NotAuthenticatedError.new.status_code
-    assert_equal :unprocessable_entity, PreferenceOperationError.new.status_code
-    assert_equal :unprocessable_entity, InvalidUserStatusError.new(invalid_status: "inactive").status_code
+    assert_equal :unprocessable_content, PreferenceOperationError.new.status_code
+    assert_equal :unprocessable_content, InvalidUserStatusError.new(invalid_status: "inactive").status_code
   end
 
   test "invalid user status error formats messages for explicit and default cases" do
@@ -56,12 +56,12 @@ class ApplicationErrorTest < ActiveSupport::TestCase
   test "sign and social auth errors initialize with the expected default status codes" do
     I18n.stub(:t, ->(key, **_) { key.to_s }) do
       assert_equal :bad_request, Sign::WithdrawalError.new("errors.messages.not_authorized").status_code
-      assert_equal :unprocessable_entity, Sign::InvalidWithdrawalStateError.new("suspended").status_code
+      assert_equal :unprocessable_content, Sign::InvalidWithdrawalStateError.new("suspended").status_code
       assert_equal :internal_server_error, Sign::WithdrawalDeletionError.new.status_code
-      assert_equal :unprocessable_entity, Sign::WithdrawalRecoveryNotAvailableError.new.status_code
+      assert_equal :unprocessable_content, Sign::WithdrawalRecoveryNotAvailableError.new.status_code
 
       assert_equal :conflict, SocialAuth::ConflictError.new.status_code
-      assert_equal :unprocessable_entity, SocialAuth::LastIdentityError.new.status_code
+      assert_equal :unprocessable_content, SocialAuth::LastIdentityError.new.status_code
       assert_equal :bad_request, SocialAuth::ProviderError.new.status_code
       assert_equal :forbidden, SocialAuth::StepUpRequiredError.new.status_code
       assert_equal :unauthorized, SocialAuth::UnauthorizedError.new.status_code

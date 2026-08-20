@@ -24,7 +24,7 @@ module Auth
               name: "passkey_verification_ip_burst",
               store: rate_limit_store,
               with: -> {
-                render_rate_limited(rule_name: "auth_app_sign_in_passkey_verification_ip_burst", retry_after: 60)
+                render_rate_limited(retry_after: 60)
               },
             )
             rate_limit(
@@ -35,7 +35,7 @@ module Auth
               name: "passkey_verification_ip_sustained",
               store: rate_limit_store,
               with: -> {
-                render_rate_limited(rule_name: "auth_app_sign_in_passkey_verification_ip_sustained", retry_after: 900)
+                render_rate_limited(retry_after: 900)
               },
             )
 

@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { present } from "../../../support/present";
+
 // The ceremony pages submit through `useForm`, which does not exist outside a booted Inertia
 // application, so it is stubbed to an inert form state and the static markup stays assertable.
 vi.mock("@inertiajs/react", () => ({
@@ -93,7 +95,7 @@ describe("sign-in method choice", () => {
 
     expect(markup).toContain('action="/social/google/session?ri=jp"');
     expect(markup).toContain('action="/social/apple/session?ri=jp"');
-    expect(markup.match(/name="authenticity_token"/g)).toHaveLength(3);
+    expect(markup.match(/name="authenticity_token"/gu)).toHaveLength(3);
     expect(markup).toContain('data-turbo="false"');
   });
 
@@ -123,7 +125,9 @@ describe("sign-in method choice", () => {
   it("omits the Apple logo when the deployment does not carry the artwork", () => {
     const withoutLogos = {
       ...props,
-      social_providers: [{ ...props.social_providers[1], logos: null }],
+      social_providers: [
+        { ...present(props.social_providers[1], "the Apple provider fixture"), logos: null },
+      ],
     };
     const markup = renderToStaticMarkup(<SignInMethodChoice {...withoutLogos} />);
 

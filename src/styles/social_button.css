@@ -56,26 +56,23 @@
   width: 180px;
 }
 
-.social-provider-button__art--dark {
-  display: none;
-}
-
-/* Explicit dark theme. */
-.theme-dark .social-provider-button__art--light {
-  display: none;
-}
-
-.theme-dark .social-provider-button__art--dark {
-  display: block;
-}
-
-/* Theme following the operating system. */
-@media (prefers-color-scheme: dark) {
-  .theme-system .social-provider-button__art--light {
+/*
+ * The appearance switch goes through the shared `dark` variant defined in `theme.css`, which
+ * resolves the explicit choice and the operating-system setting together. This file used to spell
+ * that out itself with `.theme-dark` plus a `prefers-color-scheme` block against `.theme-system` —
+ * a third convention, alongside the `.dark` class and the `dark:` utilities, that had to be kept
+ * in step by hand.
+ */
+.social-provider-button__art--light {
+  @variant dark {
     display: none;
   }
+}
 
-  .theme-system .social-provider-button__art--dark {
+.social-provider-button__art--dark {
+  display: none;
+
+  @variant dark {
     display: block;
   }
 }
@@ -101,6 +98,16 @@
   white-space: nowrap;
   cursor: pointer;
   appearance: none;
+
+  /*
+   * Dark appearance: white button with an outline, black title and logo. The Human Interface
+   * Guidelines permit exactly these two appearances, so the values are theirs, not a preference.
+   */
+  @variant dark {
+    border-color: #fff;
+    background: #fff;
+    color: #000;
+  }
 }
 
 /*
@@ -115,42 +122,21 @@
   width: 28px;
 }
 
+.social-provider-button__apple-logo--white {
+  @variant dark {
+    display: none;
+  }
+}
+
 .social-provider-button__apple-logo--black {
   display: none;
+
+  @variant dark {
+    display: block;
+  }
 }
 
 .social-provider-button--apple:focus-visible {
   outline: 2px solid currentcolor;
   outline-offset: 2px;
-}
-
-/* Explicit dark theme: white button with an outline, black title and logo. */
-.theme-dark .social-provider-button--apple {
-  border-color: #fff;
-  background: #fff;
-  color: #000;
-}
-
-.theme-dark .social-provider-button__apple-logo--white {
-  display: none;
-}
-
-.theme-dark .social-provider-button__apple-logo--black {
-  display: block;
-}
-
-@media (prefers-color-scheme: dark) {
-  .theme-system .social-provider-button--apple {
-    border-color: #fff;
-    background: #fff;
-    color: #000;
-  }
-
-  .theme-system .social-provider-button__apple-logo--white {
-    display: none;
-  }
-
-  .theme-system .social-provider-button__apple-logo--black {
-    display: block;
-  }
 }

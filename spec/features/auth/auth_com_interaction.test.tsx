@@ -2,6 +2,8 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { answerConfirmation } from "../../support/confirmation";
+
 // These specs mount the ceremonies and fire real DOM events, which is the only way to reach the
 // request branches: what the delete control sends, and how the resend control reacts to each answer
 // the server can give.
@@ -9,6 +11,10 @@ const deleteRequest = vi.fn();
 const postRequest = vi.fn();
 const patchRequest = vi.fn();
 const setData = vi.fn();
+
+// The mocked form carries no server errors; naming the type here rather than asserting an empty
+// object into it keeps the mock's shape the same as the adapter's.
+const NO_ERRORS: Record<string, string> = {};
 
 vi.mock("@inertiajs/react", () => ({
   Link: ({ href, children }: { href: string; children: React.ReactNode }) => (
@@ -19,7 +25,7 @@ vi.mock("@inertiajs/react", () => ({
   useForm: (initial: Record<string, unknown>) => ({
     data: initial,
     setData,
-    errors: {} as Record<string, string>,
+    errors: NO_ERRORS,
     processing: false,
     post: postRequest,
     patch: patchRequest,
@@ -63,12 +69,6 @@ const type = (input: HTMLInputElement, value: string) => {
 };
 
 // The confirmation is a rendered dialog, so it is answered by clicking one of its two buttons.
-const answerConfirmation = (accepted: boolean) => {
-  const buttons = [...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? [])];
-  act(() => {
-    buttons[accepted ? 1 : 0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-  });
-};
 
 const click = (element: Element) => {
   act(() => {

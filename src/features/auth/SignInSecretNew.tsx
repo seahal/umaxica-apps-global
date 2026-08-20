@@ -7,7 +7,6 @@ import { useForm, usePage } from "@inertiajs/react";
 
 import type { TurnstileConfiguration } from "@/features/auth/settings/PasskeyDeleteButton";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
-import type { SharedProps } from "@/types/inertia";
 
 export type SignInSecretNewProps = {
   title: string;
@@ -36,7 +35,7 @@ export default function SignInSecretNew({
   back_link: backLink,
   turnstile,
 }: SignInSecretNewProps) {
-  const { errors } = usePage<SharedProps>().props;
+  const { errors } = usePage().props;
   const messages = Object.values(errors);
   const form = useForm({
     secret_credential_login_form: { identifier: "", secret_credential_value: "" },
@@ -52,7 +51,7 @@ export default function SignInSecretNew({
     });
   };
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     form.post(action);
   };

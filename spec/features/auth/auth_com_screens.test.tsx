@@ -11,10 +11,12 @@ vi.mock("@inertiajs/react", () => ({
   router: { patch: vi.fn(), post: vi.fn(), delete: vi.fn() },
   usePage: () => ({ props: { errors: { base: "資格情報が正しくありません" } } }),
   useForm: (initial: Record<string, unknown>) => {
+    const errors: Record<string, string> = {};
+
     return {
       data: initial,
       setData: vi.fn(),
-      errors: {} as Record<string, string>,
+      errors,
       processing: false,
       post: vi.fn(),
       patch: vi.fn(),

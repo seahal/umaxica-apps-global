@@ -32,6 +32,134 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"] = "1"
   end
 
+  # The `error` member asserted throughout this file is transitional (ApiV0LegacyErrorMember), kept
+  # so the Next.js edge application's response body does not change mid-migration. These are the
+  # assertions that survive its removal.
+  test "a disabled boundary answers with an RFC 9457 problem document" do
+    ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"] = nil
+
+    get("/api/v0/session", headers: json_headers)
+
+    assert_response :service_unavailable
+    assert_equal "application/problem+json", response.media_type
+
+    body = response.parsed_body
+
+    assert_equal "urn:umaxica:problem:service-unavailable", body.fetch("type")
+    assert_equal response.status, body.fetch("status")
+    assert_equal "/api/v0/session", body.fetch("instance")
+    assert_predicate body.fetch("request_id"), :present?
+  ensure
+    ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"] = "1"
+  end
+
+  test "a csrf failure answers with the csrf-verification-failed problem type" do
+    cookies[CoreBrowserCredentialContract::REFRESH_COOKIE] = client_tokens(:one).rotate_refresh_token!
+
+    post "/api/v0/token/refresh", headers: json_headers
+
+    assert_response :forbidden
+    assert_equal "application/problem+json", response.media_type
+
+    body = response.parsed_body
+
+    assert_equal "urn:umaxica:problem:csrf-verification-failed", body.fetch("type")
+    assert_equal response.status, body.fetch("status")
+  end
+
+  test "the transitional legacy error member mirrors the problem document" do
+    get("/api/v0/session", headers: json_headers.merge("Authorization" => "Bearer #{core_browser_access_token}"))
+
+    assert_response :unauthorized
+
+    body = response.parsed_body
+
+    # Delete this test together with ApiV0LegacyErrorMember; until then it pins the coupling, so the
+    # legacy member cannot silently drift away from the type it is meant to mirror.
+    assert_equal "urn:umaxica:problem:authentication-required", body.fetch("type")
+    assert_equal "authentication_required", body.dig("error", "code")
+    assert_equal body.fetch("title"), body.dig("error", "message")
+    assert_equal body.fetch("request_id"), body.dig("error", "request_id")
+  end
+
+  test "every response on this boundary is uncacheable" do
+    get "/api/v0/session", headers: json_headers
+
+    assert_response :success
+    # The body carries a CSRF token and per-subject state; a shared cache must never hold it.
+    assert_equal "no-store", response.headers["Cache-Control"]
+  end
+
+  test "an error response on this boundary is uncacheable too" do
+    ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"] = nil
+
+    get("/api/v0/session", headers: json_headers)
+
+    assert_response :service_unavailable
+    assert_equal "no-store", response.headers["Cache-Control"]
+  ensure
+    ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"] = "1"
+  end
+
+  test "an authenticated actor is identified by public id, never by the database key" do
+    client = clients(:one)
+    cookies[CoreBrowserCredentialContract::ACCESS_COOKIE] = core_browser_access_token
+
+    get "/api/v0/session", headers: json_headers
+
+    assert_response :success
+
+    actor = response.parsed_body.fetch("actor")
+
+    assert_equal client.public_id, actor.fetch("id")
+    assert_not_equal client.id.to_s, actor.fetch("id")
+    assert_not_includes response.body, %("#{client.id}")
+  end
+
+  test "a blank public id fails loudly rather than falling back to the database key" do
+    client = clients(:one)
+    client.update_columns(public_id: "")
+    cookies[CoreBrowserCredentialContract::ACCESS_COOKIE] = core_browser_access_token
+
+    assert_raises(BlankPublicIdentifierError) do
+      get "/api/v0/session", headers: json_headers
+    end
+  end
+
+  # A routing miss never reaches a controller, so only the exceptions app can answer it. The test
+  # environment renders debug pages for local requests, which short-circuits that app; this turns the
+  # detailed pages off so the production path is what gets exercised.
+  test "an unknown path under the api namespace answers with a problem document, not html" do
+    previous = Rails.application.env_config["action_dispatch.show_detailed_exceptions"]
+    Rails.application.env_config["action_dispatch.show_detailed_exceptions"] = false
+
+    get("/api/v0/no-such-endpoint", headers: json_headers)
+
+    assert_response :not_found
+    assert_equal "application/problem+json", response.media_type
+
+    body = response.parsed_body
+
+    assert_equal "urn:umaxica:problem:not-found", body.fetch("type")
+    assert_equal 404, body.fetch("status")
+    assert_equal "/api/v0/no-such-endpoint", body.fetch("instance")
+    assert_not_includes response.body, "<html"
+  ensure
+    Rails.application.env_config["action_dispatch.show_detailed_exceptions"] = previous
+  end
+
+  test "an unknown path outside the api namespace still gets the html page" do
+    previous = Rails.application.env_config["action_dispatch.show_detailed_exceptions"]
+    Rails.application.env_config["action_dispatch.show_detailed_exceptions"] = false
+
+    get("/no-such-page", headers: { "Accept" => "text/html" })
+
+    assert_response :not_found
+    assert_equal "text/html", response.media_type
+  ensure
+    Rails.application.env_config["action_dispatch.show_detailed_exceptions"] = previous
+  end
+
   test "unauthenticated session response returns csrf token and no credentials" do
     get "/api/v0/session", headers: json_headers
 
@@ -126,6 +254,8 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :success
     body = response.parsed_body
 
+    # `refreshed` is a placeholder for a representation that does not exist; RFC 9110 15.3.5 would
+    # make this a 204. It stays until the external edge consumer can be moved off it.
     assert body.fetch("refreshed")
     assert_not body.key?("access_token")
     assert_not body.key?("refresh_token")

@@ -30,7 +30,7 @@ module Palm
         scope: "palm_app_default_web",
         name: "default_web",
         store: rate_limit_store,
-        with: -> { render_rate_limited(rule_name: "palm_app_default_web", retry_after: 60) },
+        with: -> { render_rate_limited(retry_after: 60) },
       )
 
       # Palm renders regional HTML, so it owes the same `ri` contract as every other HTML surface:

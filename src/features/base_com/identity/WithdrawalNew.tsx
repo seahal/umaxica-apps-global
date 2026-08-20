@@ -48,7 +48,7 @@ function AckSection({ form }: { form: WithdrawalAckForm }) {
     }
   };
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     // The acknowledgement step the server sent no confirmation copy for was never gated by one.
     if (form.confirm) {

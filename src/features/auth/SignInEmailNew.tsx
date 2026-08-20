@@ -37,7 +37,7 @@ export default function SignInEmailNew({
   });
   const error = readString(form.errors, "address");
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     form.post(action);
   };

@@ -695,7 +695,7 @@ describe("EnforcementRecoveryShow", () => {
 
     expect(html).toContain("Security lock");
     expect(html).toContain("Method protection");
-    expect(html.match(/Submit appeal/g)).toHaveLength(1);
+    expect(html.match(/Submit appeal/gu)).toHaveLength(1);
   });
 
   it("shows the appeal error the server reported", () => {

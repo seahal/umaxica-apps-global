@@ -100,6 +100,7 @@ Current content-model references:
 - `docs/policy/signup-eligibility.md`
 - `docs/security/redirect_targets.md`
 - `docs/operations/container-engine-podman-notes.md`
+- `docs/operations/development-host-port-exposure.md`
 - `docs/operations/cloudflare-private-origin.md`
 - `docs/operations/core-nextjs-zero-cookie-edge-contract.md`
 - `docs/operations/jump-rt-key-rotation.md`
@@ -111,6 +112,13 @@ Current content-model references:
 - `docs/dictionary/access-terms.md`
 - `docs/dictionary/alphabet.md`
 - `docs/dictionary/glossary.md`
+- `docs/reference/api-design-standards.md` is the canonical contract for JSON API endpoints and
+  carries **only rules backed by a published specification**: RFC 9457 Problem Details errors, RFC
+  9110 status and negotiation semantics, RFC 3339 timestamps, RFC 9700 authentication practice, RFC
+  9745 / RFC 8594 deprecation signaling, and the protocol endpoints exempt from those rules. Areas
+  with no governing standard are recorded separately as decisions in
+  `adr/api-error-format-problem-details.md`, `adr/api-collection-contract.md`, and
+  `adr/api-versioning-and-client-conventions.md`.
 - `docs/reference/feature-flags.md`
 - `docs/reference/forbidden-rails-methods.md`
 - `docs/reference/repository-language-policy.md`

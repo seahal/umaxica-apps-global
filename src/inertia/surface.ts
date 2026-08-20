@@ -1,4 +1,7 @@
-import type { ResolvedComponent } from "@inertiajs/react";
+import { createInertiaApp, type ResolvedComponent } from "@inertiajs/react";
+
+import SurfaceLayout from "@/layouts/SurfaceLayout";
+import { applyTheme, readThemeCookie, watchThemeCookie } from "@/lib/theme";
 
 // Shared pieces for the per-FQDN Inertia entrypoints.
 //
@@ -54,7 +57,7 @@ export function surfacePageResolver(
   const pages = new Map<string, PageModule>();
 
   for (const [path, module] of Object.entries(modules)) {
-    const name = path.replace(/^.*\/pages\//, "").replace(/\.tsx$/, "");
+    const name = path.replace(/^.*\/pages\//u, "").replace(/\.tsx$/u, "");
 
     if (!isPageModule(module)) {
       throw new Error(
@@ -108,10 +111,11 @@ export const surfaceInertiaDefaults = {
  * `script-src`/`style-src-elem` carry a nonce with no `unsafe-inline`, so those elements are
  * refused unless they are told the nonce. Vite's dev client reads the same tag by itself.
  *
- * Returns undefined rather than throwing when the tag is absent: `createInertiaApp` treats that as
- * "no nonce", which is the correct behaviour under a policy that does not use one.
+ * Returns undefined rather than throwing when the tag is absent, which is the correct behaviour
+ * under a policy that does not use one. The option is then omitted rather than passed as
+ * undefined, because `nonce` is declared optional and not nullable.
  */
-export function cspNonce(): string | undefined {
+function cspNonce(): string | undefined {
   return document.querySelector<HTMLMetaElement>("meta[property=csp-nonce]")?.nonce || undefined;
 }
 
@@ -121,7 +125,7 @@ export function cspNonce(): string | undefined {
  * of an unhandled rejection, and rethrow anything else.
  */
 export function reportInertiaBootFailure(error: unknown): void {
-  if (document.getElementById("app")) {
+  if (document.querySelector("#app")) {
     throw error;
   }
 
@@ -131,4 +135,61 @@ export function reportInertiaBootFailure(error: unknown): void {
       "This entrypoint belongs to a surface Inertia layout (app/views/layouts/<family>/<surface>/" +
       "inertia.html.erb). A non-Inertia layout must load its own entrypoint instead.",
   );
+}
+
+/**
+ * Keeps `<html data-theme>` in step with the `ct` cookie.
+ *
+ * Rails renders the attribute from the cookie, and every `dark:` utility and every `--ui-*` token
+ * is keyed on it, so the document's colours are only ever as current as the last document load.
+ * An Inertia visit is not one: the theme preference screen writes the cookie server-side and the
+ * response replaces the page component underneath an `<html>` element nobody touched, so the
+ * visitor saved a theme and watched nothing change.
+ *
+ * The cookie store reports that write directly, so this listens to the cookie rather than to the
+ * navigation that happened to carry it. It needs no Inertia counterpart of the `DOMContentLoaded`
+ * listener in `src/theme_cookie.ts`: both surfaces watch the same signal, from the same authority.
+ */
+function keepDocumentThemeInStep(): void {
+  void readThemeCookie().then(applyTheme);
+  watchThemeCookie(applyTheme);
+}
+
+/** The exact options every surface boots with. Exported so a test can name the shape it asserts. */
+export type SurfaceInertiaAppOptions = {
+  resolve: (name: string) => PageModule;
+  nonce?: string;
+  strictMode: true;
+  defaults: typeof surfaceInertiaDefaults;
+};
+
+/**
+ * Boots the Inertia application for one surface.
+ *
+ * Every entrypoint boots identically apart from its own page glob and surface name, so the
+ * configuration lives here once: a difference between two surfaces' Inertia setup would be a
+ * difference nobody chose. The glob stays a literal at the call site because Vite can only rewrite
+ * a literal.
+ */
+export function bootSurfaceInertiaApp(
+  modules: Record<string, unknown>,
+  surface: string,
+): Promise<unknown> {
+  keepDocumentThemeInStep();
+
+  const nonce = cspNonce();
+
+  const options: SurfaceInertiaAppOptions = {
+    resolve: surfacePageResolver(modules, surface, SurfaceLayout),
+
+    // Inertia builds its progress bar as a runtime <style>; without the nonce the policy
+    // refuses it.
+    ...(nonce === undefined ? {} : { nonce }),
+
+    strictMode: true,
+
+    defaults: surfaceInertiaDefaults,
+  };
+
+  return createInertiaApp(options).catch(reportInertiaBootFailure);
 }

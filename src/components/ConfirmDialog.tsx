@@ -3,7 +3,15 @@
 // The ERB screens gated destructive actions with `data-turbo-confirm`, whose copy the server wrote.
 // This keeps that arrangement: the message and the labels are props that arrive already translated,
 // and the dialog only decides when the action fires. Nothing here authors visitor-facing copy.
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+//
+// The modal behaviour — focus trap, focus restore, Escape, inert background — belongs to React Aria
+// via `@/components/ui/Dialog`. This file previously drove a native `<dialog>` and fell back to
+// setting its `open` attribute wherever `showModal()` was missing, which meant the tests exercised
+// an unguarded path that never shipped.
+import { useCallback, useState } from "react";
+
+import Button from "@/components/ui/Button";
+import Dialog from "@/components/ui/Dialog";
 
 /** A confirmation the actor has to accept before a destructive action fires. */
 export type ConfirmRequest = {
@@ -21,79 +29,53 @@ type PendingConfirmation = ConfirmRequest & { accept: () => void };
 // for it gets the dismissal glyph rather than an English string invented here.
 const DISMISS_GLYPH = "✕";
 
-export function ConfirmDialog({
+function ConfirmDialog({
   pending,
   onDismiss,
 }: {
   pending: PendingConfirmation | null;
   onDismiss: () => void;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const dismissRef = useRef<HTMLButtonElement>(null);
-  const messageId = useId();
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) {
-      return;
-    }
-
-    if (pending) {
-      if (!dialog.open) {
-        // `showModal`/`close` are what make the dialog modal, focus-trapped and Escape-closing.
-        // jsdom implements neither, so the `open` attribute keeps the same markup reachable under
-        // test; a browser always takes the modal path.
-        if (typeof dialog.showModal === "function") {
-          dialog.showModal();
-        } else {
-          dialog.open = true;
-        }
-      }
-      // Declining is the safe answer, so it holds the focus the dialog opens with.
-      dismissRef.current?.focus();
-    } else if (dialog.open) {
-      if (typeof dialog.close === "function") {
-        dialog.close();
-      } else {
-        dialog.open = false;
-      }
-    }
-  }, [pending]);
-
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby={messageId}
-      onClose={onDismiss}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") {
+    <Dialog
+      // The message names the dialog. There is no separate server-supplied title, and inventing one
+      // here would be authoring copy.
+      title={pending?.message ?? ""}
+      isOpen={pending !== null}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
           onDismiss();
         }
       }}
     >
       {pending ? (
-        <div>
-          <p id={messageId}>{pending.message}</p>
-          <button
-            type="button"
-            ref={dismissRef}
-            onClick={onDismiss}
+        <div className="flex flex-wrap justify-end gap-2">
+          {/*
+            Declining is the safe answer, so it holds the focus the dialog opens with. Without
+            `autoFocus` React Aria focuses the dialog container itself, which is a safe default but
+            costs the actor a keystroke to reach the answer they are most likely to want.
+          */}
+          <Button
+            autoFocus
+            variant="secondary"
+            onPress={onDismiss}
           >
             {pending.cancelLabel ?? DISMISS_GLYPH}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
+          </Button>
+
+          <Button
+            variant="danger"
+            onPress={() => {
               const { accept } = pending;
               onDismiss();
               accept();
             }}
           >
             {pending.confirmLabel}
-          </button>
+          </Button>
         </div>
       ) : null}
-    </dialog>
+    </Dialog>
   );
 }
 
@@ -122,5 +104,3 @@ export function useConfirm() {
 
   return { confirm, dialog };
 }
-
-export default ConfirmDialog;

@@ -114,7 +114,13 @@ module Jit
     config.action_dispatch.encrypted_cookie_cipher = "aes-256-gcm"
     config.action_dispatch.use_authenticated_cookie_encryption = true
 
-    # USE UTC
+    # API paths must never receive an HTML error page. Routing misses under `/api/` never reach a
+    # controller, so no `rescue_from` can cover them; only the exceptions app sees both those and
+    # unhandled exceptions. Non-API paths keep the static pages in `public/`.
+    config.exceptions_app = ->(env) { ApiProblemExceptionsApp.call(env) }
+
+    # USE UTC. RFC 3339 output with a `Z` offset depends on this: a non-UTC zone would make
+    # `Time#iso8601` emit a numeric offset instead, which the API contract does not allow.
     config.time_zone = "UTC"
     config.active_record.default_timezone = :utc
     config.active_record.schema_format = :sql

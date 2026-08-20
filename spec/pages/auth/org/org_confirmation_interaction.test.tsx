@@ -2,10 +2,12 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { answerConfirmation } from "../../../support/confirmation";
+
 // The operator screens keep their document submissions: the confirmation only decides whether the
 // same POST (carrying `_method`) is replayed. jsdom performs no navigation, so `submit()` is spied
 // on and stands in for it.
-vi.mock("@/features/auth/csrf", () => ({ csrfToken: () => "csrf-token" }));
+vi.mock("@/lib/csrf", () => ({ csrfToken: () => "csrf-token" }));
 
 vi.mock("@/features/turnstile/TurnstileWidget", () => ({
   default: () => (
@@ -43,13 +45,6 @@ const submitForm = (index = 0) => {
     form?.dispatchEvent(event);
   });
   return event;
-};
-
-const answerConfirmation = (accepted: boolean) => {
-  const buttons = [...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? [])];
-  act(() => {
-    buttons[accepted ? 1 : 0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-  });
 };
 
 beforeEach(() => {
@@ -93,7 +88,7 @@ describe("org passkey settings confirmation", () => {
     mount(<OrgPasskeySettingsIndex {...indexProps} />);
 
     expect(submitForm().defaultPrevented).toBe(true);
-    expect(container.querySelector("dialog[open]")?.textContent).toContain(
+    expect(document.querySelector("[role='dialog']")?.textContent).toContain(
       "このパスキーを削除しますか？",
     );
 

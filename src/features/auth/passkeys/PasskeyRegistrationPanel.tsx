@@ -6,8 +6,8 @@
 // controller sent, because the server stores it.
 import { useRef, useState } from "react";
 
-import { normalizePublicKeyOptions } from "@/controllers/webauthn_utils";
-import { csrfToken } from "@/features/auth/csrf";
+import { normalizeCreationOptions } from "@/controllers/webauthn_utils";
+import { csrfToken } from "@/lib/csrf";
 import { readObject, readString } from "@/lib/payload";
 
 import { solveInvisibleTurnstile } from "./invisibleTurnstile";
@@ -58,8 +58,8 @@ async function postJson(url: string, body: unknown): Promise<Response> {
 async function readFailure(response: Response, fallback: string): Promise<Error | null> {
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
-    const data: { error?: string } = await response.json();
-    return new Error(data.error || fallback);
+    const data: unknown = await response.json();
+    return new Error(readString(data, "error") || fallback);
   }
   if (response.status === 401 || response.status === 302) {
     window.location.reload();
@@ -132,7 +132,7 @@ export default function PasskeyRegistrationPanel({
 
       showStatus(PASSKEY_MESSAGES.creating);
       const created = await navigator.credentials.create({
-        publicKey: normalizePublicKeyOptions(options),
+        publicKey: normalizeCreationOptions(options),
       });
       if (!created || !isAttestationCredential(created)) {
         throw new Error(PASSKEY_MESSAGES.registrationFailed);

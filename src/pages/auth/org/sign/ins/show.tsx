@@ -4,7 +4,7 @@
 // with a POST to the surface ceremony endpoint, which prepares the ceremony and hands the same POST
 // to the OmniAuth request phase with a 307. The button wording and shape are constrained by
 // docs/reference/third-party-sign-in-button-requirements.md.
-import { csrfToken } from "@/features/auth/csrf";
+import { csrfToken } from "@/lib/csrf";
 
 type SignInMethod = {
   key: string;

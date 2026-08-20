@@ -219,7 +219,11 @@ services:
       - dev_rustfs_access_key
       - dev_rustfs_secret_key
     # Workspace bind mount, host-port publishing, and host-gateway alias are
-    # host-shaped — see the devcontainer override.
+    # host-shaped — see the devcontainer override. `BINDING: 0.0.0.0` above is
+    # the *container-side* listener and must stay: cloudflare-tunnel and the
+    # probe containers reach Rails over the `frontend` network, not through the
+    # host. The host-side publication is loopback-only; the two are separate
+    # decisions (docs/operations/development-host-port-exposure.md).
     networks:
       backend: {}
       frontend:
@@ -512,10 +516,20 @@ services:
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: CONTROLLER://kafka:29093,INTERNAL://kafka:29092,EXTERNAL://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      # Two listeners only, both bound to the `kafka` container address on the
+      # `backend` network. The former EXTERNAL listener (0.0.0.0:9092,
+      # advertised as localhost:9092) existed solely to serve the host port
+      # publication, and nothing consumes it: the repository has no Kafka
+      # client. Gemfile.lock carries only opentelemetry-instrumentation-*
+      # shims, which instrument a client that is not installed. Removing the
+      # listener keeps 9092 from being reachable from anywhere at all, rather
+      # than leaving an unauthenticated PLAINTEXT broker listening on every
+      # container interface. See
+      # docs/operations/development-host-port-exposure.md.
+      KAFKA_LISTENERS: CONTROLLER://kafka:29093,INTERNAL://kafka:29092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -525,13 +539,14 @@ services:
     networks:
       - backend
     restart: unless-stopped
-    # Host port publishing lives in the devcontainer override.
+    # No host port publication, here or in any override: the broker is a
+    # `backend`-network-only service reached as `kafka:29092`.
     healthcheck:
       test:
         - CMD
         - kafka-broker-api-versions
         - "--bootstrap-server"
-        - localhost:9092
+        - kafka:29092
       interval: 30s
       timeout: 10s
       retries: 5
@@ -559,7 +574,10 @@ services:
       - observability
     command:
       - "-config.file=/etc/tempo.yaml"
-    # Host port publishing lives in the devcontainer override.
+    # No host port publication. Tempo's 3200/4317/4318/9411 are consumed only
+    # on the `observability` network -- Grafana queries `tempo:3200` and the
+    # collector exports to `tempo:4317` -- and Grafana itself publishes no host
+    # port either, so nothing on the host ever dialed these.
     volumes:
       - "./podman/tempo/tempo.yaml:/etc/tempo.yaml:ro,z"
       - tempo-volume:/var/tempo

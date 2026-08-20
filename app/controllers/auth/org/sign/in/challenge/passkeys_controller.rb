@@ -28,7 +28,7 @@ module Auth
               store: rate_limit_store,
               only: :create,
               with: -> {
-                render_rate_limited(rule_name: "auth_org_sign_in_mfa_passkey_create_ip_burst", retry_after: 60)
+                render_rate_limited(retry_after: 60)
               },
             )
             rate_limit(
@@ -40,7 +40,7 @@ module Auth
               store: rate_limit_store,
               only: :create,
               with: -> {
-                render_rate_limited(rule_name: "auth_org_sign_in_mfa_passkey_create_ip_sustained", retry_after: 900)
+                render_rate_limited(retry_after: 900)
               },
             )
 

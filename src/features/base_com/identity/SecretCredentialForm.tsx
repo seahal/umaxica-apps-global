@@ -44,7 +44,7 @@ export default function SecretCredentialForm({
   const nameId = `${form.scope}_name`;
   const enabledId = `${form.scope}_enabled`;
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     const payload = {
       [form.scope]: { name, enabled: enabled ? "1" : "0" },

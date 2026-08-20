@@ -40,7 +40,7 @@ export default function EmailEdit({
   const [processing, setProcessing] = useState(false);
   const { confirm, dialog } = useConfirm();
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     router.patch(
       form.action,

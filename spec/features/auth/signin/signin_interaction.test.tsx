@@ -2,6 +2,14 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  jsonResponse as httpJsonResponse,
+  requestBody,
+  stubFetchQueue,
+} from "../../../support/http";
+import { containing } from "../../../support/matchers";
+import { present } from "../../../support/present";
+
 // Unlike signin_screens.test.tsx (static markup only), these tests mount the components and fire
 // real DOM events, which is the only way to reach the submit, resend and WebAuthn handlers that
 // moved out of Stimulus.
@@ -19,18 +27,40 @@ vi.mock("@inertiajs/react", () => ({
   }),
 }));
 
-const getAssertion = vi.fn();
-const passkeysSupported = vi.fn(() => true);
+import type { getAssertion as realGetAssertion } from "@/features/auth/passkeys/webauthn";
+
+// Typed from the real export, so a mocked answer that does not match what the module promises is a
+// failure here rather than an `any` flowing into the component under test.
+const getAssertion = vi.fn<typeof realGetAssertion>();
+
+// The whole assertion the ceremony serialises, so what the spec sends is what the form would.
+const SERIALIZED_ASSERTION = {
+  id: "credential-1",
+  rawId: "AQID",
+  type: "public-key",
+  authenticatorAttachment: null,
+  response: {
+    clientDataJSON: "BAUG",
+    authenticatorData: "BwgJ",
+    signature: "CgsM",
+    userHandle: null,
+  },
+  clientExtensionResults: {},
+};
+const passkeysSupported = vi.fn<() => boolean>(() => true);
 
 vi.mock("@/features/auth/passkeys/webauthn", () => ({
   getAssertion: (options: unknown) => getAssertion(options),
   passkeysSupported: () => passkeysSupported(),
 }));
 
-const solveInvisibleTurnstile = vi.fn();
+import type { solveInvisibleTurnstile as realSolveInvisibleTurnstile } from "@/features/auth/turnstile/invisibleToken";
+
+const solveInvisibleTurnstile = vi.fn<typeof realSolveInvisibleTurnstile>();
 
 vi.mock("@/features/auth/turnstile/invisibleToken", () => ({
-  solveInvisibleTurnstile: (...args: unknown[]) => solveInvisibleTurnstile(...args),
+  solveInvisibleTurnstile: (...args: Parameters<typeof realSolveInvisibleTurnstile>) =>
+    solveInvisibleTurnstile(...args),
 }));
 
 const { default: EmailSignInForm } = await import("@/features/auth/signin/EmailSignInForm");
@@ -263,9 +293,10 @@ describe("otp resend button", () => {
 
     expect(onResent).toHaveBeenCalled();
     expect(container.querySelector("p")?.textContent).toBe("送信しました");
-    expect(vi.mocked(fetch).mock.calls[0][1]).toMatchObject({
+    const [, init] = present(vi.mocked(fetch).mock.calls[0], "the first fetch call");
+    expect(present(init, "the request options")).toMatchObject({
       method: "POST",
-      headers: expect.objectContaining({ "X-CSRF-Token": "csrf-value" }),
+      headers: containing({ "X-CSRF-Token": "csrf-value" }),
     });
   });
 
@@ -337,7 +368,9 @@ describe("otp resend button", () => {
   it("reports a failure when the request itself cannot be made", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => Promise.reject(new Error("offline"))),
+      vi.fn(async () => {
+        throw new Error("offline");
+      }),
     );
     mount(
       <OtpResendButton
@@ -393,21 +426,12 @@ describe("passkey sign-in panel", () => {
 
   it("carries the challenge token and the assertion to the server, then follows its redirect", async () => {
     solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
-    getAssertion.mockResolvedValue({ id: "credential-1" });
+    getAssertion.mockResolvedValue(SERIALIZED_ASSERTION);
 
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "application/json" }),
-        json: async () => Promise.resolve({ challenge_id: "challenge-1", options: { a: 1 } }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "application/json" }),
-        json: async () => Promise.resolve({ status: "ok", redirect_url: "/identity" }),
-      });
-    vi.stubGlobal("fetch", fetchMock);
+    const fetchMock = stubFetchQueue(
+      httpJsonResponse({ challenge_id: "challenge-1", options: { a: 1 } }),
+      httpJsonResponse({ status: "ok", redirect_url: "/identity" }),
+    );
     const location = { href: "", reload: vi.fn() };
     vi.stubGlobal("location", location);
 
@@ -416,12 +440,12 @@ describe("passkey sign-in panel", () => {
     click("button");
     await flush();
 
-    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toMatchObject({
+    expect(requestBody(fetchMock, 0)).toMatchObject({
       identifier: "someone@example.com",
       "cf-turnstile-response": "turnstile-token",
       ri: "jp",
     });
-    expect(JSON.parse(String(fetchMock.mock.calls[1][1].body))).toMatchObject({
+    expect(requestBody(fetchMock, 1)).toMatchObject({
       challenge_id: "challenge-1",
       credential: { id: "credential-1" },
     });
@@ -430,7 +454,7 @@ describe("passkey sign-in panel", () => {
 
   it("follows the second-factor redirect the server asks for", async () => {
     solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
-    getAssertion.mockResolvedValue({ id: "credential-1" });
+    getAssertion.mockResolvedValue(SERIALIZED_ASSERTION);
     vi.stubGlobal(
       "fetch",
       vi
@@ -438,13 +462,12 @@ describe("passkey sign-in panel", () => {
         .mockResolvedValueOnce({
           ok: true,
           headers: new Headers({ "content-type": "application/json" }),
-          json: async () => Promise.resolve({ challenge_id: "c", options: {} }),
+          json: async () => ({ challenge_id: "c", options: {} }),
         })
         .mockResolvedValueOnce({
           ok: true,
           headers: new Headers({ "content-type": "application/json" }),
-          json: async () =>
-            Promise.resolve({ status: "totp_required", redirect_url: "/challenge" }),
+          json: async () => ({ status: "totp_required", redirect_url: "/challenge" }),
         }),
     );
     vi.stubGlobal("location", { href: "", reload: vi.fn() });
@@ -459,7 +482,7 @@ describe("passkey sign-in panel", () => {
 
   it("rejects an answer it does not recognise instead of assuming success", async () => {
     solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
-    getAssertion.mockResolvedValue({ id: "credential-1" });
+    getAssertion.mockResolvedValue(SERIALIZED_ASSERTION);
     vi.stubGlobal(
       "fetch",
       vi
@@ -467,12 +490,12 @@ describe("passkey sign-in panel", () => {
         .mockResolvedValueOnce({
           ok: true,
           headers: new Headers({ "content-type": "application/json" }),
-          json: async () => Promise.resolve({ challenge_id: "c", options: {} }),
+          json: async () => ({ challenge_id: "c", options: {} }),
         })
         .mockResolvedValueOnce({
           ok: true,
           headers: new Headers({ "content-type": "application/json" }),
-          json: async () => Promise.resolve({ status: "surprise", redirect_url: "/nowhere" }),
+          json: async () => ({ status: "surprise", redirect_url: "/nowhere" }),
         }),
     );
     vi.stubGlobal("location", { href: "", reload: vi.fn() });
@@ -495,7 +518,7 @@ describe("passkey sign-in panel", () => {
         ok: false,
         status: 422,
         headers: new Headers({ "content-type": "application/json" }),
-        json: async () => Promise.resolve({ error: "識別子が必要です" }),
+        json: async () => ({ error: "識別子が必要です" }),
       }),
     );
 
@@ -515,7 +538,7 @@ describe("passkey sign-in panel", () => {
         ok: false,
         status: 401,
         headers: new Headers({ "content-type": "text/html" }),
-        json: async () => Promise.resolve({}),
+        json: async () => ({}),
       }),
     );
     const reload = vi.fn();
@@ -538,7 +561,7 @@ describe("passkey sign-in panel", () => {
         ok: false,
         status: 500,
         headers: new Headers({ "content-type": "text/html" }),
-        json: async () => Promise.resolve({}),
+        json: async () => ({}),
       }),
     );
 
@@ -554,7 +577,7 @@ describe("passkey sign-in panel", () => {
 
   it("reports a refused verification with the ceremony message", async () => {
     solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
-    getAssertion.mockResolvedValue({ id: "credential-1" });
+    getAssertion.mockResolvedValue(SERIALIZED_ASSERTION);
     vi.stubGlobal(
       "fetch",
       vi
@@ -562,13 +585,13 @@ describe("passkey sign-in panel", () => {
         .mockResolvedValueOnce({
           ok: true,
           headers: new Headers({ "content-type": "application/json" }),
-          json: async () => Promise.resolve({ challenge_id: "c", options: {} }),
+          json: async () => ({ challenge_id: "c", options: {} }),
         })
         .mockResolvedValueOnce({
           ok: false,
           status: 422,
           headers: new Headers({ "content-type": "text/html" }),
-          json: async () => Promise.resolve({}),
+          json: async () => ({}),
         }),
     );
 
@@ -584,7 +607,7 @@ describe("passkey sign-in panel", () => {
 
   it("reloads instead of continuing when the verification session is gone", async () => {
     solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
-    getAssertion.mockResolvedValue({ id: "credential-1" });
+    getAssertion.mockResolvedValue(SERIALIZED_ASSERTION);
     vi.stubGlobal(
       "fetch",
       vi
@@ -592,13 +615,13 @@ describe("passkey sign-in panel", () => {
         .mockResolvedValueOnce({
           ok: true,
           headers: new Headers({ "content-type": "application/json" }),
-          json: async () => Promise.resolve({ challenge_id: "c", options: {} }),
+          json: async () => ({ challenge_id: "c", options: {} }),
         })
         .mockResolvedValueOnce({
           ok: false,
           status: 302,
           headers: new Headers({ "content-type": "text/html" }),
-          json: async () => Promise.resolve({}),
+          json: async () => ({}),
         }),
     );
     const reload = vi.fn();
@@ -664,7 +687,7 @@ describe("step-up passkey screen", () => {
   });
 
   it("puts the assertion in the form and submits it to the server", async () => {
-    getAssertion.mockResolvedValue({ id: "credential-1" });
+    getAssertion.mockResolvedValue(SERIALIZED_ASSERTION);
     const requestSubmit = vi.fn();
     HTMLFormElement.prototype.requestSubmit = requestSubmit;
 
@@ -676,7 +699,9 @@ describe("step-up passkey screen", () => {
       'input[name="mfa_passkey_form[credential_json]"]',
     );
 
-    expect(JSON.parse(field?.value ?? "{}")).toMatchObject({ id: "credential-1" });
+    expect(JSON.parse(present(field, "the credential field").value)).toMatchObject({
+      id: "credential-1",
+    });
     expect(requestSubmit).toHaveBeenCalled();
   });
 

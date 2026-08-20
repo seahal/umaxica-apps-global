@@ -7,7 +7,7 @@ module Sign
     def initialize(withdraw_cooldown_until: nil)
       super(
         "sign.app.configuration.withdrawal.errors.cooldown_active",
-        :unprocessable_entity,
+        :unprocessable_content,
         withdraw_cooldown_until: withdraw_cooldown_until,
       )
     end

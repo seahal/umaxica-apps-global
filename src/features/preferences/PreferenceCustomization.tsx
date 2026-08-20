@@ -34,9 +34,9 @@ export default function PreferenceCustomization({
   const [confirmed, setConfirmed] = useState(form.value);
   const [processing, setProcessing] = useState(false);
   const { errors } = usePage().props;
-  const error = errors?.[form.field];
+  const error = errors[form.field];
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     router.delete(form.action, {
       data: { [form.field]: confirmed ? "1" : "" },

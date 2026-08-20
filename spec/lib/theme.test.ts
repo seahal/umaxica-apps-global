@@ -7,8 +7,11 @@ import {
   persistTheme,
   readThemeCookie,
   themeFromCode,
+  themeFromDocument,
   watchSystemTheme,
 } from "@/lib/theme";
+
+import { present } from "../support/present";
 
 type MediaListener = () => void;
 
@@ -47,7 +50,7 @@ beforeEach(() => {
   stubMatchMedia();
   clearCookies();
   document.documentElement.className = "";
-  delete document.documentElement.dataset.theme;
+  delete document.documentElement.dataset["theme"];
   window.history.replaceState({}, "", "/");
 });
 
@@ -88,36 +91,62 @@ describe("codeFromTheme", () => {
 });
 
 describe("readThemeCookie", () => {
-  test("reads the theme Rails rendered the first paint from", () => {
+  test("reads the theme Rails rendered the first paint from", async () => {
     document.cookie = "ct=dr; path=/";
 
-    expect(readThemeCookie()).toBe("dark");
+    await expect(readThemeCookie()).resolves.toBe("dark");
   });
 
-  test("reads ct even when other cookies are present", () => {
+  test("reads ct even when other cookies are present", async () => {
     document.cookie = "lx=en; path=/";
     document.cookie = "ct=li; path=/";
     document.cookie = "tz=asia%2Ftokyo; path=/";
 
-    expect(readThemeCookie()).toBe("light");
+    await expect(readThemeCookie()).resolves.toBe("light");
   });
 
-  test("decodes a percent encoded value", () => {
+  test("decodes a percent encoded value", async () => {
     document.cookie = `ct=${encodeURIComponent("system")}; path=/`;
 
-    expect(readThemeCookie()).toBe("system");
+    await expect(readThemeCookie()).resolves.toBe("system");
   });
 
-  test("falls back to system without a ct cookie", () => {
+  test("falls back to system without a ct cookie", async () => {
     document.cookie = "lx=en; path=/";
 
-    expect(readThemeCookie()).toBe("system");
+    await expect(readThemeCookie()).resolves.toBe("system");
   });
 
-  test("falls back to system when ct carries no value", () => {
+  test("falls back to system when ct carries no value", async () => {
     document.cookie = "ct=; path=/";
 
-    expect(readThemeCookie()).toBe("system");
+    await expect(readThemeCookie()).resolves.toBe("system");
+  });
+});
+
+describe("themeFromDocument", () => {
+  test("reads the theme Rails rendered onto the document", () => {
+    document.documentElement.dataset["theme"] = "dark";
+
+    expect(themeFromDocument()).toBe("dark");
+  });
+
+  test("reads the theme a previous application wrote", () => {
+    applyTheme("light");
+
+    expect(themeFromDocument()).toBe("light");
+  });
+
+  test("falls back to system when the document carries no theme", () => {
+    delete document.documentElement.dataset["theme"];
+
+    expect(themeFromDocument()).toBe("system");
+  });
+
+  test("falls back to system for a value the stylesheets do not answer to", () => {
+    document.documentElement.dataset["theme"] = "nonsense";
+
+    expect(themeFromDocument()).toBe("system");
   });
 });
 
@@ -125,7 +154,7 @@ describe("applyTheme", () => {
   test("marks the document dark for an explicit dark choice", () => {
     applyTheme("dark");
 
-    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(document.documentElement.dataset["theme"]).toBe("dark");
     expect(document.documentElement.classList.contains("theme-dark")).toBe(true);
     expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
@@ -133,7 +162,7 @@ describe("applyTheme", () => {
   test("marks the document light for an explicit light choice", () => {
     applyTheme("light");
 
-    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(document.documentElement.dataset["theme"]).toBe("light");
     expect(document.documentElement.classList.contains("theme-light")).toBe(true);
     expect(document.documentElement.classList.contains("dark")).toBe(false);
   });
@@ -142,7 +171,7 @@ describe("applyTheme", () => {
     mediaMatches = true;
     applyTheme("system");
 
-    expect(document.documentElement.dataset.theme).toBe("system");
+    expect(document.documentElement.dataset["theme"]).toBe("system");
     expect(document.documentElement.classList.contains("theme-system")).toBe(true);
     expect(document.documentElement.classList.contains("dark")).toBe(true);
 
@@ -242,14 +271,14 @@ describe("persistTheme", () => {
   });
 
   test("omits the CSRF header when no token is available", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ theme: "li" }),
-    });
+    const fetchMock = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response(JSON.stringify({ theme: "li" }))),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(persistTheme("light", "")).resolves.toBe("light");
-    expect(fetchMock.mock.calls[0][1].headers).not.toHaveProperty("X-CSRF-Token");
+    const [, init] = present(fetchMock.mock.calls[0], "the first fetch call");
+    expect(present(init, "the request options").headers).not.toHaveProperty("X-CSRF-Token");
   });
 
   test("keeps the requested theme when the response carries no theme", async () => {

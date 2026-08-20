@@ -43,7 +43,7 @@ export default function OtpReentryNew({
   const message = description ?? genericMessage;
   const addressId = `${addressForm.scope}_${addressForm.field}`;
 
-  const submitAddress = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitAddress = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     router.post(
       addressForm.url,
@@ -52,7 +52,7 @@ export default function OtpReentryNew({
     );
   };
 
-  const submitPassCode = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitPassCode = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!passCodeForm) {
       return;

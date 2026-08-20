@@ -11,20 +11,23 @@
  */
 
 /*
- * `html body` rather than `body`: `base.css` already sets a body font stack for every surface, and
- * it ships in a different CSS chunk. Raising the specificity by one element makes the base family
- * win without depending on which chunk the bundler emits first.
+ * Re-pointing the token rather than restating the rule. `theme.css` paints `body` from
+ * `--ui-font-sans`, so overriding the property here is enough and the previous `html body`
+ * specificity bump — which existed only to beat the other chunk's `body` rule — is no longer
+ * needed.
  */
-html body {
+:root {
   /*
    * System fonts only. A Latin face first so Latin text is not rendered by the Japanese face, then
    * the Japanese faces per OS: Hiragino on Apple, Noto Sans JP elsewhere. No webfont, so nothing
    * here blocks first paint.
    */
-  font-family:
+  --ui-font-sans:
     "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP",
     sans-serif;
+}
 
+body {
   /*
    * Proportional alternate widths. Japanese OpenType faces carry per-glyph spacing that the default
    * fullwidth metrics ignore, which leaves visible gaps around 、。「」（）. `palt` uses it.

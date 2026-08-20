@@ -3,8 +3,10 @@
 // The consent decision itself stays on the server: this component only reports a choice to
 // /web/v0/cookie and reflects what the server answers. It never writes the consent cookie itself,
 // because the verified preference JWT is minted server-side.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import Button from "@/components/ui/Button";
+import { hasRecordedCookieConsent } from "@/lib/cookies";
 import { readBoolean } from "@/lib/payload";
 import { csrfToken, preferenceQueryParameters } from "@/lib/request";
 import type { ChromeCookieControls } from "@/types/inertia";
@@ -18,11 +20,34 @@ function cookieEndpointUrl(): string {
 }
 
 export default function CookieBanner({ controls }: { controls: ChromeCookieControls }) {
-  const [visible, setVisible] = useState(true);
+  // Nothing is painted until something says the visitor has not answered. The consent buffer
+  // cookie is a projection of the same decision the endpoint below reports, and reading it through
+  // the Cookie Store API is asynchronous, so it can no longer seed the first render - starting
+  // hidden is what keeps a visitor who already answered from seeing the banner flash on every
+  // load, which is the flash that projection exists to prevent.
+  const [visible, setVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // An answer given before the read returns wins, the same way a theme choice does: the visitor is
+  // more current than the in-flight request, and re-raising a banner they just dismissed is worse
+  // than showing a stale one.
+  const answered = useRef(false);
+  // The endpoint is the authority, so once it has answered the cookie must not speak again. The
+  // two reads race - one local, one over the network - and without this a slow cookie read could
+  // raise a banner the server had already said to hide.
+  const reconciled = useRef(false);
 
   useEffect(() => {
     let active = true;
+
+    // The projection only ever raises the banner. It cannot hide one, because a cookie recording
+    // consent is not itself proof the server still agrees; that is what the endpoint answers.
+    const readConsentBuffer = async () => {
+      const recorded = await hasRecordedCookieConsent();
+
+      if (active && !answered.current && !reconciled.current && !recorded) {
+        setVisible(true);
+      }
+    };
 
     const readConsent = async () => {
       try {
@@ -31,14 +56,23 @@ export default function CookieBanner({ controls }: { controls: ChromeCookieContr
           return;
         }
         const state: unknown = await response.json();
-        if (active && readBoolean(state, "consented") === true) {
-          setVisible(false);
+        if (active && !answered.current) {
+          reconciled.current = true;
+          // `show_banner` is the field the endpoint answers with
+          // (`PreferenceWebCookieActions#show`). Reading `consented` here - a key that response
+          // has never carried - is why a recorded decision never suppressed the banner: the read
+          // silently found nothing and left it up on every load.
+          //
+          // Anything other than an explicit `false` leaves the banner visible, because a consent
+          // prompt that fails to appear is the worse of the two failures.
+          setVisible(readBoolean(state, "show_banner") !== false);
         }
       } catch {
         // Keep the banner visible when the verified preference JWT cannot be read.
       }
     };
 
+    void readConsentBuffer();
     void readConsent();
 
     return () => {
@@ -73,6 +107,7 @@ export default function CookieBanner({ controls }: { controls: ChromeCookieContr
       });
 
       if (response.ok) {
+        answered.current = true;
         setVisible(false);
       }
     } finally {
@@ -81,30 +116,38 @@ export default function CookieBanner({ controls }: { controls: ChromeCookieContr
   };
 
   return (
-    <div
+    // A landmark, not a dialog. It previously declared `role="dialog"` while providing none of
+    // what that role promises — no `aria-modal`, no focus trap, no Escape, and nothing stopping
+    // the page behind it being read. Announcing a dialog and then behaving like a banner is worse
+    // than announcing nothing, because it tells assistive technology the rest of the page is
+    // unavailable when it is not. A labelled `<section>` describes what this actually is: a
+    // persistent region the actor can reach, ignore, or dismiss.
+    <section
       id="cookie-banner"
-      role="dialog"
-      aria-live="polite"
       aria-labelledby="cookie-title"
-      aria-describedby="cookie-desc"
-      className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-300 shadow"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface shadow-lg"
     >
-      <div className="max-w-4xl mx-auto p-4 space-y-3 relative">
-        <button
-          type="button"
-          onClick={() => setVisible(false)}
+      <div className="relative mx-auto flex max-w-4xl flex-col gap-3 p-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onPress={() => {
+            answered.current = true;
+            setVisible(false);
+          }}
           aria-label={controls.close_button}
-          className="absolute top-2 right-2 p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="absolute top-2 right-2 rounded-full p-2"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="w-4 h-4"
+            className="size-4"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            aria-hidden="true"
           >
             <line
               x1="18"
@@ -119,50 +162,44 @@ export default function CookieBanner({ controls }: { controls: ChromeCookieContr
               y2="18"
             />
           </svg>
-        </button>
+        </Button>
 
         <h2
           id="cookie-title"
-          className="text-sm font-semibold pr-8"
+          className="pr-8 text-sm font-semibold text-fg"
         >
           {controls.title}
         </h2>
 
-        <p
-          id="cookie-desc"
-          className="text-sm text-gray-700"
-        >
-          {controls.description_html}
-        </p>
+        <p className="text-sm text-fg-muted">{controls.description_html}</p>
 
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={() => void submitConsent(false)}
-            className="px-3 py-1.5 text-sm rounded border border-gray-300 hover:bg-gray-50"
+          <Button
+            variant="secondary"
+            size="sm"
+            isDisabled={submitting}
+            onPress={() => void submitConsent(false)}
           >
             {controls.reject_all}
-          </button>
+          </Button>
 
-          <button
-            type="button"
-            onClick={() => window.location.assign(controls.settings_url)}
-            className="px-3 py-1.5 text-sm rounded bg-gray-200 hover:bg-gray-300"
+          <Button
+            variant="secondary"
+            size="sm"
+            onPress={() => window.location.assign(controls.settings_url)}
           >
             {controls.open_settings}
-          </button>
+          </Button>
 
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={() => void submitConsent(true)}
-            className="px-3 py-1.5 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+          <Button
+            size="sm"
+            isDisabled={submitting}
+            onPress={() => void submitConsent(true)}
           >
             {controls.accept_all}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

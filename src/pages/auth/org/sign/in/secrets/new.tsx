@@ -1,10 +1,10 @@
+import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 // Secret-credential sign-in for operators.
 //
 // A document POST, as the ERB form was: the server answers with a redirect on success and with this
 // page re-rendered at 422 on failure, and the visible Turnstile token has to travel in the form
 // body under the field name the server verifies.
-import { csrfToken } from "@/features/auth/csrf";
-import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
+import { csrfToken } from "@/lib/csrf";
 
 type TurnstileConfiguration = {
   site_key: string;

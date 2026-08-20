@@ -1,4 +1,4 @@
-import { renderToStaticMarkup } from "react-dom/server";
+import { render as renderTree, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import type { SurfaceChrome } from "@/types/inertia";
@@ -6,6 +6,10 @@ import type { SurfaceChrome } from "@/types/inertia";
 // The layout renders only what SurfaceChrome assembled on the server, so the page object is the
 // single input. The chrome components have their own specs; here they are replaced by markers so
 // the layout's own structure is what is asserted.
+//
+// The assertions query by role and accessible name rather than by markup. The layout's contract is
+// its document structure — landmarks, headings, lists and link targets — and that has to survive
+// the styling it carries, which exact-markup assertions did not.
 vi.mock("@inertiajs/react", () => ({
   usePage: () => page,
 }));
@@ -58,7 +62,7 @@ const page = { props: { chrome: minimalChrome, errors: {} } };
 
 const render = (chrome: SurfaceChrome) => {
   page.props.chrome = chrome;
-  return renderToStaticMarkup(
+  return renderTree(
     <SurfaceLayout>
       <p>page body</p>
     </SurfaceLayout>,
@@ -71,71 +75,95 @@ afterEach(() => {
 
 describe("SurfaceLayout", () => {
   test("renders the page inside the main landmark", () => {
-    const html = render(minimalChrome);
+    render(minimalChrome);
 
-    expect(html).toContain('<main id="main"><p>page body</p></main>');
+    const main = screen.getByRole("main");
+    expect(main.id).toBe("main");
+    expect(within(main).getByText("page body")).toBeTruthy();
   });
 
   test("renders the brand, surface and copyright the server resolved", () => {
-    const html = render(minimalChrome);
+    const { container } = render(minimalChrome);
 
-    expect(html).toContain('href="https://umaxica.app/"');
-    expect(html).toContain("Umaxica");
-    expect(html).toContain("(app)");
-    expect(html).toContain("(c) Umaxica");
+    expect(screen.getByRole("link", { name: "Umaxica" }).getAttribute("href")).toBe(
+      "https://umaxica.app/",
+    );
+    expect(container.textContent).toContain("(app)");
+    expect(container.textContent).toContain("(c) Umaxica");
   });
 
   test("renders the family label only when the surface carries one", () => {
-    expect(render(minimalChrome)).not.toContain("Base");
-    expect(render({ ...minimalChrome, family_label: "Base" })).toContain("Base");
+    expect(render(minimalChrome).container.textContent).not.toContain("Base");
+    expect(render({ ...minimalChrome, family_label: "Base" }).container.textContent).toContain(
+      "Base",
+    );
   });
 
   test("renders the chrome components with the controls the server assembled", () => {
-    const html = render(minimalChrome);
+    render(minimalChrome);
 
-    expect(html).toContain("cookie-controls-title");
-    expect(html).toContain("theme-controls-title");
-    expect(html).toContain('aria-label="Preferences"');
+    expect(screen.getByTestId("cookie-banner").textContent).toBe("cookie-controls-title");
+    expect(screen.getByTestId("theme-controls").textContent).toBe("theme-controls-title");
+    expect(screen.getByRole("complementary", { name: "Preferences" })).toBeTruthy();
   });
 
   test("omits the banner, primary navigation and footer navigation when absent", () => {
-    const html = render(minimalChrome);
+    render(minimalChrome);
 
-    expect(html).not.toContain('aria-label="banner"');
-    expect(html).not.toContain('aria-label="Primary"');
-    expect(html).not.toContain('aria-label="Footer"');
+    expect(screen.queryByRole("region", { name: "banner" })).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Primary" })).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Footer" })).toBeNull();
   });
 
-  test("renders the banner with its optional title", () => {
-    const withTitle = render({
+  test("renders the banner with its title", () => {
+    render({
       ...minimalChrome,
       banner: { title: "メンテナンス", body: "停止予定があります。" },
     });
 
-    expect(withTitle).toContain('aria-label="banner"');
-    expect(withTitle).toContain("<h2>メンテナンス</h2>");
-    expect(withTitle).toContain("停止予定があります。");
+    const banner = screen.getByRole("region", { name: "banner" });
+    expect(within(banner).getByRole("heading", { name: "メンテナンス" })).toBeTruthy();
+    expect(within(banner).getByText("停止予定があります。")).toBeTruthy();
+  });
 
-    const withoutTitle = render({
-      ...minimalChrome,
-      banner: { title: null, body: "本文のみ" },
-    });
+  test("renders a banner that carries no title without an empty heading", () => {
+    render({ ...minimalChrome, banner: { title: null, body: "本文のみ" } });
 
-    expect(withoutTitle).toContain("本文のみ");
-    expect(withoutTitle).not.toContain("<h2>");
+    const banner = screen.getByRole("region", { name: "banner" });
+    expect(within(banner).getByText("本文のみ")).toBeTruthy();
+    expect(within(banner).queryByRole("heading")).toBeNull();
   });
 
   // Navigation targets cross hosts, so they stay document visits rather than Inertia visits.
   test("renders navigation links as plain anchors", () => {
-    const html = render({
+    render({
       ...minimalChrome,
       primary_navigation: [{ label: "ホーム", href: "https://umaxica.app/" }],
       footer_navigation: [{ label: "会社概要", href: "https://umaxica.com/about" }],
     });
 
-    expect(html).toContain('aria-label="Primary"');
-    expect(html).toContain('<a href="https://umaxica.app/">ホーム</a>');
-    expect(html).toContain('aria-label="Footer"');
-    expect(html).toContain('<a href="https://umaxica.com/about">会社概要</a>');
+    const primary = screen.getByRole("navigation", { name: "Primary" });
+    const home = within(primary).getByRole("link", { name: "ホーム" });
+    expect(home.getAttribute("href")).toBe("https://umaxica.app/");
+    // A document visit, so no Inertia interception marker.
+    expect(Object.hasOwn(home.dataset, "inertia")).toBe(false);
+
+    const footer = screen.getByRole("navigation", { name: "Footer" });
+    expect(within(footer).getByRole("link", { name: "会社概要" }).getAttribute("href")).toBe(
+      "https://umaxica.com/about",
+    );
+  });
+
+  test("keeps the navigation links inside lists so they can be counted", () => {
+    render({
+      ...minimalChrome,
+      primary_navigation: [
+        { label: "ホーム", href: "https://umaxica.app/" },
+        { label: "設定", href: "https://umaxica.app/settings" },
+      ],
+    });
+
+    const primary = screen.getByRole("navigation", { name: "Primary" });
+    expect(within(primary).getAllByRole("listitem")).toHaveLength(2);
   });
 });

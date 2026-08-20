@@ -7,17 +7,8 @@ const specRoot = fileURLToPath(new URL("./spec", import.meta.url));
 
 export default defineConfig({
   resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-      "~": fileURLToPath(new URL("./src", import.meta.url)),
-      "@components": fileURLToPath(new URL("./src/components", import.meta.url)),
-      "@controllers": fileURLToPath(new URL("./src/controllers", import.meta.url)),
-      "@entrypoints": fileURLToPath(new URL("./src/entrypoints", import.meta.url)),
-      "@styles": fileURLToPath(new URL("./src/styles", import.meta.url)),
-      "react-aria-components": fileURLToPath(
-        new URL("./src/vendor/react-aria-components.tsx", import.meta.url),
-      ),
-    },
+    // Must stay identical to the alias in vite.config.ts and to `paths` in tsconfig.app.json.
+    alias: { "@": srcRoot },
   },
   test: {
     allowOnly: false,

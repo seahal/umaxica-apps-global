@@ -1,13 +1,24 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["import", "promise", "unicorn", "typescript", "node", "oxc"],
+  "plugins": [
+    "import",
+    "promise",
+    "unicorn",
+    "typescript",
+    "node",
+    "oxc",
+    "react",
+    "jsx-a11y",
+    "vitest"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
+    "perf": "off",
     "pedantic": "off",
     "style": "off",
-    "perf": "off",
-    "restriction": "off"
+    "restriction": "off",
+    "nursery": "off"
   },
   "rules": {
     "no-console": "error",
@@ -30,12 +41,10 @@
     "unicorn/filename-case": "off",
     "unicorn/no-anonymous-default-export": "off",
     "unicorn/prefer-global-this": "off",
-    "unicorn/no-document-cookie": "off",
+    "unicorn/no-document-cookie": "error",
     "unicorn/no-null": "off",
     "unicorn/prefer-add-event-listener": "off",
     "unicorn/prefer-dom-node-append": "off",
-    "unicorn/prefer-string-replace-all": "off",
-    "unicorn/prefer-code-point": "off",
     "promise/prefer-await-to-then": "off",
     "promise/prefer-await-to-callbacks": "off",
     "promise/avoid-new": "off",
@@ -50,7 +59,62 @@
         "destructuredArrayIgnorePattern": "^_",
         "ignoreRestSiblings": false
       }
-    ]
+    ],
+    "react/react-in-jsx-scope": "off",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/no-deprecated": "error",
+    "eslint/require-unicode-regexp": "error",
+    "eslint/no-promise-executor-return": "error",
+    "unicorn/prefer-string-replace-all": "error",
+    "unicorn/prefer-code-point": "error",
+    "unicorn/prefer-query-selector": "error",
+    "unicorn/prefer-dom-node-dataset": "error",
+    "unicorn/prefer-type-error": "error",
+    "unicorn/no-useless-promise-resolve-reject": "error",
+    "import/no-cycle": "error",
+    "unicorn/no-useless-undefined": "off",
+    "unicorn/new-for-builtins": "off",
+    "typescript/prefer-nullish-coalescing": "off",
+    "react-perf/jsx-no-new-function-as-prop": "off",
+    "react-perf/jsx-no-new-object-as-prop": "off",
+    "react-perf/jsx-no-new-array-as-prop": "off",
+    "jsx-a11y/control-has-associated-label": [
+      "error",
+      {
+        "ignoreElements": [
+          "audio",
+          "canvas",
+          "embed",
+          "input",
+          "textarea",
+          "tr",
+          "th",
+          "td",
+          "video"
+        ]
+      }
+    ],
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/no-unsafe-type-assertion": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/unbound-method": "error",
+    "typescript/no-base-to-string": "error",
+    "jsx-a11y/no-redundant-roles": "off",
+    "jsx-a11y/autocomplete-valid": "off",
+    "jsx-a11y/label-has-associated-control": [
+      "error",
+      {
+        "depth": 6
+      }
+    ],
+    "vitest/require-mock-type-parameters": "off"
   },
   "env": {
     "browser": true,
@@ -59,14 +123,72 @@
   },
   "overrides": [
     {
-      "files": ["**/*.test.ts", "**/*.test.js", "**/*.spec.ts", "**/*.spec.js", "**/test/**/*"],
-      "plugins": ["import", "promise", "unicorn", "typescript", "node", "oxc", "vitest"],
+      "files": [
+        "src/components/ConfirmDialog.tsx",
+        "src/features/ui_gallery/UiGallery.tsx"
+      ],
+      "rules": {
+        "jsx-a11y/no-autofocus": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "spec/**/*"
+      ],
+      "plugins": [
+        "import",
+        "promise",
+        "unicorn",
+        "typescript",
+        "node",
+        "oxc",
+        "react",
+        "jsx-a11y",
+        "vitest"
+      ],
       "rules": {
         "no-console": "off",
         "no-alert": "off",
         "typescript/unbound-method": "off",
+        "unicorn/no-document-cookie": "off",
         "vitest/no-conditional-in-test": "error",
-        "vitest/require-to-throw-message": "off"
+        "vitest/require-to-throw-message": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-argument": "off"
+      }
+    },
+    {
+      "files": [
+        "**/src/**"
+      ],
+      "excludeFiles": [
+        "**/src/pages/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@/pages/**",
+                  "**/pages/**"
+                ],
+                "message": "A page belongs to one surface's Inertia application, which resolves it through its own import.meta.glob. Import the feature component the page re-exports instead."
+              },
+              {
+                "group": [
+                  "**/spec/**"
+                ],
+                "message": "Application code that imports a spec ships the spec."
+              }
+            ]
+          }
+        ]
       }
     }
   ],
@@ -79,10 +201,13 @@
     "coverage/**",
     ".ruby-lsp/**",
     "public/assets/**",
-    "public/packs/**"
+    "public/packs/**",
+    "app/views/**"
   ],
   "options": {
     "typeAware": true,
-    "typeCheck": true
+    "typeCheck": true,
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error"
   }
 }

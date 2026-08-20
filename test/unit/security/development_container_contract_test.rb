@@ -56,22 +56,10 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     end
   end
 
-  test "supported devcontainer launcher selects the Podman-native compose provider" do
-    launcher = REPOSITORY_ROOT.join("podman/tools/dcup").read
-
-    assert_includes launcher, "--docker-path"
-    assert_includes launcher, "/usr/bin/podman"
-    assert_not_includes launcher, "CONTAINER_ENGINE:-"
-    assert_includes launcher, "PODMAN_COMPOSE_PROVIDER"
-    assert_includes launcher, "--docker-compose-path"
-    assert_includes launcher, ".State.Running"
-    assert_includes launcher, "rm --force --ignore global-devcontainer-core"
-    assert_includes launcher, "/usr/bin/podman-compose"
-    assert_not_includes launcher, "PODMAN_COMPOSE_PROVIDER:-"
-    assert_includes launcher, "bin/setup-dev-secrets"
-
+  test "devcontainer uses the standard CLI lifecycle without a repository launcher" do
     devcontainer = REPOSITORY_ROOT.join(".devcontainer/devcontainer.json").read
 
+    assert_not_predicate REPOSITORY_ROOT.join("podman/tools/dcup"), :exist?
     assert_includes devcontainer, "bin/setup-dev-secrets"
   end
 

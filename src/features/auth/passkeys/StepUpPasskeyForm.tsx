@@ -6,7 +6,7 @@
 // the server answers it with a redirect or a re-render, not with an Inertia visit.
 import { useRef } from "react";
 
-import { csrfToken } from "@/features/auth/csrf";
+import { csrfToken } from "@/lib/csrf";
 
 import { PASSKEY_MESSAGES, authenticationErrorMessage } from "./messages";
 import { useCeremonyMessages } from "./useCeremonyMessages";

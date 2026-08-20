@@ -3,7 +3,7 @@
 // Availability is decided on the server: when the kill switch is on, the notice arrives and the
 // form does not, so the page cannot offer a ceremony the request phase would refuse. The form is a
 // document POST because the browser has to follow the 307 and then the redirect to Entra.
-import { csrfToken } from "@/features/auth/csrf";
+import { csrfToken } from "@/lib/csrf";
 
 export type OrgEntraSessionEntryProps = {
   title: string;

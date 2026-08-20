@@ -17,11 +17,13 @@ export default function DestructiveButton({
   const [processing, setProcessing] = useState(false);
   const { confirm, dialog } = useConfirm();
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     confirm({ message: action.confirm, confirmLabel: action.label }, () => {
       router.delete(action.url, {
-        data,
+        // Omitted rather than sent as undefined: the adapter declares `data` optional, and a
+        // DELETE with no payload is a different request from one with an empty one.
+        ...(data === undefined ? {} : { data }),
         onStart: () => setProcessing(true),
         onFinish: () => setProcessing(false),
       });

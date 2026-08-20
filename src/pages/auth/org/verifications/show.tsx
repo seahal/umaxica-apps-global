@@ -20,7 +20,7 @@ export default function OrgVerificationEntry({
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <h1>{title}</h1>
 
-      {notice ? <p role="status">{notice}</p> : null}
+      {notice ? <output>{notice}</output> : null}
 
       <div>
         <h2>{sectionTitle}</h2>

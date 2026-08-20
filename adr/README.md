@@ -76,6 +76,23 @@ Superseded IdP/RP-centered ADRs:
 - `adr/preference-soft-bubble-doctrine.md`
 - `adr/preference-setting-configurator-url-boundaries.md`
 
+Current API design decisions:
+
+- `adr/api-error-format-problem-details.md` — accepted adoption of RFC 9457 Problem Details
+  (`application/problem+json`) for all non-protocol JSON API errors, the `urn:umaxica:problem:`
+  identifier namespace, the two permitted extension members, and the protocol exemption list
+  (OAuth / OIDC / WebAuthn / DBSC / MCP JSON-RPC / health / `.well-known`).
+- `adr/api-collection-contract.md` — accepted `{data, page}` envelope and cursor pagination for
+  collection endpoints. Target contract only; the entries API migration is externally breaking and
+  deferred to separately reviewed work.
+- `adr/api-versioning-and-client-conventions.md` — accepted path-based major versioning,
+  `Idempotency-Key` (an expired IETF draft adopted as Stripe de facto), `RateLimit` /
+  `RateLimit-Policy` field names (an unpublished draft, adopted with no client dependency permitted),
+  and OpenAPI 3.2.x. Records the areas where no standard exists, keeping
+  `docs/reference/api-design-standards.md` limited to specification-backed rules.
+- `adr/api-route-vocabulary-consolidation.md` — accepted naming direction consolidating `/web/v0` and
+  `/edge/v0` under `/api/v0`. Direction only; no route was changed.
+
 Current database naming decisions:
 
 - `adr/umaxica-v1-core-resource-architecture.md` — accepted v1 core resource architecture: Identity

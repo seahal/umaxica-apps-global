@@ -54,10 +54,10 @@ export default function PreferenceSelect({
   const [value, setValue] = useState(String(form.value));
   const [processing, setProcessing] = useState(false);
   const { errors } = usePage().props;
-  const error = errors?.[form.field];
+  const error = errors[form.field];
   const fieldId = `${form.scope}_${form.field}`;
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     router.patch(
       form.action,

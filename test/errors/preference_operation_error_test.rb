@@ -14,7 +14,7 @@ class PreferenceOperationErrorTest < ActiveSupport::TestCase
   test "initializes with default status code" do
     error = PreferenceOperationError.new
 
-    assert_equal :unprocessable_entity, error.status_code
+    assert_equal :unprocessable_content, error.status_code
   end
 
   test "accepts custom i18n key" do

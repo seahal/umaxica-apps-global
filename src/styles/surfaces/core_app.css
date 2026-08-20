@@ -8,18 +8,33 @@
  * surface renders.
  */
 @import "tailwindcss" source(none);
+@import "../theme.css";
 @import "../base.css";
+
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
+@plugin "tailwindcss-react-aria-components";
 
 @source "../../pages/core/app";
 @source "../../layouts";
 @source "../../components";
 @source "../../features";
 
-@plugin "@tailwindcss/typography";
-@plugin "@tailwindcss/forms";
+/*
+ * The ERB this surface renders. Tailwind only emits a utility it has seen written down, so without
+ * these lines every class in the Turbo-rendered views and the shared layout partials is dropped
+ * from the bundle and those screens render unstyled.
+ */
+@source "../../../app/views/layouts/core/app";
+@source "../../../app/views/layouts/shared";
+@source "../../../app/views/shared";
+@source "../../../app/views/core/app";
 
-/* Surface-owned background: one colour per TLD, overriding the shared default in
-   `base.css` so each FQDN is identifiable on sight. */
-body {
-  background-color: #ffe2e2;
+/*
+ * Edition identity: one hue per TLD so an FQDN is recognisable on sight. `theme.css` mixes both the
+ * light and the dark page background from this one token, so the two modes cannot drift apart, and
+ * this is the only thing a surface owns.
+ */
+:root {
+  --ui-tint: var(--color-red-500);
 }

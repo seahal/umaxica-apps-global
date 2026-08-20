@@ -5,13 +5,15 @@
 // write succeeded.
 import { useEffect, useRef, useState } from "react";
 
+import RadioGroup from "@/components/ui/RadioGroup";
 import { csrfToken } from "@/lib/request";
 import {
   applyTheme,
   fetchStoredTheme,
   persistTheme,
-  readThemeCookie,
+  themeFromDocument,
   watchSystemTheme,
+  watchThemeCookie,
   type Theme,
 } from "@/lib/theme";
 import type { ChromeThemeControls } from "@/types/inertia";
@@ -19,8 +21,12 @@ import type { ChromeThemeControls } from "@/types/inertia";
 const THEME_ORDER: Theme[] = ["system", "light", "dark"];
 
 export default function ThemeControls({ controls }: { controls: ChromeThemeControls }) {
+  // Rails renders `data-theme` from the same `ct` cookie the control reconciles with, and reading
+  // that cookie is asynchronous now, so the document is what the first render starts from: the
+  // radio shows the theme the visitor is already looking at instead of a placeholder that a
+  // resolved cookie read would replace a tick later.
   const [theme, setTheme] = useState<Theme>(() =>
-    typeof document === "undefined" ? "system" : readThemeCookie(),
+    typeof document === "undefined" ? "system" : themeFromDocument(),
   );
   // A choice made before the stored preference arrives wins: the visitor is more current than the
   // in-flight read.
@@ -30,6 +36,11 @@ export default function ThemeControls({ controls }: { controls: ChromeThemeContr
 
   useEffect(() => {
     const stopWatching = watchSystemTheme(() => themeRef.current);
+
+    // This control lives in the persistent layout, so an Inertia visit never remounts it. The
+    // theme preference screen writes the same cookie through the server, and without this the
+    // radio would keep showing the theme the visitor just replaced.
+    const stopFollowingCookie = watchThemeCookie(setTheme);
 
     const reconcile = async () => {
       const stored = await fetchStoredTheme();
@@ -41,7 +52,10 @@ export default function ThemeControls({ controls }: { controls: ChromeThemeContr
 
     void reconcile();
 
-    return stopWatching;
+    return () => {
+      stopWatching();
+      stopFollowingCookie();
+    };
   }, []);
 
   if (controls.hidden) {
@@ -63,40 +77,15 @@ export default function ThemeControls({ controls }: { controls: ChromeThemeContr
   };
 
   return (
-    <aside
-      aria-labelledby="theme-title"
-      className="border border-red-300 p-4 rounded"
-    >
-      <form>
-        <fieldset className="space-y-3">
-          <legend
-            id="theme-title"
-            className="text-sm font-semibold"
-          >
-            {controls.title}
-          </legend>
-
-          <p className="text-xs text-gray-600">{controls.description}</p>
-
-          <div className="space-y-2">
-            {THEME_ORDER.map((option) => (
-              <label
-                key={option}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <input
-                  type="radio"
-                  name="theme"
-                  value={option}
-                  checked={theme === option}
-                  onChange={() => select(option)}
-                />
-                <span>{controls.options[option]}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      </form>
-    </aside>
+    <RadioGroup
+      label={controls.title}
+      description={controls.description}
+      value={theme}
+      onChange={select}
+      options={THEME_ORDER.map((option) => ({
+        value: option,
+        label: controls.options[option],
+      }))}
+    />
   );
 }

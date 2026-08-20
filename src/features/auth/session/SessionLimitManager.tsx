@@ -82,7 +82,7 @@ export default function SessionLimitManager({
   const cancellation = useForm({});
   const { confirm, dialog } = useConfirm();
 
-  const submitRevocation = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitRevocation = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     // `transform` returns void in Inertia 3, so the request is issued separately rather than
     // chained off it.
@@ -90,7 +90,7 @@ export default function SessionLimitManager({
     revocation.patch(form.action);
   };
 
-  const submitCancellation = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitCancellation = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     confirm({ message: cancel.confirm, confirmLabel: cancel.label }, () => {
       cancellation.delete(cancel.action);
@@ -108,9 +108,9 @@ export default function SessionLimitManager({
       ) : null}
 
       {notice ? (
-        <div role="status">
+        <output>
           <p>{notice}</p>
-        </div>
+        </output>
       ) : null}
 
       {restrictedNotice ? <p>{restrictedNotice}</p> : null}

@@ -16,7 +16,7 @@ module Base
 
           rate_limit to: 5, within: 1.minute, by: -> { request.remote_ip }, scope: "base_com_enforcement_recovery",
                      name: "email_create_ip_burst", store: rate_limit_store, only: :create,
-                     with: -> { render_rate_limited(rule_name: "base_com_enforcement_recovery_email_create_ip_burst", retry_after: 60) }
+                     with: -> { render_rate_limited(retry_after: 60) }
 
           private
 

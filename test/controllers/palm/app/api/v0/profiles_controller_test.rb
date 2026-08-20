@@ -24,6 +24,38 @@ module Palm
             assert_empty response_set_cookie_lines
           end
 
+          # The `error` member asserted above is transitional (ApiV0LegacyErrorMember). These are the
+          # assertions that survive its removal, so they pin the contract that outlives it.
+          test "an unauthenticated request answers with an RFC 9457 problem document" do
+            get "/api/v0/profile", headers: json_headers
+
+            assert_response :unauthorized
+            assert_equal "application/problem+json", response.media_type
+
+            body = response.parsed_body
+
+            assert_equal "urn:umaxica:problem:authentication-required", body.fetch("type")
+            assert_equal 401, body.fetch("status")
+            assert_equal response.status, body.fetch("status")
+            assert_predicate body.fetch("request_id"), :present?
+          end
+
+          test "an unauthenticated bearer request names the error in WWW-Authenticate" do
+            get "/api/v0/profile", headers: json_headers.merge("Authorization" => "Bearer #{palm_token(audiences: ["core-browser"])}")
+
+            assert_response :unauthorized
+            assert_equal %(Bearer error="invalid_token"), response.headers["WWW-Authenticate"]
+          end
+
+          test "an insufficient scope answers 403 with the authorization-denied type" do
+            get "/api/v0/profile", headers: json_headers.merge("Authorization" => "Bearer #{palm_token(scopes: %w(openid))}")
+
+            assert_response :forbidden
+            assert_equal "application/problem+json", response.media_type
+            assert_equal "urn:umaxica:problem:authorization-denied", response.parsed_body.fetch("type")
+            assert_equal %(Bearer error="insufficient_scope"), response.headers["WWW-Authenticate"]
+          end
+
           test "returns current client profile for valid palm bearer token without setting cookies" do
             persisted = persisted_palm_token
             token = palm_token(sid: persisted.oidc_sid, jti: persisted.oidc_jti)

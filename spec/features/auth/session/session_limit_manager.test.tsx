@@ -17,6 +17,8 @@ vi.mock("@inertiajs/react", () => ({
 
 import type { SessionLimitManagerProps } from "@/features/auth/session/SessionLimitManager";
 
+import { answerConfirmation } from "../../../support/confirmation";
+
 const { default: SessionLimitManager } =
   await import("@/features/auth/session/SessionLimitManager");
 const { default: AuthAppSessionsShow } = await import("@/pages/auth/app/sign/in/sessions/show");
@@ -78,11 +80,16 @@ const props: SessionLimitManagerProps = {
   },
 };
 
-let container: HTMLDivElement;
-let root: Root;
+// Null until a test mounts, so the teardown guard below is a real check rather than one the type
+// system already knows the answer to.
+let container: HTMLDivElement | null = null;
+let root: Root | null = null;
+
+/** The container a test mounted into; reading it before mounting is the test's own mistake. */
+const mounted = (): HTMLDivElement => present(container, "a mounted container");
 
 const requireInput = (selector: string): HTMLInputElement => {
-  const input = container.querySelector<HTMLInputElement>(selector);
+  const input = mounted().querySelector<HTMLInputElement>(selector);
   if (!input) {
     throw new Error(`no input matched ${selector}`);
   }
@@ -90,20 +97,26 @@ const requireInput = (selector: string): HTMLInputElement => {
 };
 
 const mount = (element: React.ReactElement) => {
-  container = document.createElement("div");
-  document.body.append(container);
-  root = createRoot(container);
+  const host = document.createElement("div");
+  document.body.append(host);
+  const created = createRoot(host);
+  container = host;
+  root = created;
   act(() => {
-    root.render(element);
+    created.render(element);
   });
 };
 
 afterEach(() => {
-  if (root) {
+  const mountedRoot = root;
+
+  if (mountedRoot) {
     act(() => {
-      root.unmount();
+      mountedRoot.unmount();
     });
-    container.remove();
+    container?.remove();
+    root = null;
+    container = null;
   }
 
   patch.mockClear();
@@ -135,7 +148,8 @@ describe("SessionLimitManager markup", () => {
 
     expect(markup).toContain('role="alert"');
     expect(markup).toContain("無効なセッション参照です。");
-    expect(markup).toContain('role="status"');
+    // `<output>` carries an implicit `role="status"`, which is what the element is for.
+    expect(markup).toContain("<output>");
     expect(markup).toContain("セッションを無効化しました。");
   });
 
@@ -167,9 +181,9 @@ describe("SessionLimitManager interaction", () => {
     expect(radio.checked).toBe(true);
 
     act(() => {
-      container
-        .querySelectorAll("form")[0]
-        .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      present(mounted().querySelectorAll("form")[0], "the limitation form").dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
     });
 
     expect(patch).toHaveBeenCalledWith("/sign/in/session?ri=jp");
@@ -178,21 +192,15 @@ describe("SessionLimitManager interaction", () => {
   it("cancels with a DELETE only after the visitor confirms", () => {
     mount(<SessionLimitManager {...props} />);
 
-    const [, cancelForm] = container.querySelectorAll("form");
-    const answerConfirmation = (accepted: boolean) => {
-      const buttons = [
-        ...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? []),
-      ];
-      act(() => {
-        buttons[accepted ? 1 : 0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      });
-    };
+    const cancelForm = present(mounted().querySelectorAll("form")[1], "the cancel form");
 
     act(() => {
       cancelForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
 
-    expect(container.querySelector("dialog[open]")?.textContent).toContain("キャンセルしますか？");
+    expect(document.querySelector("[role='dialog']")?.textContent).toContain(
+      "キャンセルしますか？",
+    );
     answerConfirmation(false);
     expect(deleteRequest).not.toHaveBeenCalled();
 
@@ -210,3 +218,4 @@ describe("auth/app session page", () => {
     expect(AuthAppSessionsShow).toBe(SessionLimitManager);
   });
 });
+import { present } from "../../../support/present";

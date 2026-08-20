@@ -34,7 +34,9 @@ The gates are intentionally independent:
 3. **Surface routing**: the route contract tests recognize non-health application resources for the
    private Host values and assert the matching `app`, `com`, `org`, `net`, or `dev` controller.
 4. **Podman DNS aliases**: `podman compose config` must show the private aliases on `core`'s
-   `frontend` network and no new host port publication.
+   `frontend` network and no new host port publication. The connector never needs an inbound host
+   port and must not be given one; the only publications in the stack are `core`'s loopback-bound
+   `3000`/`3036`. See `docs/operations/development-host-port-exposure.md`.
 5. **Workers VPC connector prerequisites**: cloudflared is pinned at `2025.7.0`, runs with QUIC,
    receives its token through `TUNNEL_TOKEN`, and requires outbound UDP port 7844.
 6. **Repository regression checks**: run the focused tests first, then the full Rails suite,

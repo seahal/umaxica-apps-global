@@ -50,7 +50,7 @@ export default function TotpsNew({
   const [token, setToken] = useState("");
   const form = useForm({ title: formProps.title ?? "", first_token: "" });
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     form.transform((data) => ({
       [formProps.scope]: data,

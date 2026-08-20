@@ -38,7 +38,7 @@ module Auth
           store: rate_limit_store,
           only: :create,
           with: -> {
-            render_rate_limited(rule_name: "auth_org_sign_in_entra_ceremony_start_ip_burst", retry_after: 60)
+            render_rate_limited(retry_after: 60)
           },
         )
 

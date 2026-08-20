@@ -7,7 +7,7 @@ export default function GroupsIndex({ title = "Groups" }: GroupsPageProps) {
   return (
     <section className="mx-auto flex w-full max-w-4xl flex-col justify-center gap-6 p-6">
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em]">Base App</p>
+        <p className="text-xs font-semibold uppercase tracking-widest">Base App</p>
         <h1 className="text-4xl font-bold tracking-tight">{title}</h1>
       </div>
 

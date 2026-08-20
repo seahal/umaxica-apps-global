@@ -1,7 +1,7 @@
 // The avatar create/update form. The server sends the action URL, the HTTP verb the route expects
 // and every label already translated, so the component only binds fields and reports errors.
 import { useForm } from "@inertiajs/react";
-import type { FormEvent } from "react";
+import type { SyntheticEvent } from "react";
 
 export type AvatarFormProps = {
   title: string;
@@ -28,7 +28,7 @@ export default function AvatarForm({
   });
   const { data, setData, errors, processing } = form;
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (method === "post") {
       form.post(action);

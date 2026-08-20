@@ -1,0 +1,127 @@
+# Development Host Port Exposure
+
+Development containers do not publish services to the host's external network interfaces by
+default. Where host access is genuinely required, the publication is restricted to loopback.
+
+This is the standing contract for every Compose file in this repository. It is not advice about a
+particular service, and a host firewall is not an acceptable substitute for it.
+
+## The Rule
+
+1. **Prefer no publication at all.** If a service is only consumed by other containers, it gets no
+   `ports:` entry. Containers reach it by Compose service name over the shared network
+   (`primary:5432`, `valkey:6379`, `kafka:29092`, `tempo:3200`, `rustfs:9000`).
+2. **If the host genuinely needs it, publish to loopback only.** Write the bind address
+   explicitly: `127.0.0.1:3000:3000`, never `3000:3000`. A `ports:` entry with no host address
+   makes Podman bind `0.0.0.0`, which places the service on every host interface — LAN, Wi-Fi,
+   Ethernet, and Tailscale included.
+3. **Never publish a datastore.** PostgreSQL (`primary`, `replica`), Valkey, and Kafka are
+   container-only. Convenience is not a reason to add `5432:5432`, `6379:6379`, or `9092:9092`; use
+   `podman compose exec` for a shell against them.
+
+## Container Bind and Host Publication Are Separate Decisions
+
+A process binding `0.0.0.0` *inside* its container is normal and usually required — it is how the
+container becomes reachable on the Podman network at all. It says nothing about host exposure,
+which is decided solely by `ports:`.
+
+```text
+BINDING=0.0.0.0             ->  Rails listens on the core container's own interfaces.
+ports: 127.0.0.1:3000:3000  ->  the host reaches it only from the host itself.
+ports: 3000:3000            ->  every machine on the LAN reaches it.  <- not allowed
+```
+
+`compose.yaml` therefore keeps `BINDING: "0.0.0.0"`, `VITE_RUBY_HOST: "0.0.0.0"`, and
+`RUSTFS_ADDRESS: "0.0.0.0:9000"`. Do not "harden" those to `127.0.0.1`: that would break
+`cloudflare-tunnel`, `bin/tunnel-origin-check`, and every container-to-container call, while
+changing nothing about host exposure.
+
+## Current Publications
+
+| Service | Host publication | Why |
+| --- | --- | --- |
+| `core` (Rails, 3000) | `127.0.0.1:3000` | The browser opens the documented `http://<service>.<surface>.localhost:3000` origins, which resolve to `127.0.0.1`. |
+| `core` (Vite, 3036) | `127.0.0.1:3036` | `@vite/client` opens its HMR socket to the dev server from the browser. |
+| `rustfs` (9000, 9001) | `127.0.0.1` (profile `object-storage`) | S3 CLI and console use from the host during object-storage work. |
+| `primary`, `replica` | none | Reached as `primary:5432` / `replica:5432`. |
+| `valkey` | none | Reached as `valkey:6379`. |
+| `kafka` | none | The repository has no Kafka client at all; see below. |
+| `loki`, `tempo`, `grafana`, `prometheus`, `otel-collector` | none | The `observability` profile is entirely container-internal. |
+| `cloudflare-tunnel` | none, and none is possible | The connector is outbound-only. |
+
+IPv6: rootless Podman publishes these as IPv4 only, so no `::`-bound listener is created. The
+loopback form pins the IPv4 side explicitly. If a future service needs IPv6 loopback, write
+`[::1]:PORT:PORT` as a second, equally explicit entry — never a bare `PORT:PORT`.
+
+## Kafka
+
+The broker runs two listeners, both on the `backend` network:
+
+```text
+CONTROLLER://kafka:29093    KRaft quorum
+INTERNAL://kafka:29092      clients and inter-broker traffic
+```
+
+There is no `EXTERNAL` listener. The previous `EXTERNAL://0.0.0.0:9092`, advertised as
+`localhost:9092`, existed only to back the host publication of 9092. Nothing consumes it: no
+`rdkafka`, `racecar`, `ruby-kafka`, or `karafka` dependency exists, and the
+`opentelemetry-instrumentation-*` entries in `Gemfile.lock` instrument clients that are not
+installed. The healthcheck bootstraps from `kafka:29092`.
+
+Adding a Kafka client later means pointing it at `kafka:29092`. It does not mean restoring the host
+publication.
+
+## Cloudflare Tunnel
+
+`cloudflare-tunnel` needs no inbound host port and must never be given one. It dials Cloudflare
+outbound over QUIC (UDP 7844) and resolves its origins over the Podman networks it joins:
+
+```text
+cloudflare-tunnel -> frontend network -> core:3000                (Rails)
+cloudflare-tunnel -> umaxica-edge-tunnel network -> Edge Core     (Next.js, other project)
+```
+
+Ingress rules live in the Cloudflare account, not in this repository. They must name a Compose
+service address on one of those networks. An ingress rule pointing at `host.docker.internal:3000`
+would route Cloudflare traffic back out through the host and is not supported by this contract —
+see `docs/operations/cloudflare-private-origin.md`.
+
+## Verification
+
+Run on the **host**, not inside a container:
+
+```sh
+podman ps --format 'table {{.Names}}\t{{.Ports}}'
+sudo ss -lntup | grep -E ':(3000|3036|9092|5432|6379)\b'
+```
+
+Expected: `primary`, `replica`, `valkey`, and `kafka` show a bare container port with no `->`
+mapping. `core` shows `127.0.0.1:3000->3000/tcp` and `127.0.0.1:3036->3036/tcp`. No line anywhere
+contains `0.0.0.0:3000`, `0.0.0.0:3036`, `0.0.0.0:9092`, `*:3000`, `*:3036`, or `*:9092`.
+
+From a second machine on the same LAN, both of these must fail to connect:
+
+```sh
+curl --max-time 5 http://<host-lan-ip>:3000/health
+curl --max-time 5 http://<host-lan-ip>:3036/
+```
+
+`bin/tunnel-origin-check` remains the gate for the container-network path, and Gate 4 of
+`docs/operations/cloudflare-private-origin.md` requires `podman compose config` to show no new host
+port publication.
+
+## Out of Scope
+
+GitHub Actions `services:` blocks in `.github/workflows/` publish `5432` and `6379` on the runner.
+That is a different threat model — a single-use runner VM with no LAN neighbours and no persistent
+data — and the addresses are runner-local. This contract governs Compose files only, and
+`test/tooling/compose_host_port_exposure_test.rb` checks Compose files only.
+
+## Review Checklist
+
+Reject a change that adds any of the following without an entry in the table above:
+
+- a `ports:` value with no explicit host address
+- any publication of 5432, 6379, or 9092
+- a `network_mode: host` service
+- a `--publish`/`-p` flag in a script that omits the bind address

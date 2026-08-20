@@ -33,7 +33,7 @@ module Auth
             store: rate_limit_store,
             only: :create,
             with: -> {
-              render_rate_limited(rule_name: "auth_com_sign_in_secret_credential_create_ip_burst", retry_after: 60)
+              render_rate_limited(retry_after: 60)
             },
           )
           rate_limit(
@@ -45,7 +45,7 @@ module Auth
             store: rate_limit_store,
             only: :create,
             with: -> {
-              render_rate_limited(rule_name: "auth_com_sign_in_secret_credential_create_ip_sustained", retry_after: 900)
+              render_rate_limited(retry_after: 900)
             },
           )
           rate_limit(
@@ -62,10 +62,7 @@ module Auth
             store: rate_limit_store,
             only: :create,
             with: -> {
-              render_rate_limited(
-                rule_name: "auth_com_sign_in_secret_credential_create_identifier",
-                retry_after: 900,
-              )
+              render_rate_limited(retry_after: 900)
             },
           )
           before_action :start_minimum_response_budget

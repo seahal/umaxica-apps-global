@@ -34,7 +34,7 @@ export default function PasskeyEdit({
   });
   const error = readString(form.errors, "description");
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     form.patch(action);
   };

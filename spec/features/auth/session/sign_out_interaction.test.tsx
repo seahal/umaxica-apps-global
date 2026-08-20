@@ -69,12 +69,12 @@ describe("SignOutConfirmation interaction", () => {
 
     expect(forms).toHaveLength(2);
 
-    submit(forms[0]);
+    submit(present(forms[0], "the sign-out form"));
 
     expect(post).toHaveBeenCalledWith("/sign/out?ri=jp");
     expect(deleteRequest).not.toHaveBeenCalled();
 
-    submit(forms[1]);
+    submit(present(forms[1], "the cancel form"));
 
     expect(deleteRequest).toHaveBeenCalledWith("/sign/out?ri=jp");
   });
@@ -87,7 +87,7 @@ describe("SignOutConfirmation interaction", () => {
       />,
     );
 
-    submit(container.querySelectorAll("form")[0]);
+    submit(present(container.querySelectorAll("form")[0], "the sign-out form"));
 
     expect(post).toHaveBeenCalledWith("/sign/out?ri=jp");
   });
@@ -105,8 +105,9 @@ describe("SignOutUnavailable interaction", () => {
       />,
     );
 
-    submit(container.querySelectorAll("form")[0]);
+    submit(present(container.querySelectorAll("form")[0], "the sign-out form"));
 
     expect(post).toHaveBeenCalledWith("/sign/out?ri=jp");
   });
 });
+import { present } from "../../../support/present";

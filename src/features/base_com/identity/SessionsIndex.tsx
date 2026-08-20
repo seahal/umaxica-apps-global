@@ -33,7 +33,7 @@ function RevokeButton({ action }: { action: ConfirmedAction }) {
   const [processing, setProcessing] = useState(false);
   const { confirm, dialog } = useConfirm();
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     confirm({ message: action.confirm, confirmLabel: action.label }, () => {
       router.delete(action.url, {
@@ -86,7 +86,6 @@ export default function SessionsIndex({
               {columns.map((column, index) => (
                 // Column labels are server text and one of them is deliberately blank, so the
                 // position is the only stable key.
-                // oxlint-disable-next-line no-array-index-key
                 <th key={`${column}-${index}`}>{column}</th>
               ))}
             </tr>

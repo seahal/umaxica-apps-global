@@ -22,7 +22,11 @@ export async function solveInvisibleTurnstile(
   return new Promise<string>((resolve, reject) => {
     try {
       const container = document.createElement("div");
-      container.style.display = "none";
+      // `hidden` rather than an inline style: it is the platform attribute for "not rendered and
+
+      // not announced", and it keeps the widget host out of the accessibility tree too.
+
+      container.hidden = true;
       (host ?? document.body).append(container);
 
       const options: TurnstileOptions = {
@@ -35,6 +39,8 @@ export async function solveInvisibleTurnstile(
 
       api.render(container, options);
     } catch (error) {
+      // The caller is given the visitor-facing message; the underlying failure is only useful
+      // here.
       // oxlint-disable-next-line no-console
       console.error("Turnstile token request failed:", error);
       reject(new Error(errorMessage));

@@ -10,7 +10,7 @@ import { baseSurfaceUrl } from "../playwright.config";
 
 const OFFLINE_HEADING = "ネットワークに接続できません";
 
-const origin = () => baseSurfaceUrl().replace(/\/$/, "");
+const origin = () => baseSurfaceUrl().replace(/\/$/u, "");
 
 const cachedUrls = (page: import("playwright/test").Page) =>
   page.evaluate(async () => {

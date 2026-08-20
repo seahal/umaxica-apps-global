@@ -167,12 +167,78 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     assert_predicate entry, :persisted?
   end
 
-  test "an unknown slug returns a not_found body" do
+  test "a published entry is shared-cacheable and revalidatable" do
+    publish("cacheable", "Cacheable")
+
+    host! @host
+    get docs_app_api_v0_entry_url(slug: "cacheable", locale: "ja", host: @host)
+
+    assert_response :success
+    assert_includes response.headers["Cache-Control"], "public"
+    assert_includes response.headers["Cache-Control"], "max-age=60"
+    assert_predicate response.headers["ETag"], :present?
+    assert_predicate response.headers["Last-Modified"], :present?
+  end
+
+  test "a matching validator answers 304 with no body" do
+    publish("revalidated", "Revalidated")
+    host! @host
+    get docs_app_api_v0_entry_url(slug: "revalidated", locale: "ja", host: @host)
+
+    assert_response :success
+    etag = response.headers.fetch("ETag")
+
+    get docs_app_api_v0_entry_url(slug: "revalidated", locale: "ja", host: @host),
+        headers: { "If-None-Match" => etag }
+
+    assert_response :not_modified
+    assert_empty response.body
+  end
+
+  test "the index is revalidatable and its validator tracks the rendered payload" do
+    publish("index-one", "Index One")
+    host! @host
+    get docs_app_api_v0_entries_url(locale: "ja", host: @host)
+
+    assert_response :success
+    assert_includes response.headers["Cache-Control"], "public"
+
+    etag = response.headers.fetch("ETag")
+
+    get docs_app_api_v0_entries_url(locale: "ja", host: @host), headers: { "If-None-Match" => etag }
+
+    assert_response :not_modified
+
+    # The validator is derived from the payload, so publishing another entry must invalidate it.
+    publish("index-two", "Index Two")
+
+    get docs_app_api_v0_entries_url(locale: "ja", host: @host), headers: { "If-None-Match" => etag }
+
+    assert_response :success
+    assert_not_equal etag, response.headers.fetch("ETag")
+  end
+
+  test "an unknown slug returns an RFC 9457 problem document" do
     host! @host
     get docs_app_api_v0_entry_url(slug: "missing", locale: "ja", host: @host)
 
     assert_response :not_found
-    assert_equal({ "error" => "not_found" }, response.parsed_body)
+    assert_equal "application/problem+json", response.media_type
+
+    body = response.parsed_body
+
+    assert_equal "urn:umaxica:problem:not-found", body.fetch("type")
+    assert_equal 404, body.fetch("status")
+    assert_predicate body.fetch("request_id"), :present?
+  end
+
+  # Transitional, paired with the override in PublishingContentRendering: the edge applications read
+  # this key today. Delete this test when that override is removed.
+  test "the transitional legacy error member still carries not_found" do
+    host! @host
+    get docs_app_api_v0_entry_url(slug: "missing", locale: "ja", host: @host)
+
+    assert_equal "not_found", response.parsed_body.fetch("error")
   end
 
   test "an unknown locale returns an empty index rather than an error" do

@@ -9,8 +9,8 @@
 import { router } from "@inertiajs/react";
 import { useEffect, useState } from "react";
 
-import { csrfToken } from "@/features/auth/csrf";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
+import { csrfToken } from "@/lib/csrf";
 
 import type { SettingsLink, SettingsTurnstile } from "./links";
 
@@ -46,7 +46,7 @@ export default function SocialLinkManage({
     setAuthenticityToken(csrfToken());
   }, []);
 
-  const disconnect = (event: React.FormEvent<HTMLFormElement>) => {
+  const disconnect = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!unlink?.allowed) {

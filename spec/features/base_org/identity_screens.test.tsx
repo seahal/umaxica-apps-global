@@ -12,7 +12,7 @@ vi.mock("@inertiajs/react", () => ({
 
 vi.mock("@/lib/turnstile", () => ({
   waitForTurnstileApi: () =>
-    Promise.resolve({ render: () => "widget", execute: () => undefined, remove: () => undefined }),
+    Promise.resolve({ render: () => "widget", execute: () => {}, remove: () => {} }),
 }));
 
 const { default: CredentialIndex } = await import("@/pages/base/org/identity/emails/index");

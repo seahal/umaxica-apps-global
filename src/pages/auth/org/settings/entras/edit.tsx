@@ -3,7 +3,7 @@
 // The connect button is a document POST to the settings endpoint, which redirects into the Entra
 // ceremony, so it stays a native form rather than an Inertia visit. Whether a connection may be
 // offered at all is a server decision: a connected identity arrives with a notice and no form.
-import { csrfToken } from "@/features/auth/csrf";
+import { csrfToken } from "@/lib/csrf";
 
 export type OrgEntraSettingsEditProps = {
   title: string;

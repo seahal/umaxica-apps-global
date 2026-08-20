@@ -51,6 +51,7 @@ repository root. Load only the entries that match the task.
 - Controllers or endpoints: `generic/controllers.mdc`, `generic/routing.mdc`,
   `project/surfaces.mdc`, `project/controller-inheritance.mdc`,
   `docs/architecture/controller-lifecycle.md`
+- JSON API endpoints, error responses, or API route versioning: `docs/reference/api-design-standards.md`
 - Minitest or behavior changes: `generic/testing.mdc`, `generic/no-test-only-code.mdc`
 - Value objects, services, resolvers, policies, queries, or commands:
   `project/value-object-boundaries.mdc`
@@ -59,6 +60,8 @@ repository root. Load only the entries that match the task.
 - Security-sensitive work or broad refactors: `generic/absolute-rules.mdc`,
   `generic/no-silent-fallback.mdc`, `project/regression-guards.mdc`
 - Configuration or environment variables: `generic/no-silent-fallback.mdc`
+- Compose files, container ports, or devcontainer configuration:
+  `docs/operations/development-host-port-exposure.md`
 - Routing or authentication workflows: `project/surfaces.mdc`, `generic/routing.mdc`,
   `generic/no-workflow-drift.mdc`, `docs/architecture/controller-lifecycle.md`
 - User-facing notices, alerts, or feedback: `generic/no-flash-messages.mdc`
@@ -94,6 +97,8 @@ Do not:
 - store request state in class variables, globals, or `Thread.current`; pass it explicitly
 - introduce test-only behavior into application code; change the test instead
 - use silent configuration, workflow, or migration fallbacks; fail loudly and name what is missing
+- publish a container port to the host without an explicit loopback bind address, or publish a
+  datastore port (PostgreSQL, Valkey, Kafka) to the host at all
 - perform destructive database operations without explicit approval of the risk and migration plan
 
 Required Ruby environment variables must use one-argument `ENV.fetch("NAME")` in application and

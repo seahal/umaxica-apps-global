@@ -78,7 +78,7 @@ export default function OtpVerificationForm({
             id={fieldId}
             name={`${scope}[pass_code]`}
             placeholder={codePlaceholder}
-            // eslint-disable-next-line jsx-a11y/no-autofocus -- the ERB field carried autofocus.
+            // oxlint-disable-next-line jsx-a11y/no-autofocus -- the ERB field carried autofocus.
             autoFocus
             autoComplete="one-time-code"
             inputMode="numeric"

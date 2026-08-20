@@ -18,17 +18,17 @@ module Sign
         error = InvalidWithdrawalStateError.new("ACTIVE")
 
         assert_equal "sign.withdrawal.errors.invalid_state", error.i18n_key
-        assert_equal :unprocessable_entity, error.status_code
+        assert_equal :unprocessable_content, error.status_code
         assert_equal "ACTIVE", error.context[:current_status]
       end
     end
 
-    test "WithdrawalRecoveryNotAvailableError initializes with unprocessable_entity status" do
+    test "WithdrawalRecoveryNotAvailableError initializes with unprocessable_content status" do
       I18n.stub(:t, "recovery not available") do
         error = ::Sign::WithdrawalRecoveryNotAvailableError.new
 
         assert_equal "sign.withdrawal.errors.recovery_not_available", error.i18n_key
-        assert_equal :unprocessable_entity, error.status_code
+        assert_equal :unprocessable_content, error.status_code
       end
     end
 
@@ -84,7 +84,7 @@ module Sign
         error = ::Sign::WithdrawalFinalizedError.new
 
         assert_equal "sign.app.configuration.withdrawal.errors.finalized", error.i18n_key
-        assert_equal :unprocessable_entity, error.status_code
+        assert_equal :unprocessable_content, error.status_code
       end
     end
 
@@ -101,7 +101,7 @@ module Sign
         error = ::Sign::WithdrawalCooldownError.new(withdraw_cooldown_until: Time.current)
 
         assert_equal "sign.app.configuration.withdrawal.errors.cooldown_active", error.i18n_key
-        assert_equal :unprocessable_entity, error.status_code
+        assert_equal :unprocessable_content, error.status_code
         assert error.context[:withdraw_cooldown_until]
       end
     end

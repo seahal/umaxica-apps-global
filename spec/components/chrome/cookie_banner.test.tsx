@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import CookieBanner from "@/components/chrome/CookieBanner";
 import type { ChromeCookieControls } from "@/types/inertia";
 
+import { jsonResponse, noContentResponse, stubFetchByMethod } from "../../support/http";
+
 // The React port of the `cookie-banner` Stimulus controller is verified against the same
 // behaviour the controller spec asserts: the consent read on mount, the PATCH payload of each
 // answer, the close button and the settings navigation.
@@ -44,6 +46,21 @@ const mount = async () => {
 };
 
 const banner = () => container?.querySelector("#cookie-banner");
+
+// The JS-readable projection of the recorded decision, written by
+// `PreferenceConsentedBuffer#set_preference_consented_buffer!`.
+const consentBufferCookie = (value: string) => {
+  document.cookie = `preference_consented=${value}; path=/`;
+};
+
+const clearCookies = () => {
+  for (const part of document.cookie.split(";")) {
+    const [key] = part.trim().split("=");
+    if (key) {
+      document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+    }
+  }
+};
 const button = (label: string) =>
   [...(container?.querySelectorAll("button") ?? [])].find(
     (element) => element.textContent === label || element.getAttribute("aria-label") === label,
@@ -56,6 +73,7 @@ const click = async (element: HTMLButtonElement | undefined) => {
 };
 
 beforeEach(() => {
+  clearCookies();
   document.head.innerHTML = '<meta name="csrf-token" content="csrf-token">';
   assign = vi.fn();
   // jsdom's location is not redefinable in place, so the whole object is stubbed; the query string
@@ -79,14 +97,18 @@ afterEach(() => {
   root = undefined;
   container = undefined;
   document.head.innerHTML = "";
+  clearCookies();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe("CookieBanner mount", () => {
+  // `show_banner` is the field `PreferenceWebCookieActions#show` answers with. The banner used to
+  // read `consented`, which that response has never carried, so a recorded decision never
+  // suppressed it and the prompt returned on every load.
   test("hides the banner when the API reports an existing consent", async () => {
     stubFetch(
-      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ consented: true }) }),
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ show_banner: false }) }),
     );
 
     await mount();
@@ -97,7 +119,7 @@ describe("CookieBanner mount", () => {
 
   test("keeps the banner when no consent is recorded yet", async () => {
     stubFetch(
-      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ consented: false }) }),
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ show_banner: true }) }),
     );
 
     await mount();
@@ -105,6 +127,107 @@ describe("CookieBanner mount", () => {
     expect(banner()).not.toBeNull();
     expect(banner()?.textContent).toContain(controls.title);
     expect(banner()?.textContent).toContain(controls.description_html);
+  });
+
+  test("keeps the banner when the answer names no decision at all", async () => {
+    stubFetch(vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }));
+
+    await mount();
+
+    expect(banner()).not.toBeNull();
+  });
+
+  // Without this the banner paints on every load and disappears once the read returns, which is
+  // the flash the consent buffer cookie exists to prevent.
+  test("never paints for a visitor whose consent buffer cookie records an answer", async () => {
+    consentBufferCookie("1");
+    let resolveRead: (value: unknown) => void = noop;
+    stubFetch(
+      vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          resolveRead = resolve;
+        }),
+      ),
+    );
+
+    await mount();
+
+    expect(banner()).toBeNull();
+
+    await act(async () => {
+      resolveRead({ ok: true, json: () => Promise.resolve({ show_banner: false }) });
+    });
+
+    expect(banner()).toBeNull();
+  });
+
+  // The buffer is a projection; the endpoint is the authority, so it raises the banner again when
+  // the two disagree.
+  test("raises the banner when the endpoint contradicts a stale consent buffer cookie", async () => {
+    consentBufferCookie("1");
+    stubFetch(
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ show_banner: true }) }),
+    );
+
+    await mount();
+
+    expect(banner()).not.toBeNull();
+  });
+
+  // The buffer read is asynchronous through the Cookie Store API, so it is the only thing that can
+  // raise the banner before the endpoint answers.
+  test("raises the banner from the buffer cookie while the endpoint is still pending", async () => {
+    let resolveRead: (value: unknown) => void = noop;
+    stubFetch(
+      vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          resolveRead = resolve;
+        }),
+      ),
+    );
+
+    await mount();
+
+    expect(banner()).not.toBeNull();
+
+    await act(async () => {
+      resolveRead({ ok: true, json: () => Promise.resolve({ show_banner: true }) });
+    });
+
+    expect(banner()).not.toBeNull();
+  });
+
+  // The endpoint is the authority, so a buffer read that lands after it must not undo its answer.
+  test("keeps the banner hidden when the buffer read lands after the endpoint hid it", async () => {
+    stubFetch(
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ show_banner: false }) }),
+    );
+    // The component only reads, so the store is stood in for by a slow read of the real one.
+    const store = window.cookieStore;
+    vi.stubGlobal("cookieStore", {
+      get: (name: string) =>
+        new Promise((resolve) => {
+          setTimeout(() => void store.get(name).then(resolve), 0);
+        }),
+    });
+
+    await mount();
+    await act(async () => {
+      await vi.waitFor(() => expect(banner()).toBeNull());
+    });
+
+    expect(banner()).toBeNull();
+  });
+
+  test("paints immediately when the consent buffer cookie records no answer", async () => {
+    consentBufferCookie("0");
+    stubFetch(
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ show_banner: true }) }),
+    );
+
+    await mount();
+
+    expect(banner()).not.toBeNull();
   });
 
   test("keeps the banner when the consent read answers an error", async () => {
@@ -141,7 +264,7 @@ describe("CookieBanner mount", () => {
     });
 
     await act(async () => {
-      resolveRead({ ok: true, json: () => Promise.resolve({ consented: true }) });
+      resolveRead({ ok: true, json: () => Promise.resolve({ show_banner: false }) });
     });
 
     // Re-mounted in afterEach terms: unmounting twice is safe, and no state update was attempted.
@@ -204,6 +327,24 @@ describe("CookieBanner actions", () => {
 
     expect(banner()).toBeNull();
     expect(fetchMock.mock.calls.length).toBe(calls);
+  });
+
+  // The read is in flight while the visitor answers, so its answer is already stale when it lands.
+  test("does not raise the banner again when a slow read lands after a decision", async () => {
+    // The write is answered as the server answers it, 204 with no body; the read is left pending
+    // until after the decision.
+    const { settlePending } = stubFetchByMethod({ PATCH: noContentResponse() });
+
+    await mount();
+    await click(button(controls.accept_all));
+
+    expect(banner()).toBeNull();
+
+    await act(async () => {
+      settlePending(jsonResponse({ show_banner: true }));
+    });
+
+    expect(banner()).toBeNull();
   });
 
   test("the settings button leaves for the cookie preference screen", async () => {

@@ -10,7 +10,7 @@ type Props = {
 export default function PrivacyErasureNew({ title, notices, form }: Props) {
   const [processing, setProcessing] = useState(false);
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     router.post(
       form.action,

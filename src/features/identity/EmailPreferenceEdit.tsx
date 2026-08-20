@@ -44,7 +44,7 @@ export default function EmailPreferenceEdit({
 
   // The deletion is held back until the actor accepts, then replayed with `submit()`, which sends
   // the same document DELETE without running this handler again.
-  const submitDeletion = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitDeletion = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     const deletionForm = event.currentTarget;
     confirm(

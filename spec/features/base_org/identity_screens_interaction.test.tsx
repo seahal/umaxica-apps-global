@@ -2,6 +2,8 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { answerConfirmation } from "../../support/confirmation";
+
 // Unlike identity_screens.test.tsx (static markup only), these tests mount the components and fire
 // real submit events, which is the only way to reach the confirmation guards on the destructive
 // forms.
@@ -13,7 +15,7 @@ vi.mock("@inertiajs/react", () => ({
 
 vi.mock("@/lib/turnstile", () => ({
   waitForTurnstileApi: () =>
-    Promise.resolve({ render: () => "widget", execute: () => undefined, remove: () => undefined }),
+    Promise.resolve({ render: () => "widget", execute: () => {}, remove: () => {} }),
 }));
 
 const { default: TelephoneEdit } = await import("@/features/identity/TelephoneEdit");
@@ -37,17 +39,6 @@ const mount = (element: React.ReactElement) => {
 // The destructive forms hold their submission back until the dialog is answered and then replay it
 // with `form.submit()`, which jsdom does not implement; the spy stands in for the navigation.
 const submitted = vi.fn();
-
-const confirmationButtons = () => [
-  ...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? []),
-];
-
-const answerConfirmation = (accepted: boolean) => {
-  const button = confirmationButtons()[accepted ? 1 : 0];
-  act(() => {
-    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-  });
-};
 
 // jsdom has no navigation, so the submit is observed rather than performed.
 const submitFirstForm = () => {
@@ -118,7 +109,7 @@ describe("destructive identity forms", () => {
     );
 
     expect(submitFirstForm().defaultPrevented).toBe(true);
-    expect(container.querySelector("dialog[open]")?.textContent).toContain("Sure?");
+    expect(document.querySelector("[role='dialog']")?.textContent).toContain("Sure?");
     answerConfirmation(false);
     expect(submitted).not.toHaveBeenCalled();
   });

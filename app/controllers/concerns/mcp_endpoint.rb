@@ -37,7 +37,7 @@ module McpEndpoint
         name: "request_ip",
         store: rate_limit_store,
         only: :create,
-        with: -> { render_rate_limited(rule_name: "#{rule_scope}_request_ip", retry_after: 60) },
+        with: -> { render_rate_limited(retry_after: 60) },
       )
     end
   end

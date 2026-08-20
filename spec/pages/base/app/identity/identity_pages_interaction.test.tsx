@@ -2,6 +2,9 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { answerConfirmation } from "../../../../support/confirmation";
+import { present } from "../../../../support/present";
+
 // These tests mount the identity pages and fire real DOM events, so the submit and confirm
 // branches the static markup cannot reach are covered.
 const get = vi.fn();
@@ -55,7 +58,7 @@ const mount = (element: React.ReactElement) => {
 };
 
 const submitForm = (index = 0) => {
-  const form = container.querySelectorAll("form")[index];
+  const form = present(container.querySelectorAll("form")[index], `form ${index}`);
   act(() => {
     form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   });
@@ -72,12 +75,6 @@ const clickButton = (label: string) => {
 
 // The confirmation is a rendered dialog now: its cancel button is first and its confirm button
 // second, so answering it is a click rather than a stubbed `window.confirm`.
-const answerConfirmation = (accepted: boolean) => {
-  const buttons = [...(container.querySelector("dialog[open]")?.querySelectorAll("button") ?? [])];
-  act(() => {
-    buttons[accepted ? 1 : 0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-  });
-};
 
 const setInput = (selector: string, value: string) => {
   const input = container.querySelector<HTMLInputElement>(selector);

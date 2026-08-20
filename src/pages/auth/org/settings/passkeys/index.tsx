@@ -3,8 +3,8 @@
 // Deletion stays a document DELETE form: it carries a stealth Turnstile token in the same
 // `cf-turnstile-response` field the server already verifies, so the request shape is unchanged.
 import { useConfirm } from "@/components/ConfirmDialog";
-import { csrfToken } from "@/features/auth/csrf";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
+import { csrfToken } from "@/lib/csrf";
 
 type PasskeyRow = {
   description: string;
@@ -49,7 +49,7 @@ function DestroyForm({
 
   // The submission is held back until the operator accepts, then replayed with `submit()`, which
   // sends the same document DELETE without running this handler again.
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     confirm({ message, confirmLabel: label }, () => form.submit());

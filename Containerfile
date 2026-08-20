@@ -19,7 +19,7 @@ ARG REVISION=""
 # exact patch so Global and Edge cannot drift to different Node builds.
 ARG NODE_VERSION=24.19.0
 # pnpm is pinned for the same reason; `pnpm@latest` made every rebuild irreproducible.
-ARG PNPM_VERSION=11.20.0
+ARG PNPM_VERSION=11.22.0
 
 # ============================================================================
 # Node.js toolchain (binaries copied into the development and asset images)

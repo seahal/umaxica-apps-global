@@ -37,6 +37,10 @@ which writes the repo-root `.env` that Compose auto-loads). Manual
 .devcontainer/write-host-ids.sh
 ```
 
+Host port publication is loopback-only and is decided in
+`.devcontainer/compose.override.yml`; `docs/operations/development-host-port-exposure.md` is the
+contract. `compose.workspace.yaml` adds no publication of its own.
+
 The base Compose file explicitly selects `development`:
 
 ```sh

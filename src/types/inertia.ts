@@ -50,13 +50,13 @@ export type SurfaceChrome = {
 };
 
 /**
- * Props shared with every Inertia response of a surface. `errors` is always present because the
- * server runs with `always_include_errors_hash`, so a page can read it without a nullish guard.
+ * Props shared with every Inertia response of a surface, published to the adapter through
+ * `InertiaConfig["sharedPageProps"]` in ./globals.d.ts so that a bare `usePage()` sees them.
+ *
+ * `errors` is deliberately absent: the adapter already declares it on `Page["props"]`, and the
+ * server runs with `always_include_errors_hash`, so it is present on every response. Declaring it
+ * here as well would produce a second, conflicting shape for the same payload.
  */
 export type SharedProps = {
   chrome: SurfaceChrome;
-  errors: Record<string, string>;
 };
-
-/** A page's own props always arrive alongside the shared ones. */
-export type PageProps<T = Record<string, unknown>> = T & SharedProps;

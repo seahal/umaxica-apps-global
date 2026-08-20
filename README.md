@@ -46,7 +46,7 @@ bin/rails assets:clobber        # Remove compiled assets
 - Ruby `4.0.x`
 - Bundler
 - Node.js `24.19.0` (Active LTS)
-- `pnpm@11.20.0`
+- `pnpm@11.22.0`
 
 ### The pnpm toolchain
 
@@ -118,6 +118,11 @@ bin/dev
 
 Modern browsers resolve `*.localhost` to `127.0.0.1`, so extra `/etc/hosts` entries are usually not
 needed.
+
+The development container publishes ports `3000` and `3036` to `127.0.0.1` only, so these URLs work
+from the host and from nowhere else. Substituting the host's LAN or Tailscale address will not
+connect, by design; PostgreSQL, Valkey, and Kafka are not published to the host at all. See
+`docs/operations/development-host-port-exposure.md`.
 
 Local hosts follow the `<service>.<surface>.localhost` order, and every surface is served by the
 single Rails process on port `3000`.

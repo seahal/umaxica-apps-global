@@ -44,7 +44,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } },
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
@@ -56,7 +56,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: login_params(identifier: "plaintext", secret_credential_value: raw_secret_credential),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
@@ -116,7 +116,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
@@ -138,7 +138,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
       )
     end
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_equal [{ token: "test_token", remote_ip: "127.0.0.1", mode: :visible }], calls
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
@@ -231,7 +231,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: login_params(identifier: @raw_email, secret_credential_value: "wrong-secret_credential"),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
@@ -244,7 +244,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          ),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
@@ -256,7 +256,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: login_params(identifier: @raw_email, secret_credential_value: "nope"),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
@@ -335,7 +335,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: login_params(identifier: email.address, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
     assert_equal ClientSecretCredentialStatus::ACTIVE, secret_credential.reload.user_secret_status_id
@@ -351,7 +351,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: login_params(identifier: @raw_email, secret_credential_value: "wrong-secret_credential"),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
 
@@ -377,7 +377,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: login_params(identifier: unverified_email.address, secret_credential_value: pii_raw_secret_credential),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
@@ -405,7 +405,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
@@ -417,7 +417,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
@@ -433,7 +433,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
@@ -445,7 +445,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
@@ -460,7 +460,7 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes inertia_props.fetch("form_errors"),
                     I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end

@@ -37,7 +37,7 @@ function RestoreForm({
 }) {
   const [processing, setProcessing] = useState(false);
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     router.post(
       action.url,
@@ -72,7 +72,7 @@ function AppealForm({
   const reasonId = `${form.scope}_${enforcementCaseId}_reason_code`;
   const statementId = `${form.scope}_${enforcementCaseId}_statement`;
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     router.post(
       form.url,

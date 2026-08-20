@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Each test re-imports the module so the memoised registration promise starts empty.
 const loadRegister = async () => {
@@ -28,7 +28,7 @@ const setSecureContext = (secure: boolean) => {
 };
 
 describe("registerOfflineServiceWorker", () => {
-  let consoleError: ReturnType<typeof vi.spyOn>;
+  let consoleError: MockInstance<typeof console.error>;
 
   beforeEach(() => {
     consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -110,7 +110,7 @@ describe("registerOfflineServiceWorker", () => {
 
     await registerOfflineServiceWorker();
 
-    expect(document.getElementById("app")).toBeNull();
+    expect(document.querySelector("#app")).toBeNull();
     expect(document.body.innerHTML).toBe("<p>plain server rendered page</p>");
   });
 });

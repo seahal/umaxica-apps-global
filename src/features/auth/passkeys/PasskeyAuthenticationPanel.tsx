@@ -7,7 +7,7 @@
 // out of Stimulus.
 import { useRef, useState } from "react";
 
-import { csrfToken } from "@/features/auth/csrf";
+import { csrfToken } from "@/lib/csrf";
 import { readObject, readString } from "@/lib/payload";
 
 import { solveInvisibleTurnstile } from "./invisibleTurnstile";
@@ -50,8 +50,8 @@ async function postJson(url: string, body: unknown): Promise<Response> {
 async function readFailure(response: Response, fallback: string): Promise<Error | null> {
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
-    const data: { error?: string } = await response.json();
-    return new Error(data.error || fallback);
+    const data: unknown = await response.json();
+    return new Error(readString(data, "error") || fallback);
   }
   if (response.status === 401 || response.status === 302) {
     window.location.reload();

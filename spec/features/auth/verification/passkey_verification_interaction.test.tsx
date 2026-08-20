@@ -5,13 +5,33 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // The passkey step-up screen is the one verification page that runs a ceremony in the browser.
 // These tests mount it and click the button, so the branches the Stimulus controller used to own -
 // unsupported browser, missing challenge, cancelled assertion, success - are exercised here.
-const getAssertion = vi.fn();
-const passkeysSupported = vi.fn();
+import type { getAssertion as realGetAssertion } from "@/features/auth/passkeys/webauthn";
+
+// Typed from the real exports, so a mocked answer that does not match what the module promises is
+// a failure here rather than an `any` flowing into the component under test.
+const getAssertion = vi.fn<typeof realGetAssertion>();
+const passkeysSupported = vi.fn<() => boolean>();
 
 vi.mock("@/features/auth/passkeys/webauthn", () => ({
   getAssertion: (options: unknown) => getAssertion(options),
   passkeysSupported: () => passkeysSupported(),
 }));
+
+// The whole assertion the ceremony serialises, so the spec asserts on the payload the form really
+// carries rather than on a fragment of it.
+const SERIALIZED_ASSERTION = {
+  id: "credential-1",
+  rawId: "AQID",
+  type: "public-key",
+  authenticatorAttachment: null,
+  response: {
+    clientDataJSON: "BAUG",
+    authenticatorData: "BwgJ",
+    signature: "CgsM",
+    userHandle: null,
+  },
+  clientExtensionResults: {},
+};
 
 const { default: PasskeyVerification } =
   await import("@/features/auth/verification/PasskeyVerification");
@@ -82,13 +102,13 @@ afterEach(() => {
 describe("PasskeyVerification interaction", () => {
   it("submits the serialized assertion when the authenticator answers", async () => {
     passkeysSupported.mockReturnValue(true);
-    getAssertion.mockResolvedValue({ id: "credential-1" });
+    getAssertion.mockResolvedValue(SERIALIZED_ASSERTION);
     mount(<PasskeyVerification {...props} />);
 
     await click();
 
     expect(getAssertion).toHaveBeenCalledWith({ challenge: "abc" });
-    expect(submittedCredential).toBe(JSON.stringify({ id: "credential-1" }));
+    expect(submittedCredential).toBe(JSON.stringify(SERIALIZED_ASSERTION));
     expect(requestSubmit).toHaveBeenCalled();
   });
 

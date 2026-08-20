@@ -6,7 +6,7 @@ class InvalidUserStatusError < ApplicationError
 
   def initialize(invalid_status:, i18n_key: nil, **context)
     @invalid_status = invalid_status
-    super(i18n_key, :unprocessable_entity, invalid_status: invalid_status, **context)
+    super(i18n_key, :unprocessable_content, invalid_status: invalid_status, **context)
   end
 
   def message

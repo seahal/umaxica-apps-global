@@ -39,6 +39,13 @@ Superseded on 2026-08-11 as a description of the connector: it now also joins th
 `umaxica-edge-tunnel` network. The sentence above stands as what was observed on the verification
 date. See `notes/implementation/2026-08-11-cloudflare-tunnel-edge-network-join.md`.
 
+Superseded on 2026-08-16 as a description of the host publication: the override now publishes
+`127.0.0.1:3000:3000` rather than `3000:3000`, so Rails is no longer bound to every host interface.
+The tunnel path recorded here is unaffected — the connector reached Rails over the `frontend`
+network then and still does — and the `0.0.0.0:3000` in the environment line at the top of this note
+refers to the container-side listener, which is unchanged. See
+`docs/operations/development-host-port-exposure.md`.
+
 ## Measurement Method
 
 Podman DNS resolves the published site names to the `core` container, because `compose.yaml` carries

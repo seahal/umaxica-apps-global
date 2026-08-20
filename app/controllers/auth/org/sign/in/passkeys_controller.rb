@@ -38,7 +38,7 @@ module Auth
             name: "passkey_options_ip_burst",
             store: rate_limit_store,
             only: :options,
-            with: -> { render_rate_limited(rule_name: "auth_org_sign_in_passkey_options_ip_burst", retry_after: 60) },
+            with: -> { render_rate_limited(retry_after: 60) },
           )
           rate_limit(
             to: 20,
@@ -49,7 +49,7 @@ module Auth
             store: rate_limit_store,
             only: :options,
             with: -> {
-              render_rate_limited(rule_name: "auth_org_sign_in_passkey_options_ip_sustained", retry_after: 900)
+              render_rate_limited(retry_after: 900)
             },
           )
           rate_limit(
@@ -61,7 +61,7 @@ module Auth
             store: rate_limit_store,
             only: :verification,
             with: -> {
-              render_rate_limited(rule_name: "auth_org_sign_in_passkey_verification_ip_burst", retry_after: 60)
+              render_rate_limited(retry_after: 60)
             },
           )
           rate_limit(
@@ -73,7 +73,7 @@ module Auth
             store: rate_limit_store,
             only: :verification,
             with: -> {
-              render_rate_limited(rule_name: "auth_org_sign_in_passkey_verification_ip_sustained", retry_after: 900)
+              render_rate_limited(retry_after: 900)
             },
           )
           before_action :start_minimum_response_budget

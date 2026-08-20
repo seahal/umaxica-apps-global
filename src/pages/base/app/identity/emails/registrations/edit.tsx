@@ -32,7 +32,7 @@ export default function EmailRegistrationEdit({
   const [passCode, setPassCode] = useState("");
   const [processing, setProcessing] = useState(false);
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     router.patch(
       form.action,
