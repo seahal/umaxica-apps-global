@@ -196,7 +196,7 @@ services:
     # Named volumes for high-write paths prevent rootless podman UID-mapping
     # from rewriting host file ownership on the bind-mounted workspace:
     #   - umaxica-home-cache  → pnpm / Vite / YJIT scratch
-    #   - umaxica-home-share  → pnpm store, devcontainer feature state
+    #   - umaxica-home-share  → pnpm store (~/.local/share/pnpm only)
     #   - umaxica-node-modules → workspace node_modules (off the repo tree)
     #   - umaxica-bundle       → vendor/bundle (off the repo tree)
     # Discard any of these with `podman volume rm <name>` to recover from
@@ -205,9 +205,14 @@ services:
       - type: volume
         source: umaxica-home-cache
         target: "/home/global/.cache"
+      # Mounted at the pnpm subdirectory, not at .local/share itself. The
+      # Claude Code devcontainer feature installs through claude.ai/install.sh,
+      # which lands its versions under ~/.local/share/claude at *build* time; a
+      # volume over the whole .local/share shadows that at run time and leaves
+      # ~/.local/bin/claude a dangling symlink.
       - type: volume
         source: umaxica-home-share
-        target: "/home/global/.local/share"
+        target: "/home/global/.local/share/pnpm"
       - type: volume
         source: umaxica-node-modules
         target: "/home/global/workspace/node_modules"
@@ -296,7 +301,7 @@ services:
       valkey:
         condition: service_healthy
   rustfs-permissions:
-    image: alpine:3.24.1
+    image: docker.io/library/alpine:3.24.1
     profiles:
       - object-storage
     user: root
@@ -319,7 +324,7 @@ services:
       - rustfs-data2:/data/rustfs2
       - rustfs-data3:/data/rustfs3
   rustfs:
-    image: rustfs/rustfs:1.0.0-beta.10
+    image: docker.io/rustfs/rustfs:1.0.0-beta.10
     profiles:
       - object-storage
     depends_on:
@@ -491,7 +496,7 @@ services:
       retries: 30
       start_period: 10s
   valkey:
-    image: valkey/valkey:8.0-alpine3.22
+    image: docker.io/valkey/valkey:8.0-alpine3.22
     networks:
       - backend
     volumes:
@@ -507,7 +512,7 @@ services:
       retries: 20
       start_period: 3s
   kafka:
-    image: confluentinc/cp-kafka:7.9.0
+    image: docker.io/confluentinc/cp-kafka:7.9.0
     hostname: kafka
     # The Confluent entrypoint writes generated configuration under /etc/kafka.
     # Run it as container root so that directory remains writable through
@@ -552,7 +557,7 @@ services:
       retries: 5
       start_period: 30s
   loki:
-    image: grafana/loki:latest
+    image: docker.io/grafana/loki:latest
     # Rootless podman creates named volumes as the host user. Running these
     # opt-in observability services as container root keeps their data
     # directories writable without changing host ownership.
@@ -566,7 +571,7 @@ services:
       - observability
     restart: "no"
   tempo:
-    image: grafana/tempo:2.10.5
+    image: docker.io/grafana/tempo:2.10.5
     # See loki: rootless podman named-volume ownership needs the container
     # writer to map back to the host user.
     user: root
@@ -585,7 +590,7 @@ services:
       - observability
     restart: "no"
   grafana:
-    image: grafana/grafana:latest
+    image: docker.io/grafana/grafana:latest
     # Grafana writes SQLite migrations under /var/lib/grafana; with rootless
     # podman the named volume can otherwise appear read-only to Grafana's UID.
     user: root
@@ -606,7 +611,7 @@ services:
       - prometheus
     restart: "no"
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    image: docker.io/otel/opentelemetry-collector-contrib:latest
     profiles:
       - observability
     volumes:
@@ -617,7 +622,7 @@ services:
       - tempo
     restart: "no"
   prometheus:
-    image: prom/prometheus:latest
+    image: docker.io/prom/prometheus:latest
     # Prometheus writes its TSDB under /prometheus; keep rootless podman named
     # volumes writable when the observability profile is explicitly enabled.
     user: root

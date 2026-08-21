@@ -330,10 +330,16 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     zip \
     && rm -rf /tmp/* /var/tmp/* "/home/${DOCKER_USER}/"
 
+# Dev Container features run `chown $_REMOTE_USER:$_REMOTE_USER`, which assumes a
+# group named after the user. The primary group here is ${DOCKER_GROUP}, so a
+# supplementary group named ${DOCKER_USER} is created to keep those features
+# installable without changing file ownership semantics for the workload.
 RUN if [ -z "${GITHUB_ACTIONS}" ]; then \
     groupadd -g "${DOCKER_GID}" "${DOCKER_GROUP}"; \
     useradd -l -u "${DOCKER_UID}" -g "${DOCKER_GROUP}" -m -s /bin/bash "${DOCKER_USER}"; \
     usermod -L "${DOCKER_USER}"; \
+    groupadd "${DOCKER_USER}"; \
+    usermod -aG "${DOCKER_USER}" "${DOCKER_USER}"; \
     else \
     mkdir -p "${HOME}"; \
     fi

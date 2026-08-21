@@ -10,7 +10,7 @@ name: umaxica-apps-global-dc
 services:
   cloudflare-tunnel:
     # Workers VPC requires cloudflared 2025.7.0 or newer.
-    image: cloudflare/cloudflared:2025.7.0
+    image: docker.io/cloudflare/cloudflared:2025.7.0
     depends_on:
       - core
     # Workers VPC DNS routing requires QUIC and outbound UDP 7844.
