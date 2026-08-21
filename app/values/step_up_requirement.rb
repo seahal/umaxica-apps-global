@@ -24,7 +24,9 @@ class StepUpRequirement
                  session_binding: nil, token_binding: nil, ttl: DEFAULT_TTL,
                  purpose: nil, audience: nil, require_session_binding: false)
     @required_aal = normalize_aal(required_aal)
-    @allowed_methods = Array(allowed_methods).filter_map { |method| normalize_method(method) }.uniq.freeze
+    allowed = Array(allowed_methods).filter_map { |method| normalize_method(method) }
+    allowed.uniq!
+    @allowed_methods = allowed.freeze
     @scope = scope.to_s.presence
     @session_binding = session_binding.to_s.presence
     @token_binding = token_binding.to_s.presence

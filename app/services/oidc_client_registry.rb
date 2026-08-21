@@ -156,11 +156,14 @@ module OidcClientRegistry
   def audiences_for_resource_type(resource_type)
     normalized_resource_type = normalize_resource_type(resource_type)
 
-    clients.values.filter_map do |config|
-      next unless normalize_resource_type(config[:resource_type]) == normalized_resource_type
+    result =
+      clients.values.filter_map do |config|
+        next unless normalize_resource_type(config[:resource_type]) == normalized_resource_type
 
-      config[:aud]
-    end.uniq
+        config[:aud]
+      end
+    result.uniq!
+    result
   end
 
   def normalize_allowed_scopes(allowed_scopes)
@@ -222,7 +225,9 @@ module OidcClientRegistry
   end
 
   def domains_from_redirect_uris(redirect_uris)
-    redirect_uris.filter_map { |uri| URI.parse(uri).host.presence }.uniq
+    result = redirect_uris.filter_map { |uri| URI.parse(uri).host.presence }
+    result.uniq!
+    result
   rescue URI::InvalidURIError
     []
   end

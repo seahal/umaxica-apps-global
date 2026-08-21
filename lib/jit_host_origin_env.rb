@@ -9,7 +9,9 @@ module JitHostOriginEnv
   module_function
 
   def trusted_origins(*hosts)
-    hosts.flatten.compact_blank.flat_map { |host| origins_for(host) }.uniq
+    result = hosts.flatten.compact_blank.flat_map { |host| origins_for(host) }
+    result.uniq!
+    result
   end
 
   def origins_for(host)

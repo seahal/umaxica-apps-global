@@ -234,7 +234,9 @@ module CommonRedirect
       req&.respond_to?(:host) ? req.host : nil,
     ]
 
-    hosts.filter_map { |host| normalized_host_with_optional_port(host) }.uniq
+    result = hosts.filter_map { |host| normalized_host_with_optional_port(host) }
+    result.uniq!
+    result
   end
 
   def normalized_host_with_optional_port(value)

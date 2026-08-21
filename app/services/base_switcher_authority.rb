@@ -66,7 +66,9 @@ class BaseSwitcherAuthority
   end
 
   def available_avatars
-    selectable_candidates.filter_map { |candidate| candidate.fetch(:avatar) }.uniq(&:id)
+    result = selectable_candidates.filter_map { |candidate| candidate.fetch(:avatar) }
+    result.uniq!(&:id)
+    result
   end
 
   def find_account(public_id)
