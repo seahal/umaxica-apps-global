@@ -5,6 +5,7 @@ require "timeout"
 
 module Health
   MissingProfileError = Class.new(StandardError)
+  MissingNamespaceError = Class.new(StandardError)
   DeadlineExceeded = Class.new(StandardError)
 
   STATUSES = %i(ok degraded_acceptable unready starting).freeze
@@ -38,17 +39,30 @@ module Health
       StatusPolicy.http_status(status, probe: check)
     end
 
-    def as_public_json
+    # `namespace` names the routed surface that answered, as "<realm>/<surface>"
+    # (for example "core/app"). One Rails process answers on fifteen hostnames and the
+    # probe bodies were otherwise identical, so a caller that sent the wrong `Host` still
+    # saw a 200 and could not tell which surface produced it. The value is derived from the
+    # controller that ran, not from a constant listed beside the route, so it cannot drift
+    # away from the constraint that selected it.
+    #
+    # It is emitted in every environment. It is a function of the `Host` the caller already
+    # chose, so it tells a reader nothing they did not supply, and the acceptance check that
+    # needs it runs against the production path. Nested dependency results omit it; the
+    # surface is a property of the response, not of each dependency.
+    def as_public_json(namespace: nil)
       {
         status: ok? ? "ok" : "unavailable",
         check: check.to_s,
+        namespace: namespace,
         dependencies: dependencies,
         details: details,
-      }
+      }.compact
     end
 
     # Non-sensitive diagnostic metadata only. Never exception classes,
-    # messages, connection topology, surface labels, or credentials.
+    # messages, connection topology, or credentials. The answering surface is named at the
+    # top level by `namespace`, deliberately; it is not repeated here.
     def details
       details = { generated_at: generated_at.iso8601(3) }
       details[:revision] = revision if revision

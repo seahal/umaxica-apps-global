@@ -220,6 +220,46 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # One Rails process answers on every surface hostname, and the probe bodies were otherwise
+  # identical, so a caller that sent the wrong `Host` still got a 200 and could not tell which
+  # surface produced it. The namespace is what makes that detectable.
+  test "every probe names the surface that answered" do
+    namespaces =
+      SURFACES.to_h do |surface|
+        host!(surface[:host])
+
+        get("/health/liveness")
+
+        assert_response :success
+
+        expected = surface[:liveness_controller].split("/").first(2).join("/")
+
+        assert_equal expected, response.parsed_body["namespace"],
+                     "#{surface[:host]} answered from #{surface[:liveness_controller]} but named " \
+                     "#{response.parsed_body["namespace"].inspect}"
+
+        [surface[:host], expected]
+      end
+
+    assert_equal namespaces.values.uniq.length, namespaces.values.length,
+                 "two hostnames report the same namespace, so a misdirected request between them " \
+                 "would still look correct: #{namespaces.inspect}"
+  end
+
+  test "readiness and startup name the surface that answered too" do
+    surface = SURFACES.first
+    host! surface[:host]
+
+    {
+      "/health/readiness" => surface[:readiness_controller],
+      "/health/startup" => surface[:startup_controller],
+    }.each do |path, controller|
+      get path
+
+      assert_equal controller.split("/").first(2).join("/"), response.parsed_body["namespace"]
+    end
+  end
+
   test "all health controllers use the shared rendering concern" do
     SURFACES.each do |surface|
       [

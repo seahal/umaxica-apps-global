@@ -28,4 +28,10 @@ Rails.application.routes.draw do
 
   # News owns the public news content surface.
   draw :news
+
+  # Last, so that every surface above claims its own root first. Rails appends
+  # `get "/" => "rails/welcome#index"` to this route set in development; claiming `/` here
+  # leaves that append unreachable, so a hostname with no surface behind it answers 404
+  # instead of the framework's welcome page.
+  get "/", to: "unknown_hosts#show"
 end

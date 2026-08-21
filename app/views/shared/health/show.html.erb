@@ -1,4 +1,4 @@
-<% snapshot = @health_snapshot.as_public_json %>
+<% snapshot = @health_snapshot.as_public_json(namespace: @health_namespace) %>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -22,6 +22,8 @@
       <dl>
         <dt>Status</dt>
         <dd><%= snapshot[:status] %></dd>
+        <dt>Namespace</dt>
+        <dd><%= snapshot[:namespace] %></dd>
         <dt>Generated at</dt>
         <dd><time datetime="<%= snapshot.dig(:details, :generated_at) %>"><%= snapshot.dig(:details, :generated_at) %></time></dd>
         <% if snapshot.dig(:details, :revision).present? %>
