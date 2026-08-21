@@ -38,7 +38,8 @@ The gates are intentionally independent:
    port and must not be given one; the only publications in the stack are `core`'s loopback-bound
    `3000`/`3036`. See `docs/operations/development-host-port-exposure.md`.
 5. **Workers VPC connector prerequisites**: cloudflared is pinned at `2025.7.0`, runs with QUIC,
-   receives its token through `TUNNEL_TOKEN`, and requires outbound UDP port 7844.
+   authenticates with credentials written by an in-container `cloudflared tunnel login` browser flow
+   (no `TUNNEL_TOKEN`, no host `.env` entry), and requires outbound UDP port 7844.
 6. **Repository regression checks**: run the focused tests first, then the full Rails suite,
    coverage, and lint checks when the test databases are available.
 

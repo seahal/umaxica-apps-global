@@ -11,9 +11,10 @@ set -euo pipefail
 # entry (../compose.yaml, i.e. the repo root) -- and manual `podman compose`
 # runs are invoked from the repo root as well.
 #
-# The repo root .env also carries unrelated secrets (e.g. CLOUDFLARED_TOKEN
-# for compose.custom.yaml). Only touch the UID/GID lines; never truncate or
-# replace the rest of the file.
+# The repo root .env carries unrelated non-secret settings. Only touch the
+# UID/GID lines; never truncate or replace the rest of the file. No credential
+# is read from or written to .env: every credential is now obtained through an
+# in-container browser login.
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 env_file="${repo_root}/.env"
 

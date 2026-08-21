@@ -181,14 +181,15 @@ Browser --(HTTPS, Access cookie/JWT)--> Cloudflare edge --(Access policy check)-
   `originRequest.access` (`required`, `audTag`, `teamName`) per hostname. This is the preferred
   validation point — it runs before the request reaches Rails at all.
 - **The development tunnel hostnames are Access-protected, and that protection lives in the
-  Cloudflare account, not in this repository.** This connector is token-based (`TUNNEL_TOKEN`) and
-  remotely managed, so its ingress rules and `originRequest.access` blocks are configured in the
-  Cloudflare dashboard; no file here can assert they are present. Treat "the Access application
-  exists and the published development route enables Access validation" as an external check, in the
-  sense of the "External Checks" section of `docs/operations/cloudflare-private-origin.md` — the
-  repository-side controls (network isolation, Host Authorization, Rails authentication) do not
-  depend on it, but the confidentiality of the development surface does. Record the hostname,
-  `audTag`, and `teamName` here once they are settled.
+  Cloudflare account, not in this repository.** This connector authenticates through an in-container
+  `cloudflared tunnel login` browser flow and is remotely managed, so its ingress rules and
+  `originRequest.access` blocks are configured in the Cloudflare dashboard; no file here can assert
+  they are present. Treat "the Access application exists and the published development route enables
+  Access validation" as an external check, in the sense of the "External Checks" section of
+  `docs/operations/cloudflare-private-origin.md` — the repository-side controls (network isolation,
+  Host Authorization, Rails authentication) do not depend on it, but the confidentiality of the
+  development surface does. Record the hostname, `audTag`, and `teamName` here once they are
+  settled.
 - Rails does not validate `Cf-Access-Jwt-Assertion` itself and should not, unless a specific feature
   needs to consume Access identity/claims directly — none does today. Adding Rails-side validation
   merely for "defense in depth" duplicates the connector-side check without a concrete requirement
