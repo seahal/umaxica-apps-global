@@ -32,6 +32,12 @@ export type TextFieldProps = Omit<AriaTextFieldProps, "isInvalid" | "children"> 
   /** Renders a `<textarea>` instead of an `<input>`. */
   multiline?: boolean;
   placeholder?: string;
+  /**
+   * Forwarded to the control. React Aria's own prop set stops at the attributes it needs to build
+   * the field, and this one is a keyboard hint the operator identifier field genuinely wants:
+   * `characters` puts a phone keyboard in caps for a field whose value is uppercase.
+   */
+  autoCapitalize?: string;
 };
 
 const CONTROL =
@@ -44,9 +50,15 @@ export default function TextField({
   errorMessage,
   multiline = false,
   placeholder,
+  autoCapitalize,
   className,
   ...props
 }: TextFieldProps) {
+  // Omitted rather than passed as undefined, for the same reason as `placeholder` below.
+  const controlAttributes = {
+    ...(placeholder === undefined ? {} : { placeholder }),
+    ...(autoCapitalize === undefined ? {} : { autoCapitalize }),
+  };
   return (
     <AriaTextField
       {...props}
@@ -64,12 +76,12 @@ export default function TextField({
       */}
       {multiline ? (
         <TextArea
-          {...(placeholder === undefined ? {} : { placeholder })}
+          {...controlAttributes}
           className={`${CONTROL} min-h-24 invalid:border-danger`}
         />
       ) : (
         <Input
-          {...(placeholder === undefined ? {} : { placeholder })}
+          {...controlAttributes}
           className={`${CONTROL} invalid:border-danger`}
         />
       )}

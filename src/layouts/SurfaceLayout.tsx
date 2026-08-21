@@ -9,11 +9,18 @@
 // The document structure here is plain semantic HTML on purpose. Landmarks, headings and lists are
 // what assistive technology navigates by, and React Aria has nothing to add to them: it is an
 // interaction layer, and there is no interaction in a header.
+//
+// Horizontal measure is owned here and nowhere else. The header, the main column and the footer all
+// take `SHELL`, so the brand, the page title and the footer links sit on one vertical line at every
+// width. A page picks how narrow it wants to be inside that column through `Page`'s `width`; it
+// never restates the gutter.
 import { usePage } from "@inertiajs/react";
 import type { ReactNode } from "react";
 
 import CookieBanner from "@/components/chrome/CookieBanner";
 import ThemeControls from "@/components/chrome/ThemeControls";
+
+const SHELL = "mx-auto w-full max-w-4xl px-4 sm:px-6";
 
 const NAV_LINK = "text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline";
 
@@ -22,38 +29,46 @@ export default function SurfaceLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-line bg-surface">
+      {/*
+        Sticky, because the brand is also the way back out of a ceremony and a long settings page
+        would otherwise scroll it away. Translucent over a blur so the page reads as continuing
+        underneath the bar rather than being clipped by it; the opaque fallback is the same token,
+        so an engine without `backdrop-filter` loses the effect and nothing else.
+      */}
+      <header className="sticky top-0 z-30 border-b border-line bg-surface/85 backdrop-blur">
         {chrome.banner ? (
           <section
             aria-label="banner"
-            className="border-b border-line bg-surface-muted px-4 py-2 text-sm text-fg"
+            className="border-b border-line bg-surface-muted"
           >
-            <div className="mx-auto max-w-5xl">
+            <div className={`${SHELL} flex flex-col gap-0.5 py-2.5 text-sm text-fg`}>
               {chrome.banner.title ? (
                 <h2 className="font-semibold">{chrome.banner.title}</h2>
               ) : null}
-              <p>{chrome.banner.body}</p>
+              <p className="text-fg-muted">{chrome.banner.body}</p>
             </div>
           </section>
         ) : null}
 
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-3">
-          <p className="text-base font-semibold text-fg">
+        <div
+          className={`${SHELL} flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3`}
+        >
+          <p className="flex flex-wrap items-baseline gap-x-2 text-base font-semibold text-fg">
             <a
               href={chrome.brand.href}
-              className="hover:underline"
+              className="underline-offset-4 hover:underline"
             >
               {chrome.brand.name}
             </a>
             {chrome.family_label ? (
-              <span className="ml-2 font-normal text-fg-muted">{chrome.family_label}</span>
+              <span className="font-normal text-fg-muted">{chrome.family_label}</span>
             ) : null}
-            <span className="ml-2 text-sm font-normal text-fg-muted">({chrome.surface})</span>
+            <span className="text-sm font-normal text-fg-muted">({chrome.surface})</span>
           </p>
 
           {chrome.primary_navigation ? (
             <nav aria-label="Primary">
-              <ul className="flex flex-wrap items-center gap-4">
+              <ul className="flex flex-wrap items-center gap-x-5 gap-y-1">
                 {chrome.primary_navigation.map((link) => (
                   <li key={link.href}>
                     {/* Cross-host and full-page destinations, so a document visit rather than
@@ -74,16 +89,21 @@ export default function SurfaceLayout({ children }: { children: ReactNode }) {
 
       <main
         id="main"
-        className="mx-auto w-full max-w-5xl grow px-4 py-8"
+        className="grow py-10 sm:py-14"
       >
-        {children}
+        <div className={SHELL}>{children}</div>
       </main>
 
-      <footer className="border-t border-line bg-surface">
-        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6">
+      {/*
+        The footer is the page's floor, so it takes the canvas rather than the surface colour: the
+        content above it sits on cards, and repeating the card colour down here made the page look
+        like it ended twice.
+      */}
+      <footer className="mt-16 border-t border-line bg-canvas">
+        <div className={`${SHELL} flex flex-col gap-6 py-8`}>
           {chrome.footer_navigation ? (
             <nav aria-label="Footer">
-              <ul className="flex flex-wrap gap-4">
+              <ul className="flex flex-wrap gap-x-5 gap-y-2">
                 {chrome.footer_navigation.map((link) => (
                   <li key={link.href}>
                     <a
