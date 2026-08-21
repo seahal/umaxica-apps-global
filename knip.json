@@ -8,7 +8,6 @@
     "tailwindcss-react-aria-components",
     "@tailwindcss/forms",
     "@tailwindcss/typography",
-    "@mermaid-js/mermaid-cli",
     "linkinator"
   ],
   "includeEntryExports": false,
