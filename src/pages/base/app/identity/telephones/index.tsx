@@ -1,5 +1,7 @@
-import { Link } from "@inertiajs/react";
-
+import ButtonLink from "@/components/ui/ButtonLink";
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
+import TextLink from "@/components/ui/TextLink";
 import type { IdentityLink } from "@/types/identity";
 
 type TelephoneRow = {
@@ -27,14 +29,21 @@ export default function TelephonesIndex({
   telephones,
 }: Props) {
   return (
-    <section>
-      <a href={backLink.href}>{backLink.label}</a>
-
-      <h1>{title}</h1>
-
-      <Link href={newLink.href}>{newLink.label}</Link>
-
-      <table>
+    <Page
+      title={title}
+      up={backLink}
+      width="wide"
+      actions={
+        <ButtonLink
+          href={newLink.href}
+          size="sm"
+          inertia
+        >
+          {newLink.label}
+        </ButtonLink>
+      }
+    >
+      <Table>
         <thead>
           <tr>
             <th scope="col">{headings.number}</th>
@@ -46,19 +55,24 @@ export default function TelephonesIndex({
           {telephones.map((telephone) => (
             <tr key={telephone.public_id}>
               <td>{telephone.number}</td>
-              <td>{telephone.status_label}</td>
+              <td className="text-fg-muted">{telephone.status_label}</td>
               <td>
-                <Link href={telephone.edit_link.href}>{telephone.edit_link.label}</Link>
+                <TextLink href={telephone.edit_link.href}>{telephone.edit_link.label}</TextLink>
               </td>
             </tr>
           ))}
           {telephones.length === 0 ? (
             <tr>
-              <td colSpan={3}>{emptyMessage}</td>
+              <td
+                colSpan={3}
+                className="text-fg-muted italic"
+              >
+                {emptyMessage}
+              </td>
             </tr>
           ) : null}
         </tbody>
-      </table>
-    </section>
+      </Table>
+    </Page>
   );
 }

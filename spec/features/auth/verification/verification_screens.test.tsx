@@ -116,7 +116,7 @@ describe("email one-time code request screen", () => {
     expect(html).toContain('name="authenticity_token" value="csrf-token"');
     expect(html).toContain('name="verification[scope]" value="settings_email"');
     expect(html).toContain('name="verification[pt]" value="pt-value"');
-    expect(html).not.toContain("verification-errors");
+    expect(html).not.toContain('role="alert"');
   });
 
   it("renders the failure the server reported", () => {

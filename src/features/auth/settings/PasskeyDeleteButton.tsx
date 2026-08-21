@@ -7,6 +7,7 @@ import { router } from "@inertiajs/react";
 import { useState } from "react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
 export type TurnstileConfiguration = {
@@ -39,7 +40,7 @@ export default function PasskeyDeleteButton({
   };
 
   return (
-    <div>
+    <div className="flex items-center gap-2">
       <TurnstileWidget
         site_key={turnstile.site_key}
         mode={turnstile.mode}
@@ -47,12 +48,13 @@ export default function PasskeyDeleteButton({
         cdata={turnstile.cdata}
         onToken={setToken}
       />
-      <button
-        type="button"
-        onClick={destroy}
+      <Button
+        variant="danger"
+        size="sm"
+        onPress={destroy}
       >
         {label}
-      </button>
+      </Button>
       {dialog}
     </div>
   );

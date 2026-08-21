@@ -29,12 +29,19 @@ export default function BirthdateFieldset({
     <fieldset
       aria-labelledby={labelledby}
       data-birthdate-format={format}
+      className="flex flex-wrap items-end gap-2"
     >
       {parts.map((part, index) => (
-        <span key={part.part}>
-          {index > 0 ? separator : null}
-          <label htmlFor={`birthdate_${part.part}`}>
-            {part.label}{" "}
+        <span
+          key={part.part}
+          className="flex items-end gap-2"
+        >
+          {index > 0 ? <span className="pb-2 text-fg-muted">{separator}</span> : null}
+          <label
+            htmlFor={`birthdate_${part.part}`}
+            className="flex flex-col gap-1 text-sm font-medium text-fg"
+          >
+            {part.label}
             <input
               type="number"
               id={`birthdate_${part.part}`}
@@ -47,6 +54,8 @@ export default function BirthdateFieldset({
               max={part.max}
               placeholder={part.placeholder}
               data-birthdate-part={part.part}
+              className="w-20 rounded-md border border-line bg-surface px-3 py-2 text-sm text-fg
+                placeholder:text-fg-muted"
             />
           </label>
         </span>

@@ -3,6 +3,9 @@
 // The connect button is a document POST to the settings endpoint, which redirects into the Entra
 // ceremony, so it stays a native form rather than an Inertia visit. Whether a connection may be
 // offered at all is a server decision: a connected identity arrives with a notice and no form.
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Page from "@/components/ui/Page";
 import { csrfToken } from "@/lib/csrf";
 
 export type OrgEntraSettingsEditProps = {
@@ -28,17 +31,17 @@ export default function OrgEntraSettingsEdit({
   connections,
 }: OrgEntraSettingsEditProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <a href={backLink.href}>{backLink.label}</a>
-
-      <div>
-        <h3>{heading}</h3>
-
+    <Page
+      title={heading}
+      up={backLink}
+      width="narrow"
+    >
+      <Card>
         {connected ? (
-          <>
-            <p>Connected</p>
-            {connectedNotice ? <p>{connectedNotice}</p> : null}
-          </>
+          <div className="flex flex-col gap-1 text-sm">
+            <p className="font-medium text-fg">Connected</p>
+            {connectedNotice ? <p className="text-fg-muted">{connectedNotice}</p> : null}
+          </div>
         ) : null}
 
         {connections.map((connection) => (
@@ -59,15 +62,12 @@ export default function OrgEntraSettingsEdit({
               value={connection.public_id}
               readOnly
             />
-            <input
-              type="submit"
-              value={submitLabel}
-            />
+            <Button type="submit">{submitLabel}</Button>
           </form>
         ))}
 
-        {emptyNotice ? <p>{emptyNotice}</p> : null}
-      </div>
-    </section>
+        {emptyNotice ? <p className="text-sm text-fg-muted">{emptyNotice}</p> : null}
+      </Card>
+    </Page>
   );
 }

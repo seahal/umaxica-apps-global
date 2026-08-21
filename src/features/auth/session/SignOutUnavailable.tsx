@@ -1,5 +1,7 @@
 import { useForm } from "@inertiajs/react";
 
+import Button from "@/components/ui/Button";
+
 import type { SignOutLink } from "./SignOutConfirmation";
 
 // Shown when the RP logout transaction could not be issued. The retry keeps the POST verb the
@@ -29,26 +31,31 @@ export default function SignOutUnavailable({
   };
 
   return (
-    <section>
-      <h1>{heading}</h1>
-      <p>{description}</p>
+    <section className="flex flex-col gap-4">
+      <h1 className="text-2xl font-bold text-fg">{heading}</h1>
+      <p className="text-sm text-fg-muted">{description}</p>
 
       <form
         action={retry.action}
         method="post"
         onSubmit={submit}
       >
-        <button
+        <Button
           type="submit"
-          disabled={form.processing}
+          isDisabled={form.processing}
         >
           {retry.label}
-        </button>
+        </Button>
       </form>
 
-      <p>
+      <p className="text-sm">
         {/* A document visit: the destination is another surface entry point with its own guards. */}
-        <a href={homeLink.href}>{homeLink.label}</a>
+        <a
+          href={homeLink.href}
+          className="text-accent hover:underline"
+        >
+          {homeLink.label}
+        </a>
       </p>
     </section>
   );

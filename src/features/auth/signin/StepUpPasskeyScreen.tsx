@@ -7,6 +7,8 @@
 // same masked per-session authenticity token the ERB form embedded.
 import { useRef, useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
 import { PASSKEY_MESSAGES, authenticationErrorMessage } from "@/features/auth/passkeys/messages";
 import { useCeremonyMessages } from "@/features/auth/passkeys/useCeremonyMessages";
 import { getAssertion, passkeysSupported } from "@/features/auth/passkeys/webauthn";
@@ -67,15 +69,17 @@ export default function StepUpPasskeyScreen({
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
-
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
       <form
         ref={formRef}
         action={form.action}
         method="post"
         data-turbo="false"
+        className="flex flex-col items-start gap-3"
       >
         <input
           type="hidden"
@@ -96,21 +100,33 @@ export default function StepUpPasskeyScreen({
           readOnly
         />
 
-        <button
+        <Button
           type="button"
-          onClick={() => void authenticate()}
+          onPress={() => void authenticate()}
         >
           {form.submit_label}
-        </button>
+        </Button>
 
-        {error ? <p role="alert">{error}</p> : null}
-        {status ? <p>{status}</p> : null}
+        {error ? (
+          <p
+            role="alert"
+            className="text-sm text-danger"
+          >
+            {error}
+          </p>
+        ) : null}
+        {status ? <p className="text-sm text-fg-muted">{status}</p> : null}
       </form>
 
-      <div>
+      <p className="text-sm">
         {/* Document visit: the challenge menu has its own guards. */}
-        <a href={backLink.href}>{backLink.label}</a>
-      </div>
-    </section>
+        <a
+          href={backLink.href}
+          className="text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+        >
+          {backLink.label}
+        </a>
+      </p>
+    </Page>
   );
 }

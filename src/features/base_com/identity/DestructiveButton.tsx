@@ -2,6 +2,7 @@ import { router } from "@inertiajs/react";
 import { useState } from "react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
 import type { ConfirmedAction } from "@/features/base_com/identity/types";
 
 // The ERB used `button_to ... data: { turbo_confirm: }`, which is a real DELETE behind a
@@ -33,12 +34,13 @@ export default function DestructiveButton({
   return (
     <>
       <form onSubmit={submit}>
-        <button
+        <Button
           type="submit"
-          disabled={processing}
+          variant="danger"
+          isDisabled={processing}
         >
           {action.label}
-        </button>
+        </Button>
       </form>
       {dialog}
     </>

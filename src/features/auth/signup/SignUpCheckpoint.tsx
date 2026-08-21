@@ -4,6 +4,8 @@
 // Which requirements are missing is a server decision made from the ticket, so a section is absent
 // rather than hidden, and the cancellation endpoint is the one the server chose for the current
 // step. The checkpoint version travels as a plain integer the server re-validates on submission.
+import Button from "@/components/ui/Button";
+
 import BirthdateFieldset, { type BirthdateFieldsetProps } from "./BirthdateFieldset";
 import { csrfToken } from "./csrf";
 
@@ -35,10 +37,15 @@ export type SignUpCheckpointProps = {
 
 function RequirementLink({ title, description, label, href }: SignUpCheckpointRequirementLink) {
   return (
-    <section>
-      <h2>{title}</h2>
-      <p>{description}</p>
-      <a href={href}>{label}</a>
+    <section className="flex flex-col gap-2 rounded-lg border border-line bg-surface p-4">
+      <h2 className="text-lg font-semibold text-fg">{title}</h2>
+      <p className="text-sm text-fg-muted">{description}</p>
+      <a
+        href={href}
+        className="text-sm font-medium text-accent underline-offset-4 hover:underline"
+      >
+        {label}
+      </a>
     </section>
   );
 }
@@ -52,18 +59,19 @@ export default function SignUpCheckpoint({
   cancellation,
 }: SignUpCheckpointProps) {
   return (
-    <section>
-      <h1>{title}</h1>
+    <section className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold text-fg">{title}</h1>
 
       {birthdate ? (
-        <section>
-          <h2>{birthdate.title}</h2>
-          <p>{birthdate.description}</p>
+        <section className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-4">
+          <h2 className="text-lg font-semibold text-fg">{birthdate.title}</h2>
+          <p className="text-sm text-fg-muted">{birthdate.description}</p>
 
           <form
             action={birthdate.action}
             method="post"
             data-turbo="false"
+            className="flex flex-col gap-4"
           >
             <input
               type="hidden"
@@ -86,18 +94,20 @@ export default function SignUpCheckpoint({
               value={birthdate.checkpoint_version}
             />
 
-            <div>
-              <p id="birthdate_label">{birthdate.label}</p>
+            <div className="flex flex-col gap-2">
+              <p
+                id="birthdate_label"
+                className="text-sm font-medium text-fg"
+              >
+                {birthdate.label}
+              </p>
               <BirthdateFieldset
                 {...birthdate.fields}
                 labelledby="birthdate_label"
               />
             </div>
 
-            <input
-              type="submit"
-              value={birthdate.submit_label}
-            />
+            <Button type="submit">{birthdate.submit_label}</Button>
           </form>
         </section>
       ) : null}
@@ -105,7 +115,11 @@ export default function SignUpCheckpoint({
       {passkey ? <RequirementLink {...passkey} /> : null}
       {passcode ? <RequirementLink {...passcode} /> : null}
 
-      {completeMessage ? <p>{completeMessage}</p> : null}
+      {completeMessage ? (
+        <p className="rounded-md border border-line bg-surface-muted p-3 text-sm text-fg">
+          {completeMessage}
+        </p>
+      ) : null}
 
       {cancellation ? (
         <form
@@ -123,7 +137,12 @@ export default function SignUpCheckpoint({
             name="authenticity_token"
             value={csrfToken()}
           />
-          <button type="submit">{cancellation.label}</button>
+          <Button
+            type="submit"
+            variant="ghost"
+          >
+            {cancellation.label}
+          </Button>
         </form>
       ) : null}
     </section>

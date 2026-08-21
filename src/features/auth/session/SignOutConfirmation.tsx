@@ -1,5 +1,7 @@
 import { useForm } from "@inertiajs/react";
 
+import Button from "@/components/ui/Button";
+
 // The sign-out confirmation ceremony, shared by the auth surfaces.
 //
 // Sign-out is destructive, so both the confirmation and the cancellation keep the HTTP verbs the
@@ -51,49 +53,58 @@ export default function SignOutConfirmation({
   };
 
   return (
-    <section>
-      <h1>{heading}</h1>
+    <section className="flex flex-col gap-4">
+      <h1 className="text-2xl font-bold text-fg">{heading}</h1>
 
       {activeContext ? (
         <>
-          <p>{confirmDescription}</p>
-          <form
-            action={form.action}
-            method="post"
-            onSubmit={submitConfirmation}
-          >
-            <button
-              type="submit"
-              disabled={confirmation.processing}
+          <p className="text-sm text-fg-muted">{confirmDescription}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <form
+              action={form.action}
+              method="post"
+              onSubmit={submitConfirmation}
             >
-              {submitLabel}
-            </button>
-          </form>
-          <form
-            action={cancel.action}
-            method="post"
-            onSubmit={submitCancellation}
-          >
-            <input
-              type="hidden"
-              name="_method"
-              value="delete"
-            />
-            <button
-              type="submit"
-              disabled={cancellation.processing}
+              <Button
+                type="submit"
+                variant="danger"
+                isDisabled={confirmation.processing}
+              >
+                {submitLabel}
+              </Button>
+            </form>
+            <form
+              action={cancel.action}
+              method="post"
+              onSubmit={submitCancellation}
             >
-              {cancel.label}
-            </button>
-          </form>
+              <input
+                type="hidden"
+                name="_method"
+                value="delete"
+              />
+              <Button
+                type="submit"
+                variant="secondary"
+                isDisabled={cancellation.processing}
+              >
+                {cancel.label}
+              </Button>
+            </form>
+          </div>
         </>
       ) : (
-        <p>{alreadySignedOut}</p>
+        <p className="text-sm text-fg-muted">{alreadySignedOut}</p>
       )}
 
-      <p>
+      <p className="text-sm">
         {/* A document visit: the destination is another surface entry point with its own guards. */}
-        <a href={homeLink.href}>{homeLink.label}</a>
+        <a
+          href={homeLink.href}
+          className="text-accent hover:underline"
+        >
+          {homeLink.label}
+        </a>
       </p>
     </section>
   );

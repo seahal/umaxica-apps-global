@@ -3,6 +3,9 @@
 // Only the methods that are actually missing are offered, and the server decides which those are,
 // so a method already configured is absent from `methods` rather than filtered in the browser. The
 // back link exists only when the ceremony carried a destination to return to.
+import NavList from "@/components/ui/NavList";
+import Page from "@/components/ui/Page";
+
 export type VerificationSetupLink = {
   key: string;
   label: string;
@@ -23,24 +26,23 @@ export default function VerificationSetup({
   methods,
 }: VerificationSetupProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <h1>{title}</h1>
-      <p>{description}</p>
-
+    <Page
+      title={title}
+      description={description}
+    >
       {backLink ? (
-        <p>
-          <a href={backLink.href}>{backLink.label}</a>
+        <p className="text-sm text-fg-muted">
+          <a
+            href={backLink.href}
+            className="underline-offset-4 hover:text-fg hover:underline"
+          >
+            {backLink.label}
+          </a>
         </p>
       ) : null}
 
-      <ul>
-        {methods.map((method) => (
-          <li key={method.key}>
-            {/* Document visits: registration lives on the identity host for email. */}
-            <a href={method.href}>{method.label}</a>
-          </li>
-        ))}
-      </ul>
-    </section>
+      {/* Document visits: registration lives on the identity host for email. */}
+      <NavList items={methods} />
+    </Page>
   );
 }

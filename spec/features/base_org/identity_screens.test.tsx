@@ -39,7 +39,6 @@ const { default: SelfServiceShell } = await import("@/pages/base/org/accounts/in
 const { default: WelcomeShow } = await import("@/pages/base/org/welcomes/show");
 const { default: SignOutConfirmation } = await import("@/pages/base/org/sign_outs/edit");
 const { default: SignOutCompletion } = await import("@/pages/base/org/sign_outs/complete");
-const { default: FormErrors } = await import("@/features/identity/FormErrors");
 const { csrfToken } = await import("@/lib/csrf");
 
 const turnstile = { site_key: "site", mode: "execute" as const, action: null, cdata: null };
@@ -518,13 +517,6 @@ describe("shared self-service screens", () => {
         />,
       ),
     ).toContain("You are signed out");
-  });
-});
-
-describe("form errors", () => {
-  it("renders nothing without messages and a heading with them", () => {
-    expect(renderToStaticMarkup(<FormErrors messages={[]} />)).toBe("");
-    expect(renderToStaticMarkup(<FormErrors messages={["Boom"]} />)).toContain("Boom");
   });
 });
 

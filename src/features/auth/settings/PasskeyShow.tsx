@@ -1,3 +1,7 @@
+import Card from "@/components/ui/Card";
+import DescriptionList from "@/components/ui/DescriptionList";
+import Page from "@/components/ui/Page";
+import TextLink from "@/components/ui/TextLink";
 // One registered passkey in detail.
 //
 // The rows are built on the server so the formatting, the translation and the "unknown
@@ -34,22 +38,24 @@ export default function PasskeyShow({
   turnstile,
 }: PasskeyShowProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <a href={backLink.href}>{backLink.label}</a>
+    <Page
+      title={title}
+      up={backLink}
+      width="narrow"
+    >
+      <Card>
+        <DescriptionList
+          items={details.map((detail) => ({ term: detail.label, description: detail.value }))}
+        />
 
-      <div>
-        <h3>{title}</h3>
-        <dl>
-          {details.map((detail) => (
-            <div key={detail.key}>
-              <dt>{detail.label}</dt>
-              <dd>{detail.value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        <div>
-          <a href={editLink.href}>{editLink.label}</a>
+        <div className="flex flex-wrap items-center gap-4">
+          <TextLink
+            href={editLink.href}
+            tone="muted"
+            className="text-sm"
+          >
+            {editLink.label}
+          </TextLink>
           <PasskeyDeleteButton
             action={destroyHref}
             label={destroyLabel}
@@ -57,7 +63,7 @@ export default function PasskeyShow({
             turnstile={turnstile}
           />
         </div>
-      </div>
-    </section>
+      </Card>
+    </Page>
   );
 }

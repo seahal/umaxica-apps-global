@@ -3,6 +3,8 @@
 // Availability is decided on the server: when the kill switch is on, the notice arrives and the
 // form does not, so the page cannot offer a ceremony the request phase would refuse. The form is a
 // document POST because the browser has to follow the 307 and then the redirect to Entra.
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
 import { csrfToken } from "@/lib/csrf";
 
 export type OrgEntraSessionEntryProps = {
@@ -17,16 +19,11 @@ export default function OrgEntraSessionEntry({
   form,
 }: OrgEntraSessionEntryProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <div>
-        <h1>{title}</h1>
-      </div>
-
-      {unavailableNotice ? (
-        <div role="alert">
-          <p>{unavailableNotice}</p>
-        </div>
-      ) : null}
+    <Page
+      title={title}
+      width="narrow"
+    >
+      <ErrorList errors={unavailableNotice === null ? [] : [unavailableNotice]} />
 
       {form ? (
         <form
@@ -39,15 +36,16 @@ export default function OrgEntraSessionEntry({
             value={csrfToken()}
             readOnly
           />
-          <div>
-            <input
-              type="submit"
-              className="btn-entra"
-              value={form.submit_label}
-            />
-          </div>
+          {/* The provider button's wording and shape are constrained by
+              docs/reference/third-party-sign-in-button-requirements.md, so it keeps its own class
+              rather than taking the application button's appearance. */}
+          <input
+            type="submit"
+            className="btn-entra"
+            value={form.submit_label}
+          />
         </form>
       ) : null}
-    </section>
+    </Page>
   );
 }

@@ -3,6 +3,9 @@
 import { useForm } from "@inertiajs/react";
 import type { SyntheticEvent } from "react";
 
+import Button from "@/components/ui/Button";
+import TextField from "@/components/ui/TextField";
+
 export type AvatarFormProps = {
   title: string;
   heading: string;
@@ -38,47 +41,51 @@ export default function AvatarForm({
   };
 
   return (
-    <section aria-label={title}>
-      <h1>{heading}</h1>
+    <section
+      aria-label={title}
+      className="flex flex-col gap-6"
+    >
+      <h1 className="text-2xl font-bold text-fg">{heading}</h1>
 
-      <form onSubmit={submit}>
-        <div>
-          <label htmlFor="avatar_moniker">{moniker.label}</label>
-          <input
-            id="avatar_moniker"
-            name="avatar[moniker]"
-            type="text"
-            required
-            maxLength={moniker.maxlength}
-            value={data.avatar.moniker}
-            onChange={(event) => setData("avatar", { ...data.avatar, moniker: event.target.value })}
-          />
-          {errors["avatar.moniker"] ? <p role="alert">{errors["avatar.moniker"]}</p> : null}
-        </div>
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-4"
+      >
+        <TextField
+          id="avatar_moniker"
+          label={moniker.label}
+          name="avatar[moniker]"
+          isRequired
+          maxLength={moniker.maxlength}
+          value={data.avatar.moniker}
+          onChange={(value) => setData("avatar", { ...data.avatar, moniker: value })}
+          {...(errors["avatar.moniker"] === undefined
+            ? {}
+            : { errorMessage: errors["avatar.moniker"] })}
+        />
 
         {handle ? (
-          <div>
-            <label htmlFor="avatar_handle">{handle.label}</label>
-            <input
-              id="avatar_handle"
-              name="avatar[handle]"
-              type="text"
-              maxLength={handle.maxlength}
-              value={data.avatar.handle}
-              onChange={(event) =>
-                setData("avatar", { ...data.avatar, handle: event.target.value })
-              }
-            />
-            {errors["avatar.handle"] ? <p role="alert">{errors["avatar.handle"]}</p> : null}
-          </div>
+          <TextField
+            id="avatar_handle"
+            label={handle.label}
+            name="avatar[handle]"
+            maxLength={handle.maxlength}
+            value={data.avatar.handle}
+            onChange={(value) => setData("avatar", { ...data.avatar, handle: value })}
+            {...(errors["avatar.handle"] === undefined
+              ? {}
+              : { errorMessage: errors["avatar.handle"] })}
+          />
         ) : null}
 
-        <button
-          type="submit"
-          disabled={processing}
-        >
-          {submitLabel}
-        </button>
+        <div>
+          <Button
+            type="submit"
+            isDisabled={processing}
+          >
+            {submitLabel}
+          </Button>
+        </div>
       </form>
     </section>
   );

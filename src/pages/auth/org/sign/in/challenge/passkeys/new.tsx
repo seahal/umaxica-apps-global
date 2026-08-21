@@ -1,4 +1,5 @@
 // The passkey second factor of the org sign-in ceremony.
+import Page from "@/components/ui/Page";
 import StepUpPasskeyForm, {
   type StepUpPasskeyFormProps,
 } from "@/features/auth/passkeys/StepUpPasskeyForm";
@@ -17,15 +18,13 @@ export default function OrgMfaPasskeyPage({
   back_link: backLink,
 }: OrgMfaPasskeyPageProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <h1>{title}</h1>
-      <p>{description}</p>
-
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      width="narrow"
+    >
       <StepUpPasskeyForm {...form} />
-
-      <div>
-        <a href={backLink.href}>{backLink.label}</a>
-      </div>
-    </section>
+    </Page>
   );
 }

@@ -5,6 +5,8 @@ import { router } from "@inertiajs/react";
 // through the form and the server re-validates it; the challenge token is validated there too.
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
 export type PreferenceEmailUnsubscribeProps = {
@@ -40,14 +42,15 @@ export default function PreferenceEmailUnsubscribe({
   };
 
   return (
-    <section>
-      <h1>{heading}</h1>
-      <p>{description}</p>
-
+    <Page
+      title={heading}
+      description={description}
+    >
       {promotional && form ? (
         <form
           onSubmit={submit}
           method="post"
+          className="flex flex-col gap-4"
         >
           <input
             type="hidden"
@@ -59,12 +62,11 @@ export default function PreferenceEmailUnsubscribe({
             site_key={form.turnstile_site_key}
             onToken={setChallenge}
           />
-          <input
-            type="submit"
-            value={form.submit_label}
-          />
+          <div>
+            <Button type="submit">{form.submit_label}</Button>
+          </div>
         </form>
       ) : null}
-    </section>
+    </Page>
   );
 }

@@ -1,6 +1,10 @@
-import { Link, router } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Page from "@/components/ui/Page";
+import TextLink from "@/components/ui/TextLink";
 import type { IdentityLink } from "@/types/identity";
 
 type RecoverySection = {
@@ -62,72 +66,88 @@ export default function WithdrawalEdit({
 
   if (terminated) {
     return (
-      <section>
-        <h1>{title}</h1>
-        <p>{unavailableMessage}</p>
-        <button
+      <Page
+        title={title}
+        description={unavailableMessage}
+        width="narrow"
+      >
+        <Button
           type="button"
-          onClick={signOutNow}
+          variant="secondary"
+          onPress={signOutNow}
         >
           {signOut.label}
-        </button>
-      </section>
+        </Button>
+      </Page>
     );
   }
 
   return (
-    <section>
-      <h1>{title}</h1>
-
-      {deadlineMessage ? <p>{deadlineMessage}</p> : null}
-
+    <Page
+      title={title}
+      {...(deadlineMessage === null ? {} : { description: deadlineMessage })}
+      width="narrow"
+    >
       {recovery ? (
-        <>
-          {recovery.available_message ? <p>{recovery.available_message}</p> : null}
-          {recovery.unavailable_message ? <p>{recovery.unavailable_message}</p> : null}
+        <Card>
+          {recovery.available_message ? (
+            <p className="text-sm text-fg">{recovery.available_message}</p>
+          ) : null}
+          {recovery.unavailable_message ? (
+            <p className="text-sm text-fg-muted">{recovery.unavailable_message}</p>
+          ) : null}
           {recoveryAction && recoveryLabel ? (
-            <button
+            <Button
               type="button"
-              onClick={() =>
+              onPress={() =>
                 gate(recoveryConfirm, recoveryLabel, () => router.post(recoveryAction))
               }
             >
               {recoveryLabel}
-            </button>
+            </Button>
           ) : null}
-        </>
+        </Card>
       ) : null}
 
       {termination ? (
-        <>
-          {termination.available_at_message ? <p>{termination.available_at_message}</p> : null}
+        <Card>
+          {termination.available_at_message ? (
+            <p className="text-sm text-fg-muted">{termination.available_at_message}</p>
+          ) : null}
           {terminationAction && terminationLabel ? (
-            <button
+            <Button
               type="button"
-              onClick={() =>
+              variant="danger"
+              onPress={() =>
                 gate(terminationConfirm, terminationLabel, () => router.delete(terminationAction))
               }
             >
               {terminationLabel}
-            </button>
+            </Button>
           ) : null}
-        </>
+        </Card>
       ) : null}
 
-      <p>
-        <Link href={erasureLink.href}>{erasureLink.label}</Link>
+      <p className="text-sm">
+        <TextLink
+          href={erasureLink.href}
+          inertia
+        >
+          {erasureLink.label}
+        </TextLink>
       </p>
 
       <p>
-        <button
+        <Button
           type="button"
-          onClick={signOutNow}
+          variant="secondary"
+          onPress={signOutNow}
         >
           {signOut.label}
-        </button>
+        </Button>
       </p>
 
       {dialog}
-    </section>
+    </Page>
   );
 }

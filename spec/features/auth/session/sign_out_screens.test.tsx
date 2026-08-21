@@ -56,8 +56,8 @@ describe("SignOutConfirmation", () => {
   });
 
   it("links home with the destination the server generated", () => {
-    expect(renderToStaticMarkup(<SignOutConfirmation {...confirmationProps} />)).toContain(
-      '<a href="/?ri=jp">ホームへ戻る</a>',
+    expect(renderToStaticMarkup(<SignOutConfirmation {...confirmationProps} />)).toMatch(
+      /<a href="\/\?ri=jp"[^>]*>ホームへ戻る<\/a>/u,
     );
   });
 });

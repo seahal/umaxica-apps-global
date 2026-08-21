@@ -5,6 +5,9 @@
 // screen from becoming an account-existence oracle.
 import { useForm, usePage } from "@inertiajs/react";
 
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import type { TurnstileConfiguration } from "@/features/auth/settings/PasskeyDeleteButton";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -57,14 +60,21 @@ export default function SignInSecretNew({
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-lg flex-col gap-6 p-6">
-      <h1>{title}</h1>
-
-      <form onSubmit={submit}>
+    <Page
+      title={title}
+      width="narrow"
+    >
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-4"
+      >
         {messages.length > 0 ? (
-          <div role="alert">
-            <h2>{validationFailedTitle}</h2>
-            <ul>
+          <div
+            role="alert"
+            className="animate-shake rounded-lg border border-line bg-surface-muted p-4"
+          >
+            <h2 className="text-sm font-semibold text-fg">{validationFailedTitle}</h2>
+            <ul className="mt-1 flex flex-col gap-1 text-sm text-danger">
               {messages.map((message) => (
                 <li key={message}>{message}</li>
               ))}
@@ -72,33 +82,24 @@ export default function SignInSecretNew({
           </div>
         ) : null}
 
-        <div>
-          <label htmlFor="secret_credential_login_form_identifier">{identifierLabel}</label>
-          <input
-            type="text"
-            id="secret_credential_login_form_identifier"
-            name="secret_credential_login_form[identifier]"
-            placeholder={identifierPlaceholder}
-            autoComplete="username"
-            value={form.data.secret_credential_login_form.identifier}
-            onChange={(event) => setField("identifier", event.target.value)}
-          />
-        </div>
+        <TextField
+          label={identifierLabel}
+          placeholder={identifierPlaceholder}
+          autoComplete="username"
+          name="secret_credential_login_form[identifier]"
+          value={form.data.secret_credential_login_form.identifier}
+          onChange={(value) => setField("identifier", value)}
+        />
 
-        <div>
-          <label htmlFor="secret_credential_login_form_secret_credential_value">
-            {secretLabel}
-          </label>
-          <input
-            type="password"
-            id="secret_credential_login_form_secret_credential_value"
-            name="secret_credential_login_form[secret_credential_value]"
-            placeholder="****************"
-            autoComplete="current-password"
-            value={form.data.secret_credential_login_form.secret_credential_value}
-            onChange={(event) => setField("secret_credential_value", event.target.value)}
-          />
-        </div>
+        <TextField
+          label={secretLabel}
+          type="password"
+          placeholder="****************"
+          autoComplete="current-password"
+          name="secret_credential_login_form[secret_credential_value]"
+          value={form.data.secret_credential_login_form.secret_credential_value}
+          onChange={(value) => setField("secret_credential_value", value)}
+        />
 
         <TurnstileWidget
           site_key={turnstile.site_key}
@@ -108,16 +109,21 @@ export default function SignInSecretNew({
           onToken={(token) => form.setData("cf-turnstile-response", token)}
         />
 
-        <div>
-          <button
+        <div className="flex items-center gap-4">
+          <Button
             type="submit"
-            disabled={form.processing}
+            isDisabled={form.processing}
           >
             {submitLabel}
-          </button>
-          <a href={backLink.href}>{backLink.label}</a>
+          </Button>
+          <a
+            href={backLink.href}
+            className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+          >
+            {backLink.label}
+          </a>
         </div>
       </form>
-    </section>
+    </Page>
   );
 }

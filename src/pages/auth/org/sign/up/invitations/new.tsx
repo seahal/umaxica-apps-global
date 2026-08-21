@@ -1,8 +1,13 @@
-import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 // Redeeming an operator invitation code.
 //
 // A document POST so the visible Turnstile token travels in the form body; a rejected code comes
 // back as this page re-rendered at 422 with the failure inline, never as a flash.
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
 
 type TurnstileConfiguration = {
@@ -36,50 +41,45 @@ export default function OrgInvitationPage({
   turnstile,
 }: OrgInvitationPageProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <h1>{title}</h1>
-      <p>{description}</p>
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      width="narrow"
+    >
+      <ErrorList errors={formError === null ? [] : [formError]} />
 
-      {formError ? <p role="alert">{formError}</p> : null}
-
-      <form
-        action={formAction}
-        method="post"
-      >
-        <input
-          type="hidden"
-          name="authenticity_token"
-          value={csrfToken()}
-          readOnly
-        />
-
-        <div>
-          <label htmlFor="invitation_code">{invitationCodeLabel}</label>
+      <Card>
+        <form
+          action={formAction}
+          method="post"
+          className="flex flex-col gap-4"
+        >
           <input
+            type="hidden"
+            name="authenticity_token"
+            value={csrfToken()}
+            readOnly
+          />
+
+          <TextField
+            label={invitationCodeLabel}
             type="text"
-            id="invitation_code"
             name="invitation_code"
             defaultValue={invitationCode}
-            required
+            isRequired
           />
-        </div>
 
-        <TurnstileWidget
-          site_key={turnstile.site_key}
-          mode={turnstile.mode}
-          action={turnstile.action}
-          cdata={turnstile.cdata}
-        />
+          <TurnstileWidget
+            site_key={turnstile.site_key}
+            mode={turnstile.mode}
+            action={turnstile.action}
+            cdata={turnstile.cdata}
+          />
 
-        <input
-          type="submit"
-          value={submitLabel}
-        />
-      </form>
-
-      <p>
-        <a href={backLink.href}>{backLink.label}</a>
-      </p>
-    </section>
+          <Button type="submit">{submitLabel}</Button>
+        </form>
+      </Card>
+    </Page>
   );
 }

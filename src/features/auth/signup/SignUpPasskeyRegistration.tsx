@@ -9,6 +9,8 @@
 // token, so the ported ceremony has no Turnstile step. Nothing the server checks changed.
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import TextField from "@/components/ui/TextField";
 import { normalizeCreationOptions } from "@/controllers/webauthn_utils";
 import { PASSKEY_MESSAGES, registrationErrorMessage } from "@/features/auth/passkeys/messages";
 import { useCeremonyMessages } from "@/features/auth/passkeys/useCeremonyMessages";
@@ -159,32 +161,30 @@ export default function SignUpPasskeyRegistration({
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
+    <section className="flex flex-col gap-4">
+      <h1 className="text-2xl font-bold text-fg">{title}</h1>
 
-      <div>
-        <label htmlFor="description">{descriptionLabel}</label>
-        <input
-          type="text"
-          id="description"
-          autoComplete="off"
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          placeholder={descriptionPlaceholder}
-          maxLength={100}
-        />
-      </div>
+      <TextField
+        label={descriptionLabel}
+        autoComplete="off"
+        value={description}
+        onChange={setDescription}
+        placeholder={descriptionPlaceholder}
+        maxLength={100}
+      />
 
-      {error ? <p role="alert">{error}</p> : null}
-      {status ? <p>{status}</p> : null}
-
-      <div>
-        <button
-          type="button"
-          onClick={() => void register()}
+      {error ? (
+        <p
+          role="alert"
+          className="text-sm text-danger"
         >
-          {submitLabel}
-        </button>
+          {error}
+        </p>
+      ) : null}
+      {status ? <p className="text-sm text-fg-muted">{status}</p> : null}
+
+      <div>
+        <Button onPress={() => void register()}>{submitLabel}</Button>
       </div>
     </section>
   );

@@ -1,3 +1,7 @@
+import Card from "@/components/ui/Card";
+import NavList from "@/components/ui/NavList";
+import Page from "@/components/ui/Page";
+
 // The entry screen of the step-up verification ceremony: pick a second factor.
 //
 // The server decided which factors this actor holds, so `methods` is already filtered and each
@@ -24,28 +28,31 @@ export default function VerificationEntry({
   notice,
 }: VerificationEntryProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <h1>{heading}</h1>
+    <Page title={heading}>
+      {notice ? (
+        <p
+          data-test-id="verification-notice"
+          className="rounded-md border border-line bg-surface-muted p-3 text-sm text-fg"
+        >
+          {notice}
+        </p>
+      ) : null}
 
-      {notice ? <p data-test-id="verification-notice">{notice}</p> : null}
-
-      <div>
-        <h2>{sectionTitle}</h2>
-        <p>{description}</p>
+      <Card heading={sectionTitle}>
+        <p className="text-sm text-fg-muted">{description}</p>
 
         {noMethodsNotice ? (
-          <p data-test-id="verification-no-methods">{noMethodsNotice}</p>
+          <p
+            data-test-id="verification-no-methods"
+            className="text-sm text-fg-muted"
+          >
+            {noMethodsNotice}
+          </p>
         ) : (
-          <div>
-            {methods.map((method) => (
-              <div key={method.key}>
-                {/* Document visit: each factor ceremony runs behind its own guards. */}
-                <a href={method.href}>{method.label}</a>
-              </div>
-            ))}
-          </div>
+          /* Document visits: each factor ceremony runs behind its own guards. */
+          <NavList items={methods} />
         )}
-      </div>
-    </section>
+      </Card>
+    </Page>
   );
 }

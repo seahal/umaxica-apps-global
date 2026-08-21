@@ -1,3 +1,8 @@
+import Card from "@/components/ui/Card";
+import DescriptionList from "@/components/ui/DescriptionList";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+
 type SwitcherSelection = {
   account_public_id: string | null;
   organization_public_id: string | null;
@@ -21,44 +26,40 @@ type Props = {
 
 export default function SwitcherShow({ title, current, candidates, error }: Props) {
   return (
-    <section>
-      <h1>{title}</h1>
+    <Page
+      title={title}
+      description="Signed in"
+    >
+      <ErrorList errors={error === null ? [] : [error]} />
 
-      <p>Signed in</p>
-
-      {error ? <p role="alert">{error}</p> : null}
-
-      <section>
-        <h2>Current context</h2>
+      <Card heading="Current context">
         {current ? (
-          <dl>
-            <dt>Account</dt>
-            <dd>{current.account_public_id}</dd>
-            <dt>Organization</dt>
-            <dd>{current.organization_public_id}</dd>
-            <dt>Organization unit</dt>
-            <dd>{current.organization_unit_public_id}</dd>
-            <dt>Avatar</dt>
-            <dd>{current.avatar_public_id}</dd>
-          </dl>
+          <DescriptionList
+            items={[
+              { term: "Account", description: current.account_public_id },
+              { term: "Organization", description: current.organization_public_id },
+              { term: "Organization unit", description: current.organization_unit_public_id },
+              { term: "Avatar", description: current.avatar_public_id },
+            ]}
+          />
         ) : (
-          <p>No current context.</p>
+          <p className="text-sm text-fg-muted">No current context.</p>
         )}
-      </section>
+      </Card>
 
-      <section>
-        <h2>Available contexts</h2>
-        <ul>
+      <Card heading="Available contexts">
+        <ul className="flex flex-col gap-2 text-sm text-fg">
           {candidates.map((candidate) => (
             <li
               key={`${candidate.account_public_id}/${candidate.organization_public_id}/${candidate.avatar_public_id}`}
+              className="font-mono break-all"
             >
               account={candidate.account_public_id} organization={candidate.organization_public_id}{" "}
               avatar={candidate.avatar_public_id}
             </li>
           ))}
         </ul>
-      </section>
-    </section>
+      </Card>
+    </Page>
   );
 }

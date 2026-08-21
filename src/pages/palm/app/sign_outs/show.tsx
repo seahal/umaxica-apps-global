@@ -13,22 +13,22 @@ export default function PalmSignOutShow({ heading, description, state }: PalmSig
   return (
     <section
       aria-labelledby={headingId}
-      className="mx-auto grid min-h-screen w-full max-w-2xl place-items-center p-8"
+      className="flex flex-col gap-4 py-8 sm:py-16"
     >
-      <div className="w-full">
-        <h1
-          id={headingId}
-          className="mb-3 text-5xl leading-none"
-        >
-          {heading}
-        </h1>
-        <p className="my-2">{description}</p>
-        {state ? (
-          <p className="my-2">
-            State <code className="rounded px-1 py-0.5">{state}</code> was validated.
-          </p>
-        ) : null}
-      </div>
+      <h1
+        id={headingId}
+        className="text-4xl font-semibold tracking-tight text-balance text-fg sm:text-5xl"
+      >
+        {heading}
+      </h1>
+      <p className="max-w-prose text-lg text-pretty text-fg-muted">{description}</p>
+      {state ? (
+        <p className="text-sm text-fg-muted">
+          State{" "}
+          <code className="rounded bg-surface-muted px-1.5 py-0.5 font-mono text-fg">{state}</code>{" "}
+          was validated.
+        </p>
+      ) : null}
     </section>
   );
 }

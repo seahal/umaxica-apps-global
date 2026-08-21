@@ -1,3 +1,6 @@
+import ButtonLink from "@/components/ui/ButtonLink";
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
 // The registered passkeys of one actor.
 //
 // Every row arrives serialized: a public id, the description the actor gave, a formatted timestamp
@@ -41,13 +44,20 @@ export default function PasskeyIndex({
   turnstile,
 }: PasskeyIndexProps) {
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-      <div>
-        <h1>{title}</h1>
-        <a href={addLink.href}>{addLink.label}</a>
-      </div>
-
-      <table>
+    <Page
+      title={title}
+      up={backLink}
+      width="wide"
+      actions={
+        <ButtonLink
+          href={addLink.href}
+          size="sm"
+        >
+          {addLink.label}
+        </ButtonLink>
+      }
+    >
+      <Table>
         <thead>
           <tr>
             <th scope="col">{columns.description}</th>
@@ -61,13 +71,20 @@ export default function PasskeyIndex({
               <td>{passkey.description}</td>
               <td>{passkey.created_at}</td>
               <td>
-                <a href={passkey.edit_href}>{editLabel}</a>
-                <PasskeyDeleteButton
-                  action={passkey.destroy_href}
-                  label={destroyLabel}
-                  confirm_message={confirmMessage}
-                  turnstile={turnstile}
-                />
+                <div className="flex items-center gap-2">
+                  <a
+                    href={passkey.edit_href}
+                    className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+                  >
+                    {editLabel}
+                  </a>
+                  <PasskeyDeleteButton
+                    action={passkey.destroy_href}
+                    label={destroyLabel}
+                    confirm_message={confirmMessage}
+                    turnstile={turnstile}
+                  />
+                </div>
               </td>
             </tr>
           ))}
@@ -77,9 +94,7 @@ export default function PasskeyIndex({
             </tr>
           ) : null}
         </tbody>
-      </table>
-
-      <a href={backLink.href}>{backLink.label}</a>
-    </section>
+      </Table>
+    </Page>
   );
 }

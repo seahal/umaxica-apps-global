@@ -1,7 +1,10 @@
 import { Link, router } from "@inertiajs/react";
 import { useState } from "react";
 
-import ErrorList from "@/features/base_com/identity/ErrorList";
+import Button from "@/components/ui/Button";
+import Checkbox from "@/components/ui/Checkbox";
+import ErrorList from "@/components/ui/ErrorList";
+import TextField from "@/components/ui/TextField";
 import type { PageLink, TurnstileProps } from "@/features/base_com/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -18,6 +21,8 @@ export type EmailRegistrationNewProps = {
   cancel_link: PageLink;
   turnstile: TurnstileProps;
 };
+
+const LINK = "text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline";
 
 export default function EmailRegistrationNew({
   title,
@@ -51,36 +56,41 @@ export default function EmailRegistrationNew({
   };
 
   return (
-    <section>
-      <Link href={backLink.href}>{backLink.label}</Link>
-      <h1>{title}</h1>
+    <section className="flex flex-col gap-6">
+      <Link
+        href={backLink.href}
+        className={LINK}
+      >
+        {backLink.label}
+      </Link>
+      <h1 className="text-2xl font-bold text-fg">{title}</h1>
 
-      <form onSubmit={submit}>
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-4"
+      >
         <ErrorList errors={errors} />
 
-        <div>
-          <label htmlFor={`${form.scope}_address`}>{addressLabel}</label>
-          <input
-            id={`${form.scope}_address`}
-            name={`${form.scope}[address]`}
-            type="email"
-            autoComplete="email"
-            required
-            value={address}
-            onChange={(event) => setAddress(event.target.value)}
-          />
-        </div>
+        <TextField
+          id={`${form.scope}_address`}
+          label={addressLabel}
+          name={`${form.scope}[address]`}
+          type="email"
+          autoComplete="email"
+          isRequired
+          value={address}
+          onChange={setAddress}
+        />
 
-        <div>
-          <input
+        <div className="flex flex-col gap-1">
+          <Checkbox
             id={`${form.scope}_notifiable`}
-            name={`${form.scope}[notifiable]`}
-            type="checkbox"
-            checked={notifiableChecked}
-            onChange={(event) => setNotifiableChecked(event.target.checked)}
-          />
-          <label htmlFor={`${form.scope}_notifiable`}>{notifiable.label}</label>
-          <p>{notifiable.description}</p>
+            isSelected={notifiableChecked}
+            onChange={setNotifiableChecked}
+          >
+            {notifiable.label}
+          </Checkbox>
+          <p className="pl-6 text-xs text-fg-muted">{notifiable.description}</p>
         </div>
 
         <TurnstileWidget
@@ -88,13 +98,20 @@ export default function EmailRegistrationNew({
           onToken={setToken}
         />
 
-        <button
-          type="submit"
-          disabled={processing}
-        >
-          {form.submit_label}
-        </button>
-        <Link href={cancelLink.href}>{cancelLink.label}</Link>
+        <div className="flex items-center gap-4">
+          <Button
+            type="submit"
+            isDisabled={processing}
+          >
+            {form.submit_label}
+          </Button>
+          <Link
+            href={cancelLink.href}
+            className={LINK}
+          >
+            {cancelLink.label}
+          </Link>
+        </div>
       </form>
     </section>
   );

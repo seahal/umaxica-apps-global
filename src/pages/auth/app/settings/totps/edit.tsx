@@ -5,6 +5,12 @@
 import { router, useForm } from "@inertiajs/react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+import TextLink from "@/components/ui/TextLink";
 import type { SettingsLink } from "@/features/auth/settings/links";
 
 type Props = {
@@ -57,52 +63,62 @@ export default function TotpsEdit({
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <a href={backLink.href}>{backLink.label}</a>
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      width="narrow"
+    >
+      <ErrorList
+        errors={errorMessages}
+        {...(errorHeader === null ? {} : { header: errorHeader })}
+      />
 
-      <div>
-        <h3>{title}</h3>
-        <p>{description}</p>
-      </div>
+      <Card>
+        <form
+          onSubmit={submit}
+          className="flex flex-col gap-4"
+        >
+          <TextField
+            id="totp-title"
+            label={formProps.title_label}
+            type="text"
+            maxLength={32}
+            placeholder={formProps.title_placeholder}
+            description={formProps.title_hint}
+            value={form.data.title}
+            onChange={(value) => form.setData("title", value)}
+          />
 
-      {errorHeader ? (
-        <div role="alert">
-          <h3>{errorHeader}</h3>
-          <ul>
-            {errorMessages.map((message) => (
-              <li key={message}>{message}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+          <div className="flex flex-wrap items-center gap-4">
+            <Button
+              type="submit"
+              isDisabled={form.processing}
+            >
+              {formProps.submit_label}
+            </Button>
+            <TextLink
+              href={cancelLink.href}
+              tone="muted"
+              className="text-sm"
+            >
+              {cancelLink.label}
+            </TextLink>
+          </div>
+        </form>
+      </Card>
 
-      <form onSubmit={submit}>
-        <label htmlFor="totp-title">{formProps.title_label}</label>
-        <input
-          type="text"
-          id="totp-title"
-          maxLength={32}
-          placeholder={formProps.title_placeholder}
-          value={form.data.title}
-          onChange={(event) => form.setData("title", event.target.value)}
-        />
-        <p>{formProps.title_hint}</p>
-
-        <a href={cancelLink.href}>{cancelLink.label}</a>
-        <input
-          type="submit"
-          value={formProps.submit_label}
-          disabled={form.processing}
-        />
-      </form>
-
-      <button
-        type="button"
-        onClick={remove}
-      >
-        {destroy.submit_label}
-      </button>
+      {/* Removal is a different decision from renaming, so it sits outside the form's panel. */}
+      <Card>
+        <Button
+          type="button"
+          variant="danger"
+          onPress={remove}
+        >
+          {destroy.submit_label}
+        </Button>
+      </Card>
       {dialog}
-    </section>
+    </Page>
   );
 }

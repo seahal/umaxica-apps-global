@@ -1,5 +1,10 @@
 // One registered passkey, with the same DELETE form the index row carries.
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import DescriptionList from "@/components/ui/DescriptionList";
+import Page from "@/components/ui/Page";
+import TextLink from "@/components/ui/TextLink";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
 
@@ -42,53 +47,60 @@ export default function OrgPasskeySettingsShow({
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <a href={backLink.href}>{backLink.label}</a>
+    <Page
+      title={title}
+      up={backLink}
+      width="narrow"
+    >
+      <Card>
+        <DescriptionList
+          items={details.map((detail) => ({ term: detail.term, description: detail.value }))}
+        />
 
-      <div>
-        <h3>{title}</h3>
-        <dl>
-          {details.map((detail) => (
-            <div key={detail.term}>
-              <dt>{detail.term}</dt>
-              <dd>{detail.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <TextLink
+            href={editLink.href}
+            tone="muted"
+            className="text-sm"
+          >
+            {editLink.label}
+          </TextLink>
 
-      <div>
-        <a href={editLink.href}>{editLink.label}</a>
-        <form
-          action={destroyAction}
-          method="post"
-          onSubmit={submit}
-        >
-          <input
-            type="hidden"
-            name="_method"
-            value="delete"
-            readOnly
-          />
-          <input
-            type="hidden"
-            name="authenticity_token"
-            value={csrfToken()}
-            readOnly
-          />
-          <TurnstileWidget
-            site_key={turnstile.site_key}
-            mode={turnstile.mode}
-            action={turnstile.action}
-            cdata={turnstile.cdata}
-          />
-          <input
-            type="submit"
-            value={destroyLabel}
-          />
-        </form>
-      </div>
+          <form
+            action={destroyAction}
+            method="post"
+            onSubmit={submit}
+            className="flex flex-col gap-2"
+          >
+            <input
+              type="hidden"
+              name="_method"
+              value="delete"
+              readOnly
+            />
+            <input
+              type="hidden"
+              name="authenticity_token"
+              value={csrfToken()}
+              readOnly
+            />
+            <TurnstileWidget
+              site_key={turnstile.site_key}
+              mode={turnstile.mode}
+              action={turnstile.action}
+              cdata={turnstile.cdata}
+            />
+            <Button
+              type="submit"
+              variant="danger"
+              size="sm"
+            >
+              {destroyLabel}
+            </Button>
+          </form>
+        </div>
+      </Card>
       {dialog}
-    </section>
+    </Page>
   );
 }

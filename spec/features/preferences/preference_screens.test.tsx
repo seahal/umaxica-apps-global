@@ -96,7 +96,9 @@ describe("preference select screen", () => {
       />,
     );
 
-    expect(html).toContain('role="alert"');
+    // `Select`'s field error is wired through `aria-describedby` rather than `role="alert"`,
+    // the same convention every other field-level error uses in this codebase.
+    expect(html).toContain('data-invalid="true"');
     expect(html).toContain("選択してください");
   });
 

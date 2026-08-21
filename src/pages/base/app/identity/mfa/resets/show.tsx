@@ -1,3 +1,4 @@
+import Page from "@/components/ui/Page";
 import type { IdentityLink } from "@/types/identity";
 
 type Props = {
@@ -12,11 +13,11 @@ export default function MfaResetShow({
   back_link: backLink,
 }: Props) {
   return (
-    <section>
-      <a href={backLink.href}>{backLink.label}</a>
-
-      <h1>{title}</h1>
-      <p>{resetUnavailable}</p>
-    </section>
+    <Page
+      title={title}
+      description={resetUnavailable}
+      up={backLink}
+      width="narrow"
+    />
   );
 }

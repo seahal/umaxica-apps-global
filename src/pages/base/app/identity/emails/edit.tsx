@@ -1,7 +1,13 @@
-import { Link, router } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import { useState } from "react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Checkbox from "@/components/ui/Checkbox";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextLink from "@/components/ui/TextLink";
 import type {
   IdentityDestructiveAction,
   IdentityLink,
@@ -66,59 +72,78 @@ export default function EmailEdit({
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{address}</p>
+    <Page
+      title={title}
+      description={address}
+      width="narrow"
+    >
+      <ErrorList errors={error === null ? [] : [error]} />
 
-      {error ? <p role="alert">{error}</p> : null}
-
-      <form onSubmit={submit}>
-        <div>
-          <span>{form.always_on_label}</span>
-          <p>{form.always_on_description}</p>
-        </div>
-
-        <div>
-          <input
-            id="user_email_promotional"
-            type="checkbox"
-            disabled={form.locked}
-            checked={promotional}
-            onChange={(event) => setPromotional(event.target.checked)}
-          />
-          <label htmlFor="user_email_promotional">{form.promotional.label}</label>
-          <p>{form.promotional.description}</p>
-        </div>
-
-        <div>
-          <input
-            id="user_email_notifiable"
-            type="checkbox"
-            disabled={form.locked}
-            checked={notifiable}
-            onChange={(event) => setNotifiable(event.target.checked)}
-          />
-          <label htmlFor="user_email_notifiable">{form.notifiable.label}</label>
-          <p>{form.notifiable.description}</p>
-        </div>
-
-        <button
-          type="submit"
-          disabled={processing}
+      <Card>
+        <form
+          onSubmit={submit}
+          className="flex flex-col gap-5"
         >
-          {form.submit_label}
-        </button>
-      </form>
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-fg">{form.always_on_label}</span>
+            <p className="text-xs text-fg-muted">{form.always_on_description}</p>
+          </div>
 
-      <button
-        type="button"
-        onClick={remove}
-      >
-        {destroy.label}
-      </button>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <Checkbox
+                id="user_email_promotional"
+                isDisabled={form.locked}
+                isSelected={promotional}
+                onChange={setPromotional}
+              >
+                {form.promotional.label}
+              </Checkbox>
+              <p className="pl-6 text-xs text-fg-muted">{form.promotional.description}</p>
+            </div>
 
-      <Link href={cancelLink.href}>{cancelLink.label}</Link>
+            <div className="flex flex-col gap-1">
+              <Checkbox
+                id="user_email_notifiable"
+                isDisabled={form.locked}
+                isSelected={notifiable}
+                onChange={setNotifiable}
+              >
+                {form.notifiable.label}
+              </Checkbox>
+              <p className="pl-6 text-xs text-fg-muted">{form.notifiable.description}</p>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            isDisabled={processing}
+          >
+            {form.submit_label}
+          </Button>
+        </form>
+      </Card>
+
+      <Card>
+        <Button
+          type="button"
+          variant="danger"
+          onPress={remove}
+        >
+          {destroy.label}
+        </Button>
+      </Card>
+
+      <p className="text-sm">
+        <TextLink
+          href={cancelLink.href}
+          tone="muted"
+          inertia
+        >
+          {cancelLink.label}
+        </TextLink>
+      </p>
       {dialog}
-    </section>
+    </Page>
   );
 }

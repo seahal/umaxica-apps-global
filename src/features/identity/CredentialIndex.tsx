@@ -4,6 +4,10 @@
 // so the table renders the payload without deciding anything about it.
 import { Link } from "@inertiajs/react";
 
+import ButtonLink from "@/components/ui/ButtonLink";
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
+
 export type CredentialEntry = {
   public_id: string;
   value: string;
@@ -29,15 +33,22 @@ export default function CredentialIndex({
   entries,
 }: CredentialIndexProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <Link href={backLink.href}>{backLink.label}</Link>
-
-      <div>
-        <Link href={newLink.href}>{newLink.label}</Link>
-      </div>
-
-      <table>
+    <Page
+      title={title}
+      up={backLink}
+      upVisit="inertia"
+      width="wide"
+      actions={
+        <ButtonLink
+          href={newLink.href}
+          size="sm"
+          inertia
+        >
+          {newLink.label}
+        </ButtonLink>
+      }
+    >
+      <Table>
         <thead>
           <tr>
             <th scope="col">{columns.value}</th>
@@ -50,22 +61,25 @@ export default function CredentialIndex({
             <tr key={entry.public_id}>
               <td>{entry.value}</td>
               <td>
-                <span>{entry.status}</span>
+                <span className="text-fg-muted">{entry.status}</span>
               </td>
               <td>
-                <Link href={entry.edit_link.href}>{entry.edit_link.label}</Link>
+                <Link
+                  href={entry.edit_link.href}
+                  className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+                >
+                  {entry.edit_link.label}
+                </Link>
               </td>
             </tr>
           ))}
           {entries.length === 0 ? (
             <tr>
-              <td colSpan={3}>
-                <p>{emptyMessage}</p>
-              </td>
+              <td colSpan={3}>{emptyMessage}</td>
             </tr>
           ) : null}
         </tbody>
-      </table>
-    </section>
+      </Table>
+    </Page>
   );
 }

@@ -1,7 +1,13 @@
-import { Link, router } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import { useState } from "react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import ButtonLink from "@/components/ui/ButtonLink";
+import Card from "@/components/ui/Card";
+import Checkbox from "@/components/ui/Checkbox";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
 import type { IdentityLink } from "@/types/identity";
 
 type ScheduleSection = {
@@ -45,59 +51,53 @@ export default function WithdrawalNew({
 
   if (alreadyDeactivated) {
     return (
-      <section>
-        <h1>{title}</h1>
-        <p>{alreadyDeactivatedMessage}</p>
-        <Link href={recoveryLink.href}>{recoveryLink.label}</Link>
-      </section>
+      <Page
+        title={title}
+        description={alreadyDeactivatedMessage}
+        width="narrow"
+      >
+        <p>
+          <ButtonLink
+            href={recoveryLink.href}
+            variant="secondary"
+            inertia
+          >
+            {recoveryLink.label}
+          </ButtonLink>
+        </p>
+      </Page>
     );
   }
 
   return (
-    <section>
-      <h1>{title}</h1>
-
-      <section>
-        <h2>{schedule.title}</h2>
-
-        {schedule.errors.map((message) => (
-          <p
-            key={message}
-            role="alert"
-          >
-            {message}
-          </p>
-        ))}
+    <Page
+      title={title}
+      width="narrow"
+    >
+      <Card heading={schedule.title}>
+        <ErrorList errors={schedule.errors} />
 
         <form
           onSubmit={(event) => {
             event.preventDefault();
             router.get(schedule.action, { ack_schedule_purge: ackSchedule ? "1" : "0" });
           }}
+          className="flex flex-col gap-4"
         >
-          <input
+          <Checkbox
             id="ack_schedule_purge"
-            type="checkbox"
-            checked={ackSchedule}
-            onChange={(event) => setAckSchedule(event.target.checked)}
-          />
-          <label htmlFor="ack_schedule_purge">{schedule.ack_label}</label>
-          <button type="submit">{schedule.submit_label}</button>
+            isSelected={ackSchedule}
+            onChange={setAckSchedule}
+          >
+            {schedule.ack_label}
+          </Checkbox>
+          <Button type="submit">{schedule.submit_label}</Button>
         </form>
-      </section>
+      </Card>
 
       {deactivate ? (
-        <section>
-          <h2>{deactivate.title}</h2>
-
-          {deactivate.errors.map((message) => (
-            <p
-              key={message}
-              role="alert"
-            >
-              {message}
-            </p>
-          ))}
+        <Card heading={deactivate.title}>
+          <ErrorList errors={deactivate.errors} />
 
           <form
             onSubmit={(event) => {
@@ -111,19 +111,25 @@ export default function WithdrawalNew({
                 },
               );
             }}
+            className="flex flex-col gap-4"
           >
-            <input
+            <Checkbox
               id="ack_deactivate_today"
-              type="checkbox"
-              checked={ackDeactivate}
-              onChange={(event) => setAckDeactivate(event.target.checked)}
-            />
-            <label htmlFor="ack_deactivate_today">{deactivate.ack_label}</label>
-            <button type="submit">{deactivate.submit_label}</button>
+              isSelected={ackDeactivate}
+              onChange={setAckDeactivate}
+            >
+              {deactivate.ack_label}
+            </Checkbox>
+            <Button
+              type="submit"
+              variant="danger"
+            >
+              {deactivate.submit_label}
+            </Button>
           </form>
-        </section>
+        </Card>
       ) : null}
       {dialog}
-    </section>
+    </Page>
   );
 }

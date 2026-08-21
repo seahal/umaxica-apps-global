@@ -8,6 +8,7 @@
 // becoming new translation keys.
 import { useRef, useState } from "react";
 
+import Button from "@/components/ui/Button";
 import {
   PASSKEY_MESSAGES,
   TURNSTILE_DEFAULT_ERROR,
@@ -155,9 +156,22 @@ export default function PasskeySignInPanel({
   };
 
   return (
-    <div ref={host}>
-      <div>
-        <label htmlFor="identifier">{field.label}</label>
+    <div
+      ref={host}
+      className="flex flex-col gap-4"
+    >
+      {/*
+        A hand-styled input rather than the shared `TextField`: `TextField` discards any `id` it is
+        given and generates its own, and this field's id is a stable, test-relied-upon contract for
+        the ceremony's markup.
+      */}
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="identifier"
+          className="text-sm font-medium text-fg"
+        >
+          {field.label}
+        </label>
         <input
           type="text"
           id="identifier"
@@ -166,19 +180,28 @@ export default function PasskeySignInPanel({
           placeholder={field.placeholder}
           autoComplete="username webauthn"
           required
+          className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-fg
+            placeholder:text-fg-muted"
         />
       </div>
 
-      {error ? <p role="alert">{error}</p> : null}
-      {status ? <p>{status}</p> : null}
+      {error ? (
+        <p
+          role="alert"
+          className="text-sm text-danger"
+        >
+          {error}
+        </p>
+      ) : null}
+      {status ? <p className="text-sm text-fg-muted">{status}</p> : null}
 
       <div>
-        <button
+        <Button
           type="button"
-          onClick={() => void authenticate()}
+          onPress={() => void authenticate()}
         >
           {submitLabel}
-        </button>
+        </Button>
       </div>
     </div>
   );

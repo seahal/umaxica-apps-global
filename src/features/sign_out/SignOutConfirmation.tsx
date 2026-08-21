@@ -4,6 +4,7 @@
 // left to sign out of, so the button cannot be offered by the client on its own.
 import { Link } from "@inertiajs/react";
 
+import Button from "@/components/ui/Button";
 import { csrfToken } from "@/lib/csrf";
 
 export type SignOutConfirmationForm = {
@@ -28,9 +29,9 @@ export default function SignOutConfirmation({
   home_link: homeLink,
 }: SignOutConfirmationProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
+    <section className="flex flex-col gap-4">
+      <h1 className="text-2xl font-bold text-fg">{title}</h1>
+      <p className="text-sm text-fg-muted">{description}</p>
 
       {form ? (
         // A full document POST, as the ERB form was: sign-out ends the session the Inertia app
@@ -39,6 +40,7 @@ export default function SignOutConfirmation({
           action={form.action}
           method="post"
           data-turbo="false"
+          className="flex flex-col gap-3"
         >
           <input
             type="hidden"
@@ -53,18 +55,29 @@ export default function SignOutConfirmation({
               readOnly
             />
           ) : null}
-          <input
-            type="submit"
-            value={form.submit}
-          />
+          <div>
+            <Button
+              type="submit"
+              variant="danger"
+            >
+              {form.submit}
+            </Button>
+          </div>
           <noscript>
-            <p>{form.confirm_description}</p>
+            <p className="text-sm text-fg-muted">{form.confirm_description}</p>
           </noscript>
         </form>
       ) : null}
 
       <p>
-        <Link href={homeLink.href}>{homeLink.label}</Link>
+        <Link
+          href={homeLink.href}
+          className="inline-flex items-center justify-center gap-2 rounded-md border border-line
+            bg-surface px-4 py-2 text-sm font-medium text-fg transition-colors
+            hover:bg-surface-muted"
+        >
+          {homeLink.label}
+        </Link>
       </p>
     </section>
   );

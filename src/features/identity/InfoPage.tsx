@@ -1,5 +1,5 @@
 // A read-only identity screen: a heading, some finished paragraphs and a way back.
-import { Link } from "@inertiajs/react";
+import Page from "@/components/ui/Page";
 
 export type InfoPageProps = {
   title: string;
@@ -9,15 +9,22 @@ export type InfoPageProps = {
 
 export default function InfoPage({ title, paragraphs, back_link: backLink }: InfoPageProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      {paragraphs.map((paragraph) => (
-        <p key={paragraph}>{paragraph}</p>
-      ))}
-
-      <div>
-        <Link href={backLink.href}>{backLink.label}</Link>
+    <Page
+      title={title}
+      up={backLink}
+      upVisit="inertia"
+      width="narrow"
+    >
+      <div className="flex flex-col gap-3">
+        {paragraphs.map((paragraph) => (
+          <p
+            key={paragraph}
+            className="text-sm text-pretty text-fg-muted"
+          >
+            {paragraph}
+          </p>
+        ))}
       </div>
-    </section>
+    </Page>
   );
 }

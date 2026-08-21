@@ -1,3 +1,7 @@
+import Card from "@/components/ui/Card";
+import Page from "@/components/ui/Page";
+import TextLink from "@/components/ui/TextLink";
+
 // The read-only link status of one social provider on the app surface.
 //
 // Apple and Google render the same screen, so the copy, the status sentence and every URL arrive
@@ -21,15 +25,23 @@ export default function SocialLinkStatus({
   edit_link: editLink,
 }: SocialLinkStatusProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <a href={backLink.href}>{backLink.label}</a>
-
-      <div>
-        <h3>{heading}</h3>
-        <p>{description}</p>
-        <p>{status}</p>
-        <a href={editLink.href}>{editLink.label}</a>
-      </div>
-    </section>
+    <Page
+      title={heading}
+      description={description}
+      up={backLink}
+      width="narrow"
+    >
+      <Card>
+        <p className="text-sm text-fg">{status}</p>
+        <p className="text-sm">
+          <TextLink
+            href={editLink.href}
+            tone="muted"
+          >
+            {editLink.label}
+          </TextLink>
+        </p>
+      </Card>
+    </Page>
   );
 }

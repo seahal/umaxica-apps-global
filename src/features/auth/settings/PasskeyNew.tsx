@@ -1,3 +1,4 @@
+import Page from "@/components/ui/Page";
 // Starts the WebAuthn registration ceremony for a new passkey.
 //
 // The ceremony itself is the shared panel ported from the Stimulus controller; this screen only
@@ -20,15 +21,18 @@ export default function PasskeyNew({
   cancel_link: cancelLink,
 }: PasskeyNewProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
-
+    <Page
+      title={title}
+      description={description}
+    >
       <PasskeyRegistrationPanel {...panel} />
 
-      <a href={cancelLink.href}>{cancelLink.label}</a>
-    </section>
+      <a
+        href={cancelLink.href}
+        className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+      >
+        {cancelLink.label}
+      </a>
+    </Page>
   );
 }

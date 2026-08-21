@@ -1,6 +1,9 @@
-import { Link, router } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import ButtonLink from "@/components/ui/ButtonLink";
+import Page from "@/components/ui/Page";
 import type { IdentityDestructiveAction, IdentityLink } from "@/types/identity";
 
 type Props = {
@@ -26,19 +29,29 @@ export default function TelephoneEdit({
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{number}</p>
+    <Page
+      title={title}
+      description={number}
+      width="narrow"
+    >
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          type="button"
+          variant="danger"
+          onPress={remove}
+        >
+          {destroy.label}
+        </Button>
 
-      <button
-        type="button"
-        onClick={remove}
-      >
-        {destroy.label}
-      </button>
-
-      <Link href={cancelLink.href}>{cancelLink.label}</Link>
+        <ButtonLink
+          href={cancelLink.href}
+          variant="secondary"
+          inertia
+        >
+          {cancelLink.label}
+        </ButtonLink>
+      </div>
       {dialog}
-    </section>
+    </Page>
   );
 }

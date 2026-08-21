@@ -27,6 +27,10 @@ export type SignUpMethodChoiceProps = {
   links: SignUpMethodLink[];
 };
 
+const METHOD_LINK =
+  "flex items-center justify-center rounded-md border border-line bg-surface px-4 py-2 text-sm " +
+  "font-medium text-fg hover:bg-surface-muted";
+
 export default function SignUpMethodChoice({
   title,
   suspended_notice: suspendedNotice,
@@ -36,10 +40,11 @@ export default function SignUpMethodChoice({
 }: SignUpMethodChoiceProps) {
   if (suspendedNotice) {
     return (
-      <section>
+      <section className="flex flex-col gap-4">
         <div
           role="alert"
           data-test-id="sign-up-suspended"
+          className="rounded-lg border border-danger bg-surface p-4 text-sm text-danger"
         >
           <p>{suspendedNotice}</p>
         </div>
@@ -48,17 +53,22 @@ export default function SignUpMethodChoice({
   }
 
   return (
-    <section>
-      <h1>{title}</h1>
+    <section className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold text-fg">{title}</h1>
 
-      <ul>
+      <ul className="flex flex-col gap-2">
         {methods.map((method) => (
           <li
             key={method.key}
             data-test-id="registration-method"
           >
             {/* Document visits: each method starts a ceremony behind its own guards. */}
-            <a href={method.href}>{method.label}</a>
+            <a
+              href={method.href}
+              className={METHOD_LINK}
+            >
+              {method.label}
+            </a>
           </li>
         ))}
       </ul>
@@ -80,8 +90,16 @@ export default function SignUpMethodChoice({
       </ul>
 
       {links.map((link) => (
-        <p key={link.key}>
-          <a href={link.href}>{link.label}</a>
+        <p
+          key={link.key}
+          className="text-sm"
+        >
+          <a
+            href={link.href}
+            className="text-fg underline-offset-4 hover:underline"
+          >
+            {link.label}
+          </a>
         </p>
       ))}
     </section>

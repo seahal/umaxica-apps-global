@@ -10,38 +10,39 @@
 import { useState } from "react";
 
 import Button, { type ButtonVariant } from "@/components/ui/Button";
+import ButtonLink from "@/components/ui/ButtonLink";
+import Card from "@/components/ui/Card";
 import Checkbox from "@/components/ui/Checkbox";
+import DescriptionList from "@/components/ui/DescriptionList";
 import Dialog from "@/components/ui/Dialog";
+import ErrorList from "@/components/ui/ErrorList";
+import NavList from "@/components/ui/NavList";
+import Page from "@/components/ui/Page";
 import RadioGroup from "@/components/ui/RadioGroup";
 import Select from "@/components/ui/Select";
+import Table from "@/components/ui/Table";
 import TextField from "@/components/ui/TextField";
+import TextLink from "@/components/ui/TextLink";
 
 const VARIANTS: ButtonVariant[] = ["primary", "secondary", "danger", "ghost"];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
-      <h2 className="text-sm font-semibold tracking-wide text-fg-muted uppercase">{title}</h2>
-      {children}
-    </section>
-  );
+  return <Card heading={title}>{children}</Card>;
 }
 
 export function UiGallery(_props: Record<string, unknown>) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
-      <header className="flex flex-col gap-1">
-        <p className="text-xs font-medium tracking-wide text-fg-muted uppercase">
-          Internal, dev surface only
-        </p>
-        <h1 className="text-2xl font-bold text-fg">UI primitives</h1>
-        <p className="text-sm text-fg-muted">
-          Each primitive below is the one the application uses. Switch the theme control in the
-          footer to check the dark palette, and tab through the page to check the focus ring.
-        </p>
-      </header>
+    <Page
+      title="UI primitives"
+      description="Each primitive below is the one the application uses. Switch the theme control in
+        the footer to check the dark palette, and tab through the page to check the focus ring."
+      width="wide"
+    >
+      <p className="text-xs font-medium tracking-wide text-fg-muted uppercase">
+        Internal, dev surface only
+      </p>
 
       <Section title="Button">
         <div className="flex flex-wrap items-center gap-2">
@@ -54,6 +55,25 @@ export function UiGallery(_props: Record<string, unknown>) {
             </Button>
           ))}
           <Button isDisabled>disabled</Button>
+        </div>
+
+        {/* The link that wears the button. Its appearance comes from the same source. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <ButtonLink href="#gallery">primary link</ButtonLink>
+          <ButtonLink
+            href="#gallery"
+            variant="secondary"
+            size="sm"
+          >
+            secondary, small
+          </ButtonLink>
+          <TextLink href="#gallery">inline link</TextLink>
+          <TextLink
+            href="#gallery"
+            tone="muted"
+          >
+            muted inline link
+          </TextLink>
         </div>
       </Section>
 
@@ -129,6 +149,56 @@ export function UiGallery(_props: Record<string, unknown>) {
           </div>
         </Dialog>
       </Section>
-    </div>
+
+      <Section title="ErrorList">
+        <ErrorList
+          header="The server rejected this form."
+          errors={["The address is already registered.", "The code has expired."]}
+        />
+      </Section>
+
+      <Section title="NavList">
+        <NavList
+          items={[
+            { label: "Passkey", href: "#gallery" },
+            { label: "Authenticator app", href: "#gallery", description: "A six-digit code." },
+            { label: "Recovery code", href: null, description: "No entry point from here." },
+          ]}
+        />
+      </Section>
+
+      <Section title="DescriptionList">
+        <DescriptionList
+          items={[
+            { term: "Created", description: "1 January 2026" },
+            { term: "Last used", description: "Never" },
+          ]}
+        />
+      </Section>
+
+      <Section title="Table">
+        <Table label="Sessions">
+          <thead>
+            <tr>
+              <th scope="col">Session</th>
+              <th scope="col">Kind</th>
+              <th scope="col">Last activity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="font-mono">ses_01</td>
+              <td>Browser</td>
+              <td className="whitespace-nowrap text-fg-muted">1 January 2026</td>
+            </tr>
+            <tr>
+              <td className="font-mono">ses_02</td>
+              <td>Mobile</td>
+              <td className="whitespace-nowrap text-fg-muted">2 January 2026</td>
+            </tr>
+          </tbody>
+        </Table>
+      </Section>
+    </Page>
   );
 }

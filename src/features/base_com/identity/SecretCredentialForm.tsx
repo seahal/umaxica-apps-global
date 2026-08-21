@@ -1,7 +1,11 @@
 import { Link, router } from "@inertiajs/react";
 import { useState } from "react";
 
-import ErrorList from "@/features/base_com/identity/ErrorList";
+import Button from "@/components/ui/Button";
+import Checkbox from "@/components/ui/Checkbox";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import type { PageLink, TurnstileProps } from "@/features/base_com/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -22,6 +26,8 @@ export type SecretCredentialFormProps = {
   cancel_link: PageLink;
   turnstile: TurnstileProps;
 };
+
+const LINK = "text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline";
 
 export default function SecretCredentialForm({
   title,
@@ -63,43 +69,40 @@ export default function SecretCredentialForm({
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
-
-      <form onSubmit={submit}>
+    <Page
+      title={title}
+      description={description}
+    >
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-4"
+      >
         <ErrorList
           errors={errors?.messages ?? []}
           header={errors?.header}
         />
 
-        <div>
-          <label htmlFor={nameId}>{nameLabel}</label>
-          <input
-            id={nameId}
-            name={`${form.scope}[name]`}
-            type="text"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-        </div>
+        <TextField
+          id={nameId}
+          label={nameLabel}
+          name={`${form.scope}[name]`}
+          value={name}
+          onChange={setName}
+        />
 
-        <div>
-          <input
-            id={enabledId}
-            name={`${form.scope}[enabled]`}
-            type="checkbox"
-            checked={enabled}
-            onChange={(event) => setEnabled(event.target.checked)}
-          />
-          <label htmlFor={enabledId}>{enabledLabel}</label>
-        </div>
+        <Checkbox
+          id={enabledId}
+          isSelected={enabled}
+          onChange={setEnabled}
+        >
+          {enabledLabel}
+        </Checkbox>
 
         {secret ? (
-          <div>
-            <p>{secret.label}</p>
-            <p>{secret.value}</p>
-            <p>{secret.one_time_notice}</p>
+          <div className="flex flex-col gap-1 rounded-md border border-line bg-surface-muted p-3">
+            <p className="text-sm font-medium text-fg">{secret.label}</p>
+            <p className="font-mono text-sm text-fg">{secret.value}</p>
+            <p className="text-xs text-fg-muted">{secret.one_time_notice}</p>
           </div>
         ) : null}
 
@@ -108,16 +111,21 @@ export default function SecretCredentialForm({
           onToken={setToken}
         />
 
-        <div>
-          <Link href={cancelLink.href}>{cancelLink.label}</Link>
-          <button
+        <div className="flex items-center justify-end gap-3">
+          <Link
+            href={cancelLink.href}
+            className={LINK}
+          >
+            {cancelLink.label}
+          </Link>
+          <Button
             type="submit"
-            disabled={processing}
+            isDisabled={processing}
           >
             {form.submit_label}
-          </button>
+          </Button>
         </div>
       </form>
-    </section>
+    </Page>
   );
 }

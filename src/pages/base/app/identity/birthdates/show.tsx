@@ -1,3 +1,5 @@
+import Card from "@/components/ui/Card";
+import Page from "@/components/ui/Page";
 import type { IdentityLink } from "@/types/identity";
 
 type Props = {
@@ -20,18 +22,24 @@ export default function BirthdateShow({
   back_link: backLink,
 }: Props) {
   return (
-    <section>
-      <a href={backLink.href}>{backLink.label}</a>
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      width="narrow"
+    >
+      <Card>
+        <dl className="flex flex-col gap-1">
+          <dt className="text-xs font-semibold tracking-wide text-fg-muted uppercase">
+            {birthdateLabel}
+          </dt>
+          <dd className="text-sm text-fg">
+            {birthdate ? <span data-birthdate>{birthdate}</span> : notSetLabel}
+          </dd>
+        </dl>
+      </Card>
 
-      <h1>{title}</h1>
-      <p>{description}</p>
-
-      <dl>
-        <dt>{birthdateLabel}</dt>
-        <dd>{birthdate ? <span data-birthdate>{birthdate}</span> : notSetLabel}</dd>
-      </dl>
-
-      <p>{changeUnavailable}</p>
-    </section>
+      <p className="text-sm text-fg-muted">{changeUnavailable}</p>
+    </Page>
   );
 }

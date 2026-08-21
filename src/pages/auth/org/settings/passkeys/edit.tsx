@@ -1,9 +1,15 @@
-import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 // Renaming a registered passkey.
 //
 // The form is a document PATCH so the stealth Turnstile token travels in the same field the server
 // verifies; the server answers a rejected update by re-rendering this page with 422 and the model's
 // error messages, exactly as the ERB form did.
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+import TextLink from "@/components/ui/TextLink";
+import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
 
 type TurnstileConfiguration = {
@@ -37,63 +43,61 @@ export default function OrgPasskeySettingsEdit({
   turnstile,
 }: OrgPasskeySettingsEditProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <h1>{title}</h1>
-
-      <form
-        action={formAction}
-        method="post"
-      >
-        <input
-          type="hidden"
-          name="_method"
-          value="patch"
-          readOnly
-        />
-        <input
-          type="hidden"
-          name="authenticity_token"
-          value={csrfToken()}
-          readOnly
-        />
-
-        {errors.length > 0 ? (
-          <div role="alert">
-            <h3>{errorsTitle}</h3>
-            <ul>
-              {errors.map((message) => (
-                <li key={message}>{message}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        <div>
-          <label htmlFor="staff_passkey_description">{descriptionLabel}</label>
+    <Page
+      title={title}
+      width="narrow"
+    >
+      <Card>
+        <form
+          action={formAction}
+          method="post"
+          className="flex flex-col gap-4"
+        >
           <input
+            type="hidden"
+            name="_method"
+            value="patch"
+            readOnly
+          />
+          <input
+            type="hidden"
+            name="authenticity_token"
+            value={csrfToken()}
+            readOnly
+          />
+
+          <ErrorList
+            errors={errors}
+            header={errorsTitle}
+          />
+
+          <TextField
+            label={descriptionLabel}
             type="text"
-            id="staff_passkey_description"
             name="staff_passkey[description]"
             defaultValue={descriptionValue}
             maxLength={100}
           />
-        </div>
 
-        <TurnstileWidget
-          site_key={turnstile.site_key}
-          mode={turnstile.mode}
-          action={turnstile.action}
-          cdata={turnstile.cdata}
-        />
-
-        <div>
-          <input
-            type="submit"
-            value={submitLabel}
+          <TurnstileWidget
+            site_key={turnstile.site_key}
+            mode={turnstile.mode}
+            action={turnstile.action}
+            cdata={turnstile.cdata}
           />
-          <a href={cancelLink.href}>{cancelLink.label}</a>
-        </div>
-      </form>
-    </section>
+
+          <Button type="submit">{submitLabel}</Button>
+        </form>
+      </Card>
+
+      <p className="text-sm">
+        <TextLink
+          href={cancelLink.href}
+          tone="muted"
+        >
+          {cancelLink.label}
+        </TextLink>
+      </p>
+    </Page>
   );
 }

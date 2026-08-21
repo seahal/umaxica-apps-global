@@ -2,6 +2,8 @@
 import { Link } from "@inertiajs/react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
 import type { ConfirmedAction, LabelledLink } from "@/features/identity/types";
 import { csrfToken } from "@/lib/csrf";
 
@@ -11,6 +13,8 @@ export type TelephoneEditProps = {
   delete: ConfirmedAction;
   cancel_link: LabelledLink;
 };
+
+const LINK = "text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline";
 
 export default function TelephoneEdit({
   title,
@@ -32,15 +36,17 @@ export default function TelephoneEdit({
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{number}</p>
-
+    <Page
+      title={title}
+      description={number}
+      width="wide"
+    >
       <form
         action={destroy.href}
         method="post"
         data-turbo="false"
         onSubmit={submit}
+        className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-4"
       >
         <input
           type="hidden"
@@ -52,16 +58,25 @@ export default function TelephoneEdit({
           name="authenticity_token"
           value={csrfToken()}
         />
-        <input
-          type="submit"
-          value={destroy.label}
-        />
+        <div>
+          <Button
+            type="submit"
+            variant="danger"
+          >
+            {destroy.label}
+          </Button>
+        </div>
       </form>
 
       <div>
-        <Link href={cancelLink.href}>{cancelLink.label}</Link>
+        <Link
+          href={cancelLink.href}
+          className={LINK}
+        >
+          {cancelLink.label}
+        </Link>
       </div>
       {dialog}
-    </section>
+    </Page>
   );
 }

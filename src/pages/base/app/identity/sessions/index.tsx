@@ -1,6 +1,9 @@
 import { router } from "@inertiajs/react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
 import type { IdentityLink } from "@/types/identity";
 
 type SessionRow = {
@@ -61,48 +64,59 @@ export default function SessionsIndex({
   };
 
   return (
-    <section>
-      <a href={backLink.href}>{backLink.label}</a>
-
-      <h1>{title}</h1>
-
-      {bulkRevocation ? (
-        <div>
-          <button
-            type="button"
-            onClick={() =>
-              revoke(
-                bulkRevocation.others_url,
-                bulkRevocation.others_confirm,
-                bulkRevocation.others_label,
-              )
-            }
-          >
-            {bulkRevocation.others_label}
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              revoke(bulkRevocation.all_url, bulkRevocation.all_confirm, bulkRevocation.all_label)
-            }
-          >
-            {bulkRevocation.all_label}
-          </button>
-        </div>
-      ) : null}
-
+    <Page
+      title={title}
+      up={backLink}
+      width="wide"
+      {...(bulkRevocation === null
+        ? {}
+        : {
+            actions: (
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onPress={() =>
+                    revoke(
+                      bulkRevocation.others_url,
+                      bulkRevocation.others_confirm,
+                      bulkRevocation.others_label,
+                    )
+                  }
+                >
+                  {bulkRevocation.others_label}
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onPress={() =>
+                    revoke(
+                      bulkRevocation.all_url,
+                      bulkRevocation.all_confirm,
+                      bulkRevocation.all_label,
+                    )
+                  }
+                >
+                  {bulkRevocation.all_label}
+                </Button>
+              </>
+            ),
+          })}
+    >
       {sessions.length === 0 ? (
-        <p>{emptyMessage}</p>
+        <p className="text-sm text-fg-muted">{emptyMessage}</p>
       ) : (
-        <table>
+        <Table>
           <thead>
             <tr>
-              <th>{headings.session}</th>
-              <th>{headings.kind}</th>
-              <th>{headings.binding}</th>
-              <th>{headings.last_activity}</th>
-              <th>{headings.created}</th>
-              <th>{headings.refresh_expires}</th>
+              <th scope="col">{headings.session}</th>
+              <th scope="col">{headings.kind}</th>
+              <th scope="col">{headings.binding}</th>
+              <th scope="col">{headings.last_activity}</th>
+              <th scope="col">{headings.created}</th>
+              <th scope="col">{headings.refresh_expires}</th>
               <th />
             </tr>
           </thead>
@@ -110,31 +124,40 @@ export default function SessionsIndex({
             {sessions.map((session) => (
               <tr key={session.public_id}>
                 <td>
-                  <span>{session.public_id}</span>
-                  {session.current ? <span>{currentLabel}</span> : null}
-                  <p>{session.status}</p>
+                  <span className="font-mono break-all">{session.public_id}</span>
+                  {session.current ? (
+                    <span
+                      className="ml-2 rounded-full bg-accent px-2 py-0.5 text-xs font-medium
+                        text-accent-fg"
+                    >
+                      {currentLabel}
+                    </span>
+                  ) : null}
+                  <p className="text-xs text-fg-muted">{session.status}</p>
                 </td>
                 <td>{session.kind}</td>
                 <td>{session.binding}</td>
-                <td>{session.last_activity}</td>
-                <td>{session.created}</td>
-                <td>{session.refresh_expires}</td>
+                <td className="whitespace-nowrap text-fg-muted">{session.last_activity}</td>
+                <td className="whitespace-nowrap text-fg-muted">{session.created}</td>
+                <td className="whitespace-nowrap text-fg-muted">{session.refresh_expires}</td>
                 <td>
                   {session.current ? null : (
-                    <button
+                    <Button
                       type="button"
-                      onClick={() => revoke(session.revoke_url, revokeConfirm, revokeLabel)}
+                      variant="danger"
+                      size="sm"
+                      onPress={() => revoke(session.revoke_url, revokeConfirm, revokeLabel)}
                     >
                       {revokeLabel}
-                    </button>
+                    </Button>
                   )}
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       )}
       {dialog}
-    </section>
+    </Page>
   );
 }

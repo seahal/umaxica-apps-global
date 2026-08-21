@@ -1,6 +1,13 @@
 import { router } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import Select from "@/components/ui/Select";
+import TextField from "@/components/ui/TextField";
+
 type AppealForm = {
   url: string;
   reason_label: string;
@@ -49,37 +56,33 @@ function AppealSection({ form, casePublicId }: { form: AppealForm; casePublicId:
   };
 
   return (
-    <form onSubmit={submit}>
-      <label htmlFor={`appeal_reason_code_${casePublicId}`}>{form.reason_label}</label>
-      <select
+    <form
+      onSubmit={submit}
+      className="flex flex-col gap-4"
+    >
+      <Select
         id={`appeal_reason_code_${casePublicId}`}
+        label={form.reason_label}
+        options={form.reason_codes}
         value={reasonCode}
-        onChange={(event) => setReasonCode(event.target.value)}
-      >
-        {form.reason_codes.map((choice) => (
-          <option
-            key={choice.value}
-            value={choice.value}
-          >
-            {choice.label}
-          </option>
-        ))}
-      </select>
-
-      <label htmlFor={`appeal_statement_${casePublicId}`}>{form.statement_label}</label>
-      <textarea
-        id={`appeal_statement_${casePublicId}`}
-        maxLength={form.statement_max_length}
-        value={statement}
-        onChange={(event) => setStatement(event.target.value)}
+        onChange={(value) => setReasonCode(value === null ? "" : String(value))}
       />
 
-      <button
+      <TextField
+        id={`appeal_statement_${casePublicId}`}
+        label={form.statement_label}
+        multiline
+        maxLength={form.statement_max_length}
+        value={statement}
+        onChange={setStatement}
+      />
+
+      <Button
         type="submit"
-        disabled={processing}
+        isDisabled={processing}
       >
         {form.submit_label}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -91,16 +94,17 @@ export default function RecoveryShow({
   enforcement_cases: enforcementCases,
 }: Props) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
-
-      {appealError ? <p role="alert">{appealError}</p> : null}
+    <Page
+      title={title}
+      description={description}
+    >
+      <ErrorList errors={appealError === null ? [] : [appealError]} />
 
       {enforcementCases.map((enforcementCase) => (
-        <div key={enforcementCase.public_id}>
-          <p>{enforcementCase.kind_label}</p>
-
+        <Card
+          key={enforcementCase.public_id}
+          heading={enforcementCase.kind_label}
+        >
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -109,7 +113,7 @@ export default function RecoveryShow({
               });
             }}
           >
-            <button type="submit">{enforcementCase.restore.submit_label}</button>
+            <Button type="submit">{enforcementCase.restore.submit_label}</Button>
           </form>
 
           {enforcementCase.appeal ? (
@@ -118,8 +122,8 @@ export default function RecoveryShow({
               casePublicId={enforcementCase.public_id}
             />
           ) : null}
-        </div>
+        </Card>
       ))}
-    </section>
+    </Page>
   );
 }

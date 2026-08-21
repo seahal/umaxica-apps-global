@@ -3,10 +3,13 @@
 // The Turnstile challenge runs invisibly and writes its token into the hidden field the form
 // submits, as the stealth ERB partial did; the server still validates that token and rejects the
 // submission when it is missing. The form is a document POST, exactly as the ERB form was.
+import Button from "@/components/ui/Button";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
 import type { VerificationFormBase, VerificationLink } from "./types";
-import VerificationErrors from "./VerificationErrors";
 import VerificationFormFields from "./VerificationFormFields";
 
 export type TotpEntryForm = VerificationFormBase & {
@@ -42,32 +45,32 @@ export default function TotpEntry({
   back,
 }: TotpEntryProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <h1>{heading}</h1>
-      <p>{description}</p>
-      <p>{totpHelp}</p>
+    <Page
+      title={heading}
+      description={description}
+      up={back}
+      width="narrow"
+    >
+      <p className="text-sm text-fg-muted">{totpHelp}</p>
 
-      <VerificationErrors errors={errors} />
+      <ErrorList errors={errors} />
 
       <form
         action={form.action}
         method="post"
+        className="flex flex-col gap-4"
       >
         <VerificationFormFields
           csrf_token={form.csrf_token}
           scope={form.scope}
           pt={form.pt}
         />
-        <div>
-          <label htmlFor="verification_code">{form.code_label}</label>
-          <input
-            type="text"
-            id="verification_code"
-            name="verification[code]"
-            inputMode="numeric"
-            placeholder={form.code_placeholder}
-          />
-        </div>
+        <TextField
+          label={form.code_label}
+          name="verification[code]"
+          inputMode="numeric"
+          placeholder={form.code_placeholder}
+        />
 
         <TurnstileWidget
           site_key={turnstile.site_key}
@@ -76,17 +79,8 @@ export default function TotpEntry({
           cdata={turnstile.cdata}
         />
 
-        <div>
-          <input
-            type="submit"
-            value={form.submit_label}
-          />
-        </div>
+        <Button type="submit">{form.submit_label}</Button>
       </form>
-
-      <div>
-        <a href={back.href}>{back.label}</a>
-      </div>
-    </section>
+    </Page>
   );
 }

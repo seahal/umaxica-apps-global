@@ -3,6 +3,8 @@
 //
 // The Turnstile challenge is bound to this ceremony by the server, which passes the action and the
 // ticket's public id as cdata and verifies both against the token it receives back.
+import Button from "@/components/ui/Button";
+import Checkbox from "@/components/ui/Checkbox";
 import TurnstileWidget, { type TurnstileWidgetProps } from "@/features/turnstile/TurnstileWidget";
 
 import { csrfToken } from "./csrf";
@@ -36,17 +38,18 @@ export default function SocialSignUpConfirmation({
   turnstile,
 }: SocialSignUpConfirmationProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{unregistered}</p>
-      <p>{createIdentity}</p>
-      <p>{noMerge}</p>
-      <p>{cancelIfWrong}</p>
+    <section className="flex flex-col gap-4">
+      <h1 className="text-2xl font-bold text-fg">{title}</h1>
+      <p className="text-sm text-fg-muted">{unregistered}</p>
+      <p className="text-sm text-fg-muted">{createIdentity}</p>
+      <p className="text-sm text-fg-muted">{noMerge}</p>
+      <p className="text-sm text-fg-muted">{cancelIfWrong}</p>
 
       <form
         action={action}
         method="post"
         data-turbo="false"
+        className="flex flex-col gap-4"
       >
         <input
           type="hidden"
@@ -67,21 +70,16 @@ export default function SocialSignUpConfirmation({
           value={checkpointVersion}
         />
 
-        <div>
-          <input
-            type="checkbox"
-            id="confirm_new_social_identity"
-            name="confirm_new_social_identity"
-            value="1"
-            required
-          />
-          <label htmlFor="confirm_new_social_identity">{confirmLabel}</label>
-        </div>
+        <Checkbox
+          name="confirm_new_social_identity"
+          value="1"
+          isRequired
+          validationBehavior="native"
+        >
+          {confirmLabel}
+        </Checkbox>
 
-        <input
-          type="submit"
-          value={submitLabel}
-        />
+        <Button type="submit">{submitLabel}</Button>
       </form>
 
       <form
@@ -99,7 +97,12 @@ export default function SocialSignUpConfirmation({
           name="authenticity_token"
           value={csrfToken()}
         />
-        <button type="submit">{cancelLabel}</button>
+        <Button
+          type="submit"
+          variant="secondary"
+        >
+          {cancelLabel}
+        </Button>
       </form>
     </section>
   );

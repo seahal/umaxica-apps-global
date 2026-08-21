@@ -1,6 +1,8 @@
 import { router, usePage } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Checkbox from "@/components/ui/Checkbox";
 import PreferenceScreenFrame, {
   type PreferenceLink,
 } from "@/features/preferences/PreferenceScreenFrame";
@@ -56,30 +58,28 @@ export default function PreferenceCustomization({
         className="flex flex-col gap-4"
       >
         {error ? (
-          <ul>
+          <ul className="flex flex-col gap-1 text-sm text-danger">
             <li role="alert">{error}</li>
           </ul>
         ) : null}
 
-        <div>
-          <input
-            id={form.field}
-            name={form.field}
-            type="checkbox"
-            required
-            checked={confirmed}
-            onChange={(event) => setConfirmed(event.target.checked)}
-          />
-          <label htmlFor={form.field}>{form.label}</label>
-        </div>
+        <Checkbox
+          name={form.field}
+          isRequired
+          isSelected={confirmed}
+          onChange={(isSelected: boolean) => setConfirmed(isSelected)}
+        >
+          {form.label}
+        </Checkbox>
 
         <div>
-          <button
+          <Button
             type="submit"
-            disabled={processing}
+            variant="danger"
+            isDisabled={processing}
           >
             {processing ? form.submitting_label : form.submit_label}
-          </button>
+          </Button>
         </div>
       </form>
     </PreferenceScreenFrame>

@@ -3,6 +3,10 @@
 // The org surface has no self-service registration: an operator is recruited and then invited, so
 // the page is a prompt with a contact link rather than a list of registration methods. When the
 // kill switch has suspended sign-up the server sends the notice alone.
+import Card from "@/components/ui/Card";
+import Page from "@/components/ui/Page";
+import TextLink from "@/components/ui/TextLink";
+
 type SignUpLink = {
   label: string;
   href: string;
@@ -27,51 +31,44 @@ export default function OrgSignUpEntry({
 }: OrgSignUpEntryProps) {
   if (suspendedNotice) {
     return (
-      <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+      <Page width="narrow">
         <div
           role="alert"
           data-test-id="sign-up-suspended"
+          className="rounded-lg border border-line bg-surface-muted px-4 py-3 text-sm text-fg"
         >
           <p>{suspendedNotice}</p>
         </div>
-      </section>
+      </Page>
     );
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <div>
-        <h1>{title}</h1>
-        {description ? <p>{description}</p> : null}
-      </div>
+    <Page
+      title={title}
+      {...(description === null ? {} : { description })}
+      {...(backToRoot === null ? {} : { up: backToRoot })}
+      width="narrow"
+    >
+      {recruit ? (
+        <Card>
+          <p className="text-sm text-fg-muted">{recruit.prompt}</p>
+          <p className="text-sm font-semibold">
+            <TextLink href={recruit.href}>{recruit.label}</TextLink>
+          </p>
+        </Card>
+      ) : null}
 
-      <div>
-        {recruit ? (
-          <div>
-            <p>{recruit.prompt}</p>
-            <a
-              className="font-semibold text-slate-900 underline"
-              href={recruit.href}
-            >
-              {recruit.label}
-            </a>
-          </div>
-        ) : null}
-
-        {signInLink ? (
-          <div>
-            <a href={signInLink.href}>{signInLink.label}</a>
-          </div>
-        ) : null}
-
-        {backToRoot ? (
-          <div>
-            <a href={backToRoot.href}>
-              <span>{backToRoot.label}</span>
-            </a>
-          </div>
-        ) : null}
-      </div>
-    </section>
+      {signInLink ? (
+        <p className="text-sm">
+          <TextLink
+            href={signInLink.href}
+            tone="muted"
+          >
+            {signInLink.label}
+          </TextLink>
+        </p>
+      ) : null}
+    </Page>
   );
 }

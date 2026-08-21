@@ -1,6 +1,13 @@
-import { Link, router } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Checkbox from "@/components/ui/Checkbox";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+import TextLink from "@/components/ui/TextLink";
 import type { IdentityLink } from "@/types/identity";
 
 type SecretEditForm = {
@@ -47,48 +54,53 @@ export default function SecretEdit({
   };
 
   return (
-    <section>
-      <a href={backLink.href}>{backLink.label}</a>
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      width="narrow"
+    >
+      <ErrorList errors={errors} />
 
-      <h1>{title}</h1>
-      <p>{description}</p>
-
-      {errors.length > 0 ? (
-        <ul role="list">
-          {errors.map((message) => (
-            <li key={message}>{message}</li>
-          ))}
-        </ul>
-      ) : null}
-
-      <form onSubmit={submit}>
-        <label htmlFor="user_secret_credential_name">{form.name_label}</label>
-        <input
-          id="user_secret_credential_name"
-          type="text"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-
-        <div>
-          <input
-            id="user_secret_credential_enabled"
-            type="checkbox"
-            checked={enabled}
-            onChange={(event) => setEnabled(event.target.checked)}
-          />
-          <label htmlFor="user_secret_credential_enabled">{form.enabled_label}</label>
-        </div>
-
-        <button
-          type="submit"
-          disabled={processing}
+      <Card>
+        <form
+          onSubmit={submit}
+          className="flex flex-col gap-4"
         >
-          {form.submit_label}
-        </button>
-      </form>
+          <TextField
+            id="user_secret_credential_name"
+            label={form.name_label}
+            type="text"
+            value={name}
+            onChange={setName}
+          />
 
-      <Link href={cancelLink.href}>{cancelLink.label}</Link>
-    </section>
+          <Checkbox
+            id="user_secret_credential_enabled"
+            isSelected={enabled}
+            onChange={setEnabled}
+          >
+            {form.enabled_label}
+          </Checkbox>
+
+          <Button
+            type="submit"
+            isDisabled={processing}
+          >
+            {form.submit_label}
+          </Button>
+        </form>
+      </Card>
+
+      <p className="text-sm">
+        <TextLink
+          href={cancelLink.href}
+          tone="muted"
+          inertia
+        >
+          {cancelLink.label}
+        </TextLink>
+      </p>
+    </Page>
   );
 }

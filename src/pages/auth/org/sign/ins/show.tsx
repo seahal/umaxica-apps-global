@@ -4,6 +4,8 @@
 // with a POST to the surface ceremony endpoint, which prepares the ceremony and hands the same POST
 // to the OmniAuth request phase with a 307. The button wording and shape are constrained by
 // docs/reference/third-party-sign-in-button-requirements.md.
+import Page from "@/components/ui/Page";
+import TextLink from "@/components/ui/TextLink";
 import { csrfToken } from "@/lib/csrf";
 
 type SignInMethod = {
@@ -34,13 +36,12 @@ export default function OrgSignInEntry({
   back_to_root: backToRoot,
 }: OrgSignInEntryProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
-
-      <ul className="sign-in-methods">
+    <Page
+      title={title}
+      description={description}
+      up={backToRoot}
+    >
+      <ul className="flex flex-col gap-3">
         {methods.map((method) =>
           method.kind === "provider" ? (
             <li key={method.key}>
@@ -66,21 +67,29 @@ export default function OrgSignInEntry({
             </li>
           ) : (
             <li key={method.key}>
-              <a href={method.href}>{method.label}</a>
+              <a
+                href={method.href}
+                className="flex items-center justify-between gap-3 rounded-lg border border-line
+                  bg-surface px-4 py-3 text-sm font-medium text-fg hover:bg-surface-muted"
+              >
+                <span>{method.label}</span>
+                <span
+                  aria-hidden="true"
+                  className="text-fg-muted"
+                >
+                  &rarr;
+                </span>
+              </a>
             </li>
           ),
         )}
       </ul>
 
-      <div>
-        {registrationLink ? <a href={registrationLink.href}>{registrationLink.label}</a> : null}
-
-        <div>
-          <a href={backToRoot.href}>
-            <span>{backToRoot.label}</span>
-          </a>
-        </div>
-      </div>
-    </section>
+      {registrationLink ? (
+        <p className="text-sm">
+          <TextLink href={registrationLink.href}>{registrationLink.label}</TextLink>
+        </p>
+      ) : null}
+    </Page>
   );
 }

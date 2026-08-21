@@ -1,4 +1,5 @@
-import { Link } from "@inertiajs/react";
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
 
 // Replaces the base identity activity log templates. Every cell arrives as finished text:
 // localisation and the chronicle formatting stayed on the server.
@@ -39,22 +40,23 @@ export default function ActivityIndex({
   activities,
 }: ActivityIndexProps) {
   return (
-    <section>
-      <Link href={backLink.href}>{backLink.label}</Link>
-
-      <h1>{title}</h1>
-      <p>{description}</p>
-
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      upVisit="inertia"
+      width="wide"
+    >
       {activities.length > 0 ? (
-        <table>
+        <Table>
           <thead>
             <tr>
-              <th>{columns.occurred_at}</th>
-              <th>{columns.event}</th>
-              <th>{columns.ip_address}</th>
-              <th>{columns.device}</th>
-              <th>{columns.login_method}</th>
-              <th>{columns.context}</th>
+              <th scope="col">{columns.occurred_at}</th>
+              <th scope="col">{columns.event}</th>
+              <th scope="col">{columns.ip_address}</th>
+              <th scope="col">{columns.device}</th>
+              <th scope="col">{columns.login_method}</th>
+              <th scope="col">{columns.context}</th>
             </tr>
           </thead>
           <tbody>
@@ -68,15 +70,15 @@ export default function ActivityIndex({
                 <td>{activity.device}</td>
                 <td>{activity.login_method}</td>
                 <td>
-                  <code>{activity.context}</code>
+                  <code className="text-xs text-fg-muted">{activity.context}</code>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       ) : (
-        <p>{emptyMessage}</p>
+        <p className="text-sm text-fg-muted">{emptyMessage}</p>
       )}
-    </section>
+    </Page>
   );
 }

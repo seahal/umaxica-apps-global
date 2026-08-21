@@ -1,6 +1,11 @@
 import { router } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
+import Select from "@/components/ui/Select";
+import TextField from "@/components/ui/TextField";
+
 // Replaces `app/views/base/com/identity/recoveries/show.html.erb`. Whether a case may be appealed
 // is decided on the server: an unappealable case simply arrives without an appeal form.
 
@@ -48,12 +53,13 @@ function RestoreForm({
 
   return (
     <form onSubmit={submit}>
-      <button
+      <Button
         type="submit"
-        disabled={processing}
+        size="sm"
+        isDisabled={processing}
       >
         {action.submit_label}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -68,9 +74,6 @@ function AppealForm({
   const [reasonCode, setReasonCode] = useState(form.reason_codes[0]?.value ?? "");
   const [statement, setStatement] = useState("");
   const [processing, setProcessing] = useState(false);
-
-  const reasonId = `${form.scope}_${enforcementCaseId}_reason_code`;
-  const statementId = `${form.scope}_${enforcementCaseId}_statement`;
 
   const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -88,39 +91,35 @@ function AppealForm({
   };
 
   return (
-    <form onSubmit={submit}>
-      <label htmlFor={reasonId}>{form.reason_label}</label>
-      <select
-        id={reasonId}
+    <form
+      onSubmit={submit}
+      className="flex flex-col gap-4"
+    >
+      <Select
+        label={form.reason_label}
         name={`${form.scope}[reason_code]`}
+        options={form.reason_codes}
         value={reasonCode}
-        onChange={(event) => setReasonCode(event.target.value)}
-      >
-        {form.reason_codes.map((code) => (
-          <option
-            key={code.value}
-            value={code.value}
-          >
-            {code.label}
-          </option>
-        ))}
-      </select>
-
-      <label htmlFor={statementId}>{form.statement_label}</label>
-      <textarea
-        id={statementId}
-        name={`${form.scope}[statement]`}
-        maxLength={form.statement_max_length}
-        value={statement}
-        onChange={(event) => setStatement(event.target.value)}
+        onChange={(value) => setReasonCode(value === null ? "" : String(value))}
       />
 
-      <button
+      <TextField
+        label={form.statement_label}
+        name={`${form.scope}[statement]`}
+        multiline
+        maxLength={form.statement_max_length}
+        value={statement}
+        onChange={setStatement}
+      />
+
+      <Button
         type="submit"
-        disabled={processing}
+        size="sm"
+        isDisabled={processing}
+        className="w-fit"
       >
         {form.submit_label}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -132,14 +131,25 @@ export default function EnforcementRecoveryShow({
   enforcement_cases: enforcementCases,
 }: EnforcementRecoveryShowProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
-      {appealError ? <p role="alert">{appealError}</p> : null}
+    <Page
+      title={title}
+      description={description}
+    >
+      {appealError ? (
+        <p
+          role="alert"
+          className="rounded-md border border-danger bg-surface p-3 text-sm text-danger"
+        >
+          {appealError}
+        </p>
+      ) : null}
 
       {enforcementCases.map((enforcementCase) => (
-        <section key={enforcementCase.public_id}>
-          <p>{enforcementCase.kind_label}</p>
+        <section
+          key={enforcementCase.public_id}
+          className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4"
+        >
+          <p className="text-sm font-medium text-fg">{enforcementCase.kind_label}</p>
           <RestoreForm
             action={enforcementCase.restore}
             enforcementCaseId={enforcementCase.public_id}
@@ -152,6 +162,6 @@ export default function EnforcementRecoveryShow({
           ) : null}
         </section>
       ))}
-    </section>
+    </Page>
   );
 }

@@ -2,6 +2,8 @@
 //
 // Every cell arrives formatted from the server, including the placeholder a credential that has
 // never produced a code shows.
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
 import type { SettingsLink } from "@/features/auth/settings/links";
 
 type TotpRow = {
@@ -30,14 +32,14 @@ export default function TotpsIndex({
   totps,
 }: Props) {
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
+    <Page width="wide">
       <a href={backLink.href}>{backLink.label}</a>
 
       <div>
         <a href={newLink.href}>{newLink.label}</a>
       </div>
 
-      <table>
+      <Table>
         <thead>
           <tr>
             <th scope="col">{columns.title}</th>
@@ -65,7 +67,7 @@ export default function TotpsIndex({
             </tr>
           ) : null}
         </tbody>
-      </table>
-    </section>
+      </Table>
+    </Page>
   );
 }

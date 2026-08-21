@@ -1,3 +1,6 @@
+import Card from "@/components/ui/Card";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
 import type { IdentityLink } from "@/types/identity";
 
 type Props = {
@@ -18,19 +21,20 @@ export default function MfaChallengeShow({
   error,
 }: Props) {
   return (
-    <section>
-      <a href={backLink.href}>{backLink.label}</a>
+    <Page
+      title={title}
+      description={resetUnavailable}
+      up={backLink}
+      width="narrow"
+    >
+      <ErrorList errors={error === null ? [] : [error]} />
 
-      <h1>{title}</h1>
-
-      {error ? <p role="alert">{error}</p> : null}
-
-      <p>{resetUnavailable}</p>
-
-      <div>
-        <span>{toggleTitle}</span>
-        <span>{stateLabel}</span>
-      </div>
-    </section>
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <span className="font-medium text-fg">{toggleTitle}</span>
+          <span className="text-fg-muted">{stateLabel}</span>
+        </div>
+      </Card>
+    </Page>
   );
 }

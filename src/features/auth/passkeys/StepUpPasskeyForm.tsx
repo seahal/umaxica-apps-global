@@ -6,6 +6,7 @@
 // the server answers it with a redirect or a re-render, not with an Inertia visit.
 import { useRef } from "react";
 
+import Button from "@/components/ui/Button";
 import { csrfToken } from "@/lib/csrf";
 
 import { PASSKEY_MESSAGES, authenticationErrorMessage } from "./messages";
@@ -69,6 +70,7 @@ export default function StepUpPasskeyForm({
       ref={formRef}
       action={action}
       method="post"
+      className="flex flex-col items-start gap-3"
     >
       <input
         type="hidden"
@@ -92,15 +94,22 @@ export default function StepUpPasskeyForm({
         defaultValue=""
       />
 
-      <button
+      <Button
         type="button"
-        onClick={() => void authenticate()}
+        onPress={() => void authenticate()}
       >
         {submitLabel}
-      </button>
+      </Button>
 
-      {error ? <p role="alert">{error}</p> : null}
-      {status ? <p>{status}</p> : null}
+      {error ? (
+        <p
+          role="alert"
+          className="text-sm text-danger"
+        >
+          {error}
+        </p>
+      ) : null}
+      {status ? <p className="text-sm text-fg-muted">{status}</p> : null}
     </form>
   );
 }

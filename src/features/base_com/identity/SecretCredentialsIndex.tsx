@@ -2,6 +2,10 @@ import { Link, router } from "@inertiajs/react";
 import { useState } from "react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import ButtonLink from "@/components/ui/ButtonLink";
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
 import type { PageLink, TurnstileProps } from "@/features/base_com/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -28,6 +32,7 @@ export type SecretCredentialsIndexProps = {
   credentials: SecretCredentialRow[];
 };
 
+const LINK = "text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline";
 function DestroyForm({
   url,
   confirm,
@@ -56,17 +61,22 @@ function DestroyForm({
 
   return (
     <>
-      <form onSubmit={submit}>
+      <form
+        onSubmit={submit}
+        className="inline-flex"
+      >
         <TurnstileWidget
           {...turnstile}
           onToken={setToken}
         />
-        <button
+        <Button
           type="submit"
-          disabled={processing}
+          variant="danger"
+          size="sm"
+          isDisabled={processing}
         >
           {label}
-        </button>
+        </Button>
       </form>
       {dialog}
     </>
@@ -84,15 +94,21 @@ export default function SecretCredentialsIndex({
   credentials,
 }: SecretCredentialsIndexProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <Link href={backLink.href}>{backLink.label}</Link>
-
+    <Page
+      title={title}
+      up={backLink}
+      upVisit="inertia"
+    >
       <div>
-        <Link href={newLink.href}>{newLink.label}</Link>
+        <ButtonLink
+          href={newLink.href}
+          inertia
+        >
+          {newLink.label}
+        </ButtonLink>
       </div>
 
-      <table>
+      <Table>
         <thead>
           <tr>
             <th scope="col">{columns.name}</th>
@@ -103,24 +119,39 @@ export default function SecretCredentialsIndex({
         </thead>
         <tbody>
           {credentials.map((credential) => (
-            <tr key={credential.public_id}>
+            <tr
+              key={credential.public_id}
+              className="last:border-0"
+            >
               <td>{credential.name}</td>
               <td>{credential.created_at}</td>
               <td>{credential.last_used_at}</td>
               <td>
-                <Link href={credential.show_link.href}>{credential.show_link.label}</Link>
-                <Link href={credential.edit_link.href}>{credential.edit_link.label}</Link>
-                <DestroyForm
-                  url={credential.destroy_url}
-                  confirm={destroyConfirm}
-                  label={destroyLabel}
-                  turnstile={turnstile}
-                />
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link
+                    href={credential.show_link.href}
+                    className={LINK}
+                  >
+                    {credential.show_link.label}
+                  </Link>
+                  <Link
+                    href={credential.edit_link.href}
+                    className={LINK}
+                  >
+                    {credential.edit_link.label}
+                  </Link>
+                  <DestroyForm
+                    url={credential.destroy_url}
+                    confirm={destroyConfirm}
+                    label={destroyLabel}
+                    turnstile={turnstile}
+                  />
+                </div>
               </td>
             </tr>
           ))}
         </tbody>
-      </table>
-    </section>
+      </Table>
+    </Page>
   );
 }

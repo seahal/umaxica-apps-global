@@ -1,10 +1,14 @@
-import type { VerificationFormBase, VerificationLink } from "./types";
 // Enters the one-time code delivered by email.
 //
 // The code is never a prop: it exists only in the message the server sent and in what the actor
 // types here. The form is a document PATCH (POST plus Rails' `_method`), exactly as the ERB form
 // was, so the server can answer it with the step-up completion hand-off document.
-import VerificationErrors from "./VerificationErrors";
+import Button from "@/components/ui/Button";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+
+import type { VerificationFormBase, VerificationLink } from "./types";
 import VerificationFormFields from "./VerificationFormFields";
 
 export type EmailOtpEntryForm = VerificationFormBase & {
@@ -39,16 +43,20 @@ export default function EmailOtpEntry({
   back,
 }: EmailOtpEntryProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <h1>{heading}</h1>
-      <p>{description}</p>
-      <p>{deliveryHelp}</p>
+    <Page
+      title={heading}
+      description={description}
+      up={back}
+      width="narrow"
+    >
+      <p className="text-sm text-fg-muted">{deliveryHelp}</p>
 
-      <VerificationErrors errors={errors} />
+      <ErrorList errors={errors} />
 
       <form
         action={form.action}
         method="post"
+        className="flex flex-col gap-4"
       >
         <VerificationFormFields
           csrf_token={form.csrf_token}
@@ -56,44 +64,34 @@ export default function EmailOtpEntry({
           pt={form.pt}
           method="patch"
         />
-        <div>
-          <label htmlFor="verification_code">{form.code_label}</label>
-          <input
-            type="text"
-            id="verification_code"
-            name="verification[code]"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder={form.code_placeholder}
-          />
-        </div>
+        <TextField
+          label={form.code_label}
+          name="verification[code]"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          placeholder={form.code_placeholder}
+        />
 
-        <div>
-          <input
-            type="submit"
-            value={form.submit_label}
-          />
-        </div>
+        <Button type="submit">{form.submit_label}</Button>
       </form>
 
-      <div>
-        <form
-          action={resend.action}
-          method="post"
+      <form
+        action={resend.action}
+        method="post"
+      >
+        <input
+          type="hidden"
+          name="authenticity_token"
+          value={resend.csrf_token}
+          readOnly
+        />
+        <Button
+          type="submit"
+          variant="secondary"
         >
-          <input
-            type="hidden"
-            name="authenticity_token"
-            value={resend.csrf_token}
-            readOnly
-          />
-          <button type="submit">{resend.label}</button>
-        </form>
-      </div>
-
-      <div>
-        <a href={back.href}>{back.label}</a>
-      </div>
-    </section>
+          {resend.label}
+        </Button>
+      </form>
+    </Page>
   );
 }

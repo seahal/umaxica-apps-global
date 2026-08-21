@@ -1,7 +1,10 @@
 import { Link, router } from "@inertiajs/react";
 import { useState } from "react";
 
-import ErrorList from "@/features/base_com/identity/ErrorList";
+import Button from "@/components/ui/Button";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import type { PageLink, TurnstileProps } from "@/features/base_com/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -56,11 +59,14 @@ export default function OtpCodeForm({
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
-
-      <form onSubmit={submit}>
+    <Page
+      title={title}
+      description={description}
+    >
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-4"
+      >
         <ErrorList errors={errors} />
 
         {verificationToken ? (
@@ -72,37 +78,40 @@ export default function OtpCodeForm({
           />
         ) : null}
 
-        <div>
-          <label htmlFor={`${form.scope}_pass_code`}>{codeLabel}</label>
-          <input
-            id={`${form.scope}_pass_code`}
-            name={`${form.scope}[pass_code]`}
-            type="text"
-            placeholder={codePlaceholder}
-            autoComplete="one-time-code"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={passCode}
-            onChange={(event) => setPassCode(event.target.value)}
-          />
-        </div>
-
-        <p>{deliveryHelp}</p>
+        <TextField
+          id={`${form.scope}_pass_code`}
+          label={codeLabel}
+          name={`${form.scope}[pass_code]`}
+          type="text"
+          placeholder={codePlaceholder}
+          autoComplete="one-time-code"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          description={deliveryHelp}
+          value={passCode}
+          onChange={setPassCode}
+        />
 
         <TurnstileWidget
           {...turnstile}
           onToken={setToken}
         />
 
-        <button
+        <Button
           type="submit"
-          disabled={processing}
+          isDisabled={processing}
+          className="w-fit"
         >
           {form.submit_label}
-        </button>
+        </Button>
       </form>
 
-      <Link href={cancelLink.href}>{cancelLink.label}</Link>
-    </section>
+      <Link
+        href={cancelLink.href}
+        className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+      >
+        {cancelLink.label}
+      </Link>
+    </Page>
   );
 }

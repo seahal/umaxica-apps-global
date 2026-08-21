@@ -1,3 +1,5 @@
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
 import type { IdentityLink } from "@/types/identity";
 
 type ActivityRow = {
@@ -35,44 +37,44 @@ export default function ActivitiesIndex({
   activities,
 }: Props) {
   return (
-    <section>
-      <a href={backLink.href}>{backLink.label}</a>
-
-      <h1>{title}</h1>
-      <p>{description}</p>
-
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      width="wide"
+    >
       {activities.length === 0 ? (
-        <p>{emptyMessage}</p>
+        <p className="text-sm text-fg-muted">{emptyMessage}</p>
       ) : (
-        <table>
+        <Table>
           <thead>
             <tr>
-              <th>{headings.occurred_at}</th>
-              <th>{headings.event}</th>
-              <th>{headings.ip_address}</th>
-              <th>{headings.device}</th>
-              <th>{headings.login_method}</th>
-              <th>{headings.context}</th>
+              <th scope="col">{headings.occurred_at}</th>
+              <th scope="col">{headings.event}</th>
+              <th scope="col">{headings.ip_address}</th>
+              <th scope="col">{headings.device}</th>
+              <th scope="col">{headings.login_method}</th>
+              <th scope="col">{headings.context}</th>
             </tr>
           </thead>
           <tbody>
             {activities.map((activity, index) => (
               <tr key={`${activity.event_id}-${index}`}>
-                <td>{activity.occurred_at}</td>
+                <td className="whitespace-nowrap text-fg-muted">{activity.occurred_at}</td>
                 <td>
                   {activity.event_label} ({activity.event_id})
                 </td>
-                <td>{activity.ip_address}</td>
+                <td className="font-mono">{activity.ip_address}</td>
                 <td>{activity.user_agent_summary}</td>
                 <td>{activity.login_method}</td>
                 <td>
-                  <code>{activity.context_text}</code>
+                  <code className="text-xs break-all text-fg-muted">{activity.context_text}</code>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       )}
-    </section>
+    </Page>
   );
 }

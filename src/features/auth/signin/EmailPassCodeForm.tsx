@@ -6,6 +6,8 @@
 import { useForm } from "@inertiajs/react";
 import { useRef } from "react";
 
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { readString } from "@/lib/payload";
 
@@ -67,35 +69,43 @@ export default function EmailPassCodeForm({
   const fieldId = `${field.scope}_${field.field}`;
 
   return (
-    <section>
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
-
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
       <form
         onSubmit={(event) => {
           event.preventDefault();
           patch(form.action);
         }}
+        className="flex flex-col gap-4"
       >
         {formErrors.length > 0 ? (
           <div
-            className="animate-shake"
+            className="animate-shake rounded-md border border-danger bg-surface p-3"
             role="alert"
           >
-            <ul>
+            <ul className="flex flex-col gap-1 text-sm text-danger">
               {formErrors.map((message) => (
-                <li key={message}>
-                  <span>{message}</span>
-                </li>
+                <li key={message}>{message}</li>
               ))}
             </ul>
           </div>
         ) : null}
 
-        <div>
-          <label htmlFor={fieldId}>{field.label}</label>
+        {/*
+          A hand-styled input rather than the shared `TextField`: `TextField` does not forward a
+          ref to its underlying control, and `OtpResendButton` needs a real DOM node to refocus
+          after a resend clears the field.
+        */}
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor={fieldId}
+            className="text-sm font-medium text-fg"
+          >
+            {field.label}
+          </label>
           <input
             ref={input}
             type="text"
@@ -109,6 +119,8 @@ export default function EmailPassCodeForm({
             inputMode={field.inputmode}
             pattern={field.pattern}
             required
+            className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-fg
+              placeholder:text-fg-muted"
           />
         </div>
 
@@ -128,24 +140,25 @@ export default function EmailPassCodeForm({
           onToken={(token) => setData("cf-turnstile-response", token)}
         />
 
-        <div>
-          <button
-            type="submit"
-            disabled={processing}
-          >
-            {form.submit_label}
-          </button>
-        </div>
+        <Button
+          type="submit"
+          isDisabled={processing}
+        >
+          {form.submit_label}
+        </Button>
       </form>
 
-      <p>{deliveryHelp}</p>
+      <p className="text-sm text-fg-muted">{deliveryHelp}</p>
 
-      <div>
+      <p className="text-sm">
         {/* Document visit: restarting the ceremony issues a new code. */}
-        <a href={backLink.href}>
-          <span>{backLink.label}</span>
+        <a
+          href={backLink.href}
+          className="text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+        >
+          {backLink.label}
         </a>
-      </div>
-    </section>
+      </p>
+    </Page>
   );
 }

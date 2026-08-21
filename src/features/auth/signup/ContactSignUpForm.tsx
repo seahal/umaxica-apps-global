@@ -4,6 +4,9 @@
 // answers a rejected submission by re-rendering this page with 422 and answers an accepted one with
 // a redirect into the OTP step. Every label, description and URL arrives finished from the server;
 // the Turnstile widget writes the token into the hidden field the form submits.
+import Button from "@/components/ui/Button";
+import Checkbox from "@/components/ui/Checkbox";
+import TextField from "@/components/ui/TextField";
 import TurnstileWidget, { type TurnstileWidgetProps } from "@/features/turnstile/TurnstileWidget";
 
 import { csrfToken } from "./csrf";
@@ -47,16 +50,15 @@ export default function ContactSignUpForm({
   submit_label: submitLabel,
   links,
 }: ContactSignUpFormProps) {
-  const fieldId = `${scope}_${field.name}`;
-
   return (
-    <section>
-      <h2>{title}</h2>
+    <section className="flex flex-col gap-6">
+      <h2 className="text-xl font-semibold text-fg">{title}</h2>
 
       <form
         action={action}
         method="post"
         data-turbo="false"
+        className="flex flex-col gap-4"
       >
         <input
           type="hidden"
@@ -65,9 +67,16 @@ export default function ContactSignUpForm({
         />
 
         {errorHeading ? (
-          <div role="alert">
-            <h3>{errorHeading}</h3>
-            <ul role="list">
+          <div
+            role="alert"
+            className="flex flex-col gap-2 rounded-md border border-danger bg-surface p-3 text-sm
+              text-danger"
+          >
+            <h3 className="font-semibold">{errorHeading}</h3>
+            <ul
+              role="list"
+              className="flex flex-col gap-1 pl-4 list-disc"
+            >
               {errors.map((message) => (
                 <li key={message}>{message}</li>
               ))}
@@ -75,51 +84,56 @@ export default function ContactSignUpForm({
           </div>
         ) : null}
 
-        <div>
-          <label htmlFor={fieldId}>{field.label}</label>
-          <input
-            type={field.type}
-            id={fieldId}
-            name={`${scope}[${field.name}]`}
-            autoComplete={field.autocomplete}
-            required
-          />
-        </div>
+        <TextField
+          label={field.label}
+          type={field.type}
+          name={`${scope}[${field.name}]`}
+          autoComplete={field.autocomplete}
+          isRequired
+          validationBehavior="native"
+        />
 
         {checkboxes.map((checkbox) => (
-          <div key={checkbox.name}>
+          <div
+            key={checkbox.name}
+            className="flex flex-col gap-1"
+          >
             {/* Rails reads the unchecked value from the paired hidden field, as `form.check_box` did. */}
             <input
               type="hidden"
               name={`${scope}[${checkbox.name}]`}
               value="0"
             />
-            <input
-              type="checkbox"
-              id={`${scope}_${checkbox.name}`}
+            <Checkbox
               name={`${scope}[${checkbox.name}]`}
               value="1"
-            />
-            <label htmlFor={`${scope}_${checkbox.name}`}>{checkbox.label}</label>
-            {checkbox.description ? <p>{checkbox.description}</p> : null}
+            >
+              <span className="flex flex-col">
+                <span>{checkbox.label}</span>
+                {checkbox.description ? (
+                  <span className="text-xs text-fg-muted">{checkbox.description}</span>
+                ) : null}
+              </span>
+            </Checkbox>
           </div>
         ))}
 
-        <div>
-          <TurnstileWidget {...turnstile} />
-        </div>
+        <TurnstileWidget {...turnstile} />
 
-        <div>
-          <input
-            type="submit"
-            value={submitLabel}
-          />
-        </div>
+        <Button type="submit">{submitLabel}</Button>
       </form>
 
       {links.map((link) => (
-        <p key={link.key}>
-          <a href={link.href}>{link.label}</a>
+        <p
+          key={link.key}
+          className="text-sm"
+        >
+          <a
+            href={link.href}
+            className="text-fg underline-offset-4 hover:underline"
+          >
+            {link.label}
+          </a>
         </p>
       ))}
     </section>

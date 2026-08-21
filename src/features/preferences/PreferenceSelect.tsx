@@ -1,6 +1,8 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Select from "@/components/ui/Select";
 import PreferenceScreenFrame, {
   type PreferenceLink,
 } from "@/features/preferences/PreferenceScreenFrame";
@@ -55,7 +57,6 @@ export default function PreferenceSelect({
   const [processing, setProcessing] = useState(false);
   const { errors } = usePage().props;
   const error = errors[form.field];
-  const fieldId = `${form.scope}_${form.field}`;
 
   const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -79,36 +80,37 @@ export default function PreferenceSelect({
         onSubmit={submit}
         className="flex flex-col gap-4"
       >
-        <div>
-          <label htmlFor={fieldId}>{form.label}</label>
-          <div>
-            <select
-              id={fieldId}
-              name={`${form.scope}[${form.field}]`}
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-            >
-              {form.choices.map((choice) => (
-                <option
-                  key={choice.value}
-                  value={String(choice.value)}
-                >
-                  {choice.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          {error ? <p role="alert">{error}</p> : null}
-        </div>
+        <Select
+          label={form.label}
+          name={`${form.scope}[${form.field}]`}
+          value={value}
+          onChange={(next) => {
+            if (next !== null) {
+              setValue(String(next));
+            }
+          }}
+          {...(error === undefined ? {} : { errorMessage: error })}
+          options={form.choices.map((choice) => ({
+            value: String(choice.value),
+            label: choice.label,
+          }))}
+        />
 
         <div className="flex items-center gap-4">
-          <button
+          <Button
             type="submit"
-            disabled={processing}
+            isDisabled={processing}
           >
             {processing ? form.submitting_label : form.submit_label}
-          </button>
-          {regionLink ? <Link href={regionLink.href}>{regionLink.label}</Link> : null}
+          </Button>
+          {regionLink ? (
+            <Link
+              href={regionLink.href}
+              className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+            >
+              {regionLink.label}
+            </Link>
+          ) : null}
         </div>
       </form>
 
@@ -116,7 +118,13 @@ export default function PreferenceSelect({
         <ul className="flex flex-col gap-2">
           {linkedScreens.map((linked) => (
             <li key={linked.key}>
-              <Link href={linked.href}>{linked.label}</Link>
+              <Link
+                href={linked.href}
+                className="block rounded-lg border border-line bg-surface px-4 py-3 text-sm
+                  font-medium text-fg hover:bg-surface-muted"
+              >
+                {linked.label}
+              </Link>
             </li>
           ))}
         </ul>

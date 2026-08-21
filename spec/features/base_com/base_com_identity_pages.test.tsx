@@ -20,7 +20,7 @@ const { default: EmailRegistrationNew } =
   await import("@/features/base_com/identity/EmailRegistrationNew");
 const { default: OtpCodeForm } = await import("@/features/base_com/identity/OtpCodeForm");
 const { default: OtpReentryNew } = await import("@/features/base_com/identity/OtpReentryNew");
-const { default: ErrorList } = await import("@/features/base_com/identity/ErrorList");
+const { default: ErrorList } = await import("@/components/ui/ErrorList");
 const { default: PrivacyErasureNew } =
   await import("@/features/base_com/identity/PrivacyErasureNew");
 const { default: PrivacyErasureStatusShow } =

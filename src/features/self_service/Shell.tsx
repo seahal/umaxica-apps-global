@@ -4,6 +4,8 @@
 // two-line wrapper around it. It stays one shared component here, and each surface page re-exports
 // or renders it, because a surface Inertia resolver may only glob its own directory.
 
+import Page from "@/components/ui/Page";
+
 export type SelfServiceShellProps = {
   title: string;
   body: string;
@@ -12,10 +14,11 @@ export type SelfServiceShellProps = {
 export default function SelfServiceShell({ title, body }: SelfServiceShellProps) {
   // The surface Inertia layout owns the <main> landmark, so the page renders a section only.
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{body}</p>
-      <p>Signed in</p>
-    </section>
+    <Page
+      title={title}
+      description={body}
+    >
+      <p className="text-sm text-fg-muted">Signed in</p>
+    </Page>
   );
 }

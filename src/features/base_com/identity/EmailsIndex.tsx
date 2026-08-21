@@ -1,5 +1,6 @@
 import { Link } from "@inertiajs/react";
 
+import Table from "@/components/ui/Table";
 import type { PageLink } from "@/features/base_com/identity/types";
 
 // Replaces `app/views/base/com/identity/emails/index.html.erb`. The verified/unverified wording is
@@ -21,6 +22,11 @@ export type EmailsIndexProps = {
   emails: EmailRow[];
 };
 
+const LINK = "text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline";
+const NEW_LINK =
+  "inline-flex w-fit items-center rounded-md border border-line bg-surface px-3 py-1.5 " +
+  "text-sm font-medium text-fg hover:bg-surface-muted";
+
 export default function EmailsIndex({
   title,
   back_link: backLink,
@@ -30,15 +36,25 @@ export default function EmailsIndex({
   emails,
 }: EmailsIndexProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <Link href={backLink.href}>{backLink.label}</Link>
+    <section className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold text-fg">{title}</h1>
+      <Link
+        href={backLink.href}
+        className={LINK}
+      >
+        {backLink.label}
+      </Link>
 
       <div>
-        <Link href={newLink.href}>{newLink.label}</Link>
+        <Link
+          href={newLink.href}
+          className={NEW_LINK}
+        >
+          {newLink.label}
+        </Link>
       </div>
 
-      <table>
+      <Table>
         <thead>
           <tr>
             <th scope="col">{columns.address}</th>
@@ -50,25 +66,36 @@ export default function EmailsIndex({
         </thead>
         <tbody>
           {emails.map((email) => (
-            <tr key={email.public_id}>
+            <tr
+              key={email.public_id}
+              className="last:border-0"
+            >
               <td>{email.address}</td>
               <td>
                 <span>{email.status_label}</span>
               </td>
               <td>
-                <Link href={email.edit_link.href}>{email.edit_link.label}</Link>
+                <Link
+                  href={email.edit_link.href}
+                  className={LINK}
+                >
+                  {email.edit_link.label}
+                </Link>
               </td>
             </tr>
           ))}
           {emails.length === 0 ? (
             <tr>
-              <td colSpan={3}>
-                <p>{emptyMessage}</p>
+              <td
+                colSpan={3}
+                className="py-6 text-center"
+              >
+                <p className="text-sm text-fg-muted">{emptyMessage}</p>
               </td>
             </tr>
           ) : null}
         </tbody>
-      </table>
+      </Table>
     </section>
   );
 }

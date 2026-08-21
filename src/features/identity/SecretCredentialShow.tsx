@@ -1,6 +1,8 @@
 // A single secret credential's metadata. Timestamps arrive already localised.
 import { Link } from "@inertiajs/react";
 
+import Card from "@/components/ui/Card";
+import Page from "@/components/ui/Page";
 import type { LabelledLink } from "@/features/identity/types";
 
 export type SecretCredentialShowProps = {
@@ -15,6 +17,8 @@ export type SecretCredentialShowProps = {
   edit_link: LabelledLink;
 };
 
+const LINK = "text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline";
+
 export default function SecretCredentialShow({
   title,
   description,
@@ -27,26 +31,39 @@ export default function SecretCredentialShow({
   edit_link: editLink,
 }: SecretCredentialShowProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
+    <Page
+      title={title}
+      description={description}
+      width="wide"
+    >
+      <Card>
+        <h2 className="text-lg font-semibold text-fg">{name}</h2>
+        <dl className="flex flex-col gap-2 text-sm">
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-fg-muted">{createdAtLabel}</dt>
+            <dd className="text-fg">{createdAt}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-fg-muted">{lastUsedAtLabel}</dt>
+            <dd className="text-fg">{lastUsedAt}</dd>
+          </div>
+        </dl>
+      </Card>
 
-      <h2>{name}</h2>
-      <dl>
-        <div>
-          <dt>{createdAtLabel}</dt>
-          <dd>{createdAt}</dd>
-        </div>
-        <div>
-          <dt>{lastUsedAtLabel}</dt>
-          <dd>{lastUsedAt}</dd>
-        </div>
-      </dl>
-
-      <div>
-        <Link href={backLink.href}>{backLink.label}</Link>
-        <Link href={editLink.href}>{editLink.label}</Link>
+      <div className="flex items-center gap-4">
+        <Link
+          href={backLink.href}
+          className={LINK}
+        >
+          {backLink.label}
+        </Link>
+        <Link
+          href={editLink.href}
+          className={LINK}
+        >
+          {editLink.label}
+        </Link>
       </div>
-    </section>
+    </Page>
   );
 }

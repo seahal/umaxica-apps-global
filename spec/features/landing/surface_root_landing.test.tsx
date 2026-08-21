@@ -25,9 +25,11 @@ describe("RootLanding extra destinations", () => {
   it("renders every destination the server sent, in order", () => {
     const markup = renderToStaticMarkup(<RootLanding {...props} />);
 
-    expect(markup).toContain('<a href="/settings?ri=jp">Settings</a>');
-    expect(markup).toContain('<a href="/oidc/authorization?ri=jp">Sign up</a>');
-    expect(markup.indexOf("Settings")).toBeLessThan(markup.indexOf("Sign up"));
+    expect(markup).toMatch(/<a href="\/settings\?ri=jp"[^>]*>Settings<\/a>/u);
+    expect(markup).toMatch(/<a href="\/oidc\/authorization\?ri=jp"[^>]*>Sign up<\/a>/u);
+    expect(markup.indexOf('href="/settings?ri=jp"')).toBeLessThan(
+      markup.indexOf('href="/oidc/authorization?ri=jp"'),
+    );
   });
 
   it("renders the heading a surface without a page title of its own still shows", () => {

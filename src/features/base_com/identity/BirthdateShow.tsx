@@ -1,5 +1,4 @@
-import { Link } from "@inertiajs/react";
-
+import Page from "@/components/ui/Page";
 import type { PageLink } from "@/features/base_com/identity/types";
 
 // Replaces `app/views/base/com/identity/birthdates/show.html.erb`.
@@ -24,18 +23,20 @@ export default function BirthdateShow({
   change_unavailable: changeUnavailable,
 }: BirthdateShowProps) {
   return (
-    <section>
-      <Link href={backLink.href}>{backLink.label}</Link>
-
-      <h1>{title}</h1>
-      <p>{description}</p>
-
-      <dl>
-        <dt>{birthdateLabel}</dt>
-        <dd>{birthdate ? <span data-birthdate>{birthdate}</span> : notSet}</dd>
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      upVisit="inertia"
+    >
+      <dl className="flex flex-col gap-1 rounded-lg border border-line bg-surface p-4">
+        <dt className="text-sm font-medium text-fg-muted">{birthdateLabel}</dt>
+        <dd className="text-sm text-fg">
+          {birthdate ? <span data-birthdate>{birthdate}</span> : notSet}
+        </dd>
       </dl>
 
-      <p>{changeUnavailable}</p>
-    </section>
+      <p className="text-sm text-fg-muted">{changeUnavailable}</p>
+    </Page>
   );
 }

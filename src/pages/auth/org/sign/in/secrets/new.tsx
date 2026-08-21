@@ -1,9 +1,13 @@
-import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 // Secret-credential sign-in for operators.
 //
 // A document POST, as the ERB form was: the server answers with a redirect on success and with this
 // page re-rendered at 422 on failure, and the visible Turnstile token has to travel in the form
 // body under the field name the server verifies.
+import Button from "@/components/ui/Button";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
 
 type TurnstileConfiguration = {
@@ -46,14 +50,15 @@ export default function OrgSecretSignInPage({
   turnstile,
 }: OrgSecretSignInPageProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <div>
-        <h1>{title}</h1>
-      </div>
-
+    <Page
+      title={title}
+      up={backLink}
+      width="narrow"
+    >
       <form
         action={formAction}
         method="post"
+        className="flex flex-col gap-4"
       >
         <input
           type="hidden"
@@ -62,16 +67,10 @@ export default function OrgSecretSignInPage({
           readOnly
         />
 
-        {errors.length > 0 ? (
-          <div role="alert">
-            <h2>{errorsTitle}</h2>
-            <ul>
-              {errors.map((message) => (
-                <li key={message}>{message}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+        <ErrorList
+          errors={errors}
+          header={errorsTitle}
+        />
 
         {hiddenFields.pt ? (
           <input
@@ -88,35 +87,27 @@ export default function OrgSecretSignInPage({
           readOnly
         />
 
-        <div>
-          <label htmlFor="secret_credential_login_form_identifier">{identifier.label}</label>
-          <input
-            type="text"
-            id="secret_credential_login_form_identifier"
-            name={identifier.name}
-            placeholder={identifier.placeholder}
-            autoComplete="username"
-            autoCapitalize="characters"
-            minLength={identifier.min_length}
-            maxLength={identifier.max_length}
-            pattern={identifier.pattern}
-            spellCheck={false}
-            required
-          />
-        </div>
+        <TextField
+          label={identifier.label}
+          type="text"
+          name={identifier.name}
+          placeholder={identifier.placeholder}
+          autoComplete="username"
+          autoCapitalize="characters"
+          minLength={identifier.min_length}
+          maxLength={identifier.max_length}
+          pattern={identifier.pattern}
+          spellCheck="false"
+          isRequired
+        />
 
-        <div>
-          <label htmlFor="secret_credential_login_form_secret_credential_value">
-            {secret.label}
-          </label>
-          <input
-            type="password"
-            id="secret_credential_login_form_secret_credential_value"
-            name={secret.name}
-            placeholder={secret.placeholder}
-            autoComplete="current-password"
-          />
-        </div>
+        <TextField
+          label={secret.label}
+          type="password"
+          name={secret.name}
+          placeholder={secret.placeholder}
+          autoComplete="current-password"
+        />
 
         <TurnstileWidget
           site_key={turnstile.site_key}
@@ -125,14 +116,8 @@ export default function OrgSecretSignInPage({
           cdata={turnstile.cdata}
         />
 
-        <div>
-          <input
-            type="submit"
-            value={submitLabel}
-          />
-          <a href={backLink.href}>{backLink.label}</a>
-        </div>
+        <Button type="submit">{submitLabel}</Button>
       </form>
-    </section>
+    </Page>
   );
 }

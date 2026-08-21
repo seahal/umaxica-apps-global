@@ -6,6 +6,9 @@
 // message, which is what keeps the page from becoming an account-existence oracle.
 import { useForm } from "@inertiajs/react";
 
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { readRecord } from "@/lib/payload";
 
@@ -65,19 +68,24 @@ export default function SecretSignInForm({
     setData(secretField.scope, { ...scoped, [field]: value });
 
   return (
-    <section>
-      <h1>{title}</h1>
-
+    <Page
+      title={title}
+      width="narrow"
+    >
       <form
         onSubmit={(event) => {
           event.preventDefault();
           post(form.action);
         }}
+        className="flex flex-col gap-4"
       >
         {formErrors.length > 0 ? (
-          <div role="alert">
-            <h2>{errorHeading}</h2>
-            <ul>
+          <div
+            role="alert"
+            className="animate-shake flex flex-col gap-1 rounded-md border border-danger bg-surface p-3"
+          >
+            <h2 className="text-sm font-semibold text-danger">{errorHeading}</h2>
+            <ul className="flex flex-col gap-1 text-sm text-danger">
               {formErrors.map((message) => (
                 <li key={message}>{message}</li>
               ))}
@@ -86,41 +94,32 @@ export default function SecretSignInForm({
         ) : null}
 
         {hints ? (
-          <div>
-            <p>{hints.label}</p>
+          <div className="rounded-md border border-line bg-surface-muted p-3 text-sm text-fg-muted">
+            <p className="font-medium text-fg">{hints.label}</p>
             <p>{hints.value}</p>
           </div>
         ) : null}
 
         {identifierField ? (
-          <div>
-            <label htmlFor={`${identifierField.scope}_${identifierField.field}`}>
-              {identifierField.label}
-            </label>
-            <input
-              type="text"
-              id={`${identifierField.scope}_${identifierField.field}`}
-              name={identifierField.name}
-              value={scoped[identifierField.field] ?? ""}
-              onChange={(event) => setScoped(identifierField.field, event.target.value)}
-              placeholder={identifierField.placeholder}
-              autoComplete="username"
-            />
-          </div>
+          <TextField
+            label={identifierField.label}
+            name={identifierField.name}
+            value={scoped[identifierField.field] ?? ""}
+            onChange={(value) => setScoped(identifierField.field, value)}
+            placeholder={identifierField.placeholder}
+            autoComplete="username"
+          />
         ) : null}
 
-        <div>
-          <label htmlFor={`${secretField.scope}_${secretField.field}`}>{secretField.label}</label>
-          <input
-            type="password"
-            id={`${secretField.scope}_${secretField.field}`}
-            name={secretField.name}
-            value={scoped[secretField.field] ?? ""}
-            onChange={(event) => setScoped(secretField.field, event.target.value)}
-            placeholder={secretField.placeholder}
-            autoComplete="current-password"
-          />
-        </div>
+        <TextField
+          label={secretField.label}
+          type="password"
+          name={secretField.name}
+          value={scoped[secretField.field] ?? ""}
+          onChange={(value) => setScoped(secretField.field, value)}
+          placeholder={secretField.placeholder}
+          autoComplete="current-password"
+        />
 
         <TurnstileWidget
           site_key={turnstile.site_key}
@@ -130,17 +129,22 @@ export default function SecretSignInForm({
           onToken={(token) => setData("cf-turnstile-response", token)}
         />
 
-        <div>
-          <button
+        <div className="flex items-center gap-4">
+          <Button
             type="submit"
-            disabled={processing}
+            isDisabled={processing}
           >
             {form.submit_label}
-          </button>
+          </Button>
           {/* Document visit: leaving the ceremony returns to the method selection page. */}
-          <a href={backLink.href}>{backLink.label}</a>
+          <a
+            href={backLink.href}
+            className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+          >
+            {backLink.label}
+          </a>
         </div>
       </form>
-    </section>
+    </Page>
   );
 }

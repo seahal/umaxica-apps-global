@@ -7,6 +7,12 @@ import { router, useForm } from "@inertiajs/react";
 import { useState } from "react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+import TextLink from "@/components/ui/TextLink";
 import type { SettingsLink, SettingsTurnstile } from "@/features/auth/settings/links";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -66,58 +72,72 @@ export default function PasskeysEdit({
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <a href={backLink.href}>{backLink.label}</a>
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      width="narrow"
+    >
+      <ErrorList
+        errors={errorMessages}
+        {...(errorHeader === null ? {} : { header: errorHeader })}
+      />
 
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
+      <Card>
+        <form
+          onSubmit={submit}
+          className="flex flex-col gap-4"
+        >
+          <TextField
+            id="passkey-description"
+            label={formProps.description_label}
+            type="text"
+            maxLength={100}
+            value={form.data.description}
+            onChange={(value) => form.setData("description", value)}
+          />
 
-      {errorHeader ? (
-        <div role="alert">
-          <h3>{errorHeader}</h3>
-          <ul>
-            {errorMessages.map((message) => (
-              <li key={message}>{message}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+          <TurnstileWidget
+            site_key={turnstile.site_key}
+            mode={turnstile.mode}
+            action={turnstile.action}
+            cdata={turnstile.cdata}
+            onToken={setToken}
+          />
 
-      <form onSubmit={submit}>
-        <label htmlFor="passkey-description">{formProps.description_label}</label>
-        <input
-          type="text"
-          id="passkey-description"
-          maxLength={100}
-          value={form.data.description}
-          onChange={(event) => form.setData("description", event.target.value)}
-        />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="submit"
+              isDisabled={form.processing}
+            >
+              {formProps.submit_label}
+            </Button>
 
-        <TurnstileWidget
-          site_key={turnstile.site_key}
-          mode={turnstile.mode}
-          action={turnstile.action}
-          cdata={turnstile.cdata}
-          onToken={setToken}
-        />
+            <TextLink
+              href={cancelLink.href}
+              tone="muted"
+              className="text-sm"
+            >
+              {cancelLink.label}
+            </TextLink>
+          </div>
+        </form>
+      </Card>
 
-        <input
-          type="submit"
-          value={formProps.submit_label}
-          disabled={form.processing}
-        />
-        <a href={cancelLink.href}>{cancelLink.label}</a>
-      </form>
-
-      <button
-        type="button"
-        onClick={remove}
-      >
-        {destroy.submit_label}
-      </button>
+      {/*
+        Removal is separated from the rename form: they are two different decisions, and the
+        destructive one should not sit inside the panel the visitor is editing in.
+      */}
+      <Card>
+        <Button
+          type="button"
+          variant="danger"
+          onPress={remove}
+        >
+          {destroy.submit_label}
+        </Button>
+      </Card>
       {dialog}
-    </section>
+    </Page>
   );
 }

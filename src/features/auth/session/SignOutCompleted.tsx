@@ -15,14 +15,19 @@ export default function SignOutCompleted({
   home_link: homeLink,
 }: SignOutCompletedProps) {
   return (
-    <section>
-      <h1>{heading}</h1>
+    <section className="flex flex-col gap-4">
+      <h1 className="text-2xl font-bold text-fg">{heading}</h1>
 
-      {description ? <p>{description}</p> : null}
+      {description ? <p className="text-sm text-fg-muted">{description}</p> : null}
 
-      <p>
+      <p className="text-sm">
         {/* A document visit: the destination is another surface entry point with its own guards. */}
-        <a href={homeLink.href}>{homeLink.label}</a>
+        <a
+          href={homeLink.href}
+          className="text-accent hover:underline"
+        >
+          {homeLink.label}
+        </a>
       </p>
     </section>
   );

@@ -1,6 +1,11 @@
 import { router } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+
 type AddressForm = {
   action: string;
   label: string;
@@ -31,46 +36,53 @@ export default function WithdrawalSessionNew({
   const [passCode, setPassCode] = useState("");
 
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
-
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          router.post(addressForm.action, { data: { withdrawal_reentry: { address } } });
-        }}
-      >
-        <label htmlFor="withdrawal_reentry_address">{addressForm.label}</label>
-        <input
-          id="withdrawal_reentry_address"
-          type="email"
-          autoComplete="email"
-          value={address}
-          onChange={(event) => setAddress(event.target.value)}
-        />
-        <button type="submit">{addressForm.submit_label}</button>
-      </form>
-
-      {passCodeForm ? (
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
+      <Card>
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            router.post(passCodeForm.action, { data: { pass_code: passCode } });
+            router.post(addressForm.action, { data: { withdrawal_reentry: { address } } });
           }}
+          className="flex flex-col gap-4"
         >
-          <label htmlFor="withdrawal_pass_code">{passCodeForm.label}</label>
-          <input
-            id="withdrawal_pass_code"
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            value={passCode}
-            onChange={(event) => setPassCode(event.target.value)}
+          <TextField
+            id="withdrawal_reentry_address"
+            label={addressForm.label}
+            type="email"
+            autoComplete="email"
+            value={address}
+            onChange={setAddress}
           />
-          <button type="submit">{passCodeForm.submit_label}</button>
+          <Button type="submit">{addressForm.submit_label}</Button>
         </form>
+      </Card>
+
+      {passCodeForm ? (
+        <Card>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              router.post(passCodeForm.action, { data: { pass_code: passCode } });
+            }}
+            className="flex flex-col gap-4"
+          >
+            <TextField
+              id="withdrawal_pass_code"
+              label={passCodeForm.label}
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={passCode}
+              onChange={setPassCode}
+            />
+            <Button type="submit">{passCodeForm.submit_label}</Button>
+          </form>
+        </Card>
       ) : null}
-    </section>
+    </Page>
   );
 }

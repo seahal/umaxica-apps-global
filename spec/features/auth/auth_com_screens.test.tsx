@@ -87,10 +87,13 @@ describe("AuthMethodChoice", () => {
   it("lists the methods and the trailing links the server resolved", () => {
     const markup = renderToStaticMarkup(<AuthMethodChoice {...props} />);
 
-    expect(markup).toContain("<h1>ログイン</h1>");
+    expect(markup).toMatch(/<h1[^>]*>ログイン<\/h1>/u);
     expect(markup).toContain("方法を選びます。");
-    expect(markup).toContain('<a href="/sign/in/email/new">メール</a>');
-    expect(markup).toContain('<a href="/sign/up">登録</a>');
+    // The row carries a decorative arrow beside the label, so the label sits in a span rather
+    // than directly in the anchor. What the assertion is for is that the method links there under
+    // that name.
+    expect(markup).toMatch(/<a href="\/sign\/in\/email\/new"[\s\S]*?>メール</u);
+    expect(markup).toMatch(/<a href="\/sign\/up"[^>]*>登録<\/a>/u);
   });
 
   it("shows the suspension notice instead of any entry point", () => {
@@ -132,7 +135,8 @@ describe("MfaChallengeChoice", () => {
       />,
     );
 
-    expect(markup).toContain('<a href="/sign/in/challenge/passkey/new">パスキー</a>');
+    // As above: the row carries a decorative arrow, so the label sits in a span.
+    expect(markup).toMatch(/<a href="\/sign\/in\/challenge\/passkey\/new"[\s\S]*?>パスキー</u);
   });
 
   it("falls back to the notice and the way back when no factor is available", () => {
@@ -147,7 +151,7 @@ describe("MfaChallengeChoice", () => {
     );
 
     expect(markup).toContain("利用できる方法がありません");
-    expect(markup).toContain('<a href="/sign/in">もどる</a>');
+    expect(markup).toMatch(/<a href="\/sign\/in"[^>]*>もどる<\/a>/u);
   });
 });
 
@@ -162,8 +166,9 @@ describe("VerificationSetup", () => {
       />,
     );
 
-    expect(markup).toContain('<a href="/settings">もどる</a>');
-    expect(markup).toContain('<a href="/settings/passkey/new">パスキー</a>');
+    expect(markup).toMatch(/<a href="\/settings"[^>]*>もどる<\/a>/u);
+    // As above: the row carries a decorative arrow, so the label sits in a span.
+    expect(markup).toMatch(/<a href="\/settings\/passkey\/new"[\s\S]*?>パスキー</u);
   });
 
   it("omits the back link when the ceremony carried no destination", () => {
@@ -197,7 +202,7 @@ describe("sign-in credential screens", () => {
 
     expect(markup).toContain('name="user_email[address]"');
     expect(markup).toContain('data-turnstile-site-key="site-key"');
-    expect(markup).toContain('<a href="/sign/in">');
+    expect(markup).toContain('href="/sign/in"');
   });
 
   it("SignInEmailEdit renders the one-time code field and the resend control", () => {
@@ -279,7 +284,7 @@ describe("sign-in credential screens", () => {
     );
 
     expect(markup).toContain("認証");
-    expect(markup).toContain('<a href="/sign/in">もどる</a>');
+    expect(markup).toMatch(/<a href="\/sign\/in"[^>]*>もどる<\/a>/u);
   });
 });
 
@@ -309,7 +314,7 @@ describe("passkey settings screens", () => {
     );
 
     expect(markup).toContain("MacBook");
-    expect(markup).toContain('<a href="/settings/passkey/pk_1/edit">編集</a>');
+    expect(markup).toMatch(/<a href="\/settings\/passkey\/pk_1\/edit"[^>]*>編集<\/a>/u);
     expect(markup).not.toContain("登録がありません");
   });
 
@@ -347,8 +352,8 @@ describe("passkey settings screens", () => {
       />,
     );
 
-    expect(markup).toContain("<dt>説明</dt>");
-    expect(markup).toContain("<dd>MacBook</dd>");
+    expect(markup).toMatch(/<dt[^>]*>説明<\/dt>/u);
+    expect(markup).toMatch(/<dd[^>]*>MacBook<\/dd>/u);
   });
 
   it("PasskeyEdit scopes the description field to the permitted parameter", () => {
@@ -387,7 +392,7 @@ describe("passkey settings screens", () => {
     );
 
     expect(markup).toContain("登録");
-    expect(markup).toContain('<a href="/settings/passkey">中止</a>');
+    expect(markup).toMatch(/<a href="\/settings\/passkey"[^>]*>中止<\/a>/u);
   });
 });
 

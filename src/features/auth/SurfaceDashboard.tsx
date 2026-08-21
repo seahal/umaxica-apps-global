@@ -1,3 +1,5 @@
+import Card from "@/components/ui/Card";
+import Page from "@/components/ui/Page";
 // The signed-in landing of an auth surface.
 //
 // It is a directory of the ceremonies the surface owns. Every entry arrives resolved from the
@@ -32,25 +34,39 @@ export default function SurfaceDashboard({
   credential_warning: credentialWarning = null,
 }: SurfaceDashboardProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <h1>{title}</h1>
-      <p>{description}</p>
-
+    <Page
+      title={title}
+      description={description}
+    >
       {credentialWarning ? <CredentialWarning {...credentialWarning} /> : null}
 
       {sections.map((section) => (
-        <section key={section.heading}>
-          <h2>{section.heading}</h2>
-          <ul>
+        <Card
+          key={section.heading}
+          heading={section.heading}
+        >
+          <ul className="flex flex-col gap-1">
             {section.items.map((item) => (
-              <li key={item.label}>
+              <li
+                key={item.label}
+                className="text-sm"
+              >
                 {/* A document visit: these destinations are ceremonies with their own guards. */}
-                {item.href ? <a href={item.href}>{item.label}</a> : item.label}
+                {item.href ? (
+                  <a
+                    href={item.href}
+                    className="text-fg underline-offset-4 hover:underline"
+                  >
+                    {item.label}
+                  </a>
+                ) : (
+                  <span className="text-fg-muted">{item.label}</span>
+                )}
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
       ))}
-    </section>
+    </Page>
   );
 }

@@ -1,7 +1,10 @@
-import { Link, router } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import { useState } from "react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
 import type { ConfirmedAction, PageLink } from "@/features/base_com/identity/types";
 
 // Replaces `app/views/base/com/identity/sessions/index.html.erb`. Which revocations are offered is
@@ -45,13 +48,18 @@ function RevokeButton({ action }: { action: ConfirmedAction }) {
 
   return (
     <>
-      <form onSubmit={submit}>
-        <button
+      <form
+        onSubmit={submit}
+        className="inline-flex"
+      >
+        <Button
           type="submit"
-          disabled={processing}
+          variant="danger"
+          size="sm"
+          isDisabled={processing}
         >
           {action.label}
-        </button>
+        </Button>
       </form>
       {dialog}
     </>
@@ -68,19 +76,20 @@ export default function SessionsIndex({
   sessions,
 }: SessionsIndexProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <Link href={backLink.href}>{backLink.label}</Link>
-
+    <Page
+      title={title}
+      up={backLink}
+      upVisit="inertia"
+    >
       {bulkActions ? (
-        <div>
+        <div className="flex flex-wrap gap-3">
           <RevokeButton action={bulkActions.revoke_others} />
           <RevokeButton action={bulkActions.revoke_all} />
         </div>
       ) : null}
 
       {sessions.length > 0 ? (
-        <table>
+        <Table>
           <thead>
             <tr>
               {columns.map((column, index) => (
@@ -92,13 +101,22 @@ export default function SessionsIndex({
           </thead>
           <tbody>
             {sessions.map((session) => (
-              <tr key={session.public_id}>
+              <tr
+                key={session.public_id}
+                className={
+                  session.current
+                    ? "border-b border-line bg-surface-muted last:border-0"
+                    : "border-b border-line last:border-0"
+                }
+              >
                 <td>
-                  <div>
-                    <span>{session.public_id}</span>
-                    {session.current ? <span>{currentLabel}</span> : null}
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-fg">{session.public_id}</span>
+                    {session.current ? (
+                      <span className="text-xs font-semibold text-accent">{currentLabel}</span>
+                    ) : null}
                   </div>
-                  <p>{session.status}</p>
+                  <p className="text-xs text-fg-muted">{session.status}</p>
                 </td>
                 <td>{session.kind}</td>
                 <td>{session.binding}</td>
@@ -109,10 +127,10 @@ export default function SessionsIndex({
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       ) : (
-        <p>{emptyMessage}</p>
+        <p className="text-sm text-fg-muted">{emptyMessage}</p>
       )}
-    </section>
+    </Page>
   );
 }

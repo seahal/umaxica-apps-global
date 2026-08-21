@@ -1,6 +1,8 @@
 import { router } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+
 // Replaces `app/views/base/com/identity/privacy/erasures/new.html.erb`.
 
 export type PrivacyErasureNewProps = {
@@ -25,25 +27,38 @@ export default function PrivacyErasureNew({ title, paragraphs, form }: PrivacyEr
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
-      {paragraphs.map((paragraph) => (
-        <p key={paragraph}>{paragraph}</p>
-      ))}
+    <section className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold text-fg">{title}</h1>
 
-      <form onSubmit={submit}>
+      <div className="flex flex-col gap-3">
+        {paragraphs.map((paragraph) => (
+          <p
+            key={paragraph}
+            className="text-sm text-fg-muted"
+          >
+            {paragraph}
+          </p>
+        ))}
+      </div>
+
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-4"
+      >
         <input
           type="hidden"
           name="jurisdiction"
           value={form.jurisdiction}
           readOnly
         />
-        <button
+        <Button
           type="submit"
-          disabled={processing}
+          variant="danger"
+          isDisabled={processing}
+          className="w-fit"
         >
           {form.submit_label}
-        </button>
+        </Button>
       </form>
     </section>
   );

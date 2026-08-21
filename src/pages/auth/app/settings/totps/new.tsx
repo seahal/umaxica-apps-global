@@ -7,6 +7,12 @@
 import { useForm } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+import TextLink from "@/components/ui/TextLink";
 import type { SettingsLink, SettingsTurnstile } from "@/features/auth/settings/links";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -60,77 +66,82 @@ export default function TotpsNew({
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <a href={backLink.href}>{backLink.label}</a>
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      width="narrow"
+    >
+      <ErrorList
+        errors={errorMessages}
+        {...(errorHeader === null ? {} : { header: errorHeader })}
+      />
 
-      <div>
-        <h3>{title}</h3>
-        <p>{description}</p>
-      </div>
+      <Card>
+        <form
+          onSubmit={submit}
+          className="flex flex-col gap-5"
+        >
+          <div className="flex flex-col items-center gap-2">
+            <img
+              src={qrCodeImage}
+              alt="QR Code"
+              className="size-48 rounded-lg border border-line bg-white p-2"
+            />
+            <p className="text-center text-xs break-all text-fg-muted">{qrFallback}</p>
+          </div>
 
-      {errorHeader ? (
-        <div role="alert">
-          <h3>{errorHeader}</h3>
-          <ul>
-            {errorMessages.map((message) => (
-              <li key={message}>{message}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      <form onSubmit={submit}>
-        <div>
-          <img
-            src={qrCodeImage}
-            alt="QR Code"
-          />
-          <p>{qrFallback}</p>
-        </div>
-
-        <div>
-          <label htmlFor="totp-title">{formProps.title_label}</label>
-          <input
-            type="text"
+          <TextField
             id="totp-title"
+            label={formProps.title_label}
+            type="text"
             maxLength={32}
             placeholder={formProps.title_placeholder}
+            description={formProps.title_hint}
             value={form.data.title}
-            onChange={(event) => form.setData("title", event.target.value)}
+            onChange={(value) => form.setData("title", value)}
           />
-          <p>{formProps.title_hint}</p>
-        </div>
 
-        <div>
-          <label htmlFor="totp-first-token">{formProps.first_token_label}</label>
-          <input
-            type="text"
-            id="totp-first-token"
-            maxLength={16}
-            inputMode="numeric"
-            placeholder={formProps.first_token_placeholder}
-            value={form.data.first_token}
-            onChange={(event) => form.setData("first_token", event.target.value)}
+          <div className="flex flex-col gap-1">
+            <TextField
+              id="totp-first-token"
+              label={formProps.first_token_label}
+              type="text"
+              maxLength={16}
+              inputMode="numeric"
+              placeholder={formProps.first_token_placeholder}
+              description={formProps.first_token_help}
+              value={form.data.first_token}
+              onChange={(value) => form.setData("first_token", value)}
+            />
+            <p className="text-xs text-fg-muted">{formProps.first_token_delivery_help}</p>
+          </div>
+
+          <TurnstileWidget
+            site_key={turnstile.site_key}
+            mode={turnstile.mode}
+            action={turnstile.action}
+            cdata={turnstile.cdata}
+            onToken={setToken}
           />
-          <p>{formProps.first_token_help}</p>
-          <p>{formProps.first_token_delivery_help}</p>
-        </div>
 
-        <TurnstileWidget
-          site_key={turnstile.site_key}
-          mode={turnstile.mode}
-          action={turnstile.action}
-          cdata={turnstile.cdata}
-          onToken={setToken}
-        />
-
-        <a href={cancelLink.href}>{cancelLink.label}</a>
-        <input
-          type="submit"
-          value={formProps.submit_label}
-          disabled={form.processing}
-        />
-      </form>
-    </section>
+          <div className="flex flex-wrap items-center gap-4">
+            <Button
+              type="submit"
+              isDisabled={form.processing}
+            >
+              {formProps.submit_label}
+            </Button>
+            <TextLink
+              href={cancelLink.href}
+              tone="muted"
+              className="text-sm"
+            >
+              {cancelLink.label}
+            </TextLink>
+          </div>
+        </form>
+      </Card>
+    </Page>
   );
 }

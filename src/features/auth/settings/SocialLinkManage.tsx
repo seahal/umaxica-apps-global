@@ -9,6 +9,9 @@
 import { router } from "@inertiajs/react";
 import { useEffect, useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Page from "@/components/ui/Page";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
 
@@ -57,16 +60,19 @@ export default function SocialLinkManage({
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <a href={backLink.href}>{backLink.label}</a>
-
-      <div>
-        <h3>{heading}</h3>
-        <p>{description}</p>
-
+    <Page
+      title={heading}
+      description={description}
+      up={backLink}
+      width="narrow"
+    >
+      <Card>
         {unlink ? (
-          <>
-            <form onSubmit={disconnect}>
+          <div className="flex flex-col gap-2">
+            <form
+              onSubmit={disconnect}
+              className="flex flex-col gap-2"
+            >
               {turnstile ? (
                 <TurnstileWidget
                   site_key={turnstile.site_key}
@@ -76,14 +82,20 @@ export default function SocialLinkManage({
                   onToken={setToken}
                 />
               ) : null}
-              <input
-                type="submit"
-                value={unlink.submit_label}
-                disabled={!unlink.allowed}
-              />
+              <div>
+                <Button
+                  type="submit"
+                  variant="danger"
+                  isDisabled={!unlink.allowed}
+                >
+                  {unlink.submit_label}
+                </Button>
+              </div>
             </form>
-            {unlink.blocked_notice ? <p>{unlink.blocked_notice}</p> : null}
-          </>
+            {unlink.blocked_notice ? (
+              <p className="text-sm text-fg-muted">{unlink.blocked_notice}</p>
+            ) : null}
+          </div>
         ) : null}
 
         {connect ? (
@@ -96,13 +108,10 @@ export default function SocialLinkManage({
               name="authenticity_token"
               value={authenticityToken}
             />
-            <input
-              type="submit"
-              value={connect.label}
-            />
+            <Button type="submit">{connect.label}</Button>
           </form>
         ) : null}
-      </div>
-    </section>
+      </Card>
+    </Page>
   );
 }

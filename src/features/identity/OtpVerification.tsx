@@ -4,7 +4,10 @@
 // code by re-rendering this page and a correct one with a redirect that may leave this host.
 import { Link } from "@inertiajs/react";
 
-import FormErrors from "@/features/identity/FormErrors";
+import Button from "@/components/ui/Button";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
 
@@ -37,17 +40,17 @@ export default function OtpVerification({
   cancel_link: cancelLink,
   error_messages: errorMessages,
 }: OtpVerificationProps) {
-  const fieldId = `${form.scope}_pass_code`;
-
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
-
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
       <form
         action={form.action}
         method="post"
         data-turbo="false"
+        className="flex flex-col gap-4"
       >
         <input
           type="hidden"
@@ -60,22 +63,18 @@ export default function OtpVerification({
           value={csrfToken()}
         />
 
-        <FormErrors messages={errorMessages} />
+        <ErrorList errors={errorMessages} />
 
-        <div>
-          <label htmlFor={fieldId}>{form.code_label}</label>
-          <input
-            type="text"
-            id={fieldId}
-            name={`${form.scope}[pass_code]`}
-            placeholder={form.code_placeholder}
-            autoComplete="one-time-code"
-            inputMode="numeric"
-            pattern="[0-9]*"
-          />
-        </div>
-
-        <p>{deliveryHelp}</p>
+        <TextField
+          label={form.code_label}
+          name={`${form.scope}[pass_code]`}
+          type="text"
+          placeholder={form.code_placeholder}
+          autoComplete="one-time-code"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          description={deliveryHelp}
+        />
 
         <TurnstileWidget
           site_key={form.turnstile.site_key}
@@ -84,15 +83,15 @@ export default function OtpVerification({
           cdata={form.turnstile.cdata}
         />
 
-        <input
-          type="submit"
-          value={form.submit}
-        />
+        <Button type="submit">{form.submit}</Button>
       </form>
 
-      <div>
-        <Link href={cancelLink.href}>{cancelLink.label}</Link>
-      </div>
-    </section>
+      <Link
+        href={cancelLink.href}
+        className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+      >
+        {cancelLink.label}
+      </Link>
+    </Page>
   );
 }

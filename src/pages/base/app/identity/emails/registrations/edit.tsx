@@ -1,6 +1,12 @@
 import { router } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+import TextLink from "@/components/ui/TextLink";
 import type { IdentityLink } from "@/types/identity";
 
 type VerificationForm = {
@@ -51,47 +57,58 @@ export default function EmailRegistrationEdit({
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
+      <ErrorList errors={errors} />
 
-      {errors.length > 0 ? (
-        <ul role="list">
-          {errors.map((message) => (
-            <li key={message}>{message}</li>
-          ))}
-        </ul>
-      ) : null}
-
-      <form onSubmit={submit}>
-        <label htmlFor="user_email_pass_code">{form.code_label}</label>
-        <input
-          id="user_email_pass_code"
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          autoComplete="one-time-code"
-          placeholder={form.code_placeholder}
-          value={passCode}
-          onChange={(event) => setPassCode(event.target.value)}
-        />
-        <p>{form.delivery_help}</p>
-        <button
-          type="submit"
-          disabled={processing}
+      <Card>
+        <form
+          onSubmit={submit}
+          className="flex flex-col gap-4"
         >
-          {form.submit_label}
-        </button>
-      </form>
+          <TextField
+            id="user_email_pass_code"
+            label={form.code_label}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="one-time-code"
+            placeholder={form.code_placeholder}
+            description={form.delivery_help}
+            value={passCode}
+            onChange={setPassCode}
+          />
 
-      <button
-        type="button"
-        onClick={() => router.post(resend.url)}
-      >
-        {resend.label}
-      </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="submit"
+              isDisabled={processing}
+            >
+              {form.submit_label}
+            </Button>
 
-      <a href={cancelLink.href}>{cancelLink.label}</a>
-    </section>
+            <Button
+              type="button"
+              variant="secondary"
+              onPress={() => router.post(resend.url)}
+            >
+              {resend.label}
+            </Button>
+          </div>
+        </form>
+      </Card>
+
+      <p className="text-sm">
+        <TextLink
+          href={cancelLink.href}
+          tone="muted"
+        >
+          {cancelLink.label}
+        </TextLink>
+      </p>
+    </Page>
   );
 }

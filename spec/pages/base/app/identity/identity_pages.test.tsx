@@ -83,7 +83,9 @@ describe("identity activities index", () => {
 
     expect(html).toContain("Signed in");
     expect(html).toContain("203.0.113.4");
-    expect(html).toContain("<code>{}</code>");
+    // The context travels as code, not as prose. Matched as an element rather than as exact
+    // markup so styling it is not a change to what the row reports.
+    expect(html).toMatch(/<code[^>]*>\{\}<\/code>/u);
     expect(html).not.toContain("No activity.");
   });
 

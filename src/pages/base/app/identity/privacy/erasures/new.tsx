@@ -1,6 +1,9 @@
 import { router } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
+
 type Props = {
   title: string;
   notices: string[];
@@ -24,21 +27,25 @@ export default function PrivacyErasureNew({ title, notices, form }: Props) {
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
-
-      {notices.map((notice) => (
-        <p key={notice}>{notice}</p>
-      ))}
+    <Page
+      title={title}
+      width="narrow"
+    >
+      <div className="flex flex-col gap-3 text-sm text-fg-muted">
+        {notices.map((notice) => (
+          <p key={notice}>{notice}</p>
+        ))}
+      </div>
 
       <form onSubmit={submit}>
-        <button
+        <Button
           type="submit"
-          disabled={processing}
+          variant="danger"
+          isDisabled={processing}
         >
           {form.submit_label}
-        </button>
+        </Button>
       </form>
-    </section>
+    </Page>
   );
 }

@@ -1,4 +1,5 @@
-import { Link } from "@inertiajs/react";
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
 
 // Replaces `app/views/base/com/identity/activities/index.html.erb`. Every cell arrives as finished
 // text: localisation and the chronicle formatting stayed on the server.
@@ -39,14 +40,14 @@ export default function ActivityIndex({
   activities,
 }: ActivityIndexProps) {
   return (
-    <section>
-      <Link href={backLink.href}>{backLink.label}</Link>
-
-      <h1>{title}</h1>
-      <p>{description}</p>
-
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      upVisit="inertia"
+    >
       {activities.length > 0 ? (
-        <table>
+        <Table>
           <thead>
             <tr>
               <th>{columns.occurred_at}</th>
@@ -59,7 +60,10 @@ export default function ActivityIndex({
           </thead>
           <tbody>
             {activities.map((activity) => (
-              <tr key={activity.id}>
+              <tr
+                key={activity.id}
+                className="last:border-0"
+              >
                 <td>{activity.occurred_at}</td>
                 <td>
                   {activity.event_label} ({activity.event_id})
@@ -68,15 +72,17 @@ export default function ActivityIndex({
                 <td>{activity.device}</td>
                 <td>{activity.login_method}</td>
                 <td>
-                  <code>{activity.context}</code>
+                  <code className="rounded-sm bg-surface-muted px-1 py-0.5 text-xs">
+                    {activity.context}
+                  </code>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       ) : (
-        <p>{emptyMessage}</p>
+        <p className="text-sm text-fg-muted">{emptyMessage}</p>
       )}
-    </section>
+    </Page>
   );
 }

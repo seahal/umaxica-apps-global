@@ -5,6 +5,9 @@
 // by the server, which re-renders this page with the resulting messages.
 import { useForm } from "@inertiajs/react";
 
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { readString } from "@/lib/payload";
 
@@ -55,25 +58,27 @@ export default function TotpChallengeForm({
   });
 
   const value = readString(data[field.scope], field.field) ?? "";
-  const fieldId = `${field.scope}_${field.field}`;
 
   return (
-    <section>
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
-
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
       <form
         onSubmit={(event) => {
           event.preventDefault();
           post(form.action);
         }}
+        className="flex flex-col gap-4"
       >
         {formErrors.length > 0 ? (
-          <div role="alert">
-            <h2>{errorHeading}</h2>
-            <ul>
+          <div
+            role="alert"
+            className="animate-shake flex flex-col gap-1 rounded-md border border-danger bg-surface p-3"
+          >
+            <h2 className="text-sm font-semibold text-danger">{errorHeading}</h2>
+            <ul className="flex flex-col gap-1 text-sm text-danger">
               {formErrors.map((message) => (
                 <li key={message}>{message}</li>
               ))}
@@ -81,20 +86,16 @@ export default function TotpChallengeForm({
           </div>
         ) : null}
 
-        <div>
-          <label htmlFor={fieldId}>{field.label}</label>
-          <input
-            type="text"
-            id={fieldId}
-            name={field.name}
-            value={value}
-            onChange={(event) => setData(field.scope, { [field.field]: event.target.value })}
-            placeholder={field.placeholder}
-            maxLength={field.max_length}
-            inputMode={field.inputmode}
-          />
-          <p>{field.help}</p>
-        </div>
+        <TextField
+          label={field.label}
+          description={field.help}
+          name={field.name}
+          value={value}
+          onChange={(next) => setData(field.scope, { [field.field]: next })}
+          placeholder={field.placeholder}
+          maxLength={field.max_length}
+          inputMode={field.inputmode}
+        />
 
         <TurnstileWidget
           site_key={turnstile.site_key}
@@ -104,17 +105,22 @@ export default function TotpChallengeForm({
           onToken={(token) => setData("cf-turnstile-response", token)}
         />
 
-        <div>
-          <button
+        <div className="flex items-center gap-4">
+          <Button
             type="submit"
-            disabled={processing}
+            isDisabled={processing}
           >
             {form.submit_label}
-          </button>
+          </Button>
           {/* Document visit: the challenge menu has its own guards. */}
-          <a href={backLink.href}>{backLink.label}</a>
+          <a
+            href={backLink.href}
+            className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+          >
+            {backLink.label}
+          </a>
         </div>
       </form>
-    </section>
+    </Page>
   );
 }

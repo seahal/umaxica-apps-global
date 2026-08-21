@@ -1,6 +1,13 @@
 import { router } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Checkbox from "@/components/ui/Checkbox";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+import TextLink from "@/components/ui/TextLink";
 import type { IdentityLink, IdentityPreferenceField } from "@/types/identity";
 
 type RegistrationForm = {
@@ -52,61 +59,69 @@ export default function EmailRegistrationNew({
   };
 
   return (
-    <section>
-      <a href={backLink.href}>{backLink.label}</a>
+    <Page
+      title={title}
+      up={backLink}
+      width="narrow"
+    >
+      <ErrorList errors={errors} />
 
-      <h1>{title}</h1>
-
-      {errors.length > 0 ? (
-        <ul role="list">
-          {errors.map((message) => (
-            <li key={message}>{message}</li>
-          ))}
-        </ul>
-      ) : null}
-
-      <form onSubmit={submit}>
-        <label htmlFor="user_email_address">{form.address_label}</label>
-        <input
-          id="user_email_address"
-          type="email"
-          autoComplete="email"
-          required
-          value={address}
-          onChange={(event) => setAddress(event.target.value)}
-        />
-
-        <div>
-          <input
-            id="user_email_promotional"
-            type="checkbox"
-            checked={promotional}
-            onChange={(event) => setPromotional(event.target.checked)}
-          />
-          <label htmlFor="user_email_promotional">{form.promotional.label}</label>
-          <p>{form.promotional.description}</p>
-        </div>
-
-        <div>
-          <input
-            id="user_email_notifiable"
-            type="checkbox"
-            checked={notifiable}
-            onChange={(event) => setNotifiable(event.target.checked)}
-          />
-          <label htmlFor="user_email_notifiable">{form.notifiable.label}</label>
-          <p>{form.notifiable.description}</p>
-        </div>
-
-        <button
-          type="submit"
-          disabled={processing}
+      <Card>
+        <form
+          onSubmit={submit}
+          className="flex flex-col gap-5"
         >
-          {form.submit_label}
-        </button>
-      </form>
+          <TextField
+            id="user_email_address"
+            label={form.address_label}
+            type="email"
+            autoComplete="email"
+            isRequired
+            value={address}
+            onChange={setAddress}
+          />
 
-      <a href={cancelLink.href}>{cancelLink.label}</a>
-    </section>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <Checkbox
+                id="user_email_promotional"
+                isSelected={promotional}
+                onChange={setPromotional}
+              >
+                {form.promotional.label}
+              </Checkbox>
+              <p className="pl-6 text-xs text-fg-muted">{form.promotional.description}</p>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <Checkbox
+                id="user_email_notifiable"
+                isSelected={notifiable}
+                onChange={setNotifiable}
+              >
+                {form.notifiable.label}
+              </Checkbox>
+              <p className="pl-6 text-xs text-fg-muted">{form.notifiable.description}</p>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            isDisabled={processing}
+          >
+            {form.submit_label}
+          </Button>
+        </form>
+      </Card>
+
+      <p className="text-sm">
+        <TextLink
+          href={cancelLink.href}
+          tone="muted"
+        >
+          {cancelLink.label}
+        </TextLink>
+      </p>
+    </Page>
   );
 }

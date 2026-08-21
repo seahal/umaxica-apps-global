@@ -14,9 +14,15 @@ export default function ErrorList({
   }
 
   return (
-    <div role="alert">
-      {header ? <h3>{header}</h3> : null}
-      <ul role="list">
+    <div
+      role="alert"
+      className="flex flex-col gap-1 rounded-md border border-danger bg-surface p-3 text-sm text-danger"
+    >
+      {header ? <h3 className="font-semibold">{header}</h3> : null}
+      <ul
+        role="list"
+        className="list-disc pl-5"
+      >
         {errors.map((message) => (
           <li key={message}>{message}</li>
         ))}

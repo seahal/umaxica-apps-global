@@ -100,16 +100,19 @@ describe("PreferenceSelect interaction", () => {
     );
 
     const [, , options] = present(patch.mock.calls[0], "the first router.patch call");
+    // `button` alone is ambiguous now: `Select` renders its own trigger button before the
+    // submit button, so the submit control is selected by its `type` instead.
+    const submit = container.querySelector<HTMLButtonElement>('button[type="submit"]')!;
 
     act(() => {
       startVisit(options);
     });
-    expect(container.querySelector("button")?.textContent).toBe("送信中");
+    expect(submit.textContent).toBe("送信中");
 
     act(() => {
       finishVisit(options);
     });
-    expect(container.querySelector("button")?.textContent).toBe("更新");
+    expect(submit.textContent).toBe("更新");
   });
 });
 

@@ -96,7 +96,7 @@ export default function TurnstileWidget({
   }, []);
 
   return (
-    <div>
+    <div className="flex flex-col gap-2">
       <div
         ref={container}
         className="cf-turnstile"
@@ -108,7 +108,14 @@ export default function TurnstileWidget({
         value={token}
         readOnly
       />
-      {failure ? <p role="alert">{failure}</p> : null}
+      {failure ? (
+        <p
+          role="alert"
+          className="text-sm text-danger"
+        >
+          {failure}
+        </p>
+      ) : null}
     </div>
   );
 }

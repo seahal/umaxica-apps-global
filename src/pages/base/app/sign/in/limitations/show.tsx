@@ -1,6 +1,10 @@
 import { router, useForm } from "@inertiajs/react";
 import type { SyntheticEvent } from "react";
 
+import Button from "@/components/ui/Button";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+
 type SessionEntry = {
   session_ref: string;
   restriction_label: string;
@@ -26,7 +30,6 @@ type Props = {
 };
 
 export default function SignInLimitationShow({
-  title,
   heading,
   description,
   session_label: sessionLabel,
@@ -51,52 +54,74 @@ export default function SignInLimitationShow({
   };
 
   return (
-    <section aria-label={title}>
-      <h1>{heading}</h1>
+    <Page
+      title={heading}
+      description={description}
+    >
+      <ErrorList
+        errors={[error, errors["session_ref"]].filter(
+          (message): message is string => typeof message === "string" && message.length > 0,
+        )}
+      />
 
-      <p>{description}</p>
+      {notice ? <p className="text-sm text-fg-muted">{notice}</p> : null}
 
-      {error ? <p role="alert">{error}</p> : null}
-      {notice ? <p>{notice}</p> : null}
-      {errors["session_ref"] ? <p role="alert">{errors["session_ref"]}</p> : null}
-
-      <form onSubmit={submit}>
-        <ul>
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-4"
+      >
+        <ul className="flex flex-col gap-2">
           {sessions.map((entry) => (
             <li key={entry.session_ref}>
-              <p>
-                {sessionLabel} <span>{entry.restriction_label}</span>
-              </p>
-              <p>{entry.created_label}</p>
-              {entry.last_used_label ? <p>{entry.last_used_label}</p> : null}
-              <label>
+              {/*
+                The whole row is the label, so the radio and the session it revokes are one target
+                rather than a control the visitor has to hit separately.
+              */}
+              <label
+                className="flex cursor-pointer gap-3 rounded-lg border border-line bg-surface p-4
+                  text-sm has-checked:border-accent"
+              >
                 <input
                   type="radio"
                   name="session_ref"
                   value={entry.session_ref}
                   checked={data.session_ref === entry.session_ref}
                   onChange={() => setData("session_ref", entry.session_ref)}
+                  className="mt-0.5"
                 />
-                {entry.revoke_label}
+                <span className="flex flex-col gap-1">
+                  <span className="font-medium text-fg">
+                    {sessionLabel} <span>{entry.restriction_label}</span>
+                  </span>
+                  <span className="text-fg-muted">{entry.created_label}</span>
+                  {entry.last_used_label ? (
+                    <span className="text-fg-muted">{entry.last_used_label}</span>
+                  ) : null}
+                  <span className="text-fg">{entry.revoke_label}</span>
+                </span>
               </label>
             </li>
           ))}
         </ul>
 
-        <button
-          type="submit"
-          disabled={processing}
-        >
-          {submitLabel}
-        </button>
-      </form>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="submit"
+            variant="danger"
+            isDisabled={processing}
+          >
+            {submitLabel}
+          </Button>
 
-      <button
-        type="button"
-        onClick={() => router.delete(cancelAction)}
-      >
-        {cancelLabel}
-      </button>
-    </section>
+          <Button
+            type="button"
+            variant="secondary"
+            onPress={() => router.delete(cancelAction)}
+          >
+            {cancelLabel}
+          </Button>
+        </div>
+      </form>
+    </Page>
   );
 }

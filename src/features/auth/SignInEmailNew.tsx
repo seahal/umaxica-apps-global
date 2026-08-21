@@ -5,6 +5,9 @@
 // errors hash.
 import { useForm } from "@inertiajs/react";
 
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import type { TurnstileConfiguration } from "@/features/auth/settings/PasskeyDeleteButton";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { readString } from "@/lib/payload";
@@ -43,35 +46,25 @@ export default function SignInEmailNew({
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-lg flex-col gap-6 p-6">
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
-
-      <form onSubmit={submit}>
-        {error ? (
-          <div className="animate-shake">
-            <ul>
-              <li role="alert">
-                <span>{error}</span>
-              </li>
-            </ul>
-          </div>
-        ) : null}
-
-        <div>
-          <label htmlFor="user_email_address">{fieldLabel}</label>
-          <input
-            type="email"
-            id="user_email_address"
-            name="user_email[address]"
-            placeholder="name@example.com"
-            value={form.data.user_email.address}
-            onChange={(event) => form.setData("user_email", { address: event.target.value })}
-            required
-          />
-        </div>
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-4"
+      >
+        <TextField
+          label={fieldLabel}
+          type="email"
+          placeholder="name@example.com"
+          {...(error === undefined ? {} : { errorMessage: error, className: "animate-shake" })}
+          name="user_email[address]"
+          value={form.data.user_email.address}
+          onChange={(value) => form.setData("user_email", { address: value })}
+          isRequired
+        />
 
         <TurnstileWidget
           site_key={turnstile.site_key}
@@ -81,21 +74,22 @@ export default function SignInEmailNew({
           onToken={(token) => form.setData("cf-turnstile-response", token)}
         />
 
-        <div>
-          <button
-            type="submit"
-            disabled={form.processing}
-          >
-            {submitLabel}
-          </button>
-        </div>
+        <Button
+          type="submit"
+          isDisabled={form.processing}
+        >
+          {submitLabel}
+        </Button>
       </form>
 
-      <div>
-        <a href={backLink.href}>
+      <p className="text-sm">
+        <a
+          href={backLink.href}
+          className="text-fg underline-offset-4 hover:underline"
+        >
           <span>{backLink.label}</span>
         </a>
-      </div>
-    </section>
+      </p>
+    </Page>
   );
 }

@@ -3,6 +3,9 @@
 // Which factors the actor may use is decided on the server from the credentials they actually hold,
 // so a factor the actor cannot use is absent from `methods` rather than rendered and hidden. When
 // no factor is available the server sends the notice and the way back to the sign-in entry point.
+import NavList from "@/components/ui/NavList";
+import Page from "@/components/ui/Page";
+
 export type MfaMethodLink = {
   key: string;
   label: string;
@@ -25,26 +28,24 @@ export default function MfaChallengeChoice({
   back_link: backLink,
 }: MfaChallengeChoiceProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
+    <Page
+      title={title}
+      description={description}
+    >
+      {/* Document visits: each factor ceremony has its own guards. */}
+      <NavList items={methods} />
 
-      <div>
-        {methods.map((method) => (
-          <p key={method.key}>
-            {/* Document visit: the factor ceremony has its own guards. */}
-            <a href={method.href}>{method.label}</a>
-          </p>
-        ))}
-        {noMethodsNotice ? <p>{noMethodsNotice}</p> : null}
-        {backLink ? (
-          <p>
-            <a href={backLink.href}>{backLink.label}</a>
-          </p>
-        ) : null}
-      </div>
-    </section>
+      {noMethodsNotice ? <p className="text-sm text-fg-muted">{noMethodsNotice}</p> : null}
+      {backLink ? (
+        <p className="text-sm text-fg-muted">
+          <a
+            href={backLink.href}
+            className="underline-offset-4 hover:text-fg hover:underline"
+          >
+            {backLink.label}
+          </a>
+        </p>
+      ) : null}
+    </Page>
   );
 }

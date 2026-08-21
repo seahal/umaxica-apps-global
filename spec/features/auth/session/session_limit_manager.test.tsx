@@ -149,7 +149,7 @@ describe("SessionLimitManager markup", () => {
     expect(markup).toContain('role="alert"');
     expect(markup).toContain("無効なセッション参照です。");
     // `<output>` carries an implicit `role="status"`, which is what the element is for.
-    expect(markup).toContain("<output>");
+    expect(markup).toMatch(/<output[^>]*>/u);
     expect(markup).toContain("セッションを無効化しました。");
   });
 

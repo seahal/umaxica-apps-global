@@ -1,5 +1,7 @@
-import { Link } from "@inertiajs/react";
-
+import Card from "@/components/ui/Card";
+import DescriptionList from "@/components/ui/DescriptionList";
+import Page from "@/components/ui/Page";
+import TextLink from "@/components/ui/TextLink";
 import type { IdentityLink } from "@/types/identity";
 
 type Props = {
@@ -26,21 +28,25 @@ export default function SecretShow({
   edit_link: editLink,
 }: Props) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      upVisit="inertia"
+      width="narrow"
+    >
+      <Card heading={name}>
+        <DescriptionList
+          items={[
+            { term: createdAtLabel, description: createdAt },
+            { term: lastUsedAtLabel, description: lastUsedAt },
+          ]}
+        />
+      </Card>
 
-      <h2>{name}</h2>
-
-      <dl>
-        <dt>{createdAtLabel}</dt>
-        <dd>{createdAt}</dd>
-        <dt>{lastUsedAtLabel}</dt>
-        <dd>{lastUsedAt}</dd>
-      </dl>
-
-      <Link href={backLink.href}>{backLink.label}</Link>
-      <Link href={editLink.href}>{editLink.label}</Link>
-    </section>
+      <p className="text-sm">
+        <TextLink href={editLink.href}>{editLink.label}</TextLink>
+      </p>
+    </Page>
   );
 }

@@ -18,13 +18,26 @@ export type CredentialWarningProps = {
 
 export default function CredentialWarning({ heading, body, items }: CredentialWarningProps) {
   return (
-    <section aria-labelledby="apple-only-credential-warning">
-      <h2 id="apple-only-credential-warning">{heading}</h2>
-      <p>{body}</p>
-      <ul>
+    <section
+      aria-labelledby="apple-only-credential-warning"
+      className="flex flex-col gap-2 rounded-lg border border-danger bg-surface p-4"
+    >
+      <h2
+        id="apple-only-credential-warning"
+        className="text-sm font-semibold text-danger"
+      >
+        {heading}
+      </h2>
+      <p className="text-sm text-fg">{body}</p>
+      <ul className="flex flex-col gap-1">
         {items.map((item) => (
           <li key={item.label}>
-            <a href={item.href}>{item.label}</a>
+            <a
+              href={item.href}
+              className="text-sm text-fg underline-offset-4 hover:underline"
+            >
+              {item.label}
+            </a>
           </li>
         ))}
       </ul>

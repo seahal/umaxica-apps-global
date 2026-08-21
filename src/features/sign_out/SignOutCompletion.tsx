@@ -1,5 +1,7 @@
 // The sign-out completion screen, replacing `app/views/base/shared/sign_outs/complete.html.erb`.
-import { Link } from "@inertiajs/react";
+
+import ButtonLink from "@/components/ui/ButtonLink";
+import Page from "@/components/ui/Page";
 
 export type SignOutCompletionProps = {
   title: string;
@@ -14,12 +16,19 @@ export default function SignOutCompletion({
   home_link: homeLink,
 }: SignOutCompletionProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      {description ? <p>{description}</p> : null}
+    <Page
+      title={title}
+      {...(description === null ? {} : { description })}
+      width="narrow"
+    >
       <p>
-        <Link href={homeLink.href}>{homeLink.label}</Link>
+        <ButtonLink
+          href={homeLink.href}
+          inertia
+        >
+          {homeLink.label}
+        </ButtonLink>
       </p>
-    </section>
+    </Page>
   );
 }

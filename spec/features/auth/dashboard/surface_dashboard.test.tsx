@@ -28,16 +28,17 @@ describe("SurfaceDashboard", () => {
   it("links the destinations the server resolved", () => {
     const markup = renderToStaticMarkup(<SurfaceDashboard {...props} />);
 
-    expect(markup).toContain("<h1>Dashboard</h1>");
+    expect(markup).toMatch(/<h1[^>]*>Dashboard<\/h1>/u);
     expect(markup).toContain("Sign app signed-in landing.");
-    expect(markup).toContain('<a href="/?ri=jp">Root</a>');
-    expect(markup).toContain('<a href="/sign/in/guard?ri=jp">Sign-in guard</a>');
+    expect(markup).toMatch(/<a href="\/\?ri=jp"[^>]*>Root<\/a>/u);
+    expect(markup).toMatch(/<a href="\/sign\/in\/guard\?ri=jp"[^>]*>Sign-in guard<\/a>/u);
   });
 
   it("renders an entry without a destination as plain text", () => {
     const markup = renderToStaticMarkup(<SurfaceDashboard {...props} />);
 
-    expect(markup).toContain("<li>Selector: handled by the sign-in guard sequence</li>");
+    expect(markup).toContain("Selector: handled by the sign-in guard sequence");
+    expect(markup).not.toMatch(/<a[^>]*>Selector: handled by the sign-in guard sequence<\/a>/u);
   });
 });
 

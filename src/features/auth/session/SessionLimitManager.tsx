@@ -2,6 +2,7 @@ import { useForm } from "@inertiajs/react";
 import { useState } from "react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
 
 // The session-limit management page.
 //
@@ -54,11 +55,11 @@ export type SessionLimitManagerProps = {
 function SessionTimestamps({ item }: { item: SessionItem }) {
   return (
     <>
-      <p>
+      <p className="text-xs text-fg-muted">
         {item.created_at_label}: {item.created_at}
       </p>
       {item.last_used_at_label && item.last_used_at ? (
-        <p>
+        <p className="text-xs text-fg-muted">
           {item.last_used_at_label}: {item.last_used_at}
         </p>
       ) : null}
@@ -98,47 +99,61 @@ export default function SessionLimitManager({
   };
 
   return (
-    <section>
-      <h1>{heading}</h1>
+    <section className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold text-fg">{heading}</h1>
 
       {alert ? (
-        <div role="alert">
+        <div
+          role="alert"
+          className="rounded-md border border-line bg-surface p-4 text-sm text-danger"
+        >
           <p>{alert}</p>
         </div>
       ) : null}
 
       {notice ? (
-        <output>
+        <output className="rounded-md border border-line bg-surface p-4 text-sm text-fg">
           <p>{notice}</p>
         </output>
       ) : null}
 
-      {restrictedNotice ? <p>{restrictedNotice}</p> : null}
+      {restrictedNotice ? <p className="text-sm text-fg-muted">{restrictedNotice}</p> : null}
 
-      <p>{description}</p>
+      <p className="text-sm text-fg-muted">{description}</p>
 
       <form
         action={form.action}
         method="post"
         onSubmit={submitRevocation}
+        className="flex flex-col gap-6"
       >
         {activeSessions ? (
-          <div>
-            <h2>
-              {activeSessions.heading} <span>{activeSessions.count_label}</span>
+          <section className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold text-fg">
+              {activeSessions.heading}{" "}
+              <span className="text-sm font-normal text-fg-muted">
+                {activeSessions.count_label}
+              </span>
             </h2>
-            <ul>
+            <ul className="flex flex-col gap-3">
               {activeSessions.items.map((item, index) => (
-                <li key={item.ref ?? `current-${index}`}>
-                  <div>
-                    <p>
+                <li
+                  key={item.ref ?? `current-${index}`}
+                  className="flex flex-col gap-2 rounded-lg border border-line bg-surface p-4"
+                >
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium text-fg">
                       {item.label}
-                      {item.current_label ? <span>{item.current_label}</span> : null}
+                      {item.current_label ? (
+                        <span className="ml-2 text-xs font-medium text-accent">
+                          {item.current_label}
+                        </span>
+                      ) : null}
                     </p>
                     <SessionTimestamps item={item} />
                   </div>
                   {item.ref ? (
-                    <label>
+                    <label className="flex items-center gap-2 text-sm text-fg">
                       <input
                         type="radio"
                         name="ref"
@@ -152,36 +167,44 @@ export default function SessionLimitManager({
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         ) : null}
 
         {restrictedSessions ? (
-          <div>
-            <h2>{restrictedSessions.heading}</h2>
-            <ul>
+          <section className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold text-fg">{restrictedSessions.heading}</h2>
+            <ul className="flex flex-col gap-3">
               {restrictedSessions.items.map((item, index) => (
-                <li key={`restricted-${index}`}>
-                  <div>
-                    <p>
+                <li
+                  key={`restricted-${index}`}
+                  className="flex flex-col gap-2 rounded-lg border border-line bg-surface p-4"
+                >
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium text-fg">
                       {item.label}
-                      {item.current_label ? <span>{item.current_label}</span> : null}
+                      {item.current_label ? (
+                        <span className="ml-2 text-xs font-medium text-accent">
+                          {item.current_label}
+                        </span>
+                      ) : null}
                     </p>
-                    <p>
+                    <p className="text-xs text-fg-muted">
                       {item.created_at_label}: {item.created_at}
                     </p>
                   </div>
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         ) : null}
 
-        <button
+        <Button
           type="submit"
-          disabled={revocation.processing}
+          isDisabled={revocation.processing}
+          className="self-start"
         >
           {form.submit_label}
-        </button>
+        </Button>
       </form>
 
       <form
@@ -194,12 +217,13 @@ export default function SessionLimitManager({
           name="_method"
           value="delete"
         />
-        <button
+        <Button
           type="submit"
-          disabled={cancellation.processing}
+          variant="danger"
+          isDisabled={cancellation.processing}
         >
           {cancel.label}
-        </button>
+        </Button>
       </form>
       {dialog}
     </section>

@@ -5,6 +5,9 @@
 // previous attempt. The form submits as an ordinary document with the verb the route expects,
 // because the server answers a wrong code by re-rendering this page with 422 or 429 and a correct
 // one with a redirect into the next step.
+import Button from "@/components/ui/Button";
+import TextField from "@/components/ui/TextField";
+
 import { csrfToken } from "./csrf";
 
 export type OtpVerificationFormProps = {
@@ -37,17 +40,16 @@ export default function OtpVerificationForm({
   errors,
   return_link: returnLink,
 }: OtpVerificationFormProps) {
-  const fieldId = `${scope}_pass_code`;
-
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
+    <section className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold text-fg">{title}</h1>
+      <p className="text-sm text-fg-muted">{description}</p>
 
       <form
         action={action}
         method="post"
         data-turbo="false"
+        className="flex flex-col gap-4"
       >
         <input
           type="hidden"
@@ -61,9 +63,13 @@ export default function OtpVerificationForm({
         />
 
         {errors.length > 0 ? (
-          <div role="alert">
-            {errorHeading ? <h2>{errorHeading}</h2> : null}
-            <ul>
+          <div
+            role="alert"
+            className="flex flex-col gap-2 rounded-md border border-danger bg-surface p-3 text-sm
+              text-danger"
+          >
+            {errorHeading ? <h2 className="font-semibold">{errorHeading}</h2> : null}
+            <ul className="flex flex-col gap-1 pl-4 list-disc">
               {errors.map((message) => (
                 <li key={message}>{message}</li>
               ))}
@@ -71,31 +77,29 @@ export default function OtpVerificationForm({
           </div>
         ) : null}
 
-        <div>
-          <label htmlFor={fieldId}>{codeLabel}</label>
-          <input
-            type="text"
-            id={fieldId}
-            name={`${scope}[pass_code]`}
-            placeholder={codePlaceholder}
-            // oxlint-disable-next-line jsx-a11y/no-autofocus -- the ERB field carried autofocus.
-            autoFocus
-            autoComplete="one-time-code"
-            inputMode="numeric"
-            pattern="[0-9]*"
-          />
-        </div>
-
-        <input
-          type="submit"
-          value={submitLabel}
+        <TextField
+          label={codeLabel}
+          name={`${scope}[pass_code]`}
+          placeholder={codePlaceholder}
+          // oxlint-disable-next-line jsx-a11y/no-autofocus -- the ERB field carried autofocus.
+          autoFocus
+          autoComplete="one-time-code"
+          inputMode="numeric"
+          pattern="[0-9]*"
         />
+
+        <Button type="submit">{submitLabel}</Button>
       </form>
 
-      <p>{deliveryHelp}</p>
+      <p className="text-sm text-fg-muted">{deliveryHelp}</p>
 
-      <p>
-        <a href={returnLink.href}>{returnLink.label}</a>
+      <p className="text-sm">
+        <a
+          href={returnLink.href}
+          className="text-fg underline-offset-4 hover:underline"
+        >
+          {returnLink.label}
+        </a>
       </p>
     </section>
   );

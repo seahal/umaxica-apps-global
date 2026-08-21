@@ -1,6 +1,11 @@
-import { Link, router } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import ButtonLink from "@/components/ui/ButtonLink";
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
+import TextLink from "@/components/ui/TextLink";
 import type { IdentityLink } from "@/types/identity";
 
 type SecretRow = {
@@ -40,14 +45,21 @@ export default function SecretsIndex({
   };
 
   return (
-    <section>
-      <a href={backLink.href}>{backLink.label}</a>
-
-      <h1>{title}</h1>
-
-      <Link href={newLink.href}>{newLink.label}</Link>
-
-      <table>
+    <Page
+      title={title}
+      up={backLink}
+      width="wide"
+      actions={
+        <ButtonLink
+          href={newLink.href}
+          size="sm"
+          inertia
+        >
+          {newLink.label}
+        </ButtonLink>
+      }
+    >
+      <Table>
         <thead>
           <tr>
             <th scope="col">{headings.name}</th>
@@ -60,22 +72,31 @@ export default function SecretsIndex({
           {secretCredentials.map((secret) => (
             <tr key={secret.public_id}>
               <td>{secret.name}</td>
-              <td>{secret.created_at}</td>
-              <td>{secret.last_used_at}</td>
+              <td className="whitespace-nowrap text-fg-muted">{secret.created_at}</td>
+              <td className="whitespace-nowrap text-fg-muted">{secret.last_used_at}</td>
               <td>
-                <Link href={secret.edit_url}>{editLabel}</Link>
-                <button
-                  type="button"
-                  onClick={() => destroy(secret.destroy_url)}
-                >
-                  {destroyLabel}
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <TextLink
+                    href={secret.edit_url}
+                    inertia
+                  >
+                    {editLabel}
+                  </TextLink>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    onPress={() => destroy(secret.destroy_url)}
+                  >
+                    {destroyLabel}
+                  </Button>
+                </div>
               </td>
             </tr>
           ))}
         </tbody>
-      </table>
+      </Table>
       {dialog}
-    </section>
+    </Page>
   );
 }

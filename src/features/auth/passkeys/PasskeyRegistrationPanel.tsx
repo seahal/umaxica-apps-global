@@ -6,6 +6,8 @@
 // controller sent, because the server stores it.
 import { useRef, useState } from "react";
 
+import Button from "@/components/ui/Button";
+import TextField from "@/components/ui/TextField";
 import { normalizeCreationOptions } from "@/controllers/webauthn_utils";
 import { csrfToken } from "@/lib/csrf";
 import { readObject, readString } from "@/lib/payload";
@@ -171,30 +173,36 @@ export default function PasskeyRegistrationPanel({
   };
 
   return (
-    <div ref={hostRef}>
-      <div>
-        <label htmlFor="description">{descriptionLabel}</label>
-        <input
-          type="text"
-          id="description"
-          autoComplete="off"
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          placeholder={descriptionPlaceholder}
-          maxLength={100}
-        />
-      </div>
+    <div
+      ref={hostRef}
+      className="flex flex-col gap-4"
+    >
+      <TextField
+        label={descriptionLabel}
+        autoComplete="off"
+        value={description}
+        onChange={setDescription}
+        placeholder={descriptionPlaceholder}
+        maxLength={100}
+      />
 
-      {error ? <p role="alert">{error}</p> : null}
-      {status ? <p>{status}</p> : null}
+      {error ? (
+        <p
+          role="alert"
+          className="text-sm text-danger"
+        >
+          {error}
+        </p>
+      ) : null}
+      {status ? <p className="text-sm text-fg-muted">{status}</p> : null}
 
       <div>
-        <button
+        <Button
           type="button"
-          onClick={() => void register()}
+          onPress={() => void register()}
         >
           {submitLabel}
-        </button>
+        </Button>
       </div>
     </div>
   );

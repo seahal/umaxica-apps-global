@@ -5,7 +5,10 @@
 import { Link } from "@inertiajs/react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
-import FormErrors from "@/features/identity/FormErrors";
+import Button from "@/components/ui/Button";
+import Checkbox from "@/components/ui/Checkbox";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
 import type { ConfirmedAction, LabelledLink, TurnstileProps } from "@/features/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
@@ -54,14 +57,16 @@ export default function EmailPreferenceEdit({
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{address}</p>
-
+    <Page
+      title={title}
+      description={address}
+      width="narrow"
+    >
       <form
         action={form.action}
         method="post"
         data-turbo="false"
+        className="flex flex-col gap-4"
       >
         <input
           type="hidden"
@@ -74,45 +79,43 @@ export default function EmailPreferenceEdit({
           value={csrfToken()}
         />
 
-        <FormErrors messages={errorMessages} />
+        <ErrorList errors={errorMessages} />
 
-        <div>
-          <p>{form.always_on_label}</p>
-          <p>{form.always_on_description}</p>
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-medium text-fg">{form.always_on_label}</p>
+          <p className="text-xs text-fg-muted">{form.always_on_description}</p>
         </div>
 
-        <div>
+        <div className="flex flex-col gap-1">
           <input
             type="hidden"
             name={`${form.scope}[promotional]`}
             value="0"
           />
-          <input
-            type="checkbox"
-            id={`${form.scope}_promotional`}
+          <Checkbox
             name={`${form.scope}[promotional]`}
             value="1"
-            defaultChecked={form.promotional}
-          />
-          <label htmlFor={`${form.scope}_promotional`}>{form.promotional_label}</label>
-          <p>{form.promotional_description}</p>
+            defaultSelected={form.promotional}
+          >
+            {form.promotional_label}
+          </Checkbox>
+          <p className="pl-6 text-xs text-fg-muted">{form.promotional_description}</p>
         </div>
 
-        <div>
+        <div className="flex flex-col gap-1">
           <input
             type="hidden"
             name={`${form.scope}[notifiable]`}
             value="0"
           />
-          <input
-            type="checkbox"
-            id={`${form.scope}_notifiable`}
+          <Checkbox
             name={`${form.scope}[notifiable]`}
             value="1"
-            defaultChecked={form.notifiable}
-          />
-          <label htmlFor={`${form.scope}_notifiable`}>{form.notifiable_label}</label>
-          <p>{form.notifiable_description}</p>
+            defaultSelected={form.notifiable}
+          >
+            {form.notifiable_label}
+          </Checkbox>
+          <p className="pl-6 text-xs text-fg-muted">{form.notifiable_description}</p>
         </div>
 
         <TurnstileWidget
@@ -122,10 +125,7 @@ export default function EmailPreferenceEdit({
           cdata={form.turnstile.cdata}
         />
 
-        <input
-          type="submit"
-          value={form.submit}
-        />
+        <Button type="submit">{form.submit}</Button>
       </form>
 
       <form
@@ -144,16 +144,21 @@ export default function EmailPreferenceEdit({
           name="authenticity_token"
           value={csrfToken()}
         />
-        <input
+        <Button
           type="submit"
-          value={destroy.label}
-        />
+          variant="danger"
+        >
+          {destroy.label}
+        </Button>
       </form>
 
-      <div>
-        <Link href={cancelLink.href}>{cancelLink.label}</Link>
-      </div>
+      <Link
+        href={cancelLink.href}
+        className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+      >
+        {cancelLink.label}
+      </Link>
       {dialog}
-    </section>
+    </Page>
   );
 }

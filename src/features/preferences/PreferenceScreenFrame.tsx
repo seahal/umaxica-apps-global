@@ -1,5 +1,6 @@
-import { Link } from "@inertiajs/react";
 import type { ReactNode } from "react";
+
+import Page from "@/components/ui/Page";
 
 export type PreferenceLink = {
   label: string;
@@ -23,17 +24,13 @@ export default function PreferenceScreenFrame({
   children,
 }: PreferenceScreenFrameProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
-      <div>
-        <Link href={backLink.href}>{backLink.label}</Link>
-      </div>
-
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-        {description ? <p className="max-w-prose text-base leading-7">{description}</p> : null}
-      </div>
-
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      upVisit="inertia"
+    >
       {children}
-    </section>
+    </Page>
   );
 }

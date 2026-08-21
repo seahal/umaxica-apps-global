@@ -4,6 +4,8 @@
 // solves the invisible Turnstile challenge, asks the options endpoint for a challenge, runs
 // `navigator.credentials.create` and posts the attestation to the verification endpoint. Every one
 // of those endpoints is unchanged and still enforces its own guards.
+import Page from "@/components/ui/Page";
+import TextLink from "@/components/ui/TextLink";
 import PasskeyRegistrationPanel, {
   type PasskeyRegistrationPanelProps,
 } from "@/features/auth/passkeys/PasskeyRegistrationPanel";
@@ -25,17 +27,22 @@ export default function PasskeysNew({
   panel,
 }: Props) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <a href={backLink.href}>{backLink.label}</a>
-
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
-
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      width="narrow"
+    >
       <PasskeyRegistrationPanel {...panel} />
 
-      <a href={cancelLink.href}>{cancelLink.label}</a>
-    </section>
+      <p className="text-sm">
+        <TextLink
+          href={cancelLink.href}
+          tone="muted"
+        >
+          {cancelLink.label}
+        </TextLink>
+      </p>
+    </Page>
   );
 }

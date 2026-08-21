@@ -7,6 +7,7 @@
 // out of Stimulus.
 import { useRef, useState } from "react";
 
+import Button from "@/components/ui/Button";
 import { csrfToken } from "@/lib/csrf";
 import { readObject, readString } from "@/lib/payload";
 
@@ -157,9 +158,22 @@ export default function PasskeyAuthenticationPanel({
   };
 
   return (
-    <div ref={hostRef}>
-      <div>
-        <label htmlFor="identifier">{field.label}</label>
+    <div
+      ref={hostRef}
+      className="flex flex-col gap-4"
+    >
+      {/*
+        A plain, hand-styled input rather than the shared `TextField`: `TextField` has no prop for
+        `autoCapitalize`, and dropping it would change the mobile keyboard behaviour this identifier
+        relies on.
+      */}
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="identifier"
+          className="text-sm font-medium text-fg"
+        >
+          {field.label}
+        </label>
         <input
           type="text"
           id="identifier"
@@ -173,19 +187,28 @@ export default function PasskeyAuthenticationPanel({
           pattern={field.pattern}
           spellCheck={false}
           required
+          className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-fg
+            placeholder:text-fg-muted"
         />
       </div>
 
-      {error ? <p role="alert">{error}</p> : null}
-      {status ? <p>{status}</p> : null}
+      {error ? (
+        <p
+          role="alert"
+          className="text-sm text-danger"
+        >
+          {error}
+        </p>
+      ) : null}
+      {status ? <p className="text-sm text-fg-muted">{status}</p> : null}
 
       <div>
-        <button
+        <Button
           type="button"
-          onClick={() => void authenticate()}
+          onPress={() => void authenticate()}
         >
           {submitLabel}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -29,8 +29,8 @@ describe("RootLanding", () => {
   });
 
   it("links to the sign-up destination the server generated", () => {
-    expect(renderToStaticMarkup(<RootLanding {...props} />)).toContain(
-      '<a href="/oidc/authorization?ri=jp">Sign up</a>',
+    expect(renderToStaticMarkup(<RootLanding {...props} />)).toMatch(
+      /<a href="\/oidc\/authorization\?ri=jp"[^>]*>Sign up<\/a>/u,
     );
   });
 

@@ -75,9 +75,11 @@ describe("social link screens", () => {
       />,
     );
 
-    expect(html).toContain('value="連携解除"');
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*>連携解除<\/button>/u);
     expect(html).toContain('name="cf-turnstile-response"');
-    expect(html).not.toContain("disabled");
+    // Not `.not.toContain("disabled")`: the button's own Tailwind classes name a `disabled:`
+    // variant regardless of state. What must be absent is the actual disabled attribute.
+    expect(html).not.toMatch(/\bdisabled(=|\s|>)/u);
   });
 
   it("disables the disconnect form and explains why when it is the last method", () => {
@@ -112,7 +114,9 @@ describe("social link screens", () => {
 
     expect(html).toContain('method="post"');
     expect(html).toContain('name="authenticity_token"');
-    expect(html).toContain('value="連携する"');
+    // The submit control carries the label. Whether it is an `<input type="submit">` or a
+    // `<button type="submit">` is presentation; what matters is that the form submits under it.
+    expect(html).toMatch(/type="submit"[^>]*>連携する<|value="連携する"/u);
   });
 });
 
@@ -312,7 +316,7 @@ describe("totp settings screens", () => {
     expect(html).toContain('src="data:image/png;base64,AAAA"');
     expect(html).toContain("QRコードを読み取れない場合");
     expect(html).toContain('name="cf-turnstile-response"');
-    expect(html).toContain('value="登録"');
+    expect(html).toMatch(/type="submit"[^>]*>登録<|value="登録"/u);
   });
 
   it("repeats the enrolment errors the server produced", () => {
@@ -373,7 +377,7 @@ describe("totp settings screens", () => {
       />,
     );
 
-    expect(html).toContain('value="保存"');
+    expect(html).toMatch(/type="submit"[^>]*>保存<|value="保存"/u);
     expect(html).toContain("削除");
     expect(html).not.toContain('name="cf-turnstile-response"');
   });

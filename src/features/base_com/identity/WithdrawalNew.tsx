@@ -2,7 +2,9 @@ import { Link, router } from "@inertiajs/react";
 import { useState } from "react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
-import ErrorList from "@/features/base_com/identity/ErrorList";
+import Button from "@/components/ui/Button";
+import Checkbox from "@/components/ui/Checkbox";
+import ErrorList from "@/components/ui/ErrorList";
 import type { PageLink } from "@/features/base_com/identity/types";
 
 // Replaces `app/views/base/com/identity/withdrawals/new.html.erb`. The deactivation step is absent
@@ -28,6 +30,8 @@ export type WithdrawalNewProps = {
   schedule: WithdrawalAckForm;
   deactivate: WithdrawalAckForm | null;
 };
+
+const LINK = "text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline";
 
 function AckSection({ form }: { form: WithdrawalAckForm }) {
   const [checked, setChecked] = useState(form.checked ?? false);
@@ -59,27 +63,29 @@ function AckSection({ form }: { form: WithdrawalAckForm }) {
   };
 
   return (
-    <section>
-      <h2>{form.title}</h2>
+    <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
+      <h2 className="text-lg font-semibold text-fg">{form.title}</h2>
       <ErrorList errors={form.errors} />
 
-      <form onSubmit={submit}>
-        <div>
-          <input
-            id={form.field}
-            name={form.field}
-            type="checkbox"
-            checked={checked}
-            onChange={(event) => setChecked(event.target.checked)}
-          />
-          <label htmlFor={form.field}>{form.ack_label}</label>
-        </div>
-        <button
-          type="submit"
-          disabled={processing}
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-3"
+      >
+        <Checkbox
+          id={form.field}
+          isSelected={checked}
+          onChange={setChecked}
         >
-          {form.submit_label}
-        </button>
+          {form.ack_label}
+        </Checkbox>
+        <div>
+          <Button
+            type="submit"
+            isDisabled={processing}
+          >
+            {form.submit_label}
+          </Button>
+        </div>
       </form>
       {dialog}
     </section>
@@ -95,21 +101,26 @@ export default function WithdrawalNew({
   deactivate,
 }: WithdrawalNewProps) {
   return (
-    <section>
-      <h1>{title}</h1>
+    <section className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold text-fg">{title}</h1>
 
       {alreadyDeactivated ? (
         <>
-          <p>{alreadyDeactivatedMessage}</p>
+          <p className="text-sm text-fg-muted">{alreadyDeactivatedMessage}</p>
           <p>
-            <Link href={recoveryLink.href}>{recoveryLink.label}</Link>
+            <Link
+              href={recoveryLink.href}
+              className={LINK}
+            >
+              {recoveryLink.label}
+            </Link>
           </p>
         </>
       ) : (
-        <>
+        <div className="flex flex-col gap-4">
           <AckSection form={schedule} />
           {deactivate ? <AckSection form={deactivate} /> : null}
-        </>
+        </div>
       )}
     </section>
   );

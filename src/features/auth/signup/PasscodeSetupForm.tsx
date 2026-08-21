@@ -4,6 +4,10 @@
 // the boundary at all: it is the content of the page. Nothing else about the credential travels —
 // no digest, no record, no session state — and the server re-derives the credential from its own
 // session when the form comes back.
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import TextField from "@/components/ui/TextField";
+
 import { csrfToken } from "./csrf";
 
 export type PasscodeSetupFormProps = {
@@ -39,14 +43,15 @@ export default function PasscodeSetupForm({
   cancel_label: cancelLabel,
 }: PasscodeSetupFormProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
+    <section className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold text-fg">{title}</h1>
+      <p className="text-sm text-fg-muted">{description}</p>
 
       <form
         action={action}
         method="post"
         data-turbo="false"
+        className="flex flex-col gap-4"
       >
         <input
           type="hidden"
@@ -65,21 +70,21 @@ export default function PasscodeSetupForm({
         />
 
         {errors.length > 0 ? (
-          <ul role="alert">
+          <ul
+            role="alert"
+            className="flex flex-col gap-1 rounded-md border border-danger bg-surface p-3 text-sm
+              text-danger"
+          >
             {errors.map((message) => (
               <li key={message}>{message}</li>
             ))}
           </ul>
         ) : null}
 
-        <div>
-          <label htmlFor={`${scope}_name`}>{nameLabel}</label>
-          <input
-            type="text"
-            id={`${scope}_name`}
-            name={`${scope}[name]`}
-          />
-        </div>
+        <TextField
+          label={nameLabel}
+          name={`${scope}[name]`}
+        />
 
         <input
           type="hidden"
@@ -87,16 +92,17 @@ export default function PasscodeSetupForm({
           value="1"
         />
 
-        <div>
-          <p>{secretHeading}</p>
-          <p>{secret}</p>
-          <p>{oneTimeNotice}</p>
-        </div>
+        <Card
+          heading={secretHeading}
+          tone="muted"
+        >
+          <p className="rounded-md bg-surface px-3 py-2 font-mono text-lg font-semibold text-fg">
+            {secret}
+          </p>
+          <p className="text-xs text-fg-muted">{oneTimeNotice}</p>
+        </Card>
 
-        <input
-          type="submit"
-          value={saveLabel}
-        />
+        <Button type="submit">{saveLabel}</Button>
       </form>
 
       <form
@@ -114,7 +120,12 @@ export default function PasscodeSetupForm({
           name="authenticity_token"
           value={csrfToken()}
         />
-        <button type="submit">{cancelLabel}</button>
+        <Button
+          type="submit"
+          variant="secondary"
+        >
+          {cancelLabel}
+        </Button>
       </form>
     </section>
   );

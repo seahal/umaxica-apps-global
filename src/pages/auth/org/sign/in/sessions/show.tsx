@@ -4,6 +4,9 @@
 // and may promote the restricted one, DELETE cancels the ceremony and signs the operator out. The
 // value on each choice is the server's signed reference, which is all the server accepts.
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Page from "@/components/ui/Page";
 import { csrfToken } from "@/lib/csrf";
 
 type SessionRow = {
@@ -56,12 +59,11 @@ export default function OrgSessionLimitPage({
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <div>
-        <h1>{heading}</h1>
-        <p>{description}</p>
-      </div>
-
+    <Page
+      title={heading}
+      description={description}
+      up={backLink}
+    >
       <form
         action={formAction}
         method="post"
@@ -79,52 +81,50 @@ export default function OrgSessionLimitPage({
           readOnly
         />
 
-        <h2>{activeSessionsHeading}</h2>
-
-        {sessions.length > 0 ? (
-          <div>
-            {sessions.map((session) => (
-              <label
-                key={session.ref}
-                data-session-checkbox
-                className="ring-2 ring-transparent checked:ring-amber-500"
-              >
-                <input
-                  type="radio"
-                  name="ref"
-                  value={session.ref}
-                />
-                <div>
-                  <div>
-                    <span>
-                      {sessionLabel} #{session.digest}
-                    </span>
-                  </div>
-                  <div>
-                    <span>
-                      {createdAtLabel}: {session.created_at}
-                    </span>
-                    {session.last_used_at ? (
-                      <span>
-                        {lastUsedLabel}: {session.last_used_at}
+        <Card heading={activeSessionsHeading}>
+          {sessions.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {sessions.map((session) => (
+                <li key={session.ref}>
+                  {/*
+                    The whole row is the label, so the radio and the session it revokes are one
+                    target. The selected row is marked by its border rather than a ring, which is
+                    what the focus outline already uses.
+                  */}
+                  <label
+                    data-session-checkbox
+                    className="flex cursor-pointer gap-3 rounded-lg border border-line
+                      bg-surface p-4 text-sm has-checked:border-accent"
+                  >
+                    <input
+                      type="radio"
+                      name="ref"
+                      value={session.ref}
+                      className="mt-0.5"
+                    />
+                    <span className="flex flex-col gap-1">
+                      <span className="font-medium text-fg">
+                        {sessionLabel} #{session.digest}
                       </span>
-                    ) : null}
-                  </div>
-                </div>
-              </label>
-            ))}
-          </div>
-        ) : (
-          <p>{noSessions}</p>
-        )}
+                      <span className="text-fg-muted">
+                        {createdAtLabel}: {session.created_at}
+                      </span>
+                      {session.last_used_at ? (
+                        <span className="text-fg-muted">
+                          {lastUsedLabel}: {session.last_used_at}
+                        </span>
+                      ) : null}
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-fg-muted">{noSessions}</p>
+          )}
 
-        <div>
-          <input
-            type="submit"
-            value={submitLabel}
-          />
-          <a href={backLink.href}>{backLink.label}</a>
-        </div>
+          <Button type="submit">{submitLabel}</Button>
+        </Card>
       </form>
 
       <form
@@ -144,9 +144,14 @@ export default function OrgSessionLimitPage({
           value={csrfToken()}
           readOnly
         />
-        <button type="submit">{cancelLogoutLabel}</button>
+        <Button
+          type="submit"
+          variant="secondary"
+        >
+          {cancelLogoutLabel}
+        </Button>
       </form>
       {dialog}
-    </section>
+    </Page>
   );
 }

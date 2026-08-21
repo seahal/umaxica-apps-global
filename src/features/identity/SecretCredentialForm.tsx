@@ -4,7 +4,11 @@
 // creation from a rename.
 import { Link } from "@inertiajs/react";
 
-import FormErrors from "@/features/identity/FormErrors";
+import Button from "@/components/ui/Button";
+import Checkbox from "@/components/ui/Checkbox";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import type { LabelledLink, TurnstileProps } from "@/features/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
@@ -29,6 +33,8 @@ export type SecretCredentialFormProps = {
   error_messages: string[];
 };
 
+const LINK = "text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline";
+
 export default function SecretCredentialForm({
   title,
   description,
@@ -39,14 +45,16 @@ export default function SecretCredentialForm({
   error_messages: errorMessages,
 }: SecretCredentialFormProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
-
+    <Page
+      title={title}
+      description={description}
+      width="wide"
+    >
       <form
         action={form.action}
         method="post"
         data-turbo="false"
+        className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-4"
       >
         {form.method ? (
           <input
@@ -61,42 +69,31 @@ export default function SecretCredentialForm({
           value={csrfToken()}
         />
 
-        <FormErrors
-          heading={errorHeader}
-          messages={errorMessages}
+        <ErrorList
+          errors={errorMessages}
+          {...(errorHeader === null ? {} : { header: errorHeader })}
         />
 
-        <div>
-          <label htmlFor={`${form.scope}_name`}>{form.name_label}</label>
-          <input
-            type="text"
-            id={`${form.scope}_name`}
-            name={`${form.scope}[name]`}
-            defaultValue={form.name}
-          />
-        </div>
+        <TextField
+          label={form.name_label}
+          name={`${form.scope}[name]`}
+          defaultValue={form.name}
+        />
 
         {form.value_label ? (
-          <div>
-            <label htmlFor={`${form.scope}_value`}>{form.value_label}</label>
-            <input
-              type="text"
-              id={`${form.scope}_value`}
-              name={`${form.scope}[value]`}
-            />
-          </div>
+          <TextField
+            label={form.value_label}
+            name={`${form.scope}[value]`}
+          />
         ) : null}
 
         {form.confirm_saved_label ? (
-          <div>
-            <input
-              type="checkbox"
-              id="confirm_secret_credential_saved"
-              name="confirm_secret_credential_saved"
-              value="1"
-            />
-            <label htmlFor="confirm_secret_credential_saved">{form.confirm_saved_label}</label>
-          </div>
+          <Checkbox
+            name="confirm_secret_credential_saved"
+            value="1"
+          >
+            {form.confirm_saved_label}
+          </Checkbox>
         ) : null}
 
         <TurnstileWidget
@@ -106,14 +103,16 @@ export default function SecretCredentialForm({
           cdata={turnstile.cdata}
         />
 
-        <div>
-          <Link href={cancelLink.href}>{cancelLink.label}</Link>
-          <input
-            type="submit"
-            value={form.submit}
-          />
+        <div className="flex items-center justify-end gap-3">
+          <Link
+            href={cancelLink.href}
+            className={LINK}
+          >
+            {cancelLink.label}
+          </Link>
+          <Button type="submit">{form.submit}</Button>
         </div>
       </form>
-    </section>
+    </Page>
   );
 }

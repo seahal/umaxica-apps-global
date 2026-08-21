@@ -16,6 +16,8 @@ export type SecretCredentialShowProps = {
   edit_link: PageLink;
 };
 
+const LINK = "text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline";
+
 export default function SecretCredentialShow({
   title,
   name,
@@ -27,22 +29,36 @@ export default function SecretCredentialShow({
   edit_link: editLink,
 }: SecretCredentialShowProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <h3>{name}</h3>
-      <dl>
-        <div>
-          <dt>{createdTerm}</dt>
-          <dd>{createdAt}</dd>
+    <section className="flex flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-fg">{title}</h1>
+        <h3 className="text-lg font-semibold text-fg">{name}</h3>
+      </header>
+
+      <dl className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 text-sm">
+        <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+          <dt className="font-medium text-fg-muted sm:w-48">{createdTerm}</dt>
+          <dd className="text-fg">{createdAt}</dd>
         </div>
-        <div>
-          <dt>{lastUsedTerm}</dt>
-          <dd>{lastUsedAt}</dd>
+        <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+          <dt className="font-medium text-fg-muted sm:w-48">{lastUsedTerm}</dt>
+          <dd className="text-fg">{lastUsedAt}</dd>
         </div>
       </dl>
-      <div>
-        <Link href={backLink.href}>{backLink.label}</Link>
-        <Link href={editLink.href}>{editLink.label}</Link>
+
+      <div className="flex gap-4">
+        <Link
+          href={backLink.href}
+          className={LINK}
+        >
+          {backLink.label}
+        </Link>
+        <Link
+          href={editLink.href}
+          className={LINK}
+        >
+          {editLink.label}
+        </Link>
       </div>
     </section>
   );

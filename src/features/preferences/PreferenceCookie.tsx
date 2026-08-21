@@ -1,6 +1,8 @@
 import { router } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Checkbox from "@/components/ui/Checkbox";
 import PreferenceScreenFrame, {
   type PreferenceLink,
 } from "@/features/preferences/PreferenceScreenFrame";
@@ -62,49 +64,39 @@ export default function PreferenceCookie({
         onSubmit={submit}
         className="flex flex-col gap-4"
       >
-        <div className="flex flex-col gap-2">
+        <fieldset className="flex flex-col gap-2">
           {/* Strictly necessary cookies cannot be declined, so the row is read-only. */}
-          <div>
-            <input
-              id="accept_necessary_cookies"
-              type="checkbox"
-              checked
-              disabled
-              readOnly
-            />
-            <label htmlFor="accept_necessary_cookies">{form.necessary_label}</label>
-          </div>
+          <Checkbox
+            isSelected
+            isDisabled
+          >
+            {form.necessary_label}
+          </Checkbox>
 
-          {form.categories.map((category) => {
-            const inputId = `${form.scope}_${category.key}`;
-
-            return (
-              <div key={category.key}>
-                <input
-                  id={inputId}
-                  name={`${form.scope}[${category.key}]`}
-                  type="checkbox"
-                  checked={categories[category.key] ?? false}
-                  onChange={(event) =>
-                    setCategories((current) => ({
-                      ...current,
-                      [category.key]: event.target.checked,
-                    }))
-                  }
-                />
-                <label htmlFor={inputId}>{category.label}</label>
-              </div>
-            );
-          })}
-        </div>
+          {form.categories.map((category) => (
+            <Checkbox
+              key={category.key}
+              name={`${form.scope}[${category.key}]`}
+              isSelected={categories[category.key] ?? false}
+              onChange={(isSelected: boolean) =>
+                setCategories((current) => ({
+                  ...current,
+                  [category.key]: isSelected,
+                }))
+              }
+            >
+              {category.label}
+            </Checkbox>
+          ))}
+        </fieldset>
 
         <div>
-          <button
+          <Button
             type="submit"
-            disabled={processing}
+            isDisabled={processing}
           >
             {processing ? form.submitting_label : form.submit_label}
-          </button>
+          </Button>
         </div>
       </form>
     </PreferenceScreenFrame>

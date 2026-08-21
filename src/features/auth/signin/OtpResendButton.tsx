@@ -5,6 +5,7 @@
 // client-side countdown, which is a courtesy - the server re-checks the cooldown on every request.
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import Button from "@/components/ui/Button";
 import { readBoolean, readNumber } from "@/lib/payload";
 
 import { csrfToken } from "./csrf";
@@ -96,15 +97,17 @@ export default function OtpResendButton({
   };
 
   return (
-    <div>
-      <button
+    <div className="flex flex-col items-start gap-2">
+      <Button
         type="button"
-        disabled={remaining > 0}
-        onClick={() => void request()}
+        variant="secondary"
+        size="sm"
+        isDisabled={remaining > 0}
+        onPress={() => void request()}
       >
         {remaining > 0 ? `${resend.too_soon_message} (${remaining}s)` : resend.button_label}
-      </button>
-      <p>{status}</p>
+      </Button>
+      <p className="text-sm text-fg-muted">{status}</p>
     </div>
   );
 }

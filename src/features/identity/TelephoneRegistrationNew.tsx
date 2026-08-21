@@ -4,7 +4,10 @@
 // only when the server sent its configuration.
 import { Link } from "@inertiajs/react";
 
-import FormErrors from "@/features/identity/FormErrors";
+import Button from "@/components/ui/Button";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import type { LabelledLink, TurnstileProps } from "@/features/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
@@ -23,6 +26,8 @@ export type TelephoneRegistrationNewProps = {
   error_messages: string[];
 };
 
+const LINK = "text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline";
+
 export default function TelephoneRegistrationNew({
   title,
   form,
@@ -30,13 +35,15 @@ export default function TelephoneRegistrationNew({
   error_messages: errorMessages,
 }: TelephoneRegistrationNewProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-
+    <Page
+      title={title}
+      width="wide"
+    >
       <form
         action={form.action}
         method="post"
         data-turbo="false"
+        className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-4"
       >
         <input
           type="hidden"
@@ -44,37 +51,34 @@ export default function TelephoneRegistrationNew({
           value={csrfToken()}
         />
 
-        <FormErrors messages={errorMessages} />
+        <ErrorList errors={errorMessages} />
 
-        <div>
-          <label htmlFor={`${form.scope}_raw_number`}>{form.number_label}</label>
-          <input
-            type="tel"
-            id={`${form.scope}_raw_number`}
-            name={`${form.scope}[raw_number]`}
-            placeholder={form.number_placeholder}
-          />
-        </div>
+        <TextField
+          label={form.number_label}
+          name={`${form.scope}[raw_number]`}
+          type="tel"
+          placeholder={form.number_placeholder}
+        />
 
         {form.turnstile ? (
-          <div>
-            <TurnstileWidget
-              site_key={form.turnstile.site_key}
-              mode={form.turnstile.mode}
-              action={form.turnstile.action}
-              cdata={form.turnstile.cdata}
-            />
-          </div>
+          <TurnstileWidget
+            site_key={form.turnstile.site_key}
+            mode={form.turnstile.mode}
+            action={form.turnstile.action}
+            cdata={form.turnstile.cdata}
+          />
         ) : null}
 
-        <div>
-          <Link href={cancelLink.href}>{cancelLink.label}</Link>
-          <input
-            type="submit"
-            value={form.submit}
-          />
+        <div className="flex items-center justify-end gap-3">
+          <Link
+            href={cancelLink.href}
+            className={LINK}
+          >
+            {cancelLink.label}
+          </Link>
+          <Button type="submit">{form.submit}</Button>
         </div>
       </form>
-    </section>
+    </Page>
   );
 }

@@ -1,6 +1,6 @@
 // The read-only birthdate screen. The date is already formatted by the server, and `birthdate` is
 // null when none is recorded rather than the client deciding what "unset" looks like.
-import { Link } from "@inertiajs/react";
+import Page from "@/components/ui/Page";
 
 export type BirthdateShowProps = {
   title: string;
@@ -22,18 +22,23 @@ export default function BirthdateShow({
   back_link: backLink,
 }: BirthdateShowProps) {
   return (
-    <section>
-      <Link href={backLink.href}>{backLink.label}</Link>
-
-      <h1>{title}</h1>
-      <p>{description}</p>
-
-      <dl>
-        <dt>{birthdateLabel}</dt>
-        <dd>{birthdate ? <span data-birthdate>{birthdate}</span> : notSet}</dd>
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      upVisit="inertia"
+      width="narrow"
+    >
+      <dl className="rounded-lg border border-line bg-surface p-4">
+        <dt className="text-xs font-semibold tracking-wide text-fg-muted uppercase">
+          {birthdateLabel}
+        </dt>
+        <dd className="mt-1 text-sm text-fg">
+          {birthdate ? <span data-birthdate>{birthdate}</span> : notSet}
+        </dd>
       </dl>
 
-      <p>{changeUnavailable}</p>
-    </section>
+      <p className="text-sm text-fg-muted">{changeUnavailable}</p>
+    </Page>
   );
 }

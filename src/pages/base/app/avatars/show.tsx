@@ -1,4 +1,5 @@
-import { Link } from "@inertiajs/react";
+import ButtonLink from "@/components/ui/ButtonLink";
+import Page from "@/components/ui/Page";
 
 type Props = {
   title: string;
@@ -8,14 +9,26 @@ type Props = {
   edit: { label: string; href: string } | null;
 };
 
-export default function AvatarShow({ title, moniker, handle, edit }: Props) {
+export default function AvatarShow({ moniker, handle, edit }: Props) {
   return (
-    <section aria-label={title}>
-      <h1>{moniker}</h1>
-
-      {handle ? <p>{handle}</p> : null}
-
-      {edit ? <Link href={edit.href}>{edit.label}</Link> : null}
-    </section>
+    <Page
+      title={moniker}
+      {...(handle === null ? {} : { description: handle })}
+      width="narrow"
+      {...(edit === null
+        ? {}
+        : {
+            actions: (
+              <ButtonLink
+                href={edit.href}
+                variant="secondary"
+                size="sm"
+                inertia
+              >
+                {edit.label}
+              </ButtonLink>
+            ),
+          })}
+    />
   );
 }

@@ -6,12 +6,14 @@
 // the step-up completion hand-off document or with this page re-rendered, not with an Inertia visit.
 import { useRef } from "react";
 
+import Button from "@/components/ui/Button";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
 import { PASSKEY_MESSAGES, authenticationErrorMessage } from "@/features/auth/passkeys/messages";
 import { useCeremonyMessages } from "@/features/auth/passkeys/useCeremonyMessages";
 import { getAssertion, passkeysSupported } from "@/features/auth/passkeys/webauthn";
 
 import type { VerificationFormBase, VerificationLink } from "./types";
-import VerificationErrors from "./VerificationErrors";
 import VerificationFormFields from "./VerificationFormFields";
 
 export type PasskeyVerificationForm = VerificationFormBase & {
@@ -71,16 +73,19 @@ export default function PasskeyVerification({
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <h1>{heading}</h1>
-      <p>{description}</p>
-
-      <VerificationErrors errors={errors} />
+    <Page
+      title={heading}
+      description={description}
+      up={back}
+      width="narrow"
+    >
+      <ErrorList errors={errors} />
 
       <form
         ref={formRef}
         action={form.action}
         method="post"
+        className="flex flex-col gap-4"
       >
         <VerificationFormFields
           csrf_token={form.csrf_token}
@@ -100,20 +105,20 @@ export default function PasskeyVerification({
           defaultValue=""
         />
 
-        <button
-          type="button"
-          onClick={() => void authenticate()}
-        >
-          {form.submit_label}
-        </button>
+        <div>
+          <Button onPress={() => void authenticate()}>{form.submit_label}</Button>
+        </div>
 
-        {error ? <p role="alert">{error}</p> : null}
-        {status ? <p>{status}</p> : null}
+        {error ? (
+          <p
+            role="alert"
+            className="text-sm text-danger"
+          >
+            {error}
+          </p>
+        ) : null}
+        {status ? <p className="text-sm text-fg-muted">{status}</p> : null}
       </form>
-
-      <div>
-        <a href={back.href}>{back.label}</a>
-      </div>
-    </section>
+    </Page>
   );
 }

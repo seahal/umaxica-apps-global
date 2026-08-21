@@ -3,6 +3,8 @@
 // The whole ceremony is the JSON options/verification pair the Stimulus controller drove; the panel
 // is its React port and talks to the same two endpoints behind the same step-up and Turnstile
 // guards.
+import Page from "@/components/ui/Page";
+import TextLink from "@/components/ui/TextLink";
 import PasskeyRegistrationPanel, {
   type PasskeyRegistrationPanelProps,
 } from "@/features/auth/passkeys/PasskeyRegistrationPanel";
@@ -21,17 +23,21 @@ export default function OrgPasskeyRegistrationPage({
   cancel_link: cancelLink,
 }: OrgPasskeyRegistrationPageProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
-
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
       <PasskeyRegistrationPanel {...registration} />
 
-      <div>
-        <a href={cancelLink.href}>{cancelLink.label}</a>
-      </div>
-    </section>
+      <p className="text-sm">
+        <TextLink
+          href={cancelLink.href}
+          tone="muted"
+        >
+          {cancelLink.label}
+        </TextLink>
+      </p>
+    </Page>
   );
 }

@@ -39,9 +39,9 @@ describe("SideDashboard", () => {
 
     expect(markup).toContain("Primary links");
     expect(markup).toContain("Protocol links");
-    expect(markup).toContain('<a href="/?ri=jp">Root</a>');
-    expect(markup).toContain('<a href="/sign/out/new?ri=jp">Sign out</a>');
-    expect(markup).toContain('<a href="/oidc/authorization?ri=jp">Authorize</a>');
+    expect(markup).toMatch(/<a href="\/\?ri=jp"[^>]*>Root<\/a>/u);
+    expect(markup).toMatch(/<a href="\/sign\/out\/new\?ri=jp"[^>]*>Sign out<\/a>/u);
+    expect(markup).toMatch(/<a href="\/oidc\/authorization\?ri=jp"[^>]*>Authorize<\/a>/u);
   });
 
   it("renders nothing extra when the server sends no sections", () => {

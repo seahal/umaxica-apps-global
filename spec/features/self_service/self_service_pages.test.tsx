@@ -80,7 +80,7 @@ describe("SelfServiceShell", () => {
       />,
     );
 
-    expect(html).toContain("<h1>Account</h1>");
+    expect(html).toMatch(/<h1[^>]*>Account<\/h1>/u);
     expect(html).toContain("account");
     expect(html).toContain("Signed in");
   });
@@ -102,7 +102,7 @@ describe("EntityList", () => {
       />,
     );
 
-    expect(html).toContain("<h1>Accounts</h1>");
+    expect(html).toMatch(/<h1[^>]*>Accounts<\/h1>/u);
     expect(html).toContain('href="/accounts/acc_1?ri=jp"');
     expect(html).toContain("acc_2");
     expect(html).not.toContain("None available");
@@ -132,7 +132,9 @@ describe("BillingsIndex", () => {
       />,
     );
 
-    expect(html).toContain("<h1>Billings</h1>");
+    // Matched as a heading rather than as exact markup: the class list is styling, and a
+    // refresh of it is not a change to what this page says.
+    expect(html).toMatch(/<h1[^>]*>Billings<\/h1>/u);
     expect(html).toContain("Sign in required.");
   });
 });
@@ -148,7 +150,7 @@ describe("AvatarShow", () => {
       />,
     );
 
-    expect(html).toContain("<h1>First Avatar</h1>");
+    expect(html).toMatch(/<h1[^>]*>First Avatar<\/h1>/u);
     expect(html).toContain("first");
     expect(html).toContain('href="/avatars/av_1/edit?ri=jp"');
   });
@@ -188,7 +190,7 @@ describe("SwitcherShow", () => {
       />,
     );
 
-    expect(html).toContain("<h1>Switcher</h1>");
+    expect(html).toMatch(/<h1[^>]*>Switcher<\/h1>/u);
     expect(html).toContain("unit_1");
     expect(html).toContain("invalid switch");
     expect(html).toContain('role="alert"');

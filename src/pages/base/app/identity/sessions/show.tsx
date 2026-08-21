@@ -1,3 +1,6 @@
+import Card from "@/components/ui/Card";
+import DescriptionList from "@/components/ui/DescriptionList";
+import Page from "@/components/ui/Page";
 import type { IdentityLink } from "@/types/identity";
 
 type SessionRecord = {
@@ -20,25 +23,22 @@ type Props = {
 
 export default function SessionShow({ title, session, back_link: backLink }: Props) {
   return (
-    <section>
-      <a href={backLink.href}>{backLink.label}</a>
-
-      <h1>{title}</h1>
-
-      <dl>
-        <dt>Session</dt>
-        <dd>{session.public_id}</dd>
-        <dt>Kind</dt>
-        <dd>{session.kind}</dd>
-        <dt>Binding</dt>
-        <dd>{session.binding}</dd>
-        <dt>Last activity</dt>
-        <dd>{session.last_activity}</dd>
-        <dt>Created</dt>
-        <dd>{session.created}</dd>
-        <dt>Refresh expires</dt>
-        <dd>{session.refresh_expires}</dd>
-      </dl>
-    </section>
+    <Page
+      title={title}
+      up={backLink}
+    >
+      <Card>
+        <DescriptionList
+          items={[
+            { term: "Session", description: session.public_id },
+            { term: "Kind", description: session.kind },
+            { term: "Binding", description: session.binding },
+            { term: "Last activity", description: session.last_activity },
+            { term: "Created", description: session.created },
+            { term: "Refresh expires", description: session.refresh_expires },
+          ]}
+        />
+      </Card>
+    </Page>
   );
 }

@@ -1,9 +1,12 @@
-import type { VerificationFormBase, VerificationLink } from "./types";
 // Asks the actor to have a one-time code sent to their verified address.
 //
 // The address itself never crosses: the server knows which one it delivers to, and the screen only
 // starts the delivery. The form is a document POST, exactly as the ERB form was.
-import VerificationErrors from "./VerificationErrors";
+import Button from "@/components/ui/Button";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+
+import type { VerificationFormBase, VerificationLink } from "./types";
 import VerificationFormFields from "./VerificationFormFields";
 
 export type EmailOtpRequestProps = {
@@ -23,11 +26,13 @@ export default function EmailOtpRequest({
   back,
 }: EmailOtpRequestProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <h1>{heading}</h1>
-      <p>{description}</p>
-
-      <VerificationErrors errors={errors} />
+    <Page
+      title={heading}
+      description={description}
+      up={back}
+      width="narrow"
+    >
+      <ErrorList errors={errors} />
 
       <form
         action={form.action}
@@ -38,17 +43,8 @@ export default function EmailOtpRequest({
           scope={form.scope}
           pt={form.pt}
         />
-        <div>
-          <input
-            type="submit"
-            value={form.submit_label}
-          />
-        </div>
+        <Button type="submit">{form.submit_label}</Button>
       </form>
-
-      <div>
-        <a href={back.href}>{back.label}</a>
-      </div>
-    </section>
+    </Page>
   );
 }

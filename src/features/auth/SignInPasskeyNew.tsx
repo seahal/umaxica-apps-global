@@ -1,3 +1,4 @@
+import Page from "@/components/ui/Page";
 // Sign in with a passkey.
 //
 // The ceremony is the shared panel ported from the Stimulus controller; this screen frames it with
@@ -20,15 +21,19 @@ export default function SignInPasskeyNew({
   back_link: backLink,
 }: SignInPasskeyNewProps) {
   return (
-    <section className="mx-auto flex w-full max-w-lg flex-col gap-6 p-6">
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
-
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
       <PasskeyAuthenticationPanel {...panel} />
 
-      <a href={backLink.href}>{backLink.label}</a>
-    </section>
+      <a
+        href={backLink.href}
+        className="text-sm text-fg underline-offset-4 hover:underline"
+      >
+        {backLink.label}
+      </a>
+    </Page>
   );
 }

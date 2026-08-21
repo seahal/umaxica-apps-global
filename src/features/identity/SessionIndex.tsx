@@ -2,9 +2,11 @@
 //
 // Which sessions may be revoked is a server decision: the current session arrives without a
 // `revoke` action, and the bulk revocations are absent when there is no other session to revoke.
-import { Link } from "@inertiajs/react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
 import { csrfToken } from "@/lib/csrf";
 
 export type SessionAction = {
@@ -73,10 +75,13 @@ function RevokeButton({ action }: { action: SessionAction }) {
           name="authenticity_token"
           value={csrfToken()}
         />
-        <input
+        <Button
           type="submit"
-          value={action.label}
-        />
+          variant="danger"
+          size="sm"
+        >
+          {action.label}
+        </Button>
       </form>
       {dialog}
     </>
@@ -92,58 +97,66 @@ export default function SessionIndex({
   sessions,
 }: SessionIndexProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <Link href={backLink.href}>{backLink.label}</Link>
-
+    <Page
+      title={title}
+      up={backLink}
+      upVisit="inertia"
+      width="wide"
+    >
       {bulkRevocations ? (
-        <div>
+        <div className="flex flex-wrap gap-2">
           <RevokeButton action={bulkRevocations.others} />
           <RevokeButton action={bulkRevocations.all} />
         </div>
       ) : null}
 
       {sessions.length > 0 ? (
-        <div>
-          <table>
-            <thead>
-              <tr>
-                <th>{columns.session}</th>
-                <th>{columns.kind}</th>
-                <th>{columns.binding}</th>
-                <th>{columns.last_activity}</th>
-                <th>{columns.created}</th>
-                <th>{columns.refresh_expires}</th>
-                <th />
+        <Table>
+          <thead>
+            <tr>
+              <th scope="col">{columns.session}</th>
+              <th scope="col">{columns.kind}</th>
+              <th scope="col">{columns.binding}</th>
+              <th scope="col">{columns.last_activity}</th>
+              <th scope="col">{columns.created}</th>
+              <th scope="col">{columns.refresh_expires}</th>
+              <th scope="col" />
+            </tr>
+          </thead>
+          <tbody>
+            {sessions.map((session) => (
+              <tr
+                key={session.public_id}
+                className={
+                  session.current
+                    ? "border-t border-line bg-surface-muted font-semibold"
+                    : "border-t border-line bg-surface"
+                }
+              >
+                <td>
+                  <div className="flex flex-col gap-0.5">
+                    <span>{session.public_id}</span>
+                    {session.current_label ? (
+                      <span className="text-xs font-normal text-fg-muted">
+                        {session.current_label}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-xs font-normal text-fg-muted">{session.status}</p>
+                </td>
+                <td>{session.kind}</td>
+                <td>{session.binding}</td>
+                <td>{session.last_activity}</td>
+                <td>{session.created}</td>
+                <td>{session.refresh_expires}</td>
+                <td>{session.revoke ? <RevokeButton action={session.revoke} /> : null}</td>
               </tr>
-            </thead>
-            <tbody>
-              {sessions.map((session) => (
-                <tr
-                  key={session.public_id}
-                  className={session.current ? "bg-slate-50 font-semibold" : undefined}
-                >
-                  <td>
-                    <div>
-                      <span>{session.public_id}</span>
-                      {session.current_label ? <span>{session.current_label}</span> : null}
-                    </div>
-                    <p>{session.status}</p>
-                  </td>
-                  <td>{session.kind}</td>
-                  <td>{session.binding}</td>
-                  <td>{session.last_activity}</td>
-                  <td>{session.created}</td>
-                  <td>{session.refresh_expires}</td>
-                  <td>{session.revoke ? <RevokeButton action={session.revoke} /> : null}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </Table>
       ) : (
-        <p>{emptyMessage}</p>
+        <p className="text-sm text-fg-muted">{emptyMessage}</p>
       )}
-    </section>
+    </Page>
   );
 }

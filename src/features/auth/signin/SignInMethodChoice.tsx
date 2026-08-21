@@ -1,3 +1,5 @@
+import Page from "@/components/ui/Page";
+
 // The app-surface sign-in entry screen: pick a credential method, or hand off to a social provider.
 //
 // Which methods exist and where they lead are server decisions, so each entry arrives with a
@@ -27,15 +29,22 @@ export default function SignInMethodChoice({
   registration_link: registrationLink,
 }: SignInMethodChoiceProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
-
-      <ul>
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
+      <ul className="flex flex-col gap-2">
         {methods.map((method) => (
           <li key={method.key}>
             {/* Document visits: each method starts a ceremony behind its own guards. */}
-            <a href={method.href}>{method.label}</a>
+            <a
+              href={method.href}
+              className="flex items-center justify-center rounded-md border border-line bg-surface
+                px-4 py-2 text-sm font-medium text-fg hover:bg-surface-muted"
+            >
+              {method.label}
+            </a>
           </li>
         ))}
       </ul>
@@ -48,7 +57,14 @@ export default function SignInMethodChoice({
         ))}
       </ul>
 
-      <a href={registrationLink.href}>{registrationLink.label}</a>
-    </section>
+      <p className="text-sm">
+        <a
+          href={registrationLink.href}
+          className="text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+        >
+          {registrationLink.label}
+        </a>
+      </p>
+    </Page>
   );
 }

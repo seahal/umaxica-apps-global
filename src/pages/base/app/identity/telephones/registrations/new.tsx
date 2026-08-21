@@ -1,6 +1,12 @@
-import { Link, router } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+import TextLink from "@/components/ui/TextLink";
 import type { IdentityLink } from "@/types/identity";
 
 type Props = {
@@ -41,38 +47,46 @@ export default function TelephoneRegistrationNew({
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
+      <ErrorList errors={errors} />
 
-      {errors.length > 0 ? (
-        <ul role="list">
-          {errors.map((message) => (
-            <li key={message}>{message}</li>
-          ))}
-        </ul>
-      ) : null}
-
-      <form onSubmit={submit}>
-        <label htmlFor="user_telephone_raw_number">{numberLabel}</label>
-        <input
-          id="user_telephone_raw_number"
-          type="tel"
-          placeholder={numberPlaceholder}
-          value={rawNumber}
-          onChange={(event) => setRawNumber(event.target.value)}
-        />
-        <p>{helpText}</p>
-
-        <button
-          type="submit"
-          disabled={processing}
+      <Card>
+        <form
+          onSubmit={submit}
+          className="flex flex-col gap-4"
         >
-          {form.submit_label}
-        </button>
-      </form>
+          <TextField
+            id="user_telephone_raw_number"
+            label={numberLabel}
+            type="tel"
+            placeholder={numberPlaceholder}
+            description={helpText}
+            value={rawNumber}
+            onChange={setRawNumber}
+          />
 
-      <Link href={cancelLink.href}>{cancelLink.label}</Link>
-    </section>
+          <Button
+            type="submit"
+            isDisabled={processing}
+          >
+            {form.submit_label}
+          </Button>
+        </form>
+      </Card>
+
+      <p className="text-sm">
+        <TextLink
+          href={cancelLink.href}
+          tone="muted"
+          inertia
+        >
+          {cancelLink.label}
+        </TextLink>
+      </p>
+    </Page>
   );
 }

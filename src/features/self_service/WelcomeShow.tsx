@@ -2,8 +2,8 @@
 //
 // Where "next" goes is a server decision: the welcome sequence resolves it and sends the finished
 // destination, so the page never guesses the next step.
-import { Link } from "@inertiajs/react";
-
+import ButtonLink from "@/components/ui/ButtonLink";
+import Page from "@/components/ui/Page";
 import CredentialWarning, {
   type CredentialWarningProps,
 } from "@/features/identity/CredentialWarning";
@@ -21,14 +21,17 @@ export default function WelcomeShow({
   credential_warning: credentialWarning = null,
 }: WelcomeShowProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-
+    <Page title={title}>
       {credentialWarning ? <CredentialWarning {...credentialWarning} /> : null}
 
       <p>
-        <Link href={nextLink.href}>{nextLink.label}</Link>
+        <ButtonLink
+          href={nextLink.href}
+          inertia
+        >
+          {nextLink.label}
+        </ButtonLink>
       </p>
-    </section>
+    </Page>
   );
 }

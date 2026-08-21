@@ -4,6 +4,10 @@
 // its message from `errors` rather than from a re-rendered 422 body.
 import { useForm } from "@inertiajs/react";
 
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
+import TextLink from "@/components/ui/TextLink";
 import type { TurnstileConfiguration } from "@/features/auth/settings/PasskeyDeleteButton";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { readString } from "@/lib/payload";
@@ -40,31 +44,22 @@ export default function PasskeyEdit({
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <h1>{title}</h1>
-
-      <form onSubmit={submit}>
-        {error ? (
-          <div>
-            <ul>
-              <li role="alert">{error}</li>
-            </ul>
-          </div>
-        ) : null}
-
-        <div>
-          <label htmlFor="visitor_passkey_description">{fieldLabel}</label>
-          <input
-            type="text"
-            id="visitor_passkey_description"
-            name="visitor_passkey[description]"
-            maxLength={100}
-            value={form.data.visitor_passkey.description}
-            onChange={(event) =>
-              form.setData("visitor_passkey", { description: event.target.value })
-            }
-          />
-        </div>
+    <Page
+      title={title}
+      width="narrow"
+    >
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-4"
+      >
+        <TextField
+          label={fieldLabel}
+          name="visitor_passkey[description]"
+          maxLength={100}
+          value={form.data.visitor_passkey.description}
+          onChange={(value) => form.setData("visitor_passkey", { description: value })}
+          {...(error === undefined ? {} : { errorMessage: error })}
+        />
 
         <TurnstileWidget
           site_key={turnstile.site_key}
@@ -74,16 +69,22 @@ export default function PasskeyEdit({
           onToken={(token) => form.setData("cf-turnstile-response", token)}
         />
 
-        <div>
-          <button
+        <div className="flex items-center gap-4">
+          <Button
             type="submit"
-            disabled={form.processing}
+            isDisabled={form.processing}
           >
             {submitLabel}
-          </button>
-          <a href={cancelLink.href}>{cancelLink.label}</a>
+          </Button>
+          <TextLink
+            href={cancelLink.href}
+            tone="muted"
+            className="text-sm"
+          >
+            {cancelLink.label}
+          </TextLink>
         </div>
       </form>
-    </section>
+    </Page>
   );
 }

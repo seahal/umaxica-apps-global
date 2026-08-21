@@ -5,6 +5,9 @@
 // whether the address is registered - the server answers identically either way.
 import { useForm } from "@inertiajs/react";
 
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { readString } from "@/lib/payload";
 
@@ -45,48 +48,42 @@ export default function EmailSignInForm({
   });
 
   const value = readString(data[field.scope], field.field) ?? "";
-  const fieldId = `${field.scope}_${field.field}`;
 
   return (
-    <section>
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
-
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
       <form
         onSubmit={(event) => {
           event.preventDefault();
           post(form.action);
         }}
+        className="flex flex-col gap-4"
       >
         {formErrors.length > 0 ? (
           <div
-            className="animate-shake"
+            className="animate-shake rounded-md border border-danger bg-surface p-3"
             role="alert"
           >
-            <ul>
+            <ul className="flex flex-col gap-1 text-sm text-danger">
               {formErrors.map((message) => (
-                <li key={message}>
-                  <span>{message}</span>
-                </li>
+                <li key={message}>{message}</li>
               ))}
             </ul>
           </div>
         ) : null}
 
-        <div>
-          <label htmlFor={fieldId}>{field.label}</label>
-          <input
-            type="email"
-            id={fieldId}
-            name={field.name}
-            value={value}
-            onChange={(event) => setData(field.scope, { [field.field]: event.target.value })}
-            placeholder={field.placeholder}
-            required
-          />
-        </div>
+        <TextField
+          label={field.label}
+          type="email"
+          name={field.name}
+          value={value}
+          onChange={(next) => setData(field.scope, { [field.field]: next })}
+          placeholder={field.placeholder}
+          isRequired
+        />
 
         <TurnstileWidget
           site_key={turnstile.site_key}
@@ -96,22 +93,23 @@ export default function EmailSignInForm({
           onToken={(token) => setData("cf-turnstile-response", token)}
         />
 
-        <div>
-          <button
-            type="submit"
-            disabled={processing}
-          >
-            {form.submit_label}
-          </button>
-        </div>
+        <Button
+          type="submit"
+          isDisabled={processing}
+        >
+          {form.submit_label}
+        </Button>
       </form>
 
-      <div>
+      <p className="text-sm">
         {/* Document visit: leaving the ceremony returns to the method selection page. */}
-        <a href={backLink.href}>
-          <span>{backLink.label}</span>
+        <a
+          href={backLink.href}
+          className="text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+        >
+          {backLink.label}
         </a>
-      </div>
-    </section>
+      </p>
+    </Page>
   );
 }

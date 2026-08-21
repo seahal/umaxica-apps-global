@@ -5,6 +5,9 @@
 // it is never rendered into the page.
 import { useForm } from "@inertiajs/react";
 
+import Button from "@/components/ui/Button";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import OtpResendButton, { type OtpResendMessages } from "@/features/auth/otp/OtpResendButton";
 import type { TurnstileConfiguration } from "@/features/auth/settings/PasskeyDeleteButton";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
@@ -50,39 +53,28 @@ export default function SignInEmailEdit({
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-lg flex-col gap-6 p-6">
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
-
-      <form onSubmit={submit}>
-        {error ? (
-          <div className="animate-shake">
-            <ul>
-              <li role="alert">
-                <span>{error}</span>
-              </li>
-            </ul>
-          </div>
-        ) : null}
-
-        <div>
-          <label htmlFor="user_email_pass_code">{fieldLabel}</label>
-          <input
-            type="text"
-            id="user_email_pass_code"
-            name="user_email[pass_code]"
-            placeholder={fieldPlaceholder}
-            maxLength={6}
-            autoComplete="one-time-code"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={form.data.user_email.pass_code}
-            onChange={(event) => form.setData("user_email", { pass_code: event.target.value })}
-            required
-          />
-        </div>
+    <Page
+      title={title}
+      description={description}
+      width="narrow"
+    >
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-4"
+      >
+        <TextField
+          label={fieldLabel}
+          placeholder={fieldPlaceholder}
+          {...(error === undefined ? {} : { errorMessage: error, className: "animate-shake" })}
+          name="user_email[pass_code]"
+          maxLength={6}
+          autoComplete="one-time-code"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={form.data.user_email.pass_code}
+          onChange={(value) => form.setData("user_email", { pass_code: value })}
+          isRequired
+        />
 
         <OtpResendButton
           endpoint={resend.endpoint}
@@ -99,23 +91,24 @@ export default function SignInEmailEdit({
           onToken={(token) => form.setData("cf-turnstile-response", token)}
         />
 
-        <div>
-          <button
-            type="submit"
-            disabled={form.processing}
-          >
-            {submitLabel}
-          </button>
-        </div>
+        <Button
+          type="submit"
+          isDisabled={form.processing}
+        >
+          {submitLabel}
+        </Button>
       </form>
 
-      <p>{deliveryHelp}</p>
+      <p className="text-sm text-fg-muted">{deliveryHelp}</p>
 
-      <div>
-        <a href={returnLink.href}>
+      <p className="text-sm">
+        <a
+          href={returnLink.href}
+          className="text-fg underline-offset-4 hover:underline"
+        >
           <span>{returnLink.label}</span>
         </a>
-      </div>
-    </section>
+      </p>
+    </Page>
   );
 }

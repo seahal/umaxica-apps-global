@@ -1,7 +1,11 @@
 // The address step of adding an email identifier.
 import { Link } from "@inertiajs/react";
 
-import FormErrors from "@/features/identity/FormErrors";
+import Button from "@/components/ui/Button";
+import Checkbox from "@/components/ui/Checkbox";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
+import TextField from "@/components/ui/TextField";
 import type { LabelledLink, TurnstileProps } from "@/features/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
@@ -29,13 +33,15 @@ export default function EmailRegistrationNew({
   error_messages: errorMessages,
 }: EmailRegistrationNewProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-
+    <Page
+      title={title}
+      width="narrow"
+    >
       <form
         action={form.action}
         method="post"
         data-turbo="false"
+        className="flex flex-col gap-4"
       >
         <input
           type="hidden"
@@ -43,34 +49,30 @@ export default function EmailRegistrationNew({
           value={csrfToken()}
         />
 
-        <FormErrors messages={errorMessages} />
+        <ErrorList errors={errorMessages} />
 
-        <div>
-          <label htmlFor={`${form.scope}_address`}>{form.address_label}</label>
-          <input
-            type="email"
-            id={`${form.scope}_address`}
-            name={`${form.scope}[address]`}
-            autoComplete="email"
-            required
-          />
-        </div>
+        <TextField
+          label={form.address_label}
+          type="email"
+          name={`${form.scope}[address]`}
+          autoComplete="email"
+          isRequired
+        />
 
-        <div>
+        <div className="flex flex-col gap-1">
           <input
             type="hidden"
             name={`${form.scope}[notifiable]`}
             value="0"
           />
-          <input
-            type="checkbox"
-            id={`${form.scope}_notifiable`}
+          <Checkbox
             name={`${form.scope}[notifiable]`}
             value="1"
-            defaultChecked={form.notifiable}
-          />
-          <label htmlFor={`${form.scope}_notifiable`}>{form.notifiable_label}</label>
-          <p>{form.notifiable_description}</p>
+            defaultSelected={form.notifiable}
+          >
+            {form.notifiable_label}
+          </Checkbox>
+          <p className="pl-6 text-xs text-fg-muted">{form.notifiable_description}</p>
         </div>
 
         <TurnstileWidget
@@ -80,15 +82,15 @@ export default function EmailRegistrationNew({
           cdata={form.turnstile.cdata}
         />
 
-        <input
-          type="submit"
-          value={form.submit}
-        />
+        <Button type="submit">{form.submit}</Button>
       </form>
 
-      <div>
-        <Link href={cancelLink.href}>{cancelLink.label}</Link>
-      </div>
-    </section>
+      <Link
+        href={cancelLink.href}
+        className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+      >
+        {cancelLink.label}
+      </Link>
+    </Page>
   );
 }

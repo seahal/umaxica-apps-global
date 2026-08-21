@@ -1,8 +1,11 @@
 import { Link, router } from "@inertiajs/react";
 import { useState } from "react";
 
+import Button from "@/components/ui/Button";
+import Checkbox from "@/components/ui/Checkbox";
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
 import DestructiveButton from "@/features/base_com/identity/DestructiveButton";
-import ErrorList from "@/features/base_com/identity/ErrorList";
 import type { ConfirmedAction, PageLink, TurnstileProps } from "@/features/base_com/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 
@@ -59,40 +62,43 @@ export default function EmailEdit({
   };
 
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{address}</p>
-
-      <form onSubmit={submit}>
+    <Page
+      title={title}
+      description={address}
+    >
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-4"
+      >
         <ErrorList errors={errors} />
 
-        <div>
-          <p>{alwaysOn.label}</p>
-          <p>{alwaysOn.description}</p>
+        <div className="rounded-md border border-line bg-surface-muted p-3">
+          <p className="text-sm font-medium text-fg">{alwaysOn.label}</p>
+          <p className="text-xs text-fg-muted">{alwaysOn.description}</p>
         </div>
 
-        <div>
-          <input
+        <div className="flex flex-col gap-1">
+          <Checkbox
             id={`${form.scope}_promotional`}
             name={`${form.scope}[promotional]`}
-            type="checkbox"
-            checked={promotionalChecked}
-            onChange={(event) => setPromotionalChecked(event.target.checked)}
-          />
-          <label htmlFor={`${form.scope}_promotional`}>{promotional.label}</label>
-          <p>{promotional.description}</p>
+            isSelected={promotionalChecked}
+            onChange={setPromotionalChecked}
+          >
+            {promotional.label}
+          </Checkbox>
+          <p className="pl-6 text-xs text-fg-muted">{promotional.description}</p>
         </div>
 
-        <div>
-          <input
+        <div className="flex flex-col gap-1">
+          <Checkbox
             id={`${form.scope}_notifiable`}
             name={`${form.scope}[notifiable]`}
-            type="checkbox"
-            checked={notifiableChecked}
-            onChange={(event) => setNotifiableChecked(event.target.checked)}
-          />
-          <label htmlFor={`${form.scope}_notifiable`}>{notifiable.label}</label>
-          <p>{notifiable.description}</p>
+            isSelected={notifiableChecked}
+            onChange={setNotifiableChecked}
+          >
+            {notifiable.label}
+          </Checkbox>
+          <p className="pl-6 text-xs text-fg-muted">{notifiable.description}</p>
         </div>
 
         <TurnstileWidget
@@ -100,16 +106,24 @@ export default function EmailEdit({
           onToken={setToken}
         />
 
-        <button
+        <Button
           type="submit"
-          disabled={processing}
+          isDisabled={processing}
+          className="w-fit"
         >
           {form.submit_label}
-        </button>
+        </Button>
       </form>
 
-      <DestructiveButton action={destroy} />
-      <Link href={cancelLink.href}>{cancelLink.label}</Link>
-    </section>
+      <div className="flex items-center gap-4 border-t border-line pt-4">
+        <DestructiveButton action={destroy} />
+        <Link
+          href={cancelLink.href}
+          className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+        >
+          {cancelLink.label}
+        </Link>
+      </div>
+    </Page>
   );
 }

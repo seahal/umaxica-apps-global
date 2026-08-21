@@ -5,6 +5,10 @@
 import { Link } from "@inertiajs/react";
 
 import { useConfirm } from "@/components/ConfirmDialog";
+import Button from "@/components/ui/Button";
+import ButtonLink from "@/components/ui/ButtonLink";
+import Page from "@/components/ui/Page";
+import Table from "@/components/ui/Table";
 import type { LabelledLink, TurnstileProps } from "@/features/identity/types";
 import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
@@ -29,6 +33,8 @@ export type SecretCredentialIndexProps = {
   turnstile: TurnstileProps;
   secret_credentials: SecretCredentialRow[];
 };
+
+const LINK = "text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline";
 
 function DestroyForm({
   href,
@@ -58,6 +64,7 @@ function DestroyForm({
         method="post"
         data-turbo="false"
         onSubmit={submit}
+        className="flex items-center"
       >
         <input
           type="hidden"
@@ -75,10 +82,13 @@ function DestroyForm({
           action={turnstile.action}
           cdata={turnstile.cdata}
         />
-        <input
+        <Button
           type="submit"
-          value={label}
-        />
+          variant="danger"
+          size="sm"
+        >
+          {label}
+        </Button>
       </form>
       {dialog}
     </>
@@ -97,15 +107,21 @@ export default function SecretCredentialIndex({
   secret_credentials: secretCredentials,
 }: SecretCredentialIndexProps) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{description}</p>
-
-      <div>
-        <Link href={newLink.href}>{newLink.label}</Link>
-      </div>
-
-      <table>
+    <Page
+      title={title}
+      description={description}
+      width="wide"
+      actions={
+        <ButtonLink
+          href={newLink.href}
+          size="sm"
+          inertia
+        >
+          {newLink.label}
+        </ButtonLink>
+      }
+    >
+      <Table>
         <thead>
           <tr>
             <th scope="col">{columns.name}</th>
@@ -123,18 +139,25 @@ export default function SecretCredentialIndex({
               <td>{credential.created_at}</td>
               <td>{credential.last_used_at}</td>
               <td>
-                <Link href={credential.edit_href}>{editLabel}</Link>
-                <DestroyForm
-                  href={credential.destroy_href}
-                  label={destroyLabel}
-                  message={destroyConfirm}
-                  turnstile={turnstile}
-                />
+                <div className="flex items-center gap-3">
+                  <Link
+                    href={credential.edit_href}
+                    className={LINK}
+                  >
+                    {editLabel}
+                  </Link>
+                  <DestroyForm
+                    href={credential.destroy_href}
+                    label={destroyLabel}
+                    message={destroyConfirm}
+                    turnstile={turnstile}
+                  />
+                </div>
               </td>
             </tr>
           ))}
         </tbody>
-      </table>
-    </section>
+      </Table>
+    </Page>
   );
 }

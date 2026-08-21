@@ -6,6 +6,7 @@
 // token; the browser only echoes it back.
 import { useEffect, useRef, useState } from "react";
 
+import Button from "@/components/ui/Button";
 import { readBoolean, readNumber } from "@/lib/payload";
 
 export type OtpResendMessages = {
@@ -89,15 +90,17 @@ export default function OtpResendButton({
   };
 
   return (
-    <div>
-      <button
+    <div className="flex flex-col items-start gap-2">
+      <Button
         type="button"
-        disabled={remaining > 0}
-        onClick={() => void resend()}
+        variant="secondary"
+        size="sm"
+        isDisabled={remaining > 0}
+        onPress={() => void resend()}
       >
         {remaining > 0 ? `${messages.too_soon_message} (${remaining}s)` : messages.button_label}
-      </button>
-      <p>{status}</p>
+      </Button>
+      <p className="text-sm text-fg-muted">{status}</p>
     </div>
   );
 }

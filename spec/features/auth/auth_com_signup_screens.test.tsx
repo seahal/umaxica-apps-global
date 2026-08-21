@@ -61,12 +61,12 @@ describe("auth/com sign-up entry screens", () => {
   it("draws the email form against the endpoint and scope the server chose", () => {
     const markup = renderToStaticMarkup(<ComSignUpEmailNew {...emailProps} />);
 
-    expect(markup).toContain("<h2>メールアドレスで登録</h2>");
+    expect(markup).toMatch(/<h2[^>]*>メールアドレスで登録<\/h2>/u);
     expect(markup).toContain('action="/sign/up/email"');
     expect(markup).toContain('name="visitor_email[raw_address]"');
     expect(markup).toContain('name="visitor_email[confirm_policy]"');
     expect(markup).toContain('data-turnstile-site-key="site-key"');
-    expect(markup).toContain('<a href="/sign/in?ri=jp">ログイン</a>');
+    expect(markup).toMatch(/<a href="\/sign\/in\?ri=jp"[^>]*>ログイン<\/a>/u);
   });
 
   it("lists the validation messages under the heading the server sent", () => {
@@ -93,7 +93,7 @@ describe("auth/com sign-up entry screens", () => {
       />,
     );
 
-    expect(markup).toContain("<h2>電話番号で登録</h2>");
+    expect(markup).toMatch(/<h2[^>]*>電話番号で登録<\/h2>/u);
     expect(markup).toContain('name="visitor_telephone[raw_number]"');
     expect(markup).toContain('type="tel"');
   });
@@ -117,12 +117,12 @@ describe("auth/com sign-up OTP screens", () => {
   it("patches the OTP endpoint and never carries the code itself", () => {
     const markup = renderToStaticMarkup(<ComSignUpEmailEdit {...otpProps} />);
 
-    expect(markup).toContain("<h1>認証コード入力</h1>");
+    expect(markup).toMatch(/<h1[^>]*>認証コード入力<\/h1>/u);
     expect(markup).toContain('action="/sign/up/check/email/otp?ri=jp"');
     expect(markup).toContain('name="_method" value="patch"');
     expect(markup).toContain('name="visitor_email[pass_code]"');
     expect(markup).toContain("届かない場合は再送してください");
-    expect(markup).toContain('<a href="/sign/up?ri=jp">登録方法に戻る</a>');
+    expect(markup).toMatch(/<a href="\/sign\/up\?ri=jp"[^>]*>登録方法に戻る<\/a>/u);
   });
 
   it("shows the telephone OTP errors the previous attempt produced", () => {
@@ -158,8 +158,10 @@ describe("auth/com sign-up checkpoint screens", () => {
       />,
     );
 
-    expect(markup).toContain("<h1>登録の確認</h1>");
-    expect(markup).toContain('<a href="/sign/up/check/telephone/passkey?ri=jp">登録する</a>');
+    expect(markup).toMatch(/<h1[^>]*>登録の確認<\/h1>/u);
+    expect(markup).toMatch(
+      /<a href="\/sign\/up\/check\/telephone\/passkey\?ri=jp"[^>]*>登録する<\/a>/u,
+    );
     expect(markup).not.toContain("パスコード");
     expect(markup).toContain('name="_method" value="delete"');
   });
@@ -216,7 +218,7 @@ describe("auth/com sign-up checkpoint screens", () => {
       />,
     );
 
-    expect(markup).toContain("<h1>パスキー登録</h1>");
+    expect(markup).toMatch(/<h1[^>]*>パスキー登録<\/h1>/u);
     expect(markup).toContain('placeholder="MacBook"');
     expect(markup).toContain("登録する");
   });
@@ -245,7 +247,7 @@ describe("auth/com step-up verification screens", () => {
       />,
     );
 
-    expect(markup).toContain("<h1>本人確認</h1>");
+    expect(markup).toMatch(/<h1[^>]*>本人確認<\/h1>/u);
     expect(markup).toContain('action="/verification/emails?ri=jp"');
     expect(markup).toContain('value="settings_email"');
     expect(markup).not.toContain("@");

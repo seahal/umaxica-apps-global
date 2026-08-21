@@ -1,4 +1,6 @@
 // The passkey step-up challenge for an already signed-in operator.
+import ErrorList from "@/components/ui/ErrorList";
+import Page from "@/components/ui/Page";
 import StepUpPasskeyForm, {
   type StepUpPasskeyFormProps,
 } from "@/features/auth/passkeys/StepUpPasskeyForm";
@@ -19,17 +21,15 @@ export default function OrgVerificationPasskeyPage({
   back_link: backLink,
 }: OrgVerificationPasskeyPageProps) {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <h1>{title}</h1>
-      <p>{description}</p>
-
-      {errorsSentence ? <div role="alert">{errorsSentence}</div> : null}
+    <Page
+      title={title}
+      description={description}
+      up={backLink}
+      width="narrow"
+    >
+      <ErrorList errors={errorsSentence === null ? [] : [errorsSentence]} />
 
       <StepUpPasskeyForm {...form} />
-
-      <div>
-        <a href={backLink.href}>{backLink.label}</a>
-      </div>
-    </section>
+    </Page>
   );
 }
