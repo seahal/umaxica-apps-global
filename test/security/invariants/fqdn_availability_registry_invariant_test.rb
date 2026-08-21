@@ -50,6 +50,22 @@ module Security
                      "these routed boot-config hosts have no availability switch: #{unregistered.sort.join(", ")}"
       end
 
+      # Route files also name hosts through environment variables, which neither the literal scan
+      # nor the boot-config scan above can see. That blind spot is how `core.{app,com,org}.localhost`
+      # came to route while resolving to no slot: the gate refused every request on the alias with
+      # `unknown_fqdn` even though the router served it.
+      test "every environment variable a route constrains on is registered" do
+        unregistered =
+          route_constraint_env_keys.filter_map do |key|
+            host = ENV[key]
+            "#{key}=#{host}" if host.present? && FqdnAvailabilityRegistry.slot_for(host).nil?
+          end
+
+        assert_empty unregistered,
+                     "these environment-named hosts route to a surface but have no availability " \
+                     "switch: #{unregistered.sort.join(", ")}"
+      end
+
       test "every registry slot resolves to at least one hostname" do
         empty = FqdnAvailabilityRegistry.slots.select { |slot| slot.hostnames.empty? }.map(&:name)
 
@@ -76,6 +92,12 @@ module Security
       def routed_host_slots
         ROUTE_PATHS.flat_map { |path| File.read(path).scan(/fetch\(:hosts\)\.(\w+)\.host/) }
           .flatten.uniq.map(&:to_sym)
+      end
+
+      # Environment variable names appearing as `ENV["..."]` inside a route file. Route files
+      # reference ENV only inside `constraints(host:)`.
+      def route_constraint_env_keys
+        ROUTE_PATHS.flat_map { |path| File.read(path).scan(/ENV\["(\w+)"\]/) }.flatten.uniq
       end
 
       def route_constraint_hostnames

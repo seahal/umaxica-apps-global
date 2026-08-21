@@ -4,7 +4,12 @@
 # Core owns the BFF surface.
 scope module: :core, as: :core do
   # Application BFF host.
-  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).core_service.host] do
+  # Two request paths reach this surface with different Host headers, so both names are
+  # listed. Requests forwarded by cloudflared carry the browser-facing PUBLIC_* site name,
+  # which boot_config resolves; requests that arrive directly on the compose `frontend`
+  # network carry the PRIVATE_* ingress alias. See docs/architecture/cloudflare-request-paths.md.
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).core_service.host,
+                     ENV["PRIVATE_CORE_SERVICE_URL"],].compact do
     scope module: :app, as: :app do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -86,7 +91,12 @@ scope module: :core, as: :core do
   end
 
   # Corporate BFF host.
-  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).core_corporate.host] do
+  # Two request paths reach this surface with different Host headers, so both names are
+  # listed. Requests forwarded by cloudflared carry the browser-facing PUBLIC_* site name,
+  # which boot_config resolves; requests that arrive directly on the compose `frontend`
+  # network carry the PRIVATE_* ingress alias. See docs/architecture/cloudflare-request-paths.md.
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).core_corporate.host,
+                     ENV["PRIVATE_CORE_CORPORATE_URL"],].compact do
     scope module: :com, as: :com do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -168,7 +178,12 @@ scope module: :core, as: :core do
   end
 
   # Staff BFF host.
-  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).core_staff.host] do
+  # Two request paths reach this surface with different Host headers, so both names are
+  # listed. Requests forwarded by cloudflared carry the browser-facing PUBLIC_* site name,
+  # which boot_config resolves; requests that arrive directly on the compose `frontend`
+  # network carry the PRIVATE_* ingress alias. See docs/architecture/cloudflare-request-paths.md.
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).core_staff.host,
+                     ENV["PRIVATE_CORE_STAFF_URL"],].compact do
     scope module: :org, as: :org do
       # Thin landing endpoint.
       root to: "roots#index"

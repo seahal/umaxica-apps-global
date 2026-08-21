@@ -14,6 +14,68 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
   CORE_NET_HOST = ENV["PRIVATE_CORE_NETWORK_URL"] || ENV.fetch("PRIVATE_CORE_NETWORK_URL", "core.net.localhost")
   CORE_DEV_HOST = ENV["PRIVATE_CORE_DEVELOPER_URL"] || ENV.fetch("PRIVATE_CORE_DEVELOPER_URL", "core.dev.localhost")
 
+  # Two request paths reach the Core app/com/org surfaces with different Host headers:
+  # cloudflared forwards the browser-facing PUBLIC_* site name, while a request that arrives
+  # directly on the compose `frontend` network carries the PRIVATE_* ingress alias. The
+  # constraints used to list only the boot_config (PUBLIC_*) host, so every request on the
+  # private alias fell through to Rails' welcome page and every other path 404'd.
+  #
+  # The alias is forced to a value the environment does not otherwise hold, so the assertion
+  # cannot pass by the two families happening to agree in whichever environment runs it.
+  test "core route contract accepts the private ingress alias alongside the public host" do
+    aliases = {
+      "PRIVATE_CORE_SERVICE_URL" => ["core-service.private.example", "core/app"],
+      "PRIVATE_CORE_CORPORATE_URL" => ["core-corporate.private.example", "core/com"],
+      "PRIVATE_CORE_STAFF_URL" => ["core-staff.private.example", "core/org"],
+    }
+
+    with_env(aliases.transform_values(&:first)) do
+      aliases.each_value do |host, module_prefix|
+        assert_recognizes(
+          { controller: "#{module_prefix}/roots", action: "index" },
+          { path: "http://#{host}/", method: :get },
+        )
+
+        assert_recognizes(
+          { controller: "#{module_prefix}/health/livenesses", action: "show" },
+          { path: "http://#{host}/health/liveness", method: :get },
+        )
+      end
+    end
+  end
+
+  test "core route contract still accepts the public host while the private alias is set" do
+    with_env(
+      "PRIVATE_CORE_SERVICE_URL" => "core-service.private.example",
+      "PRIVATE_CORE_CORPORATE_URL" => "core-corporate.private.example",
+      "PRIVATE_CORE_STAFF_URL" => "core-staff.private.example",
+    ) do
+      {
+        CORE_APP_HOST => "core/app",
+        CORE_COM_HOST => "core/com",
+        CORE_ORG_HOST => "core/org",
+      }.each do |host, module_prefix|
+        assert_recognizes(
+          { controller: "#{module_prefix}/health/livenesses", action: "show" },
+          { path: "http://#{host}/health/liveness", method: :get },
+        )
+      end
+    end
+  end
+
+  test "core route contract does not accept a host outside both families" do
+    with_env(
+      "PRIVATE_CORE_SERVICE_URL" => "core-service.private.example",
+    ) do
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path(
+          "http://core-service.unrelated.example/health/liveness",
+          method: :get,
+        )
+      end
+    end
+  end
+
   test "core surfaces do not expose dashboards" do
     [CORE_APP_HOST, CORE_COM_HOST, CORE_ORG_HOST, CORE_NET_HOST, CORE_DEV_HOST].each do |host|
       assert_raises(ActionController::RoutingError) do
@@ -647,5 +709,19 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
         Rails.application.routes.recognize_path("http://#{host}/oauth/token", method: :post)
       end
     end
+  end
+
+  private
+
+  # Route constraints read ENV when the route set is drawn, so the routes have to be
+  # redrawn for an override to take effect and redrawn again to put them back.
+  def with_env(overrides)
+    original = overrides.keys.index_with { |key| ENV[key] }
+    overrides.each { |key, value| ENV[key] = value }
+    Rails.application.reload_routes!
+    yield
+  ensure
+    original.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+    Rails.application.reload_routes!
   end
 end

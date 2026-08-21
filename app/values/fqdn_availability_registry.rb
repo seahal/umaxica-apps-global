@@ -31,9 +31,9 @@ module FqdnAvailabilityRegistry
     auth_service: ->(hosts) { [hosts.auth_service.host, ENV["PUBLIC_AUTH_SERVICE_URL"], "auth.app.localhost"] },
     auth_corporate: ->(hosts) { [hosts.auth_corporate.host, ENV["PUBLIC_AUTH_CORPORATE_URL"], "auth.com.localhost"] },
     auth_staff: ->(hosts) { [hosts.auth_staff.host, ENV["PUBLIC_AUTH_STAFF_URL"], "auth.org.localhost"] },
-    core_service: ->(hosts) { [hosts.core_service.host] },
-    core_corporate: ->(hosts) { [hosts.core_corporate.host] },
-    core_staff: ->(hosts) { [hosts.core_staff.host] },
+    core_service: ->(hosts) { [hosts.core_service.host, ENV["PRIVATE_CORE_SERVICE_URL"]] },
+    core_corporate: ->(hosts) { [hosts.core_corporate.host, ENV["PRIVATE_CORE_CORPORATE_URL"]] },
+    core_staff: ->(hosts) { [hosts.core_staff.host, ENV["PRIVATE_CORE_STAFF_URL"]] },
     core_network: lambda { |_hosts|
       [ENV["PRIVATE_CORE_NETWORK_URL"] || ENV["CORE_NETWORK_URL"], "core.net.localhost"]
     },
