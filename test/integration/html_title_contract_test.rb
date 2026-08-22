@@ -34,8 +34,8 @@ class HtmlTitleContractTest < ActionDispatch::IntegrationTest
     { host: "core.dev.localhost", tld: "DEV" },
   ].freeze
 
-  # Health answers on more hosts than its controller class knows about, so it is
-  # the one HTML surface whose TLD is derived from the request host.
+  # The network and developer hosts carry their own TLD labels, so the title on them cannot be
+  # inferred from the surface the way the app/com/org hosts allow; it follows the request host.
   HEALTH_HOSTS = [
     { host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"), tld: "APP" },
     { host: ENV.fetch("PRIVATE_BASE_NETWORK_URL", "base.net.localhost"), tld: "NET" },

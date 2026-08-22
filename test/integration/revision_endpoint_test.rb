@@ -17,10 +17,8 @@ class RevisionEndpointTest < ActionDispatch::IntegrationTest
     { host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"), controller: "base/app/revisions" },
     { host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"), controller: "base/com/revisions" },
     { host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"), controller: "base/org/revisions" },
-    # Base network and developer hosts reuse Base::App controllers, matching the
-    # existing health routes for those hosts in config/routes/base.rb.
-    { host: ENV.fetch("PRIVATE_BASE_NETWORK_URL", "base.net.localhost"), controller: "base/app/revisions" },
-    { host: ENV.fetch("PRIVATE_BASE_DEVELOPER_URL", "base.dev.localhost"), controller: "base/app/revisions" },
+    { host: ENV.fetch("PRIVATE_BASE_NETWORK_URL", "base.net.localhost"), controller: "base/net/revisions" },
+    { host: ENV.fetch("PRIVATE_BASE_DEVELOPER_URL", "base.dev.localhost"), controller: "base/dev/revisions" },
     { host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"), controller: "core/app/revisions" },
     { host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"), controller: "core/com/revisions" },
     { host: ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"), controller: "core/org/revisions" },

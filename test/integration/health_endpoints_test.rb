@@ -55,6 +55,22 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Org,
     },
     {
+      host: ENV.fetch("PRIVATE_BASE_NETWORK_URL", "base.net.localhost"),
+      controller: "base/net/healths",
+      liveness_controller: "base/net/health/livenesses",
+      readiness_controller: "base/net/health/readinesses",
+      startup_controller: "base/net/health/startups",
+      profile: Health::Profiles::App,
+    },
+    {
+      host: ENV.fetch("PRIVATE_BASE_DEVELOPER_URL", "base.dev.localhost"),
+      controller: "base/dev/healths",
+      liveness_controller: "base/dev/health/livenesses",
+      readiness_controller: "base/dev/health/readinesses",
+      startup_controller: "base/dev/health/startups",
+      profile: Health::Profiles::App,
+    },
+    {
       host: ENV.fetch("PUBLIC_PALM_SERVICE_URL"),
       controller: "palm/app/healths",
       liveness_controller: "palm/app/health/livenesses",
@@ -241,11 +257,6 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
         [surface[:host], expected]
       end
 
-    # Scoped to SURFACES, which is not every hostname Rails answers on. `base.net` and `base.dev`
-    # are absent from it and both report `base/app`, because config/routes/base.rb routes their
-    # health to `module: :app` while core routes its own net/dev hosts to `module: :net`/`:dev`.
-    # Those two remain indistinguishable from `base.app` by namespace alone; the asymmetry is
-    # known and left alone deliberately.
     assert_equal namespaces.values.uniq.length, namespaces.values.length,
                  "two hostnames report the same namespace, so a misdirected request between them " \
                  "would still look correct: #{namespaces.inspect}"

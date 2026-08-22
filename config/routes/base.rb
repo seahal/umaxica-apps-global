@@ -607,7 +607,10 @@ scope(module: :base, as: :base) do
   end
 
   constraints(host: [ENV["PRIVATE_BASE_NETWORK_URL"], "base.net.localhost"].compact) do
-    scope(module: :app, as: :network) do
+    scope(module: :net, as: :network) do
+      # Thin landing endpoint.
+      root(to: "roots#index")
+
       # Deployment identifier endpoint.
       resource(:revision, only: :show)
 
@@ -617,8 +620,7 @@ scope(module: :base, as: :base) do
         resource(:readiness, only: :show)
         resource(:startup, only: :show)
       end
-    end
-    scope(module: :net, as: :network) do
+
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
     end
   end
@@ -650,7 +652,10 @@ scope(module: :base, as: :base) do
       :as => :flipper,
     )
 
-    scope(module: :app, as: :developer) do
+    scope(module: :dev, as: :developer) do
+      # Thin landing endpoint.
+      root(to: "roots#index")
+
       # Deployment identifier endpoint.
       resource(:revision, only: :show)
 
@@ -660,8 +665,7 @@ scope(module: :base, as: :base) do
         resource(:readiness, only: :show)
         resource(:startup, only: :show)
       end
-    end
-    scope(module: :dev, as: :developer) do
+
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
     end
   end
