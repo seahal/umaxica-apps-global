@@ -84,7 +84,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     get docs_app_api_v0_entry_url(slug: published.slugs.canonical.first.slug, locale: "test-show")
 
     assert_response :success
-    assert_equal "visible-entry", response.parsed_body.fetch("entry").fetch("slug")
+    assert_equal "visible-entry", response.parsed_body.fetch("slug")
 
     get docs_app_api_v0_entry_url(slug: "future-entry", locale: "test-show")
 
@@ -115,7 +115,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     get docs_app_api_v0_entry_url(slug: published.slugs.canonical.first.slug, ri: "jp")
 
     assert_response :success
-    assert_equal published.slugs.canonical.first.slug, response.parsed_body.fetch("entry").fetch("slug")
+    assert_equal published.slugs.canonical.first.slug, response.parsed_body.fetch("slug")
 
     get docs_app_api_v0_entry_url(slug: "locale-draft-entry", ri: "jp")
 
@@ -140,12 +140,12 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     get docs_app_api_v0_entry_url(slug: published.slugs.canonical.first.slug, ri: "zz")
 
     assert_response :success
-    assert_equal published.slugs.canonical.first.slug, response.parsed_body.fetch("entry").fetch("slug")
+    assert_equal published.slugs.canonical.first.slug, response.parsed_body.fetch("slug")
 
     get docs_app_api_v0_entry_url(slug: english.slugs.canonical.first.slug, ri: "us")
 
     assert_response :success
-    assert_equal english.slugs.canonical.first.slug, response.parsed_body.fetch("entry").fetch("slug")
+    assert_equal english.slugs.canonical.first.slug, response.parsed_body.fetch("slug")
   end
 
   test "content api index and show serialize published content with the expected namespace" do
@@ -166,7 +166,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
           as: :json
 
       assert_response :success
-      entry = response.parsed_body.fetch("entry")
+      entry = response.parsed_body
 
       assert_equal newer.slugs.canonical.first.slug, entry.fetch("slug")
       assert_equal surface, entry.fetch("namespace")
@@ -185,7 +185,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
           as: :json
 
       assert_response :success
-      entries = response.parsed_body.fetch("entries")
+      entries = response.parsed_body.fetch("data")
 
       assert_equal [newer.slugs.canonical.first.slug, "#{audience}-older-entry"], entries.map { |e| e.fetch("slug") }
       assert_equal surface, entries.first.fetch("namespace")

@@ -1,0 +1,63 @@
+# GET /api/v0/entries/{slug}
+#
+# No `servers`, for the same reason as entries.yml.
+get:
+  summary: Read one published entry
+  description: >-
+    Served by the docs, help, info, and news services on this surface, each on its own host. The
+    docs and news editions currently have no public ingress.
+  security: []
+  operationId: getEntry
+  tags: [Content]
+  parameters:
+    - name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: locale
+      in: query
+      schema:
+        type: string
+        example: ja
+    - $ref: "../components.yml#/parameters/IfNoneMatch"
+    - $ref: "../components.yml#/parameters/IfModifiedSince"
+  responses:
+    "200":
+      description: The published entry.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: max-age=60, public
+        ETag:
+          schema:
+            type: string
+        Last-Modified:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            # adr/api-collection-contract.md: a single resource is returned at the top level, with
+            # no wrapper key.
+            $ref: "../components.yml#/schemas/Entry"
+    "304":
+      description: The cached representation is still fresh.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: max-age=60, public
+        ETag:
+          schema:
+            type: string
+        Last-Modified:
+          schema:
+            type: string
+    "404":
+      $ref: "../components.yml#/responses/Problem"
+    "406":
+      $ref: "../components.yml#/responses/NotAcceptable"
+    "429":
+      $ref: "../components.yml#/responses/RateLimited"

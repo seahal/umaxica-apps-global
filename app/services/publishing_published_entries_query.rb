@@ -9,6 +9,20 @@
 # published. An unknown or archived filter term yields no entries rather than
 # quietly falling back to the unfiltered list.
 class PublishingPublishedEntriesQuery < ApplicationService
+  # adr/api-collection-contract.md: every collection endpoint is bounded, a client that omits
+  # `limit` still gets a bounded response, and a `limit` above the maximum is clamped rather than
+  # rejected so a tuning mistake cannot become an error.
+  DEFAULT_LIMIT = 20
+  MIN_LIMIT = 1
+  MAX_LIMIT = 100
+
+  # `has_more` is authoritative; `next_cursor` is nil whenever it is false.
+  Page = Data.define(:entries, :next_cursor, :has_more)
+
+  def self.clamp_limit(value)
+    value.clamp(MIN_LIMIT, MAX_LIMIT)
+  end
+
   def initialize(edition:, category: nil, tag: nil)
     super()
     @edition = edition
@@ -31,7 +45,28 @@ class PublishingPublishedEntriesQuery < ApplicationService
         active_publication: { entry_version: %i(single_taxonomy_assignments multiple_taxonomy_assignments) },
       )
       .strict_loading
-      .order(Arel.sql("publishing_publications.effective_from DESC"), "publishing_entries.id DESC")
+      .order(ORDER)
+  end
+
+  # One page of the same ordered set, plus the cursor that continues it.
+  #
+  # Reads one row beyond the page to decide `has_more` rather than issuing a second COUNT: the extra
+  # row is discarded, and the count would be both an additional query and a different snapshot of a
+  # set that other writers may have changed.
+  def page(limit: DEFAULT_LIMIT, cursor: nil)
+    limit = self.class.clamp_limit(limit)
+    scope = call
+    scope = scope.where(AFTER_CURSOR, cursor.effective_from, cursor.entry_public_id) if cursor
+
+    rows = scope.limit(limit + 1).to_a
+    has_more = rows.length > limit
+    entries = rows.first(limit)
+
+    Page.new(
+      entries:,
+      next_cursor: has_more ? PublishingEntriesCursor.encode(entries.last) : nil,
+      has_more:,
+    )
   end
 
   def find_by(slug:)
@@ -54,6 +89,18 @@ class PublishingPublishedEntriesQuery < ApplicationService
   end
 
   private
+
+  # Newest published first. The tiebreaker is `public_id` rather than the primary key so that the
+  # cursor, which has to encode the same sort key, carries no internal identifier
+  # (docs/reference/api-design-standards.md). Ordering within a single instant is otherwise
+  # unspecified, so the change of tiebreaker alters no promised behaviour.
+  ORDER = Arel.sql("publishing_publications.effective_from DESC, publishing_entries.public_id DESC")
+
+  # Keyset predicate, written as a row comparison so it matches ORDER exactly. A predicate that did
+  # not mirror the ordering would skip or repeat rows at every page boundary.
+  AFTER_CURSOR = Arel.sql(
+    "(publishing_publications.effective_from, publishing_entries.public_id) < (?, ?)",
+  )
 
   attr_reader :edition, :category, :tag
 

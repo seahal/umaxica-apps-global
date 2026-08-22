@@ -19,8 +19,8 @@ module Palm
             get "/api/v0/profile", headers: json_headers
 
             assert_response :unauthorized
-            assert_equal "authentication_required", response.parsed_body.dig("error", "code")
-            assert_predicate response.parsed_body.dig("error", "request_id"), :present?
+            assert_equal "urn:umaxica:problem:authentication-required", response.parsed_body.fetch("type")
+            assert_predicate response.parsed_body.fetch("request_id"), :present?
             assert_empty response_set_cookie_lines
           end
 
@@ -76,7 +76,7 @@ module Palm
             )
 
             assert_response :unauthorized
-            assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+            assert_equal "urn:umaxica:problem:authentication-required", response.parsed_body.fetch("type")
             assert_empty response_set_cookie_lines
           end
 
@@ -86,7 +86,7 @@ module Palm
             get "/api/v0/profile", headers: json_headers
 
             assert_response :unauthorized
-            assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+            assert_equal "urn:umaxica:problem:authentication-required", response.parsed_body.fetch("type")
             assert_empty response_set_cookie_lines
           end
 
@@ -98,7 +98,7 @@ module Palm
             get "/api/v0/profile", headers: json_headers.merge("Authorization" => "Bearer #{token}")
 
             assert_response :unauthorized
-            assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+            assert_equal "urn:umaxica:problem:authentication-required", response.parsed_body.fetch("type")
             assert_empty response_set_cookie_lines
           end
 
@@ -106,7 +106,7 @@ module Palm
             get "/api/v0/profile", headers: json_headers.merge("Authorization" => "DPoP #{palm_token}")
 
             assert_response :unauthorized
-            assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+            assert_equal "urn:umaxica:problem:authentication-required", response.parsed_body.fetch("type")
             assert_empty response_set_cookie_lines
           end
 

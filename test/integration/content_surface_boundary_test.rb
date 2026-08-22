@@ -20,7 +20,12 @@ class ContentSurfaceBoundaryTest < ActionDispatch::IntegrationTest
       get "/api/v0/entries"
 
       assert_response :success
-      assert_equal({ "entries" => [] }, response.parsed_body)
+      # adr/api-collection-contract.md: every collection carries the same envelope, and an empty
+      # page still reports its pagination state rather than omitting it.
+      assert_equal(
+        { "data" => [], "page" => { "next_cursor" => nil, "has_more" => false } },
+        response.parsed_body,
+      )
       assert_empty response_set_cookie_lines
 
       # Revisions are an internal lifecycle concept; the nested endpoints that

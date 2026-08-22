@@ -26,15 +26,12 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :service_unavailable
     body = response.parsed_body
 
-    assert_equal "service_unavailable", body.dig("error", "code")
-    assert_predicate body.dig("error", "request_id"), :present?
+    assert_equal "urn:umaxica:problem:service-unavailable", body.fetch("type")
+    assert_predicate body.fetch("request_id"), :present?
   ensure
     ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"] = "1"
   end
 
-  # The `error` member asserted throughout this file is transitional (ApiV0LegacyErrorMember), kept
-  # so the Next.js edge application's response body does not change mid-migration. These are the
-  # assertions that survive its removal.
   test "a disabled boundary answers with an RFC 9457 problem document" do
     ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"] = nil
 
@@ -67,19 +64,19 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_equal response.status, body.fetch("status")
   end
 
-  test "the transitional legacy error member mirrors the problem document" do
+  # ApiV0LegacyErrorMember used to merge a nested `error` object into every problem document here.
+  # It was removed on 2026-08-22 once an audit established that neither named consumer read it; this
+  # asserts the document is now the RFC 9457 members and nothing else.
+  test "no transitional error member remains in the problem document" do
     get("/api/v0/session", headers: json_headers.merge("Authorization" => "Bearer #{core_browser_access_token}"))
 
     assert_response :unauthorized
 
     body = response.parsed_body
 
-    # Delete this test together with ApiV0LegacyErrorMember; until then it pins the coupling, so the
-    # legacy member cannot silently drift away from the type it is meant to mirror.
     assert_equal "urn:umaxica:problem:authentication-required", body.fetch("type")
-    assert_equal "authentication_required", body.dig("error", "code")
-    assert_equal body.fetch("title"), body.dig("error", "message")
-    assert_equal body.fetch("request_id"), body.dig("error", "request_id")
+    assert_not body.key?("error"), "the transitional error member is gone"
+    assert_equal %w(instance request_id status title type), body.keys.sort
   end
 
   test "every response on this boundary is uncacheable" do
@@ -180,8 +177,8 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
     body = response.parsed_body
 
-    assert_equal "authentication_required", body.dig("error", "code")
-    assert_predicate body.dig("error", "request_id"), :present?
+    assert_equal "urn:umaxica:problem:authentication-required", body.fetch("type")
+    assert_predicate body.fetch("request_id"), :present?
   end
 
   test "palm audience token is rejected from core browser cookie transport" do
@@ -193,7 +190,7 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
     body = response.parsed_body
 
-    assert_equal "authentication_required", body.dig("error", "code")
+    assert_equal "urn:umaxica:problem:authentication-required", body.fetch("type")
   end
 
   test "authenticated session response is minimal and excludes raw credentials" do
@@ -220,9 +217,9 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
     body = response.parsed_body
 
-    assert_equal "csrf_verification_failed", body.dig("error", "code")
-    assert_predicate body.dig("error", "request_id"), :present?
-    assert_nil body.dig("error", "detail")
+    assert_equal "urn:umaxica:problem:csrf-verification-failed", body.fetch("type")
+    assert_predicate body.fetch("request_id"), :present?
+    assert_not body.key?("detail")
   end
 
   test "refresh rejects authorization header transport even when refresh cookie is present" do
@@ -240,7 +237,7 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
     body = response.parsed_body
 
-    assert_equal "authentication_required", body.dig("error", "code")
+    assert_equal "urn:umaxica:problem:authentication-required", body.fetch("type")
   end
 
   test "refresh rotates opaque cookie and never returns credentials in body" do
@@ -251,14 +248,10 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
 
     post "/api/v0/token/refresh", headers: json_headers.merge("X-CSRF-Token" => csrf_token)
 
-    assert_response :success
-    body = response.parsed_body
-
-    # `refreshed` is a placeholder for a representation that does not exist; RFC 9110 15.3.5 would
-    # make this a 204. It stays until the external edge consumer can be moved off it.
-    assert body.fetch("refreshed")
-    assert_not body.key?("access_token")
-    assert_not body.key?("refresh_token")
+    # The rotated credentials travel as `Set-Cookie`; there is no representation to return
+    # (RFC 9110 15.3.5), so there is no body that could leak one.
+    assert_response :no_content
+    assert_empty response.body
 
     access_cookie = set_cookie_for(CoreBrowserCredentialContract::ACCESS_COOKIE)
     refresh_cookie = set_cookie_for(CoreBrowserCredentialContract::REFRESH_COOKIE)

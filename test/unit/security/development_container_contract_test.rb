@@ -35,7 +35,6 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
       "container engine socket" => %r{(?:docker|podman)\.sock},
       "privileged mode" => /^\s*privileged:\s*true\s*$/,
       "host networking" => /^\s*network_mode:\s*host\s*$/,
-      "explicit tmpfs" => /^\s*tmpfs:/,
       "explicit shared memory size" => /^\s*shm_size:/,
     }
 

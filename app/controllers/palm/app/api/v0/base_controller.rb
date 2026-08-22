@@ -10,7 +10,6 @@ module Palm
         class BaseController < ActionController::Base # rubocop:disable Rails/ApplicationController
           include ::ProblemDetailsRendering
           include ::ApiContentNegotiation
-          include ::ApiV0LegacyErrorMember
 
           AUTHENTICATION_MODE = :bare
 

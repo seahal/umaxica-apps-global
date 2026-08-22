@@ -69,7 +69,7 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
     get "/api/v0/profile", headers: json_headers
 
     assert_response :unauthorized
-    assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+    assert_equal "urn:umaxica:problem:authentication-required", response.parsed_body.fetch("type")
   end
 
   private

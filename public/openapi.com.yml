@@ -1,0 +1,570 @@
+openapi: 3.0.4
+info:
+  title: Umaxica JSON API (com surface)
+  version: '0'
+  contact:
+    name: API Support
+  description: |
+    Machine-facing JSON endpoints served under `/api/v0` on the **com** surface, plus the
+    internal health probes.
+
+    The `app`, `com`, and `org` surfaces are independent trust boundaries served on separate
+    hosts, so each has its own description. This one covers the public and corporate surface. An
+    endpoint described here exists on this surface's own hosts; it is never shared across surfaces.
+
+    ## What is absent, and why
+
+    Endpoints whose wire format is fixed by another specification -- OAuth 2.0, OIDC, WebAuthn,
+    DBSC, MCP (JSON-RPC 2.0), and `.well-known` resources -- are intentionally absent. They are
+    governed by their own specifications, not by this contract. The `/edge/v0` and `/web/v0`
+    namespaces are absent because they are being converged onto `/api/v0`
+    (adr/api-route-vocabulary-consolidation.md).
+
+    `GET /health` is absent because it is not a JSON endpoint: it renders HTML and answers `406`
+    to any other `Accept`. Only the three machine-readable probes below are described.
+
+    ## Hosts
+
+    `servers` appears only where a host is real, public, and knowable from the repository. The
+    Core paths carry one. The health probes carry none because they are blocked at the edge. The
+    content and Palm paths carry none because their hosts are supplied by deployment environment
+    variables, and the docs and news content editions have no production host at all.
+
+    ## Errors
+
+    Errors use RFC 9457 Problem Details (`application/problem+json`). Problem `type` values are
+    the stable identifiers clients branch on; `title` and `detail` are human-readable and may
+    change. Two extension members are defined: `request_id` and `errors`.
+
+    Some `/api/v0` error responses currently also carry a transitional `error` member that is
+    deliberately not described here. It has no known consumer and is scheduled for removal
+    (decision D6 in plans/rails-nextjs-openapi-contract-audit.md). No schema in this description
+    sets `additionalProperties: false`, so clients must tolerate it and any other unknown member.
+tags:
+  - name: Health
+    description: Internal liveness, readiness, and startup probes. Blocked at the edge.
+  - name: Session
+    description: Core browser BFF session and token lifecycle, authenticated by first-party cookie.
+  - name: Content
+    description: Read-only published documentation, help, news, and info entries.
+paths:
+  /health/liveness:
+    get:
+      summary: Process liveness probe
+      description: Internal probe for orchestrators and monitoring, not a user-facing availability contract.
+      security: []
+      operationId: getHealthLiveness
+      tags:
+        - Health
+      responses:
+        '200':
+          $ref: '#/components/responses/HealthOk'
+        '503':
+          $ref: '#/components/responses/HealthUnavailable'
+  /health/readiness:
+    get:
+      summary: Dependency readiness probe
+      description: Internal probe for orchestrators and monitoring, not a user-facing availability contract. Reports `database` in `dependencies`. Only the public status is exposed.
+      security: []
+      operationId: getHealthReadiness
+      tags:
+        - Health
+      responses:
+        '200':
+          $ref: '#/components/responses/HealthOk'
+        '503':
+          $ref: '#/components/responses/HealthUnavailable'
+  /health/startup:
+    get:
+      summary: Boot completion probe
+      description: Internal probe for orchestrators and monitoring, not a user-facing availability contract.
+      security: []
+      operationId: getHealthStartup
+      tags:
+        - Health
+      responses:
+        '200':
+          $ref: '#/components/responses/HealthOk'
+        '503':
+          $ref: '#/components/responses/HealthUnavailable'
+  /api/v0/session:
+    servers:
+      - url: https://jp.umaxica.com
+        description: Canonical Core public host for the com (public and corporate) surface.
+    get:
+      summary: Current browser session summary
+      description: Reports whether the caller's first-party cookie authenticates them, and returns the CSRF token required for unsafe requests on this surface. Never returns a credential.
+      operationId: getSession
+      tags:
+        - Session
+      security:
+        - coreBrowserCookie: []
+        - {}
+      responses:
+        '200':
+          description: Session summary. `authenticated` is false for an anonymous caller.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionSummary'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /api/v0/token/refresh:
+    servers:
+      - url: https://jp.umaxica.com
+        description: Canonical Core public host for the com (public and corporate) surface.
+    post:
+      summary: Rotate the browser credential pair
+      description: 'Exchanges the opaque refresh cookie for a new access cookie and a rotated refresh cookie. Credentials are returned as `Set-Cookie` only, never in the body. Requires `X-CSRF-Token`. Rejects requests that present an `Authorization` header: this endpoint serves the cookie transport only.'
+      operationId: refreshToken
+      tags:
+        - Session
+      security:
+        - coreBrowserCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204':
+          description: Credentials rotated. The new cookies are on the response; there is no representation to return, so there is no body (RFC 9110 15.3.5).
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /api/v0/entries:
+    get:
+      summary: List published entries
+      description: Returns the published entries for the content service and audience that answered. Served by the docs, help, info, and news services on this surface, each on its own host. The docs and news editions currently have no public ingress; they are described here because the routes and controllers exist and are covered by contract tests.
+      security: []
+      operationId: listEntries
+      tags:
+        - Content
+      parameters:
+        - name: locale
+          in: query
+          schema:
+            type: string
+            example: ja
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/IfNoneMatch'
+        - $ref: '#/components/parameters/IfModifiedSince'
+      responses:
+        '200':
+          description: 'One page of published entries. The collection is always bounded: a request that omits `limit` still receives at most the default page size.'
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: max-age=60, public
+            ETag:
+              schema:
+                type: string
+            Last-Modified:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Entry'
+                  page:
+                    $ref: '#/components/schemas/Page'
+        '304':
+          description: The cached representation is still fresh.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: max-age=60, public
+            ETag:
+              schema:
+                type: string
+            Last-Modified:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/Problem'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /api/v0/entries/{slug}:
+    get:
+      summary: Read one published entry
+      description: Served by the docs, help, info, and news services on this surface, each on its own host. The docs and news editions currently have no public ingress.
+      security: []
+      operationId: getEntry
+      tags:
+        - Content
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locale
+          in: query
+          schema:
+            type: string
+            example: ja
+        - $ref: '#/components/parameters/IfNoneMatch'
+        - $ref: '#/components/parameters/IfModifiedSince'
+      responses:
+        '200':
+          description: The published entry.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: max-age=60, public
+            ETag:
+              schema:
+                type: string
+            Last-Modified:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entry'
+        '304':
+          description: The cached representation is still fresh.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: max-age=60, public
+            ETag:
+              schema:
+                type: string
+            Last-Modified:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/Problem'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+components:
+  securitySchemes:
+    coreBrowserCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-auth_access
+      description: 'First-party HttpOnly access cookie. The `__Host-` prefix is present in any secure context; the basename alone (`auth_access`) is used otherwise. Unsafe methods additionally require `X-CSRF-Token`, which OpenAPI cannot express as part of a security scheme; it is declared as a required header parameter instead. Requests that also carry an `Authorization` header are rejected: an endpoint accepts exactly one credential transport.'
+  schemas:
+    HealthResult:
+      type: object
+      description: The shared probe contract. See docs/reference/health-endpoints.md.
+      required:
+        - status
+        - check
+        - namespace
+        - dependencies
+        - details
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+            - unavailable
+        check:
+          type: string
+          description: The probe that produced this result. The aggregate `/health` snapshot renders HTML, not JSON, so its `health` value never appears in a JSON response.
+          enum:
+            - liveness
+            - readiness
+            - startup
+        namespace:
+          type: string
+          description: The routed surface that answered, as `<service>/<surface>`. One process answers on many hostnames and the probe bodies were otherwise identical, so a caller that sent the wrong `Host` could not tell which surface replied.
+          example: core/app
+        dependencies:
+          type: object
+          description: Per-probe dependency map. Empty for liveness and startup; carries `database` for readiness.
+          additionalProperties: true
+        details:
+          type: object
+          required:
+            - generated_at
+          properties:
+            generated_at:
+              type: string
+              format: date-time
+              description: UTC RFC 3339 instant with millisecond precision.
+            revision:
+              type: string
+              description: Deployment revision. Omitted when blank.
+            status:
+              type: string
+              description: Internal status. Present only when the result is degraded.
+    SessionSummary:
+      type: object
+      required:
+        - authenticated
+        - csrf_token
+      properties:
+        authenticated:
+          type: boolean
+        csrf_token:
+          type: string
+          description: Required as `X-CSRF-Token` on unsafe requests to this surface.
+        actor:
+          type: object
+          description: Present only when authenticated.
+          required:
+            - id
+            - display_name
+          properties:
+            id:
+              type: string
+              description: Public identifier. Never a database primary key.
+            display_name:
+              type: string
+    Problem:
+      type: object
+      description: RFC 9457 Problem Details. This repository defines exactly two extension members, `request_id` and `errors`; see docs/reference/api-design-standards.md.
+      required:
+        - type
+        - title
+        - status
+        - request_id
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Stable problem identifier. Branch on this value, never on title or detail. Clients must not dereference it (RFC 9457 3.1.1). The registry is closed and enforced in code by `ProblemType`, which raises on an unregistered slug.
+          enum:
+            - urn:umaxica:problem:bad-request
+            - urn:umaxica:problem:authentication-required
+            - urn:umaxica:problem:token-expired
+            - urn:umaxica:problem:authorization-denied
+            - urn:umaxica:problem:csrf-verification-failed
+            - urn:umaxica:problem:not-found
+            - urn:umaxica:problem:method-not-allowed
+            - urn:umaxica:problem:not-acceptable
+            - urn:umaxica:problem:unsupported-media-type
+            - urn:umaxica:problem:validation-failed
+            - urn:umaxica:problem:rate-limited
+            - urn:umaxica:problem:server-error
+            - urn:umaxica:problem:service-unavailable
+        title:
+          type: string
+          description: Stable summary of the type. Not for programmatic use.
+        status:
+          type: integer
+          description: Duplicates the HTTP status code and always agrees with it.
+        detail:
+          type: string
+          description: Occurrence-specific explanation for a human. Absent when there is none.
+        instance:
+          type: string
+          description: Path identifying this occurrence.
+        request_id:
+          type: string
+          description: Request correlation identifier. Always present.
+        errors:
+          type: array
+          description: Field-level validation problems. Present only on 422.
+          items:
+            type: object
+            required:
+              - pointer
+              - type
+            properties:
+              pointer:
+                type: string
+                description: RFC 6901 JSON Pointer into the request body.
+              type:
+                type: string
+                format: uri
+              detail:
+                type: string
+    Entry:
+      type: object
+      description: One published entry, rendered from its frozen published version.
+      required:
+        - namespace
+        - surface
+        - slug
+        - locale
+        - title
+        - summary
+        - body
+        - published_at
+        - taxonomy
+      properties:
+        namespace:
+          type: string
+          description: Content service.
+          enum:
+            - docs
+            - help
+            - news
+            - info
+        surface:
+          type: string
+          description: Audience.
+          enum:
+            - app
+            - com
+            - org
+        slug:
+          type: string
+          nullable: true
+          description: The canonical slug. Always present as a member; the value is null when the entry has no canonical slug row, which `PublishingEntrySerializer#canonical_slug` guards for.
+        locale:
+          type: string
+          example: ja
+        title:
+          type: string
+        summary:
+          type: string
+          nullable: true
+          description: Always present as a member; the value may be null. `publishing_entry_versions.summary` is the only nullable column behind this schema.
+        body:
+          type: object
+          description: Always a structured object, never a bare string. Consumers may rely on the type.
+          additionalProperties: true
+        published_at:
+          type: string
+          format: date-time
+          description: RFC 3339 instant with an explicit `Z` offset. Never null. `PublishingEntrySerializer#call` returns nothing at all when there is no active publication, and `publishing_publications.effective_from` is `NOT NULL`, so an entry that renders always has one. It was previously described as nullable, which described a state that cannot occur.
+        taxonomy:
+          type: object
+          description: Keyed by vocabulary key for this audience and service. A single-valued vocabulary renders one object or null; a multi-valued vocabulary renders an ordered array.
+          additionalProperties: true
+    Page:
+      type: object
+      description: Collection page metadata (adr/api-collection-contract.md). `has_more` is authoritative; `next_cursor` is null whenever it is false.
+      required:
+        - next_cursor
+        - has_more
+      properties:
+        next_cursor:
+          type: string
+          nullable: true
+          description: Opaque continuation token. It is signed, so it cannot be constructed by a client, and it carries no database primary key. Its encoding may change without a version bump; a client must pass it back verbatim and must not parse it.
+        has_more:
+          type: boolean
+  responses:
+    HealthOk:
+      description: The probe passed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HealthResult'
+    HealthUnavailable:
+      description: The probe failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HealthResult'
+    Problem:
+      description: An RFC 9457 problem document.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotAcceptable:
+      description: The request `Accept` excludes both `application/json` and `application/problem+json`. The refusal is still sent as a problem document (RFC 9110 15.5.7).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnsupportedMediaType:
+      description: The request carries a body whose `Content-Type` is not `application/json`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    RateLimited:
+      description: A rate limit was exceeded.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying. This is the authoritative retry signal; the RateLimit header is informational and may be absent, and no client behaviour may depend on it.
+          schema:
+            type: integer
+        RateLimit:
+          schema:
+            type: string
+            example: '"default";r=0;t=60'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  parameters:
+    CsrfToken:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      schema:
+        type: string
+      description: CSRF token obtained from `GET /api/v0/session`. Required on every unsafe method. OpenAPI has no security scheme for a double-submit CSRF token in any version, so it is described here as an ordinary required header.
+    Limit:
+      name: limit
+      in: query
+      description: Page size, 1 to 100, defaulting to 20. A value outside the bounds is clamped rather than refused, so a tuning mistake cannot become an error. A value that is not a whole number is a malformed request and is refused with 400.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque continuation token from a previous response's `page.next_cursor`. Pass it back verbatim. A cursor that does not verify is refused with 400 rather than silently answering with the first page.
+      schema:
+        type: string
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      description: Prior `ETag`. A match answers `304` with no body (RFC 9110 13.1.2).
+      schema:
+        type: string
+    IfModifiedSince:
+      name: If-Modified-Since
+      in: header
+      description: Prior `Last-Modified`. RFC 9110 13.1.3.
+      schema:
+        type: string

@@ -22,13 +22,26 @@ module PublishingContentRendering
   # cannot drift from what is actually sent -- a taxonomy rename or a vocabulary change alters the
   # payload and the validator together. This saves transfer, not query work; the rows are still read.
   def render_publishing_entries_index
-    entries = publishing_entries_json
-    expires_in(PUBLISHING_CACHE_MAX_AGE.seconds, public: true)
-    return unless stale?(etag: entries, last_modified: publishing_entries_last_modified(entries), public: true)
+    cursor = publishing_page_cursor
+    return if performed?
 
-    render json: { entries: entries }
+    limit = publishing_page_limit
+    return if performed?
+
+    page = publishing_entries_query.page(limit:, cursor:)
+    entries = page.entries.filter_map { |entry| publishing_entry_json(entry) }
+    payload = { data: entries, page: { next_cursor: page.next_cursor, has_more: page.has_more } }
+
+    expires_in(PUBLISHING_CACHE_MAX_AGE.seconds, public: true)
+    # The validator covers the whole envelope, so it is page-specific: two pages of the same
+    # collection never share an ETag, and a cursor change invalidates the cached representation.
+    return unless stale?(etag: payload, last_modified: publishing_entries_last_modified(entries), public: true)
+
+    render json: payload
   end
 
+  # adr/api-collection-contract.md: a single resource is returned at the top level, with no wrapper
+  # key.
   def render_publishing_entry_show
     entry = publishing_entries_query.find_by(slug: params.expect(:slug))
     return render_problem(:not_found) unless entry
@@ -37,7 +50,36 @@ module PublishingContentRendering
     expires_in(PUBLISHING_CACHE_MAX_AGE.seconds, public: true)
     return unless stale?(etag: payload, last_modified: publishing_timestamp(payload[:published_at]), public: true)
 
-    render json: { entry: payload }
+    render json: payload
+  end
+
+  # A `limit` outside the bounds is clamped, per the ADR: a tuning mistake must not become an error.
+  # A `limit` that is not a whole number is a different thing -- a malformed request -- and is
+  # refused rather than quietly treated as the default.
+  def publishing_page_limit
+    raw = params[:limit]
+    return PublishingPublishedEntriesQuery::DEFAULT_LIMIT if raw.blank?
+
+    Integer(raw.to_s, 10)
+  rescue ArgumentError, TypeError
+    # rubocop:disable I18n/RailsI18n/DecorateString
+    render_problem(:bad_request, detail: "limit must be a whole number.")
+    # rubocop:enable I18n/RailsI18n/DecorateString
+    nil
+  end
+
+  # Returns nil when no cursor was sent. A cursor that does not verify is refused: serving page one
+  # instead would return the wrong rows while looking successful.
+  def publishing_page_cursor
+    raw = params[:cursor]
+    return nil if raw.blank?
+
+    PublishingEntriesCursor.decode(raw)
+  rescue PublishingEntriesCursor::InvalidCursor
+    # rubocop:disable I18n/RailsI18n/DecorateString
+    render_problem(:bad_request, detail: "cursor is not valid.")
+    # rubocop:enable I18n/RailsI18n/DecorateString
+    nil
   end
 
   # `published_at` is the only instant in the contract, so the newest one is the collection's
@@ -49,14 +91,6 @@ module PublishingContentRendering
 
   def publishing_timestamp(value)
     Time.zone.parse(value.to_s) if value.present?
-  end
-
-  # Transitional: these endpoints live under `/api/v0` and are read by edge applications outside this
-  # repository, so the previous `{"error": "not_found"}` body is repeated inside the problem document
-  # until those consumers migrate. Remove together with ApiV0LegacyErrorMember; see
-  # adr/api-error-format-problem-details.md.
-  def problem_document(problem, detail:, errors:)
-    super.merge(error: problem.slug.to_s)
   end
 
   def publishing_entries_json

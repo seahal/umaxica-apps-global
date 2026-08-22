@@ -6,7 +6,6 @@ module CoreBrowserApiBoundary
 
   include ProblemDetailsRendering
   include ApiContentNegotiation
-  include ApiV0LegacyErrorMember
 
   included do
     # Every endpoint on this boundary answers per-subject state derived from a credential cookie, and
@@ -112,12 +111,13 @@ module CoreBrowserApiBoundary
     cookies[CoreBrowserCredentialContract::REFRESH_COOKIE] =
       auth_cookie_service.auth_cookie_options(expires: result.token.discarded_at).merge(value: result.refresh_token)
 
-    # RFC 9110 15.3.5 would make this a 204: the rotated credentials travel as `Set-Cookie`, so there
-    # is no representation to return and `{"refreshed": true}` is a placeholder. The 200 is kept
-    # deliberately, because the Next.js edge application outside this repository reads that key, and
-    # changing it is an unannounced breaking change. Move to 204 together with the removal of
-    # ApiV0LegacyErrorMember, under the same announcement.
-    render json: { refreshed: true }, status: :ok
+    # The rotated credentials travel as `Set-Cookie`, so there is no representation to return.
+    # RFC 9110 15.3.5 and docs/reference/api-design-standards.md both call for 204 rather than a
+    # `{"ok": true}` placeholder. The previous 200 with `{"refreshed": true}` was justified in a
+    # comment here by the claim that the Next.js edge application read that key; an audit of
+    # `seahal/umaxica-apps-edge` on 2026-08-22 found it forwards `/api/v0/*` without parsing it and
+    # has no reader for the key. See decision D14 in plans/rails-nextjs-openapi-contract-audit.md.
+    head :no_content
   end
 
   def verify_core_browser_api_csrf!

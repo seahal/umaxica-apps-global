@@ -1,0 +1,77 @@
+openapi: 3.0.4
+info:
+  title: Umaxica JSON API (org surface)
+  version: "0"
+  contact:
+    name: API Support
+  description: |
+    Machine-facing JSON endpoints served under `/api/v0` on the **org** surface, plus the
+    internal health probes.
+
+    The `app`, `com`, and `org` surfaces are independent trust boundaries served on separate
+    hosts, so each has its own description. This one covers the staff and organization surface. An
+    endpoint described here exists on this surface's own hosts; it is never shared across surfaces.
+
+    ## What is absent, and why
+
+    Endpoints whose wire format is fixed by another specification -- OAuth 2.0, OIDC, WebAuthn,
+    DBSC, MCP (JSON-RPC 2.0), and `.well-known` resources -- are intentionally absent. They are
+    governed by their own specifications, not by this contract. The `/edge/v0` and `/web/v0`
+    namespaces are absent because they are being converged onto `/api/v0`
+    (adr/api-route-vocabulary-consolidation.md).
+
+    `GET /health` is absent because it is not a JSON endpoint: it renders HTML and answers `406`
+    to any other `Accept`. Only the three machine-readable probes below are described.
+
+    ## Hosts
+
+    `servers` appears only where a host is real, public, and knowable from the repository. The
+    Core paths carry one. The health probes carry none because they are blocked at the edge. The
+    content and Palm paths carry none because their hosts are supplied by deployment environment
+    variables, and the docs and news content editions have no production host at all.
+
+    ## Errors
+
+    Errors use RFC 9457 Problem Details (`application/problem+json`). Problem `type` values are
+    the stable identifiers clients branch on; `title` and `detail` are human-readable and may
+    change. Two extension members are defined: `request_id` and `errors`.
+
+    Some `/api/v0` error responses currently also carry a transitional `error` member that is
+    deliberately not described here. It has no known consumer and is scheduled for removal
+    (decision D6 in plans/rails-nextjs-openapi-contract-audit.md). No schema in this description
+    sets `additionalProperties: false`, so clients must tolerate it and any other unknown member.
+
+tags:
+  - name: Health
+    description: Internal liveness, readiness, and startup probes. Blocked at the edge.
+  - name: Session
+    description: Core browser BFF session and token lifecycle, authenticated by first-party cookie.
+  - name: Content
+    description: Read-only published documentation, help, news, and info entries.
+
+paths:
+  /health/liveness:
+    $ref: "shared/paths/health-liveness.yml"
+
+  /health/readiness:
+    $ref: "shared/paths/health-readiness.yml"
+
+  /health/startup:
+    $ref: "shared/paths/health-startup.yml"
+
+  /api/v0/session:
+    $ref: "org/paths/session.yml"
+
+  /api/v0/token/refresh:
+    $ref: "org/paths/token-refresh.yml"
+
+  /api/v0/entries:
+    $ref: "shared/paths/entries.yml"
+
+  /api/v0/entries/{slug}:
+    $ref: "shared/paths/entry.yml"
+
+components:
+  securitySchemes:
+    coreBrowserCookie:
+      $ref: "shared/components.yml#/securitySchemes/coreBrowserCookie"

@@ -11,7 +11,7 @@
     "format:check": "oxfmt --check src spec e2e app/views/pwa *.ts *.json *.yaml *.yml",
     "typecheck": "tsc --build",
     "build": "NODE_ENV=production vite build --mode production",
-    "check": "pnpm -s format:check && pnpm -s lint && pnpm -s typecheck:verify && pnpm -s typecheck && pnpm -s deadcode",
+    "check": "pnpm -s format:check && pnpm -s lint && pnpm -s typecheck:verify && pnpm -s typecheck && pnpm -s deadcode && pnpm -s openapi:lint && pnpm -s openapi:verify",
     "ci": "pnpm -s check && pnpm -s test:coverage && pnpm -s build",
     "ci:js": "pnpm -s run ci",
     "fix": "pnpm -s format && pnpm -s lint:fix",
@@ -20,7 +20,10 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "deadcode": "knip",
-    "typecheck:verify": "tsc -p tsconfig.app.json --noEmit --listFiles | grep -q '/src/' || (echo 'typecheck covered no source files' >&2 && exit 1)"
+    "typecheck:verify": "tsc -p tsconfig.app.json --noEmit --listFiles | grep -q '/src/' || (echo 'typecheck covered no source files' >&2 && exit 1)",
+    "openapi:lint": "redocly lint",
+    "openapi:bundle": "redocly bundle",
+    "openapi:verify": "pnpm -s openapi:bundle && git diff --exit-code -- public/openapi.app.yml public/openapi.com.yml public/openapi.org.yml"
   },
   "dependencies": {
     "@hotwired/stimulus": "^3.2.2",
@@ -41,6 +44,7 @@
     "typescript": "^7.0.2"
   },
   "devDependencies": {
+    "@redocly/cli": "^2.46.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.5",

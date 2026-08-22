@@ -476,6 +476,80 @@ jobs:
           path: coverage/vite/
           retention-days: 30
           compression-level: 6
+  lint-openapi:
+    name: OpenAPI Contract (redocly lint, bundle drift)
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Lint OpenAPI descriptions
+        run: pnpm -s run openapi:lint
+      # `openapi/` is the source of truth; `public/openapi.*.yml` must always be its bundled form.
+      # Regenerating and diffing is the guard the accuracy requirement in
+      # adr/api-versioning-and-client-conventions.md section 4 previously lacked.
+      - name: Verify bundled output matches source
+        run: pnpm -s run openapi:verify
+  breaking-openapi:
+    name: OpenAPI Breaking Changes (oasdiff)
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        surface: [app, com, org]
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v6.0.1
+        with:
+          persist-credentials: false
+      - name: Check out the base branch
+        uses: actions/checkout@v6.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .oasdiff-base
+          persist-credentials: false
+      # A surface whose description does not exist on the base branch has nothing to compare
+      # against. Skipping is correct; failing would block the pull request that introduces it.
+      - name: Look for a base description
+        id: base
+        run: |
+          if [ -f ".oasdiff-base/public/openapi.${{ matrix.surface }}.yml" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::no base description for the ${{ matrix.surface }} surface; skipping the diff"
+          fi
+      # `fail-on: ERR` only. oasdiff reports adding an enum value to a response as WARN, which
+      # adr/api-versioning-and-client-conventions.md explicitly calls non-breaking; failing on WARN
+      # would put CI in conflict with the policy it exists to enforce. WARN still appears in the
+      # job output.
+      #
+      # `review: false` keeps the descriptions off oasdiff.com. They are first-party contracts and
+      # nothing needs to leave CI for the check to work.
+      #
+      # Known gap: oasdiff does not diff response header schemas
+      # (https://github.com/oasdiff/oasdiff/issues/1094). Header contracts are covered instead by
+      # the committee assertions in test/contracts/.
+      - name: Detect breaking changes
+        if: steps.base.outputs.present == 'true'
+        uses: oasdiff/oasdiff-action/breaking@v0.1.13
+        with:
+          base: .oasdiff-base/public/openapi.${{ matrix.surface }}.yml
+          revision: public/openapi.${{ matrix.surface }}.yml
+          fail-on: ERR
+          review: false
   scan-gems:
     name: Dependency Scan (Gemfile.lock)
     runs-on: ubuntu-latest

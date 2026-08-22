@@ -73,7 +73,7 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
           as: :json
 
       assert_response :success, surface.fetch(:label)
-      entry = response.parsed_body.fetch("entries").first
+      entry = response.parsed_body.fetch("data").first
 
       assert_equal published.slug, entry.fetch("slug"), surface.fetch(:label)
       assert_equal surface.fetch(:label).downcase, entry.fetch("namespace"), surface.fetch(:label)
@@ -85,7 +85,7 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
           as: :json
 
       assert_response :success, surface.fetch(:label)
-      assert_equal published.slug, response.parsed_body.fetch("entry").fetch("slug"), surface.fetch(:label)
+      assert_equal published.slug, response.parsed_body.fetch("slug"), surface.fetch(:label)
     end
   end
 

@@ -1,11 +1,23 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require_relative "../support/openapi_contract"
 
 # Pins the public read contract consumed by the edge applications. Adding,
 # removing, or retyping a field here is a deliberate API change, not an
 # incidental one.
+#
+# `openapi_content_entries_contract_test.rb` validates this endpoint against the OpenAPI
+# description on all twelve service-and-surface combinations. The assertions here are the ones the
+# description cannot make. `additionalProperties: false` is forbidden by
+# adr/api-versioning-and-client-conventions.md -- clients must tolerate unknown response fields --
+# so a schema can require the contracted members but can never object to an extra one. Only the
+# exact key-set assertions below catch a field that leaks in.
 class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
+  include OpenapiContract
+
+  openapi_surface :app
+
   ENTRY_KEYS = %w(namespace surface slug locale title summary body published_at taxonomy).freeze
   TAXONOMY_KEYS = %w(category tag).freeze
   TERM_KEYS = %w(public_id slug name).freeze
@@ -28,6 +40,10 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
 
     assert_equal ENTRY_KEYS, entry.keys
     assert_equal TAXONOMY_KEYS, entry.fetch("taxonomy").keys
+    # The schema cannot assert this: it may require every member, but it may not close the object,
+    # so an extra field would satisfy it. The line above is the guard; this one proves the two
+    # descriptions of the same payload agree.
+    assert_openapi_conform 200
   end
 
   test "body is always the complete object, never a bare string" do
@@ -230,15 +246,21 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     assert_equal "urn:umaxica:problem:not-found", body.fetch("type")
     assert_equal 404, body.fetch("status")
     assert_predicate body.fetch("request_id"), :present?
+    assert_openapi_conform 404
   end
 
-  # Transitional, paired with the override in PublishingContentRendering: the edge applications read
-  # this key today. Delete this test when that override is removed.
-  test "the transitional legacy error member still carries not_found" do
+  # PublishingContentRendering used to merge a string-valued `error` member into every problem
+  # document on these paths -- a second legacy shape alongside the nested object the other
+  # boundaries carried. Both were removed on 2026-08-22 once an audit established that no consumer
+  # read either.
+  test "no transitional error member remains in the problem document" do
     host! @host
     get docs_app_api_v0_entry_url(slug: "missing", locale: "ja", host: @host)
 
-    assert_equal "not_found", response.parsed_body.fetch("error")
+    body = response.parsed_body
+
+    assert_not body.key?("error"), "the transitional error member is gone"
+    assert_equal %w(instance request_id status title type), body.keys.sort
   end
 
   test "an unknown locale returns an empty index rather than an error" do
@@ -248,7 +270,7 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     get docs_app_api_v0_entries_url(locale: "zz", host: @host)
 
     assert_response :success
-    assert_empty response.parsed_body.fetch("entries")
+    assert_empty response.parsed_body.fetch("data")
   end
 
   private
@@ -270,12 +292,14 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     publishing_publish(entry:, published_at:)
   end
 
+  # A single resource is returned at the top level, with no wrapper key
+  # (adr/api-collection-contract.md).
   def show(slug)
     host!(@host)
     get(docs_app_api_v0_entry_url(slug:, locale: "ja", host: @host))
 
     assert_response :success
-    response.parsed_body.fetch("entry")
+    response.parsed_body
   end
 
   def index(**params)
@@ -283,6 +307,6 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     get(docs_app_api_v0_entries_url(locale: "ja", host: @host, **params))
 
     assert_response :success
-    response.parsed_body.fetch("entries")
+    response.parsed_body.fetch("data")
   end
 end
