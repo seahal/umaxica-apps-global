@@ -895,9 +895,6 @@ en:
             login_success: Login success
             social_unlinked: Social account unlinked
             unknown: Unknown event (%{event_id})
-        entras:
-          show:
-            empty_notice: No active Microsoft Entra ID connection is available.
       sign:
         in:
           passkeys:

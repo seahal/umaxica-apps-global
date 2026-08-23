@@ -171,20 +171,32 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
     assert_response :unprocessable_content
   end
 
+  # Both callbacks end in 422, so the status alone cannot tell "consumed the
+  # state, then failed later" apart from "rejected at the state check". The
+  # failure reason carried on the redirect is what actually distinguishes them,
+  # and is therefore what this asserts.
   test "callback rejects a replayed state" do
     post "/social/entra", params: {}
     state = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("state")
 
-    get "/social/entra/callback", params: { state: state, code: "authorization-code" }
+    # First callback: the state is valid, so the ceremony gets past the CSRF
+    # check and fails at the token exchange instead.
+    stub_entra_token_exchange_error(:invalid_grant) do
+      get "/social/entra/callback", params: { state: state, code: "authorization-code" }
+    end
 
     assert_response :found
+    assert_equal "invalid_grant", failure_message_from(response.location)
     follow_redirect!
 
     assert_response :unprocessable_content
 
+    # Replay: the state was consumed by the first callback, so this one is
+    # rejected at the CSRF check and never reaches the token exchange.
     get "/social/entra/callback", params: { state: state, code: "authorization-code" }
 
     assert_response :found
+    assert_equal "csrf_detected", failure_message_from(response.location)
     follow_redirect!
 
     assert_response :unprocessable_content
@@ -418,6 +430,25 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
 
     assert_not_nil line, "expected a callback_failure event in the captured log"
     line
+  end
+
+  def failure_message_from(location)
+    Rack::Utils.parse_nested_query(URI.parse(location).query).fetch("message", nil)
+  end
+
+  # Fails the token exchange without contacting Microsoft. The unstubbed path
+  # posts the real client id and secret to login.microsoftonline.com on every
+  # run, which makes the suite depend on outbound network reachability and on
+  # Microsoft returning a particular error for a fabricated code.
+  def stub_entra_token_exchange_error(reason, &)
+    strategy_class = OmniAuth::Strategies::UmaxicaEntra
+    original = strategy_class.instance_method(:access_token)
+    strategy_class.define_method(:access_token) do
+      raise OmniAuth::Strategies::UmaxicaEntra::Error, reason
+    end
+    yield
+  ensure
+    strategy_class.define_method(:access_token, original)
   end
 
   def stub_entra_access_token(id_token, &)

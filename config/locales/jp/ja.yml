@@ -1015,9 +1015,6 @@ ja:
         activity:
           events:
             unknown: 不明なイベント（%{event_id}）
-        entras:
-          show:
-            empty_notice: 有効な Microsoft Entra ID の接続はありません。
         operator_lifecycle_requests:
           create:
             success: 申請を作成しました。

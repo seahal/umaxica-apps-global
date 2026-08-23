@@ -36,33 +36,53 @@ class Auth::Org::Settings::EntrasControllerTest < ActionDispatch::IntegrationTes
     assert_equal auth_org_settings_path(ri: "jp"), inertia_props.fetch("back_link").fetch("href")
     assert_equal edit_auth_org_settings_entra_path(ri: "jp"), inertia_props.fetch("edit_link").fetch("href")
     # The read-only screen offers no connect form at all.
-    assert_nil inertia_props["form_action"]
+    assert_nil inertia_props["form"]
   end
 
-  test "edit offers existing Entra ceremony when an active connection exists" do
-    connection = create_entra_connection!
+  # A correctly configured single-tenant deployment holds no
+  # OrganizationEntraConnection rows, so the screen must offer the ceremony
+  # without one. It used to render a form per connection row, which meant the
+  # normal configuration showed no button at all while /social/entra/session/new
+  # worked.
+  test "edit offers the Entra ceremony with no connection record present" do
+    assert_equal 0, OrganizationEntraConnection.count
 
     get edit_auth_org_settings_entra_url(ri: "jp"), headers: @headers
 
     assert_response :success
     assert_equal "auth/org/settings/entras/edit", inertia_component
-    assert_equal auth_org_settings_entra_path(ri: "jp"), inertia_props.fetch("form_action")
-    assert_includes inertia_props.fetch("connections").map { |item| item.fetch("public_id") },
-                    connection.public_id
+    assert_equal auth_org_settings_entra_path(ri: "jp"), inertia_props.fetch("form").fetch("action")
+    assert_nil inertia_props.fetch("unavailable_notice")
+  end
+
+  test "edit offers no form and explains why when the provider is unavailable" do
+    with_entra_unavailable do
+      get edit_auth_org_settings_entra_url(ri: "jp"), headers: @headers
+    end
+
+    assert_response :success
+    assert_nil inertia_props.fetch("form")
+    assert_equal I18n.t("sign.org.authentication.entra.errors.provider_unavailable"),
+                 inertia_props.fetch("unavailable_notice")
   end
 
   test "create redirects to the org Entra sign in ceremony" do
-    connection = create_entra_connection!
-
-    post auth_org_settings_entra_url(ri: "jp"),
-         params: { entra: { connection_public_id: connection.public_id } },
-         headers: @headers
+    post auth_org_settings_entra_url(ri: "jp"), headers: @headers
 
     assert_response :see_other
-    assert_equal(
-      new_auth_org_social_entra_session_url(ri: "jp", connection: connection.public_id),
-      response.location,
-    )
+    assert_equal new_auth_org_social_entra_session_url(ri: "jp"), response.location
+  end
+
+  # Parity with Auth::Org::Social::SessionsController#create: the kill switch
+  # has to stop this entry point too, not only the one on the sign-in page.
+  test "create refuses to start the ceremony when the provider is unavailable" do
+    with_entra_unavailable do
+      post auth_org_settings_entra_url(ri: "jp"), headers: @headers
+    end
+
+    assert_response :service_unavailable
+    assert_equal "auth/org/settings/entras/edit", inertia_component
+    assert_nil inertia_props.fetch("form")
   end
 
   test "settings route uses create and destroy" do
@@ -85,14 +105,17 @@ class Auth::Org::Settings::EntrasControllerTest < ActionDispatch::IntegrationTes
 
   private
 
-  def create_entra_connection!
-    OrganizationEntraConnection.create!(
-      organization_id: 1,
-      entra_tenant_id: "11111111-2222-3333-4444-555555555555",
-      entra_client_id: "settings-entras-controller-test-client",
-      entra_credential_key: "settings-entras-controller-test-secret",
-      status_id: OrganizationEntraConnectionState::ACTIVE,
-    )
+  # Mirrors the stub in
+  # test/controllers/auth/org/omniauth/omniauth_callbacks_controller_test.rb.
+  def with_entra_unavailable(&)
+    disabled = Object.new
+    disabled.define_singleton_method(:start_decision) { |**|
+      ExternalAuthentication::AvailabilityDecision.new(
+        state: :disabled, source: "test", configuration_version: nil, reason_code: "test_disabled",
+        incident_id: nil, observed_at: Time.current,
+      )
+    }
+    ExternalAuthentication::ProviderAvailabilityFactory.stub(:current, disabled, &)
   end
 
   def jwt_access_token_for(resource, host:, session_public_id:, resource_type:)

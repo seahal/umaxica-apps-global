@@ -862,9 +862,6 @@ ja:
         show:
           description: Sign Org のサインイン後のランディングです。
       settings:
-        entras:
-          show:
-            empty_notice: 有効な Microsoft Entra ID の接続はありません。
       sign:
         in:
           passkeys:

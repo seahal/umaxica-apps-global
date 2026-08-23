@@ -13,8 +13,8 @@ module Auth
       # The strategy (lib/omniauth/strategies/umaxica_entra.rb) already
       # performed PKCE/state/nonce validation and Entra ID token verification
       # before this controller runs; `request.env["omniauth.auth"]` carries
-      # only verified, minimal claims (tid, oid, iss, sub,
-      # connection_public_id -- never raw tokens, never email/UPN/name).
+      # only verified, minimal claims (tid, oid, iss, sub -- never raw tokens,
+      # never email/UPN/name).
       #
       # This controller is Rails glue only: it normalizes the AuthHash through
       # the same ExternalAuthentication adapter interface the app surface uses

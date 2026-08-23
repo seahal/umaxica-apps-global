@@ -9,7 +9,7 @@
 #  id                    :bigint           not null, primary key
 #  public_id             :string(21)       not null
 #  operator_id           :bigint           not null
-#  connection_id         :bigint           not null
+#  connection_id         :bigint
 #  entra_tenant_id       :string(36)       not null
 #  entra_object_id       :string(36)       not null
 #  evidence_issuer       :string(512)
@@ -30,7 +30,6 @@
 # Foreign Keys
 #
 #  fk_rails_...  (status_id => operator_entra_identity_states.id)
-#  fk_rails_...  (connection_id => organization_entra_connections.id)
 #
 # Lookup key is (entra_tenant_id, entra_object_id) -- the Entra (tid, oid) pair.
 # evidence_issuer and evidence_subject store iss/sub for audit only; never used for auth lookup.

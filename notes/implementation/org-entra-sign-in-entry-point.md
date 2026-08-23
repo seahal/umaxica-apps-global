@@ -1,5 +1,15 @@
 # Org Entra Sign-In Entry Point Implementation Notes
 
+> **Superseded in part (2026-08-22).** The per-organization multi-tenant reasoning below —
+> `UmaxicaEntra#active_connection_from_params`, `#configure_for_connection!`, the cushion page that
+> exists because "there is no Entra tenant to send the operator to", and the
+> `connection_public_id` / `?connection=` contract — was replaced by
+> `adr/org-entra-single-tenant-credential-configuration.md` (accepted 2026-08-11). The tenant,
+> client, and client secret now come from Rails credentials for a single tenant; the strategy has no
+> connection-resolution methods and `Auth::Org::Social::SessionsController` carries no input. The
+> button, availability gating, non-enumerable error parity, and title-only artwork decisions are
+> unchanged and still govern. Retained as the record of why the entry point was built this way.
+
 ## Context
 
 - Original plan/spec: add a Microsoft Entra ID sign-in entry point to

@@ -1,8 +1,10 @@
 // Connecting the operator's Microsoft Entra ID identity.
 //
 // The connect button is a document POST to the settings endpoint, which redirects into the Entra
-// ceremony, so it stays a native form rather than an Inertia visit. Whether a connection may be
-// offered at all is a server decision: a connected identity arrives with a notice and no form.
+// ceremony, so it stays a native form rather than an Inertia visit. Whether connecting may be
+// offered at all is a server decision: a connected identity, or an unavailable provider, arrives
+// with a notice and no form. There is nothing to choose here — the org surface federates a single
+// Entra tenant configured server-side.
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Page from "@/components/ui/Page";
@@ -14,10 +16,8 @@ export type OrgEntraSettingsEditProps = {
   back_link: { label: string; href: string };
   connected: boolean;
   connected_notice: string | null;
-  empty_notice: string | null;
-  form_action: string;
-  submit_label: string;
-  connections: { public_id: string }[];
+  unavailable_notice: string | null;
+  form: { action: string; submit_label: string } | null;
 };
 
 export default function OrgEntraSettingsEdit({
@@ -25,10 +25,8 @@ export default function OrgEntraSettingsEdit({
   back_link: backLink,
   connected,
   connected_notice: connectedNotice,
-  empty_notice: emptyNotice,
-  form_action: formAction,
-  submit_label: submitLabel,
-  connections,
+  unavailable_notice: unavailableNotice,
+  form,
 }: OrgEntraSettingsEditProps) {
   return (
     <Page
@@ -44,10 +42,9 @@ export default function OrgEntraSettingsEdit({
           </div>
         ) : null}
 
-        {connections.map((connection) => (
+        {form ? (
           <form
-            key={connection.public_id}
-            action={formAction}
+            action={form.action}
             method="post"
           >
             <input
@@ -56,17 +53,11 @@ export default function OrgEntraSettingsEdit({
               value={csrfToken()}
               readOnly
             />
-            <input
-              type="hidden"
-              name="entra[connection_public_id]"
-              value={connection.public_id}
-              readOnly
-            />
-            <Button type="submit">{submitLabel}</Button>
+            <Button type="submit">{form.submit_label}</Button>
           </form>
-        ))}
+        ) : null}
 
-        {emptyNotice ? <p className="text-sm text-fg-muted">{emptyNotice}</p> : null}
+        {unavailableNotice ? <p className="text-sm text-fg-muted">{unavailableNotice}</p> : null}
       </Card>
     </Page>
   );
