@@ -432,7 +432,11 @@ services:
     secrets:
       - dev_postgres_writer
       - dev_postgres_replication
-    restart: unless-stopped
+    # Bounded on purpose. Podman applies no backoff to `unless-stopped`, so a service that
+    # exits immediately on a bad configuration is recreated several times a second until
+    # the netns, veth, conmon, and journald churn saturates a CPU. Three attempts ride out
+    # a transient failure and leave a real misconfiguration stopped and visible.
+    restart: on-failure:3
     healthcheck:
       # Also asserts the objects /entrypoint.sh provisions. `replica` gates its
       # pg_basebackup on this healthcheck, so without those two conditions it
@@ -477,7 +481,11 @@ services:
     secrets:
       - dev_postgres_writer
       - dev_postgres_replication
-    restart: unless-stopped
+    # Bounded on purpose. Podman applies no backoff to `unless-stopped`, so a service that
+    # exits immediately on a bad configuration is recreated several times a second until
+    # the netns, veth, conmon, and journald churn saturates a CPU. Three attempts ride out
+    # a transient failure and leave a real misconfiguration stopped and visible.
+    restart: on-failure:3
     healthcheck:
       # No backslash-escaped quotes: CMD-SHELL runs this under `sh -c`, where
       # `\"` is a literal quote rather than a nesting escape, and the whole
@@ -501,7 +509,11 @@ services:
       - backend
     volumes:
       - valkey-volume:/data
-    restart: unless-stopped
+    # Bounded on purpose. Podman applies no backoff to `unless-stopped`, so a service that
+    # exits immediately on a bad configuration is recreated several times a second until
+    # the netns, veth, conmon, and journald churn saturates a CPU. Three attempts ride out
+    # a transient failure and leave a real misconfiguration stopped and visible.
+    restart: on-failure:3
     healthcheck:
       test:
         - CMD
@@ -543,7 +555,11 @@ services:
       CLUSTER_ID: q1Sh-9_ISia_zwGINzRvyQ
     networks:
       - backend
-    restart: unless-stopped
+    # Bounded on purpose. Podman applies no backoff to `unless-stopped`, so a service that
+    # exits immediately on a bad configuration is recreated several times a second until
+    # the netns, veth, conmon, and journald churn saturates a CPU. Three attempts ride out
+    # a transient failure and leave a real misconfiguration stopped and visible.
+    restart: on-failure:3
     # No host port publication, here or in any override: the broker is a
     # `backend`-network-only service reached as `kafka:29092`.
     healthcheck:
@@ -645,10 +661,11 @@ networks:
     # by the Compose model and causes `up` to fail while building network args.
     external: false
   # NOTE: `cloudflare-tunnel` lives entirely in compose.custom.yaml (repo
-  # root) -- an always-on, unprofiled
-  # overlay that is included unconditionally via
-  # .devcontainer/devcontainer.json's dockerComposeFile array. This base
-  # compose.yaml alone must never create, start, or pull it. See
+  # root), an overlay included unconditionally via
+  # .devcontainer/devcontainer.json's dockerComposeFile array. The connector
+  # itself sits behind that file's `tunnel` profile, so even with the overlay
+  # merged a plain `up` does not start it. This base compose.yaml alone must
+  # never create, start, or pull it. See
   # docs/operations/cloudflare-private-origin.md.
 volumes:
   primary-data: {}

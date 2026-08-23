@@ -1,33 +1,54 @@
 name: umaxica-apps-global-dc
 # Always-on overlay: unconditionally referenced by .devcontainer/devcontainer.json's
 # dockerComposeFile array, and merged manually with `-f compose.custom.yaml` for
-# non-devcontainer `podman compose` invocations. None of the services below carry a
-# `profiles:` key -- this file's presence in the merge is itself the opt-in, so a plain
-# `devcontainer up` (or `podman compose -f compose.yaml -f .devcontainer/compose.override.yml
-# -f compose.custom.yaml up`) starts all of them with no extra flags.
+# non-devcontainer `podman compose` invocations. Presence in the merge is what makes the
+# services below available at all, but `cloudflare-tunnel` is additionally gated behind
+# the `tunnel` profile, so a plain `devcontainer up` no longer starts it.
 #
 # No credential is resolved from the host. The connector token that used to come
 # from the repository `.env` was retired along with every other long-lived
 # credential: cloudflared now authenticates with `cloudflared tunnel login`,
-# performed in a browser from inside the container, and Tailscale with an
-# interactive `tailscale up`. Both write into tmpfs, so the credential dies with
-# the container and nothing is ever staged on the host.
+# performed in a browser from inside a container, and Tailscale with an
+# interactive `tailscale up`.
+#
+# cloudflared splits that login across two artefacts, and neither one names a tunnel:
+# `tunnel login` writes only the account certificate `cert.pem`, while `tunnel run` also
+# needs the per-tunnel credentials file and the tunnel's own name. The `tunnel-bootstrap`
+# services below are the reachable order of operations.
 services:
   cloudflare-tunnel:
     # Workers VPC requires cloudflared 2025.7.0 or newer.
     image: docker.io/cloudflare/cloudflared:2025.7.0
+    # Opt-in. A development session that needs no edge ingress must not create the
+    # connector at all, so a connector misconfiguration cannot reach that session:
+    #   podman compose -f compose.yaml -f .devcontainer/compose.override.yml \
+    #     -f compose.custom.yaml --profile tunnel up -d cloudflare-tunnel
+    profiles:
+      - tunnel
     depends_on:
       - core
     # Workers VPC DNS routing requires QUIC and outbound UDP 7844.
-    # No `run <name>` argument and no TUNNEL_TOKEN: the connector reads the
-    # credentials that `cloudflared tunnel login` wrote into /home/nonroot/.cloudflared.
-    # Run the login once per container:
-    #   podman compose exec cloudflare-tunnel cloudflared tunnel login
-    # then restart this service. The directory is tmpfs, so recreating the
-    # container requires logging in again -- that is intentional.
-    command: tunnel --protocol quic run
-    tmpfs:
-      - /home/nonroot/.cloudflared:mode=0700,uid=65532,gid=65532
+    #
+    # `tunnel run` resolves which tunnel to serve from argv, from TUNNEL_TOKEN, or from a
+    # config file `tunnel:` key -- never from cert.pem. The name below is therefore
+    # load-bearing: without it cloudflared exits before serving a single request, and an
+    # unbounded restart policy turns that into a host-wide restart storm. It is an
+    # account-scoped identifier rather than a credential, so it belongs in version
+    # control, and `bin/tunnel-preflight` fails loudly when it does not match the
+    # credentials file that the bootstrap step wrote.
+    #
+    # --metrics serves cloudflared's own /ready endpoint to the compose network so that
+    # `bin/tunnel-origin-check` can tell a connected tunnel apart from a restarting one.
+    # It publishes no host port.
+    command: tunnel --protocol quic --metrics 0.0.0.0:2000 run umaxica-global-dev
+    volumes:
+      # A named volume, not a tmpfs. `tunnel login` cannot run inside a container that is
+      # crash-looping for want of the very credential it would write, and a tmpfs is
+      # discarded together with the one-shot bootstrap container that could write it, so
+      # the ephemeral variant left no reachable way to authenticate at all. The volume
+      # stays out of the repository tree, out of `.env`, and out of every host bind mount;
+      # `podman volume rm umaxica-apps-global-dc_cloudflared-credentials` is revocation.
+      - cloudflared-credentials:/home/nonroot/.cloudflared
     # This list replaces, rather than merges with, any `networks:` the base file gives the
     # service, so `frontend` must stay written out here. Dropping it would strip the private
     # `*.localhost` Rails origins from the connector and break every working ingress rule.
@@ -36,7 +57,57 @@ services:
       - edge-tunnel
     extra_hosts:
       - host.docker.internal:host-gateway
-    restart: unless-stopped
+    # A connector that cannot identify its tunnel exits within milliseconds. Podman applies
+    # no backoff to `unless-stopped`, so that turns into an unbounded restart storm which
+    # saturates a CPU with netns, veth, conmon, and journald churn until someone notices.
+    # Three attempts ride out a transient edge failure and keep a misconfiguration a
+    # bounded, visible incident instead.
+    restart: on-failure:3
+    # Caps what a crash loop can consume before a human notices it.
+    cpus: 0.5
+    mem_limit: 256m
+    pids_limit: 128
+    # journald enforces no per-container size cap, so a crash loop writing to it degrades
+    # the whole host journal. Keep connector output in a bounded ring instead.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  # Two one-shot helpers that make the credential-free CLI login reachable at all. They
+  # share the connector's credential volume and never take part in `up`. Run them in this
+  # order, once per credential volume rather than once per container:
+  #
+  #   podman compose ... --profile tunnel-bootstrap run --rm cloudflared-login
+  #   podman compose ... --profile tunnel-bootstrap run --rm cloudflared-credentials
+  #   podman compose ... --profile tunnel up -d cloudflare-tunnel
+  #
+  # The image is distroless, so both override the entrypoint to reach the binary directly
+  # instead of going through a shell.
+  cloudflared-login:
+    profiles:
+      - tunnel-bootstrap
+    image: docker.io/cloudflare/cloudflared:2025.7.0
+    entrypoint:
+      - cloudflared
+    # Prints an authorisation URL, waits for the browser, and writes cert.pem.
+    command: tunnel login
+    volumes:
+      - cloudflared-credentials:/home/nonroot/.cloudflared
+    restart: "no"
+  cloudflared-credentials:
+    profiles:
+      - tunnel-bootstrap
+    image: docker.io/cloudflare/cloudflared:2025.7.0
+    entrypoint:
+      - cloudflared
+    # Exchanges cert.pem for the per-tunnel credentials that `tunnel run` loads. Use
+    # `tunnel create umaxica-global-dev` instead when the tunnel does not exist yet.
+    command:
+      tunnel token --cred-file /home/nonroot/.cloudflared/umaxica-global-dev.json umaxica-global-dev
+    volumes:
+      - cloudflared-credentials:/home/nonroot/.cloudflared
+    restart: "no"
   core:
     # Tailscale is not in use right now. tailscale-core-supervisor needs a
     # real root control-plane PID 1 (see .devcontainer/compose.override.yml),
@@ -65,3 +136,8 @@ networks:
   edge-tunnel:
     external: true
     name: umaxica-edge-tunnel
+volumes:
+  # Holds cert.pem and the per-tunnel credentials written by the tunnel-bootstrap
+  # services. Podman-managed, so it is reachable from neither the repository tree nor any
+  # host bind mount, and `podman volume rm` is the revocation step.
+  cloudflared-credentials: {}

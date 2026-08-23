@@ -92,6 +92,70 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     )
   end
 
+  test "the tunnel connector can identify the tunnel it is asked to run" do
+    overlay = YAML.safe_load_file(REPOSITORY_ROOT.join("compose.custom.yaml"))
+    connector = overlay.fetch("services").fetch("cloudflare-tunnel")
+    argv = connector.fetch("command").split
+
+    assert_not_equal "run", argv.last,
+                     "cloudflared resolves which tunnel to serve from argv, from TUNNEL_TOKEN, " \
+                     "or from a config file `tunnel:` key -- never from the cert.pem that " \
+                     "`tunnel login` writes. With none of them it exits within milliseconds, " \
+                     "and a restart policy then repeats that several times a second"
+    assert_includes argv, "run", "the connector must still run a tunnel"
+  end
+
+  test "no service restarts without a bound" do
+    %w(compose.yaml compose.custom.yaml .devcontainer/compose.override.yml).each do |relative_path|
+      compose = YAML.safe_load_file(REPOSITORY_ROOT.join(relative_path), aliases: true)
+
+      compose.fetch("services", {}).each do |name, service|
+        next unless service.is_a?(Hash) && service.key?("restart")
+
+        assert_not_equal "unless-stopped", service.fetch("restart"),
+                         "#{relative_path}: #{name} would restart forever with no Podman " \
+                         "backoff, turning a startup misconfiguration into a restart storm"
+      end
+    end
+  end
+
+  test "the tunnel connector caps what a crash loop can consume" do
+    overlay = YAML.safe_load_file(REPOSITORY_ROOT.join("compose.custom.yaml"))
+    connector = overlay.fetch("services").fetch("cloudflare-tunnel")
+
+    %w(cpus mem_limit pids_limit logging).each do |key|
+      assert connector.key?(key),
+             "cloudflare-tunnel declares no #{key}, so a crash loop is bounded only by the host"
+    end
+
+    assert_includes connector.fetch("profiles"), "tunnel",
+                    "an always-on connector exposes every development session to its own " \
+                    "misconfiguration, including sessions that need no edge ingress"
+  end
+
+  test "the tunnel credential survives the container that has to write it" do
+    overlay = YAML.safe_load_file(REPOSITORY_ROOT.join("compose.custom.yaml"))
+    connector = overlay.fetch("services").fetch("cloudflare-tunnel")
+
+    assert_not connector.key?("tmpfs"),
+               "`cloudflared tunnel login` cannot run inside a connector that is crash-looping " \
+               "for want of the credential it would write, and a tmpfs is discarded with the " \
+               "one-shot container that could write it instead"
+    assert_includes connector.fetch("volumes"),
+                    "cloudflared-credentials:/home/nonroot/.cloudflared"
+    assert_includes overlay.fetch("volumes").keys, "cloudflared-credentials"
+
+    %w(cloudflared-login cloudflared-credentials).each do |service|
+      definition = overlay.fetch("services").fetch(service)
+
+      assert_includes definition.fetch("profiles"), "tunnel-bootstrap",
+                      "#{service} must never take part in a plain `up`"
+      assert_includes definition.fetch("volumes"),
+                      "cloudflared-credentials:/home/nonroot/.cloudflared",
+                      "#{service} writes into the volume the connector reads"
+    end
+  end
+
   test "PostgreSQL health checks authenticate through the runtime writer secret" do
     compose = REPOSITORY_ROOT.join("compose.yaml").read
 

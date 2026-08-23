@@ -38,8 +38,9 @@ The gates are intentionally independent:
    port and must not be given one; the only publications in the stack are `core`'s loopback-bound
    `3000`/`3036`. See `docs/operations/development-host-port-exposure.md`.
 5. **Workers VPC connector prerequisites**: cloudflared is pinned at `2025.7.0`, runs with QUIC,
-   authenticates with credentials written by an in-container `cloudflared tunnel login` browser flow
-   (no `TUNNEL_TOKEN`, no host `.env` entry), and requires outbound UDP port 7844.
+   authenticates with credentials written by an in-container browser login (no `TUNNEL_TOKEN`, no
+   host `.env` entry), names its tunnel in argv, and requires outbound UDP port 7844. See
+   "Authenticating the Connector" below: `tunnel login` alone is not sufficient.
 6. **Repository regression checks**: run the focused tests first, then the full Rails suite,
    coverage, and lint checks when the test databases are available.
 
@@ -94,6 +95,52 @@ Access and Workers VPC are separate route types. Based on that separation, this 
 require `CF-Access-*` headers on the VPC path. This is an operational inference to confirm in the
 Cloudflare account before rollout, not a Rails authentication bypass.
 
+## Authenticating the Connector
+
+`cloudflared` splits its authentication across two artefacts, and neither of them decides which
+tunnel to serve:
+
+| Artefact             | Written by                                                  | Role                      |
+| -------------------- | ----------------------------------------------------------- | ------------------------- |
+| `cert.pem`           | `cloudflared tunnel login`                                  | account certificate       |
+| `<TUNNEL_NAME>.json` | `cloudflared tunnel token --cred-file` (or `tunnel create`) | per-tunnel credentials    |
+| tunnel name          | `compose.custom.yaml` argv                                  | which tunnel `run` serves |
+
+`tunnel run` needs all three. A connector given only `cert.pem` exits immediately with
+`"cloudflared tunnel run" requires the ID or name of the tunnel to run`, so the tunnel name is
+written into the connector's `command` in `compose.custom.yaml`. It is an account-scoped identifier,
+not a credential.
+
+The credentials live in the `cloudflared-credentials` named volume rather than a tmpfs. A tmpfs is
+discarded together with the one-shot container that would write it, and `podman compose exec` cannot
+reach a connector that is crash-looping for want of that same credential, so the ephemeral variant
+left no reachable way to authenticate. The volume is Podman-managed: it is not in the repository
+tree, not in `.env`, and not in any host bind mount.
+
+Bootstrap once per credential volume, then start the connector:
+
+```bash
+COMPOSE="podman compose -f compose.yaml -f .devcontainer/compose.override.yml -f compose.custom.yaml"
+
+$COMPOSE --profile tunnel-bootstrap run --rm cloudflared-login
+$COMPOSE --profile tunnel-bootstrap run --rm cloudflared-credentials
+bin/tunnel-preflight
+$COMPOSE --profile tunnel up -d cloudflare-tunnel
+```
+
+`bin/tunnel-preflight` refuses to pass unless the tunnel is named, the external Edge network exists,
+and both credential files are in the volume. Run it before every `up`: a connector that starts
+without them exits within milliseconds, and Podman applies no backoff to a restart policy.
+
+To revoke, delete the volume; the next bootstrap starts from an unauthenticated state:
+
+```bash
+podman volume rm umaxica-apps-global-dc_cloudflared-credentials
+```
+
+The connector is behind the `tunnel` Compose profile, so a development session that needs no edge
+ingress never creates it and cannot be affected by its misconfiguration.
+
 ## Running the Transport Probe
 
 Start `core` and `cloudflare-tunnel`, then run:
@@ -109,6 +156,11 @@ Each line is explicitly labeled as transport evidence.
 
 The probe pulls its pinned image on first use. Failure to pull the image, resolve an alias, connect
 to Rails, or receive HTTP `200` makes the command fail nonzero.
+
+Before probing origins it checks that the connector is `running` with a `RestartCount` of zero and
+that cloudflared's own `/ready` endpoint answers `200`. A container id alone proves nothing: `ps -q`
+still reports one between restarts, so without those gates a crash-looping connector reads as a
+Rails or DNS fault instead.
 
 ## External Checks
 

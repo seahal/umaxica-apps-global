@@ -133,9 +133,12 @@ Browser --(HTTPS)--> Cloudflare edge --(QUIC tunnel)--> cloudflared (compose: cl
 ```
 
 - `cloudflared` is configured in `compose.custom.yaml` (`cloudflare-tunnel` service, image
-  `cloudflare/cloudflared:2025.7.0`, `tunnel --protocol quic run`, token-based auth). The base
-  `compose.yaml` must never define it — see the note at `compose.yaml:604-609`. It is the only
-  component on the `frontend` network besides `core` itself.
+  `cloudflare/cloudflared:2025.7.0`,
+  `tunnel --protocol quic --metrics 0.0.0.0:2000 run <TUNNEL_NAME>`, credentials from an
+  in-container browser login). The base `compose.yaml` must never define it — see the note above its
+  `volumes:` block. The connector sits behind the `tunnel` Compose profile, so a session that needs
+  no edge ingress never creates it. It is the only component on the `frontend` network besides
+  `core` itself.
 - The connector is additionally attached to `umaxica-edge-tunnel`, an `external: true` network owned
   by the Edge compose project, which is the only way it can reach the Next.js Core origin. That
   network carries no route to Rails and Rails' `frontend` carries no route to Edge Core: the
@@ -182,7 +185,8 @@ Browser --(HTTPS, Access cookie/JWT)--> Cloudflare edge --(Access policy check)-
   validation point — it runs before the request reaches Rails at all.
 - **The development tunnel hostnames are Access-protected, and that protection lives in the
   Cloudflare account, not in this repository.** This connector authenticates through an in-container
-  `cloudflared tunnel login` browser flow and is remotely managed, so its ingress rules and
+  browser login (see "Authenticating the Connector" in
+  `docs/operations/cloudflare-private-origin.md`) and is remotely managed, so its ingress rules and
   `originRequest.access` blocks are configured in the Cloudflare dashboard; no file here can assert
   they are present. Treat "the Access application exists and the published development route enables
   Access validation" as an external check, in the sense of the "External Checks" section of
