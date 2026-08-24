@@ -74,17 +74,18 @@ publication.
 ## Cloudflare Tunnel
 
 `cloudflare-tunnel` needs no inbound host port and must never be given one. It dials Cloudflare
-outbound over QUIC (UDP 7844) and resolves its origins over the Podman networks it joins:
+outbound over QUIC (UDP 7844) and resolves the Rails origin over Global's private Podman network:
 
 ```text
-cloudflare-tunnel -> frontend network -> core:3000                (Rails)
-cloudflare-tunnel -> umaxica-edge-tunnel network -> Edge Core     (Next.js, other project)
+cloudflare-tunnel -> frontend network -> core:3000 (Rails)
 ```
 
-Ingress rules live in the Cloudflare account, not in this repository. They must name a Compose
-service address on one of those networks. An ingress rule pointing at `host.docker.internal:3000`
-would route Cloudflare traffic back out through the host and is not supported by this contract —
-see `docs/operations/cloudflare-private-origin.md`.
+The Edge Worker reaches Rails through its Cloudflare Workers VPC Service binding; the Edge and
+Global compose projects do not share a host Podman network. Tunnel and VPC Service routing live in
+the Cloudflare account, not in this repository. The Rails target must name a `frontend` service
+address. A target pointing at `host.docker.internal:3000` would route Cloudflare traffic back out
+through the host and is not supported by this contract — see
+`docs/operations/cloudflare-private-origin.md`.
 
 ## Verification
 

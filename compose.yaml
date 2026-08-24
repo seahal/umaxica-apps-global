@@ -112,7 +112,10 @@ services:
       # not additionally require recreating this container.
       OBJECT_STORAGE_ENDPOINT: "http://rustfs:9000"
       OBJECT_STORAGE_REGION: "us-east-1"
-      OBJECT_STORAGE_BUCKET: "${OBJECT_STORAGE_BUCKET:-}"
+      # Fixed development bucket name, like the endpoint and region above. It is
+      # not host-shaped and not a credential, so it belongs in the service
+      # contract rather than in the repository-root .env.
+      OBJECT_STORAGE_BUCKET: umaxica-local
       OBJECT_STORAGE_ACCESS_KEY_ID_FILE: /run/secrets/dev_rustfs_access_key
       OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE: /run/secrets/dev_rustfs_secret_key
       OBJECT_STORAGE_FORCE_PATH_STYLE: "true"

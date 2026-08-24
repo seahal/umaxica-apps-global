@@ -101,7 +101,9 @@ rather than exported variables and Compose cannot read them directly. The
 second registers the external Podman secrets — `dev_postgres_writer`,
 `dev_postgres_replication`, `dev_rustfs_access_key`,
 `dev_rustfs_secret_key`, and `dev_rustfs_rpc_secret` — before any service
-starts. `postCreateCommand` then runs `bundle install && pnpm install`.
+starts. Global and Edge do not share a host Podman network; the Edge Worker uses
+Cloudflare Workers VPC to reach this tunnel. `postCreateCommand` then runs `bundle install && pnpm
+install`.
 
 The Podman-specific properties are Compose concerns and need no flags:
 `userns_mode: keep-id`, `user: !reset null`, the `bind.selinux: Z` labels on

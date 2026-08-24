@@ -4,11 +4,10 @@ This repository exposes Rails to Cloudflare Tunnel only through the Podman `fron
 same tunnel supports published browser hostnames and a future Workers VPC Service, but those ingress
 paths do not change Rails authentication, authorization, or surface ownership.
 
-The connector itself is not `frontend`-only. `compose.custom.yaml` also attaches it to
-`umaxica-edge-tunnel`, an `external: true` network created and owned by the Edge compose project,
-because the Next.js Core origin runs there and shares no network with this project otherwise. That
-attachment is what makes Edge-bound ingress rules resolve; it grants no new path to Rails, which
-stays reachable only over `frontend`, and Edge Core stays unreachable from `frontend`.
+The connector is attached only to this compose project's private `frontend` network. The Edge and
+Global compose projects must not share a host Podman network. Edge Workers reach Rails through a
+Cloudflare Workers VPC Service bound to this tunnel; they never resolve or dial the Rails container
+over a cross-project container network.
 
 ## Invariants and Verification Gates
 
@@ -37,10 +36,10 @@ The gates are intentionally independent:
    `frontend` network and no new host port publication. The connector never needs an inbound host
    port and must not be given one; the only publications in the stack are `core`'s loopback-bound
    `3000`/`3036`. See `docs/operations/development-host-port-exposure.md`.
-5. **Workers VPC connector prerequisites**: cloudflared is pinned at `2025.7.0`, runs with QUIC,
-   authenticates with credentials written by an in-container browser login (no `TUNNEL_TOKEN`, no
-   host `.env` entry), names its tunnel in argv, and requires outbound UDP port 7844. See
-   "Authenticating the Connector" below: `tunnel login` alone is not sufficient.
+5. **Workers VPC connector prerequisites**: cloudflared is pinned at the supported `2026.8.2`
+   release, runs with QUIC, authenticates with the remotely managed tunnel token from the gitignored
+   repository `.env`, and requires outbound UDP port 7844. See "Authenticating the Connector"
+   below.
 6. **Repository regression checks**: run the focused tests first, then the full Rails suite,
    coverage, and lint checks when the test databases are available.
 
@@ -87,7 +86,8 @@ the surface route constraint. See Cloudflare's
 [VPC Services configuration](https://developers.cloudflare.com/workers-vpc/configuration/vpc-services/).
 
 Cloudflare documents cloudflared `2025.7.0` or newer, QUIC, and outbound UDP 7844 for Workers VPC
-tunnels in
+tunnels. Cloudflare supports cloudflared releases only for one year, so this repository pins the
+current supported `2026.8.2` release rather than the minimum compatible release. See
 [Connect with Cloudflare Tunnel](https://developers.cloudflare.com/workers-vpc/configuration/tunnel/).
 Do not switch this connector to HTTP/2 for Workers VPC DNS routing.
 
@@ -97,49 +97,62 @@ Cloudflare account before rollout, not a Rails authentication bypass.
 
 ## Authenticating the Connector
 
-`cloudflared` splits its authentication across two artefacts, and neither of them decides which
-tunnel to serve:
+`cloudflare-tunnel` is a connector for the existing remotely managed tunnel. It reads the tunnel's
+scoped connector token from `CLOUDFLARED_TOKEN` in the repository-local `.env`; Compose passes that
+value to cloudflared as `TUNNEL_TOKEN`. This is not an account API key. It authorizes a connector to
+run that tunnel, so it is still a secret and must not be committed, logged, or pasted into a command
+argument.
 
-| Artefact             | Written by                                                  | Role                      |
-| -------------------- | ----------------------------------------------------------- | ------------------------- |
-| `cert.pem`           | `cloudflared tunnel login`                                  | account certificate       |
-| `<TUNNEL_NAME>.json` | `cloudflared tunnel token --cred-file` (or `tunnel create`) | per-tunnel credentials    |
-| tunnel name          | `compose.custom.yaml` argv                                  | which tunnel `run` serves |
+Retrieve the token in the Cloudflare dashboard:
 
-`tunnel run` needs all three. A connector given only `cert.pem` exits immediately with
-`"cloudflared tunnel run" requires the ID or name of the tunnel to run`, so the tunnel name is
-written into the connector's `command` in `compose.custom.yaml`. It is an account-scoped identifier,
-not a credential.
+1. Go to **Networking > Tunnels**.
+2. Open the development tunnel.
+3. Select **Add a replica**.
+4. Copy only the `eyJ...` token from the displayed installation command.
+5. Store it in the repository root `.env` and restrict the file mode:
 
-The credentials live in the `cloudflared-credentials` named volume rather than a tmpfs. A tmpfs is
-discarded together with the one-shot container that would write it, and `podman compose exec` cannot
-reach a connector that is crash-looping for want of that same credential, so the ephemeral variant
-left no reachable way to authenticate. The volume is Podman-managed: it is not in the repository
-tree, not in `.env`, and not in any host bind mount.
-
-Bootstrap once per credential volume, then start the connector:
-
-```bash
-COMPOSE="podman compose -f compose.yaml -f .devcontainer/compose.override.yml -f compose.custom.yaml"
-
-$COMPOSE --profile tunnel-bootstrap run --rm cloudflared-login
-$COMPOSE --profile tunnel-bootstrap run --rm cloudflared-credentials
-bin/tunnel-preflight
-$COMPOSE --profile tunnel up -d cloudflare-tunnel
+```dotenv
+CLOUDFLARED_TOKEN=<paste the tunnel token here>
 ```
 
-`bin/tunnel-preflight` refuses to pass unless the tunnel is named, the external Edge network exists,
-and both credential files are in the volume. Run it before every `up`: a connector that starts
-without them exits within milliseconds, and Podman applies no backoff to a restart policy.
-
-To revoke, delete the volume; the next bootstrap starts from an unauthenticated state:
-
 ```bash
-podman volume rm umaxica-apps-global-dc_cloudflared-credentials
+chmod 600 .env
 ```
 
-The connector is behind the `tunnel` Compose profile, so a development session that needs no edge
-ingress never creates it and cannot be affected by its misconfiguration.
+If `.env` already contains other settings, add or replace only its `CLOUDFLARED_TOKEN` line. Never
+commit `.env`; the repository, Docker, and container build ignore files all exclude it.
+
+The connector has no Compose profile. Once `.env` contains the token, the standard Dev Container
+lifecycle starts `core` and `cloudflare-tunnel` together:
+
+```bash
+devcontainer up --workspace-folder .
+bin/tunnel-origin-check
+```
+
+Run these commands from a host terminal, not from inside `core`. A missing token fails during Compose
+resolution with `CLOUDFLARED_TOKEN must be set in .env`; there is no anonymous or browser-login
+fallback.
+
+Do not leave a standalone `docker run ... tunnel run --token ...` connector running for this tunnel
+at the same time. Inspect `docker ps` and `podman ps` on the host before switching to the Compose
+sidecar.
+
+To rotate or revoke the connector credential, refresh the token in the Cloudflare dashboard, replace
+only the `CLOUDFLARED_TOKEN` value in `.env`, and recreate the connector. Removing the local value
+alone does not revoke a copied token at Cloudflare:
+
+```bash
+podman compose \
+  -f compose.yaml \
+  -f .devcontainer/compose.override.yml \
+  -f compose.custom.yaml \
+  up -d --force-recreate --no-deps cloudflare-tunnel
+```
+
+The connector reaches Rails directly over `frontend`. It has no `host.docker.internal` alias, no
+Edge project network, and no supported route back through a host-published application port. Keep
+the Cloudflare VPC Service pointed at an unambiguous Rails service address on `frontend`.
 
 ## Running the Transport Probe
 
@@ -170,13 +183,11 @@ Repository checks cannot prove these Cloudflare-account and network controls:
 - the Access application exists before its published hostname, including the development hostnames;
 - the published route enables Access validation;
 - the VPC Service target, port, and Worker binding match this contract;
-- the Edge compose project is running, so `umaxica-edge-tunnel` exists before the connector is
-  created. The network is `external: true` here, so bringing the Edge stack down removes it and the
-  connector then fails to start rather than degrading to Rails-only reachability;
-- every Edge-bound tunnel ingress rule names an unambiguous address. Podman registers a service name
-  as a network alias, so `core` resolves both on `frontend` (Rails) and on `umaxica-edge-tunnel`
-  (Edge Core) once the connector joins both. Ingress lives in the Cloudflare account, not in this
-  repository.
+- the Edge Worker uses the intended VPC Service binding, with `remote: true` for local development
+  when the request must traverse Cloudflare;
+- the tunnel has no replica in a network that cannot reach this Rails origin. Cloudflare may route
+  traffic to any connector replica, so every replica for this tunnel must provide the same origin
+  reachability.
 
 Treat each as blocked until verified in the deployment environment. Do not infer them from a local
 `/health` response.

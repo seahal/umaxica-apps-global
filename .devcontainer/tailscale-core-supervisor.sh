@@ -5,8 +5,8 @@ readonly PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
 unset BASH_ENV ENV CDPATH
 
-readonly TAILSCALE_BIN=/usr/local/bin/tailscale
-readonly TAILSCALED_BIN=/usr/local/bin/tailscaled
+readonly TAILSCALE_BIN=/usr/bin/tailscale
+readonly TAILSCALED_BIN=/usr/sbin/tailscaled
 readonly TAILSCALE_SOCKET=/run/tailscale/tailscaled.sock
 readonly TAILSCALE_STATE_DIR=/var/lib/tailscale-core
 readonly MAX_TAILSCALED_RESTARTS=3

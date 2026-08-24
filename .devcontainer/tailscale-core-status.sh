@@ -5,7 +5,7 @@ readonly PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
 unset BASH_ENV ENV CDPATH
 
-readonly TAILSCALE_BIN=/usr/local/bin/tailscale
+readonly TAILSCALE_BIN=/usr/bin/tailscale
 readonly TAILSCALE_SOCKET=/run/tailscale/tailscaled.sock
 
 if (( EUID != 0 )); then

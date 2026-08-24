@@ -60,6 +60,18 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
 
     assert_not_predicate REPOSITORY_ROOT.join("podman/tools/dcup"), :exist?
     assert_includes devcontainer, "bin/setup-dev-secrets"
+    assert_not_includes devcontainer, "ensure-shared-networks"
+  end
+
+  test "devcontainer feature is the only Tailscale binary source" do
+    devcontainer = REPOSITORY_ROOT.join(".devcontainer/devcontainer.json").read
+    containerfile = REPOSITORY_ROOT.join("Containerfile").read
+    supervisor = REPOSITORY_ROOT.join(".devcontainer/tailscale-core-supervisor.sh").read
+
+    assert_includes devcontainer, "ghcr.io/devcontainer-community/devcontainer-features/tailscale.com:1"
+    assert_no_match(/tailscale\/tailscale|tailscale-toolchain/, containerfile)
+    assert_includes supervisor, "TAILSCALE_BIN=/usr/bin/tailscale"
+    assert_includes supervisor, "TAILSCALED_BIN=/usr/sbin/tailscaled"
   end
 
   test "compose network external flags are booleans rather than interpolated strings" do
@@ -72,24 +84,22 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     end
   end
 
-  test "the tunnel connector joins both the Rails frontend and the external Edge network" do
+  test "the tunnel connector joins only the Rails frontend network" do
     overlay = YAML.safe_load_file(REPOSITORY_ROOT.join("compose.custom.yaml"))
-    connector_networks = overlay.fetch("services").fetch("cloudflare-tunnel").fetch("networks")
+    connector = overlay.fetch("services").fetch("cloudflare-tunnel")
+    connector_networks = connector.fetch("networks")
 
     assert_includes connector_networks, "frontend",
                     "a service-level networks: list in an overlay replaces the base list rather " \
                     "than merging with it, so removing frontend here silently detaches the " \
                     "connector from the private *.localhost Rails origins"
-    assert_includes connector_networks, "edge-tunnel",
-                    "without the Edge network the connector shares no network with the Edge Core " \
-                    "origin, cannot resolve it, and every Edge ingress rule returns 502"
-
-    assert_equal(
-      { "external" => true, "name" => "umaxica-edge-tunnel" },
-      overlay.fetch("networks").fetch("edge-tunnel"),
-      "the Edge network is created by the Edge compose project; declaring it non-external " \
-      "or under another name makes this project create a separate empty network",
-    )
+    assert_equal ["frontend"], connector_networks
+    assert_not overlay.fetch("networks", {}).key?("edge-tunnel"),
+               "Edge reaches Rails through Workers VPC; the repositories must not share a " \
+               "host Podman network"
+    assert_not connector.key?("extra_hosts"),
+               "the connector reaches Rails over its private Podman network; a host-gateway " \
+               "alias unnecessarily expands the origins reachable from the tunnel sidecar"
   end
 
   test "the tunnel connector can identify the tunnel it is asked to run" do
@@ -97,12 +107,17 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     connector = overlay.fetch("services").fetch("cloudflare-tunnel")
     argv = connector.fetch("command").split
 
-    assert_not_equal "run", argv.last,
-                     "cloudflared resolves which tunnel to serve from argv, from TUNNEL_TOKEN, " \
-                     "or from a config file `tunnel:` key -- never from the cert.pem that " \
-                     "`tunnel login` writes. With none of them it exits within milliseconds, " \
-                     "and a restart policy then repeats that several times a second"
+    assert_equal "${CLOUDFLARED_TOKEN:?CLOUDFLARED_TOKEN must be set in .env}",
+                 connector.fetch("environment").fetch("TUNNEL_TOKEN")
+    assert_equal "run", argv.last
     assert_includes argv, "run", "the connector must still run a tunnel"
+  end
+
+  test "the tunnel connector uses a supported pinned cloudflared release" do
+    overlay = YAML.safe_load_file(REPOSITORY_ROOT.join("compose.custom.yaml"))
+    connector = overlay.fetch("services").fetch("cloudflare-tunnel")
+
+    assert_equal "docker.io/cloudflare/cloudflared:2026.8.2", connector.fetch("image")
   end
 
   test "no service restarts without a bound" do
@@ -128,32 +143,21 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
              "cloudflare-tunnel declares no #{key}, so a crash loop is bounded only by the host"
     end
 
-    assert_includes connector.fetch("profiles"), "tunnel",
-                    "an always-on connector exposes every development session to its own " \
-                    "misconfiguration, including sessions that need no edge ingress"
+    assert_not connector.key?("profiles"),
+               "the always-merged development overlay must start its authenticated connector " \
+               "during the standard Dev Container lifecycle"
   end
 
-  test "the tunnel credential survives the container that has to write it" do
+  test "the tunnel token comes only from the gitignored repository environment file" do
     overlay = YAML.safe_load_file(REPOSITORY_ROOT.join("compose.custom.yaml"))
     connector = overlay.fetch("services").fetch("cloudflare-tunnel")
+    services = overlay.fetch("services")
 
-    assert_not connector.key?("tmpfs"),
-               "`cloudflared tunnel login` cannot run inside a connector that is crash-looping " \
-               "for want of the credential it would write, and a tmpfs is discarded with the " \
-               "one-shot container that could write it instead"
-    assert_includes connector.fetch("volumes"),
-                    "cloudflared-credentials:/home/nonroot/.cloudflared"
-    assert_includes overlay.fetch("volumes").keys, "cloudflared-credentials"
-
-    %w(cloudflared-login cloudflared-credentials).each do |service|
-      definition = overlay.fetch("services").fetch(service)
-
-      assert_includes definition.fetch("profiles"), "tunnel-bootstrap",
-                      "#{service} must never take part in a plain `up`"
-      assert_includes definition.fetch("volumes"),
-                      "cloudflared-credentials:/home/nonroot/.cloudflared",
-                      "#{service} writes into the volume the connector reads"
-    end
+    assert system("git", "check-ignore", "--quiet", ".env")
+    assert_not connector.key?("volumes")
+    assert_not services.key?("cloudflared-login")
+    assert_not services.key?("cloudflared-credentials")
+    assert_not_includes overlay.fetch("volumes", {}).keys, "cloudflared-credentials"
   end
 
   test "PostgreSQL health checks authenticate through the runtime writer secret" do

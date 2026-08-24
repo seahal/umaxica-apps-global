@@ -2,8 +2,9 @@
 
 ## Current architecture
 
-The development-only `core` image contains digest-pinned `tailscale` and `tailscaled` binaries. The
-PID 1 wrapper starts the normal `bin/dev` workload and a userspace-networking daemon in parallel:
+The Dev Container Feature installs `tailscale` and `tailscaled` into the development-only `core`
+image. The PID 1 wrapper starts the normal `bin/dev` workload and a userspace-networking daemon in
+parallel:
 
 ```text
 Tailnet client
@@ -26,8 +27,8 @@ does not allow a broad `.ts.net` host pattern.
 
 ## Image, state, and trust boundaries
 
-The Tailscale binaries are copied from the digest-pinned official image only after the Containerfile
-enters the `development` target. Production targets do not contain the binaries or the supervisor.
+The Tailscale binaries are installed by the Feature declared in `.devcontainer/devcontainer.json`.
+Production targets do not contain the binaries or the supervisor.
 
 `/var/lib/tailscale-core` is a tmpfs, not a persistent volume. The node identity and Serve
 configuration live only for the lifetime of the container, so recreating `core` deregisters the node
@@ -52,13 +53,13 @@ An empty state volume requires an explicit interactive login:
 
 ```sh
 podman exec -it --user 0 global-devcontainer-core \
-  /usr/local/bin/tailscale \
+  /usr/bin/tailscale \
   --socket=/run/tailscale/tailscaled.sock login \
   --hostname=umaxica-global-core \
   --accept-dns=false
 
 podman exec --user 0 global-devcontainer-core \
-  /usr/local/bin/tailscale \
+  /usr/bin/tailscale \
   --socket=/run/tailscale/tailscaled.sock set \
   --accept-dns=false \
   --ssh
@@ -72,7 +73,7 @@ state:
 
 ```sh
 podman exec --user 0 global-devcontainer-core \
-  /usr/local/bin/tailscale \
+  /usr/bin/tailscale \
   --socket=/run/tailscale/tailscaled.sock serve \
   --bg http://127.0.0.1:3000
 ```
@@ -97,7 +98,7 @@ podman exec --user 0 global-devcontainer-core \
   /usr/local/bin/tailscale-core-status
 
 podman exec --user 0 global-devcontainer-core \
-  /usr/local/bin/tailscale \
+  /usr/bin/tailscale \
   --socket=/run/tailscale/tailscaled.sock serve status
 ```
 
@@ -137,10 +138,10 @@ on an intentional shutdown (container stop/recreate), not on a workload crash.
 ## Cloudflare independence
 
 `cloudflare-tunnel` remains a separate Compose service on `frontend` using QUIC and its own
-in-container `cloudflared tunnel login`. Removing the Tailscale sidecar does not change its image,
-command, DNS/origin aliases, Access policies, Workers VPC routes, credentials, or restart policy.
-Tailscale SSH/Serve and Cloudflare Tunnel can operate at the same time because they have independent
-responsibilities.
+tunnel-scoped token from the gitignored repository `.env`. Removing the Tailscale sidecar does not
+change its image, command, DNS/origin aliases, Access policies, Workers VPC routes, credentials, or
+restart policy. Tailscale SSH/Serve and Cloudflare Tunnel can operate at the same time because they
+have independent responsibilities.
 
 ## Rollback
 

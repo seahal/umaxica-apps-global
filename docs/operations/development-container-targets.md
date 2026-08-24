@@ -81,9 +81,10 @@ remains the administrative boundary.
 ## Sudo-less workload
 
 Both development targets omit `sudo` and do not assign a password to `global`.
-Compose starts a root-owned fixed entrypoint to initialize tmpfs paths and run
-the Tailscale daemon. Rails, development tools, interactive Dev Container
-sessions, and the inner Podman process run as `global`.
+The Dev Container Feature supplies the Tailscale binaries. Compose starts a
+root-owned fixed entrypoint to initialize tmpfs paths and run the Tailscale
+daemon. Rails, development tools, interactive Dev Container sessions, and the
+inner Podman process run as `global`.
 
 Host-side recovery remains available:
 

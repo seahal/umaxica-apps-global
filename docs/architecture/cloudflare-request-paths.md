@@ -133,16 +133,15 @@ Browser --(HTTPS)--> Cloudflare edge --(QUIC tunnel)--> cloudflared (compose: cl
 ```
 
 - `cloudflared` is configured in `compose.custom.yaml` (`cloudflare-tunnel` service, image
-  `cloudflare/cloudflared:2025.7.0`,
-  `tunnel --protocol quic --metrics 0.0.0.0:2000 run <TUNNEL_NAME>`, credentials from an
-  in-container browser login). The base `compose.yaml` must never define it — see the note above its
-  `volumes:` block. The connector sits behind the `tunnel` Compose profile, so a session that needs
-  no edge ingress never creates it. It is the only component on the `frontend` network besides
-  `core` itself.
-- The connector is additionally attached to `umaxica-edge-tunnel`, an `external: true` network owned
-  by the Edge compose project, which is the only way it can reach the Next.js Core origin. That
-  network carries no route to Rails and Rails' `frontend` carries no route to Edge Core: the
-  connector is the single component on both, and it reaches each origin over its own network.
+  `cloudflare/cloudflared:2026.8.2`,
+  `tunnel --protocol quic --metrics 0.0.0.0:2000 run`, and `TUNNEL_TOKEN` resolved from the
+  gitignored repository `.env`). The base `compose.yaml` must never define it. The always-merged
+  development overlay starts the connector during the standard Dev Container lifecycle. It is the
+  only component on the `frontend` network besides `core` itself.
+- The connector is attached only to Global's private `frontend` network. Edge and Global do not
+  share a Podman network. An Edge Worker reaches Rails through its Cloudflare Workers VPC Service
+  binding and this tunnel, including `remote: true` binding behavior during local Worker
+  development.
 - `core` never publishes a host port in the base `compose.yaml` — verified by
   `test/unit/security/tunnel_origin_isolation_test.rb`. This is the actual security boundary:
   nothing outside the compose project's private networks can reach Rails directly.
@@ -184,15 +183,14 @@ Browser --(HTTPS, Access cookie/JWT)--> Cloudflare edge --(Access policy check)-
   `originRequest.access` (`required`, `audTag`, `teamName`) per hostname. This is the preferred
   validation point — it runs before the request reaches Rails at all.
 - **The development tunnel hostnames are Access-protected, and that protection lives in the
-  Cloudflare account, not in this repository.** This connector authenticates through an in-container
-  browser login (see "Authenticating the Connector" in
-  `docs/operations/cloudflare-private-origin.md`) and is remotely managed, so its ingress rules and
-  `originRequest.access` blocks are configured in the Cloudflare dashboard; no file here can assert
-  they are present. Treat "the Access application exists and the published development route enables
-  Access validation" as an external check, in the sense of the "External Checks" section of
-  `docs/operations/cloudflare-private-origin.md` — the repository-side controls (network isolation,
-  Host Authorization, Rails authentication) do not depend on it, but the confidentiality of the
-  development surface does. Record the hostname, `audTag`, and `teamName` here once they are
+  Cloudflare account, not in this repository.** This remotely managed connector authenticates with
+  the tunnel-scoped token described in `docs/operations/cloudflare-private-origin.md`, so its ingress
+  rules and `originRequest.access` blocks are configured in the Cloudflare dashboard; no file here
+  can assert they are present. Treat "the Access application exists and the published development
+  route enables Access validation" as an external check, in the sense of the "External Checks"
+  section of `docs/operations/cloudflare-private-origin.md` — the repository-side controls (network
+  isolation, Host Authorization, Rails authentication) do not depend on it, but the confidentiality
+  of the development surface does. Record the hostname, `audTag`, and `teamName` here once they are
   settled.
 - Rails does not validate `Cf-Access-Jwt-Assertion` itself and should not, unless a specific feature
   needs to consume Access identity/claims directly — none does today. Adding Rails-side validation
@@ -208,9 +206,9 @@ Cloudflare Worker (fetch()) --(Workers VPC binding)--> VPC Service (bound to a T
 
 - Workers VPC binds to a Tunnel-registered VPC Service and proxies an absolute-URL `fetch()` request
   to the target host/port over that tunnel connection — it reuses the same Cloudflare Tunnel
-  infrastructure as path 1, not a separate ingress. `cloudflared 2025.7.0`, already pinned in
-  `compose.custom.yaml:12-13`, is the minimum version Workers VPC requires (comment already present
-  at that line).
+  infrastructure as path 1, not a separate ingress. Workers VPC requires cloudflared `2025.7.0` or
+  newer; `compose.custom.yaml` pins the supported `2026.8.2` release because Cloudflare supports
+  cloudflared releases for one year.
 - This path does not currently exist in the repository — no VPC Service or Worker binding is
   configured. This section documents the intended architecture per your Q5 answer (Workers VPC is a
   distinct, retained trust domain, not a Tunnel replacement) for when that work is scoped.

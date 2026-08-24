@@ -26,10 +26,6 @@ ARG PNPM_VERSION=11.22.0
 # ============================================================================
 FROM node:${NODE_VERSION}-trixie-slim AS node-toolchain
 
-# Tailscale binaries are copied only into the development target. Pin both the
-# release tag and image digest so a rebuild cannot silently change the tools.
-FROM docker.io/tailscale/tailscale:v1.98.9@sha256:6dba149843cfd9171bbd602b17a71b0fb7955c13f96f534877075c915abbc072 AS tailscale-toolchain
-
 # ============================================================================
 # Production base — runtime-only dependencies
 # ============================================================================
@@ -282,8 +278,6 @@ WORKDIR ${HOME}/workspace
 
 COPY --from=node-toolchain /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-toolchain /usr/local/lib/node_modules /usr/local/lib/node_modules
-COPY --from=tailscale-toolchain /usr/local/bin/tailscale /usr/local/bin/tailscale
-COPY --from=tailscale-toolchain /usr/local/bin/tailscaled /usr/local/bin/tailscaled
 # Only npm and npx are wired up. Corepack is deliberately not linked: nothing in
 # this repository invokes it, and pnpm is installed directly below. Node.js
 # bundles Corepack only up to (not including) v25, so a link here would become a
@@ -291,8 +285,6 @@ COPY --from=tailscale-toolchain /usr/local/bin/tailscaled /usr/local/bin/tailsca
 # does not fail on a missing target, so that breakage would be silent.
 RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
-
-RUN tailscale version
 
 # hadolint ignore=DL3008
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \

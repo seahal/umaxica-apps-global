@@ -31,7 +31,8 @@ consult it.
 This is a security requirement. Do not replace external Podman secrets with
 host credential bind mounts or Compose `file:` secrets. The Dev Container
 `initializeCommand` registers the internal service secrets through
-`bin/setup-dev-secrets` before the container starts.
+`bin/setup-dev-secrets` before the container starts. Global and Edge intentionally do not share a
+host Podman network; Edge reaches the Rails origin through Cloudflare Workers VPC.
 
 `--docker-path` is equally required. Without it the Dev Containers CLI runs
 lifecycle queries such as `docker ps` through its default Docker executable,
