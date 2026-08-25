@@ -37,9 +37,17 @@ services:
       # workspace paths in Compose long syntax so Gate C can inspect the
       # effective mount flags. The host SSH directory is intentionally absent:
       # inbound Remote Codex does not need host private keys.
+      # Host timezone. /etc/timezone is a Debian/Ubuntu file and does not
+      # exist on Fedora/RHEL or Arch, where Podman refuses to start the
+      # container at all ("statfs /etc/timezone: no such file or directory")
+      # rather than inventing an empty source. /etc/localtime exists on every
+      # one of them, carries the same information, and needs no `selinux:`
+      # option because its label (locale_t) is already readable by container_t
+      # -- unlike the workspace mounts below, and unlike a relabel of a host
+      # /etc file, which must never be done.
       - type: bind
-        source: "/etc/timezone"
-        target: "/etc/timezone"
+        source: "/etc/localtime"
+        target: "/etc/localtime"
         read_only: true
       - type: bind
         source: "./.github"

@@ -1,9 +1,19 @@
 name: umaxica-apps-global-dc
 # Always-on overlay: unconditionally referenced by .devcontainer/devcontainer.json's
 # dockerComposeFile array, and merged manually with `-f compose.custom.yaml` for
-# non-devcontainer `podman compose` invocations. Presence in the merge is the opt-in: a
-# standard `devcontainer up` starts the connector and fails at Compose resolution when its
-# tunnel token is not configured.
+# non-devcontainer `podman compose` invocations.
+#
+# Being in the merge is NOT the opt-in; starting the service is. devcontainer.json sets no
+# `runServices`, and the Dev Containers CLI then starts only `service:` (core), so a plain
+# `devcontainer up` never starts the connector. Naming it explicitly does -- see
+# docs/operations/cloudflare-private-origin.md.
+#
+# TUNNEL_TOKEN therefore uses `:-`, not `:?`. Compose substitutes variables when it LOADS
+# the file, before it knows which services are wanted, so a `:?` guard here aborted
+# `devcontainer up` on every machine without a tunnel token -- including ones doing nothing
+# but local Rails work, which needs no connector at all. A connector started without a
+# token still fails loudly, in cloudflared's own words ("Provided Tunnel token is not
+# valid"), bounded by `restart: on-failure:3` below.
 #
 # The remotely managed tunnel token comes from the repository-local, gitignored `.env`.
 # It is passed only to the cloudflared process and is never copied into an image, workspace
@@ -14,8 +24,12 @@ services:
     # Cloudflare supports cloudflared releases for one year. Keep this explicit tag current;
     # Workers VPC additionally requires 2025.7.0 or newer.
     image: docker.io/cloudflare/cloudflared:2026.8.2
-    depends_on:
-      - core
+    # No `depends_on: core`. Podman turns depends_on into `--requires`, which makes core
+    # un-removable while this container exists ("container has dependent containers which
+    # must be removed before it") -- which is exactly what
+    # `devcontainer up --remove-existing-container` does, so a rebuild aborts for anyone who
+    # has ever started the connector. cloudflared dials Cloudflare rather than core and
+    # reconnects to an origin that is not listening yet, so the ordering bought nothing.
     # Workers VPC DNS routing requires QUIC and outbound UDP 7844.
     # TUNNEL_TOKEN identifies and authenticates the remotely managed tunnel, so no tunnel
     # name, cert.pem, credentials JSON, or browser-login helper is needed in this project.
@@ -25,7 +39,7 @@ services:
     # It publishes no host port.
     command: tunnel --protocol quic --metrics 0.0.0.0:2000 run
     environment:
-      TUNNEL_TOKEN: "${CLOUDFLARED_TOKEN:?CLOUDFLARED_TOKEN must be set in .env}"
+      TUNNEL_TOKEN: "${CLOUDFLARED_TOKEN:-}"
     # This list replaces, rather than merges with, any `networks:` the base file gives the
     # service, so `frontend` must stay written out here. Dropping it would strip the private
     # `*.localhost` Rails origins from the connector and break every working ingress rule.

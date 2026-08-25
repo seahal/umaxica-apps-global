@@ -20,11 +20,6 @@
       "resolved": "ghcr.io/nolanjx/devcontainer-features/codex@sha256:8928ccd1d5914f1c783de85ec4cef0ea6dd7e6f193e213b245f048697e0e7c25",
       "integrity": "sha256:8928ccd1d5914f1c783de85ec4cef0ea6dd7e6f193e213b245f048697e0e7c25"
     },
-    "ghcr.io/sliekens/devcontainer-features/grok-build:1": {
-      "version": "1.0.2",
-      "resolved": "ghcr.io/sliekens/devcontainer-features/grok-build@sha256:22c5e406f1c1c55126a40c8ac668b5cad61b96762c794ef5ae390461432ce0c3",
-      "integrity": "sha256:22c5e406f1c1c55126a40c8ac668b5cad61b96762c794ef5ae390461432ce0c3"
-    },
     "ghcr.io/srzstephen/devcontainer-features/claude-code:1": {
       "version": "1.0.1",
       "resolved": "ghcr.io/srzstephen/devcontainer-features/claude-code@sha256:a207fb8b99069baa00c13e6b50f0f92abaf9943f99f096a7dd72d5fc0c65d6d6",

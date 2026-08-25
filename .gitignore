@@ -54,7 +54,6 @@
 /node_modules
 .run
 .solargraph.yml
-/config/credentials/production.key
 .dotnet
 .vscode-server
 .ssh
@@ -90,13 +89,13 @@ node_modules
 /.ruby-lsp/
 .dist/
 
-# Ignore master key for decrypting credentials and more.
+# Ignore keys for decrypting credentials and more.
+# Keys are provisioned out of band; see
+# docs/operations/development-credential-provisioning.md
 /config/master.key
 /config/*.key
-/config/credentials/development.key
-/config/credentials/production.key
-/config/credentials/test.key
 /config/credentials/*.key
+/*.key
 
 # misc
 /.crush/
