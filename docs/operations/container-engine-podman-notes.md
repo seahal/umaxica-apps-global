@@ -91,11 +91,10 @@ args (sourced from `${UID}` / `${GID}`). Consequences:
 - When switching accounts on a workstation, rebuild the `core` image rather than reusing the cached
   one.
 
-The devcontainer adds `userns_mode: keep-id` in `.devcontainer/compose.override.yml`, which maps the
-in-container UID back to the host UID at runtime. This keeps bind-mount ownership consistent even if
-the build UID differs slightly from the runtime UID. Pinning `user:` on the compose service is
-intentionally cleared in the override because pinning would double-map under `keep-id` and break
-ownership.
+`compose.yaml` sets `userns_mode: keep-id`, which maps the in-container UID back to the host UID at
+runtime. This keeps bind-mount ownership consistent even if the build UID differs slightly from the
+runtime UID. The `core` service deliberately carries no `user:` key: pinning one would double-map
+under `keep-id` and break ownership.
 
 ## PostgreSQL storage
 
@@ -107,8 +106,8 @@ stack. Reintroducing either requires workload and memory-pressure measurements.
 
 On Fedora, RHEL, and other SELinux-enforcing hosts, bind-mounted host paths must be labeled before
 the container can read them. The compose file marks read-only config bind mounts with `:z` (shared
-label). The workspace bind in the devcontainer is intentionally **not** labeled so SELinux does not
-relabel the host source tree.
+label). The workspace bind is labeled `Z` (private) rather than shared, so SELinux does not relabel the
+host source tree for other containers.
 
 If a service fails to read a mounted file with "permission denied" on an SELinux host even though
 POSIX permissions look correct, relabel manually:
@@ -117,17 +116,17 @@ POSIX permissions look correct, relabel manually:
 chcon -Rt container_file_t podman/<service>/
 ```
 
-## Devcontainer overrides
+## Podman-specific compose settings
 
-`.devcontainer/compose.override.yml` makes the stack Podman-friendly:
+`compose.yaml` makes the stack Podman-friendly:
 
 - `userns_mode: keep-id` for UID mapping.
-- `user: !reset null` so the in-image UID wins instead of double-mapping.
-- `tmpfs: !reset null` because rootless Podman has historically been unreliable with the workspace
-  `tmp/` and `log/` paths on tmpfs.
+- no `user:` key on `core`, so the in-image UID wins instead of double-mapping.
+- no tmpfs mount for the workspace `tmp/` and `log/` paths, because rootless Podman has
+  historically been unreliable with them on tmpfs.
 
-Run the devcontainer with the override layered on the base compose file:
+Run the stack with the developer overlay layered on the base compose file:
 
 ```bash
-podman compose -f compose.yaml -f .devcontainer/compose.override.yml up
+podman compose -f compose.yaml -f compose.custom.yaml up
 ```

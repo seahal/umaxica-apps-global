@@ -1023,6 +1023,20 @@ ja:
         message: Thin landing endpoint.
     org:
       identity:
+        secret_credentials:
+          edit:
+            description: このシークレットの名前を変更するか、無効にします。
+            title: シークレットを編集
+          index:
+            description: 登録済みのシークレットを管理します。
+            new: 新しいシークレット
+            title: シークレット管理
+          new:
+            description: このシークレットは一度だけ表示されます。今すぐ保存してください。
+            title: 新しいシークレット
+          show:
+            description: このシークレットの詳細です。
+            title: シークレット
         sessions:
           index:
             empty_message: 有効なセッションはありません。

@@ -204,6 +204,20 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
     )
   end
 
+  def test_role_helpers_are_false_when_the_actor_is_missing
+    policy = ApplicationPolicy.new(TestRecord.new, user: nil)
+
+    assert_not policy.send(:operator?)
+    assert_not policy.send(:manager?)
+    assert_not policy.send(:editor?)
+    assert_not policy.send(:contributor?)
+    assert_not policy.send(:viewer?)
+    assert_not policy.send(:operator_or_manager?)
+    assert_not policy.send(:can_edit?)
+    assert_not policy.send(:can_view?)
+    assert_not policy.send(:can_contribute?)
+  end
+
   private
 
   def build_actor(type_class, id)

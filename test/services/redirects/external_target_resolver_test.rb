@@ -124,6 +124,38 @@ class RedirectsExternalTargetResolverTest < ActiveSupport::TestCase
     assert_equal "invalid_uri", rejected_control.failure_reason
   end
 
+  test "url helper rejects blank hosts http urls and malformed values" do
+    no_host = RedirectsExternalTargetResolver.url(
+      "https:///path",
+      allowed_urls: ["https://safe.example"],
+      source: :user_input,
+    )
+    http_url = RedirectsExternalTargetResolver.url(
+      "http://safe.example/after",
+      allowed_urls: ["http://safe.example"],
+      source: :user_input,
+    )
+    malformed = RedirectsExternalTargetResolver.url(
+      "://",
+      allowed_urls: ["https://safe.example"],
+      source: :user_input,
+    )
+    assert_equal "invalid_uri", no_host.failure_reason
+    assert_equal "https_required", http_url.failure_reason
+    assert_equal "invalid_uri", malformed.failure_reason
+  end
+
+  test "call rejects unknown keys non https origins and string keys" do
+    assert_equal "unknown_key", RedirectsExternalTargetResolver.call("not a key").failure_reason
+    assert_equal "unknown_key", RedirectsExternalTargetResolver.call(12).failure_reason
+
+    with_env("RP_APP_URL" => "http://rp.example") do
+      result = RedirectsExternalTargetResolver.call("rp_app", path: "/")
+
+      assert_equal "https_required", result.failure_reason
+    end
+  end
+
   private
 
   def with_env(values)

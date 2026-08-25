@@ -1103,6 +1103,20 @@ en:
         message: Thin landing endpoint.
     org:
       identity:
+        secret_credentials:
+          edit:
+            description: Rename this secret credential or disable it.
+            title: Edit secret
+          index:
+            description: Manage registered secrets.
+            new: New secret
+            title: Secret management
+          new:
+            description: Save this secret now. It is shown only once.
+            title: New secret
+          show:
+            description: The details of this secret credential.
+            title: Secret
         sessions:
           index:
             empty_message: No active sessions were found.

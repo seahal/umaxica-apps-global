@@ -17,4 +17,5 @@ SimpleCov.coverage :line do
 end
 
 SimpleCov.coverage :branch do
+  minimum 74
 end

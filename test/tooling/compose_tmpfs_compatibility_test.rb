@@ -8,7 +8,6 @@ class ComposeTmpfsCompatibilityTest < Minitest::Test
   COMPOSE_FILES = [
     "compose.yaml",
     "compose.custom.yaml",
-    ".devcontainer/compose.override.yml",
   ].freeze
 
   # Podman 6 rejects numeric uid/gid tmpfs options before the container starts, so a
