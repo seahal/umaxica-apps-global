@@ -189,6 +189,51 @@ class SignFlowTest < ActiveSupport::TestCase
     assert_not_empty cycle.errors[:completed_requirements]
   end
 
+  test "sign-up cycles accept the social ceremony evidence blob" do
+    cycle = build_cycle(
+      ClientSignUpFlow,
+      entry_method: "google",
+      social_provider: "google",
+      completed_requirements: {
+        "confirmation" => { "cleared" => true },
+        "social_signup" => {
+          "candidate_ref" => SecureRandom.uuid,
+          "candidate_digest" => SecureRandom.hex(32),
+          "provider" => "google",
+          "uid_digest" => SecureRandom.hex(32),
+          "grant_transaction_id" => SecureRandom.uuid,
+          "stored_at" => Time.current.iso8601,
+        },
+      },
+    )
+
+    assert_predicate cycle, :valid?
+  end
+
+  test "sign-up cycles reject social ceremony evidence renamed to secret-looking keys" do
+    cycle = build_cycle(
+      ClientSignUpFlow,
+      entry_method: "google",
+      social_provider: "google",
+      completed_requirements: {
+        "social_signup" => { "grant_token" => SecureRandom.uuid },
+      },
+    )
+
+    assert_not cycle.valid?
+    assert_not_empty cycle.errors[:completed_requirements]
+  end
+
+  test "social ceremony evidence does not satisfy or block any requirement" do
+    registry = SignUpRequirementRegistry.for_entry(surface: :app, entry_method: "google")
+    requirements = {
+      "social_signup" => { "candidate_ref" => SecureRandom.uuid },
+    }
+
+    assert_equal %i(confirmation birthdate), registry.missing_requirements(requirements)
+    assert_not registry.requirement?(:social_signup)
+  end
+
   test "sign-up cycles require requirement state to be an object" do
     cycle = build_cycle(ClientSignUpFlow, completed_requirements: ["birthdate"])
 

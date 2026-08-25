@@ -27,7 +27,7 @@ module JumpRtReturnVerification
         request_uri: request.original_url,
       ),
     )
-    render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+    render plain: I18n.t("errors.messages.invalid_request"),
            status: :bad_request
   end
 

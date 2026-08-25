@@ -39,8 +39,6 @@ gem "strong_migrations"
 gem "pg_search"
 # PostgreSQL database inspection helpers.
 gem "rails-pg-extras", require: false
-# Browser-based database console.
-gem "rails_db"
 # Redis client.
 gem "redis"
 # JSON response builder.
@@ -51,8 +49,12 @@ gem "ostruct"
 gem "tzinfo-data", platforms: %i(windows jruby)
 # Bootsnap boot cache.
 gem "bootsnap", require: false
-# Password hashing with Argon2.
-gem "argon2"
+# Password hashing with Argon2. The version is constrained because
+# ActiveModel::SecurePassword::Argon2Password calls Argon2::Password.create
+# without a profile, so the gem default is the effective cost parameter set.
+# A major bump could change it silently; test/unit/security/argon2_parameters_test.rb
+# guards the values themselves.
+gem "argon2", "~> 2.3"
 # SHA-3 digest implementation.
 gem "sha3", require: false
 # File upload toolkit.
@@ -89,6 +91,8 @@ gem "omniauth"
 gem "omniauth-apple"
 # OmniAuth Google OAuth2 strategy.
 gem "omniauth-google-oauth2"
+# OmniAuth OpenID Connect strategy. Used by the org surface Microsoft Entra ID ceremony.
+gem "omniauth_openid_connect"
 # OmniAuth CSRF protection for Rails.
 gem "omniauth-rails_csrf_protection"
 # JSON Web Token support.
@@ -97,6 +101,8 @@ gem "jwt"
 gem "web-push", require: false
 # Native Action Push integration.
 gem "action_push_native", require: false
+# Notification orchestration across delivery channels.
+gem "noticed", "~> 3.0"
 # Solid Cache backend.
 gem "solid_cache"
 # Solid Queue backend.
@@ -127,11 +133,22 @@ gem "ruby-vips"
 gem "lograge"
 # json
 gem "json-canonicalization"
+# ?
 gem "svix"
+gem "mcp"
+
+# Switch
+# Sourced from git rather than the 1.4.2 release: that release calls
+# `Arel::Table.new(name)` positionally in the ActiveRecord adapter's `get_all`,
+# and Rails main made Arel::Table keyword-only, so every request raises
+# ArgumentError. Fixed upstream by flippercloud/flipper#1003; pin back to the
+# released gems once a version above 1.4.2 ships.
+gem "flipper", github: "flippercloud/flipper", branch: "main"
+gem "flipper-active_record", github: "flippercloud/flipper", branch: "main"
 
 group :development, :test do
   # Test coverage reporting.
-  gem "simplecov", "~> 1.0", ">= 1.0.1", require: false
+  gem "simplecov", "~> 1.0", require: false
   # Minitest mock extraction.
   gem "minitest-mock"
   # Slow test profiling.
@@ -223,6 +240,12 @@ group :development do
   gem "pghero", require: false
   # SQL exploration dashboard.
   gem "blazer", require: false
+  # Browser-based database console. Development only: the engine self-mounts at
+  # /rails/db with no authentication (RailsDb.verify_access_proc defaults to
+  # `proc { true }`), so loading it outside development exposes an unauthenticated
+  # arbitrary-SQL endpoint. test/security/invariants/mounted_engine_invariant_test.rb
+  # guards this.
+  gem "rails_db"
   # Package boundary enforcement.
   gem "packwerk", require: false
   # ERB linter.
@@ -242,4 +265,5 @@ end
 group :development, :production do
   # Solid Queue operations UI.
   gem "mission_control-jobs"
+  gem "flipper-ui", github: "flippercloud/flipper", branch: "main"
 end

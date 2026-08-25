@@ -6,25 +6,29 @@ class SocialAuthSignupFinalizer
     new(...).call
   end
 
-  def initialize(auth_hash:, birthdate:)
-    @auth_hash = auth_hash
+  def initialize(principal:, credential_candidate:, birthdate:)
+    @principal = principal
+    @credential_candidate = credential_candidate
     @birthdate = birthdate
   end
 
   def call
-    validate_auth_hash!
+    validate_principal!
 
     AppPrincipalRecord.transaction do
       ensure_signup_reference_defaults!
-      ensure_identity_status!
-      existing_identity = identity_class.lock.find_by(uid: uid, provider: provider)
+      repository.ensure_active_status!
+      existing_identity = repository.find_by_subject(uid, lock: true)
       raise SocialAuth::ProviderError.new("errors.social_auth.identity_conflict") if existing_identity&.user_id.present?
 
       user = build_user
       user.save!
 
-      identity = existing_identity || identity_class.new(uid: uid, provider: provider)
-      identity.assign_auth_credentials(auth_hash)
+      identity = existing_identity || repository.build_for_user(
+        user: user,
+        principal: principal,
+        credential_candidate: credential_candidate,
+      )
       identity.user = user
       identity.save!
       identity.touch_authenticated!
@@ -45,23 +49,24 @@ class SocialAuthSignupFinalizer
 
   private
 
-  attr_reader :auth_hash, :birthdate
+  attr_reader :principal, :credential_candidate, :birthdate
 
-  def validate_auth_hash!
-    raise SocialAuth::ProviderError.new("errors.social_auth.missing_auth_hash") unless auth_hash
-    raise SocialAuth::ProviderError.new("errors.social_auth.missing_uid") if uid.blank?
+  def validate_principal!
+    return if principal.is_a?(ExternalAuthentication::VerifiedPrincipal)
+
+    raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
   end
 
   def provider
-    @provider ||= (auth_hash["provider"] || auth_hash[:provider]).to_s
+    @provider ||= principal.provider
   end
 
   def uid
-    @uid ||= SocialAuthUidExtractor.call(auth_hash: auth_hash)
+    @uid ||= principal.subject
   end
 
-  def identity_class
-    @identity_class ||= SocialIdentifiable.model_for_provider(provider)
+  def repository
+    @repository ||= ExternalAuthentication::IdentityRepositoryFactory.current.build(provider)
   end
 
   def build_user
@@ -93,23 +98,5 @@ class SocialAuthSignupFinalizer
       ClientMfaLevel,
       ClientMfaStatus,
     ].each { |klass| klass.ensure_defaults! if klass.respond_to?(:ensure_defaults!) }
-  end
-
-  def ensure_identity_status!
-    status_class = identity_class.status_class if identity_class.respond_to?(:status_class)
-    return unless status_class
-
-    ensure_reference_record!(status_class, status_class::ACTIVE, "ACTIVE")
-  end
-
-  def ensure_reference_record!(model, id, code)
-    attributes = { id: id }
-    attributes[:code] = code if model.column_names.include?("code")
-
-    model.find_or_create_by!(id: id) do |record|
-      attributes.each do |attribute, value|
-        record.public_send("#{attribute}=", value)
-      end
-    end
   end
 end

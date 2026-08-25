@@ -7,17 +7,13 @@ class Base::Com::Identity::Revocations::OthersController < ::Base::Com::Applicat
   before_action :authenticate_visitor!
 
   def create
-    current_visitor.visitor_tokens.session_inventory.find_each do |token|
-      next if token.public_id == current_session_public_id
-
-      AuthenticationSelectedSessionRevoker.call(
-        owner: current_visitor,
-        token: token,
-        current_token: current_session,
-        current_session_public_id: current_session_public_id,
-        reason: "settings.session.revoke_others",
-      )
-    end
+    authorize!(VisitorToken, to: :revoke_others?)
+    AuthenticationOtherSessionsRevoker.call(
+      owner: current_visitor,
+      sessions: current_visitor.visitor_tokens.session_inventory,
+      current_token: current_session,
+      current_session_public_id: current_session_public_id,
+    )
     redirect_to(base_com_identity_sessions_path(ri: params[:ri]), status: :see_other)
   end
   alias_method :destroy, :create

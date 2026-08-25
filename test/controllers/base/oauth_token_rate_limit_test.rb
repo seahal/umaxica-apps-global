@@ -26,7 +26,6 @@ class BaseOauthTokenRateLimitTest < ActionDispatch::IntegrationTest
     assert_token_endpoint_rate_limit(
       host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
       url_helper: ->(host:) { base_app_oauth_token_url(host: host) },
-      rule_name: "base_app_oauth_token_exchange_ip",
     )
   end
 
@@ -34,7 +33,6 @@ class BaseOauthTokenRateLimitTest < ActionDispatch::IntegrationTest
     assert_token_endpoint_rate_limit(
       host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
       url_helper: ->(host:) { base_com_oauth_token_url(host: host) },
-      rule_name: "base_com_oauth_token_exchange_ip",
     )
   end
 
@@ -42,13 +40,12 @@ class BaseOauthTokenRateLimitTest < ActionDispatch::IntegrationTest
     assert_token_endpoint_rate_limit(
       host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
       url_helper: ->(host:) { base_org_oauth_token_url(host: host) },
-      rule_name: "base_org_oauth_token_exchange_ip",
     )
   end
 
   private
 
-  def assert_token_endpoint_rate_limit(host:, url_helper:, rule_name:)
+  def assert_token_endpoint_rate_limit(host:, url_helper:)
     remote_ip = "198.51.100.42"
     result = TokenResult.new(
       success: false,
@@ -75,13 +72,15 @@ class BaseOauthTokenRateLimitTest < ActionDispatch::IntegrationTest
         headers: { "REMOTE_ADDR" => remote_ip },
       )
 
+      # 429 is not an OAuth-defined error response: RFC 6749 5.2 covers 400 and 401 only. The
+      # protocol exemption therefore does not extend here, and the rejection uses Problem Details
+      # like any other rate-limited endpoint. See adr/api-error-format-problem-details.md.
       assert_response :too_many_requests
-      assert_equal "rails", response.headers["X-RateLimit-Layer"]
-      assert_equal rule_name, response.headers["X-RateLimit-Rule"]
       assert_equal "60", response.headers["Retry-After"]
-      assert_equal "rate_limited", response.parsed_body["error"]
-      assert_equal rule_name, response.parsed_body["rule"]
-      assert_equal I18n.t("errors.rate_limit.exceeded"), response.parsed_body["message"]
+      assert_nil response.headers["X-RateLimit-Rule"]
+      assert_equal "application/problem+json", response.media_type
+      assert_equal "urn:umaxica:problem:rate-limited", response.parsed_body.fetch("type")
+      assert_equal I18n.t("errors.rate_limit.exceeded"), response.parsed_body.fetch("detail")
     end
   end
 

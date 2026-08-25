@@ -60,8 +60,11 @@
 #
 
 require "test_helper"
+require "support/external_identity_test_helper"
 
 class ClientTest < ActiveSupport::TestCase
+  include ExternalIdentityTestHelper
+
   NIL_UUID = "00000000-0000-0000-0000-000000000000"
 
   def setup
@@ -84,14 +87,9 @@ class ClientTest < ActiveSupport::TestCase
     assert_not_nil @user.updated_at
   end
 
-  test "should have one user_apple_identity association" do
-    assert_respond_to @user, :user_apple_identity
-    assert_equal :has_one, @user.class.reflect_on_association(:user_apple_identity).macro
-  end
-
-  test "should have one user_google_identity association" do
-    assert_respond_to @user, :user_google_identity
-    assert_equal :has_one, @user.class.reflect_on_association(:user_google_identity).macro
+  test "has canonical external identities association" do
+    assert_respond_to @user, :client_external_identities
+    assert_equal :has_many, @user.class.reflect_on_association(:client_external_identities).macro
   end
 
   test "human_attribute_name resolves user_status" do
@@ -301,13 +299,7 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "client_google_identities returns array with google when present" do
-    google = ClientGoogleIdentity.create!(
-      user: @user,
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-      token: "test_token",
-      uid: "test_uid",
-      token_expires_at: 1.day.from_now,
-    )
+    google = create_active_external_identity(client: @user, provider: "google")
 
     assert_equal [google], @user.client_google_identities
   end
@@ -457,37 +449,19 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "active_social_provider? returns true for active google" do
-    ClientGoogleIdentity.create!(
-      user: @user,
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-      token: "test_token",
-      uid: "test_uid",
-      token_expires_at: 1.day.from_now,
-    )
+    create_active_external_identity(client: @user, provider: "google")
 
     assert @user.active_social_provider?("google")
   end
 
   test "active_social_provider? returns true for active apple" do
-    ClientAppleIdentity.create!(
-      user: @user,
-      status_id: ClientAppleIdentityStatus::ACTIVE,
-      token: "test_token",
-      uid: "test_uid",
-      token_expires_at: 1.day.from_now,
-    )
+    create_active_external_identity(client: @user, provider: "apple")
 
     assert @user.active_social_provider?("apple")
   end
 
   test "remaining_login_methods excludes provider when specified" do
-    ClientGoogleIdentity.create!(
-      user: @user,
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-      token: "test_token",
-      uid: "test_uid",
-      token_expires_at: 1.day.from_now,
-    )
+    create_active_external_identity(client: @user, provider: "google")
     ClientEmail.create!(
       user: @user,
       address: "verified@example.com",
@@ -502,15 +476,9 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "remaining_social_unlink_methods ignores stale social association cache" do
-    assert_nil @user.user_apple_identity
+    assert_empty @user.client_external_identities.to_a
 
-    ClientAppleIdentity.create!(
-      user: @user,
-      status_id: ClientAppleIdentityStatus::ACTIVE,
-      token: "test_token",
-      uid: "cached_apple_uid",
-      token_expires_at: 1.day.from_now,
-    )
+    create_active_external_identity(client: @user, provider: "apple", subject: "cached_apple_uid")
 
     assert_includes @user.remaining_social_unlink_methods(excluding_provider: "google_app"), :apple
   end
@@ -549,13 +517,7 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "remaining_login_methods returns apple when active" do
-    ClientAppleIdentity.create!(
-      user: @user,
-      status_id: ClientAppleIdentityStatus::ACTIVE,
-      token: "test_token",
-      uid: "apple_uid",
-      token_expires_at: 1.day.from_now,
-    )
+    create_active_external_identity(client: @user, provider: "apple", subject: "apple_uid")
 
     assert_includes @user.remaining_login_methods, :apple
   end
@@ -582,13 +544,7 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "active_google_identity_exists? returns true when active google identity exists" do
-    ClientGoogleIdentity.create!(
-      user: @user,
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-      token: "test_token",
-      uid: "test_uid",
-      token_expires_at: 1.day.from_now,
-    )
+    create_active_external_identity(client: @user, provider: "google")
 
     assert_predicate @user, :active_google_identity_exists?
   end
@@ -598,13 +554,7 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "active_apple_identity_exists? returns true when active apple identity exists" do
-    ClientAppleIdentity.create!(
-      user: @user,
-      status_id: ClientAppleIdentityStatus::ACTIVE,
-      token: "test_token",
-      uid: "test_uid",
-      token_expires_at: 1.day.from_now,
-    )
+    create_active_external_identity(client: @user, provider: "apple")
 
     assert_predicate @user, :active_apple_identity_exists?
   end
@@ -663,37 +613,19 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "social_unlink_methods_remaining includes google when active" do
-    ClientGoogleIdentity.create!(
-      user: @user,
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-      token: "test_token",
-      uid: "test_uid",
-      token_expires_at: 1.day.from_now,
-    )
+    create_active_external_identity(client: @user, provider: "google")
 
     assert_includes @user.remaining_social_unlink_methods(excluding_provider: "apple"), :google
   end
 
   test "social_unlink_methods_remaining includes apple when active" do
-    ClientAppleIdentity.create!(
-      user: @user,
-      status_id: ClientAppleIdentityStatus::ACTIVE,
-      token: "test_token",
-      uid: "test_uid",
-      token_expires_at: 1.day.from_now,
-    )
+    create_active_external_identity(client: @user, provider: "apple")
 
     assert_includes @user.remaining_social_unlink_methods(excluding_provider: "google"), :apple
   end
 
   test "social_unlink_methods_remaining excludes provider when specified" do
-    ClientGoogleIdentity.create!(
-      user: @user,
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-      token: "test_token",
-      uid: "test_uid",
-      token_expires_at: 1.day.from_now,
-    )
+    create_active_external_identity(client: @user, provider: "google")
 
     assert_not_includes @user.remaining_social_unlink_methods(excluding_provider: "google"), :google
   end

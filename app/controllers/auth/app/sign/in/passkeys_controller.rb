@@ -18,6 +18,8 @@ module Auth
         # planned for a future phase. Currently, email is required to look up
         # the user's registered passkeys.
         class PasskeysController < ::Auth::App::ApplicationController
+          include ::SurfaceInertiaPage
+
           include ::PasskeySignInFlow
 
           include EmailValidation
@@ -39,7 +41,7 @@ module Auth
             name: "passkey_options_ip_burst",
             store: rate_limit_store,
             only: :options,
-            with: -> { render_rate_limited(rule_name: "auth_app_sign_in_passkey_options_ip_burst", retry_after: 60) },
+            with: -> { render_rate_limited(retry_after: 60) },
           )
           rate_limit(
             to: 20,
@@ -50,7 +52,7 @@ module Auth
             store: rate_limit_store,
             only: :options,
             with: -> {
-              render_rate_limited(rule_name: "auth_app_sign_in_passkey_options_ip_sustained", retry_after: 900)
+              render_rate_limited(retry_after: 900)
             },
           )
           rate_limit(
@@ -62,7 +64,7 @@ module Auth
             store: rate_limit_store,
             only: :verification,
             with: -> {
-              render_rate_limited(rule_name: "auth_app_sign_in_passkey_verification_ip_burst", retry_after: 60)
+              render_rate_limited(retry_after: 60)
             },
           )
           rate_limit(
@@ -74,7 +76,7 @@ module Auth
             store: rate_limit_store,
             only: :verification,
             with: -> {
-              render_rate_limited(rule_name: "auth_app_sign_in_passkey_verification_ip_sustained", retry_after: 900)
+              render_rate_limited(retry_after: 900)
             },
           )
           before_action :start_minimum_response_budget
@@ -83,9 +85,40 @@ module Auth
           # GET /in/passkeys/new
           # Render login page with email input and passkey button
           def new
+            render inertia: true, props: passkey_new_props
           end
 
           private
+
+          def passkey_new_props
+            scope = "sign.app.authentication.passkey.new"
+            pt = signed_pt_param
+            ri = current_region_identifier
+
+            {
+              title: page_t("#{scope}.page_title"),
+              description: page_t("#{scope}.description"),
+              panel: {
+                options_url: auth_app_sign_in_passkey_options_path(pt: pt, ri: ri),
+                verification_url: auth_app_sign_in_passkey_verification_path(pt: pt, ri: ri),
+                region: ri.to_s,
+                identifier_param: "identifier",
+                # The stealth site key is public by design and the ERB already published it in the
+                # rendered HTML; the secret key and the token verification stay server side.
+                turnstile_site_key: JitSecurityTurnstileConfig.stealth_site_key.to_s,
+                turnstile_error_message: t("turnstile_error"),
+                field: {
+                  label: page_t("#{scope}.pii_label"),
+                  placeholder: page_t("#{scope}.pii_placeholder"),
+                },
+                submit_label: page_t("#{scope}.submit"),
+              },
+              back_link: {
+                label: t("sign.app.authentication.new.back"),
+                href: auth_app_sign_in_path(pt: pt, ri: ri),
+              },
+            }
+          end
 
           def find_active_passkey_actor(identifier)
             user = find_user_by_identifier(identifier)

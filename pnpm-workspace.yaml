@@ -1,10 +1,39 @@
 allowBuilds:
   lefthook: true
   puppeteer: false
+# vite-ruby's automatic dependency check runs `pnpm install` from the Rails process, which has
+# no TTY. When pnpm decides the modules directory must be replaced -- a changed store path is
+# enough -- it otherwise aborts with ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY, the Vite build
+# fails, and every `vite_typescript_tag` raises ViteRuby::MissingEntrypointError. Let the purge
+# proceed unattended instead.
+confirmModulesPurge: false
+# Without this, pnpm resolves the store per invocation and the answers disagree: `node_modules`
+# is its own mount, so pnpm's heuristic rejects the home store and falls back to a project-local
+# `.pnpm-store`, while any invocation that saw a different data root picked a third location.
+# Each install then invalidates the store the previous one used, and the failure surfaces far
+# from its cause -- vite-ruby's pnpm aborts and every entrypoint 500s. One named store settles it
+# for both the shell and vite-ruby. This is pnpm's own default location, so no absolute container
+# path is committed here and a host-side run still resolves to that host's home.
+#
+# Packages are copied into `node_modules`, not hardlinked: the store volume and the `node_modules`
+# volume are separate mounts and the kernel refuses a cross-device link between them. Keeping the
+# store on the `node_modules` volume would allow linking but was rejected in
+# `plans/pnpm-up-err-pnpm-unexpected-store-virtual-lemur.md` -- discarding that volume to recover
+# from a corrupt install would then also discard the store.
+storeDir: ~/.local/share/pnpm/store
 minimumReleaseAge: 4320
 minimumReleaseAgeIgnoreMissingTime: false
 registries:
   default: https://registry.npmjs.org/
+# What actually enforces package.json#packageManager. The image installs pnpm at the
+# Containerfile's ARG PNPM_VERSION and `packageManager` declares the same version, but nothing
+# reconciles the two on its own. pnpm's default here is `download`: on a mismatch it silently
+# fetches the declared version into ~/.local/share/pnpm and continues. In this compose stack that
+# directory is a named volume and is not on PATH, so the result is a second pnpm installation
+# source, invisible to `which pnpm`, differing between a fresh container and a rebuilt one. Fail
+# and name the mismatch instead. The cost is that a host-side pnpm of another version errors rather
+# than auto-switching, which is the intended trade under generic/no-silent-fallback.mdc.
+pmOnFail: error
 strictDepBuilds: true
 trustPolicy: no-downgrade
 unicode: false
@@ -12,14 +41,14 @@ overrides:
   vitest: "catalog:"
   vite: "catalog:"
 catalog:
-  "@types/node": 26.1.1
-  vite: 8.1.4
-  vitest: 4.1.10
-  "@vitest/coverage-v8": 4.1.10
+  "@types/node": 26.2.0
+  vite: 8.2.2
+  vitest: 4.1.11
+  "@vitest/coverage-v8": 4.1.11
   lefthook: 2.1.10
-  oxfmt: 0.59.0
-  oxlint: 1.74.0
-  oxlint-tsgolint: 0.25.0
+  oxfmt: 0.64.0
+  oxlint: 1.79.0
+  oxlint-tsgolint: 7.0.2001
 peerDependencyRules:
   allowAny:
     - vite
@@ -27,35 +56,3 @@ peerDependencyRules:
   allowedVersions:
     vite: "*"
     vitest: "*"
-minimumReleaseAgeExclude:
-  - lefthook
-  - "lefthook-*"
-  - oxlint
-  - "@oxlint/*"
-  - oxlint-tsgolint
-  - "@oxlint-tsgolint/*"
-  - oxfmt
-  - "@oxfmt/*"
-  - vitest
-  - "@vitest/*"
-  - "@typescript/typescript-aix-ppc64@7.0.2"
-  - "@typescript/typescript-darwin-arm64@7.0.2"
-  - "@typescript/typescript-darwin-x64@7.0.2"
-  - "@typescript/typescript-freebsd-arm64@7.0.2"
-  - "@typescript/typescript-freebsd-x64@7.0.2"
-  - "@typescript/typescript-linux-arm64@7.0.2"
-  - "@typescript/typescript-linux-arm@7.0.2"
-  - "@typescript/typescript-linux-loong64@7.0.2"
-  - "@typescript/typescript-linux-mips64el@7.0.2"
-  - "@typescript/typescript-linux-ppc64@7.0.2"
-  - "@typescript/typescript-linux-riscv64@7.0.2"
-  - "@typescript/typescript-linux-s390x@7.0.2"
-  - "@typescript/typescript-linux-x64@7.0.2"
-  - "@typescript/typescript-netbsd-arm64@7.0.2"
-  - "@typescript/typescript-netbsd-x64@7.0.2"
-  - "@typescript/typescript-openbsd-arm64@7.0.2"
-  - "@typescript/typescript-openbsd-x64@7.0.2"
-  - "@typescript/typescript-sunos-x64@7.0.2"
-  - "@typescript/typescript-win32-arm64@7.0.2"
-  - "@typescript/typescript-win32-x64@7.0.2"
-  - typescript@7.0.2

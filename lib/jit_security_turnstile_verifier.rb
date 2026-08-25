@@ -8,60 +8,13 @@ require "jit_security_turnstile_config"
 
 class JitSecurityTurnstileVerifier
   VERIFY_URI = URI("https://challenges.cloudflare.com/turnstile/v0/siteverify").freeze
-  TEST_MODE = Concurrent::AtomicReference.new(false)
-  TEST_RESPONSE = Concurrent::AtomicReference.new
-
-  class << self
-    def test_mode
-      return false unless test_override_allowed?
-
-      TEST_MODE.value
-    end
-
-    def test_mode=(value)
-      assert_test_override_allowed!
-
-      TEST_MODE.value = value
-    end
-
-    def test_response
-      return nil unless test_override_allowed?
-
-      TEST_RESPONSE.value
-    end
-
-    def test_response=(value)
-      assert_test_override_allowed!
-
-      TEST_RESPONSE.value = value
-    end
-
-    private
-
-    def test_override_allowed?
-      defined?(Rails) &&
-        Rails.configuration.x.security.try(:allow_turnstile_validation_override) == true
-    end
-
-    def assert_test_override_allowed!
-      return if test_override_allowed?
-
-      raise RuntimeError, "JitSecurityTurnstileVerifier test override is allowed only in test"
-    end
-  end
 
   def self.verify(token:, remote_ip:, secret_key: nil, mode: nil)
-    return test_response if test_response.present?
-    return { "success" => true } if test_mode
-
     new(token: token, remote_ip: remote_ip, secret_key: secret_key, mode: mode).verify
   end
 
   def self.verify_for_ceremony(token:, remote_ip:, ceremony_id:, expected_action:, expected_hostname:, expected_cdata:,
                                secret_key: nil, mode: nil)
-    return test_response if test_response.present?
-    return { "success" => true } if test_mode
-
     new(
       token: token,
       remote_ip: remote_ip,
@@ -107,7 +60,7 @@ class JitSecurityTurnstileVerifier
         ),
       )
     end
-    failure(e.message)
+    failure(e.message, unavailable: true)
   end
 
   def verify_for_ceremony
@@ -206,7 +159,10 @@ class JitSecurityTurnstileVerifier
     Rails.logger.warn("[Turnstile] Secret key is missing (mode=#{@mode || :visible}). Verification skipped.")
   end
 
-  def failure(message)
-    { "success" => false, "error" => message }
+  # `unavailable` marks a failure caused by Cloudflare being unreachable rather than by the
+  # visitor failing the challenge. Only that kind of failure is eligible for the degraded
+  # mode in TurnstileDegradation; a missing token or a missing secret never is.
+  def failure(message, unavailable: false)
+    { "success" => false, "error" => message, "unavailable" => unavailable }
   end
 end

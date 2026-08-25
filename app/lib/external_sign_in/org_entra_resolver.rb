@@ -2,42 +2,44 @@
 # frozen_string_literal: true
 
 module ExternalSignIn
-  # Resolves a verified NormalizedAuthResult to a pre-provisioned OperatorEntraIdentity.
+  # Resolves a verified Entra tenant context to a pre-provisioned
+  # OperatorEntraIdentity.
+  #
+  # The lookup key is (tid, oid) and nothing else: `iss` and `sub` are audit
+  # evidence, and email/UPN/preferred_username are mutable in Entra and are
+  # never stored or consulted (adr/org-entra-id-sign-in-boundary.md).
   #
   # Raises IdentityNotFoundError if:
-  # - No OperatorEntraIdentity exists for the (tenant_id, object_id) pair
+  # - No OperatorEntraIdentity exists for the (tenant_id, object_identifier) pair
   # - The found identity's status_id is not ACTIVE
-  # - The identity's OrganizationEntraConnection status_id is not ACTIVE
   #
   # Never creates records. Sign-in fails loudly on miss -- no JIT provisioning.
+  # The tenant is restricted upstream: the strategy verifies the ID token
+  # against the single configured tenant, so a token from any other tenant
+  # cannot reach this resolver.
   class OrgEntraResolver
     Result = Data.define(:identity, :operator)
 
-    def initialize(auth_result:, connection:)
-      @auth_result = auth_result
-      @connection = connection
+    def initialize(tenant_context:)
+      @tenant_context = tenant_context
     end
 
     def call
-      identity = OperatorEntraIdentity
-        .includes(:connection)
-        .find_by(
-          connection_id: connection.id,
-          entra_tenant_id: auth_result.tenant_id,
-          entra_object_id: auth_result.entra_object_id,
-        )
+      identity = OperatorEntraIdentity.find_by(
+        entra_tenant_id: tenant_context.tenant_id,
+        entra_object_id: tenant_context.object_identifier,
+      )
 
       raise IdentityNotFoundError,
-            "no identity provisioned for (#{auth_result.tenant_id}, #{auth_result.entra_object_id})" if identity.nil?
+            "no identity provisioned for (#{tenant_context.tenant_id}, #{tenant_context.object_identifier})" if identity.nil?
       raise IdentityNotFoundError, "identity is not active" unless identity.status_id == OperatorEntraIdentityState::ACTIVE
-      raise IdentityNotFoundError, "connection is not active" unless identity.connection.status_id == OrganizationEntraConnectionState::ACTIVE
 
       Result.new(identity: identity, operator: operator_for(identity))
     end
 
     private
 
-    attr_reader :auth_result, :connection
+    attr_reader :tenant_context
 
     def operator_for(identity)
       Operator.find_by(id: identity.operator_id)

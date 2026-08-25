@@ -174,9 +174,8 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       get public_send("edit_base_#{domain[:name]}_preference_region_url", default_state)
 
       assert_response :success
-      assert_select "form" do
-        assert_select "input[type='submit']", count: 1
-      end
+      assert_predicate inertia_props.dig("form", "submit_label"), :present?
+      assert_equal "patch", inertia_props.dig("form", "method")
     end
 
     test "#{domain[:name]} domain updates timezone" do
@@ -304,7 +303,9 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       translation_key = "acme.#{domain[:name]}.preferences.title"
       english_title = I18n.t(translation_key, locale: :en)
 
-      assert_select "h1", text: english_title
+      # The preference index renders through Inertia, so its heading travels in the page object
+      # props rather than in server rendered markup.
+      assert_equal english_title, inertia_page_title
 
       # Update language to Japanese
       state = default_state.merge(lx: "ja")
@@ -321,7 +322,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       # Verify the page content is in Japanese
       japanese_title = I18n.t(translation_key, locale: :ja)
 
-      assert_select "h1", text: japanese_title
+      assert_equal japanese_title, inertia_page_title
 
       # Verify the translations are actually different
       assert_not_equal english_title, japanese_title
@@ -344,9 +345,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       # The selector's selected option is the saved language option (JA = 1).
       option_class = PreferenceClassRegistry.option_class(domain[:name].camelize, :language)
 
-      assert_select "select[name=?] option[selected][value=?]",
-                    "preference_language[option_id]",
-                    option_class::JA.to_s
+      assert_equal option_class::JA, inertia_props.dig("form", "value")
     end
 
     test "#{domain[:name]} domain falls back to Japanese when lx invalid" do
@@ -401,7 +400,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       )
       follow_redirect!
 
-      assert_select "select[name='preference_timezone[option_id]'] option[selected='selected'][value='1']"
+      assert_equal 1, inertia_props.dig("form", "value")
 
       pref.reload
 
@@ -413,16 +412,13 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       get public_send("edit_base_#{domain[:name]}_preference_language_url", default_state)
 
       # Acme renders language option names in the current page locale.
-      assert_select "select[name='preference_language[option_id]']" do
-        ja_key = "acme.#{domain[:name]}.preference.language.options.ja"
-        en_key = "acme.#{domain[:name]}.preference.language.options.en"
+      ja_key = "acme.#{domain[:name]}.preference.language.options.ja"
+      en_key = "acme.#{domain[:name]}.preference.language.options.en"
 
-        assert_select "option[value='1']", text: I18n.t(ja_key)
-        assert_select "option[value='2']", text: I18n.t(en_key)
-      end
-
-      assert_select "select[name='preference_language[option_id]'] option", text: "日本語"
-      assert_select "select[name='preference_language[option_id]'] option", text: "英語 - English"
+      assert_equal I18n.t(ja_key), inertia_choice_pairs.assoc(I18n.t(ja_key))&.first
+      assert_equal [[I18n.t(ja_key), 1], [I18n.t(en_key), 2]], inertia_choice_pairs
+      assert_includes inertia_choice_labels, "日本語"
+      assert_includes inertia_choice_labels, "英語 - English"
 
       reset!
       host!(domain[:host])
@@ -430,8 +426,8 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_select "html[lang='en']"
-      assert_select "select[name='preference_language[option_id]'] option", text: "Japanese - 日本語"
-      assert_select "select[name='preference_language[option_id]'] option", text: "English"
+      assert_includes inertia_choice_labels, "Japanese - 日本語"
+      assert_includes inertia_choice_labels, "English"
     end
 
     test "#{domain[:name]} domain updates theme" do
@@ -447,10 +443,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
         state,
       )
 
-      assert_select(
-        "select[name='preference_theme[option_id]'] option[selected='selected'][value='2']",
-        count: 1,
-      )
+      assert_equal 2, inertia_props.dig("form", "value")
 
       pref.reload
 
@@ -482,7 +475,8 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
       get public_send("edit_base_#{domain[:name]}_preference_timezone_url", default_state)
 
-      assert_select "select[name='preference_timezone[option_id]'] option[value='']", count: 0
+      assert_not_includes inertia_choice_pairs.map(&:last), ""
+      assert_predicate inertia_choice_pairs, :any?
     end
 
     test "#{domain[:name]} domain updates cookie" do
@@ -496,7 +490,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
         default_state,
       )
 
-      assert_select "input[type='checkbox'][name='preference_cookie[functional]'][checked='checked']", count: 1
+      assert inertia_cookie_category("functional")
 
       pref.reload
 
@@ -617,7 +611,10 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      assert_select "a[href^=?]", public_send("edit_base_#{domain[:name]}_preference_region_path")
+      assert_match(
+        /\A#{Regexp.escape(public_send("edit_base_#{domain[:name]}_preference_region_path"))}/,
+        inertia_props.dig("back_link", "href"),
+      )
     end
 
     test "#{domain[:name]} domain language edit links to region edit" do
@@ -627,12 +624,11 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      links = css_select("section > div:first-child > a")
+      back_link = inertia_props.fetch("back_link")
 
-      assert_equal 1, links.size
-      assert_equal "もどる", links.first.text
-      assert_includes links.first["href"], public_send("edit_base_#{domain[:name]}_preference_region_path")
-      assert_includes links.first["href"], "ri=jp"
+      assert_equal "もどる", back_link.fetch("label")
+      assert_includes back_link.fetch("href"), public_send("edit_base_#{domain[:name]}_preference_region_path")
+      assert_includes back_link.fetch("href"), "ri=jp"
     end
 
     test "#{domain[:name]} domain region edit links to timezone and language with params" do
@@ -643,10 +639,10 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      assert_select "a[href=?]",
-                    public_send("edit_base_#{domain[:name]}_preference_timezone_path", state)
-      assert_select "a[href=?]",
-                    public_send("edit_base_#{domain[:name]}_preference_language_path", state)
+      hrefs = inertia_props.fetch("linked_screens").map { |screen| screen.fetch("href") }
+
+      assert_includes hrefs, public_send("edit_base_#{domain[:name]}_preference_timezone_path", state)
+      assert_includes hrefs, public_send("edit_base_#{domain[:name]}_preference_language_path", state)
     end
 
     if domain[:name] == "app"
@@ -657,8 +653,8 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
         get edit_base_app_preference_currency_url(state)
 
         assert_response :success
-        assert_select "select[name='preference_currency[option_id]'] option", text: "米国ドル (USD)"
-        assert_select "select[name='preference_currency[option_id]'] option", text: "日本円 (JPY)"
+        assert_includes inertia_choice_labels, "米国ドル (USD)"
+        assert_includes inertia_choice_labels, "日本円 (JPY)"
       end
     end
 
@@ -678,7 +674,8 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
           get public_send("edit_base_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
 
           assert_response :success
-          assert_select "select[name='#{param_scope}[option_id]'] option[value='']", count: 0
+          assert_equal param_scope.to_s, inertia_props.dig("form", "scope")
+          assert_not_includes inertia_choice_pairs.map(&:last), ""
 
           patch public_send("base_#{domain[:name]}_preference_#{route_suffix}_url", default_state),
                 params: { param_scope => { option_id: submitted_value } }
@@ -690,8 +687,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
           assert_equal expected_id, pref.public_send("#{domain[:name]}_preference_#{association_suffix}").option_id
           get public_send("edit_base_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
 
-          assert_select "select[name='#{param_scope}[option_id]'] option[selected='selected'][value='#{expected_id}']",
-                        count: 1
+          assert_equal expected_id, inertia_props.dig("form", "value")
         end
       end
     end
@@ -711,13 +707,13 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       get url
 
       assert_response :success
-      links = css_select("section > div:first-child > a")
 
-      assert_equal 1, links.size
-      assert_equal "もどる", links.first.text
-      assert_includes links.first["href"], edit_base_org_preference_region_path
-      assert_includes links.first["href"], "ri=us"
-      assert_includes links.first["href"], "lx=ja"
+      back_link = inertia_props.fetch("back_link")
+
+      assert_equal "もどる", back_link.fetch("label")
+      assert_includes back_link.fetch("href"), edit_base_org_preference_region_path
+      assert_includes back_link.fetch("href"), "ri=us"
+      assert_includes back_link.fetch("href"), "lx=ja"
     end
   end
 
@@ -743,12 +739,11 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     ].each do |url|
       get url, headers: headers
 
-      links = css_select("section > div:first-child > a")
+      back_link = inertia_props.fetch("back_link")
 
-      assert_equal 1, links.size
-      assert_equal "もどる", links.first.text
-      assert_includes links.first["href"], base_app_preference_path
-      assert_includes links.first["href"], "ri=jp"
+      assert_equal "もどる", back_link.fetch("label")
+      assert_includes back_link.fetch("href"), base_app_preference_path
+      assert_includes back_link.fetch("href"), "ri=jp"
     end
   end
 
@@ -787,15 +782,14 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      links = css_select("section > div:first-child > a")
+      back_link = inertia_props.fetch("back_link")
 
-      assert_equal 1, links.size
-      assert_equal "もどる", links.first.text
-      assert_includes links.first["href"], public_send("base_#{domain[:name]}_preference_path")
-      assert_includes links.first["href"], "ri=jp"
-      assert_select "a", text: I18n.t(["acme", domain[:name], "preference.resets.back"].join(".")), count: 0
-      assert_select "input[type='checkbox'][name='confirm_reset'][required]"
-      assert_select "label[for='confirm_reset']"
+      assert_equal "もどる", back_link.fetch("label")
+      assert_includes back_link.fetch("href"), public_send("base_#{domain[:name]}_preference_path")
+      assert_includes back_link.fetch("href"), "ri=jp"
+      assert_equal "confirm_reset", inertia_props.dig("form", "field")
+      assert_equal "delete", inertia_props.dig("form", "method")
+      assert_predicate inertia_props.dig("form", "label"), :present?
     end
 
     test "#{domain[:name]} domain reset destroy resets preference to defaults" do
@@ -860,8 +854,14 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
         params: { confirm_reset: "0" },
       )
 
-      # Should render edit with unprocessable_content status
-      assert_response :unprocessable_content
+      # Inertia treats a 4xx as a transport exception rather than a page, so a rejected reset goes
+      # back to the edit screen carrying the error. An Inertia DELETE gets that as a 303; this plain
+      # request keeps Rails' 302.
+      assert_response :redirect
+      assert_equal(
+        URI.parse(public_send("edit_base_#{domain[:name]}_preference_customization_url", ri: "jp")).path,
+        URI.parse(response.location).path,
+      )
 
       # Verify database is unchanged
       pref.reload
@@ -899,6 +899,18 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def inertia_cookie_category(key)
+    inertia_props.fetch("form").fetch("categories").find { |category| category.fetch("key") == key }&.fetch("value")
+  end
+
+  def inertia_page_title
+    element = css_select("script[data-page='app']").first
+
+    assert element, "the preference index must embed the Inertia page object"
+
+    JSON.parse(element.text).dig("props", "title")
+  end
 
   def preference_refresh_cookie_name(domain)
     PreferenceCookieName.refresh(production: false, surface: domain[:name].to_sym)

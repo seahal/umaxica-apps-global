@@ -17,7 +17,12 @@ class Auth::App::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
     get auth_app_sign_in_check_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :redirect
-    assert_includes response.location, "rt="
+    # Auth and Base are same-site, so the authorize hop goes straight to Base. The jump
+    # gateway (an `rt=` token) is for cross-site hops and is not used here.
+    assert_equal Rails.configuration.x.boot_config.fetch(:hosts).base_service.host,
+                 URI.parse(response.location).host
+    assert_equal "/oauth/authorize", URI.parse(response.location).path
+    assert_not_includes response.location, "rt="
   end
 
   test "show without sign in sequence is rejected" do
@@ -28,17 +33,16 @@ class Auth::App::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
     assert_includes response.body, I18n.t("errors.messages.not_authorized")
   end
 
-  test "update without sign in sequence is rejected" do
+  test "update is not routed" do
     patch auth_app_sign_in_check_url(ri: "jp"),
           headers: as_user_headers(@user, host: @host).merge(
             "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new"),
           )
 
-    assert_response :bad_request
-    assert_includes response.body, I18n.t("errors.messages.not_authorized")
+    assert_response :not_found
   end
 
-  test "destroy is rejected by routing" do
+  test "destroy is not routed" do
     pt = Base64.urlsafe_encode64("/settings")
 
     delete auth_app_sign_in_check_url(ri: "jp", pt: pt),
@@ -46,7 +50,7 @@ class Auth::App::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
   private

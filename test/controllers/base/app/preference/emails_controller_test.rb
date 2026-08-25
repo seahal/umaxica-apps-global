@@ -17,13 +17,13 @@ module Base
           @email = @user.client_emails.first
           @token = @email.promotional_unsubscribe_token
           host! @host
-          CloudflareTurnstile.test_mode = true
-          CloudflareTurnstile.test_validation_response = { "success" => true }
+          TurnstileVerifierStub.challenge_enabled = true
+          TurnstileVerifierStub.challenge_response = { "success" => true }
         end
 
         teardown do
-          CloudflareTurnstile.test_mode = false
-          CloudflareTurnstile.test_validation_response = nil
+          TurnstileVerifierStub.challenge_enabled = false
+          TurnstileVerifierStub.challenge_response = nil
         end
 
         test "controller uses bare unsubscribe boundary" do
@@ -35,9 +35,17 @@ module Base
           get edit_base_app_preference_email_path(@email, ri: "jp", token: @token)
 
           assert_response :success
-          assert_match "Unsubscribe", response.body
-          assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-          assert_includes response.body, 'data-turnstile-mode-value="render"'
+          assert_equal "base/app/preference/emails/edit", inertia_component
+
+          props = inertia_props
+
+          assert props.fetch("promotional")
+          assert_equal "Unsubscribe", props.fetch("form").fetch("submit_label")
+          assert_equal base_app_preference_email_path(@email), props.fetch("form").fetch("action")
+          assert_equal @token, props.fetch("form").fetch("token")
+          # The challenge is rendered by the page from this key; the response token itself is
+          # produced in the browser and validated on the server.
+          assert_predicate props.fetch("form").fetch("turnstile_site_key"), :present?
         end
 
         test "DELETE destroy turns promotional email off" do
@@ -48,15 +56,15 @@ module Base
         end
 
         test "DELETE destroy keeps promotional email on when turnstile fails" do
-          CloudflareTurnstile.test_mode = true
-          CloudflareTurnstile.test_validation_response = { "success" => false }
+          TurnstileVerifierStub.challenge_enabled = true
+          TurnstileVerifierStub.challenge_response = { "success" => false }
 
           delete(base_app_preference_email_path(@email), params: { token: @token, "cf-turnstile-response": "test" })
 
           assert_redirected_to edit_base_app_preference_email_path(@email, token: @token)
           assert @email.reload.promotional
         ensure
-          CloudflareTurnstile.test_validation_response = { "success" => true }
+          TurnstileVerifierStub.challenge_response = { "success" => true }
         end
 
         test "POST create supports one-click unsubscribe without csrf token" do
@@ -77,7 +85,11 @@ module Base
 
         test "DELETE destroy without csrf token is rejected when forgery protection is enabled" do
           with_forgery_protection do
-            delete base_app_preference_email_path(@email), params: { token: @token, "cf-turnstile-response": "test" }
+            # Sec-Fetch-Site decides first: a same-origin request needs no token, so the
+            # missing token only rejects a request another site made.
+            delete base_app_preference_email_path(@email),
+                   params: { token: @token, "cf-turnstile-response": "test" },
+                   headers: { "Sec-Fetch-Site" => "cross-site" }
 
             assert_response :unprocessable_content
             assert @email.reload.promotional
@@ -451,11 +463,14 @@ class Base::App::Preference::EmailsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -502,9 +517,9 @@ class Base::App::Preference::EmailsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -517,7 +532,7 @@ class Base::App::Preference::EmailsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -760,11 +775,14 @@ class Base::App::Preference::EmailsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

@@ -20,8 +20,16 @@ pre-commit:
     - name: rubocop
       glob:
         - "*.{rb,rake}"
-      run: bundle exec rubocop -A --force-exclusion {staged_files}
+      run: bundle exec rubocop -a --force-exclusion {staged_files}
       stage_fixed: true
+
+    # A template with unbalanced ERB blocks only fails when its action renders,
+    # and Brakeman skips files it cannot parse instead of reporting on them.
+    # Compile every template so a structural break is caught at commit time.
+    - name: erb-compiles
+      glob:
+        - "app/views/**/*.erb"
+      run: bin/rails test test/unit/views/template_compilation_test.rb
 
 pre-push:
   parallel: false

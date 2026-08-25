@@ -15,6 +15,8 @@ module Auth
           include CommonOtp
 
           include SessionLimitGate
+          include ::SurfaceInertiaPage
+          include ::TurnstilePageProps
 
           AUTHENTICATION_MODE = :guest
 
@@ -26,7 +28,7 @@ module Auth
             name: "email_create_ip_burst",
             store: rate_limit_store,
             only: :create,
-            with: -> { render_rate_limited(rule_name: "auth_com_sign_in_email_create_ip_burst", retry_after: 60) },
+            with: -> { render_rate_limited(retry_after: 60) },
           )
           rate_limit(
             to: 20,
@@ -36,7 +38,7 @@ module Auth
             name: "email_create_ip_sustained",
             store: rate_limit_store,
             only: :create,
-            with: -> { render_rate_limited(rule_name: "auth_com_sign_in_email_create_ip_sustained", retry_after: 900) },
+            with: -> { render_rate_limited(retry_after: 900) },
           )
           declare_authentication_mode!(
             :guest,
@@ -53,9 +55,14 @@ module Auth
 
           def new
             @user_email = VisitorEmail.new
+            render inertia: true, props: sign_in_email_new_props
           end
 
           def edit
+            # `load_user_email` redirects when the ceremony has no live email session.
+            return if performed?
+
+            render inertia: true, props: sign_in_email_edit_props
           end
 
           def create
@@ -63,18 +70,21 @@ module Auth
             address = address_params[:address]
             unless cloudflare_turnstile_validation["success"] && address.present?
               @user_email = VisitorEmail.new(address: address)
-              return render :new, status: :unprocessable_content
+              return render_sign_in_email_new_with_errors
             end
 
             normalized_address = validate_and_normalize_email(address)
             unless normalized_address
               @user_email = VisitorEmail.new(address: address)
               @user_email.errors.add(:address, t("sign.app.authentication.email.create.invalid_format"))
-              return render :new, status: :unprocessable_content
+              return render_sign_in_email_new_with_errors
             end
 
             if sign_in_email_cooldown_active?(normalized_address)
-              render plain: sign_in_email_cooldown_message(normalized_address), status: :too_many_requests
+              # One message for every address. Branching on whether the account exists
+              # would turn the cooldown response into an account-existence oracle,
+              # which is exactly what the dummy OTP work below exists to prevent.
+              render plain: t("sign.app.authentication.email.create.cooldown"), status: :too_many_requests
               return
             end
 
@@ -94,6 +104,60 @@ module Auth
           end
 
           private
+
+          # A rejected submission re-renders this page with 422 and the errors the page reads.
+          # Which guard rejected the submission, and what it says, is unchanged.
+          def render_sign_in_email_new_with_errors
+            render(
+              inertia: "auth/com/sign/in/emails/new",
+              props: sign_in_email_new_props.merge(
+                errors: @user_email.errors.to_hash(true).transform_values(&:first),
+              ),
+              status: :unprocessable_content,
+            )
+          end
+
+          def sign_in_email_new_props
+            pt = signed_pt_param
+
+            {
+              title: t("sign.app.authentication.email.new.page_title"),
+              description: t("sign.app.registration.new.social.disclaimer", product: "UMAXICA"),
+              action: auth_com_sign_in_email_path,
+              pt: pt,
+              field_label: VisitorEmail.human_attribute_name(:address),
+              submit_label: t("actions.submit"),
+              back_link: { label: t("sign.app.authentication.new.back"), href: auth_com_sign_in_path(pt: pt) },
+              turnstile: turnstile_visible_props,
+            }
+          end
+
+          def sign_in_email_edit_props
+            pt = signed_pt_param
+
+            {
+              title: t("sign.app.authentication.email.edit.page_title"),
+              description: t("sign.app.authentication.email.edit.description"),
+              action: auth_com_sign_in_email_path,
+              pt: pt,
+              field_label: t("sign.app.authentication.email.edit.code_label"),
+              field_placeholder: t("sign.app.authentication.email.edit.code_placeholder"),
+              submit_label: t("sign.app.authentication.email.edit.submit"),
+              delivery_help: t("sign.app.authentication.email.edit.delivery_help"),
+              return_link: { label: t("sign.app.authentication.email.edit.return_page"), href: new_auth_com_sign_in_email_path(pt: pt) },
+              resend: {
+                endpoint: auth_com_web_v0_in_email_otp_path,
+                state: @otp_resend_state.to_s,
+                messages: {
+                  button_label: t("otp.resend.button"),
+                  sent_message: t("otp.resend.sent"),
+                  too_soon_message: t("otp.resend.too_soon"),
+                  failed_message: t("otp.resend.failed"),
+                },
+              },
+              turnstile: turnstile_visible_props,
+            }
+          end
 
           def load_user_email
             if session[:user_email_authentication_id].present?
@@ -122,10 +186,6 @@ module Auth
 
           def process_email_authentication(normalized_address)
             existing_email = find_email_with_timing_protection(normalized_address)
-
-            Rails.logger.debug { "Inside controller existing_email: #{existing_email.inspect}" }
-            Rails.logger.debug { "Inside controller identity_email_model: #{identity_email_model}" }
-            Rails.logger.debug { "Inside controller login_allowed: #{existing_email&.visitor&.login_allowed?}" }
 
             if existing_email&.visitor&.login_allowed?
               visitor = existing_email.visitor
@@ -172,13 +232,6 @@ module Auth
           def record_sign_in_email_cooldown!(normalized_address)
             session[:sign_in_email_cooldown_address] = normalized_address
             session[:sign_in_email_cooldown_at] = Time.current.to_i
-          end
-
-          def sign_in_email_cooldown_message(normalized_address)
-            existing_email = find_email_with_timing_protection(normalized_address)
-            return t("errors.messages.login_cooldown") if existing_email&.visitor&.login_allowed?
-
-            t("sign.app.authentication.email.create.cooldown")
           end
         end
       end

@@ -27,13 +27,16 @@ class SignUpEmailPendingGuard
     if model_class
       model_class.transaction do
         model_class.connection_pool.with_connection do |conn|
-          conn.exec_query("SELECT pg_advisory_xact_lock(#{key.to_i})")
+          # `execute` rather than `exec_query`: the lock function returns `void`,
+          # a type the PostgreSQL adapter has no registered decoder for, so
+          # building a typed result set logs an "unknown OID 2278" warning.
+          conn.execute("SELECT pg_advisory_xact_lock(#{key.to_i})")
         end
         yield
       end
     else
       connection.transaction do
-        connection.exec_query("SELECT pg_advisory_xact_lock(#{key.to_i})")
+        connection.execute("SELECT pg_advisory_xact_lock(#{key.to_i})")
         yield
       end
     end

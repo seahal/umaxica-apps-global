@@ -6,6 +6,7 @@ module Base
     module Identity
       module Privacy
         class ErasuresController < ::Base::Com::ApplicationController
+          include ::SurfaceInertiaPage
           include CommonRedirect
           include WithdrawalCeremonyAuthentication
           include PrivacyErasureRequestFlow
@@ -17,6 +18,7 @@ module Base
 
           def new
             render_privacy_erasure_new(current_withdrawal_subject)
+            render inertia: true, props: new_page_props
           end
 
           def create
@@ -24,6 +26,22 @@ module Base
           end
 
           private
+
+          def new_page_props
+            {
+              title: "Early personal data erasure",
+              paragraphs: [
+                t("base.com.identity.privacy.erasures.new.paragraphs.privacy_request"),
+                t("base.com.identity.privacy.erasures.new.paragraphs.retention"),
+                t("base.com.identity.privacy.erasures.new.paragraphs.records"),
+              ],
+              form: {
+                url: base_com_identity_privacy_erasure_path(ri: params[:ri]),
+                jurisdiction: "unknown",
+                submit_label: "Request early erasure",
+              },
+            }
+          end
 
           def withdrawal_ceremony_class = VisitorWithdrawalCeremony
 

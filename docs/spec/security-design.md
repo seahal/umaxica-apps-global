@@ -164,7 +164,7 @@ end
 # Check expiration first
 if Time.current > expires_at
   # Expired - reject immediately
-  render :expired, status: :unprocessable_entity
+  render :expired, status: :unprocessable_content
   return
 end
 
@@ -234,7 +234,7 @@ class EmailVerificationController < ApplicationController
 
     # Check expiration
     if verification.expired?
-      render :expired, status: :unprocessable_entity
+      render :expired, status: :unprocessable_content
       return
     end
 
@@ -255,7 +255,7 @@ class EmailVerificationController < ApplicationController
     else
       # Failed attempt
       verification.increment!(:verification_attempts)
-      render :verify, status: :unprocessable_entity
+      render :verify, status: :unprocessable_content
     end
   end
 end

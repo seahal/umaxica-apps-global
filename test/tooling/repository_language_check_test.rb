@@ -10,7 +10,9 @@ class RepositoryLanguageCheckTest < Minitest::Test
   def test_accepts_english_repository_prose
     Dir.mktmpdir do |directory|
       path = File.join(directory, "plan.md")
+      # rubocop:disable I18n/RailsI18n/DecorateString
       File.write(path, "# Plan\n\nKeep repository prose in English.\n")
+      # rubocop:enable I18n/RailsI18n/DecorateString
 
       _stdout, stderr, status = Open3.capture3(SCRIPT, path)
 

@@ -126,9 +126,44 @@ module Jit
         fake_creds.define_singleton_method(:option) { |_key, **| nil }
 
         Rails.app.stub(:creds, fake_creds) do
-          Rails.env.stub(:production?, true) do
-            assert_raises(KeyError) { JitSecurityActiveRecordEncryptionKeyProvider.fetch_from_local }
+          Rails.env.stub(:local?, false) do
+            Rails.env.stub(:production?, true) do
+              assert_raises(KeyError) { JitSecurityActiveRecordEncryptionKeyProvider.fetch_from_local }
+            end
           end
+        end
+      end
+
+      # The derivable fallback is computed from public strings, so it must be
+      # gated on "is this development or test", not on "is this not production".
+      # A staging or preview deployment would otherwise encrypt real PII under a
+      # key anyone can recompute from the source.
+      test "fetch_from_local raises in a deployed non-production environment such as staging" do
+        fake_creds = Object.new
+        fake_creds.define_singleton_method(:require) { |_key| raise KeyError, "missing" }
+        fake_creds.define_singleton_method(:option) { |_key, **| nil }
+
+        Rails.app.stub(:creds, fake_creds) do
+          Rails.env.stub(:local?, false) do
+            Rails.env.stub(:production?, false) do
+              error = assert_raises(KeyError) { JitSecurityActiveRecordEncryptionKeyProvider.fetch_from_local }
+
+              assert_match(/no derivable fallback/, error.message)
+            end
+          end
+        end
+      end
+
+      test "fetch_from_local still uses the derivable fallback in development and test" do
+        fake_creds = Object.new
+        fake_creds.define_singleton_method(:require) { |_key| raise KeyError, "missing" }
+        fake_creds.define_singleton_method(:option) { |_key, **| nil }
+
+        Rails.app.stub(:creds, fake_creds) do
+          result = JitSecurityActiveRecordEncryptionKeyProvider.fetch_from_local
+
+          assert_predicate result[:current], :present?
+          assert_predicate result[:deterministic], :present?
         end
       end
     end

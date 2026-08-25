@@ -9,30 +9,40 @@ class Auth::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
   end
 
-  test "direct entry without a login challenge starts OIDC handoff" do
+  test "direct entry without a login challenge lists the registration methods" do
     get auth_com_sign_up_url(ct: "dr", ri: "jp"), headers: default_headers
 
-    assert_response :redirect
+    assert_response :success
     assert_nil session[:oidc_authorization_login_challenge]
+    assert_equal "auth/com/sign_ups/new", inertia_component
+
+    hrefs = inertia_props.fetch("methods").map { |method| method.fetch("href") }
+
+    assert_includes hrefs, new_auth_com_sign_up_email_path(ct: "dr", ri: "jp")
+    assert_includes hrefs, new_auth_com_sign_up_telephone_path(ct: "dr", ri: "jp")
   end
 
   test "local ceremony shows email and telephone registration methods" do
     get auth_com_sign_up_url(ct: "dr", ri: "jp", login_challenge: login_challenge), headers: default_headers
 
     assert_response :success
-    assert_select "[data-test-id=?]", "registration-method", count: 2
-    assert_select "a[href=?]", new_auth_com_sign_up_email_path(ct: "dr", ri: "jp"), count: 1
-    assert_select "a[href=?]", new_auth_com_sign_up_telephone_path(ct: "dr", ri: "jp"), count: 1
+    assert_equal "auth/com/sign_ups/new", inertia_component
+
+    methods = inertia_props.fetch("methods")
+
+    assert_equal 2, methods.size
+    assert_equal(
+      [new_auth_com_sign_up_email_path(ct: "dr", ri: "jp"), new_auth_com_sign_up_telephone_path(ct: "dr", ri: "jp")],
+      methods.map { |method| method.fetch("href") },
+    )
   end
 
   test "does not show social login buttons when flag is off" do
     get auth_com_sign_up_url(ct: "dr", ri: "jp", login_challenge: login_challenge), headers: default_headers
 
     assert_response :success
-    assert_select "form[action*=?]", "/social/auth/google_app/continue", count: 0
-    assert_select "form[action*=?]", "/social/auth/apple/continue", count: 0
-    assert_select "form[action*=?]", "/social/auth/google", count: 0
-    assert_select "form[action*=?]", "/auth/google", count: 0
+    assert_equal "auth/com/sign_ups/new", inertia_component
+    assert_equal %w(email telephone), inertia_props.fetch("methods").map { |method| method.fetch("key") }
   end
 
   test "does not show temporary google signup button when legacy flag is on" do
@@ -42,8 +52,8 @@ class Auth::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "form[action*=?]", "/social/auth/google", count: 0
-    assert_select "form[action*=?]", "/auth/google", count: 0
+    assert_equal "auth/com/sign_ups/new", inertia_component
+    assert_equal %w(email telephone), inertia_props.fetch("methods").map { |method| method.fetch("key") }
   end
 
   test "rejects direct entry when logged in" do
@@ -655,11 +665,14 @@ class Auth::Com::SignUpsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -706,9 +719,9 @@ class Auth::Com::SignUpsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -721,7 +734,7 @@ class Auth::Com::SignUpsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -976,11 +989,14 @@ class Auth::Com::SignUpsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

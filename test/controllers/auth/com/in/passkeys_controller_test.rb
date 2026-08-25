@@ -10,8 +10,8 @@ class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     host! @host
     @origin_headers = { "HTTP_ORIGIN" => "http://#{@host}", "Origin" => "http://#{@host}" }.freeze
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
 
     @visitor = create_verified_visitor_with_email(email_address: "com_passkey_test@example.com")
     @visitor.visitor_telephones.create!(
@@ -29,18 +29,21 @@ class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   teardown do
-    JitSecurityTurnstileVerifier.test_mode = false
-    JitSecurityTurnstileVerifier.test_response = nil
+    TurnstileVerifierStub.enabled = false
+    TurnstileVerifierStub.response = nil
   end
 
   test "should get new" do
     get new_auth_com_sign_in_passkey_path(ri: "jp"), headers: @origin_headers
 
     assert_response :success
-    assert_select "[data-passkey-authentication-options-url-value=?]", auth_com_sign_in_passkey_options_path(ri: "jp")
-    assert_select "[data-passkey-authentication-verification-url-value=?]",
-                  auth_com_sign_in_passkey_verification_path(ri: "jp")
-    assert_select "[data-passkey-authentication-region-value=?]", "jp"
+    assert_equal "auth/com/sign/in/passkeys/new", inertia_component
+
+    panel = inertia_props.fetch("panel")
+
+    assert_equal auth_com_sign_in_passkey_options_path(ri: "jp"), panel.fetch("options_url")
+    assert_equal auth_com_sign_in_passkey_verification_path(ri: "jp"), panel.fetch("verification_url")
+    assert_equal "jp", panel.fetch("region")
   end
 
   test "options returns challenge for known identifier" do
@@ -473,11 +476,14 @@ class Auth::Com::Sign::In::PasskeysControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -524,9 +530,9 @@ class Auth::Com::Sign::In::PasskeysControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -539,7 +545,7 @@ class Auth::Com::Sign::In::PasskeysControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -794,11 +800,14 @@ class Auth::Com::Sign::In::PasskeysControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

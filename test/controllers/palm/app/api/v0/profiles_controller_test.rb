@@ -19,9 +19,41 @@ module Palm
             get "/api/v0/profile", headers: json_headers
 
             assert_response :unauthorized
-            assert_equal "authentication_required", response.parsed_body.dig("error", "code")
-            assert_predicate response.parsed_body.dig("error", "request_id"), :present?
+            assert_equal "urn:umaxica:problem:authentication-required", response.parsed_body.fetch("type")
+            assert_predicate response.parsed_body.fetch("request_id"), :present?
             assert_empty response_set_cookie_lines
+          end
+
+          # The `error` member asserted above is transitional (ApiV0LegacyErrorMember). These are the
+          # assertions that survive its removal, so they pin the contract that outlives it.
+          test "an unauthenticated request answers with an RFC 9457 problem document" do
+            get "/api/v0/profile", headers: json_headers
+
+            assert_response :unauthorized
+            assert_equal "application/problem+json", response.media_type
+
+            body = response.parsed_body
+
+            assert_equal "urn:umaxica:problem:authentication-required", body.fetch("type")
+            assert_equal 401, body.fetch("status")
+            assert_equal response.status, body.fetch("status")
+            assert_predicate body.fetch("request_id"), :present?
+          end
+
+          test "an unauthenticated bearer request names the error in WWW-Authenticate" do
+            get "/api/v0/profile", headers: json_headers.merge("Authorization" => "Bearer #{palm_token(audiences: ["core-browser"])}")
+
+            assert_response :unauthorized
+            assert_equal %(Bearer error="invalid_token"), response.headers["WWW-Authenticate"]
+          end
+
+          test "an insufficient scope answers 403 with the authorization-denied type" do
+            get "/api/v0/profile", headers: json_headers.merge("Authorization" => "Bearer #{palm_token(scopes: %w(openid))}")
+
+            assert_response :forbidden
+            assert_equal "application/problem+json", response.media_type
+            assert_equal "urn:umaxica:problem:authorization-denied", response.parsed_body.fetch("type")
+            assert_equal %(Bearer error="insufficient_scope"), response.headers["WWW-Authenticate"]
           end
 
           test "returns current client profile for valid palm bearer token without setting cookies" do
@@ -44,7 +76,7 @@ module Palm
             )
 
             assert_response :unauthorized
-            assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+            assert_equal "urn:umaxica:problem:authentication-required", response.parsed_body.fetch("type")
             assert_empty response_set_cookie_lines
           end
 
@@ -54,7 +86,7 @@ module Palm
             get "/api/v0/profile", headers: json_headers
 
             assert_response :unauthorized
-            assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+            assert_equal "urn:umaxica:problem:authentication-required", response.parsed_body.fetch("type")
             assert_empty response_set_cookie_lines
           end
 
@@ -66,7 +98,7 @@ module Palm
             get "/api/v0/profile", headers: json_headers.merge("Authorization" => "Bearer #{token}")
 
             assert_response :unauthorized
-            assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+            assert_equal "urn:umaxica:problem:authentication-required", response.parsed_body.fetch("type")
             assert_empty response_set_cookie_lines
           end
 
@@ -74,7 +106,7 @@ module Palm
             get "/api/v0/profile", headers: json_headers.merge("Authorization" => "DPoP #{palm_token}")
 
             assert_response :unauthorized
-            assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+            assert_equal "urn:umaxica:problem:authentication-required", response.parsed_body.fetch("type")
             assert_empty response_set_cookie_lines
           end
 
@@ -481,11 +513,14 @@ class Palm::App::Api::V0::ProfilesControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -532,9 +567,9 @@ class Palm::App::Api::V0::ProfilesControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -547,7 +582,7 @@ class Palm::App::Api::V0::ProfilesControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -790,11 +825,14 @@ class Palm::App::Api::V0::ProfilesControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

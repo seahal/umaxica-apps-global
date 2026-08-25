@@ -72,7 +72,7 @@ class CoreBffSurfaceSmokeTest < ActionDispatch::IntegrationTest
            as: :json
 
       assert_response :service_unavailable
-      assert_equal "service_unavailable", response.parsed_body.fetch("error").fetch("code")
+      assert_equal "urn:umaxica:problem:service-unavailable", response.parsed_body.fetch("type")
     end
   end
 

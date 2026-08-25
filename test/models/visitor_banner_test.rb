@@ -103,7 +103,8 @@ class VisitorBannerTest < ActiveSupport::TestCase
     ends_at_column = VisitorBanner.columns_hash["ends_at"]
     visitor_id_column = VisitorBanner.columns_hash["visitor_id"]
 
-    assert_not published_column.default
+    # `Column#default` carries the raw database default, so a boolean reads back as "false".
+    assert_equal "false", published_column.default
     assert_equal "", title_column.default
     assert_not body_column.null
     assert_not starts_at_column.null

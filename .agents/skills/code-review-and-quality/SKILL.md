@@ -1,31 +1,24 @@
 ---
 name: code-review-and-quality
 description:
-  Conducts multi-axis code review. Use before merging any change. Use when reviewing code written by
-  yourself, another agent, or a human. Use when you need to assess code quality across multiple
-  dimensions before it enters the main branch.
+  Reviews a change across correctness, readability, architecture, security, and performance before
+  it merges. Use before merging any change, after completing a feature, when evaluating code
+  produced by another agent or model, or after a bug fix to review both the fix and its regression
+  test.
 ---
 
 # Code Review and Quality
 
-## Overview
+**The approval standard:** approve a change when it definitely improves overall code health, even if
+it is not perfect. Perfect code does not exist, and a change should not be blocked for differing
+from how the reviewer would have written it. If it improves the codebase and follows the project's
+conventions, approve it.
 
-Multi-dimensional code review with quality gates. Every change gets reviewed before merge — no
-exceptions. Review covers five axes: correctness, readability, architecture, security, and
-performance.
+**Detailed checklists:**
 
-**The approval standard:** Approve a change when it definitely improves overall code health, even if
-it isn't perfect. Perfect code doesn't exist — the goal is continuous improvement. Don't block a
-change because it isn't exactly how you would have written it. If it improves the codebase and
-follows the project's conventions, approve it.
-
-## When to Use
-
-- Before merging any PR or change
-- After completing a feature implementation
-- When another agent or model produced code you need to evaluate
-- When refactoring existing code
-- After any bug fix (review both the fix and the regression test)
+- Security: [security-checklist.md](../security-and-hardening/references/security-checklist.md)
+- Performance:
+  [performance-checklist.md](../performance-optimization/references/performance-checklist.md)
 
 ## The Five-Axis Review
 
@@ -226,8 +219,23 @@ This catches issues that a single model might miss — different models have dif
 ```
 Review this code change for correctness, security, and adherence to
 our project conventions. The spec says [X]. The change should [Y].
-Flag any issues as Critical, Important, or Suggestion.
+
+Report every issue you find, including ones you are uncertain about
+or consider low-severity. Do not filter for importance or confidence
+at this stage — a separate pass will rank and filter. Coverage is the
+goal here: surfacing a finding that later gets filtered out is better
+than silently dropping a real bug. For each finding, give your
+confidence level and an estimated severity.
 ```
+
+**Ask for coverage first and filter in a separate pass.** A prompt that says "only report
+high-severity issues", "be conservative", or "don't nitpick" is followed literally: the review
+investigates just as thoroughly, finds the bugs, then declines to report the ones it judges below the
+stated bar. Precision rises while real bugs go unreported. Move the filtering downstream instead.
+
+If you do want single-pass filtering, be concrete about where the bar sits rather than using
+qualitative words like "important" — for example, "report any bug that could cause incorrect
+behavior, a test failure, or a misleading result; omit pure style and naming preferences."
 
 ## Dead Code Hygiene
 
@@ -355,21 +363,6 @@ a liability.
 - [ ] **Approve** — Ready to merge
 - [ ] **Request changes** — Issues must be addressed
 ```
-
-## See Also
-
-- For detailed security review guidance, see `references/security-checklist.md`
-- For performance review checks, see `references/performance-checklist.md`
-
-## Common Rationalizations
-
-| Rationalization                      | Reality                                                                                                                   |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| "It works, that's good enough"       | Working code that's unreadable, insecure, or architecturally wrong creates debt that compounds.                           |
-| "I wrote it, so I know it's correct" | Authors are blind to their own assumptions. Every change benefits from another set of eyes.                               |
-| "We'll clean it up later"            | Later never comes. The review is the quality gate — use it. Require cleanup before merge, not after.                      |
-| "AI-generated code is probably fine" | AI code needs more scrutiny, not less. It's confident and plausible, even when wrong.                                     |
-| "The tests pass, so it's good"       | Tests are necessary but not sufficient. They don't catch architecture problems, security issues, or readability concerns. |
 
 ## Red Flags
 

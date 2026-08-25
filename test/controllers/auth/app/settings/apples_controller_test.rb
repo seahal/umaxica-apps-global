@@ -6,7 +6,7 @@ require "test_helper"
 
 module Auth::App::Settings
   class ApplesControllerTest < ActionDispatch::IntegrationTest
-    fixtures :clients, :client_statuses, :client_apple_identity_statuses
+    fixtures :clients, :client_statuses
 
     setup do
       host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
@@ -18,9 +18,14 @@ module Auth::App::Settings
       get auth_app_settings_apple_url(ri: "jp"), headers: @headers
 
       assert_response :success
-      assert_select "a[href=?]", auth_app_settings_path(ri: "jp")
-      assert_select "a[href=?]", edit_auth_app_settings_apple_path(ri: "jp")
-      assert_select "form[action=?]", auth_app_settings_apple_path(ri: "jp"), count: 0
+      assert_equal "auth/app/settings/apples/show", inertia_component
+      assert_equal auth_app_settings_path(ri: "jp"), inertia_props.fetch("back_link").fetch("href")
+      assert_equal(
+        edit_auth_app_settings_apple_path(ri: "jp"),
+        inertia_props.fetch("edit_link").fetch("href"),
+      )
+      assert_not inertia_props.key?("unlink")
+      assert_not inertia_props.key?("connect")
     end
 
     test "show redirects when not logged in" do
@@ -60,19 +65,24 @@ module Auth::App::Settings
     end
 
     test "show treats revoked apple identity as unlinked" do
-      ClientAppleIdentity.create!(
-        user: @user,
-        uid: "revoked-apple-config",
+      create_active_external_identity(
+        client: @user,
         provider: "apple",
-        token: "token",
-        expires_at: 1.hour.from_now.to_i,
-        user_apple_identity_status: client_apple_identity_statuses(:revoked),
+        subject: "revoked-apple-config",
+        state: "consent_revoked",
       )
 
       get auth_app_settings_apple_url(ri: "jp"), headers: @headers
 
       assert_response :success
-      assert_select "a[href=?]", edit_auth_app_settings_apple_path(ri: "jp")
+      assert_equal(
+        edit_auth_app_settings_apple_path(ri: "jp"),
+        inertia_props.fetch("edit_link").fetch("href"),
+      )
+      assert_equal(
+        I18n.t("views.sign.app.settings.apples.show.unlinked"),
+        inertia_props.fetch("status"),
+      )
     end
 
     test "settings route uses create and destroy" do
@@ -712,11 +722,14 @@ class Auth::App::Settings::ApplesControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -763,9 +776,9 @@ class Auth::App::Settings::ApplesControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -778,7 +791,7 @@ class Auth::App::Settings::ApplesControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1045,11 +1058,14 @@ class Auth::App::Settings::ApplesControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

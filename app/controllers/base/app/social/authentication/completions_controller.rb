@@ -14,6 +14,23 @@ module Base
           AUTHENTICATION_MODE = :open
           declare_authentication_mode! :open
 
+          # The browser posts the signed ceremony result here from the Auth host
+          # (auth/shared/social_completion.html.erb), so the Origin is the Auth
+          # origin, not this Base origin. Base::App::ApplicationController trusts
+          # its own origin only, which rejects that handoff before the action
+          # runs and strands the ceremony on the auto-posting page. Trust the Auth
+          # origin locally, as Base::App::Oidc::LogoutsController does for its own
+          # cross-surface POST. The payload itself is still only accepted through
+          # IdentitySocialCeremonyFinalCommitter's signature and one-shot checks.
+          SOCIAL_COMPLETION_TRUSTED_ORIGINS = JitHostOriginEnv.trusted_origins(
+            ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+            ENV.fetch("PUBLIC_BASE_SERVICE_URL"),
+          ).freeze
+
+          protect_from_forgery using: :header_or_legacy_token,
+                               trusted_origins: SOCIAL_COMPLETION_TRUSTED_ORIGINS,
+                               with: :exception
+
           def create
             provider = social_provider_param
             result_token = params.require(:social_ceremony_result)
@@ -47,27 +64,26 @@ module Base
 
           private
 
-          # The sign/id callback renders a cross-origin auto-submit form. Some
-          # browser/referrer-policy combinations send Origin: null for that POST,
-          # which Rails rejects before trusted_origins can apply. The one-shot
-          # signed ceremony result is the CSRF proof for this endpoint; base still
-          # verifies and consumes it in the action before creating a session.
-          def verified_request?
-            social_completion_result_verifies_request? || super
+          # An access proxy in front of this host redirects the handoff POST through its
+          # own origin before it reaches Rails. That cross-origin redirect sets the
+          # browser's tainted origin flag, so the request arrives with `Origin: null`
+          # instead of the Auth origin and the trusted-origin list above never matches.
+          #
+          # Accept the opaque origin only when the browser also reports
+          # Sec-Fetch-Site: same-site, which a cross-site attacker page cannot claim:
+          # its submission arrives as "cross-site". Trust still rests on the signed,
+          # one-shot ceremony result verified in the action.
+          #
+          # Remove this once no proxy redirects the POST: the browser then sends the
+          # real Auth origin, which SOCIAL_COMPLETION_TRUSTED_ORIGINS already allows.
+          def valid_request_origin?
+            return true if opaque_same_site_ceremony_post?
+
+            super
           end
 
-          def social_completion_result_verifies_request?
-            return false unless action_name == "create"
-
-            provider = social_provider_param
-            result = IdentitySocialCeremonyResult.decode(
-              params[:social_ceremony_result].to_s,
-              issuer_id: IdentitySocialCeremonyContract.sign_issuer_id("app"),
-            )
-
-            result["surface"].to_s == "app" && result["provider"].to_s == provider
-          rescue ActionController::BadRequest, IdentitySocialCeremonyContract::Error
-            false
+          def opaque_same_site_ceremony_post?
+            request.origin.to_s == "null" && sec_fetch_site_value == "same-site"
           end
 
           def reject_social_link_completion!(provider)
@@ -97,13 +113,17 @@ module Base
             # sign-up finalization. The final durable state is still written
             # through the app-side selector bootstrap after provider proof.
             IdentityGraphProvisioner.call!(surface: :app, principal: commit.user)
+            normalized_provider = SocialIdentifiable.normalize_provider(provider)
             result = AuthenticationSessionCommitter.call(
               controller: self,
               resource: commit.user,
               pt: commit.pt,
               ri: params[:ri],
               auth_method: "social",
-              audit_context: { auth_method: "social", provider: SocialIdentifiable.normalize_provider(provider) },
+              audit_context: { auth_method: "social", provider: normalized_provider },
+              # "social" cannot distinguish google from apple; the provider is
+              # known here (adr/unified-enforcement.md, Session attribution).
+              established_authentication_method: normalized_provider,
             )
             sign_in_result = sign_in_result_from_session_result(result, actor: commit.user)
 

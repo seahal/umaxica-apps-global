@@ -79,20 +79,25 @@ class << ConfigValues::HostFamilyValues
         production: production,
       ),
       acme_staff: origin(env, "BASE_STAFF_URL", production ? nil : "base.org.localhost", production: production),
-      sign_service: origin(env, "AUTH_SERVICE_URL", production ? nil : "sign.app.localhost", production: production),
+      sign_service: origin(env, auth_key(env, "SERVICE"), production ? nil : "sign.app.localhost", production: production),
       sign_corporate: origin(
-        env, "AUTH_CORPORATE_URL", production ? nil : "sign.com.localhost",
+        env, auth_key(env, "CORPORATE"), production ? nil : "sign.com.localhost",
         production: production,
       ),
-      sign_staff: origin(env, "AUTH_STAFF_URL", production ? nil : "sign.org.localhost", production: production),
-      core_service: origin(env, "CORE_SERVICE_URL", production ? nil : "jpx.umaxica.app", production: production),
+      sign_staff: origin(env, auth_key(env, "STAFF"), production ? nil : "sign.org.localhost", production: production),
+      core_service: origin(
+        env,
+        core_key(env, "SERVICE"),
+        production ? nil : "jpx.umaxica.app",
+        production: production,
+      ),
       core_corporate: origin(
         env,
-        "CORE_CORPORATE_URL",
+        core_key(env, "CORPORATE"),
         production ? nil : "jpx.umaxica.com",
         production: production,
       ),
-      core_staff: origin(env, "CORE_STAFF_URL", production ? nil : "jpx.umaxica.org", production: production),
+      core_staff: origin(env, core_key(env, "STAFF"), production ? nil : "jpx.umaxica.org", production: production),
       base_service: origin(
         env,
         base_key(env, "SERVICE"),
@@ -171,6 +176,38 @@ class << ConfigValues::HostFamilyValues
       "SIDE_#{surface}_URL"
     else
       "PUBLIC_SIDE_#{surface}_URL"
+    end
+  end
+
+  # Resolves the ENV key for an auth surface (service/corporate/staff).
+  #
+  # Deployments publish this family as PUBLIC_AUTH_*_URL. Without this fallback the
+  # sign origins kept their development localhost defaults outside
+  # RAILS_ENV=production, so the CSP form-action allowlist advertised
+  # sign.app.localhost instead of the real Auth origin and blocked the social
+  # ceremony handoff back to Auth.
+  def auth_key(env, surface)
+    if env.key?("AUTH_#{surface}_URL")
+      "AUTH_#{surface}_URL"
+    else
+      "PUBLIC_AUTH_#{surface}_URL"
+    end
+  end
+
+  # Resolves the ENV key for a core surface (service/corporate/staff).
+  #
+  # PUBLIC_CORE_*_URL wins over CORE_*_URL, which is the reverse of base_key/side_key/auth_key.
+  # config/routes/core.rb constrains the Core surfaces on
+  # `ENV["PUBLIC_CORE_*_URL"] || ENV["CORE_*_URL"]`, so the host Rails answers on already
+  # prefers the PUBLIC value. Boot config feeds production Host Authorization and the
+  # core-next-rp redirect URIs, both of which must name the host the route constraint accepts;
+  # taking the opposite precedence would let a deployment that sets both keys route on one host
+  # while registering a callback for the other.
+  def core_key(env, surface)
+    if env.key?("PUBLIC_CORE_#{surface}_URL")
+      "PUBLIC_CORE_#{surface}_URL"
+    else
+      "CORE_#{surface}_URL"
     end
   end
 

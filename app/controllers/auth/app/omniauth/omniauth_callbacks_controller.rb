@@ -8,17 +8,18 @@ module Auth
       #
       # Routes:
       #   GET  /social/google/callback -> #omniauth
-      #   POST /social/apple/callback  -> #omniauth
+      #   GET  /social/apple/callback  -> #omniauth
       #   GET  /social/failure         -> #failure
       #
       # This controller handles the OmniAuth callback, validates state,
-      # and delegates to SocialAuthCoordinator for user creation/linking.
+      # and delegates to operation-specific external authentication use cases.
       #
       # State validation is applied to ALL providers (including Apple).
-      # Apple sends state in POST body, Google sends in query string.
-      # Both are accessible via params[:state].
+      # Apple and Google return state in the query string.
       class OmniauthCallbacksController < ::Auth::App::ApplicationController
         include SocialAuth
+
+        include ExternalAuthenticationEndpoint
 
         include SocialCallbackGuard
 
@@ -27,6 +28,24 @@ module Auth
         include SocialOmniauthCallbackFlow
 
         AUTHENTICATION_MODE = :deny_all
+
+        # OmniAuth failure reasons this surface can produce. Used to classify the
+        # `message` parameter on GET /social/failure before it is logged; see
+        # #classified_failure_message.
+        OMNIAUTH_FAILURE_MESSAGES = %w(
+          access_denied
+          csrf_detected
+          invalid_credentials
+          invalid_request
+          invalid_response
+          missing_id_token
+          nonce_mismatch
+          provider_unavailable
+          session_expired
+          timeout
+          unknown_error
+        ).freeze
+
         rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
         rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
         before_action :verify_social_callback_request!, only: [:omniauth], raise: false
@@ -46,27 +65,23 @@ module Auth
         def handle_omniauth_callback(auth)
           Rails.logger.debug(JitLogEvent.format("sign.social.omniauth.validating_state"))
           validate_social_auth_state!
-          SocialAuthVerifiedProviderAssertion.call(
-            auth_hash: auth,
-            expected_provider: params[:provider],
-            expected_nonce: expected_provider_nonce(auth),
-          )
+          callback_result = verified_external_authentication_callback(auth)
 
-          log_apple_form_post_callback_if_needed(auth)
+          log_apple_query_callback_if_needed(auth)
 
           intent = current_social_auth_intent
           Rails.logger.debug(JitLogEvent.format("sign.social.omniauth.processing_callback", intent: intent))
-          result = process_social_auth_callback
+          result = process_social_auth_callback(callback_result)
           return if performed?
 
-          user = result[:user]
+          user = result.user
 
           Rails.logger.debug(
             JitLogEvent.format(
               "sign.social.omniauth.callback_processed",
               user_id: user&.id,
               intent: intent,
-              existing_account: result[:existing_account],
+              existing_account: result.existing_account,
             ),
           )
 
@@ -74,9 +89,9 @@ module Auth
             user,
             intent.presence || "login",
             SocialIdentifiable.normalize_provider(auth.provider).humanize,
-            result[:identity],
-            existing_account: result[:existing_account],
-            pt: result[:pt],
+            result.identity,
+            existing_account: result.existing_account,
+            pt: result.pt,
           )
         end
 
@@ -85,12 +100,19 @@ module Auth
         def failure
           message = params[:message] || "unknown_error"
           strategy = params[:strategy] || "unknown"
+          # `message`/`strategy` are unauthenticated request parameters on a
+          # directly reachable endpoint. The raw values are still needed for the
+          # duplicate-callback and translation-key decisions below, but only the
+          # allowlisted classifications are logged
+          # (adr/application-logging-boundary.md).
+          logged_message = classified_failure_message(message)
+          logged_strategy = classified_failure_strategy(strategy)
 
           Rails.logger.debug(
             JitLogEvent.format(
               "sign.social.omniauth.failure_callback",
-              message: message,
-              strategy: strategy,
+              message: logged_message,
+              strategy: logged_strategy,
             ),
           )
 
@@ -100,8 +122,8 @@ module Auth
             Rails.logger.info(
               JitLogEvent.format(
                 "sign.social.omniauth.duplicate_callback_failure_ignored",
-                message: message,
-                strategy: strategy,
+                message: logged_message,
+                strategy: logged_strategy,
               ),
             )
             return redirect_to(social_auth_success_redirect_path)
@@ -110,8 +132,8 @@ module Auth
           Rails.logger.info(
             JitLogEvent.format(
               "sign.social.omniauth_failure",
-              message: message,
-              strategy: strategy,
+              message: logged_message,
+              strategy: logged_strategy,
             ),
           )
 
@@ -129,16 +151,39 @@ module Auth
 
         private
 
+        def verified_external_authentication_callback(auth)
+          provider = SocialIdentifiable.normalize_provider(params[:provider])
+          operation = current_social_auth_intent.presence || "login"
+          unless external_authentication_allowed?(surface: "app", provider: provider, operation: operation) &&
+              external_authentication_callback_available?(
+                provider: provider,
+                ceremony: { state: session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] },
+                context: {},
+              )
+            raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
+          end
+
+          entry = ExternalAuthentication::ProviderRegistry.fetch(provider)
+          audience = Rails.app.creds.option(entry.audience_credential_key)
+          adapter = ExternalAuthentication::ProviderAdapterFactory.build(provider: provider, audience: audience)
+          result = adapter.call(auth_hash: auth, verified_at: Time.current)
+          return result if result.verified?
+
+          raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
+        rescue ArgumentError, KeyError
+          raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
+        end
+
         def social_omniauth_callback_requires_writing_role?
           true
         end
 
-        def log_apple_form_post_callback_if_needed(auth)
+        def log_apple_query_callback_if_needed(auth)
           return unless SocialIdentifiable.normalize_provider(auth.provider) == "apple"
 
           Rails.logger.info(
             JitLogEvent.format(
-              "social_auth.apple.form_post.received",
+              "social_auth.apple.query_callback.received",
               surface: :app,
               region: params[:ri],
               flow_id: session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY],
@@ -159,13 +204,6 @@ module Auth
             uid: auth&.uid&.first(8),
             logged_in: logged_in?,
           )
-        end
-
-        def expected_provider_nonce(auth)
-          provider = SocialIdentifiable.normalize_provider(auth.provider)
-          return nil if provider == "apple"
-
-          session[:social_auth_nonce]
         end
 
         def handle_successful_auth(user, intent, provider_name, identity, existing_account: nil, pt: nil, entry: nil)
@@ -226,12 +264,16 @@ module Auth
         end
 
         def handle_pending_social_sign_up_intent(_provider_name, pt: nil)
-          auth = request.env["omniauth.auth"]
-          provider = SocialIdentifiable.normalize_provider(auth.provider)
+          callback_result = @external_authentication_callback_result
+          unless callback_result.is_a?(ExternalAuthentication::CallbackResult) && callback_result.verified?
+            raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
+          end
 
-          with_pending_social_sign_up_lock(provider, SocialAuthUidExtractor.call(auth_hash: auth)) do
+          provider = callback_result.principal.provider
+
+          with_pending_social_sign_up_lock(provider, callback_result.principal.subject) do
             cycle = sign_up_flow_locator.current || create_pending_social_sign_up_flow!(provider, pt: pt)
-            store_pending_social_signup_evidence!(cycle, auth)
+            store_pending_social_signup_evidence!(cycle, callback_result)
             if cycle.step == "checkpoint"
               return redirect_pending_social_signup_confirmation(provider, pt: pt)
             end
@@ -290,15 +332,16 @@ module Auth
           )
         end
 
-        def store_pending_social_signup_evidence!(cycle, auth)
-          provider = SocialIdentifiable.normalize_provider(auth.provider)
-          uid = SocialAuthUidExtractor.call(auth_hash: auth)
+        def store_pending_social_signup_evidence!(cycle, callback_result)
+          principal = callback_result.principal
+          provider = principal.provider
+          uid = principal.subject
           unless cycle.social_provider == provider
             raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
           end
           raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless cycle.entry_method == provider
 
-          grant = social_signup_ceremony_grant_for(cycle, auth.provider)
+          grant = social_signup_ceremony_grant_for(cycle, provider)
 
           candidate = IdentitySocialCeremonyCandidateStore.store!(
             surface: "app",
@@ -306,11 +349,27 @@ module Auth
             session_ref: grant["session_ref"],
             transaction_id: grant["transaction_id"],
             operation: "signup",
-            provider: auth.provider,
-            auth_hash: auth,
+            provider: provider,
+            callback_result: callback_result,
             expires_at: cycle.expires_at,
           )
 
+          # `social_signup` is ceremony evidence, not a checkpoint requirement.
+          # It shares the `completed_requirements` column because it is bound to
+          # exactly this ticket's lifetime, but it is inert with respect to the
+          # requirement machinery: SignUpRequirementRegistry only ever fetches
+          # the requirement names it declares (confirmation, birthdate for
+          # social), so an extra key can neither satisfy nor block a checkpoint.
+          #
+          # Only pointers and digests are stored here. The verified callback
+          # result itself lives encrypted in identity_social_ceremony_candidates
+          # and is reachable solely through `candidate_ref`.
+          #
+          # Do not rename these nested keys to anything matching
+          # SignUpFlowTicket::SECRET_REQUIREMENT_KEY_PATTERNS (token, challenge,
+          # otp, passcode, secret_credential, cookie, authorization) -- the
+          # secret-material validator inspects nested keys and would reject the
+          # ticket. `grant_transaction_id` is deliberately not `grant_token`.
           cycle.update!(
             completed_requirements: cycle.completed_requirements.merge(
               "social_signup" => {
@@ -436,7 +495,17 @@ module Auth
             )
           end
 
-          login_result = sign_in(user, pt: pt)
+          if external_authentication_method_locked?(
+            enforcement_case_class: AppEnforcementCase,
+            principal_public_id: user.public_id,
+            authentication_method: SocialIdentifiable.normalize_provider(provider_name),
+          )
+            return redirect_to(
+              auth_app_sign_in_path,
+            )
+          end
+
+          login_result = sign_in(user, pt: pt, provider_name: provider_name)
 
           if login_result.is_a?(Hash) && login_result[:status] != :success
             Rails.logger.warn(
@@ -490,10 +559,14 @@ module Auth
           redirect_to_sign_in_sequence!(pt: pt)
         end
 
-        def sign_in(user, pt: nil)
+        def sign_in(user, pt: nil, provider_name: nil)
           result = AuthenticationSessionCommitter.call(
             controller: self, resource: user, pt: pt, ri: params[:ri], auth_method: "social",
             audit_context: social_login_audit_context,
+            # "social" cannot distinguish google from apple; the provider is
+            # known to the caller (adr/unified-enforcement.md, Session attribution).
+            established_authentication_method: provider_name.presence &&
+              SocialIdentifiable.normalize_provider(provider_name),
           )
           Rails.logger.debug(
             JitLogEvent.format(
@@ -617,6 +690,22 @@ module Auth
 
         def social_auth_success_redirect_path
           auth_app_settings_path
+        end
+
+        # Reduces the attacker-controlled `message` parameter to one of the
+        # OmniAuth failure reasons this surface can actually produce. Anything
+        # else classifies to "other" so an unauthenticated caller cannot write
+        # arbitrary text into the log.
+        def classified_failure_message(message)
+          value = message.to_s
+          OMNIAUTH_FAILURE_MESSAGES.include?(value) ? value : "other"
+        end
+
+        # `strategy` is classified against the registered provider list rather
+        # than a local literal so a newly registered provider stays loggable.
+        def classified_failure_strategy(strategy)
+          value = SocialIdentifiable.normalize_provider(strategy).to_s
+          ExternalAuthentication::ProviderRegistry.providers.map(&:to_s).include?(value) ? value : "other"
         end
 
         def duplicate_google_callback_failure_after_success?(message, strategy)

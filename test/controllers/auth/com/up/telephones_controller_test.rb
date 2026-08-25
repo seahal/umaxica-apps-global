@@ -11,8 +11,8 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   setup do
     host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     cookies["csrf_token"] = csrf_token_value
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
     Prosopite.pause do
       [1, 2, 3].each { |id| VisitorStatus.find_or_create_by!(id: id) }
       [0, 1, 2, 3].each { |id| VisitorVisibility.find_or_create_by!(id: id) }
@@ -30,8 +30,8 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "should get new" do
@@ -119,14 +119,50 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
     get auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.app.registration.telephone.edit.page_title")
-    assert_select "label", text: I18n.t("sign.app.registration.telephone.edit.code_label")
-    assert_select "input[placeholder=?]", I18n.t("sign.app.registration.telephone.edit.code_placeholder")
-    assert_select "input[name='visitor_telephone[pass_code]'][autocomplete='one-time-code']", count: 1
-    assert_select "input[type=submit][value=?]", I18n.t("sign.app.registration.telephone.edit.submit")
+    assert_equal "auth/com/sign/up/telephones/edit", inertia_component
+    assert_equal I18n.t("sign.app.registration.telephone.edit.page_title"), inertia_props.fetch("title")
+    assert_equal I18n.t("sign.app.registration.telephone.edit.code_label"), inertia_props.fetch("code_label")
+    assert_equal I18n.t("sign.app.registration.telephone.edit.code_placeholder"),
+                 inertia_props.fetch("code_placeholder")
+    assert_equal "visitor_telephone", inertia_props.fetch("scope")
+    assert_equal I18n.t("sign.app.registration.telephone.edit.submit"), inertia_props.fetch("submit_label")
     assert_includes response.body, "電話番号"
     assert_includes response.body, "SMS"
     assert_includes response.body, I18n.t("sign.app.registration.telephone.edit.delivery_help")
+  end
+
+  test "create rejects signup for a telephone number blocked by an in-force registration_blocked Identifier Effect, sending no OTP" do
+    operator = operators(:one)
+    the_case = ComEnforcementCase.new(
+      kind: "permanent_ban",
+      duration_mode: "permanent",
+      visibility: "visible",
+      release_mode: "break_glass_only",
+      effective_at: Time.current,
+      reason_code: "abuse",
+      principal_public_id: "some_prior_visitor_public_id",
+      applied_by_operator_public_id: operator.public_id,
+    )
+    digest = EnforcementIdentifierDigest.for_telephone(realm: "com", value: "+819099999999")
+    the_case.identifier_effects.build(**digest, registration_blocked: true, effective_at: Time.current)
+    the_case.apply!
+
+    assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
+      assert_no_difference("VisitorTelephone.count") do
+        post auth_com_sign_up_telephone_url(ri: "jp"),
+             params: {
+               visitor_telephone: {
+                 raw_number: "+819099999999",
+                 confirm_policy: "1",
+                 confirm_using_mfa: "1",
+               },
+               "cf-turnstile-response": "test",
+             },
+             headers: default_headers
+      end
+    end
+
+    assert_response :unprocessable_content
   end
 
   test "create with invalid telephone fails" do
@@ -159,7 +195,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   test "create with turnstile failure returns unprocessable content" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     post auth_com_sign_up_telephone_url(ri: "jp"),
          params: {
@@ -814,11 +850,14 @@ class Auth::Com::Sign::Up::TelephonesControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -865,9 +904,9 @@ class Auth::Com::Sign::Up::TelephonesControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -880,7 +919,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1135,11 +1174,14 @@ class Auth::Com::Sign::Up::TelephonesControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

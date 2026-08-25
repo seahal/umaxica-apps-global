@@ -11,12 +11,33 @@ module ApplicationHelper
     com: %w(PUBLIC_EDGE_CORPORATE_URL EDGE_CORPORATE_URL),
   }.freeze
 
+  # Brand title editions, matched against the labels of the host actually serving
+  # the response. Surface layouts name their TLD literally because the route's
+  # `scope(module:)` fixes it; this exists for the two shared views that answer on
+  # more than one edition (health, served by Base::App::HealthsController on the
+  # .app/.net/.dev hosts, and the PWA offline page, shared across auth and palm).
+  BRAND_TLD_LABELS = %w(app com org net dev).freeze
+
+  def brand_tld
+    label = request.host.to_s.downcase.split(".").reverse.find { |part| BRAND_TLD_LABELS.include?(part) }
+
+    unless label
+      raise ArgumentError, "Cannot derive a brand TLD from host #{request.host.inspect}; " \
+                           "expected one of #{BRAND_TLD_LABELS.join(", ")} among its labels"
+    end
+
+    label.upcase
+  end
+
   def page_title(title = nil)
     if title.present?
       content_for(:page_title, title)
       title
     else
-      content_for(:page_title) || t("meta.default_title")
+      # Brand and TLD are a locale-independent contract owned by the layout's
+      # meta-tags `site:` value, so there is no translated default here. A page
+      # without a title renders the site title alone, which is the root contract.
+      content_for(:page_title)
     end
   end
 
@@ -50,25 +71,10 @@ module ApplicationHelper
     theme_html_class
   end
 
+  # Delegates to the query object so the layout partial and the Inertia shared props read the
+  # banner through one implementation.
   def current_banner_for(tld:, region:, domain:)
-    region = :ww if region&.to_sym == :global
-    validate_banner_args!(tld: tld, region: region, domain: domain)
-
-    banner_model = banner_model_for(tld)
-    return if banner_model.blank?
-
-    connection_owner = banner_connection_owner_for(banner_model)
-    return banner_model.current.first if connection_owner.blank?
-
-    operation =
-      lambda do
-        connection_owner.connected_to(role: :writing) do
-          banner_model.current.first
-        end
-      end
-    defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
-  rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::DatabaseConnectionError
-    nil
+    CurrentBanner.call(tld: tld, region: region, domain: domain)
   end
 
   def edge_host
@@ -76,41 +82,5 @@ module ApplicationHelper
     env_key = EDGE_HOST_ENV_KEYS.fetch(surface, EDGE_HOST_ENV_KEYS.fetch(CoreSurface::DEFAULT))
 
     CoreHostNormalization.normalize(ENV.fetch(env_key.first))
-  end
-
-  private
-
-  def validate_banner_args!(tld:, region:, domain:)
-    allowed_tlds = %i(app org com)
-    allowed_domains = %i(sign core acme docs news help)
-
-    raise ArgumentError, "Invalid tld: #{tld}" unless allowed_tlds.include?(tld&.to_sym)
-    raise ArgumentError, "Invalid domain: #{domain}" unless allowed_domains.include?(domain&.to_sym)
-
-    allowed_regions =
-      case domain.to_sym
-      when :sign, :acme then [:ww]
-      else [:jp, :us]
-      end
-
-    raise ArgumentError,
-          "Invalid region: #{region} for domain: #{domain}" unless allowed_regions.include?(region&.to_sym)
-  end
-
-  def banner_model_for(tld)
-    case tld.to_sym
-    when :app
-      ClientBanner
-    when :org
-      OperatorBanner
-    when :com
-      VisitorBanner
-    end
-  end
-
-  def banner_connection_owner_for(banner_model)
-    banner_model.ancestors.find do |ancestor|
-      ancestor.is_a?(Class) && ancestor < ActiveRecord::Base && ancestor.abstract_class?
-    end
   end
 end

@@ -8,6 +8,7 @@ module Auth
         module Challenge
           class PasskeysController < ::Auth::Com::ApplicationController
             include ::PasskeyCeremonyContext
+            include ::SurfaceInertiaPage
 
             include SessionLimitGate
 
@@ -24,7 +25,7 @@ module Auth
               store: rate_limit_store,
               only: :create,
               with: -> {
-                render_rate_limited(rule_name: "auth_com_sign_in_mfa_passkey_create_ip_burst", retry_after: 60)
+                render_rate_limited(retry_after: 60)
               },
             )
             rate_limit(
@@ -36,7 +37,7 @@ module Auth
               store: rate_limit_store,
               only: :create,
               with: -> {
-                render_rate_limited(rule_name: "auth_com_sign_in_mfa_passkey_create_ip_sustained", retry_after: 900)
+                render_rate_limited(retry_after: 900)
               },
             )
 
@@ -56,6 +57,8 @@ module Auth
 
               @passkey_challenge_id, @passkey_request_options =
                 issue_passkey_authentication_challenge(allow_credentials: passkeys, actor: @mfa_user, uv_purpose: :mfa_challenge)
+
+              render inertia: true, props: challenge_passkey_props
             rescue Webauthn::RelyingPartyConfigResolver::MissingConfigurationError => e
               Rails.logger.error(JitLogEvent.format("webauthn.origin_validation_failed", message: e.message))
               redirect_to(
@@ -86,6 +89,27 @@ module Auth
             end
 
             private
+
+            def challenge_passkey_props
+              ri = current_region_identifier
+
+              {
+                title: t("sign.app.in.mfa.passkey.title"),
+                description: t("sign.app.in.mfa.passkey.description"),
+                form: {
+                  action: auth_com_sign_in_challenge_passkey_path(ri: ri),
+                  # The assertion is posted as a native document POST, so the form carries the same
+                  # masked per-session authenticity token.
+                  authenticity_token: form_authenticity_token,
+                  param_scope: "mfa_passkey_form",
+                  challenge_id: @passkey_challenge_id.to_s,
+                  # The challenge options are the payload `navigator.credentials.get` needs.
+                  request_options: @passkey_request_options,
+                  submit_label: t("sign.app.in.mfa.passkey.authenticate"),
+                },
+                back_link: { label: t("sign.app.in.mfa.passkey.back"), href: auth_com_sign_in_challenge_path(ri: ri) },
+              }
+            end
 
             def ensure_pending_mfa!
               return unless !pending_mfa_valid? || pending_mfa_user.nil?

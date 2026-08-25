@@ -11,7 +11,12 @@ module Base
           include ::CommonOtp
           include SignSettingsEmailRegistration
 
+          include EnforcementIdentifierGate
+
           include ::VerificationOperator
+
+          include ::SurfaceInertiaPage
+          include ::TurnstilePageProps
 
           AUTHENTICATION_MODE = :private
 
@@ -25,11 +30,12 @@ module Base
           def new
             @staff_email = OperatorEmail.new
             reset_registration_session!
+            render inertia: true, props: new_page_props
           end
 
           def edit
             @staff_email = current_registration_email
-            return if valid_registration_session?
+            return render(inertia: true, props: edit_page_props) if valid_registration_session?
 
             reset_registration_session!
             redirect_to(
@@ -46,15 +52,27 @@ module Base
             )
             @staff_email.staff_email_status_id = OperatorEmailStatus::UNVERIFIED
 
+            # adr/unified-enforcement.md, Identifier attachment enforcement: an in-force
+            # Identifier Effect with attachment_blocked rejects attaching this identifier to
+            # an existing account, at the same enumeration-resistance discipline as the
+            # ordinary validation failure.
+            if email_address.present? && enforcement_blocks_email_attachment?(
+              effect_class: OrgEnforcementIdentifierEffect, realm: "org", email: email_address,
+            )
+              @staff_email.errors.add(:address, :blank)
+              render_new_failure
+              return
+            end
+
             unless cloudflare_turnstile_stealth_validation["success"]
               @staff_email.errors.add(:base, t("sign.org.registration.email.create.turnstile_validation_failed"))
-              render :new, status: :unprocessable_content
+              render_new_failure
               return
             end
 
             otp_code = generate_otp_attributes(@staff_email)
             unless @staff_email.save
-              render :new, status: :unprocessable_content
+              render_new_failure
               return
             end
 
@@ -93,6 +111,60 @@ module Base
 
           private
 
+          def render_new_failure
+            render inertia: "base/org/identity/emails/registrations/new",
+                   props: new_page_props,
+                   status: :unprocessable_content
+          end
+
+          def render_edit_failure
+            render inertia: "base/org/identity/emails/registrations/edit",
+                   props: edit_page_props,
+                   status: :unprocessable_content
+          end
+
+          def new_page_props
+            {
+              title: t("sign.org.settings.email.new.page_title"),
+              form: {
+                action: base_org_identity_emails_registration_path,
+                scope: "staff_email",
+                address_label: OperatorEmail.human_attribute_name(:address),
+                notifiable: @staff_email.notifiable,
+                notifiable_label: t("sign.org.settings.email.edit.notifiable_label"),
+                notifiable_description: t("sign.org.settings.email.edit.notifiable_description"),
+                submit: t("helpers.submit.create", model: OperatorEmail.model_name.human),
+                turnstile: turnstile_stealth_props,
+              },
+              cancel_link: {
+                label: t("actions.cancel"),
+                href: base_org_identity_emails_path(ri: params[:ri]),
+              },
+              error_messages: @staff_email.errors.full_messages,
+            }
+          end
+
+          def edit_page_props
+            {
+              title: t("sign.app.authentication.email.edit.page_title"),
+              description: t("sign.app.authentication.email.edit.description"),
+              delivery_help: t("sign.app.authentication.email.edit.delivery_help"),
+              form: {
+                action: base_org_identity_emails_registration_path,
+                scope: "staff_email",
+                code_label: t("sign.app.authentication.email.edit.code_label"),
+                code_placeholder: t("sign.app.authentication.email.edit.code_placeholder"),
+                submit: t("sign.app.authentication.email.edit.submit"),
+                turnstile: turnstile_stealth_props,
+              },
+              cancel_link: {
+                label: t("sign.common.cancel"),
+                href: base_org_identity_emails_path(ri: params[:ri]),
+              },
+              error_messages: @staff_email.errors.full_messages,
+            }
+          end
+
           def authorize_email_registration!
             authorize!(OperatorEmail, to: :create?)
           end
@@ -125,12 +197,12 @@ module Base
 
           def fail_turnstile
             @staff_email.errors.add(:base, t("turnstile_error"))
-            render(:edit, status: :unprocessable_content)
+            render_edit_failure
           end
 
           def fail_code_required
             @staff_email.errors.add(:pass_code, t("sign.org.registration.email.update.code_required"))
-            render :edit, status: :unprocessable_content
+            render_edit_failure
           end
 
           def fail_otp_invalid
@@ -143,7 +215,7 @@ module Base
               )
             else
               @staff_email.errors.add(:pass_code, t("sign.org.registration.email.update.invalid_code"))
-              render :edit, status: :unprocessable_content
+              render_edit_failure
             end
           end
 

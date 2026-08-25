@@ -8,11 +8,19 @@ module Auth
     module Sign
       module Up
         class EmailsController < ::Auth::Com::ApplicationController
+          include ::SurfaceInertiaPage
+
+          include ::TurnstilePageProps
+
           include ::CloudflareTurnstile
 
           include CommonRedirect
 
           include CommonOtp
+
+          include EnforcementIdentifierGate
+
+          include SignUpSuspensionGuard
 
           AUTHENTICATION_MODE = :guest
 
@@ -20,6 +28,7 @@ module Auth
           EXISTING_EMAIL_SESSION_KEY = :auth_com_up_existing_visitor_email_id
           EXISTING_EMAIL_SKIP_OTP_SESSION_KEY = :auth_com_up_existing_visitor_email_skip_otp
           DUMMY_EXISTING_EMAIL_SESSION_KEY = :auth_com_up_dummy_existing_visitor_email
+          before_action :reject_suspended_sign_up!
 
           before_action :enforce_email_flow!
 
@@ -30,10 +39,7 @@ module Auth
             within: RateLimitProfiles.interactive_post_ip.within,
             by: -> { "sign_up_email_ip:#{request.remote_ip}" },
             with: -> {
-              render_rate_limited(
-                rule_name: "sign_up_email_ip",
-                retry_after: RateLimitProfiles.interactive_post_ip.retry_after,
-              )
+              render_rate_limited(retry_after: RateLimitProfiles.interactive_post_ip.retry_after)
             },
             store: rate_limit_store,
             name: "ip_burst",
@@ -49,10 +55,7 @@ module Auth
             },
             if: -> { sign_up_email_digest_for_rate_limit.present? },
             with: -> {
-              render_rate_limited(
-                rule_name: "sign_up_email_addr",
-                retry_after: RateLimitProfiles.email_address_submit.retry_after,
-              )
+              render_rate_limited(retry_after: RateLimitProfiles.email_address_submit.retry_after)
             },
             store: rate_limit_store,
             name: "email_sustained",
@@ -63,6 +66,7 @@ module Auth
           def new
             @user_email = VisitorEmail.new
             sign_up_flow_locator.clear!
+            render_sign_up_email_new
           end
 
           def edit
@@ -75,7 +79,7 @@ module Auth
               return
             end
 
-            return if valid_email_session?
+            return render_sign_up_email_edit if valid_email_session?
 
             reset_email_flow!
             redirect_to(new_auth_com_sign_up_email_path(ri: params[:ri]))
@@ -88,7 +92,7 @@ module Auth
                 :base,
                 t("sign.com.registration.email.create.turnstile_validation_failed"),
               )
-              render :new, status: :unprocessable_content
+              render_sign_up_email_new(status: :unprocessable_content)
               return
             end
 
@@ -104,7 +108,23 @@ module Auth
                 :base,
                 t("sign.com.registration.email.create.address_required"),
               )
-              render :new, status: :unprocessable_content
+              render_sign_up_email_new(status: :unprocessable_content)
+              return
+            end
+
+            # adr/unified-enforcement.md, Signup enforcement: an in-force Identifier
+            # Effect with registration_blocked rejects signup before any OTP is sent,
+            # at the same enumeration-resistance discipline as an ordinary validation
+            # failure -- same render call, same error copy, no distinguishing signal.
+            if enforcement_blocks_email_registration?(
+              effect_class: ComEnforcementIdentifierEffect, realm: "com", email: email_address,
+            )
+              @user_email = VisitorEmail.new
+              @user_email.errors.add(
+                :base,
+                t("sign.com.registration.email.create.address_required"),
+              )
+              render_sign_up_email_new(status: :unprocessable_content)
               return
             end
 
@@ -120,7 +140,7 @@ module Auth
 
             unless result
               strip_visitor_owner_errors!
-              render :new, status: :unprocessable_content
+              render_sign_up_email_new(status: :unprocessable_content)
               return
             end
 
@@ -130,6 +150,100 @@ module Auth
           end
 
           private
+
+          def sign_up_surface = :com
+
+          # The registration form. `pt` travels in the generated action URL rather than as a prop,
+          # so the signed target never becomes page data the browser holds separately.
+          def render_sign_up_email_new(status: :ok)
+            render inertia: "auth/com/sign/up/emails/new",
+                   props: sign_up_email_new_props,
+                   status: status
+          end
+
+          def sign_up_email_new_props
+            errors = sign_up_email_errors
+
+            {
+              title: t("sign.com.registration.email.new.page_title"),
+              action: auth_com_sign_up_email_path(pt: signed_pt_param),
+              scope: "visitor_email",
+              field: {
+                name: "raw_address",
+                label: VisitorEmail.human_attribute_name(:address),
+                type: "email",
+                autocomplete: "email",
+              },
+              checkboxes: [
+                {
+                  name: "confirm_policy",
+                  label: t("views.sign.com.up.emails.new.confirm_policy_label"),
+                  description: nil,
+                },
+                {
+                  name: "notifiable",
+                  label: t("sign.com.settings.email.edit.notifiable_label"),
+                  description: t("sign.com.settings.email.edit.notifiable_description"),
+                },
+              ],
+              error_heading: errors.any? ? t("sign.com.registration.email.new.error_summary") : nil,
+              errors: errors,
+              turnstile: turnstile_visible_props,
+              submit_label: sign_up_email_submit_label,
+              links: [
+                {
+                  key: "other_methods",
+                  label: t("sign.app.registration.new.page_title"),
+                  href: auth_com_sign_up_path(ri: params[:ri]),
+                },
+                {
+                  key: "sign_in",
+                  label: t("sign.app.registration.email.new.link_to_sign_in"),
+                  href: auth_com_sign_in_path(ri: params[:ri]),
+                },
+              ],
+            }
+          end
+
+          # The OTP step. Only what the page shows crosses: never the code, the ceremony nonce or
+          # the address the server already holds in the flow.
+          def render_sign_up_email_edit(status: :ok)
+            render inertia: "auth/com/sign/up/emails/edit",
+                   props: sign_up_email_edit_props,
+                   status: status
+          end
+
+          def sign_up_email_edit_props
+            {
+              title: t("sign.app.authentication.email.edit.page_title"),
+              description: t("sign.app.registration.email.create.verification_code_sent"),
+              action: auth_com_sign_up_check_email_otp_path(ri: params[:ri], pt: signed_pt_param),
+              scope: "visitor_email",
+              code_label: t("sign.app.authentication.email.edit.code_label"),
+              code_placeholder: t("sign.app.authentication.email.edit.code_placeholder"),
+              submit_label: t("sign.app.authentication.email.edit.submit"),
+              delivery_help: t("sign.app.authentication.email.edit.delivery_help"),
+              error_heading: nil,
+              errors: sign_up_email_errors,
+              return_link: {
+                label: t("sign.app.registration.email.edit.return_page"),
+                href: auth_com_sign_up_path(ri: params[:ri]),
+              },
+            }
+          end
+
+          def sign_up_email_errors
+            @user_email&.errors&.map(&:full_message) || []
+          end
+
+          # Mirrors the label `form.submit` looked up, so the button keeps its wording.
+          def sign_up_email_submit_label
+            I18n.t(
+              :"helpers.submit.#{VisitorEmail.model_name.param_key}.create",
+              model: VisitorEmail.model_name.human,
+              default: [:"helpers.submit.create", "Create %{model}"],
+            )
+          end
 
           def enforce_email_flow!
             requirements = { new: "init", create: "init", edit: "email_created" }

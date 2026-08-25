@@ -17,6 +17,8 @@ module Auth
 
         include ::CloudflareTurnstile
         include ::SignAuthorityRedirect
+        include ::TurnstilePageProps
+        include ::SurfaceInertiaPage
 
         AUTHENTICATION_MODE = :private
 
@@ -34,19 +36,24 @@ module Auth
 
         def index
           @passkeys = current_operator.staff_passkeys.order(created_at: :asc)
+          render inertia: true, props: passkeys_index_props
         end
 
         def show
           authorize!(@passkey)
+          render inertia: true, props: passkey_show_props
         end
 
         def new
+          authorize!(OperatorPasskey, to: :new?)
           @passkey = current_operator.staff_passkeys.new
           start_passkey_ceremony!(_surface: "org", _actor: current_operator, _session_ref: current_session_public_id)
+          render inertia: true, props: passkey_new_props
         end
 
         def edit
           authorize!(@passkey)
+          render inertia: true, props: passkey_edit_props
         end
 
         # WebAuthn registration is driven by new/options/verification; REST create
@@ -68,9 +75,9 @@ module Auth
           end
         end
 
-        def options = render_passkey_registration_options
+        def options = (authorize!(OperatorPasskey, to: :create?); render_passkey_registration_options)
 
-        def verification = verify_passkey_registration
+        def verification = (authorize!(OperatorPasskey, to: :create?); verify_passkey_registration)
 
         def update
           authorize!(@passkey)
@@ -78,7 +85,9 @@ module Auth
           if @passkey.update(update_params)
             redirect_to(auth_org_settings_passkey_path(@passkey, ri: params[:ri]), status: :see_other)
           else
-            render :edit, status: :unprocessable_content
+            render inertia: "auth/org/settings/passkeys/edit",
+                   props: passkey_edit_props,
+                   status: :unprocessable_content
           end
         end
 
@@ -96,6 +105,112 @@ module Auth
         end
 
         private
+
+        def passkeys_index_props
+          region = params[:ri]
+
+          {
+            title: t("sign.org.settings.passkeys.index.title"),
+            description: t("sign.org.settings.passkeys.index.description"),
+            add_link: {
+              label: t("sign.org.settings.passkeys.index.add"),
+              href: new_auth_org_settings_passkey_path(ri: region),
+            },
+            back_link: { label: t("sign.org.settings.passkeys.index.back"), href: auth_org_settings_path },
+            columns: {
+              description: t("activerecord.attributes.staff_passkey.description"),
+              created_at: t("activerecord.attributes.staff_passkey.created_at"),
+              actions: t("actions.actions"),
+            },
+            empty: t("sign.org.settings.passkeys.index.empty"),
+            edit_label: t("actions.edit"),
+            destroy_label: t("actions.destroy"),
+            destroy_confirm: t("messages.confirm_destroy"),
+            turnstile: turnstile_stealth_props,
+            passkeys: @passkeys.map do |passkey|
+              {
+                description: passkey.description,
+                created_at: l(passkey.created_at, format: :short),
+                edit_href: edit_auth_org_settings_passkey_path(passkey, ri: region),
+                destroy_action: auth_org_settings_passkey_path(passkey, ri: region),
+              }
+            end,
+          }
+        end
+
+        def passkey_show_props
+          region = params[:ri]
+
+          {
+            title: t("sign.org.settings.passkeys.show.title"),
+            back_link: {
+              label: t("sign.org.settings.passkeys.show.back"),
+              href: auth_org_settings_passkeys_path(ri: region),
+            },
+            details: [
+              {
+                term: t("activerecord.attributes.staff_passkey.description"),
+                value: @passkey.description.to_s,
+              },
+              {
+                term: t("activerecord.attributes.staff_passkey.provider_name"),
+                value: @passkey.provider_name.presence || t("sign.unknown_authenticator"),
+              },
+              {
+                term: t("activerecord.attributes.staff_passkey.created_at"),
+                value: l(@passkey.created_at, format: :long),
+              },
+              {
+                term: t("activerecord.attributes.staff_passkey.sign_count"),
+                value: @passkey.sign_count.to_s,
+              },
+            ],
+            edit_link: {
+              label: t("actions.edit"),
+              href: edit_auth_org_settings_passkey_path(@passkey, ri: region),
+            },
+            destroy_action: auth_org_settings_passkey_path(@passkey, ri: region),
+            destroy_label: t("actions.destroy"),
+            destroy_confirm: t("messages.confirm_destroy"),
+            turnstile: turnstile_stealth_props,
+          }
+        end
+
+        def passkey_new_props
+          {
+            title: t("sign.org.settings.passkeys.new.page_title"),
+            description: t("sign.org.settings.passkeys.new.description"),
+            registration: {
+              options_url: auth_org_settings_passkeys_options_path,
+              verification_url: auth_org_settings_passkeys_verification_path,
+              turnstile_site_key: turnstile_site_key(:CLOUDFLARE_TURNSTILE_SITE_STEALTH_KEY),
+              turnstile_error_message: t("turnstile_error"),
+              description_label: t("sign.org.settings.passkeys.new.description_label"),
+              description_placeholder: t("sign.org.settings.passkeys.new.description_placeholder"),
+              submit_label: t("sign.org.settings.passkeys.new.submit"),
+            },
+            cancel_link: { label: t("sign.common.cancel"), href: auth_org_settings_passkeys_path },
+          }
+        end
+
+        def passkey_edit_props
+          region = params[:ri]
+
+          {
+            title: t("sign.org.settings.passkeys.edit.title"),
+            form_action: auth_org_settings_passkey_path(@passkey, ri: region),
+            description_label: t("activerecord.attributes.staff_passkey.description"),
+            description_value: @passkey.description.to_s,
+            submit_label: t("actions.save"),
+            cancel_link: {
+              label: t("sign.common.cancel"),
+              href: auth_org_settings_passkeys_path(ri: region),
+            },
+            errors_title: t("errors.messages.validation_errors", count: @passkey.errors.count),
+            errors: @passkey.errors.full_messages,
+            turnstile: turnstile_stealth_props,
+          }
+        end
 
         def authorize_passkeys!
           authorize!(OperatorPasskey, to: :index?)

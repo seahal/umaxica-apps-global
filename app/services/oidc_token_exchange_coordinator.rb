@@ -152,8 +152,16 @@ class OidcTokenExchangeCoordinator < ApplicationService
 
     connection_class = connection_class_for(authorization_code)
 
+    # The transaction must be opened on the ticket connection, not on
+    # ActiveRecord::Base. Authorization codes, token usages, and OIDC connection
+    # records all live on the per-surface ticket database, while
+    # ActiveRecord::Base is the primary (publishing) connection - so
+    # `ActiveRecord::Base.transaction` wrapped none of the writes below, and the
+    # `SELECT ... FOR UPDATE` taken by `lock!` committed and released
+    # immediately. That left `consumed?` here and `consume!` further down as a
+    # TOCTOU window in which one authorization code could be redeemed twice.
     connection_class.connected_to(role: :writing) do
-      ActiveRecord::Base.transaction do
+      connection_class.transaction do
         authorization_code.lock!
         return failure("invalid_grant", "Authorization code expired") if authorization_code.expired?
         return failure("invalid_grant", "Authorization code already consumed") if authorization_code.consumed?
@@ -281,21 +289,6 @@ class OidcTokenExchangeCoordinator < ApplicationService
     usage.refresh_token_digest.present? ? usage.rotate_refresh_token! : usage.issue_refresh_token!
   end
 
-  def operator_client?(client)
-    %w(operator staff).include?(client.resource_type)
-  end
-
-  def visitor_client?(client)
-    %w(visitor customer).include?(client.resource_type)
-  end
-
-  def token_resource_type(client)
-    return "operator" if operator_client?(client)
-    return "visitor" if visitor_client?(client)
-
-    client.resource_type
-  end
-
   def token_usage_oidc_jti(usage)
     usage.oidc_jti.presence || raise(ArgumentError, "OIDC token usage is missing oidc_jti")
   end
@@ -378,14 +371,6 @@ class OidcTokenExchangeCoordinator < ApplicationService
     case authorization_code
     when OperatorAuthorizationCode then "operator"
     when VisitorAuthorizationCode then "visitor"
-    else "client"
-    end
-  end
-
-  def resource_type_for_authorized_resource(resource)
-    case resource
-    when ::Operator then "operator"
-    when ::Visitor then "visitor"
     else "client"
     end
   end

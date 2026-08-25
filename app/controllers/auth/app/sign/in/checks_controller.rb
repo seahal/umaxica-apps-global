@@ -13,13 +13,8 @@ module Auth
 
           before_action :authenticate_client!
           before_action :continue_checkpoint_sequence_without_content!
-          before_action :guard_timeout, only: %i(show update)
 
           def show = super
-
-          def update = super
-
-          def destroy = super
         end
       end
     end

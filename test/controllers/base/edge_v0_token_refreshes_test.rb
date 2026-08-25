@@ -11,14 +11,17 @@ class Base::EdgeV0TokenRefreshesTest < ActionDispatch::IntegrationTest
     {
       host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
       build_token: ->(test_case) { ClientToken.create!(user: test_case.clients(:one)) },
+      resource: ->(test_case) { test_case.clients(:one) },
     },
     {
       host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
       build_token: ->(test_case) { VisitorToken.create!(visitor: test_case.visitors(:reserved_visitor)) },
+      resource: ->(test_case) { test_case.visitors(:reserved_visitor) },
     },
     {
       host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
       build_token: ->(test_case) { OperatorToken.create!(staff: test_case.operators(:one)) },
+      resource: ->(test_case) { test_case.operators(:one) },
     },
   ].freeze
 
@@ -112,6 +115,97 @@ class Base::EdgeV0TokenRefreshesTest < ActionDispatch::IntegrationTest
 
       assert_response :unauthorized
       assert_equal "invalid_refresh_token", response.parsed_body.fetch("error_code")
+    end
+  end
+
+  test "POST refresh rejects an administratively locked resource on every surface" do
+    SURFACES.each do |surface|
+      host = surface.fetch(:host)
+      token_record = surface.fetch(:build_token).call(self)
+      refresh_plain = token_record.rotate_refresh_token!
+      resource = surface.fetch(:resource).call(self)
+      resource.update!(
+        access_state: AdministrativeAccessLockable::ACCESS_STATE_ADMIN_LOCKED,
+        admin_locked_at: Time.current,
+        admin_locked_by_operator_id: operators(:one).id,
+        admin_locked_reason_code: "security_incident",
+      )
+
+      host!(host)
+
+      post(
+        "/edge/v0/token/refresh",
+        headers: {
+          "Host" => host,
+          "Accept" => "application/json",
+          "Cookie" => "#{AuthenticationBase::REFRESH_COOKIE_KEY}=#{Rack::Utils.escape(refresh_plain)}",
+        },
+        as: :json,
+      )
+
+      assert_response :forbidden
+      assert_equal "administrative_access_locked", response.parsed_body.fetch("error_code")
+    ensure
+      resource&.update!(
+        access_state: AdministrativeAccessLockable::ACCESS_STATE_ENABLED,
+        admin_locked_at: nil,
+        admin_locked_by_operator_id: nil,
+        admin_locked_reason_code: nil,
+      )
+    end
+  end
+
+  test "POST refresh rejects a restricted session on every surface" do
+    SURFACES.each do |surface|
+      host = surface.fetch(:host)
+      token_record = surface.fetch(:build_token).call(self)
+      refresh_plain = token_record.rotate_refresh_token!
+      token_record.update!(
+        token_record.class.token_status_foreign_key => token_record.class.token_status_model::RESTRICTED,
+      )
+
+      host!(host)
+
+      post(
+        "/edge/v0/token/refresh",
+        headers: {
+          "Host" => host,
+          "Accept" => "application/json",
+          "Cookie" => "#{AuthenticationBase::REFRESH_COOKIE_KEY}=#{Rack::Utils.escape(refresh_plain)}",
+        },
+        as: :json,
+      )
+
+      assert_response :forbidden
+      assert_equal "restricted_session", response.parsed_body.fetch("error_code")
+    end
+  end
+
+  test "POST refresh revokes and rejects an expired restricted session on every surface" do
+    SURFACES.each do |surface|
+      host = surface.fetch(:host)
+      token_record = surface.fetch(:build_token).call(self)
+      refresh_plain = token_record.rotate_refresh_token!
+      token_record.update!(
+        token_record.class.token_status_foreign_key => token_record.class.token_status_model::RESTRICTED,
+        :discarded_at => Time.current,
+      )
+
+      host!(host)
+
+      post(
+        "/edge/v0/token/refresh",
+        headers: {
+          "Host" => host,
+          "Accept" => "application/json",
+          "Cookie" => "#{AuthenticationBase::REFRESH_COOKIE_KEY}=#{Rack::Utils.escape(refresh_plain)}",
+        },
+        as: :json,
+      )
+
+      assert_response :forbidden
+      assert_equal "restricted_session", response.parsed_body.fetch("error_code")
+      assert_predicate token_record.reload, :revoked?
     end
   end
 end

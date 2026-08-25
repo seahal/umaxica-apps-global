@@ -241,3 +241,9 @@ The following should remain disabled until targeting consent is granted:
 2. Should the quick-accept banner action enable only `functional` and `performant`, or all optional
    categories except `targetable`?
 3. Should optional analytics be disabled by region until the consent model is complete?
+
+## Related Future Considerations
+
+- `plans/backlog/utm-parameter-adoption-consideration.md` — whether outbound links use UTM
+  parameters for campaign attribution. Undecided; any such attribution would be optional analytics
+  gated by `performant` consent.

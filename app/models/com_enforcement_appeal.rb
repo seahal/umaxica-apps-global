@@ -1,0 +1,9 @@
+# typed: false
+# frozen_string_literal: true
+
+class ComEnforcementAppeal < ComPrincipalRecord
+  include EnforcementAppeal
+
+  belongs_to :enforcement_case, class_name: "ComEnforcementCase", foreign_key: :com_enforcement_case_id,
+                                inverse_of: :appeal
+end

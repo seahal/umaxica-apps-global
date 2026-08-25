@@ -13,19 +13,18 @@ module Jit
       self.fixture_table_names = []
 
       def setup
-        # Ensure clean state
-        JitSecurityTurnstileVerifier.test_mode = false
-        JitSecurityTurnstileVerifier.test_response = nil
+        # All four stub slots, not just the two this file sets: the challenge slot wins over the
+        # verifier slot inside the stub, so a value left behind by another test would answer these
+        # assertions instead of the injected response.
+        TurnstileVerifierStub.reset!
       end
 
       def teardown
-        JitSecurityTurnstileVerifier.test_mode = false
-        JitSecurityTurnstileVerifier.test_response = nil
+        TurnstileVerifierStub.reset!
       end
 
       test "returns failure on missing token when validation active" do
-        # We must disable test_mode to trigger validation logic
-        JitSecurityTurnstileVerifier.test_mode = false
+        TurnstileVerifierStub.enabled = false
 
         result = JitSecurityTurnstileVerifier.verify(token: "", remote_ip: "127.0.0.1")
 
@@ -34,7 +33,7 @@ module Jit
       end
 
       test "returns failure on missing secret when validation active" do
-        JitSecurityTurnstileVerifier.test_mode = false
+        TurnstileVerifierStub.enabled = false
 
         # Ensure credentials/env return nil for secret key
         JitSecurityTurnstileConfig.stub(:visible_secret_key, nil) do
@@ -45,23 +44,23 @@ module Jit
         end
       end
 
-      test "returns mock response when test_response set" do
-        JitSecurityTurnstileVerifier.test_response = { "success" => true, "mock" => true }
-        result = JitSecurityTurnstileVerifier.verify(token: "foo", remote_ip: "127.0.0.1")
+      test "injected verifier returns the stubbed response" do
+        TurnstileVerifierStub.response = { "success" => true, "mock" => true }
+        result = Turnstile::VerifierFactory.current.verify(token: "foo", remote_ip: "127.0.0.1")
 
         assert result["success"]
         assert result["mock"]
       end
 
-      test "returns success true when test_mode is true" do
-        JitSecurityTurnstileVerifier.test_mode = true
-        result = JitSecurityTurnstileVerifier.verify(token: "foo", remote_ip: "127.0.0.1")
+      test "injected verifier reports success while the stub is enabled" do
+        TurnstileVerifierStub.enabled = true
+        result = Turnstile::VerifierFactory.current.verify(token: "foo", remote_ip: "127.0.0.1")
 
         assert result["success"]
       end
 
       test "performs http request when verifying" do
-        JitSecurityTurnstileVerifier.test_mode = false
+        TurnstileVerifierStub.enabled = false
 
         mock_response = Minitest::Mock.new
         mock_response.expect(:body, '{"success": true}')
@@ -78,7 +77,7 @@ module Jit
       # -- mode: :stealth -------------------------------------------------
 
       test "mode stealth uses JitSecurityTurnstileConfig stealth secret key" do
-        JitSecurityTurnstileVerifier.test_mode = false
+        TurnstileVerifierStub.enabled = false
 
         mock_response = Minitest::Mock.new
         mock_response.expect(:body, '{"success": true}')
@@ -95,7 +94,7 @@ module Jit
       end
 
       test "mode stealth returns failure without HTTP when secret is nil" do
-        JitSecurityTurnstileVerifier.test_mode = false
+        TurnstileVerifierStub.enabled = false
 
         http_called = false
 
@@ -112,7 +111,7 @@ module Jit
       end
 
       test "mode visible uses JitSecurityTurnstileConfig visible secret key" do
-        JitSecurityTurnstileVerifier.test_mode = false
+        TurnstileVerifierStub.enabled = false
 
         mock_response = Minitest::Mock.new
         mock_response.expect(:body, '{"success": true}')
@@ -129,7 +128,7 @@ module Jit
       end
 
       test "no mode falls back to visible secret key" do
-        JitSecurityTurnstileVerifier.test_mode = false
+        TurnstileVerifierStub.enabled = false
 
         mock_response = Minitest::Mock.new
         mock_response.expect(:body, '{"success": true}')
@@ -146,7 +145,7 @@ module Jit
       end
 
       test "explicit secret_key takes priority over mode" do
-        JitSecurityTurnstileVerifier.test_mode = false
+        TurnstileVerifierStub.enabled = false
 
         mock_response = Minitest::Mock.new
         mock_response.expect(:body, '{"success": true}')
@@ -169,7 +168,7 @@ module Jit
       end
 
       test "logs sanitized response details in development" do
-        JitSecurityTurnstileVerifier.test_mode = false
+        TurnstileVerifierStub.enabled = false
 
         mock_response = Minitest::Mock.new
         mock_response.expect(
@@ -219,7 +218,7 @@ module Jit
       end
 
       test "verify_for_ceremony rejects hostname action and cdata mismatches" do
-        JitSecurityTurnstileVerifier.test_mode = false
+        TurnstileVerifierStub.enabled = false
 
         response = {
           "success" => true,
@@ -252,7 +251,7 @@ module Jit
       end
 
       test "verify_for_ceremony consumes replay token once and rejects replay" do
-        JitSecurityTurnstileVerifier.test_mode = false
+        TurnstileVerifierStub.enabled = false
 
         response = {
           "success" => true,
@@ -311,7 +310,7 @@ module Jit
       end
 
       test "does not log response details outside development" do
-        JitSecurityTurnstileVerifier.test_mode = false
+        TurnstileVerifierStub.enabled = false
 
         mock_response = Minitest::Mock.new
         mock_response.expect(:body, '{"success": true}')

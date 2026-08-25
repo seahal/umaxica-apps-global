@@ -1,0 +1,142 @@
+/*
+ * Provider sign-in buttons.
+ *
+ * Both providers require that neither button is less prominent than the other,
+ * so the list stacks them at one shared size: 180x40, which is the natural size
+ * of the Google artwork and comfortably above Apple's 140x30 minimum.
+ *
+ * The Google button is official artwork and must not be restyled: no custom
+ * background, border, size distortion, or recolouring. The rules here only
+ * strip the surrounding button chrome so the artwork is shown as supplied, and
+ * pick the light or dark asset for the active theme.
+ *
+ * The Apple button is a custom button, which the Human Interface Guidelines
+ * permit as long as it stays within their constraints. The values below are
+ * taken from those constraints rather than chosen for visual preference:
+ *
+ *   - black on light backgrounds, white on dark, both with a bezel; no other
+ *     appearance and no colour other than the title and logo sharing one colour
+ *   - 8px corner radius, inside the permitted square-to-capsule range
+ *   - title at 17px, roughly 43% of the button height, in the system font
+ *   - 8% minimum right margin, and 4px vertical margin, above the 1/10 of the
+ *     button height minimum
+ *   - the left-aligned logo artwork scaled to the button height with its aspect
+ *     ratio kept, flush against the left edge: it already carries its own
+ *     padding and its own opaque background, so a left inset would double the
+ *     margin
+ *
+ * See docs/reference/third-party-sign-in-button-requirements.md.
+ */
+
+.social-provider-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.social-provider-buttons > li {
+  margin: 0;
+}
+
+.social-provider-button--google {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.social-provider-button__art {
+  display: block;
+  height: 40px;
+  width: 180px;
+}
+
+/*
+ * The appearance switch goes through the shared `dark` variant defined in `theme.css`, which
+ * resolves the explicit choice and the operating-system setting together. This file used to spell
+ * that out itself with `.theme-dark` plus a `prefers-color-scheme` block against `.theme-system` —
+ * a third convention, alongside the `.dark` class and the `dark:` utilities, that had to be kept
+ * in step by hand.
+ */
+.social-provider-button__art--light {
+  @variant dark {
+    display: none;
+  }
+}
+
+.social-provider-button__art--dark {
+  display: none;
+
+  @variant dark {
+    display: block;
+  }
+}
+
+.social-provider-button--apple {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 180px;
+  height: 40px;
+  padding: 4px 8% 4px 0;
+  border: 1px solid #000;
+  border-radius: 8px;
+  /* The logo artwork sits flush in a square box; clip it to the radius. */
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  appearance: none;
+
+  /*
+   * Dark appearance: white button with an outline, black title and logo. The Human Interface
+   * Guidelines permit exactly these two appearances, so the values are theirs, not a preference.
+   */
+  @variant dark {
+    border-color: #fff;
+    background: #fff;
+    color: #000;
+  }
+}
+
+/*
+ * The logo is official artwork and is supplied in one colour per appearance,
+ * so the appearance switch swaps the file rather than recolouring it. The
+ * artwork is 31x44; 28x40 is the same ratio at the button height.
+ */
+.social-provider-button__apple-logo {
+  display: block;
+  flex: none;
+  height: 40px;
+  width: 28px;
+}
+
+.social-provider-button__apple-logo--white {
+  @variant dark {
+    display: none;
+  }
+}
+
+.social-provider-button__apple-logo--black {
+  display: none;
+
+  @variant dark {
+    display: block;
+  }
+}
+
+.social-provider-button--apple:focus-visible {
+  outline: 2px solid currentcolor;
+  outline-offset: 2px;
+}

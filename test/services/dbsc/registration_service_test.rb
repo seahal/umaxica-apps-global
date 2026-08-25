@@ -146,6 +146,41 @@ class DbscRegistrationServiceTest < ActiveSupport::TestCase
     assert_not_equal "dbsc-invalid-signature", token.dbsc_session_id
     assert_not_equal ClientTokenDbscStatus::ACTIVE, token.user_token_dbsc_status_id
   end
+
+  # The registration JWK comes from the client's own proof header. A symmetric
+  # ("oct") JWK would make the stored verification key identical to the signing
+  # secret, so whoever registered it could mint valid proofs from any device and
+  # the session would no longer be device-bound.
+  #
+  # Two independent checks reject this today: DbscProofValidator::ALLOWED_ALGORITHMS
+  # excludes HMAC, and DbscRecordAdapter::ASYMMETRIC_KEY_TYPES excludes "oct".
+  # The algorithm gate runs first, so that is the code asserted here; the
+  # key-type contract is covered directly in the record adapter test. Both are
+  # kept because either one alone would leave the invariant implicit.
+  test "refuses to bind a session to a symmetric registration JWK" do
+    user = create_verified_user_with_email(email_address: "dbsc-registration-oct-#{SecureRandom.hex(4)}@example.com")
+    token = ClientToken.create!(user: user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
+    token.update!(dbsc_challenge: "oct-challenge", dbsc_challenge_issued_at: Time.current)
+    shared_secret = "attacker-known-secret"
+
+    proof = JWT.encode(
+      { "jti" => "oct-challenge", "aud" => "https://test.host/registration", "iat" => Time.current.to_i },
+      shared_secret,
+      "HS256",
+      { typ: "dbsc+jwt", jwk: { "kty" => "oct", "k" => Base64.urlsafe_encode64(shared_secret, padding: false) } },
+    )
+
+    result = DbscRegistrationService.call(record: token, proof: proof, session_id: "dbsc-oct-session")
+
+    assert_not result[:ok]
+    assert_equal "invalid_algorithm", result[:error_code]
+
+    token.reload
+
+    assert_nil token.dbsc_public_key
+    assert_not_equal "dbsc-oct-session", token.dbsc_session_id
+    assert_not_equal ClientTokenDbscStatus::ACTIVE, token.user_token_dbsc_status_id
+  end
 end
 
 # DAMP local helper copy for former shared test support.
@@ -504,11 +539,14 @@ class DbscRegistrationServiceTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -555,9 +593,9 @@ class DbscRegistrationServiceTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -570,7 +608,7 @@ class DbscRegistrationServiceTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -813,11 +851,14 @@ class DbscRegistrationServiceTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

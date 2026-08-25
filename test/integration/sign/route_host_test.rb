@@ -118,8 +118,10 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
     Rails.configuration.x.stub(:boot_config, BootConfig.new(hosts)) do
       Rails.application.reload_routes!
       yield
-    ensure
-      Rails.application.reload_routes!
     end
+  ensure
+    # Redraw AFTER the stub is removed. Reloading inside the stub block would leave the
+    # process holding a route table drawn from the fake boot_config.
+    Rails.application.reload_routes!
   end
 end

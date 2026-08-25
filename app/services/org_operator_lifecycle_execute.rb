@@ -41,7 +41,10 @@ class OrgOperatorLifecycleExecute
     case request.action
     when OperatorLifecycleRequest::ACTION_JOIN
       create_invitation!
-    when OperatorLifecycleRequest::ACTION_WITHDRAW, OperatorLifecycleRequest::ACTION_SUSPEND
+    when OperatorLifecycleRequest::ACTION_WITHDRAW
+      withdraw_operator!
+      nil
+    when OperatorLifecycleRequest::ACTION_SUSPEND
       suspend_operator!
       nil
     when OperatorLifecycleRequest::ACTION_TERMINATE
@@ -62,12 +65,15 @@ class OrgOperatorLifecycleExecute
     result.invitation
   end
 
-  def suspend_operator!
+  # Leaving, with a window to change their mind: the operator is deactivated now
+  # and purged after GRACE_PERIOD unless `restore` runs first.
+  def withdraw_operator!
     target = request.target_operator
     return if target.blank?
 
     ensure_not_last_active_operator!(target)
     revoke_target_sessions!(target)
+    withdraw_entra_identity!(target, OperatorEntraIdentityState::SUSPENDED)
     now = Time.current
     target.update!(
       withdrawal_started_at: target.withdrawal_started_at || now,
@@ -77,12 +83,33 @@ class OrgOperatorLifecycleExecute
     )
   end
 
+  # Not leaving: a leave of absence or a disciplinary suspension. The person is
+  # expected back, so this sets no deletion countdown at all -- only
+  # `deactivated_at`, which is what `Withdrawable#suspended?` reads and what the
+  # authentication gates refuse. `withdrawal_started_at`, `discarded_at`, and
+  # `purged_at` stay untouched, so the record survives a leave of any length and
+  # `restore` brings it back.
+  #
+  # This used to share the withdrawal branch, which meant filing a suspension
+  # silently scheduled the operator for deletion in GRACE_PERIOD days. The reason
+  # for the suspension belongs in the request's `reason`, not in a separate state.
+  def suspend_operator!
+    target = request.target_operator
+    return if target.blank?
+
+    ensure_not_last_active_operator!(target)
+    revoke_target_sessions!(target)
+    withdraw_entra_identity!(target, OperatorEntraIdentityState::SUSPENDED)
+    target.update!(deactivated_at: target.deactivated_at || Time.current)
+  end
+
   def terminate_operator!
     target = request.target_operator
     return if target.blank?
 
     ensure_not_last_active_operator!(target)
     revoke_target_sessions!(target)
+    withdraw_entra_identity!(target, OperatorEntraIdentityState::REVOKED)
     now = Time.current
     target.update!(
       withdrawal_started_at: target.withdrawal_started_at || now,
@@ -93,6 +120,11 @@ class OrgOperatorLifecycleExecute
     )
   end
 
+  # Deliberately does not reactivate the operator's Entra identity. Restoring an
+  # operator returns their own credentials; re-granting a federated sign-in is a
+  # separate decision, made explicitly through `rake entra_identity:activate`.
+  # Silently reviving it would undo the deny-by-default the identity table exists
+  # to express (adr/org-entra-id-sign-in-boundary.md).
   def restore_operator!
     target = request.target_operator
     return if target.blank?
@@ -108,6 +140,23 @@ class OrgOperatorLifecycleExecute
 
   def revoke_target_sessions!(target)
     target.staff_tokens.not_revoked.find_each(&:revoke!)
+  end
+
+  # Logical delete: the row keeps (tid, oid), the protocol evidence, and
+  # last_authenticated_at so the mapping stays auditable after the person leaves.
+  # It is deleted for real when the operator is purged
+  # (RetentionCrossDatabaseChildPurge).
+  #
+  # This writes to org_zenith while the surrounding transaction is on
+  # org_principal, so the two are not atomic. The order is chosen so the
+  # surviving inconsistency is the safe one: if the operator update then fails,
+  # the identity is already withdrawn and the person cannot sign in with Entra,
+  # rather than the reverse.
+  def withdraw_entra_identity!(target, status_id)
+    identity = OperatorEntraIdentity.find_by(operator_id: target.id)
+    return if identity.nil?
+
+    identity.update!(status_id: status_id)
   end
 
   def ensure_not_last_active_operator!(target)

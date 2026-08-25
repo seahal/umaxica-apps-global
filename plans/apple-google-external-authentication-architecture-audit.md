@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Status: Final decisions incorporated and document verification passed; production implementation
-  not started
+- Status: Phases 1–5 complete; Phase 6 lifecycle foundation and Phase 8 additive schema are
+  implemented but await the remaining UX, controlled production cutover, and operational checks
 - Audit date: 2026-07-24
 - Repository: `seahal/umaxica-apps-jit-global`
 - Surface: App end-user authentication only
@@ -16,9 +16,32 @@
   Asia/Tokyo
 
 This document records the read-only audit and the design decisions reached in the accompanying
-interview. Production implementation must not start until these final decisions are incorporated
-and this document passes its verification checks. Secrets, credential values, tokens, and complete
-external subjects must never be copied into this document.
+interview. Production deployment must not start until these final decisions are incorporated,
+implementation security gates pass, and controlled operational checks are complete. Secrets,
+credential values, tokens, and complete external subjects must never be copied into this document.
+
+Implementation update, 2026-07-24: the Apple real-strategy nonce gate detected missing-nonce
+acceptance in `omniauth-apple` 1.4.0. The Infrastructure strategy extension now enforces nonce when
+the Gem would skip it, and the signed-token contract passes. Google real-strategy characterization
+confirms UserInfo/top-level UID as the current identity authority. See
+`notes/implementation/2026-07-24-external-authentication-phase-1.md`.
+
+Phase 2 update, 2026-07-24: the minimal principal, typed callback failure/result, provider
+availability port and environment adapter, and fixed provider registry are implemented.
+Per-Use-Case Result payloads are introduced with each Use Case so current Active Record models do
+not leak into the new contract. See
+`notes/implementation/2026-07-24-external-authentication-phase-2-values.md`.
+
+Phase 3 update, 2026-07-24: Apple and Google Provider Adapters, the Apple refresh-token candidate,
+and the explicit Provider Adapter Factory are implemented but not yet connected to callback
+orchestration. See
+`notes/implementation/2026-07-24-external-authentication-phase-3-provider-adapters.md`.
+
+Phase 6–8 update, 2026-07-24: encrypted Apple revocation requests, client-secret and revocation
+ports, a verified minimal Apple notification inbox/processor, and the additive common identity and
+Apple credential schema are implemented. The active repository remains the legacy adapter until a
+controlled one-way production copy and verification completes; no automatic cutover occurs. See
+`notes/implementation/2026-07-24-apple-lifecycle-foundation.md`.
 
 ## 1. Executive Summary
 
@@ -1371,7 +1394,7 @@ described as a Use Case test, not proof of OIDC validation.
 
 ### Phase 6 — Apple lifecycle
 
-- Changes: Rails-encrypt the existing Apple subject and refresh-token columns; remove durable ID
+- Changes: Rails-encrypt the existing Apple refresh-token column; remove durable ID
   and access-token use; add only minimal encrypted Apple
   lifecycle fields to the existing provider schema where required; add client-secret provider
   boundary, refresh validation, revoke job, notification verifier/inbox/processor, and emergency
@@ -1387,7 +1410,7 @@ described as a Use Case test, not proof of OIDC validation.
 - Rollback: ceremony can be disabled; notification endpoint remains safe and idempotent.
 - Acceptance: unlink/withdrawal invokes durable revoke and signed events enforce the approved
   consent-revoked/account-deleted state transitions. Apple-only warning and direct passkey/Google
-  enrollment paths are deployed before production notification enforcement.
+  enrollment paths are implemented; deploy them before production notification enforcement.
 - Deadline priority: notification URL registration and second-key verification are **deadline
   critical by 2026-08-05 23:59 Asia/Tokyo**. Remaining Rails lifecycle work may complete after the
   renewal boundary if the required Apple configuration was secured.
@@ -1429,8 +1452,15 @@ described as a Use Case test, not proof of OIDC validation.
   writes. After that point, forward-fix by default; returning requires an explicit reverse
   migration and differential integrity check. No long-term dual write.
 - Acceptance: repository adapters read the new schema exclusively and all validation reports match
-  the legacy source.
+  the legacy source. The code provides a separately invocable read-only preflight, one-way copy,
+  and verification task; switching `CURRENT_STORAGE` to `:common` remains a reviewed production
+  cutover action after those reports pass.
 - Deadline priority: after Phases 0–7; not Apple deadline critical.
+
+Withdrawal decision: after a Umaxica withdrawal, remove the common external identity and any
+provider-specific credential. The user may later register again with the same Apple or Google
+identity as a new Umaxica account. Do not introduce a permanent external-subject ban in this
+phase; a future ban feature needs its own retention and appeal decision record.
 
 ### Phase 9 — Legacy concern, service, table, and column removal
 

@@ -5,16 +5,17 @@ class OtpTelephoneAdapter < OtpAdapter
   def deliver(record:, otp_code:, message_style: :default, **)
     OutboundSms.deliver_later(
       to: record.number,
-      title: sms_title(otp_code, message_style),
+      title: sms_title,
       body: sms_body(otp_code, message_style),
     )
   end
 
   private
 
-  def sms_title(otp_code, message_style)
-    return localized_verification_message(otp_code) if message_style.to_sym == :localized_verification
-
+  # The title never carries the OTP code. Amazon SNS ignores `subject` for direct
+  # phone-number publishes, so a code here would never reach the recipient while
+  # still being persisted as a plaintext Solid Queue job argument.
+  def sms_title
     "Verification code"
   end
 

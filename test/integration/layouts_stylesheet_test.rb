@@ -15,7 +15,17 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     "app/views/layouts/auth/org/application.html.erb" => "entrypoints/sign/org",
   }.freeze
 
-  INERTIA_LAYOUT = "app/views/layouts/base/app/inertia.html.erb"
+  # One Inertia layout per user-facing FQDN, each loading only its own surface entrypoint.
+  INERTIA_LAYOUTS = %w(
+    base/app base/com base/org
+    auth/app auth/com auth/org
+    side/app side/com side/org
+    core/app core/com core/org core/dev
+    palm/app
+  ).to_h do |surface|
+    family, boundary = surface.split("/")
+    ["app/views/layouts/#{surface}/inertia.html.erb", "entrypoints/inertia/#{family}_#{boundary}.tsx"]
+  end.freeze
 
   TURNSTILE_LAYOUTS = %w(
     app/views/layouts/base/app/application.html.erb
@@ -45,18 +55,15 @@ class StylesheetTagsTest < ActiveSupport::TestCase
   ).freeze
 
   test "target layouts use Vite and avoid stylesheet_link_tag" do
-    (APPLICATION_LAYOUTS.merge(INERTIA_LAYOUT => "entrypoints/inertia")).each do |path, entrypoint|
+    APPLICATION_LAYOUTS.merge(INERTIA_LAYOUTS).each do |path, entrypoint|
       contents = Rails.root.join(path).read
 
       assert_includes contents, "<meta charset=\"utf-8\">", "missing charset meta tag in #{path}"
       assert_includes contents, "display_meta_tags", "missing title metadata helper in #{path}"
-      assert_includes contents, 'meta name="turbo-refresh-method" content="morph"',
-                      "missing turbo refresh method meta tag in #{path}"
-      assert_includes contents, 'meta name="turbo-refresh-scroll" content="preserve"',
-                      "missing turbo refresh scroll meta tag in #{path}"
       assert_includes contents, %(vite_typescript_tag "#{entrypoint}"),
                       "missing Vite entrypoint in #{path}"
-      assert_not_includes contents, "stylesheet_link_tag", "web UI CSS must come from Vite in #{path}"
+      assert_not_includes contents, "stylesheet_link_tag",
+                          "layout #{path} must reach Vite CSS through vite_stylesheet_tag, not Sprockets"
       assert_not_includes contents, "content_for", "layout #{path} must not use content_for"
       assert_not_includes contents, "yield :head", "layout #{path} must not use named head yields"
       assert_not_includes contents, "yield :nav_links", "layout #{path} must not use named nav yields"
@@ -112,13 +119,49 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     assert_no_match(/^\s*gem\s+["']importmap-rails["']/, gemfile)
   end
 
-  test "inertia app layout keeps the shared vite entrypoint" do
-    contents = Rails.root.join(INERTIA_LAYOUT).read
+  test "application layouts keep the turbo refresh contract" do
+    APPLICATION_LAYOUTS.each_key do |path|
+      contents = Rails.root.join(path).read
 
-    assert_includes contents, 'meta name="turbo-refresh-method" content="morph"'
-    assert_includes contents, 'meta name="turbo-refresh-scroll" content="preserve"'
-    assert_includes contents, 'vite_typescript_tag "entrypoints/inertia"'
-    assert_not_includes contents, "yield :head"
-    assert_not_includes contents, "content_for"
+      assert_includes contents, 'meta name="turbo-refresh-method" content="morph"',
+                      "missing turbo refresh method meta tag in #{path}"
+      assert_includes contents, 'meta name="turbo-refresh-scroll" content="preserve"',
+                      "missing turbo refresh scroll meta tag in #{path}"
+    end
+  end
+
+  # An Inertia shell owns the document and nothing else: the header, footer and preference controls
+  # are the React surface layout's, and Turbo is never loaded there, so a Turbo refresh contract in
+  # this layout would describe behaviour that cannot happen.
+  test "every inertia layout is a document shell for its own surface entrypoint and no other" do
+    INERTIA_LAYOUTS.each do |path, entrypoint|
+      contents = Rails.root.join(path).read
+      foreign = INERTIA_LAYOUTS.values - [entrypoint]
+
+      assert_not_includes contents, "turbo-refresh-method",
+                          "layout #{path} does not load Turbo, so it must not declare a Turbo refresh contract"
+      assert_not_includes contents, "turbo-refresh-scroll",
+                          "layout #{path} does not load Turbo, so it must not declare a Turbo refresh contract"
+      # The head-level Turnstile API script is the one shared partial a shell still renders: the
+      # challenge is drawn by React but its script has to be in the document first.
+      chrome_partials = contents.scan(/render "layouts\/shared\/(\w+)"/).flatten - ["cloudflare_turnstile_api"]
+
+      assert_empty chrome_partials,
+                   "layout #{path} must leave header and footer chrome to the React surface layout"
+      assert_includes contents, %(vite_typescript_tag "#{entrypoint}")
+      # A stylesheet reached through the entrypoint's JavaScript is dropped by
+      # `ViteRuby::Manifest#resolve_entries` while the dev server runs, so it cannot style the first
+      # paint. The link has to be in the layout to block rendering in every environment.
+      family, surface = path.delete_prefix("app/views/layouts/").split("/").first(2)
+
+      assert_includes contents, %(vite_stylesheet_tag "~/styles/surfaces/#{family}_#{surface}.css"),
+                      "layout #{path} must link its own surface stylesheet"
+      assert_includes contents, "inertia_root", "layout #{path} must render the Inertia root element"
+      assert_not_includes contents, "yield", "layout #{path} renders the page through Inertia, not a yield"
+
+      foreign.each do |other|
+        assert_not_includes contents, other, "layout #{path} must not load another surface's entrypoint"
+      end
+    end
   end
 end

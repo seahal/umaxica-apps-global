@@ -31,9 +31,24 @@ module Base
           end
         rescue OidcAuthorizeRequestValidator::InvalidScope => e
           render json: { error: "invalid_scope", error_description: e.message }, status: :bad_request
-        rescue ArgumentError, ActiveRecord::RecordNotFound, OidcClientRegistry::ClientNotFound,
-               OidcClientRegistry::InvalidRedirectUri => e
+        # OidcAuthorizeRequestValidator raises ArgumentError with spec-level request
+        # descriptions ("scope must include openid", "state is required"), and the registry
+        # errors are equally spec-defined. RFC 6749 section 4.1.2.1 expects these in
+        # error_description and they disclose nothing about stored data.
+        rescue ArgumentError, OidcClientRegistry::ClientNotFound, OidcClientRegistry::InvalidRedirectUri => e
           render json: { error: "invalid_request", error_description: e.message }, status: :bad_request
+        # RecordNotFound is different: its message names the model and the primary key that
+        # was looked up. The client gets a fixed description; the detail goes to the log.
+        rescue ActiveRecord::RecordNotFound => e
+          Rails.logger.info(
+            JitLogEvent.format(
+              "oidc.authorize.invalid_request",
+              error_class: e.class.name,
+              oidc_client_id: params[:client_id].to_s.presence,
+            ),
+          )
+          render json: { error: "invalid_request", error_description: "invalid authorization request" },
+                 status: :bad_request
         end
 
         private

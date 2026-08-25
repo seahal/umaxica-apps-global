@@ -9,13 +9,14 @@ module Auth
           module Telephone
             class OtpsController < ::Auth::App::Sign::Up::TelephonesController
               include SignUpExplicitStepControllerSupport
+              include SignUpContactOtpControllerSupport
 
               AUTHENTICATION_MODE = :guest
 
               def show
                 if dummy_existing_telephone_flow?
                   @user_telephone = ClientTelephone.new
-                  return render "auth/app/sign/up/telephones/edit" if valid_telephone_session?
+                  return render_sign_up_telephone_edit if valid_telephone_session?
 
                   return redirect_telephone_session_expired
                 end
@@ -25,7 +26,7 @@ module Auth
                 @user_telephone = current_registration_telephone
                 return redirect_telephone_session_expired unless valid_telephone_session?
 
-                render "auth/app/sign/up/telephones/edit"
+                render_sign_up_telephone_edit
               end
 
               def create
@@ -78,8 +79,9 @@ module Auth
 
                 verify_telephone_ownership!
 
-                flow_result = advance_sign_up_flow_after_telephone_otp!
+                flow_result = advance_sign_up_after_contact_otp!
                 return render_sign_up_result(flow_result) unless flow_result.success?
+                return finalize_sign_up_from_checkpoint! if flow_result.next_event == :finalize
 
                 complete_update_and_redirect
               end
@@ -137,68 +139,26 @@ module Auth
               def render_otp_ceremony_result(result)
                 if result.status == :rate_limited
                   @user_telephone.errors.add(:base, t("sign.app.registration.email.create.otp_resend_too_soon"))
-                  return render "auth/app/sign/up/telephones/edit", status: :too_many_requests
+                  return render_sign_up_telephone_edit(status: :too_many_requests)
                 end
 
                 @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.invalid_code"))
-                render "auth/app/sign/up/telephones/edit", status: :unprocessable_content
+                render_sign_up_telephone_edit(status: :unprocessable_content)
               end
 
               def render_code_required
                 @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
-                render "auth/app/sign/up/telephones/edit", status: :unprocessable_content
+                render_sign_up_telephone_edit(status: :unprocessable_content)
               end
 
               def handle_locked_result
                 reset_telephone_flow!
                 @user_telephone.errors.add(:base, t("sign.app.registration.telephone.update.attempts_exceeded"))
-                render "auth/app/sign/up/telephones/edit", status: :too_many_requests
+                render_sign_up_telephone_edit(status: :too_many_requests)
               end
 
               def complete_update_and_redirect
                 redirect_to(auth_app_sign_up_guard_telephone_path(ri: params[:ri], pt: signed_pt_param))
-              end
-
-              def advance_sign_up_flow_after_telephone_otp!
-                result = perform_sign_up_event(:verify_contact)
-                return unexpected_telephone_otp_transition(result, :enter_guardrail) unless result.success? &&
-                  result.next_event == :enter_guardrail
-
-                result = perform_sign_up_event(:enter_guardrail)
-                return unexpected_telephone_otp_transition(result, :enter_checkpoint) unless result.success? &&
-                  result.next_event == :enter_checkpoint
-
-                result = perform_sign_up_event(:enter_checkpoint)
-                return unexpected_telephone_otp_transition(result, :clear_requirement) unless result.success? &&
-                  result.next_event == :clear_requirement
-
-                mark_telephone_otp_requirement_cleared!
-                result
-              end
-
-              def unexpected_telephone_otp_transition(result, expected_next_event)
-                Rails.logger.warn(
-                  JitLogEvent.format(
-                    "sign.signup.telephone.otp.transition_unexpected",
-                    status: result.status,
-                    next_event: result.next_event,
-                    expected_next_event: expected_next_event,
-                  ),
-                )
-                SignUpResult.build(
-                  status: :invalid_transition,
-                  ticket: @sign_up_ticket,
-                  errors: ["unexpected telephone OTP sign-up transition"],
-                )
-              end
-
-              def mark_telephone_otp_requirement_cleared!
-                requirements = @sign_up_ticket.completed_requirements.deep_dup
-                requirements["otp"] = {
-                  "cleared" => true,
-                  "cleared_at" => Time.current.iso8601,
-                }
-                @sign_up_ticket.update!(completed_requirements: requirements)
               end
 
               def verify_dummy_otp_ceremony!(submitted_code)

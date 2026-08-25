@@ -170,6 +170,43 @@ class ExternalSignIn::Providers::EntraIdTest < ActiveSupport::TestCase
     end
   end
 
+  test "raises VerificationError when the token kid is absent from JWKS" do
+    token = JWT.encode(
+      {
+        "iss" => "https://login.microsoftonline.com/#{TENANT_ID}/v2.0",
+        "aud" => CLIENT_ID,
+        "tid" => TENANT_ID,
+        "oid" => VALID_OID,
+        "sub" => "pairwise-sub-value",
+        "nonce" => NONCE,
+        "iat" => Time.now.to_i,
+        "exp" => Time.now.to_i + 300,
+      },
+      @private_key,
+      "RS256",
+      { "kid" => "unknown-key-id" },
+    )
+
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: token)
+      end
+
+    assert_equal "token_decode_failed", error.reason
+  end
+
+  test "raises VerificationError when issuer does not correspond to tid" do
+    other_tenant = "22222222-3333-4444-5555-666666666666"
+    token = build_token("iss" => "https://login.microsoftonline.com/#{other_tenant}/v2.0")
+
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: token)
+      end
+
+    assert_equal "token_decode_failed", error.reason
+  end
+
   test "raises VerificationError for an expired token" do
     past = Time.now.to_i - 7200
     token = build_token("iat" => past, "exp" => past + 3600)
@@ -177,6 +214,93 @@ class ExternalSignIn::Providers::EntraIdTest < ActiveSupport::TestCase
     assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
       call(id_token: token)
     end
+  end
+
+  test "raises VerificationError when sub is missing" do
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: build_token("sub" => nil))
+      end
+
+    assert_equal "sub_missing", error.reason
+  end
+
+  test "raises VerificationError when iat is missing" do
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: build_token("iat" => nil))
+      end
+
+    assert_equal "iat_missing", error.reason
+  end
+
+  test "raises VerificationError when iat is too far in the future" do
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: build_token("iat" => Time.now.to_i + 120))
+      end
+
+    assert_equal "iat_invalid", error.reason
+  end
+
+  test "raises VerificationError when iat is outside the ceremony window" do
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: build_token("iat" => Time.now.to_i - 601))
+      end
+
+    assert_equal "iat_invalid", error.reason
+  end
+
+  test "raises VerificationError when nbf is too far in the future" do
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: build_token("nbf" => Time.now.to_i + 120))
+      end
+
+    assert_equal "nbf_invalid", error.reason
+  end
+
+  test "raises VerificationError for the Microsoft consumer tenant" do
+    consumer_tenant = ExternalSignIn::Providers::EntraId::MICROSOFT_CONSUMER_TENANT_ID
+    token = build_token(
+      "iss" => "https://login.microsoftonline.com/#{consumer_tenant}/v2.0",
+      "tid" => consumer_tenant,
+    )
+
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: token, expected_tenant_id: consumer_tenant)
+      end
+
+    assert_equal "personal_account_tenant", error.reason
+  end
+
+  test "rejects a guest account" do
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: build_token("acct" => 1))
+      end
+
+    assert_equal "guest_account_not_allowed", error.reason
+  end
+
+  test "rejects a token without the configured account-type claim" do
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: build_token("acct" => nil))
+      end
+
+    assert_equal "account_type_missing", error.reason
+  end
+
+  test "rejects a v1 token" do
+    error =
+      assert_raises(ExternalSignIn::Providers::EntraId::VerificationError) do
+        call(id_token: build_token("ver" => "1.0"))
+      end
+
+    assert_equal "token_version_invalid", error.reason
   end
 
   private
@@ -190,6 +314,8 @@ class ExternalSignIn::Providers::EntraIdTest < ActiveSupport::TestCase
       "oid" => VALID_OID,
       "sub" => "pairwise-sub-value",
       "nonce" => NONCE,
+      "ver" => "2.0",
+      "acct" => 0,
       "iat" => now,
       "exp" => now + 3600,
     }.merge(overrides).compact

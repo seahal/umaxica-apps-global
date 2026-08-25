@@ -6,6 +6,7 @@ module Base
     module Identity
       module Mfa
         class ChallengesController < BaseController
+          include ::SurfaceInertiaPage
           include VerificationClient
 
           AUTHENTICATION_MODE = :private
@@ -14,15 +15,7 @@ module Base
           before_action :authenticate_client!
           before_action :authorize_mfa_challenge!, only: %i(show update)
           def show
-            @user = current_client
-            @passkeys = current_client.client_passkeys.active.order(created_at: :desc)
-            @totps = current_client.client_totp_credentials
-              .where(user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
-              .order(created_at: :desc)
-            @secret_credentials = current_client.client_secret_credentials
-              .where(user_identity_secret_status_id: ClientSecretCredentialStatus::ACTIVE)
-              .order(created_at: :desc)
-            render "base/app/identity/mfa/challenges/show"
+            render inertia: true, props: mfa_challenge_page_props
           end
 
           def update
@@ -40,9 +33,9 @@ module Base
               base_app_identity_mfa_challenge_path(ri: params[:ri]),
             )
           rescue ActiveRecord::RecordInvalid, ArgumentError
-            show
-            current_client.errors.add(:base, t("sign.app.settings.mfa.update.failure"))
-            render "base/app/identity/mfa/challenges/show", status: :unprocessable_content
+            render inertia: "base/app/identity/mfa/challenges/show",
+                   props: mfa_challenge_page_props(error: t("sign.app.settings.mfa.update.failure")),
+                   status: :unprocessable_content
           end
 
           private
@@ -52,6 +45,21 @@ module Base
           def verification_required_action? = %w(show update).include?(action_name)
 
           def verification_scope = "settings_mfa"
+
+          def mfa_challenge_page_props(error: nil)
+            {
+              title: t("sign.app.settings.mfa.show.title"),
+              reset_unavailable: t("sign.app.settings.mfa.show.reset_unavailable"),
+              toggle_title: t("sign.app.settings.mfa.show.toggle_title"),
+              state_label: current_client.mfa_level_enabled? ?
+                t("sign.app.settings.mfa.show.enabled") : t("sign.app.settings.mfa.show.disabled"),
+              back_link: {
+                label: t("sign.app.settings.show.back"),
+                href: base_app_identity_path(ri: params[:ri]),
+              },
+              error: error,
+            }
+          end
 
           def requested_mfa_level_id
             mfa_level_id = Integer(params.dig(:user, :mfa_level_id).to_s, 10)

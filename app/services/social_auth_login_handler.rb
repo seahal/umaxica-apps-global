@@ -7,16 +7,17 @@ class SocialAuthLoginHandler
     new(...).call
   end
 
-  def initialize(auth_hash:, identity_class:, provider:, uid:, sign_up_entry: false)
-    @auth_hash = auth_hash
-    @identity_class = identity_class
+  def initialize(principal:, credential_candidate:, repository:, provider:, uid:, sign_up_entry: false)
+    @principal = principal
+    @credential_candidate = credential_candidate
+    @repository = repository
     @provider = provider
     @uid = uid
     @sign_up_entry = sign_up_entry
   end
 
   def call
-    identity = identity_class.lock.find_by(uid: uid, provider: provider)
+    identity = repository.find_by_subject(uid, lock: true)
     Rails.logger.debug { "[SocialAuth] handle_login - identity found: #{identity.present?}" }
 
     identity ? login_existing_identity(identity) : pending_social_signup
@@ -34,7 +35,7 @@ class SocialAuthLoginHandler
 
   private
 
-  attr_reader :auth_hash, :identity_class, :provider, :uid, :sign_up_entry
+  attr_reader :principal, :credential_candidate, :repository, :provider, :uid, :sign_up_entry
 
   def login_existing_identity(identity)
     user = identity.user
@@ -45,8 +46,12 @@ class SocialAuthLoginHandler
 
     return pending_social_signup if user.blank?
 
-    identity.update_from_auth_hash!(auth_hash)
-    Rails.logger.debug { "[SocialAuth] Identity updated from auth_hash" }
+    repository.refresh_credentials!(
+      identity,
+      principal: principal,
+      credential_candidate: credential_candidate,
+    )
+    Rails.logger.debug { "[SocialAuth] Identity credentials updated" }
     build_result(user, identity, existing_account: existing_account)
   end
 
@@ -60,7 +65,6 @@ class SocialAuthLoginHandler
       pending_social_signup: true,
       provider: provider,
       uid: uid,
-      identity_class: identity_class,
     }
   end
 
@@ -68,7 +72,7 @@ class SocialAuthLoginHandler
     Rails.logger.debug { "[SocialAuth] Creating user for orphaned identity" }
     user = build_login_user
     persist_user!(user, context: "login_orphaned_identity")
-    assign_identity_to_user(user, identity)
+    repository.assign_to_user(identity, user)
     identity.update!(user_id: user.id)
     user
   end
@@ -200,23 +204,11 @@ class SocialAuthLoginHandler
   end
 
   def build_identity_for_user(user)
-    identity = identity_class.new(
-      uid: uid,
-      provider: provider,
-      token: auth_hash.dig("credentials", "token") || auth_hash.dig(:credentials, :token) || "",
-      refresh_token: auth_hash.dig("credentials", "refresh_token") ||
-        auth_hash.dig(:credentials, :refresh_token) || "",
-      expires_at: auth_hash.dig("credentials", "expires_at") || auth_hash.dig(:credentials, :expires_at) || 0,
+    repository.build_for_user(
+      user: user,
+      principal: principal,
+      credential_candidate: credential_candidate,
     )
-    assign_identity_to_user(user, identity)
-    identity
-  end
-
-  def assign_identity_to_user(user, identity)
-    case identity_class.name
-    when "ClientGoogleIdentity", "ClientAppleIdentity"
-      identity.user_id = user.id
-    end
   end
 
   def create_social_signup_audit(user)

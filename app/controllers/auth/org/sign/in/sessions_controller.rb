@@ -19,6 +19,7 @@
 # can manage their sessions. Invariant: max 1 restricted session per staff.
 class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationController
   include SessionLimitGate
+  include ::SurfaceInertiaPage
 
   AUTHENTICATION_MODE = :deny_all
 
@@ -32,6 +33,7 @@ class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationControll
   # Display active and restricted sessions for the staff
   def show
     load_session_data
+    render inertia: true, props: session_limit_props
   end
 
   # Revoke selected sessions and optionally promote restricted to active
@@ -49,7 +51,9 @@ class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationControll
       refs = Array(params[:revoke_refs]).compact_blank
       if refs.empty?
         load_session_data
-        return render :show, status: :unprocessable_content
+        return render inertia: "auth/org/sign/in/sessions/show",
+                      props: session_limit_props,
+                      status: :unprocessable_content
       end
 
       revoke_sessions_by_refs(@current_operator, refs)
@@ -72,7 +76,7 @@ class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationControll
 
     # Still restricted, stay on session management
     load_session_data
-    render :show
+    render inertia: "auth/org/sign/in/sessions/show", props: session_limit_props
   end
 
   # Cancel the restricted session (logout) or revoke a specific session
@@ -86,7 +90,7 @@ class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationControll
       # Revoke a specific session by signed reference
       revoke_session_by_ref(@current_operator, ref)
       load_session_data
-      render :show
+      render inertia: "auth/org/sign/in/sessions/show", props: session_limit_props
     else
       current_db_sign_in_flow_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
       consume_session_limit_gate!
@@ -109,6 +113,36 @@ class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationControll
   end
 
   private
+
+  # Only the signed reference of a session travels, which is what the radio input already carried;
+  # the token itself never leaves the server.
+  def session_limit_props
+    {
+      title: t("session_limit.edit.page_title"),
+      heading: t("session_limit.edit.title"),
+      description: t("session_limit.edit.description"),
+      form_action: auth_org_sign_in_session_path,
+      active_sessions_heading: t("session_limit.edit.active_sessions"),
+      session_label: t("session_limit.edit.session_label"),
+      created_at_label: t("session_limit.edit.created_at"),
+      last_used_label: t("session_limit.edit.last_used"),
+      no_sessions: t("session_limit.edit.no_sessions"),
+      submit_label: t("session_limit.edit.submit"),
+      back_link: { label: t("session_limit.edit.back"), href: auth_org_sign_in_path },
+      cancel_logout_label: t("session_limit.edit.cancel_logout"),
+      cancel_logout_confirm: t("session_limit.edit.cancel_logout_confirm"),
+      sessions: Array(@active_sessions).map { |token| serialize_session(token) },
+    }
+  end
+
+  def serialize_session(token)
+    {
+      ref: token.signed_ref,
+      digest: "#{token.public_id.first(8)}...",
+      created_at: helpers.localized_session_timestamp(token.created_at),
+      last_used_at: helpers.localized_session_timestamp(token.last_used_at),
+    }
+  end
 
   def require_authentication_or_gate
     return if current_session_restricted? || restricted_session_expired?

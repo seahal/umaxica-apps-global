@@ -9,6 +9,7 @@ module Base
         # (new/create, see WithdrawalCeremonyReentry) and ceremony sign-out
         # (destroy).
         class SessionsController < ::Base::Com::ApplicationController
+          include ::SurfaceInertiaPage
           include CommonRedirect
           include WithdrawalCeremonyReentry
 
@@ -24,9 +25,17 @@ module Base
             store: rate_limit_store,
             only: :create,
             with: -> {
-              render_rate_limited(rule_name: "base_com_withdrawal_reentry_email_create_ip_burst", retry_after: 60)
+              render_rate_limited(retry_after: 60)
             },
           )
+
+          # GET /identity/withdrawal/session/new
+          # WithdrawalCeremonyReentry#new only assigns the screen state and relies on an implicit
+          # render, so this surface makes the Inertia render explicit.
+          def new
+            super
+            render_withdrawal_reentry_new
+          end
 
           # DELETE /identity/withdrawal/session
           # Ends the current withdrawal ceremony and returns to the sign-in surface.
@@ -40,6 +49,42 @@ module Base
           end
 
           private
+
+          # Overrides the shared re-entry transport seam: this surface answers with an Inertia page.
+          def render_withdrawal_reentry_new(status: :ok)
+            render inertia: "base/com/identity/withdrawal/sessions/new",
+                   props: new_page_props,
+                   status: status
+          end
+
+          def new_page_props
+            {
+              title: "Withdrawal session",
+              generic_message: withdrawal_reentry_generic_message,
+              address_form: {
+                url: base_com_identity_withdrawal_session_path(ri: params[:ri]),
+                scope: "withdrawal_reentry",
+                field: "address",
+                label: "Email address",
+                value: params.dig(:withdrawal_reentry, :address).to_s,
+                submit_label: "Send verification code",
+              },
+              pass_code_form: pass_code_form_props,
+            }
+          end
+
+          # The code form only appears once a code has been issued, which is what `@reentry_state`
+          # records. Omitting it keeps that decision on the server.
+          def pass_code_form_props
+            return if @reentry_state.blank?
+
+            {
+              url: base_com_identity_withdrawal_session_path(ri: params[:ri]),
+              field: "pass_code",
+              label: "Verification code",
+              submit_label: "Continue",
+            }
+          end
 
           def identity_email_model = VisitorEmail
 

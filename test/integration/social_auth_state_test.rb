@@ -8,7 +8,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
   SOCIAL_FLOW_ID_SESSION_KEY = :social_auth_flow_id
-  fixtures :clients, :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
+  fixtures :clients, :client_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -64,8 +64,8 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     setup_apple_mock_auth(uid: "apple_link_missing_flow_#{SecureRandom.hex(4)}")
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         headers: social_callback_headers(@host).merge(as_user_headers(user, host: @host))
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        headers: social_callback_headers(@host).merge(as_user_headers(user, host: @host))
 
     assert_response :forbidden
   end
@@ -78,9 +78,9 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
     state = social_auth_state_from_response
 
     travel_to 6.minutes.from_now do
-      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-           params: { state: state },
-           headers: social_callback_headers(@host).merge(as_user_headers(user, host: @host))
+      get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+          params: { state: state },
+          headers: social_callback_headers(@host).merge(as_user_headers(user, host: @host))
     end
 
     assert_response :forbidden
@@ -664,11 +664,14 @@ class SocialAuthStateTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -715,9 +718,9 @@ class SocialAuthStateTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -730,7 +733,7 @@ class SocialAuthStateTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -973,11 +976,14 @@ class SocialAuthStateTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

@@ -11,8 +11,8 @@ class Auth::App::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
 
   setup do
     host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
     @user = Client.create!(mfa_level_enabled: true)
     @email = "challenge_hub_#{SecureRandom.hex(4)}@example.com".freeze
     @user.client_emails.create!(address: @email, user_email_status_id: ClientEmailStatus::VERIFIED)
@@ -32,8 +32,8 @@ class Auth::App::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "show requires pending_mfa and redirects to sign in" do
@@ -44,7 +44,7 @@ class Auth::App::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
   end
 
   test "show renders for pending_mfa user with MFA enabled" do
-    post auth_app_sign_in_secret_credential_path(ri: "jp"), params: {
+    post auth_app_sign_in_secret_path(ri: "jp"), params: {
       secret_credential_login_form: {
         identifier: @email,
         secret_credential_value: @raw_secret_credential,
@@ -60,13 +60,14 @@ class Auth::App::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
     # Check for translation key in body - translation may be missing or present
     # assert response.body.include?(I18n.t("sign.app.in.mfa.title")) || response.body.include?("translation missing")
     # Check that TOTP method link is present
-    assert response.body.include?("totp") || response.body.include?("Totp")
+    assert_equal "auth/app/sign/in/challenges/show", inertia_component
+    assert_includes inertia_props.fetch("methods").map { |method| method.fetch("key") }, "totp"
   end
 
   test "show does not display totp method when disabled" do
     @user.client_totp_credentials.delete_all
 
-    post auth_app_sign_in_secret_credential_path(ri: "jp"), params: {
+    post auth_app_sign_in_secret_path(ri: "jp"), params: {
       secret_credential_login_form: {
         identifier: @email,
         secret_credential_value: @raw_secret_credential,
@@ -79,13 +80,14 @@ class Auth::App::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
     follow_redirect!
 
     assert_response :success
-    assert_not_includes response.body, I18n.t("sign.app.in.mfa.methods.totp")
+    assert_not_includes inertia_props.fetch("methods").map { |method| method.fetch("label") },
+                        I18n.t("sign.app.in.mfa.methods.totp")
   end
 
   test "show does not display passkey method when disabled" do
     @user.client_passkeys.delete_all
 
-    post auth_app_sign_in_secret_credential_path(ri: "jp"), params: {
+    post auth_app_sign_in_secret_path(ri: "jp"), params: {
       secret_credential_login_form: {
         identifier: @email,
         secret_credential_value: @raw_secret_credential,
@@ -98,6 +100,7 @@ class Auth::App::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
     follow_redirect!
 
     assert_response :success
-    assert_not_includes response.body, I18n.t("sign.app.in.mfa.methods.passkey")
+    assert_not_includes inertia_props.fetch("methods").map { |method| method.fetch("label") },
+                        I18n.t("sign.app.in.mfa.methods.passkey")
   end
 end

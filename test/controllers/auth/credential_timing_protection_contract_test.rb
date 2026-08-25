@@ -8,16 +8,15 @@ class AuthCredentialTimingProtectionContractTest < ActiveSupport::TestCase
     Auth::App::Sign::In::PasskeysController,
     Auth::App::Sign::In::Passkey::OptionsController,
     Auth::App::Sign::In::Passkey::VerificationsController,
-    Auth::App::Sign::In::SecretCredentialsController,
+    Auth::App::Sign::In::SecretsController,
     Auth::Com::Sign::In::PasskeysController,
     Auth::Com::Sign::In::Passkey::OptionsController,
     Auth::Com::Sign::In::Passkey::VerificationsController,
-    Auth::Com::Sign::In::SecretCredentialsController,
+    Auth::Com::Sign::In::SecretsController,
     Auth::Org::Sign::In::PasskeysController,
     Auth::Org::Sign::In::Passkey::OptionsController,
     Auth::Org::Sign::In::Passkey::VerificationsController,
-    Auth::Org::Sign::In::SecretCredentialsController,
-    Auth::Org::Sign::In::Entra::AuthorizationsController,
+    Auth::Org::Sign::In::SecretsController,
   ].freeze
 
   DUMMY_WORK_CONTROLLERS = [
@@ -40,16 +39,15 @@ class AuthCredentialTimingProtectionContractTest < ActiveSupport::TestCase
       Auth::App::Sign::In::PasskeysController,
       Auth::App::Sign::In::Passkey::OptionsController,
       Auth::App::Sign::In::Passkey::VerificationsController,
-      Auth::App::Sign::In::SecretCredentialsController,
+      Auth::App::Sign::In::SecretsController,
       Auth::Com::Sign::In::PasskeysController,
       Auth::Com::Sign::In::Passkey::OptionsController,
       Auth::Com::Sign::In::Passkey::VerificationsController,
-      Auth::Com::Sign::In::SecretCredentialsController,
+      Auth::Com::Sign::In::SecretsController,
       Auth::Org::Sign::In::PasskeysController,
       Auth::Org::Sign::In::Passkey::OptionsController,
       Auth::Org::Sign::In::Passkey::VerificationsController,
-      Auth::Org::Sign::In::SecretCredentialsController,
-      Auth::Org::Sign::In::Entra::AuthorizationsController,
+      Auth::Org::Sign::In::SecretsController,
     ]
 
     assert_equal expected.map(&:name).sort, protected_controllers.map(&:name).sort
@@ -60,5 +58,20 @@ class AuthCredentialTimingProtectionContractTest < ActiveSupport::TestCase
 
     assert_includes controller.private_methods, :perform_dummy_otp_generation
     assert_includes controller.private_methods, :ensure_min_elapsed
+  end
+
+  # The Entra strategy's request phase used to pad its response time so a valid
+  # and an invalid connection_public_id could not be told apart by timing. The
+  # org surface now federates a single tenant read from configuration, so the
+  # request phase performs no per-request record lookup and there is no pair of
+  # inputs whose timing could differ. The protection was removed with the lookup
+  # rather than left as a pad over nothing; this asserts the lookup really is
+  # gone, which is what made it unnecessary.
+  test "Entra OmniAuth strategy's request phase performs no timing-sensitive record lookup" do
+    strategy_class = OmniAuth::Strategies::UmaxicaEntra
+    body = File.read(strategy_class.instance_method(:request_phase).source_location.first)
+
+    assert_not_includes strategy_class.private_instance_methods, :active_connection
+    assert_no_match(/OrganizationEntraConnection/, body)
   end
 end

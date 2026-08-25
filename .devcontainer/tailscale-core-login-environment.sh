@@ -5,7 +5,9 @@ if [ -z "${BASH_VERSION:-}" ]; then
   return 0
 fi
 
-if [[ -n "${SSH_CONNECTION:-}" && -r /proc/1/environ ]]; then
+readonly CORE_LOGIN_ENVIRONMENT=/run/core-development-environment
+
+if [[ -n "${SSH_CONNECTION:-}" && -r "${CORE_LOGIN_ENVIRONMENT}" ]]; then
   while IFS= read -r -d '' assignment; do
     name=${assignment%%=*}
 
@@ -18,7 +20,7 @@ if [[ -n "${SSH_CONNECTION:-}" && -r /proc/1/environ ]]; then
     esac
 
     export "${assignment}" 2>/dev/null || true
-  done < /proc/1/environ
+  done < "${CORE_LOGIN_ENVIRONMENT}"
 
   unset assignment name
 fi

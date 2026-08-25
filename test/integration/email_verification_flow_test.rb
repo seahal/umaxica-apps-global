@@ -5,14 +5,21 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_apple_identity_statuses, :client_visibilities, :client_mfa_levels,
+  fixtures :client_statuses, :client_visibilities, :client_mfa_levels,
            :client_mfa_statuses
 
   setup do
-    CloudflareTurnstile.test_mode = true
-    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+    TurnstileVerifierStub.challenge_enabled = true
+    # The ceremony runs on the Auth host the application is configured with: a request
+    # made to any other host gets a session cookie the application does not read back,
+    # so the sign-up ticket is lost and the flow restarts instead of advancing.
+    @host = configured_host(:sign_service)
     @user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
   end
+
+  # The stub slots are process-wide, so leaving the challenge enabled would answer every later
+  # Turnstile call in this worker with a success and hide a real verification failure elsewhere.
+  teardown { TurnstileVerifierStub.reset! }
 
   test "social login flow does not trigger email verification and enters guardrail" do
     OmniAuth.config.test_mode = true
@@ -25,7 +32,7 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
         provider: "apple",
         uid: "flow_uid",
         info: {},
-        credentials: { token: "token", expires_at: 1.week.from_now.to_i },
+        credentials: { token: "token", refresh_token: "apple_refresh_token", expires_at: 1.week.from_now.to_i },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
@@ -33,9 +40,9 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
     # 1. Auth callback
     # We expect NO emails to be sent
     assert_no_emails do
-      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-           params: { state: state },
-           headers: social_callback_headers(@host)
+      get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+          params: { state: state },
+          headers: social_callback_headers(@host)
     end
 
     assert_response :redirect
@@ -418,11 +425,14 @@ class EmailVerificationFlowTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -469,9 +479,9 @@ class EmailVerificationFlowTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -484,7 +494,7 @@ class EmailVerificationFlowTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -761,11 +771,14 @@ class EmailVerificationFlowTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

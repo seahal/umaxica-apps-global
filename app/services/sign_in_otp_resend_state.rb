@@ -3,12 +3,17 @@
 
 module SignInOtpResendState
   PURPOSE = "sign-in-otp-resend"
+  # Email is the only sign-in OTP channel; SMS OTP is not an accepted sign-in
+  # proof, so a telephone state must never be mintable.
+  KIND = "email"
   TTL = 30.minutes
   ENCRYPTOR_CACHE = Concurrent::Map.new
 
   module_function
 
   def issue(kind:, target:)
+    raise ArgumentError, "unsupported sign-in OTP resend kind: #{kind}" unless kind.to_s == KIND
+
     encryptor.encrypt_and_sign(
       {
         "kind" => kind.to_s,

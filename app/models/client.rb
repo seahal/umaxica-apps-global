@@ -114,14 +114,12 @@ class Client < AppPrincipalRecord
   belongs_to :visibility,
              class_name: "ClientVisibility",
              inverse_of: :users
-  has_one :user_apple_identity, class_name: "ClientAppleIdentity",
-                                foreign_key: :user_id,
-                                dependent: :destroy,
-                                inverse_of: :user
-  has_one :user_google_identity, class_name: "ClientGoogleIdentity",
-                                 foreign_key: :user_id,
-                                 dependent: :destroy,
-                                 inverse_of: :user
+  has_many :client_external_identities,
+           dependent: :destroy,
+           inverse_of: :client
+  has_many :client_apple_notification_events,
+           dependent: :nullify,
+           inverse_of: :client
   has_many :client_emails,
            foreign_key: :user_id,
            dependent: :destroy,
@@ -281,10 +279,9 @@ class Client < AppPrincipalRecord
     true
   end
 
-  # Compatibility shim for legacy pluralized callers.
-  # Association remains has_one.
   def client_google_identities
-    user_google_identity ? [user_google_identity] : []
+    identity = client_external_identities.find_by(provider: "google")
+    identity ? [identity] : []
   end
 
   # what is this?
@@ -324,22 +321,15 @@ class Client < AppPrincipalRecord
 
   def active_social_provider?(provider)
     normalized = SocialIdentifiable.normalize_provider(provider)
-    case normalized
-    when "google"
-      user_google_identity&.status_id == ClientGoogleIdentityStatus::ACTIVE
-    when "apple"
-      user_apple_identity&.status_id == ClientAppleIdentityStatus::ACTIVE
-    else
-      false
-    end
+    client_external_identities.exists?(provider: normalized, state: "active")
   end
 
   def active_google_identity_exists?
-    ClientGoogleIdentity.exists?(user_id: id, status_id: ClientGoogleIdentityStatus::ACTIVE)
+    client_external_identities.exists?(provider: "google", state: "active")
   end
 
   def active_apple_identity_exists?
-    ClientAppleIdentity.exists?(user_id: id, status_id: ClientAppleIdentityStatus::ACTIVE)
+    client_external_identities.exists?(provider: "apple", state: "active")
   end
 
   def verified_email?

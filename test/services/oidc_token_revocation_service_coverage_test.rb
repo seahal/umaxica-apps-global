@@ -98,6 +98,26 @@ class OidcTokenRevokerCoverageTest < ActiveSupport::TestCase
     end
   end
 
+  test "accepts an access-token revocation request when its client is no longer registered" do
+    service = ::OidcTokenRevoker.new(
+      token: "access-token",
+      client_id: "removed-client",
+      client_secret: "secret",
+      host: "app.example.test",
+    )
+
+    OidcClientRegistry.stub(:authenticate, true) do
+      ClientToken.stub(:parse_refresh_token, nil) do
+        OidcClientRegistry.stub(:find, nil) do
+          result = service.call
+
+          assert_predicate result, :success?
+          assert_nil result.error
+        end
+      end
+    end
+  end
+
   test "refresh token revocation ignores tokens for another client" do
     token = Token.new("other-client", nil)
     service = ::OidcTokenRevoker.new(

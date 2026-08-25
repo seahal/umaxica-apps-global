@@ -8,6 +8,7 @@ module Base
       declare_authentication_mode! :private
 
       def show
+        authorize!(current_client, to: :show?)
         return render_selector_json if request.format.json?
         return continue_selector_sequence! if current_db_sign_in_flow_for_sequence&.sign_in_selector_pending?
 
@@ -18,6 +19,7 @@ module Base
       end
 
       def update
+        authorize!(current_client, to: :update?)
         render json: BaseSelectorAuthority.select(
           surface: :app,
           principal: current_client,

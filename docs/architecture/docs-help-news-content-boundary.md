@@ -91,7 +91,8 @@ Rails should not own:
 - `/web/v0/cookie`;
 - `/web/v0/theme`;
 - mutation routes;
-- taxonomy routes;
+- dedicated taxonomy routes (taxonomy is a field on an entry and a filter parameter on the index,
+  never its own resource);
 - revision or version routes.
 
 Do not add placeholder routes, controllers, response contracts, or schemas for excluded future work.
@@ -124,12 +125,22 @@ Content persistence lives in the central `publishing` database. Controllers read
 `PUBLISHING_AUDIENCE` / `PUBLISHING_SURFACE` constants — never dynamically from a class name or
 request parameter.
 
-The JSON read contract is preserved from the legacy read-only surfaces: `namespace` carries the
-content surface (`docs`/`news`/`help`/`info`) and `surface` carries the audience
-(`app`/`com`/`org`).
+A serialized entry carries exactly these keys, pinned by
+`test/contracts/publishing_entry_api_contract_test.rb`:
 
-Taxonomy (category/tag) is deferred to a future ADR. Do not add category, tag, publish workflow,
-authoring UI, or approval workflow without that decision.
+```text
+namespace  surface  slug  locale  title  summary  body  published_at  taxonomy
+```
+
+`namespace` carries the content surface (`docs`/`news`/`help`/`info`) and `surface` carries the
+audience (`app`/`com`/`org`). `body` is always the complete JSON object.
+
+Taxonomy is decided in `adr/publishing-taxonomy-architecture.md`. Each entry exposes
+`taxonomy.category` (one object with its breadcrumb `path`, or `null`) and `taxonomy.tag` (an ordered
+array), rendered from the published version's frozen snapshots rather than from the current draft or
+from current term names. The index accepts `?category=<slug>` and `?tag=<slug>`.
+
+Authoring UI, approval workflow, and any write endpoint remain out of scope for these surfaces.
 
 Mutation belongs to future base > org authoring or management work. Docs, help, and news remain
 read-only surfaces.
@@ -137,5 +148,6 @@ read-only surfaces.
 ## Related
 
 - `adr/publishing-db-content-authority.md`
+- `adr/publishing-taxonomy-architecture.md`
 - `docs/architecture/regional-content.md`
 - `docs/architecture/acme-sign-core-base-port.md`

@@ -15,10 +15,10 @@ module Auth::App::In
 
     setup do
       host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-      CloudflareTurnstile.test_mode = true
-      CloudflareTurnstile.test_validation_response = { "success" => true }
-      JitSecurityTurnstileVerifier.test_mode = true
-      JitSecurityTurnstileVerifier.test_response = { "success" => true }
+      TurnstileVerifierStub.challenge_enabled = true
+      TurnstileVerifierStub.challenge_response = { "success" => true }
+      TurnstileVerifierStub.enabled = true
+      TurnstileVerifierStub.response = { "success" => true }
       @user = create_verified_user_with_email(email_address: "passkey_test_user_#{SecureRandom.hex(6)}@example.com")
       @user_email = @user.client_emails.first # Use the email created by the helper
 
@@ -35,20 +35,23 @@ module Auth::App::In
     end
 
     teardown do
-      CloudflareTurnstile.test_mode = false
-      CloudflareTurnstile.test_validation_response = nil
-      JitSecurityTurnstileVerifier.test_mode = false
-      JitSecurityTurnstileVerifier.test_response = nil
+      TurnstileVerifierStub.challenge_enabled = false
+      TurnstileVerifierStub.challenge_response = nil
+      TurnstileVerifierStub.enabled = false
+      TurnstileVerifierStub.response = nil
     end
     test "should get new" do
       get new_auth_app_sign_in_passkey_path(ri: "jp")
 
       assert_response :success
-      assert_select "[data-passkey-authentication-options-url-value=?]", auth_app_sign_in_passkey_options_path(ri: "jp")
-      assert_select "[data-passkey-authentication-verification-url-value=?]",
-                    auth_app_sign_in_passkey_verification_path(ri: "jp")
-      assert_select "[data-passkey-authentication-region-value=?]", "jp"
-      assert_select "a[href=?]", auth_app_sign_in_path(ri: "jp")
+      assert_equal "auth/app/sign/in/passkeys/new", inertia_component
+
+      panel = inertia_props.fetch("panel")
+
+      assert_equal auth_app_sign_in_passkey_options_path(ri: "jp"), panel.fetch("options_url")
+      assert_equal auth_app_sign_in_passkey_verification_path(ri: "jp"), panel.fetch("verification_url")
+      assert_equal "jp", panel.fetch("region")
+      assert_equal auth_app_sign_in_path(ri: "jp"), inertia_props.fetch("back_link").fetch("href")
     end
 
     # Case F-1: Identifier does not exist
@@ -376,9 +379,9 @@ module Auth::App::In
     end
 
     test "options returns turnstile error when response token is missing" do
-      CloudflareTurnstile.test_mode = false
-      JitSecurityTurnstileVerifier.test_mode = false
-      JitSecurityTurnstileVerifier.test_response = nil
+      TurnstileVerifierStub.challenge_enabled = false
+      TurnstileVerifierStub.enabled = false
+      TurnstileVerifierStub.response = nil
 
       post auth_app_sign_in_passkey_options_path(ri: "jp"), params: { identifier: @user_email.address }
 
@@ -803,11 +806,14 @@ class Auth::App::In::PasskeysControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -854,9 +860,9 @@ class Auth::App::In::PasskeysControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -869,7 +875,7 @@ class Auth::App::In::PasskeysControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1136,11 +1142,14 @@ class Auth::App::In::PasskeysControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

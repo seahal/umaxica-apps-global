@@ -100,6 +100,12 @@ module OidcSsoInitiator
       state: state,
       nonce: nonce,
       scope: "openid profile",
+      # The authorization endpoint skips region normalization, so it can only carry the region the
+      # initiating request already resolved. Without this the ceremony reaches the credential
+      # gateway region-less and every URL built from it downstream loses the region too.
+      # `RequestContextContract` is used directly rather than `current_region_identifier` because
+      # this concern is also included on controllers that do not mix in `PreferenceGlobal`.
+      ri: RequestContextContract.normalize_region(params[:ri]),
     }
     query[:screen_hint] = screen_hint if screen_hint.present?
     oidc_acme_service_origin.authorization_endpoint(query: query)

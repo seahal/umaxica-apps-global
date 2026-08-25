@@ -10,6 +10,9 @@ module Auth
             include SignUpSequenceControllerSupport
             include SignUpSocialBirthdateSupport
 
+            include ::SurfaceInertiaPage
+            include AppSignUpCheckpointPage
+
             AUTHENTICATION_MODE = :guest
 
             before_action :load_sign_up_ticket

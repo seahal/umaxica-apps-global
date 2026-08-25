@@ -6,10 +6,15 @@ require "test_helper"
 
 class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   STATIC_SURFACES = [
-    ["base_app_root_url", "BASE_SERVICE_URL", "base.app.localhost", I18n.t("landing.thin_endpoint")],
-    ["base_com_root_url", "BASE_CORPORATE_URL", "base.com.localhost", I18n.t("landing.thin_endpoint")],
-    ["base_org_root_url", "BASE_STAFF_URL", "base.org.localhost", I18n.t("landing.thin_endpoint")],
     ["palm_app_root_url", "PUBLIC_PALM_SERVICE_URL", "palm.app.localhost", "Palm API is available"],
+  ].freeze
+
+  # The base gateway roots answer with a canonical redirect to the regional root instead of a
+  # page, so they are asserted on their `Location` rather than on a body.
+  BASE_GATEWAY_ROOTS = [
+    ["base_app_root_url", "BASE_SERVICE_URL", "base.app.localhost", "https://jp.umaxica.app/"],
+    ["base_com_root_url", "BASE_CORPORATE_URL", "base.com.localhost", "https://jp.umaxica.com/"],
+    ["base_org_root_url", "BASE_STAFF_URL", "base.org.localhost", "https://jp.umaxica.org/"],
   ].freeze
 
   CONTENT_SURFACES = [
@@ -36,7 +41,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     ["news_org_api_v0_entry_url", "PRIVATE_NEWS_STAFF_URL", "news.org.localhost", "news", "org"],
   ].freeze
 
-  test "static base and palm roots respond without auth redirects" do
+  test "static palm roots respond without auth redirects" do
     STATIC_SURFACES.each do |helper, env_key, fallback, expected|
       host = ENV.fetch(env_key, fallback)
       host! host
@@ -44,6 +49,17 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.body, expected
+    end
+  end
+
+  test "base gateway roots answer with the canonical regional redirect" do
+    BASE_GATEWAY_ROOTS.each do |helper, env_key, fallback, expected_location|
+      host = ENV.fetch(env_key, fallback)
+      host! host
+      get public_send(helper, ri: "jp", host: host)
+
+      assert_response :moved_permanently
+      assert_equal expected_location, response.location
     end
   end
 
@@ -68,7 +84,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     get docs_app_api_v0_entry_url(slug: published.slugs.canonical.first.slug, locale: "test-show")
 
     assert_response :success
-    assert_equal "visible-entry", response.parsed_body.fetch("entry").fetch("slug")
+    assert_equal "visible-entry", response.parsed_body.fetch("slug")
 
     get docs_app_api_v0_entry_url(slug: "future-entry", locale: "test-show")
 
@@ -99,7 +115,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     get docs_app_api_v0_entry_url(slug: published.slugs.canonical.first.slug, ri: "jp")
 
     assert_response :success
-    assert_equal published.slugs.canonical.first.slug, response.parsed_body.fetch("entry").fetch("slug")
+    assert_equal published.slugs.canonical.first.slug, response.parsed_body.fetch("slug")
 
     get docs_app_api_v0_entry_url(slug: "locale-draft-entry", ri: "jp")
 
@@ -124,12 +140,12 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     get docs_app_api_v0_entry_url(slug: published.slugs.canonical.first.slug, ri: "zz")
 
     assert_response :success
-    assert_equal published.slugs.canonical.first.slug, response.parsed_body.fetch("entry").fetch("slug")
+    assert_equal published.slugs.canonical.first.slug, response.parsed_body.fetch("slug")
 
     get docs_app_api_v0_entry_url(slug: english.slugs.canonical.first.slug, ri: "us")
 
     assert_response :success
-    assert_equal english.slugs.canonical.first.slug, response.parsed_body.fetch("entry").fetch("slug")
+    assert_equal english.slugs.canonical.first.slug, response.parsed_body.fetch("slug")
   end
 
   test "content api index and show serialize published content with the expected namespace" do
@@ -150,7 +166,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
           as: :json
 
       assert_response :success
-      entry = response.parsed_body.fetch("entry")
+      entry = response.parsed_body
 
       assert_equal newer.slugs.canonical.first.slug, entry.fetch("slug")
       assert_equal surface, entry.fetch("namespace")
@@ -169,7 +185,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
           as: :json
 
       assert_response :success
-      entries = response.parsed_body.fetch("entries")
+      entries = response.parsed_body.fetch("data")
 
       assert_equal [newer.slugs.canonical.first.slug, "#{audience}-older-entry"], entries.map { |e| e.fetch("slug") }
       assert_equal surface, entries.first.fetch("namespace")
@@ -180,25 +196,16 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
 
   private
 
+  # "archived" publishes the entry and then archives it, so the case genuinely
+  # exercises the archived-entry exclusion rather than merely skipping
+  # publication the way a draft does.
   def create_publishing_entry(audience:, surface:, slug:, title:, locale: "jp", status: "published", published_at: 1.hour.ago)
-    edition = Publishing::Edition.find_or_create_by!(audience:, surface:, locale:)
-    entry = Publishing::Entry.create!(edition:, locale:)
-    Publishing::EntrySlug.create!(entry:, edition:, locale:, slug:, state: "canonical", canonicalized_at: Time.current)
-    digest = Digest::SHA256.hexdigest(slug)
-    revision =
-      Publishing::EntryRevision.create!(
-        entry:, locale:, title:, summary: "#{title} summary", body: { "text" => "#{title} body" },
-        schema_version: 1, content_digest: digest, sequence: 1,
-      )
-    entry.update!(current_revision: revision)
-    return entry unless status == "published"
+    edition = publishing_edition(audience:, surface:, locale:)
+    entry = publishing_draft(edition:, slug:, title:, locale:)
+    return entry if status == "draft"
 
-    version =
-      Publishing::EntryVersion.create!(
-        entry:, entry_revision: revision, locale:, title:, summary: revision.summary, body: revision.body,
-        schema_version: 1, content_digest: digest, sequence: 1,
-      )
-    Publishing::Publication.create!(entry:, entry_version: version, effective_from: published_at)
+    publishing_publish(entry:, published_at:)
+    entry.update!(archived_at: Time.current, archive_reason: "test fixture") if status == "archived"
     entry
   end
 end

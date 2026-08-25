@@ -32,7 +32,27 @@ class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
     },
   ].freeze
 
+  # Every surface that declares a sitemaps controller belongs here. The Core rows were absent while
+  # `app/views/core/*/sitemaps/show.xml.builder` did not exist, so all three Core realms answered
+  # `/sitemap.xml` with a 500 from `ActionView::MissingTemplate` and no test noticed. Route contract
+  # tests cannot catch that: routing recognised the path, only rendering failed.
   SITEMAP_SURFACES = [
+    {
+      host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
+      controller: "auth/app/sitemaps",
+    },
+    {
+      host: ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost"),
+      controller: "auth/com/sitemaps",
+    },
+    {
+      host: ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost"),
+      controller: "auth/org/sitemaps",
+    },
+    {
+      host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
+      controller: "base/app/sitemaps",
+    },
     {
       host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
       controller: "base/com/sitemaps",
@@ -40,6 +60,18 @@ class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
     {
       host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
       controller: "base/org/sitemaps",
+    },
+    {
+      host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"),
+      controller: "core/app/sitemaps",
+    },
+    {
+      host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"),
+      controller: "core/com/sitemaps",
+    },
+    {
+      host: ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"),
+      controller: "core/org/sitemaps",
     },
     {
       host: ENV.fetch("PUBLIC_PALM_SERVICE_URL"),
@@ -74,7 +106,7 @@ class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "sitemap.xml is served on every surface that provides a template" do
+  test "sitemap.xml is served on every surface that declares a sitemaps controller" do
     SITEMAP_SURFACES.each do |surface|
       host! surface[:host]
 

@@ -19,6 +19,20 @@ is an intentional, reviewed security decision before touching the test.
   `:authenticate_client!` may appear only in the reviewed `SENSITIVE_SKIP_ALLOWLIST`. Adding a new
   file that skips one of these fails the suite until the boundary change is reviewed.
 
+## RI routing contract guard
+
+`test/unit/security/ri_routing_contract_test.rb` pins the region (`ri`) request-context contract:
+
+- every `<family>/<edition>` controller directory is classified as participating or exempt,
+- every participating surface `ApplicationController` includes `PreferenceGlobal` and registers
+  `before_action :set_region`,
+- the set of controllers skipping `set_region` equals `RI_SKIP_ALLOWLIST` exactly.
+
+Skipping `set_region` on a controller that renders regional HTML removes `ri` from every URL it
+generates, because `default_url_options` propagates the region from the request params only. Treat
+an allowlist edit as a reviewed boundary change. See
+`plans/ri-preference-routing-regression-audit.md`.
+
 ## Bare controller guard
 
 `test/controllers/apex/app/bare_controller_test.rb` pins the set of controllers inheriting

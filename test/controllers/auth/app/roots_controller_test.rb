@@ -6,6 +6,8 @@ require "test_helper"
 # require "helpers/root_theme_cookie_helper"
 
 class Auth::App::RootsControllerTest < ActionDispatch::IntegrationTest
+  BRAND = ENV.fetch("BRAND_NAME").upcase
+
   fixtures :clients, :client_statuses
 
   # include RootThemeCookieHelper
@@ -19,42 +21,64 @@ class Auth::App::RootsControllerTest < ActionDispatch::IntegrationTest
     Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 
-  test "renders a thin landing page" do
+  test "permanently redirects the jp region to the sign in entry point" do
     get auth_app_root_url(ri: "jp", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"))
 
+    assert_response :moved_permanently
+    assert_equal auth_app_sign_in_url(ri: "jp", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")),
+                 response.location
+    assert_includes response.location, "/sign/in?ri=jp"
+  end
+
+  test "permanently redirects the us region to the sign in entry point" do
+    get auth_app_root_url(ri: "us", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"))
+
+    assert_response :moved_permanently
+    assert_equal auth_app_sign_in_url(ri: "us", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")),
+                 response.location
+    assert_includes response.location, "/sign/in?ri=us"
+  end
+
+  test "an unrecognized region falls through to the shared region normalization" do
+    get auth_app_root_url(ri: "xx", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"))
+
+    assert_response :found
+    assert_equal auth_app_root_url(ri: "jp", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")),
+                 response.location
+  end
+
+  test "a missing region normalizes first and then reaches the sign in entry point" do
+    get "/"
+
+    assert_response :found
+    follow_redirect!
+
+    assert_response :moved_permanently
+    assert_includes response.location, "/sign/in?ri=jp"
+
+    follow_redirect!
+
     assert_response :success
-    assert_select "title", "Sign App"
-    assert_select "h1", text: "Sign App"
-    assert_select "main p", text: /Thin landing endpoint/
   end
 
-  test "creates preference cookies on root" do
-    get auth_app_root_url(ri: "jp", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"))
+  test "the sign in entry point terminates the redirect chain for both regions" do
+    %w(jp us).each do |region|
+      get auth_app_root_url(ri: region, host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"))
 
-    assert_response :success
-    assert_predicate cookies[PreferenceCookieName.access(surface: :app)], :present?
-    assert_predicate cookies[PreferenceCookieName.refresh(surface: :app)], :present?
+      assert_response :moved_permanently
+      follow_redirect!
+
+      assert_response :success, "the #{region} sign in entry point must not redirect again"
+    end
   end
 
-  test "sets theme cookie" do
-    assert_theme_cookie_for(
-      "sy",
-      path: auth_app_root_path(ri: "jp"),
-    )
-  end
-
-  test "GET / redirects to dashboard when logged in" do
+  test "the root redirect takes precedence over the logged in dashboard redirect" do
     user = clients(:one)
     get auth_app_root_url(ri: "jp"),
         headers: as_user_headers(user, host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"))
 
-    assert_response :redirect
-    assert_redirected_to base_app_dashboard_url(
-      ri: "jp",
-      host: ENV.fetch(
-        "PUBLIC_BASE_SERVICE_URL", Rails.configuration.x.boot_config.fetch(:hosts).base_service.host,
-      ),
-    )
+    assert_response :moved_permanently
+    assert_includes response.location, "/sign/in?ri=jp"
   end
   private
 

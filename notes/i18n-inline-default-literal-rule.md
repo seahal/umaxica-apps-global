@@ -59,13 +59,21 @@ Rules for the migration phase:
 
 ## Regression Policy
 
-For the current cleanup phase, a dedicated regression test is optional and may be deferred.
+Updated 2026-08-13: the cleanup of `app/` is complete and the regression test is no longer optional.
 
-This cleanup can be handled as a broad, potentially breaking contract correction. Temporary breakage
-during the migration is acceptable as long as the final result removes literal inline defaults from
-the intended scope.
+`test/initializers/locale_bundle_integrity_test.rb` fails on any `t(..., default:)` or
+`I18n.t(..., default:)` under `app/`. It also fails on a duplicate YAML mapping key in a locale
+bundle, and on a bundle under `config/locales` that is missing from the load path — both silently
+discard translations the same way an inline default does.
+
+The rule is stronger than the original wording: a `default:` of any kind, not only a literal string,
+suppresses `I18n::MissingTranslation` and therefore defeats
+`config.i18n.raise_on_missing_translations`. Add the key to the locale bundles instead. Where a
+value genuinely cannot be translated (a database-supplied proper noun), render it directly rather
+than dressing it as a translation lookup.
 
 ## Related
 
 - `AGENTS.md`
 - `plans/archive/fix-i18n-inline-defaults.md`
+- `notes/implementation/2026-08-13-i18n-missing-translation-detection.md`

@@ -21,10 +21,12 @@ module Outbound
       job = enqueued_jobs.last
 
       assert_equal Outbound::SmsDeliveryJob, job[:job]
-      assert_equal "+819012345678", job[:args].first["to"]
-      assert_equal "Title", job[:args].first["title"]
-      assert_nil job[:args].first["body"]
-      assert_equal "Body", OutboundSensitivePayload.decrypt_sms_body(job[:args].first["encrypted_body"])
+      payload = OutboundSensitivePayload.decrypt_sms_delivery(job[:args].first.fetch("encrypted_payload"))
+
+      assert_equal "+819012345678", payload.fetch(:to)
+      assert_equal "Title", payload.fetch(:title)
+      assert_equal "Body", payload.fetch(:body)
+      assert_not_includes job[:args].inspect, "+819012345678"
       assert_not_includes job[:args].inspect, "Body"
     end
 
@@ -38,10 +40,12 @@ module Outbound
 
       job = enqueued_jobs.last
 
-      assert_equal "+819012345679", job[:args].first["to"]
-      assert_equal "Call Title", job[:args].first["title"]
-      assert_nil job[:args].first["body"]
-      assert_equal "Call Body", OutboundSensitivePayload.decrypt_sms_body(job[:args].first["encrypted_body"])
+      payload = OutboundSensitivePayload.decrypt_sms_delivery(job[:args].first.fetch("encrypted_payload"))
+
+      assert_equal "+819012345679", payload.fetch(:to)
+      assert_equal "Call Title", payload.fetch(:title)
+      assert_equal "Call Body", payload.fetch(:body)
+      assert_not_includes job[:args].inspect, "+819012345679"
       assert_not_includes job[:args].inspect, "Call Body"
     end
 

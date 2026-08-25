@@ -31,22 +31,29 @@ class Base::App::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     get base_app_dashboard_url(ri: "jp"), headers: session_headers(token)
 
     assert_response :success
-    assert_select "h1", "Dashboard"
-    assert_select "a[href=?]", base_app_root_path(ri: "jp")
-    assert_select "a[href=?]", base_app_dashboard_path(ri: "jp")
-    assert_select "a[href=?]", base_app_accounts_path(ri: "jp"), text: "Account"
-    assert_select "a[href=?]", base_app_organizations_path(ri: "jp"), text: "Organization"
-    assert_select "a[href=?]", base_app_avatars_path(ri: "jp"), text: "Avatar"
-    assert_select "a[href=?]", base_app_switcher_path(ri: "jp"), text: "Switcher"
-    assert_select "a[href=?]", base_app_identity_path(ri: "jp"), text: "Identity"
-    assert_select "a[href=?]", base_app_selector_path(ri: "jp")
-    assert_select "a[href=?]", new_base_app_sign_out_path(ri: "jp")
+    assert_equal "base/app/dashboards/show", inertia_component
+    assert_equal "Dashboard", inertia_props.fetch("title")
+
+    links = inertia_props.fetch("sections").flat_map { |section| section.fetch("items") }
+    hrefs = links.map { |link| link.fetch("href") }
+    labelled = links.to_h { |link| [link.fetch("label"), link.fetch("href")] }
+
+    assert_includes hrefs, base_app_root_path(ri: "jp")
+    assert_includes hrefs, base_app_dashboard_path(ri: "jp")
+    assert_equal base_app_accounts_path(ri: "jp"), labelled.fetch("Account")
+    assert_equal base_app_organizations_path(ri: "jp"), labelled.fetch("Organization")
+    assert_equal base_app_avatars_path(ri: "jp"), labelled.fetch("Avatar")
+    assert_equal base_app_switcher_path(ri: "jp"), labelled.fetch("Switcher")
+    assert_equal base_app_identity_path(ri: "jp"), labelled.fetch("Identity")
+    assert_includes hrefs, base_app_selector_path(ri: "jp")
+    assert_includes hrefs, new_base_app_sign_out_path(ri: "jp")
+    # The dashboard only links to ceremonies; it never posts a logout itself.
     assert_select "form[action^=?]", base_app_oidc_logout_path, count: 0
-    assert_select "a[href=?]", base_app_oidc_authorization_path(ri: "jp", screen_hint: "signin")
-    assert_select "a[href=?]", base_app_oidc_authorization_path(ri: "jp", screen_hint: "signup")
-    assert_select "a", text: "OIDC discovery"
-    assert_select "a", text: "JWKS"
-    assert_select "a", text: "UserInfo"
+    assert_includes hrefs, base_app_oidc_authorization_path(ri: "jp", screen_hint: "signin")
+    assert_includes hrefs, base_app_oidc_authorization_path(ri: "jp", screen_hint: "signup")
+    assert_includes labelled.keys, "OIDC discovery"
+    assert_includes labelled.keys, "JWKS"
+    assert_includes labelled.keys, "UserInfo"
     assert_no_match(%r{//example|umaxica\.example|evil\.example}, response.body)
   end
 
@@ -56,10 +63,15 @@ class Base::App::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
 
     get base_app_dashboard_url(ri: "jp"), headers: session_headers(token)
 
-    assert_select "a[href=?]", base_app_oidc_authorization_path(ri: "jp", screen_hint: "signin"),
-                  text: "Authorize (sign in)"
-    assert_select "a[href=?]", base_app_oidc_authorization_path(ri: "jp", screen_hint: "signup"),
-                  text: "Authorize (sign up)"
+    labelled =
+      inertia_props.fetch("sections")
+        .flat_map { |section| section.fetch("items") }
+        .to_h { |link| [link.fetch("label"), link.fetch("href")] }
+
+    assert_equal base_app_oidc_authorization_path(ri: "jp", screen_hint: "signin"),
+                 labelled.fetch("Authorize (sign in)")
+    assert_equal base_app_oidc_authorization_path(ri: "jp", screen_hint: "signup"),
+                 labelled.fetch("Authorize (sign up)")
   end
 
   test "welcome_requires_authentication" do
@@ -566,11 +578,14 @@ class Base::App::WelcomeDashboardAuthoritySlice1CTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

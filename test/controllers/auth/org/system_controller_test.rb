@@ -19,6 +19,37 @@ class Auth::Org::SystemControllerTest < ActionDispatch::IntegrationTest
     assert_equal "/system", uri.path
   end
 
+  # Redirect-only controllers do not run PreferenceGlobal#set_region, so nothing normalizes `ri`
+  # into params before the hop to Base. Forwarding the query as-is dropped the region entirely and
+  # left Base to re-derive it from its own context, silently discarding the region the caller was
+  # browsing in. The redirect must carry a valid region either way.
+  test "index carries a normalized region to base when the request has none" do
+    get auth_org_system_index_url, headers: host_headers(@host)
+
+    assert_response :see_other
+    query = Rack::Utils.parse_nested_query(URI.parse(response.location).query.to_s)
+
+    assert_equal "jp", query["ri"]
+  end
+
+  test "index preserves an explicit region across the hop to base" do
+    get auth_org_system_index_url(ri: "us"), headers: host_headers(@host)
+
+    assert_response :see_other
+    query = Rack::Utils.parse_nested_query(URI.parse(response.location).query.to_s)
+
+    assert_equal "us", query["ri"]
+  end
+
+  test "index normalizes an unrecognized region instead of forwarding it" do
+    get auth_org_system_index_url(ri: "xx"), headers: host_headers(@host)
+
+    assert_response :see_other
+    query = Rack::Utils.parse_nested_query(URI.parse(response.location).query.to_s)
+
+    assert_equal "jp", query["ri"]
+  end
+
   test "route path is preserved for compatibility" do
     assert_equal "/system", auth_org_system_index_path
   end

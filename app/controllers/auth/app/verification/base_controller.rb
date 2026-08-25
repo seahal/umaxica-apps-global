@@ -64,6 +64,22 @@ module Auth
           auth_app_verification_path(ri: params[:ri])
         end
 
+        # The step-up completion hand-off is an auto-submitting ERB document, not an Inertia page.
+        # The descendants that render Inertia carry the Inertia layout, which has no `yield`, so the
+        # completion template names the document layout explicitly and reaches acme unchanged.
+        def render_acme_step_up_completion!(result_token:, ri:)
+          render(
+            "sign/shared/step_up_completion",
+            layout: "auth/app/application",
+            locals: {
+              completion_url: acme_step_up_completion_url_for(step_up_ceremony_surface),
+              result_token: result_token,
+              ri: ri,
+              csrf_token: acme_step_up_completion_csrf_token,
+            },
+          )
+        end
+
         def clear_step_up_state!
           session.delete(email_otp_session_key) if step_up_session_storage_available?
         end

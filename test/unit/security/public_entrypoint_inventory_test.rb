@@ -22,9 +22,11 @@ module Security
     DOCUMENTED_CATEGORY_IDS = %w(
       PUBLIC_ROOTS
       PUBLIC_HEALTH
+      PUBLIC_REVISION
       PUBLIC_CSP_REPORTS
       PUBLIC_WELL_KNOWN
       PUBLIC_ROBOTS_SITEMAPS
+      PUBLIC_PWA_OFFLINE
       PUBLIC_CONTENT_READ_APIS
       PUBLIC_PREFERENCE
       PUBLIC_WEB_EDGE
@@ -32,6 +34,7 @@ module Security
       PUBLIC_SIGN_IN_UP
       PUBLIC_SIGN_OUT
       PUBLIC_WITHDRAWAL
+      PUBLIC_IDENTITY_RECOVERY
       PUBLIC_SOCIAL
       PUBLIC_AUTH_APP_REDIRECTS
       PUBLIC_AUTH_APP_SETTINGS_COMPAT
@@ -39,6 +42,8 @@ module Security
       PUBLIC_PALM_API
       PUBLIC_AUTH_ORG_REDIRECTS
       PUBLIC_SIDE_SETTINGS
+      PUBLIC_APPLE_NOTIFICATIONS
+      PUBLIC_MCP
     ).freeze
 
     RouteEntry = Struct.new(:verb, :path, :controller_path, :action, :controller_class, :mode, keyword_init: true)
@@ -84,6 +89,26 @@ module Security
         end
 
       assert_empty wrongly_public, "Private routes must not match public categories:\n#{wrongly_public.join("\n")}"
+    end
+
+    test "PUBLIC_PWA_OFFLINE covers exactly the two Rails PWA endpoints" do
+      # Rails::PwaController is a framework controller, so these routes are outside
+      # application_route_entries by construction. They are still public entrypoints, so the category
+      # is enforced here instead. See adr/pwa-offline-route-exception.md.
+      entries =
+        Rails.application.routes.routes.filter_map do |route|
+          controller_path = route.defaults[:controller].to_s
+          next unless controller_path == "rails/pwa"
+
+          [route.verb, route.path.spec.to_s.sub(/\(\.:format\)\z/, ""), route.defaults[:action].to_s]
+        end
+
+      assert_equal 20, entries.size, "expected two PWA endpoints on each of the ten base/auth/side/palm hosts"
+      assert_equal ["GET"], entries.map(&:first).uniq
+      assert_equal(
+        [["/offline", "offline"], ["/service-worker", "service_worker"]],
+        entries.map { |entry| entry.drop(1) }.uniq.sort,
+      )
     end
 
     private
@@ -142,6 +167,7 @@ module Security
 
       public_root?(entry) ||
         public_health?(entry) ||
+        public_revision?(entry) ||
         public_csp_report?(entry) ||
         public_well_known?(entry) ||
         public_robots_or_sitemap?(entry) ||
@@ -152,18 +178,30 @@ module Security
         public_sign_in_or_up?(entry) ||
         public_sign_out?(entry) ||
         public_withdrawal?(entry) ||
+        public_identity_recovery?(entry) ||
         public_social?(entry) ||
         public_auth_app_redirect?(entry) ||
         public_auth_app_settings_compat?(entry) ||
         public_core_api?(entry) ||
         public_palm_api?(entry) ||
         public_auth_org_redirect?(entry) ||
-        public_side_settings?(entry)
+        public_side_settings?(entry) ||
+        public_apple_notification?(entry) ||
+        public_mcp?(entry)
+    end
+
+    # Base and Side only. Auth and the content surfaces do not serve MCP, so an MCP route appearing
+    # under them is an undocumented entrypoint rather than a covered one.
+    def public_mcp?(entry)
+      post?(entry) && entry.path == "/mcp" &&
+        entry.controller_path.match?(%r{\A(base|side)/(app|com|org)/mcps\z})
     end
 
     def public_root?(entry) = get?(entry) && entry.path == "/"
 
     def public_health?(entry) = get?(entry) && entry.path.start_with?("/health")
+
+    def public_revision?(entry) = get?(entry) && entry.path == "/revision"
 
     def public_csp_report?(entry) = post?(entry) && entry.path == "/csp-violation-report"
 
@@ -201,6 +239,11 @@ module Security
           entry.controller_path.match?(%r{\Abase/(app|com)/identity/privacy/erasure(?:s|/statuses)\z}))
     end
 
+    def public_identity_recovery?(entry)
+      entry.path.start_with?("/identity/recovery") &&
+        entry.controller_path.match?(%r{\Abase/(app|com)/identity/(?:recoveries|recovery/)})
+    end
+
     def public_social?(entry)
       entry.path.start_with?("/social") || entry.controller_path.match?(%r{\A(auth|base)/app/social/})
     end
@@ -233,6 +276,8 @@ module Security
     def public_side_settings?(entry)
       get?(entry) && entry.controller_path.start_with?("side/") && entry.path == "/settings"
     end
+
+    def public_apple_notification?(entry) = post?(entry) && entry.path == "/apple/notifications"
 
     def get?(entry) = route_allows?(entry, "GET")
 

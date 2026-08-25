@@ -10,22 +10,32 @@ Bundler.require(*Rails.groups)
 
 require_relative "../lib/jit_security_active_record_encryption_key_provider"
 require_relative "../lib/app_config_loader"
+require_relative "../lib/trusted_forwarded_headers"
 
 module Jit
   module TrustedProxiesConfig
     module_function
 
-    def parse(value)
-      value.to_s.split(",").filter_map do |proxy|
-        normalized = proxy.strip
-        next if normalized.empty?
+    def parse(value, required: false)
+      proxies =
+        value.to_s.split(",").filter_map do |proxy|
+          normalized = proxy.strip
+          next if normalized.empty?
 
-        parse_proxy(normalized)
-      end
+          parse_proxy(normalized)
+        end
+      raise KeyError, "Missing required configuration: TRUSTED_PROXIES" if required && proxies.empty?
+
+      proxies
     end
 
     def parse_proxy(value)
-      IPAddr.new(value)
+      proxy = IPAddr.new(value)
+      if proxy == IPAddr.new("0.0.0.0/0") || proxy == IPAddr.new("::/0")
+        raise ArgumentError, "TRUSTED_PROXIES must not contain a catch-all network"
+      end
+
+      proxy
     rescue IPAddr::InvalidAddressError => e
       raise ArgumentError, "Invalid TRUSTED_PROXIES entry: #{value.inspect}", cause: e
     end
@@ -38,7 +48,11 @@ module Jit
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # CommonHelper ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w(assets tasks))
+    # `omniauth` holds lib/omniauth/strategies/umaxica_entra.rb, which reopens
+    # the omniauth_openid_connect gem's own OmniAuth::Strategies module
+    # (capitalized "OmniAuth"); Zeitwerk's inflection for the directory name
+    # ("Omniauth") would otherwise collide with it.
+    config.autoload_lib(ignore: %w(assets tasks omniauth))
 
     # Configuration for the application, engines, and railties goes here.
     #
@@ -60,7 +74,16 @@ module Jit
     ### Added by user
     # Trust X-Forwarded-* headers from reverse proxy (Cloudflare Tunnel, Nginx, etc.)
     # This allows Rails to correctly determine the protocol (HTTP/HTTPS) and host
-    config.action_dispatch.trusted_proxies = TrustedProxiesConfig.parse(ENV["TRUSTED_PROXIES"])
+    trusted_proxies = TrustedProxiesConfig.parse(
+      ENV["TRUSTED_PROXIES"],
+      required: Rails.env.production?,
+    )
+    config.action_dispatch.trusted_proxies = trusted_proxies
+    config.middleware.insert_before(
+      ActionDispatch::RemoteIp,
+      TrustedForwardedHeaders,
+      trusted_proxies: trusted_proxies,
+    )
     config.x.boot_config = AppConfigLoader.load!
 
     # Active Record Encryption Configuration
@@ -72,13 +95,32 @@ module Jit
       config.active_record.encryption.key_derivation_salt = encryption_keys.fetch(:key_derivation_salt)
     end
 
+    # CSRF outcomes are recorded through CsrfNotificationSubscriber, which subscribes to
+    # the three csrf_*.action_controller events (rails/rails#56355) and emits redacted
+    # security.csrf.* application events.
+    #
+    # Rails' own ActionController::LogSubscriber handles the same events and writes
+    # payload[:message] verbatim. That message is built by
+    # unverified_request_warning_message and can read "HTTP Origin header (...) didn't
+    # match request.base_url (...)": free text outside JitLogEvent.format, so
+    # ObservabilityRedactor never sees it. Silencing it here leaves the redacted event as
+    # the single source of truth. config/environments/development.rb turns it back on,
+    # where the raw reason is the useful signal and no real user data is present.
+    config.action_controller.log_warning_on_csrf_failure = false
+
     # Rails encrypted/signed cookies derive keys from secret_key_base.
     # Pin modern primitives explicitly and do not keep SHA1 compatibility rotations.
     config.action_dispatch.signed_cookie_digest = "SHA256"
     config.action_dispatch.encrypted_cookie_cipher = "aes-256-gcm"
     config.action_dispatch.use_authenticated_cookie_encryption = true
 
-    # USE UTC
+    # API paths must never receive an HTML error page. Routing misses under `/api/` never reach a
+    # controller, so no `rescue_from` can cover them; only the exceptions app sees both those and
+    # unhandled exceptions. Non-API paths keep the static pages in `public/`.
+    config.exceptions_app = ->(env) { ApiProblemExceptionsApp.call(env) }
+
+    # USE UTC. RFC 3339 output with a `Z` offset depends on this: a non-UTC zone would make
+    # `Time#iso8601` emit a numeric offset instead, which the API contract does not allow.
     config.time_zone = "UTC"
     config.active_record.default_timezone = :utc
     config.active_record.schema_format = :sql

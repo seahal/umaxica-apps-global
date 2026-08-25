@@ -519,10 +519,8 @@ module Auth
       assert_kind_of String, issuer
     end
 
-    test "JwtConfiguration.audiences returns array" do
-      audiences = AuthenticationJwtConfiguration.audiences
-
-      assert_kind_of Array, audiences
+    test "JwtConfiguration.audiences requires a resource type" do
+      assert_raises(ArgumentError) { AuthenticationJwtConfiguration.audiences }
     end
 
     test "JwtConfiguration.leeway_seconds returns integer" do
@@ -641,10 +639,30 @@ module Auth
       assert_equal "urn:umaxica:test:auth", AuthenticationJwtConfiguration.issuer("invalid")
     end
 
-    test "JwtConfiguration.audiences respects resource_type specific env" do
-      with_env("AUTH_JWT_CLIENT_AUDIENCES" => "u1,u2", "AUTH_JWT_AUDIENCES" => "default") do
+    test "JwtConfiguration.audiences requires distinct resource-specific env" do
+      with_env(
+        "AUTH_JWT_CLIENT_AUDIENCES" => "u1,u2",
+        "AUTH_JWT_VISITOR_AUDIENCES" => "v1",
+        "AUTH_JWT_OPERATOR_AUDIENCES" => "o1",
+      ) do
         assert_equal %w(u1 u2), AuthenticationJwtConfiguration.audiences("client")
-        assert_equal %w(default), AuthenticationJwtConfiguration.audiences("operator")
+        assert_equal %w(o1), AuthenticationJwtConfiguration.audiences("operator")
+      end
+    end
+
+    test "JwtConfiguration.audiences rejects missing blank and overlapping values" do
+      with_env("AUTH_JWT_CLIENT_AUDIENCES" => nil) do
+        assert_raises(KeyError) { AuthenticationJwtConfiguration.audiences("client") }
+      end
+      with_env("AUTH_JWT_CLIENT_AUDIENCES" => "  ") do
+        assert_raises(KeyError) { AuthenticationJwtConfiguration.audiences("client") }
+      end
+      with_env(
+        "AUTH_JWT_CLIENT_AUDIENCES" => "shared",
+        "AUTH_JWT_VISITOR_AUDIENCES" => "shared",
+        "AUTH_JWT_OPERATOR_AUDIENCES" => "operator-only",
+      ) do
+        assert_raises(ArgumentError) { AuthenticationJwtConfiguration.audiences("client") }
       end
     end
 

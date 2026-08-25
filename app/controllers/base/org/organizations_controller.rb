@@ -4,6 +4,8 @@
 module Base
   module Org
     class OrganizationsController < Base::Org::ApplicationController
+      include ::SurfaceInertiaPage
+
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
 
@@ -12,11 +14,13 @@ module Base
       def index
         authorize!(current_operator, to: :show?)
         @organizations = switcher.available_organizations
+        render inertia: true, props: { title: "Organizations", body: "organizations" }
       end
 
       def show
         @organization = find_organization!
         authorize!(@organization, to: :show?, with: OrganizationPolicy)
+        render inertia: true, props: { title: "Organization", body: "organization" }
       end
 
       private

@@ -2,9 +2,12 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 # require "helpers/global_test_support"
 
 class SignAppUpSocialCancellationTest < ActiveSupport::TestCase
+  include ExternalIdentityTestHelper
+
   self.fixture_table_names = []
 
   setup do
@@ -13,20 +16,11 @@ class SignAppUpSocialCancellationTest < ActiveSupport::TestCase
     ClientMfaStatus.ensure_defaults!
     ClientVisibility.ensure_defaults!
     ClientSignUpFlowStatus.ensure_defaults!
-    ClientGoogleIdentityStatus.ensure_defaults!
-    ClientAppleIdentityStatus.ensure_defaults!
   end
 
   test "cancels google sign up and schedules pending identity and actor retention" do
     user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-    identity = ClientGoogleIdentity.create!(
-      user: user,
-      uid: "cancel-google-sign-up",
-      provider: "google_app",
-      token: "token",
-      token_expires_at: 1.week.from_now.to_i,
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-    )
+    identity = create_active_external_identity(client: user, provider: "google", subject: "cancel-google-sign-up")
     cycle = social_cycle(user, identity, provider: "google")
 
     result = SignAppUpSocialCancellation.call(cycle: cycle)
@@ -34,23 +28,13 @@ class SignAppUpSocialCancellationTest < ActiveSupport::TestCase
     assert_predicate result, :success?
     assert_equal ClientSignUpFlowStatus::CANCELLED, cycle.reload.status_id
     assert Client.exists?(user.id)
-    assert ClientGoogleIdentity.exists?(identity.id)
     assert_not user.reload.accessible?
-    assert_equal ClientGoogleIdentityStatus::DELETED, identity.reload.status_id
-    assert_not_infinite_time identity.discarded_at
-    assert_operator identity.purged_at, :>, identity.discarded_at
+    assert_not ClientExternalIdentity.exists?(identity.id)
   end
 
   test "cancels apple sign up and schedules pending identity and actor retention" do
     user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-    identity = ClientAppleIdentity.create!(
-      user: user,
-      uid: "cancel-apple-sign-up",
-      provider: "apple",
-      token: "token",
-      token_expires_at: 1.week.from_now.to_i,
-      status_id: ClientAppleIdentityStatus::ACTIVE,
-    )
+    identity = create_active_external_identity(client: user, provider: "apple", subject: "cancel-apple-sign-up")
     cycle = social_cycle(user, identity, provider: "apple")
 
     result = SignAppUpSocialCancellation.call(cycle: cycle)
@@ -58,23 +42,13 @@ class SignAppUpSocialCancellationTest < ActiveSupport::TestCase
     assert_predicate result, :success?
     assert_equal ClientSignUpFlowStatus::CANCELLED, cycle.reload.status_id
     assert Client.exists?(user.id)
-    assert ClientAppleIdentity.exists?(identity.id)
     assert_not user.reload.accessible?
-    assert_equal ClientAppleIdentityStatus::DELETED, identity.reload.status_id
-    assert_not_infinite_time identity.discarded_at
-    assert_operator identity.purged_at, :>, identity.discarded_at
+    assert_not ClientExternalIdentity.exists?(identity.id)
   end
 
   test "does not remove registered actor or identity" do
     user = Client.create!(status_id: ClientStatus::ACTIVE)
-    identity = ClientGoogleIdentity.create!(
-      user: user,
-      uid: "keep-registered-google",
-      provider: "google_app",
-      token: "token",
-      token_expires_at: 1.week.from_now.to_i,
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-    )
+    identity = create_active_external_identity(client: user, provider: "google", subject: "keep-registered-google")
     cycle = social_cycle(user, identity, provider: "google")
 
     result = SignAppUpSocialCancellation.call(cycle: cycle)
@@ -82,20 +56,13 @@ class SignAppUpSocialCancellationTest < ActiveSupport::TestCase
     assert_predicate result, :failure?
     assert_equal ClientSignUpFlowStatus::CHECKPOINT_PENDING, cycle.reload.status_id
     assert Client.exists?(user.id)
-    assert ClientGoogleIdentity.exists?(identity.id)
+    assert ClientExternalIdentity.exists?(identity.id)
   end
 
   test "does not remove a social identity outside the current cycle actor" do
     pending_user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
     other_user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-    identity = ClientGoogleIdentity.create!(
-      user: other_user,
-      uid: "keep-other-cycle-google",
-      provider: "google_app",
-      token: "token",
-      token_expires_at: 1.week.from_now.to_i,
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-    )
+    identity = create_active_external_identity(client: other_user, provider: "google", subject: "keep-other-cycle-google")
     cycle = social_cycle(pending_user, identity, provider: "google")
 
     result = SignAppUpSocialCancellation.call(cycle: cycle)
@@ -104,14 +71,10 @@ class SignAppUpSocialCancellationTest < ActiveSupport::TestCase
     assert_equal ClientSignUpFlowStatus::CHECKPOINT_PENDING, cycle.reload.status_id
     assert Client.exists?(pending_user.id)
     assert Client.exists?(other_user.id)
-    assert ClientGoogleIdentity.exists?(identity.id)
+    assert ClientExternalIdentity.exists?(identity.id)
   end
 
   private
-
-  def assert_not_infinite_time(value)
-    assert_not(value.respond_to?(:infinite?) && value.infinite?)
-  end
 
   def social_cycle(user, identity, provider:)
     ClientSignUpFlow.create!(

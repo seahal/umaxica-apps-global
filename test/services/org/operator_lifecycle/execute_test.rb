@@ -8,6 +8,9 @@ class OrgOperatorLifecycleExecuteTest < ActiveSupport::TestCase
   fixtures :operators, :operator_tokens, :operator_token_statuses, :operator_token_kinds,
            :operator_token_binding_methods, :operator_token_dbsc_statuses
 
+  ENTRA_TENANT_ID = "11111111-2222-3333-4444-555555555555"
+  ENTRA_OBJECT_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
   test "executes approved withdrawal by suspending target operator and revoking sessions" do
     target = operators(:one)
     token = operator_tokens(:one)
@@ -125,6 +128,141 @@ class OrgOperatorLifecycleExecuteTest < ActiveSupport::TestCase
     assert_equal Float::INFINITY, target.discarded_at
   end
 
+  # A leave of absence is not a departure. This used to share the withdrawal
+  # branch, so filing a suspension scheduled the operator for deletion in 31 days
+  # and someone away for a quarter came back to a purged record.
+  test "suspension blocks sign-in and sets no deletion countdown" do
+    target = operators(:one)
+    token = operator_tokens(:one)
+    request = approved_request(
+      action: OperatorLifecycleRequest::ACTION_SUSPEND,
+      target_operator: target,
+      requested_by_operator: target,
+    )
+
+    result = OrgOperatorLifecycleExecute.call(request: request, actor: operators(:two))
+
+    assert_predicate result, :success?
+    target.reload
+
+    assert_predicate target, :suspended?
+    assert_not target.login_allowed?
+    assert_predicate token.reload, :revoked?
+
+    # The record must survive a leave of any length.
+    assert_nil target.withdrawal_started_at
+    assert_nil target.withdrawn_at
+    assert_equal Float::INFINITY, target.discarded_at
+    assert_equal Float::INFINITY, target.purged_at
+  end
+
+  test "a suspended operator is restored by restore" do
+    target = operators(:one)
+    suspend_request = approved_request(
+      action: OperatorLifecycleRequest::ACTION_SUSPEND,
+      target_operator: target,
+      requested_by_operator: target,
+    )
+    OrgOperatorLifecycleExecute.call(request: suspend_request, actor: operators(:two))
+
+    restore_request = approved_request(
+      action: OperatorLifecycleRequest::ACTION_RESTORE,
+      target_operator: target,
+      requested_by_operator: target,
+    )
+    OrgOperatorLifecycleExecute.call(request: restore_request, actor: operators(:two))
+
+    assert_predicate target.reload, :login_allowed?
+  end
+
+  # Withdrawal keeps its countdown; only suspension lost one.
+  test "withdrawal still schedules the purge" do
+    target = operators(:one)
+    request = approved_request(
+      action: OperatorLifecycleRequest::ACTION_WITHDRAW,
+      target_operator: target,
+      requested_by_operator: target,
+    )
+
+    OrgOperatorLifecycleExecute.call(request: request, actor: operators(:two))
+
+    target.reload
+
+    assert_not_nil target.withdrawal_started_at
+    assert_operator target.purged_at, :>, target.deactivated_at
+    assert_not_equal Float::INFINITY, target.purged_at
+  end
+
+  # Offboarding has to reach the federated credential too. The operator gate
+  # already blocks sign-in, but leaving the mapping ACTIVE means a later restore
+  # silently re-grants Entra sign-in.
+  test "withdrawal withdraws the target's Entra identity without deleting it" do
+    target = operators(:one)
+    identity = active_entra_identity_for(target)
+    request = approved_request(
+      action: OperatorLifecycleRequest::ACTION_WITHDRAW,
+      target_operator: target,
+      requested_by_operator: target,
+    )
+
+    OrgOperatorLifecycleExecute.call(request: request, actor: operators(:two))
+
+    assert_equal OperatorEntraIdentityState::SUSPENDED, identity.reload.status_id
+    # Logical delete: the mapping and its evidence stay auditable.
+    assert_equal ENTRA_OBJECT_ID, identity.entra_object_id
+  end
+
+  test "termination revokes the target's Entra identity without deleting it" do
+    target = operators(:one)
+    identity = active_entra_identity_for(target)
+    request = approved_request(
+      action: OperatorLifecycleRequest::ACTION_TERMINATE,
+      target_operator: target,
+      requested_by_operator: target,
+    )
+
+    OrgOperatorLifecycleExecute.call(request: request, actor: operators(:two))
+
+    assert_equal OperatorEntraIdentityState::REVOKED, identity.reload.status_id
+    assert_equal 1, OperatorEntraIdentity.where(operator_id: target.id).count
+  end
+
+  # Restoring an operator returns their own credentials. Re-granting a federated
+  # sign-in is a separate decision and must be made explicitly.
+  test "restore does not re-grant Entra sign-in" do
+    target = operators(:one)
+    identity = active_entra_identity_for(target, status_id: OperatorEntraIdentityState::SUSPENDED)
+    now = Time.current
+    target.update!(
+      withdrawal_started_at: now, deactivated_at: now, withdrawn_at: now,
+      discarded_at: now, purged_at: now,
+    )
+    request = approved_request(
+      action: OperatorLifecycleRequest::ACTION_RESTORE,
+      target_operator: target,
+      requested_by_operator: target,
+    )
+
+    OrgOperatorLifecycleExecute.call(request: request, actor: operators(:two))
+
+    assert_predicate target.reload, :login_allowed?
+    assert_equal OperatorEntraIdentityState::SUSPENDED, identity.reload.status_id
+  end
+
+  test "an operator with no Entra identity is unaffected by offboarding" do
+    target = operators(:one)
+    request = approved_request(
+      action: OperatorLifecycleRequest::ACTION_WITHDRAW,
+      target_operator: target,
+      requested_by_operator: target,
+    )
+
+    result = OrgOperatorLifecycleExecute.call(request: request, actor: operators(:two))
+
+    assert_predicate result, :success?
+    assert_equal 0, OperatorEntraIdentity.count
+  end
+
   test "suspend fails when target would be the last active operator" do
     target = operators(:one)
     # Deactivate all other operators so :one is the last active
@@ -145,6 +283,16 @@ class OrgOperatorLifecycleExecuteTest < ActiveSupport::TestCase
   end
 
   private
+
+  def active_entra_identity_for(operator, status_id: OperatorEntraIdentityState::ACTIVE)
+    OperatorEntraIdentityState.ensure_defaults!
+    OperatorEntraIdentity.create!(
+      operator_id: operator.id,
+      entra_tenant_id: ENTRA_TENANT_ID,
+      entra_object_id: ENTRA_OBJECT_ID,
+      status_id: status_id,
+    )
+  end
 
   def approved_request(action:, target_operator:, requested_by_operator:)
     OperatorLifecycleRequest.create!(

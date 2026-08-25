@@ -2,9 +2,9 @@
 name: idea-refine
 description:
   Refines raw ideas into sharp, actionable concepts through structured divergent and convergent
-  thinking. Use when an idea is still vague, when you need to stress-test assumptions before
-  committing to a plan, or when you want to expand options before converging on one. Triggers on
-  "ideate", "refine this idea", or "stress-test my plan".
+  thinking. Use when an idea is still vague, when assumptions need stress-testing before a plan is
+  committed to, or when the option space should be widened before converging. Triggers on "ideate",
+  "refine this idea", or "stress-test my plan".
 ---
 
 # Idea Refine
@@ -26,7 +26,7 @@ you through the process.
 
 ```bash
 # Optional: Initialize the ideas directory
-bash /mnt/skills/user/idea-refine/scripts/idea-refine.sh
+bash .agents/skills/idea-refine/scripts/idea-refine.sh
 ```
 
 **Trigger Phrases:**
@@ -98,8 +98,8 @@ your approach based on what they say — this is a conversation, not a template.
 existing architecture, patterns, constraints, prior art. Ground your variations in what actually
 exists. Reference specific files and patterns when relevant.
 
-Read `frameworks.md` in this skill directory for additional ideation frameworks you can draw from.
-Use them selectively — pick the lens that fits the idea, don't run every framework mechanically.
+See [frameworks.md](frameworks.md) for additional ideation frameworks. Use them selectively — pick
+the lens that fits the idea rather than running every framework mechanically.
 
 #### Phase 2: Evaluate & Converge
 
@@ -115,7 +115,7 @@ to convergent mode:
    - **Differentiation:** What makes this genuinely different? Would someone switch from their
      current solution?
 
-   Read `refinement-criteria.md` in this skill directory for the full evaluation rubric.
+   See [refinement-criteria.md](refinement-criteria.md) for the full evaluation rubric.
 
 3. **Surface hidden assumptions.** For each direction, explicitly name:
    - What you're betting is true (but haven't validated)
@@ -190,7 +190,7 @@ Direct, thoughtful, slightly provocative. You're a sharp thinking partner, not a
 from a script. Channel the energy of "that's interesting, but what if..." -- always pushing one step
 further without being exhausting.
 
-Read `examples.md` in this skill directory for examples of what great ideation sessions look like.
+See [examples.md](examples.md) for what strong ideation sessions look like.
 
 ## Red Flags
 

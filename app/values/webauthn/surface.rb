@@ -5,7 +5,7 @@ module Webauthn
   # Closed enumeration of the WebAuthn surfaces. Each surface owns its own
   # relying party, credential store, and actor model; credentials never cross
   # surfaces. Surface resolution is always an explicit declaration
-  # (WebauthnSurfaceDeclarable) — never inferred from class names or hosts.
+  # (WebauthnSurfaceDeclarable) -- never inferred from class names or hosts.
   class Surface
     class UnknownSurfaceError < StandardError; end
 

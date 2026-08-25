@@ -14,7 +14,7 @@ class Auth::App::Settings::Passkeys::VerificationsController < ::Auth::App::Appl
   step_up only: :create, bootstrap: true
   before_action :require_recovery_passcodes_for_mfa_registration!, only: :create
 
-  def create = verify_passkey_registration
+  def create = (authorize!(ClientPasskey, to: :create?); verify_passkey_registration)
 
   private
 

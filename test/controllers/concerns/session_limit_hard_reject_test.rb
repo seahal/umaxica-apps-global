@@ -31,8 +31,8 @@ class SessionLimitHardRejectTest < ActionDispatch::IntegrationTest
   end
 
   setup do
-    @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
-    AuthenticationBase.login_cooldown_enabled = false
+    @original_login_cooldown = login_cooldown
+    self.login_cooldown = 0.seconds
     @user = clients(:one)
     ClientToken.where(user_id: @user.id).delete_all
     Prosopite.pause do
@@ -50,7 +50,7 @@ class SessionLimitHardRejectTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    AuthenticationBase.login_cooldown_enabled = @original_login_cooldown_enabled
+    self.login_cooldown = @original_login_cooldown
     Rails.application.reload_routes!
   end
 

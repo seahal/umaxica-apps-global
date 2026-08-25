@@ -2,18 +2,17 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 # require "helpers/global_test_support"
 
 class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
-  test "callback routes keep google GET and apple GET or POST separate" do
+  include ExternalIdentityTestHelper
+
+  test "callback routes accept GET only" do
     host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     google_route = Rails.application.routes.recognize_path(
       "http://#{host}/social/google/callback",
       method: :get,
-    )
-    apple_route = Rails.application.routes.recognize_path(
-      "http://#{host}/social/apple/callback",
-      method: :post,
     )
     apple_get_route = Rails.application.routes.recognize_path(
       "http://#{host}/social/apple/callback",
@@ -23,15 +22,16 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     assert_equal "auth/app/omniauth/omniauth_callbacks", google_route[:controller]
     assert_equal "omniauth", google_route[:action]
     assert_equal "google", google_route[:provider]
-    assert_equal "auth/app/omniauth/omniauth_callbacks", apple_route[:controller]
-    assert_equal "omniauth", apple_route[:action]
-    assert_equal "apple", apple_route[:provider]
     assert_equal "auth/app/omniauth/omniauth_callbacks", apple_get_route[:controller]
     assert_equal "omniauth", apple_get_route[:action]
     assert_equal "apple", apple_get_route[:provider]
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{host}/social/google/callback", method: :post)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{host}/social/apple/callback", method: :post)
     end
   end
 
@@ -217,6 +217,63 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     assert_grantless_established_social_login_rejected(provider: "apple", provider_name: "Apple")
   end
 
+  test "login is rejected when google is locked by an in-force method_protection case" do
+    assert_locked_authentication_method_login_rejected(provider: "google", provider_name: "Google", effect: "unusable")
+  end
+
+  test "login is rejected when apple is locked by an in-force method_protection case" do
+    assert_locked_authentication_method_login_rejected(provider: "apple", provider_name: "Apple", effect: "unusable")
+  end
+
+  test "login proceeds when the locked method_protection case targets a different provider" do
+    controller = Auth::App::Omniauth::OmniauthCallbacksController.new
+    redirects = []
+    sign_in_sequence_redirects = []
+
+    user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
+    admin_operator = operators(:one)
+    the_case = AppEnforcementCase.new(
+      kind: "method_protection",
+      duration_mode: "indefinite",
+      visibility: "visible",
+      release_mode: "operator",
+      effective_at: Time.current,
+      reason_code: "security_incident",
+      principal_public_id: user.public_id,
+      applied_by_operator_public_id: admin_operator.public_id,
+    )
+    the_case.authentication_method_effects.build(
+      principal_public_id: user.public_id,
+      authentication_method: "apple",
+      effect: "unusable",
+      effective_at: Time.current,
+    )
+    the_case.apply!
+
+    request = ActionDispatch::TestRequest.create(
+      "REQUEST_METHOD" => "GET",
+      "HTTP_HOST" => ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
+    )
+    request.env["omniauth.auth"] = OpenStruct.new(provider: "google")
+    controller.request = request
+    controller.response = ActionDispatch::TestResponse.new
+
+    session_hash = {}
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
+    controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
+    controller.define_singleton_method(:auth_app_sign_in_path) { |ri: nil| "/sign/in#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) do |**kwargs|
+      sign_in_sequence_redirects << kwargs
+      "/dashboard"
+    end
+    controller.define_singleton_method(:establish_signed_in_session!) { |*, **| { status: :success } }
+
+    assert_equal "/dashboard", controller.send(:handle_login_intent, user, "Google", false, pt: "/after-social")
+    assert_equal({ pt: "/after-social" }, sign_in_sequence_redirects.last)
+    assert_empty redirects
+  end
+
   test "social login result log payload excludes bearer credentials" do
     controller = Auth::App::Omniauth::OmniauthCallbacksController.new
     payload = controller.send(
@@ -344,14 +401,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     ClientSignUpFlowStatus.ensure_defaults!
     ClientSignUpFlowCleanupStatus.ensure_defaults!
     user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-    identity = ClientGoogleIdentity.create!(
-      user: user,
-      uid: "social-signup-guardrail",
-      provider: "google",
-      token: "token",
-      token_expires_at: 1.week.from_now.to_i,
-      user_google_identity_status: client_google_identity_statuses(:active),
-    )
+    identity = create_active_external_identity(client: user, provider: "google", subject: "social-signup-guardrail")
     cycle = ClientSignUpFlow.create!(
       principal_id: nil,
       status_id: ClientSignUpFlowStatus::SOCIAL_CALLBACK_PENDING,
@@ -407,14 +457,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     ClientSignUpFlowStatus.ensure_defaults!
     ClientSignUpFlowCleanupStatus.ensure_defaults!
     user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-    identity = ClientGoogleIdentity.create!(
-      user: user,
-      uid: "social-signup-return-to",
-      provider: "google",
-      token: "token",
-      token_expires_at: 1.week.from_now.to_i,
-      user_google_identity_status: client_google_identity_statuses(:active),
-    )
+    identity = create_active_external_identity(client: user, provider: "google", subject: "social-signup-return-to")
     issued_cycles = []
     controller = Auth::App::Omniauth::OmniauthCallbacksController.new
     session_hash = {}
@@ -470,14 +513,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
 
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
-    identity = ClientGoogleIdentity.create!(
-      user: user,
-      uid: "social-signup-existing",
-      provider: "google",
-      token: "token",
-      token_expires_at: 1.week.from_now.to_i,
-      user_google_identity_status: client_google_identity_statuses(:active),
-    )
+    identity = create_active_external_identity(client: user, provider: "google", subject: "social-signup-existing")
 
     controller.send(
       :handle_successful_auth,
@@ -495,14 +531,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
   test "rejected established social sign in keeps account records" do
     controller = Auth::App::Omniauth::OmniauthCallbacksController.new
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
-    identity = ClientGoogleIdentity.create!(
-      user: user,
-      uid: "social-signin-keep-existing",
-      provider: "google",
-      token: "token",
-      token_expires_at: 1.week.from_now.to_i,
-      user_google_identity_status: client_google_identity_statuses(:active),
-    )
+    identity = create_active_external_identity(client: user, provider: "google", subject: "social-signin-keep-existing")
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
     controller.define_singleton_method(:auth_app_sign_in_path) { |ri: nil|
       "/sign/in#{ri ? "?ri=#{ri}" : ""}"
@@ -513,7 +542,72 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.send(:handle_login_intent, user, "Google", true)
 
     assert Client.exists?(user.id)
-    assert ClientGoogleIdentity.exists?(identity.id)
+    assert ClientExternalIdentity.exists?(identity.id)
+  end
+
+  # GET /social/failure is directly reachable and unauthenticated, so the
+  # `message`/`strategy` parameters must be reduced to an allowlisted
+  # classification before they reach the log (adr/application-logging-boundary.md).
+  test "failure classification allowlists the message parameter" do
+    controller = Auth::App::Omniauth::OmniauthCallbacksController.new
+
+    assert_equal "invalid_credentials", controller.send(:classified_failure_message, "invalid_credentials")
+    assert_equal "access_denied", controller.send(:classified_failure_message, "access_denied")
+    assert_equal "other", controller.send(:classified_failure_message, "attacker-supplied-marker-9f3c")
+    assert_equal "other", controller.send(:classified_failure_message, nil)
+    assert_equal "other", controller.send(:classified_failure_message, "a" * 10_000)
+  end
+
+  test "failure classification allowlists the strategy parameter against the provider registry" do
+    controller = Auth::App::Omniauth::OmniauthCallbacksController.new
+
+    ExternalAuthentication::ProviderRegistry.providers.each do |provider|
+      assert_equal provider.to_s, controller.send(:classified_failure_strategy, provider.to_s)
+    end
+
+    # google_oauth2 is the OmniAuth strategy name; SocialIdentifiable normalizes
+    # it to the registered "google" provider rather than discarding it.
+    assert_equal "google", controller.send(:classified_failure_strategy, "google_oauth2")
+    assert_equal "other", controller.send(:classified_failure_strategy, "attacker-supplied-strategy")
+    assert_equal "other", controller.send(:classified_failure_strategy, nil)
+  end
+
+  test "failure logs the classification and never the raw parameters" do
+    controller = Auth::App::Omniauth::OmniauthCallbacksController.new
+    injected_message = "attacker-supplied-marker-9f3c"
+    injected_strategy = "attacker-supplied-strategy-7b1d"
+    session_hash = {}
+
+    controller.request = ActionDispatch::TestRequest.create("REQUEST_METHOD" => "GET")
+    controller.response = ActionDispatch::TestResponse.new
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) {
+      ActionController::Parameters.new(message: injected_message, strategy: injected_strategy)
+    }
+    controller.define_singleton_method(:redirect_to) { |*, **| nil }
+    controller.define_singleton_method(:auth_app_sign_in_path) { |**| "/sign/in" }
+    controller.define_singleton_method(:auth_app_sign_up_path) { |**| "/sign/up" }
+    controller.define_singleton_method(:clear_social_auth_intent!) { nil }
+    controller.define_singleton_method(:logged_in?) { false }
+
+    buffer = StringIO.new
+    previous_logger = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(buffer)
+    Rails.logger.level = Logger::DEBUG
+
+    begin
+      controller.failure
+    ensure
+      Rails.logger = previous_logger
+    end
+
+    logs = buffer.string
+
+    assert_not_includes logs, injected_message
+    assert_not_includes logs, injected_strategy
+    assert_includes logs, "sign.social.omniauth_failure"
+    assert_includes logs, %("message":"other")
+    assert_includes logs, %("strategy":"other")
   end
 
   test "direct action early exits and csrf helpers" do
@@ -537,6 +631,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.define_singleton_method(:action_name) { @action_name_for_test }
     controller.define_singleton_method(:verified_social_callback_request?) { @verified_social_for_test }
     controller.define_singleton_method(:reject_social_callback!) { |**kwargs| @rejection_for_test = kwargs }
+    controller.define_singleton_method(:test_mode_omniauth_auth_hash) { nil }
 
     controller.omniauth
 
@@ -652,6 +747,20 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "log.umaxica.app")
     controller.response = ActionDispatch::TestResponse.new
     controller.request.env["omniauth.auth"] = auth
+    controller.instance_variable_set(
+      :@external_authentication_callback_result,
+      ExternalAuthentication::CallbackResult.verified(
+        principal: ExternalAuthentication::VerifiedPrincipal.new(
+          provider: "apple",
+          subject: auth.uid,
+          issuer: "https://appleid.apple.com",
+          audience: "apple-client-id",
+          verified_at: Time.current,
+          verification_authority: "omniauth-apple/contract",
+        ),
+        credential_candidate: nil,
+      ),
+    )
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
     controller.define_singleton_method(:session) { {} }
     controller.define_singleton_method(:auth_app_up_sequence_id) { cycle.public_id }
@@ -678,6 +787,53 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
   end
 
   private
+
+  def assert_locked_authentication_method_login_rejected(provider:, provider_name:, effect:)
+    controller = Auth::App::Omniauth::OmniauthCallbacksController.new
+    redirects = []
+
+    request = ActionDispatch::TestRequest.create(
+      "REQUEST_METHOD" => "GET",
+      "HTTP_HOST" => ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
+    )
+    request.env["omniauth.auth"] = OpenStruct.new(provider: provider)
+    controller.request = request
+    controller.response = ActionDispatch::TestResponse.new
+
+    session_hash = {}
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: provider) }
+    controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
+    controller.define_singleton_method(:auth_app_sign_in_path) { |ri: nil|
+      "/sign/in#{ri ? "?ri=#{ri}" : ""}"
+    }
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**_kwargs| "/dashboard" }
+    controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
+
+    user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
+    admin_operator = operators(:one)
+    the_case = AppEnforcementCase.new(
+      kind: "method_protection",
+      duration_mode: "indefinite",
+      visibility: "visible",
+      release_mode: "operator",
+      effective_at: Time.current,
+      reason_code: "security_incident",
+      principal_public_id: user.public_id,
+      applied_by_operator_public_id: admin_operator.public_id,
+    )
+    the_case.authentication_method_effects.build(
+      principal_public_id: user.public_id,
+      authentication_method: provider,
+      effect: effect,
+      effective_at: Time.current,
+    )
+    the_case.apply!
+
+    controller.send(:handle_login_intent, user, provider_name, false, pt: "encoded-pt")
+
+    assert_match "/sign/in", redirects.last.first.first
+  end
 
   def assert_grantless_established_social_login_rejected(provider:, provider_name:)
     controller = Auth::App::Omniauth::OmniauthCallbacksController.new

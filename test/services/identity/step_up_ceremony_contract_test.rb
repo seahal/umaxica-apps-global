@@ -165,6 +165,19 @@ class IdentityStepUpCeremonyContractTest < ActiveSupport::TestCase
     end
   end
 
+  # SMS is not an accepted step-up proof, so telephone_otp must not survive as
+  # an allowed method value.
+  test "telephone otp is not an allowed step-up method" do
+    assert_not_includes IdentityStepUpCeremonyContract::METHODS, "telephone_otp"
+
+    error =
+      assert_raises(IdentityStepUpCeremonyContract::Error) do
+        IdentityStepUpCeremonyResult.new(valid_result_claims.merge("method" => "telephone_otp"), now: @now)
+      end
+
+    assert_includes error.message, "method is invalid"
+  end
+
   private
 
   def valid_grant_claims

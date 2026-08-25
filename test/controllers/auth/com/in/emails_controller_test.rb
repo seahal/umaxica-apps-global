@@ -11,8 +11,8 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     ActionMailer::Base.deliveries.clear
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
     VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
     VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
     VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
@@ -25,17 +25,24 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "get new renders email form" do
     get new_auth_com_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
-    assert_includes response.body, I18n.t("sign.app.authentication.email.new.page_title")
-    assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-    assert_includes response.body, 'data-turnstile-mode-value="render"'
+    assert_equal "auth/com/sign/in/emails/new", inertia_component
+
+    props = inertia_props
+
+    assert_equal I18n.t("sign.app.authentication.email.new.page_title"), props.fetch("title")
+
+    turnstile = props.fetch("turnstile")
+
+    assert_equal "render", turnstile.fetch("mode")
+    assert_predicate turnstile.fetch("site_key"), :present?
   end
 
   test "post create with unknown email redirects to edit without visitor email session id" do
@@ -70,7 +77,8 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     follow_redirect!
 
     assert_response :success
-    assert_select "input[name='user_email[pass_code]'][autocomplete='one-time-code']", count: 1
+    assert_equal "auth/com/sign/in/emails/edit", inertia_component
+    assert_equal I18n.t("sign.app.authentication.email.edit.code_label"), inertia_props.fetch("field_label")
   end
 
   test "post create with invalid email format" do
@@ -108,7 +116,7 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :too_many_requests
   end
 
-  test "post create with cooldown active returns login cooldown message" do
+  test "post create with cooldown active returns the non-disclosing cooldown message" do
     visitor = create_verified_visitor_with_email(email_address: "cooldown-message@example.com")
     email = visitor.visitor_emails.last
 
@@ -123,7 +131,9 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
          headers: { "Host" => @host }
 
     assert_response :too_many_requests
-    assert_includes response.body, I18n.t("errors.messages.login_cooldown")
+    # A registered address must get the same message an unregistered one gets,
+    # otherwise the cooldown response is an account-existence oracle.
+    assert_includes response.body, I18n.t("sign.app.authentication.email.create.cooldown")
   end
 
   test "post create with locked visitor email does not send OTP" do
@@ -144,7 +154,7 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "post create with turnstile failure returns unprocessable content" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     post auth_com_sign_in_email_url(ri: "jp"),
          params: { user_email: { address: "test@example.com" }, "cf-turnstile-response": "test" },
@@ -535,11 +545,14 @@ class Auth::Com::Sign::In::EmailsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -586,9 +599,9 @@ class Auth::Com::Sign::In::EmailsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -601,7 +614,7 @@ class Auth::Com::Sign::In::EmailsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -856,11 +869,14 @@ class Auth::Com::Sign::In::EmailsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

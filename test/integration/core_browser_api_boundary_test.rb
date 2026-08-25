@@ -26,10 +26,135 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :service_unavailable
     body = response.parsed_body
 
-    assert_equal "service_unavailable", body.dig("error", "code")
-    assert_predicate body.dig("error", "request_id"), :present?
+    assert_equal "urn:umaxica:problem:service-unavailable", body.fetch("type")
+    assert_predicate body.fetch("request_id"), :present?
   ensure
     ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"] = "1"
+  end
+
+  test "a disabled boundary answers with an RFC 9457 problem document" do
+    ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"] = nil
+
+    get("/api/v0/session", headers: json_headers)
+
+    assert_response :service_unavailable
+    assert_equal "application/problem+json", response.media_type
+
+    body = response.parsed_body
+
+    assert_equal "urn:umaxica:problem:service-unavailable", body.fetch("type")
+    assert_equal response.status, body.fetch("status")
+    assert_equal "/api/v0/session", body.fetch("instance")
+    assert_predicate body.fetch("request_id"), :present?
+  ensure
+    ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"] = "1"
+  end
+
+  test "a csrf failure answers with the csrf-verification-failed problem type" do
+    cookies[CoreBrowserCredentialContract::REFRESH_COOKIE] = client_tokens(:one).rotate_refresh_token!
+
+    post "/api/v0/token/refresh", headers: json_headers
+
+    assert_response :forbidden
+    assert_equal "application/problem+json", response.media_type
+
+    body = response.parsed_body
+
+    assert_equal "urn:umaxica:problem:csrf-verification-failed", body.fetch("type")
+    assert_equal response.status, body.fetch("status")
+  end
+
+  # ApiV0LegacyErrorMember used to merge a nested `error` object into every problem document here.
+  # It was removed on 2026-08-22 once an audit established that neither named consumer read it; this
+  # asserts the document is now the RFC 9457 members and nothing else.
+  test "no transitional error member remains in the problem document" do
+    get("/api/v0/session", headers: json_headers.merge("Authorization" => "Bearer #{core_browser_access_token}"))
+
+    assert_response :unauthorized
+
+    body = response.parsed_body
+
+    assert_equal "urn:umaxica:problem:authentication-required", body.fetch("type")
+    assert_not body.key?("error"), "the transitional error member is gone"
+    assert_equal %w(instance request_id status title type), body.keys.sort
+  end
+
+  test "every response on this boundary is uncacheable" do
+    get "/api/v0/session", headers: json_headers
+
+    assert_response :success
+    # The body carries a CSRF token and per-subject state; a shared cache must never hold it.
+    assert_equal "no-store", response.headers["Cache-Control"]
+  end
+
+  test "an error response on this boundary is uncacheable too" do
+    ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"] = nil
+
+    get("/api/v0/session", headers: json_headers)
+
+    assert_response :service_unavailable
+    assert_equal "no-store", response.headers["Cache-Control"]
+  ensure
+    ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"] = "1"
+  end
+
+  test "an authenticated actor is identified by public id, never by the database key" do
+    client = clients(:one)
+    cookies[CoreBrowserCredentialContract::ACCESS_COOKIE] = core_browser_access_token
+
+    get "/api/v0/session", headers: json_headers
+
+    assert_response :success
+
+    actor = response.parsed_body.fetch("actor")
+
+    assert_equal client.public_id, actor.fetch("id")
+    assert_not_equal client.id.to_s, actor.fetch("id")
+    assert_not_includes response.body, %("#{client.id}")
+  end
+
+  test "a blank public id fails loudly rather than falling back to the database key" do
+    client = clients(:one)
+    client.update_columns(public_id: "")
+    cookies[CoreBrowserCredentialContract::ACCESS_COOKIE] = core_browser_access_token
+
+    assert_raises(BlankPublicIdentifierError) do
+      get "/api/v0/session", headers: json_headers
+    end
+  end
+
+  # A routing miss never reaches a controller, so only the exceptions app can answer it. The test
+  # environment renders debug pages for local requests, which short-circuits that app; this turns the
+  # detailed pages off so the production path is what gets exercised.
+  test "an unknown path under the api namespace answers with a problem document, not html" do
+    previous = Rails.application.env_config["action_dispatch.show_detailed_exceptions"]
+    Rails.application.env_config["action_dispatch.show_detailed_exceptions"] = false
+
+    get("/api/v0/no-such-endpoint", headers: json_headers)
+
+    assert_response :not_found
+    assert_equal "application/problem+json", response.media_type
+
+    body = response.parsed_body
+
+    assert_equal "urn:umaxica:problem:not-found", body.fetch("type")
+    assert_equal 404, body.fetch("status")
+    assert_equal "/api/v0/no-such-endpoint", body.fetch("instance")
+    assert_not_includes response.body, "<html"
+  ensure
+    Rails.application.env_config["action_dispatch.show_detailed_exceptions"] = previous
+  end
+
+  test "an unknown path outside the api namespace still gets the html page" do
+    previous = Rails.application.env_config["action_dispatch.show_detailed_exceptions"]
+    Rails.application.env_config["action_dispatch.show_detailed_exceptions"] = false
+
+    get("/no-such-page", headers: { "Accept" => "text/html" })
+
+    assert_response :not_found
+    assert_equal "text/html", response.media_type
+  ensure
+    Rails.application.env_config["action_dispatch.show_detailed_exceptions"] = previous
   end
 
   test "unauthenticated session response returns csrf token and no credentials" do
@@ -52,8 +177,8 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
     body = response.parsed_body
 
-    assert_equal "authentication_required", body.dig("error", "code")
-    assert_predicate body.dig("error", "request_id"), :present?
+    assert_equal "urn:umaxica:problem:authentication-required", body.fetch("type")
+    assert_predicate body.fetch("request_id"), :present?
   end
 
   test "palm audience token is rejected from core browser cookie transport" do
@@ -65,7 +190,7 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
     body = response.parsed_body
 
-    assert_equal "authentication_required", body.dig("error", "code")
+    assert_equal "urn:umaxica:problem:authentication-required", body.fetch("type")
   end
 
   test "authenticated session response is minimal and excludes raw credentials" do
@@ -92,9 +217,9 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
     body = response.parsed_body
 
-    assert_equal "csrf_verification_failed", body.dig("error", "code")
-    assert_predicate body.dig("error", "request_id"), :present?
-    assert_nil body.dig("error", "detail")
+    assert_equal "urn:umaxica:problem:csrf-verification-failed", body.fetch("type")
+    assert_predicate body.fetch("request_id"), :present?
+    assert_not body.key?("detail")
   end
 
   test "refresh rejects authorization header transport even when refresh cookie is present" do
@@ -112,7 +237,7 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
     body = response.parsed_body
 
-    assert_equal "authentication_required", body.dig("error", "code")
+    assert_equal "urn:umaxica:problem:authentication-required", body.fetch("type")
   end
 
   test "refresh rotates opaque cookie and never returns credentials in body" do
@@ -123,12 +248,10 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
 
     post "/api/v0/token/refresh", headers: json_headers.merge("X-CSRF-Token" => csrf_token)
 
-    assert_response :success
-    body = response.parsed_body
-
-    assert body.fetch("refreshed")
-    assert_not body.key?("access_token")
-    assert_not body.key?("refresh_token")
+    # The rotated credentials travel as `Set-Cookie`; there is no representation to return
+    # (RFC 9110 15.3.5), so there is no body that could leak one.
+    assert_response :no_content
+    assert_empty response.body
 
     access_cookie = set_cookie_for(CoreBrowserCredentialContract::ACCESS_COOKIE)
     refresh_cookie = set_cookie_for(CoreBrowserCredentialContract::REFRESH_COOKIE)
@@ -532,11 +655,14 @@ class CoreBrowserApiBoundaryTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -583,9 +709,9 @@ class CoreBrowserApiBoundaryTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -598,7 +724,7 @@ class CoreBrowserApiBoundaryTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -841,11 +967,14 @@ class CoreBrowserApiBoundaryTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

@@ -23,19 +23,44 @@ module AuthenticationJwtConfiguration
     "#{base}:#{normalized_resource_type}"
   end
 
+  # Audience is a resource-type boundary: a visitor token must not validate where
+  # an operator token is expected. Falling back to a single shared literal when
+  # the environment is unset silently collapses that boundary for every resource
+  # type at once, so the missing configuration is named instead. `issuer` above
+  # already fails this way.
   def self.audiences(resource_type = nil)
     normalized_resource_type = normalize_resource_type(resource_type)
-    resource_key = normalized_resource_type&.upcase
-    raw =
-      if resource_key.present?
-        ENV["AUTH_JWT_#{resource_key}_AUDIENCES"].presence || ENV["AUTH_JWT_AUDIENCES"].to_s
-      else
-        ENV["AUTH_JWT_AUDIENCES"].to_s
-      end
-    audiences = raw.split(",").map(&:strip)
-    audiences.reject!(&:empty?)
-    audiences.presence || ["umaxica-api"]
+    if normalized_resource_type.nil?
+      raise ArgumentError, "unsupported auth resource type: #{resource_type.inspect}"
+    end
+
+    env_key = "AUTH_JWT_#{normalized_resource_type.upcase}_AUDIENCES"
+    audiences = parse_audiences(ENV.fetch(env_key), env_key:)
+    assert_distinct_audiences!(normalized_resource_type, audiences)
+    audiences
   end
+
+  def self.parse_audiences(raw, env_key:)
+    values = raw.split(",").map(&:strip)
+    values.reject!(&:empty?)
+    values.uniq!
+    raise KeyError, "#{env_key} is set but contains no audience" if values.empty?
+
+    values
+  end
+  private_class_method :parse_audiences
+
+  def self.assert_distinct_audiences!(resource_type, audiences)
+    VALID_RESOURCE_TYPES.excluding(resource_type).each do |other_type|
+      other_key = "AUTH_JWT_#{other_type.upcase}_AUDIENCES"
+      other = parse_audiences(ENV.fetch(other_key), env_key: other_key)
+      overlap = audiences & other
+      next if overlap.empty?
+
+      raise ArgumentError, "JWT audiences overlap between #{resource_type} and #{other_type}: #{overlap.join(", ")}"
+    end
+  end
+  private_class_method :assert_distinct_audiences!
 
   def self.token_type(resource_type)
     normalized_resource_type = normalize_resource_type(resource_type)

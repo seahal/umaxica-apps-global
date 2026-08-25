@@ -5,14 +5,17 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
-  fixtures :client_google_identity_statuses, :client_apple_identity_statuses, :client_statuses,
+  fixtures :client_statuses,
            :client_totp_credential_statuses
 
   setup do
     OmniAuth.config.test_mode = true
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
-    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
+    # The ceremony runs on the Auth host the application is configured with: a request
+    # made to any other host gets a session cookie the application does not read back,
+    # so the sign-up ticket is lost and the flow restarts instead of advancing.
+    @host = configured_host(:sign_service)
     host! @host
     @expected_redirect = %r{\Ahttps?://#{Regexp.escape(@host)}/.*}.freeze
   end
@@ -20,8 +23,8 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
   teardown do
     OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
     ClientTokenBindingMethod.ensure_defaults!
     ClientTokenDbscStatus.ensure_defaults!
     ClientTokenKind.ensure_defaults!
@@ -61,7 +64,13 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_sign_up_check_google_confirmation_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+
+    # created; the page object names that component and carries the label it asks agreement to.
+
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
   end
 
   test "google callback without region parameter is processed without regional redirect" do
@@ -99,39 +108,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         info: {},
         credentials: {
           token: "apple_token",
-          expires_at: 1.week.from_now.to_i,
-        },
-        extra: { id_info: { nonce: session[:social_auth_nonce] } },
-      },
-    )
-
-    assert_no_difference("Client.count") do
-      assert_no_difference("ClientAppleIdentity.count") do
-        post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-             params: { state: state },
-             headers: social_callback_headers(@host)
-      end
-    end
-
-    assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
-    follow_redirect!
-
-    assert_redirected_to sign_app_sign_up_check_apple_confirmation_url(ri: "jp")
-    follow_redirect!
-
-    assert_select "input[name=confirm_new_social_identity][required]"
-  end
-
-  test "unknown Apple GET callback enters sign up checkpoint instead of signing in" do
-    state = start_social_auth_flow(provider: "apple")
-
-    OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
-      {
-        provider: "apple",
-        uid: "apple_get_callback_uid",
-        info: {},
-        credentials: {
-          token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
@@ -152,7 +129,53 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_sign_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+
+    # created; the page object names that component and carries the label it asks agreement to.
+
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
+  end
+
+  test "unknown Apple GET callback enters sign up checkpoint instead of signing in" do
+    state = start_social_auth_flow(provider: "apple")
+
+    OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
+      {
+        provider: "apple",
+        uid: "apple_get_callback_uid",
+        info: {},
+        credentials: {
+          token: "apple_token",
+          refresh_token: "apple_refresh_token",
+          expires_at: 1.week.from_now.to_i,
+        },
+        extra: { id_info: { nonce: session[:social_auth_nonce] } },
+      },
+    )
+
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientAppleIdentity.count") do
+        get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+            params: { state: state },
+            headers: social_callback_headers(@host)
+      end
+    end
+
+    assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
+    follow_redirect!
+
+    assert_redirected_to sign_app_sign_up_check_apple_confirmation_url(ri: "jp")
+    follow_redirect!
+
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+
+    # created; the page object names that component and carries the label it asks agreement to.
+
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
   end
 
   test "apple social login with MFA enabled does not require additional MFA challenge" do
@@ -181,15 +204,16 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         info: {},
         credentials: {
           token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: social_callback_headers(@host)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: social_callback_headers(@host)
 
     # The sign callback must not establish an MFA challenge or sign-side session
     # for an established social login; it emits the base completion form only.
@@ -238,7 +262,9 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     submit_social_completion_if_present!
 
-    assert_equal "http://#{ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")}/dashboard",
+    # The completion form posts to the public base origin, so the dashboard
+    # handoff continues from there.
+    assert_equal "https://#{ENV.fetch("PUBLIC_BASE_SERVICE_URL")}/dashboard",
                  response.location
   end
 
@@ -781,11 +807,14 @@ class OmniauthCallbacksTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -832,9 +861,9 @@ class OmniauthCallbacksTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -847,7 +876,7 @@ class OmniauthCallbacksTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -915,6 +944,10 @@ class OmniauthCallbacksTest
     return unless response.media_type == "text/html"
     return unless response.body.include?("social-completion-form")
 
+    # A browser only reaches the completion endpoint when CSP allows the form
+    # target. See test/support/form_action_policy_helper.rb.
+    assert_forms_submittable_under_policy
+
     form = response.parsed_body.at_css("form#social-completion-form")
     raise StandardError, "social completion form missing" unless form
 
@@ -928,7 +961,8 @@ class OmniauthCallbacksTest
       form["action"],
       params: params,
       headers: {
-        "Host" => configured_host(:acme_service),
+        # A browser sends the form target as the Host, not a separately configured one.
+        "Host" => URI.parse(form["action"]).host,
         "Origin" => "https://#{configured_host(:sign_service)}",
         "Sec-Fetch-Site" => "same-site",
       },
@@ -1188,11 +1222,14 @@ class OmniauthCallbacksTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

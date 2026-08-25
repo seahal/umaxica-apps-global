@@ -9,7 +9,7 @@ module Webauthn
   # entry before any of them are checked, so a mismatching or failing attempt
   # still burns the challenge (replay defense). Cross-request ceremonies that
   # span the sign/id boundary use the durable *PasskeyCeremonyTransaction
-  # tables instead — this store is only for same-session XHR ceremonies.
+  # tables instead -- this store is only for same-session XHR ceremonies.
   class ChallengeStore
     SESSION_KEY = :passkey_challenges
     TTL = 10.minutes

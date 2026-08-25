@@ -4,7 +4,21 @@
 module CoreBrowserApiBoundary
   extend ActiveSupport::Concern
 
+  include ProblemDetailsRendering
+  include ApiContentNegotiation
+
+  included do
+    # Every endpoint on this boundary answers per-subject state derived from a credential cookie, and
+    # the session endpoint hands out a CSRF token. None of it may sit in a shared cache, so the
+    # directive belongs to the boundary rather than to whichever action remembers to set it.
+    before_action :set_core_browser_api_no_store!
+  end
+
   private
+
+  def set_core_browser_api_no_store!
+    response.set_header("Cache-Control", "no-store")
+  end
 
   attr_reader :current_resource, :current_token_payload, :current_token_record
 
@@ -12,15 +26,13 @@ module CoreBrowserApiBoundary
     return if CoreBrowserCredentialContract.enabled?
 
     # rubocop:disable I18n/RailsI18n/DecorateString
-    render_error(:service_unavailable, "Core browser API is not enabled.", status: :service_unavailable)
+    render_problem(:service_unavailable, detail: "Core browser API is not enabled.")
     # rubocop:enable I18n/RailsI18n/DecorateString
   end
 
   def authenticate_core_browser_cookie!
     if AuthAuthorizationHeader.access_token(request).present?
-      # rubocop:disable I18n/RailsI18n/DecorateString
-      render_error(:authentication_required, "Authentication is required.", status: :unauthorized)
-      # rubocop:enable I18n/RailsI18n/DecorateString
+      render_problem(:authentication_required)
       return false
     end
 
@@ -36,9 +48,7 @@ module CoreBrowserApiBoundary
       resource_type: core_resource_type,
     )
     if payload.blank? || CoreBrowserCredentialContract.native_or_side_audience?(payload)
-      # rubocop:disable I18n/RailsI18n/DecorateString
-      render_error(:authentication_required, "Authentication is required.", status: :unauthorized)
-      # rubocop:enable I18n/RailsI18n/DecorateString
+      render_problem(:authentication_required)
       return false
     end
 
@@ -46,9 +56,7 @@ module CoreBrowserApiBoundary
     @current_token_record = find_core_token_record(payload)
     @current_resource = find_core_resource(payload)
     unless current_token_record&.active? && current_resource&.active?
-      # rubocop:disable I18n/RailsI18n/DecorateString
-      render_error(:authentication_required, "Authentication is required.", status: :unauthorized)
-      # rubocop:enable I18n/RailsI18n/DecorateString
+      render_problem(:authentication_required)
       return false
     end
 
@@ -59,61 +67,32 @@ module CoreBrowserApiBoundary
   def require_scope!(scope)
     return if Array(AuthorizationTokenClaims.scopes(current_token_payload)).include?(scope.to_s)
 
-    # rubocop:disable I18n/RailsI18n/DecorateString
-    render_error(:authorization_denied, "Authorization denied.", status: :forbidden)
-    # rubocop:enable I18n/RailsI18n/DecorateString
-  end
-
-  def render_error(code, message, status:, fields: [])
-    render(
-      json: {
-        error: {
-          code: code.to_s,
-          message: message,
-          request_id: request.request_id,
-          detail: nil,
-          fields: fields,
-        },
-      },
-      status: status,
-    )
+    render_problem(:authorization_denied)
   end
 
   def render_csrf_failure
-    # rubocop:disable I18n/RailsI18n/DecorateString
-    render_error(:csrf_verification_failed, "CSRF verification failed.", status: :forbidden)
-    # rubocop:enable I18n/RailsI18n/DecorateString
+    render_problem(:csrf_verification_failed)
   end
 
   def render_authorization_denied
-    # rubocop:disable I18n/RailsI18n/DecorateString
-    render_error(:authorization_denied, "Authorization denied.", status: :forbidden)
-    # rubocop:enable I18n/RailsI18n/DecorateString
+    render_problem(:authorization_denied)
   end
 
   def refresh_core_browser_token!
-    response.set_header("Cache-Control", "no-store")
-
     if AuthAuthorizationHeader.access_token(request).present?
-      # rubocop:disable I18n/RailsI18n/DecorateString
-      render_error(:authentication_required, "Authentication is required.", status: :unauthorized)
-      # rubocop:enable I18n/RailsI18n/DecorateString
+      render_problem(:authentication_required)
       return
     end
 
     refresh_plain = cookies[CoreBrowserCredentialContract::REFRESH_COOKIE].to_s.presence
     unless refresh_plain
-      # rubocop:disable I18n/RailsI18n/DecorateString
-      render_error(:authentication_required, "Authentication is required.", status: :unauthorized)
-      # rubocop:enable I18n/RailsI18n/DecorateString
+      render_problem(:authentication_required)
       return
     end
 
     result = AcmeRefreshTokenIssuer.call(refresh_token: refresh_plain)
     unless result.success? && result.token.is_a?(core_token_class)
-      # rubocop:disable I18n/RailsI18n/DecorateString
-      render_error(:token_expired, "Token expired.", status: :unauthorized)
-      # rubocop:enable I18n/RailsI18n/DecorateString
+      render_problem(:token_expired)
       return
     end
 
@@ -132,7 +111,13 @@ module CoreBrowserApiBoundary
     cookies[CoreBrowserCredentialContract::REFRESH_COOKIE] =
       auth_cookie_service.auth_cookie_options(expires: result.token.discarded_at).merge(value: result.refresh_token)
 
-    render json: { refreshed: true }, status: :ok
+    # The rotated credentials travel as `Set-Cookie`, so there is no representation to return.
+    # RFC 9110 15.3.5 and docs/reference/api-design-standards.md both call for 204 rather than a
+    # `{"ok": true}` placeholder. The previous 200 with `{"refreshed": true}` was justified in a
+    # comment here by the claim that the Next.js edge application read that key; an audit of
+    # `seahal/umaxica-apps-edge` on 2026-08-22 found it forwards `/api/v0/*` without parsing it and
+    # has no reader for the key. See decision D14 in plans/rails-nextjs-openapi-contract-audit.md.
+    head :no_content
   end
 
   def verify_core_browser_api_csrf!

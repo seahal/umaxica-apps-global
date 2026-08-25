@@ -11,11 +11,35 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     @host = configured_host(:sign_staff)
   end
 
-  test "direct entry without a login challenge starts OIDC handoff" do
+  test "direct entry without a login challenge renders the org entry page" do
     get auth_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
 
-    assert_response :redirect
+    assert_response :success
     assert_nil session[:oidc_authorization_login_challenge]
+    assert_nil session[:oidc_code_verifier]
+    assert_nil session[:oidc_state]
+  end
+
+  test "direct entry offers the reciprocal sign in link" do
+    get auth_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_response :success
+    assert_equal "auth/org/sign/ups/show", inertia_component
+    assert_equal auth_org_sign_in_path(ri: "jp"), inertia_props.fetch("sign_in_link").fetch("href")
+  end
+
+  test "local ceremony does not render sign in link on sign up page" do
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
+      surface: "org",
+      intent: "sign_up",
+      params: authorize_params(screen_hint: "signup"),
+    )
+
+    get auth_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+        headers: { "Host" => @host }
+
+    assert_response :success
+    assert_nil inertia_props["sign_in_link"]
   end
 
   test "valid login challenge renders local ceremony" do
@@ -43,10 +67,9 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
         headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "[data-test-id=?]", "registration-method", count: 0
-    assert_select "a[href=?]", "/sign/up/email/new?ri=jp", count: 0
-    assert_select "form[action*=?]", "/social/auth/google", count: 0
-    assert_select "form[action*=?]", "/social/auth/apple", count: 0
+    # The org surface has no registration methods at all: recruitment is the only entry point.
+    assert_nil inertia_props["methods"]
+    assert_no_match(%r{/sign/up/email/new|/social/auth/google|/social/auth/apple}, response.body)
   end
 
   test "local ceremony does not show google signup button even if legacy flag is set" do
@@ -62,8 +85,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "form[action*=?]", "/social/auth/google", count: 0
-    assert_select "form[action*=?]", "/auth/google", count: 0
+    assert_no_match(%r{/social/auth/google|/auth/google}, response.body)
   end
 
   test "local ceremony renders recruit contact and home links" do
@@ -78,13 +100,10 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    link = css_select("div a").find { |a| a.text == I18n.t("sign.org.ups.new.recruit_link_text") }
+    recruit = inertia_props.fetch("recruit")
 
-    assert_not_nil link,
-                   "Could not find link with text: #{I18n.t("sign.org.ups.new.recruit_link_text").inspect}"
-    href = link["href"]
-
-    assert_match(/ri=jp/, href)
+    assert_equal I18n.t("sign.org.ups.new.recruit_link_text"), recruit.fetch("label")
+    assert_match(/ri=jp/, recruit.fetch("href"))
   end
 
   test "direct app-style email sign up route is not available" do
@@ -122,8 +141,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     get auth_org_sign_up_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
-    assert_response :redirect
-    assert_includes response.location, "rt="
+    assert_response :forbidden
   end
 
   private
@@ -690,11 +708,14 @@ class Auth::Org::SignUpsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -741,9 +762,9 @@ class Auth::Org::SignUpsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -756,7 +777,7 @@ class Auth::Org::SignUpsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -877,6 +898,11 @@ class Auth::Org::SignUpsControllerTest
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    # The X-TEST-* headers alone do not authenticate; the access token is what makes `logged_in?`
+    # true. Mirrors the org sign-in test helper.
+    base["Authorization"] = "Bearer #{
+      jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+    }"
     base
   end
 
@@ -999,11 +1025,14 @@ class Auth::Org::SignUpsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

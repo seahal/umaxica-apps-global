@@ -1,0 +1,83 @@
+# GET /api/v0/entries
+#
+# No `servers`. This path is served by the docs, help, info, and news services, never by Core:
+# `resources :entries` appears only in config/routes/{docs,help,info,news}.rb. The help and info
+# hosts are resolved at boot from HELP_SERVICE_URL and INFO_SERVICE_URL and have no literal in the
+# repository. The docs and news editions have no production host entry at all
+# (config/environments/production.rb), so they are implemented and tested but not publicly
+# reachable. Every candidate value would therefore be either wrong or internal.
+get:
+  summary: List published entries
+  description: >-
+    Returns the published entries for the content service and audience that answered. Served by the
+    docs, help, info, and news services on this surface, each on its own host. The docs and news
+    editions currently have no public ingress; they are described here because the routes and
+    controllers exist and are covered by contract tests.
+  security: []
+  operationId: listEntries
+  tags: [Content]
+  parameters:
+    - name: locale
+      in: query
+      schema:
+        type: string
+        example: ja
+    - name: category
+      in: query
+      schema:
+        type: string
+    - name: tag
+      in: query
+      schema:
+        type: string
+    - $ref: "../components.yml#/parameters/Limit"
+    - $ref: "../components.yml#/parameters/Cursor"
+    - $ref: "../components.yml#/parameters/IfNoneMatch"
+    - $ref: "../components.yml#/parameters/IfModifiedSince"
+  responses:
+    "200":
+      description: >-
+        One page of published entries. The collection is always bounded: a request that omits
+        `limit` still receives at most the default page size.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: max-age=60, public
+        ETag:
+          schema:
+            type: string
+        Last-Modified:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data, page]
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "../components.yml#/schemas/Entry"
+              page:
+                $ref: "../components.yml#/schemas/Page"
+    "304":
+      description: The cached representation is still fresh.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: max-age=60, public
+        ETag:
+          schema:
+            type: string
+        Last-Modified:
+          schema:
+            type: string
+    "400":
+      $ref: "../components.yml#/responses/Problem"
+    "406":
+      $ref: "../components.yml#/responses/NotAcceptable"
+    "429":
+      $ref: "../components.yml#/responses/RateLimited"

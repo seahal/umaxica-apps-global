@@ -4,11 +4,10 @@
 class IdentitySocialCeremonyFinalCommitter
   Commit = Data.define(:transaction, :result, :identity, :user, :existing_account, :pt, :entry)
 
-  def self.call!(result_token:, auth_hash: nil, actor: nil, session_ref:, surface:,
+  def self.call!(result_token:, actor: nil, session_ref:, surface:,
                  ip_address: nil, user_agent: nil, now: Time.current)
     new(
       result_token: result_token,
-      auth_hash: auth_hash,
       actor: actor,
       session_ref: session_ref,
       surface: surface,
@@ -18,10 +17,9 @@ class IdentitySocialCeremonyFinalCommitter
     ).call!
   end
 
-  def initialize(result_token:, auth_hash:, actor:, session_ref:, surface:, ip_address: nil, user_agent: nil,
+  def initialize(result_token:, actor:, session_ref:, surface:, ip_address: nil, user_agent: nil,
                  now: Time.current)
     @result_token = result_token
-    @auth_hash = auth_hash
     @actor = actor
     @session_ref = session_ref.to_s
     @surface = surface.to_s
@@ -53,7 +51,7 @@ class IdentitySocialCeremonyFinalCommitter
 
   private
 
-  attr_reader :result_token, :auth_hash, :actor, :session_ref, :surface, :ip_address, :user_agent, :now
+  attr_reader :result_token, :actor, :session_ref, :surface, :ip_address, :user_agent, :now
 
   def validate_binding!
     raise IdentitySocialCeremonyContract::Error, "session_ref is required" if session_ref.blank?
@@ -85,14 +83,12 @@ class IdentitySocialCeremonyFinalCommitter
   end
 
   def commit_link!
-    # On the acme completion path the raw provider auth_hash is not replayed
-    # to the committer; it is recovered from the one-shot candidate the sign
-    # callback stored. Use auth_hash_for_subject so the provider token,
-    # refresh token, and expiry are persisted on the linked identity.
+    callback_result = candidate_for_subject.callback_result
     SocialAuthLinkHandler.call(
-      auth_hash: auth_hash_for_subject,
+      principal: callback_result.principal,
+      credential_candidate: callback_result.credential_candidate,
       current_client: actor,
-      identity_class: identity_class,
+      repository: identity_repository,
       provider: provider,
       uid: provider_subject,
     )[:identity]
@@ -101,17 +97,18 @@ class IdentitySocialCeremonyFinalCommitter
   def commit_login!(consumption)
     candidate = IdentitySocialCeremonyCandidateStore.consume!(result["candidate_ref"])
     validate_candidate!(candidate)
-    decision = SocialAuthCoordinator.handle_callback(
-      auth_hash: candidate.auth_hash,
-      intent: "login",
+    callback_result = candidate.callback_result
+    decision = ExternalAuthenticationLoginUseCase.call(
+      principal: callback_result.principal,
+      credential_candidate: callback_result.credential_candidate,
       sign_up_entry: transaction_return_entry == "sign_up",
     )
     Commit.new(
       transaction: consumption.transaction,
       result: consumption.result,
-      identity: decision[:identity],
-      user: decision[:user],
-      existing_account: decision[:existing_account],
+      identity: decision.identity,
+      user: decision.user,
+      existing_account: decision.existing_account,
       pt: transaction_return_to,
       entry: transaction_return_entry,
     )
@@ -125,12 +122,16 @@ class IdentitySocialCeremonyFinalCommitter
     raise IdentitySocialCeremonyContract::Error, "birthdate is ineligible" unless
       SignUpEligibilityPolicy.minimum_age_reached?(birthdate, surface: surface, today: Time.zone.today)
 
-    signup = SocialAuthSignupFinalizer.call(auth_hash: candidate.auth_hash, birthdate: birthdate)
+    signup = ExternalAuthenticationSignupUseCase.call(
+      principal: candidate.callback_result.principal,
+      credential_candidate: candidate.callback_result.credential_candidate,
+      birthdate: birthdate,
+    )
     Commit.new(
       transaction: consumption.transaction,
       result: consumption.result,
-      identity: signup.fetch(:identity),
-      user: signup.fetch(:user),
+      identity: signup.identity,
+      user: signup.user,
       existing_account: false,
       pt: transaction_return_to,
       entry: transaction_return_entry,
@@ -184,21 +185,15 @@ class IdentitySocialCeremonyFinalCommitter
   end
 
   def provider_subject
-    @provider_subject ||= SocialAuthUidExtractor.call(auth_hash: auth_hash_for_subject).to_s
+    @provider_subject ||= candidate_for_subject.callback_result.principal.subject
   end
 
-  def identity_class
-    SocialIdentifiable.model_for_provider(provider)
+  def identity_repository
+    @identity_repository ||= ExternalAuthentication::IdentityRepositoryFactory.current.build(provider)
   end
 
   def operation
     @operation ||= result["operation"].to_s
-  end
-
-  def auth_hash_for_subject
-    return auth_hash if auth_hash.present?
-
-    candidate_for_subject.auth_hash
   end
 
   def candidate_for_subject

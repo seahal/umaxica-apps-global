@@ -16,14 +16,14 @@ class Auth::App::Sign::Up::Check::Google::ConfirmationsControllerTest < ActionDi
     Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 
-  test "show does not redirect signed-in clients away from the google confirmation checkpoint" do
+  test "show without a sign-up ticket restarts sign-up instead of a dead-end error body" do
     user = clients(:one)
 
     get auth_app_sign_up_check_google_confirmation_url(ri: "jp"),
         headers: as_user_headers(user, host: @host)
 
-    assert_response :unprocessable_content
-    assert_includes response.body, "ticket is required"
+    assert_response :see_other
+    assert_redirected_to auth_app_sign_up_path(ri: "jp")
   end
 
   test "update requires turnstile before clearing the social confirmation requirement" do
@@ -674,11 +674,14 @@ class Auth::App::Sign::Up::Check::Google::ConfirmationsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -725,9 +728,9 @@ class Auth::App::Sign::Up::Check::Google::ConfirmationsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -740,7 +743,7 @@ class Auth::App::Sign::Up::Check::Google::ConfirmationsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1007,11 +1010,14 @@ class Auth::App::Sign::Up::Check::Google::ConfirmationsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

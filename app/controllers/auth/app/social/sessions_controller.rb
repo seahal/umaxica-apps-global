@@ -4,20 +4,27 @@
 module Auth
   module App
     module Social
-      # GET /social/(google|apple)/session/new
+      # POST /social/(google|apple)/session
+      #
       # Starts the social sign-in ceremony. The provider arrives as a route
       # default; an explicit `intent` param may upgrade the ceremony to
       # "link" or "step_up" when arriving from settings.
-      class SessionsController < AuthenticationsController
+      class SessionsController < ::Auth::App::ApplicationController
+        # The only page either action renders is the sign-up suspension notice, which is now the
+        # Inertia entry page rather than an ERB template; the OmniAuth handoff is untouched.
+        include ::SurfaceInertiaPage
+        include AppSocialCeremonyEntry
+        include AppSignUpEntryPage
+
         AUTHENTICATION_MODE = :open
 
         # Login intent doesn't require auth; link/step-up intents are checked
         # in require_social_link_step_up! and prepare_social_auth_intent!.
-        declare_authentication_mode! :open, only: :new
-        before_action :require_social_link_step_up!, only: :new
+        declare_authentication_mode! :open, only: :create
+        before_action :require_social_link_step_up!, only: :create
 
-        def new
-          start_social_ceremony!
+        def create
+          handoff_social_ceremony!
         end
       end
     end

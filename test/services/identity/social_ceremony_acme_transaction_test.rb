@@ -2,18 +2,19 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 # require "helpers/global_test_support"
 
 class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
+  include ExternalIdentityTestHelper
 
-  fixtures :clients, :client_statuses, :client_chronicle_events, :client_chronicle_levels,
-           :client_google_identity_statuses, :client_apple_identity_statuses
+  fixtures :clients, :client_statuses, :client_chronicle_events, :client_chronicle_levels
 
   setup do
     @now = Time.zone.parse("2026-06-03 12:00:00")
     @client = clients(:one)
-    @client.user_google_identity&.destroy!
+    @client.client_external_identities.where(provider: "google").destroy_all
     @session_ref = "session-#{SecureRandom.hex(4)}"
   end
 
@@ -43,10 +44,9 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       issuance = issue_grant
       result_token = issue_result(issuance.grant)
 
-      assert_difference -> { ClientGoogleIdentity.where(user: @client).count }, 1 do
+      assert_difference -> { @client.client_external_identities.where(provider: "google").count }, 1 do
         commit = IdentitySocialCeremonyFinalCommitter.call!(
           result_token: result_token,
-          auth_hash: auth_hash,
           actor: @client,
           session_ref: @session_ref,
           surface: "app",
@@ -63,7 +63,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_raises(IdentitySocialCeremonyContract::Error) do
         IdentitySocialCeremonyFinalCommitter.call!(
           result_token: result_token,
-          auth_hash: auth_hash,
           actor: @client,
           session_ref: @session_ref,
           surface: "app",
@@ -90,14 +89,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         user_email_status_id: ClientEmailStatus::VERIFIED,
         public_id: SecureRandom.alphanumeric(21),
       )
-      ClientAppleIdentity.create!(
-        user: existing_user,
-        uid: "apple-shared-email-uid",
-        provider: "apple",
-        token: "apple-token",
-        expires_at: 1.week.from_now.to_i,
-        user_apple_identity_status: ClientAppleIdentityStatus.find(ClientAppleIdentityStatus::ACTIVE),
-      )
+      create_active_external_identity(client: existing_user, provider: "apple", subject: "apple-shared-email-uid")
 
       signup_auth_hash = {
         "provider" => "google",
@@ -122,7 +114,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_difference -> { Client.count }, 1 do
         commit = IdentitySocialCeremonyFinalCommitter.call!(
           result_token: result_token,
-          auth_hash: nil,
           actor: nil,
           session_ref: @session_ref,
           surface: "app",
@@ -155,14 +146,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         visibility_id: ClientVisibility::USER,
         birthdate: "2000-01-01",
       )
-      ClientGoogleIdentity.create!(
-        user: owner,
-        uid: "google-conflict-uid",
-        provider: "google",
-        token: "existing-token",
-        expires_at: 1.day.from_now.to_i,
-        user_google_identity_status: ClientGoogleIdentityStatus.find(ClientGoogleIdentityStatus::ACTIVE),
-      )
+      create_active_external_identity(client: owner, provider: "google", subject: "google-conflict-uid")
 
       issuance = issue_signup_grant
       result_token = issue_signup_result(
@@ -175,7 +159,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         assert_raises(SocialAuth::ProviderError) do
           IdentitySocialCeremonyFinalCommitter.call!(
             result_token: result_token,
-            auth_hash: nil,
             actor: nil,
             session_ref: @session_ref,
             surface: "app",
@@ -186,7 +169,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         end
 
       assert_equal "errors.social_auth.identity_conflict", error.i18n_key
-      assert_equal 1, ClientGoogleIdentity.where(uid: "google-conflict-uid").count
+      assert_equal 1, ClientExternalIdentity.where(provider: "google", subject: "google-conflict-uid").count
     end
   end
 
@@ -224,7 +207,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     end
   end
 
-  test "wrong actor, session, and provider subject are rejected before link commit" do
+  test "wrong actor and session are rejected before link commit" do
     travel_to @now do
       issuance = issue_grant
       result_token = issue_result(issuance.grant)
@@ -235,7 +218,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
             assert_raises(IdentitySocialCeremonyContract::Error) do
               IdentitySocialCeremonyFinalCommitter.call!(
                 result_token: result_token,
-                auth_hash: auth_hash,
                 actor: clients(:two),
                 session_ref: @session_ref,
                 surface: "app",
@@ -245,20 +227,8 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
             assert_raises(IdentitySocialCeremonyContract::Error) do
               IdentitySocialCeremonyFinalCommitter.call!(
                 result_token: result_token,
-                auth_hash: auth_hash,
                 actor: @client,
                 session_ref: "wrong-session",
-                surface: "app",
-                now: @now,
-              )
-            end
-            wrong_auth_hash = auth_hash.merge("uid" => "different-subject")
-            assert_raises(IdentitySocialCeremonyContract::Error) do
-              IdentitySocialCeremonyFinalCommitter.call!(
-                result_token: result_token,
-                auth_hash: wrong_auth_hash,
-                actor: @client,
-                session_ref: @session_ref,
                 surface: "app",
                 now: @now,
               )
@@ -267,7 +237,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         end
       end
 
-      assert_nil ClientGoogleIdentity.find_by(uid: auth_hash["uid"])
+      assert_nil ClientExternalIdentity.find_by(provider: "google", subject: auth_hash["uid"])
     end
   end
 
@@ -332,7 +302,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_raises(IdentitySocialCeremonyContract::Error) do
         IdentitySocialCeremonyFinalCommitter.call!(
           result_token: tampered,
-          auth_hash: auth_hash,
           actor: @client,
           session_ref: @session_ref,
           surface: "app",
@@ -340,7 +309,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         )
       end
 
-      assert_nil ClientGoogleIdentity.find_by(uid: auth_hash["uid"])
+      assert_nil ClientExternalIdentity.find_by(provider: "google", subject: auth_hash["uid"])
       assert_not_predicate issuance.transaction.reload, :consumed?
     end
   end
@@ -359,7 +328,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         assert_raises(IdentitySocialCeremonyContract::Error) do
           IdentitySocialCeremonyFinalCommitter.call!(
             result_token: result_token,
-            auth_hash: auth_hash,
             actor: nil,
             session_ref: @session_ref,
             surface: "app",
@@ -368,7 +336,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         end
 
       assert_equal "actor is required", error.message
-      assert_nil ClientGoogleIdentity.find_by(uid: auth_hash["uid"])
+      assert_nil ClientExternalIdentity.find_by(provider: "google", subject: auth_hash["uid"])
       assert_not_predicate issuance.transaction.reload, :consumed?
     end
   end
@@ -417,7 +385,6 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
           assert_raises(IdentitySocialCeremonyContract::Error) do
             IdentitySocialCeremonyFinalCommitter.call!(
               result_token: result_token,
-              auth_hash: nil,
               actor: nil,
               session_ref: @session_ref,
               surface: "app",
@@ -444,9 +411,21 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   end
 
   def issue_result(grant_token)
+    provider_auth = auth_hash
+    callback_result = ExternalAuthentication::CallbackResult.verified(
+      principal: ExternalAuthentication::VerifiedPrincipal.new(
+        provider: provider_auth.fetch("provider"),
+        subject: provider_auth.fetch("uid"),
+        issuer: "https://accounts.google.com",
+        audience: "google-client-id",
+        verified_at: @now,
+        verification_authority: "omniauth-google-oauth2/contract",
+      ),
+      credential_candidate: nil,
+    )
     IdentitySocialCeremonyResultIssuer.issue!(
       grant_token: grant_token,
-      auth_hash: auth_hash,
+      callback_result: callback_result,
       surface: "app",
       actor_ref: @client.public_id,
       session_ref: @session_ref,
@@ -456,9 +435,21 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   end
 
   def issue_signup_result(grant_token, auth_hash:, birthdate:)
+    provider = auth_hash.fetch("provider")
+    callback_result = ExternalAuthentication::CallbackResult.verified(
+      principal: ExternalAuthentication::VerifiedPrincipal.new(
+        provider: provider,
+        subject: auth_hash.fetch("uid"),
+        issuer: ((provider == "apple") ? "https://appleid.apple.com" : "https://accounts.google.com"),
+        audience: "#{provider}-client-id",
+        verified_at: @now,
+        verification_authority: "test-provider-contract",
+      ),
+      credential_candidate: nil,
+    )
     IdentitySocialCeremonyResultIssuer.issue!(
       grant_token: grant_token,
-      auth_hash: auth_hash,
+      callback_result: callback_result,
       surface: "app",
       actor_ref: @client.public_id,
       session_ref: @session_ref,

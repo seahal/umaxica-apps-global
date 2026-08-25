@@ -11,6 +11,10 @@ Accepted
 > reintroduce sign-side sessions, refresh tokens, preference writes, dashboards, account lifecycle,
 > downstream token issuance, authorization decisions, or step-up freshness.
 
+> **Supersession (2026-07-24):** The Apple POST callback statement is superseded by
+> `adr/social-omniauth-callback-transport.md`. Apple and Google callbacks now use the documented
+> GET-only transport contract.
+
 ## Temporary Exception
 
 2026-06-02: `adr/google-social-temporary-gateway-exception.md` adds a QA-only exception for the
@@ -55,9 +59,8 @@ The accepted `app` Sign Up routes are:
 3. Google social Sign Up.
 4. Apple social Sign Up.
 
-Google and Apple are separate Sign Up routes even though they share social-auth infrastructure,
-because their callback methods and provider constraints differ. Google returns through
-`GET /social/google/callback`; Apple returns through `POST /social/apple/callback`.
+Google and Apple are separate Sign Up routes even though they share social-auth infrastructure.
+Their current callback transport is defined by `adr/social-omniauth-callback-transport.md`.
 
 The public route vocabulary is frozen. This ADR only documents the authority boundary and handoff
 behavior; it does not justify changing the accepted `/sign/up/*` or `/social/*` paths.

@@ -35,13 +35,13 @@ class TurnstileFormsTest < ActionDispatch::IntegrationTest
 
       assert_response :success, "Failed to access #{path} for #{name} (#{host})"
 
-      # Check for Turnstile widget
-      has_turnstile = response.body.include?("cf-turnstile") || response.body.include?("cloudflare_turnstile")
-      next unless has_turnstile
+      turnstile = inertia_props["turnstile"]
+      next if turnstile.blank?
 
-      # Check for turbo disabled on forms
-      assert_select "form[data-turbo='false']", { minimum: 1 },
-                    "Expected at least one form with data-turbo='false' in #{name} (#{host})"
+      # The widget is drawn into the form rather than executed in the background, which is what
+      # kept these forms on a plain document submit instead of a background visit.
+      assert_equal "render", turnstile.fetch("mode"),
+                   "Expected an in-form Turnstile widget in #{name} (#{host})"
     end
   end
 
@@ -63,9 +63,10 @@ class TurnstileFormsTest < ActionDispatch::IntegrationTest
 
       assert_response :success, "Failed to access #{path} for #{name} (#{host})"
 
-      # Check for Turnstile widget presence
-      assert response.body.include?("cf-turnstile") || response.body.include?("cloudflare_turnstile"),
-             "Expected Turnstile widget in #{name} (#{host})"
+      # The widget mounts from the props the server sends it, so the site key is what "the page
+      # renders a Turnstile challenge" means now.
+      assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?,
+                       "Expected Turnstile widget in #{name} (#{host})"
     end
   end
 end

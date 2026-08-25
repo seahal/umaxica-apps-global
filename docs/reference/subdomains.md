@@ -4,19 +4,25 @@ Subdomain labels are entry points. They are not Rails Engine boundaries.
 
 ## Current Public Surfaces
 
-| Surface | Default local host  | Purpose                        |
-| ------- | ------------------- | ------------------------------ |
-| `app`   | `www.app.localhost` | End-user product surface       |
-| `org`   | `www.org.localhost` | Staff and organization surface |
-| `com`   | `www.com.localhost` | Public and corporate surface   |
+Local hosts are labelled `<service>.<surface>.localhost`. The `base.*` label carries the product,
+staff, and corporate surfaces:
 
-Identity provider hosts use the `id.*` label for the same audience families:
+| Surface | Default local host   | Purpose                        |
+| ------- | -------------------- | ------------------------------ |
+| `app`   | `base.app.localhost` | End-user product surface       |
+| `org`   | `base.org.localhost` | Staff and organization surface |
+| `com`   | `base.com.localhost` | Public and corporate surface   |
 
-| Audience | Default local host |
-| -------- | ------------------ |
-| `app`    | `id.app.localhost` |
-| `org`    | `id.org.localhost` |
-| `com`    | `id.com.localhost` |
+The credential gateway uses the `auth.*` label for the same audience families:
+
+| Audience | Default local host   |
+| -------- | -------------------- |
+| `app`    | `auth.app.localhost` |
+| `org`    | `auth.org.localhost` |
+| `com`    | `auth.com.localhost` |
+
+The gateway also answers on `sign.*.localhost`, which is the boot-config default that applies when
+`AUTH_*_URL` and `PUBLIC_AUTH_*_URL` are unset.
 
 Development and network-only hosts may exist for operational endpoints, but they are not separate
 Rails Engines.

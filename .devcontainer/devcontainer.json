@@ -1,16 +1,30 @@
 {
   "name": "umaxica-apps-global-dc",
   "dockerComposeFile": ["../compose.yaml", "./compose.override.yml", "../compose.custom.yaml"],
+  "initializeCommand": ".devcontainer/write-host-ids.sh && bin/setup-dev-secrets",
   "service": "core",
   "remoteUser": "global",
   "containerUser": "global",
   "workspaceFolder": "/home/global/workspace",
   "overrideCommand": false,
+  "postCreateCommand": "bundle install && pnpm install",
   "forwardPorts": [3000, 3036, 5050],
   "remoteEnv": {
     "EDITOR": "code --wait --reuse-window",
     "DEBUGGER_DISABLE": "1",
-    "PATH": "/home/global/.opencode/bin:${containerEnv:PATH}"
+    // Do NOT forward the host's TERM. Ghostty, kitty, and WezTerm ship their
+    // own terminfo, so a host value like `xterm-ghostty` has no entry inside
+    // the image — `infocmp` fails, `tput clear` fails, and with it Ctrl+L,
+    // the arrow keys, history, less, htop, and every TUI. Pin a value the
+    // Debian trixie base image is guaranteed to carry in
+    // /usr/share/terminfo/x/ instead. COLORTERM is safe to forward: it only
+    // signals 24-bit color support and never looks anything up in terminfo.
+    // Kept in sync with seahal/umaxica-apps-edge.
+    "TERM": "xterm-256color",
+    "COLORTERM": "${localEnv:COLORTERM}",
+    // The Claude Code feature installs to ~/.local/bin; the image does not put
+    // it on PATH.
+    "PATH": "/home/global/.local/bin:${containerEnv:PATH}"
   },
   "customizations": {
     "vscode": {
@@ -84,39 +98,40 @@
       "remoteId": "intellij",
       "backend": "intellij",
       "plugins": ["org.jetbrains.plugins.ruby"],
-      "containerEnv": { "DEVCONTAINER_IDE": "jetbrains", "DEVCONTAINER_AUTO_START_BIN_DEV": "0" }
+      "containerEnv": { "DEVCONTAINER_IDE": "jetbrains" }
     }
   },
   "shutdownAction": "stopCompose",
   "updateRemoteUserUID": false,
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/jsburckhardt/devcontainer-features/codex:1": {},
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
-    "ghcr.io/devcontainers-extra/features/opencode:1": {}
-  },
-  // Host bind mounts that must be readonly live in compose.override.yml. The
-  // Dev Container string-form `readonly` option is not effective with the
-  // current rootless Podman provider, so it must not guard host credentials or
-  // supply-chain paths. Host ~/.ssh is deliberately not mounted into core.
-  // Writable Claude and Codex auth/state use persistent named volumes. This
-  // keeps login refreshes working without allowing core to rewrite the host's
-  // ~/.claude or ~/.codex trees. Claude's home-level ~/.claude.json is not a
-  // host bind; it is container-local auxiliary state and may be regenerated
-  // when the container is recreated. Authentication persists in ~/.claude.
-  // Heavy-write cache directories route through the umaxica-home-cache named
-  // volume mounted at /home/global/.cache — they never churn host ownership.
-  // Executable tool binaries come from devcontainer features or the image, not
-  // host .local/bin, so host-only symlinks cannot shadow container installs.
+    "ghcr.io/jsburckhardt/devcontainer-features/herdr:1": { "VERSION": "v0.8.0" },
+    "ghcr.io/srzstephen/devcontainer-features/claude-code:1": {},
+    "ghcr.io/nolanjx/devcontainer-features/codex:1": {},
+    "ghcr.io/devcontainer-community/devcontainer-features/tailscale.com:1": {},
+    "ghcr.io/sliekens/devcontainer-features/grok-build:1": {}
+  }
+  // No host credential enters the `core` service. The Cloudflare tunnel token from
+  // the repository-local `.env` is scoped to the separate `cloudflare-tunnel` sidecar and
+  // is not present in `core`. There are no `mounts`, no
+  // host bind of ~/.ssh, ~/.config/gh, ~/.gitconfig, ~/.claude, or ~/.codex,
+  // and no persistent volume holding tool auth state. Credentials are obtained
+  // inside the running container through browser logins and are discarded when
+  // the container is recreated:
+  //   gh auth login --web --git-protocol https && gh auth setup-git
+  //   claude   # then /login
+  //   codex login
+  // Git remotes must be HTTPS: no SSH key exists here for git@github.com.
   //
-  // Workspace write-guards are also declared in compose.override.yml.
-  // Dependency manifests and lockfiles inherit the writable workspace mount
-  // because Bundler and pnpm replace them during explicit update commands; CI
-  // protects reproducibility with frozen install modes.
-  "mounts": [
-    "source=global-codex,target=/home/global/.codex,type=volume",
-    "source=global-claude,target=/home/global/.claude,type=volume",
-    "source=${localWorkspaceFolder}/.devcontainer/dotfiles/bashrc,target=/home/global/.bashrc,type=bind",
-    "source=${localWorkspaceFolder}/.devcontainer/dotfiles/irbrc,target=/home/global/.irbrc,type=bind"
-  ]
+  // Podman Secrets under /run/secrets carry only locally generated, dev-only
+  // service passwords (Postgres, RustFS, Grafana, HMAC salts) created by
+  // bin/setup-dev-secrets. No user credential is registered there.
+  //
+  // Read-only workspace write-guards are declared in compose.override.yml,
+  // because the Dev Container string-form `readonly` option is not effective
+  // with the current rootless Podman provider. Heavy-write cache directories
+  // route through named volumes under /home/global so they never churn host
+  // ownership. Dependency manifests and lockfiles inherit the writable
+  // workspace mount because Bundler and pnpm replace them during explicit
+  // update commands; CI protects reproducibility with frozen install modes.
 }

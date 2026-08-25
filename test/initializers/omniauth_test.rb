@@ -9,37 +9,29 @@ class OmniauthTest < ActiveSupport::TestCase
     assert_equal "/social", OmniAuth.config.path_prefix
   end
 
-  test "callback origin uses https for configured app sign host" do
-    env = Rack::MockRequest.env_for(
-      "http://log.umaxica.app/social/google/callback",
-      "HTTP_HOST" => "log.umaxica.app",
-    )
-
-    OmniAuthCallbackOrigin.stub(:public_sign_hosts, ["log.umaxica.app"]) do
-      assert_equal "https://log.umaxica.app", OmniAuthCallbackOrigin.call(env)
-    end
+  test "omniauth request phase accepts only POST" do
+    assert_equal [:post], OmniAuth.config.allowed_request_methods
   end
 
-  test "callback origin uses https for configured org sign host" do
-    env = Rack::MockRequest.env_for(
-      "http://log.umaxica.org/social/failure",
-      "HTTP_HOST" => "log.umaxica.org",
-    )
+  test "Google requests online access only" do
+    initializer = Rails.root.join("config/initializers/omniauth.rb").read
 
-    OmniAuthCallbackOrigin.stub(:public_sign_hosts, ["log.umaxica.org"]) do
-      assert_equal "https://log.umaxica.org", OmniAuthCallbackOrigin.call(env)
-    end
+    assert_includes initializer, 'access_type: "online"'
+    assert_not_includes initializer, 'access_type: "offline"'
   end
 
-  test "callback origin preserves request scheme for unconfigured hosts" do
+  test "callback origin ignores the request host" do
     env = Rack::MockRequest.env_for(
-      "http://id.app.localhost/social/google/callback",
-      "HTTP_HOST" => "id.app.localhost",
+      "https://attacker.example.test/social/google/callback",
+      "HTTP_HOST" => "attacker.example.test",
     )
 
-    OmniAuthCallbackOrigin.stub(:public_sign_hosts, []) do
-      assert_equal "http://id.app.localhost", OmniAuthCallbackOrigin.call(env)
-    end
+    assert_equal OmniAuthCallbackOrigin.callback_origin, OmniAuthCallbackOrigin.call(env)
+  end
+
+  test "callback origin is a valid configured origin" do
+    assert_match %r{\Ahttps?://}, OmniAuthCallbackOrigin.callback_origin
+    assert_predicate OmniAuthCallbackOrigin.callback_host, :present?
   end
 
   test "apple failure logs nonce context without raw nonce values" do

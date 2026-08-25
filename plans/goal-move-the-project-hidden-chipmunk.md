@@ -123,7 +123,7 @@ Coverage adds follow existing test file patterns. Reference:
 ### Step 6 — Final Cleanup and Report
 
 ```bash
-vp check --fix
+pnpm fix
 bundle exec rubocop -a
 COVERAGE=true bin/rails test
 ```

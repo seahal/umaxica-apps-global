@@ -10,6 +10,13 @@ This directory stores accepted architecture and design decisions.
 - Keep non-authoritative decision notes and implementation handoff notes in `notes/`, not under
   `adr/`.
 
+Current org federated sign-in decision:
+
+- `adr/org-entra-id-sign-in-boundary.md` — accepted decision for org-surface Microsoft Entra ID SSO:
+  sign-in only with no JIT provisioning, `tid + oid` as the sole lookup key, `email`/`upn` never
+  requested or stored, records placed in `org_zenith`, and OmniAuth left untouched on the org
+  surface.
+
 Current identity authority decision:
 
 - `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md` — current source of
@@ -18,6 +25,12 @@ Current identity authority decision:
   opaque, reverse audience/transport use is rejected, and no `Cookie` header may reach Next.js or
   Side origins.
 - `adr/core-browser-credential-transport.md` — superseded predecessor retained for traceability.
+- `adr/core-canonical-public-host.md` — chooses `jp.umaxica.{app,com,org}` as the canonical Core
+  public host, sends the Workers VPC `Host` from the `PUBLIC_*` family with no `X-Forwarded-Host`,
+  and makes `config/routes/core.rb` the source of truth for edge path ownership. `jpx.umaxica.*`
+  and `core-jp.umaxica.*` remain accepted until the `jpx.*` column defaults are migrated. No
+  external identity provider re-registration is involved; the social callbacks live on the Auth and
+  Base surfaces, not on Core.
 - `adr/acme-sign-core-base-port-boundary.md` — current source of truth for the target component
   model: Acme is the only IdP / Authorization Server, Sign is a special RP, Core is the Next.js web
   RP/BFF, Base is the Rails foundation/control-plane subdomain, and Palm is the native bearer-token
@@ -63,6 +76,23 @@ Superseded IdP/RP-centered ADRs:
 - `adr/preference-soft-bubble-doctrine.md`
 - `adr/preference-setting-configurator-url-boundaries.md`
 
+Current API design decisions:
+
+- `adr/api-error-format-problem-details.md` — accepted adoption of RFC 9457 Problem Details
+  (`application/problem+json`) for all non-protocol JSON API errors, the `urn:umaxica:problem:`
+  identifier namespace, the two permitted extension members, and the protocol exemption list
+  (OAuth / OIDC / WebAuthn / DBSC / MCP JSON-RPC / health / `.well-known`).
+- `adr/api-collection-contract.md` — accepted `{data, page}` envelope and cursor pagination for
+  collection endpoints. Target contract only; the entries API migration is externally breaking and
+  deferred to separately reviewed work.
+- `adr/api-versioning-and-client-conventions.md` — accepted path-based major versioning,
+  `Idempotency-Key` (an expired IETF draft adopted as Stripe de facto), `RateLimit` /
+  `RateLimit-Policy` field names (an unpublished draft, adopted with no client dependency permitted),
+  and OpenAPI 3.2.x. Records the areas where no standard exists, keeping
+  `docs/reference/api-design-standards.md` limited to specification-backed rules.
+- `adr/api-route-vocabulary-consolidation.md` — accepted naming direction consolidating `/web/v0` and
+  `/edge/v0` under `/api/v0`. Direction only; no route was changed.
+
 Current database naming decisions:
 
 - `adr/umaxica-v1-core-resource-architecture.md` — accepted v1 core resource architecture: Identity
@@ -93,6 +123,20 @@ Current audit / chronicle decisions:
 
 - `adr/chronicle-audit-db-consolidation.md`
 - `adr/chronicle-audit-implementation-guidance.md`
+
+Current account enforcement decisions:
+
+- `adr/administrative-access-lock.md` — accepted `admin_locked` account-wide runtime access gate for
+  `Client`, `Visitor`, `Operator`; unchanged and reused, not superseded, by Unified Enforcement.
+- `adr/unified-enforcement.md` — current source of truth for Identity BAN, Identity Freeze, and
+  Authentication Method Lock as one Enforcement Case substrate with independently combinable
+  Principal / Authentication Method / Identifier effects, per-surface `*_zenith` storage, and no
+  dedicated enforcement database.
+- `adr/authentication-method-lock.md` — superseded by `adr/unified-enforcement.md`; retained for
+  traceability of the 2026-07-26 decision.
+- `adr/database-trigger-usage-boundary.md` — accepted narrow trigger-usage policy; Context corrected
+  2026-07-27 (five orphaned functions, not eight; no credential-table `ON DELETE CASCADE`), Decision
+  unchanged.
 
 Preference decisions:
 
@@ -210,7 +254,13 @@ Current tooling / code-quality decisions:
 
 Current outbound delivery decisions:
 
-- `adr/outbound-message-delivery-interface.md`
+- `adr/notification-orchestration-via-noticed.md` — accepted decision that Noticed notifiers under
+  `Notify::<Surface>` are the notification orchestration entry point, with the surface mailers,
+  `OutboundSms`, and `ApplicationPushNotification` kept as the transport layer that carries the kill
+  switches and the encryption boundary.
+- `adr/outbound-message-delivery-interface.md` — partially superseded for the `Notification` naming
+  reservation and the call-site entry point; its payload shape, result object, and job-argument
+  encryption rule remain in force.
 
 Current retention / deletion decisions:
 

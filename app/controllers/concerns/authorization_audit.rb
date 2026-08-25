@@ -95,7 +95,17 @@ module AuthorizationAudit
     audit.save!
   rescue ActiveRecord::RecordInvalid => e
     # Event ID might not exist in the database yet
-    Rails.logger.info(JitLogEvent.format("authorization.audit.user_creation_failed", error_message: e.message))
+    # ActiveRecord::RecordInvalid#message quotes the offending values, and
+    # "error_message" is not matched by ObservabilityRedactor::SENSITIVE_KEY_PATTERN,
+    # so it would reach the log unredacted. Attribute names carry the same
+    # diagnostic value without the values themselves.
+    Rails.logger.info(
+      JitLogEvent.format(
+        "authorization.audit.user_creation_failed",
+        error_class: e.class.name,
+        invalid_attributes: e.record&.errors&.attribute_names,
+      ),
+    )
   end
 
   def create_staff_authorization_audit(staff, log_data)
@@ -109,7 +119,17 @@ module AuthorizationAudit
     audit.save!
   rescue ActiveRecord::RecordInvalid => e
     # Event ID might not exist in the database yet
-    Rails.logger.info(JitLogEvent.format("authorization.audit.staff_creation_failed", error_message: e.message))
+    # ActiveRecord::RecordInvalid#message quotes the offending values, and
+    # "error_message" is not matched by ObservabilityRedactor::SENSITIVE_KEY_PATTERN,
+    # so it would reach the log unredacted. Attribute names carry the same
+    # diagnostic value without the values themselves.
+    Rails.logger.info(
+      JitLogEvent.format(
+        "authorization.audit.staff_creation_failed",
+        error_class: e.class.name,
+        invalid_attributes: e.record&.errors&.attribute_names,
+      ),
+    )
   end
 
   def create_visitor_authorization_audit(visitor, log_data)
@@ -127,7 +147,17 @@ module AuthorizationAudit
                       trace_id: log_data[:trace_id], }.compact if audit.respond_to?(:context=)
     audit.save!
   rescue ActiveRecord::RecordInvalid => e
-    Rails.logger.info(JitLogEvent.format("authorization.audit.visitor_creation_failed", error_message: e.message))
+    # ActiveRecord::RecordInvalid#message quotes the offending values, and
+    # "error_message" is not matched by ObservabilityRedactor::SENSITIVE_KEY_PATTERN,
+    # so it would reach the log unredacted. Attribute names carry the same
+    # diagnostic value without the values themselves.
+    Rails.logger.info(
+      JitLogEvent.format(
+        "authorization.audit.visitor_creation_failed",
+        error_class: e.class.name,
+        invalid_attributes: e.record&.errors&.attribute_names,
+      ),
+    )
   end
 
   def authorization_audit_actor

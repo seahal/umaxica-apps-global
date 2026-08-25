@@ -7,6 +7,10 @@ module Auth
       module In
         module Challenge
           class TotpsController < ::Auth::App::ApplicationController
+            include ::SurfaceInertiaPage
+
+            include ::TurnstilePageProps
+
             include SessionLimitGate
 
             include ::CloudflareTurnstile
@@ -21,7 +25,7 @@ module Auth
               name: "mfa_totp_create_ip_burst",
               store: rate_limit_store,
               only: :create,
-              with: -> { render_rate_limited(rule_name: "auth_app_sign_in_mfa_totp_create_ip_burst", retry_after: 60) },
+              with: -> { render_rate_limited(retry_after: 60) },
             )
             rate_limit(
               to: 20,
@@ -32,7 +36,26 @@ module Auth
               store: rate_limit_store,
               only: :create,
               with: -> {
-                render_rate_limited(rule_name: "auth_app_sign_in_mfa_totp_create_ip_sustained", retry_after: 900)
+                render_rate_limited(retry_after: 900)
+              },
+            )
+            # Per-account limit. The two rules above are keyed by source IP, so a
+            # distributed attacker gets unbounded guesses against one account's
+            # 6-digit TOTP. The email and SMS OTP channels already have a
+            # per-account lock (OtpLockable); this is its equivalent for TOTP.
+            rate_limit(
+              to: 10,
+              within: 15.minutes,
+              by: -> {
+                actor_id = pending_mfa&.dig(:user_id)
+                actor_id.present? ? "client:#{actor_id}" : "unbound:#{request.remote_ip}"
+              },
+              scope: "auth_app_sign_in",
+              name: "mfa_totp_create_account",
+              store: rate_limit_store,
+              only: :create,
+              with: -> {
+                render_rate_limited(retry_after: 900)
               },
             )
 
@@ -52,34 +75,69 @@ module Auth
 
             def new
               @totp_form = TotpChallengeForm.new
+              render_totp_new
             end
 
             def create
               @totp_form = TotpChallengeForm.new(totp_params)
               unless @totp_form.valid?
-                return render :new, status: :unprocessable_content
+                return render_totp_new(status: :unprocessable_content)
               end
 
               unless cloudflare_turnstile_stealth_validation["success"]
                 @totp_form.errors.add(
                   :base, t("session_limit.turnstile_failed"),
                 )
-                return render :new, status: :unprocessable_content
+                return render_totp_new(status: :unprocessable_content)
               end
 
               user = pending_mfa_user
-              last_otp_at, totp_record = verify_totp_for(user, @totp_form.token)
+              result = consume_totp_for(user, @totp_form.token)
 
-              if last_otp_at
-                handle_totp_success(user, totp_record, last_otp_at)
+              if result.accepted?
+                handle_totp_success(user)
               else
-                SignRiskEmitter.emit("auth_failed", user_id: user&.id, ip: request.remote_ip, reason: "totp_mismatch")
+                reason = result.replay? ? "totp_replay" : "totp_mismatch"
+                SignRiskEmitter.emit("auth_failed", user_id: user&.id, ip: request.remote_ip, reason: reason)
                 @totp_form.errors.add(:token, t("sign.app.in.mfa.verification_failed"))
-                render :new, status: :unprocessable_content
+                render_totp_new(status: :unprocessable_content)
               end
             end
 
             private
+
+            # Named rather than derived: `create` re-renders this same page on every failure branch.
+            def render_totp_new(status: :ok)
+              render inertia: "auth/app/sign/in/challenge/totps/new", props: totp_new_props, status: status
+            end
+
+            def totp_new_props
+              scope = "sign.app.in.mfa.totp"
+
+              {
+                title: page_t("#{scope}.title"),
+                description: page_t("#{scope}.description"),
+                form: {
+                  action: auth_app_sign_in_challenge_totp_path,
+                  method: "post",
+                  token_field: {
+                    scope: "totp_challenge_form",
+                    field: "token",
+                    name: "totp_challenge_form[token]",
+                    label: page_t("#{scope}.token_label"),
+                    placeholder: page_t("#{scope}.token_placeholder"),
+                    max_length: 6,
+                    inputmode: "numeric",
+                    help: page_t("#{scope}.help"),
+                  },
+                  submit_label: page_t("#{scope}.submit"),
+                },
+                error_heading: t("errors.messages.validation_failed"),
+                form_errors: @totp_form.errors.full_messages,
+                turnstile: turnstile_stealth_props,
+                back_link: { label: page_t("#{scope}.back"), href: auth_app_sign_in_challenge_path },
+              }
+            end
 
             def ensure_pending_mfa!
               return unless !pending_mfa_valid? || pending_mfa_user.nil?
@@ -91,45 +149,16 @@ module Auth
               )
             end
 
-            def verify_totp_for(user, token)
-              user.client_totp_credentials
-                .where(user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
-                .order(created_at: :desc)
-                .each do |totp|
-                last_otp_at = ROTP::TOTP.new(totp.private_key).verify(token.to_s)
-                return [last_otp_at, totp] if last_otp_at
-              end
-              [nil, nil]
+            def consume_totp_for(user, token)
+              TotpWindowConsumer.call(
+                credentials: user.client_totp_credentials
+                  .where(user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
+                  .order(created_at: :desc),
+                token: token,
+              )
             end
 
-            def handle_totp_success(user, totp_record, last_otp_at)
-              new_otp_at = Time.zone.at(last_otp_at)
-
-              # SELECT FOR UPDATE acquires a row lock and reloads the record atomically.
-              # If a concurrent request already consumed this TOTP window the timestamps
-              # will match and we reject, preventing same-window replay.
-              accepted =
-                totp_record.with_lock do
-                  stored = totp_record.last_otp_at
-                  # Guard against PostgreSQL +/-Infinity sentinel: calling .to_i on
-                  # Infinity raises FloatDomainError. Treat non-finite values as
-                  # "never used" -- the window has not been consumed.
-                  stored_finite = stored.present? &&
-                    !(stored.respond_to?(:infinite?) && stored.infinite?)
-                  if stored_finite && stored.to_i == new_otp_at.to_i
-                    false
-                  else
-                    totp_record.update!(last_otp_at: new_otp_at)
-                    true
-                  end
-                end
-
-              unless accepted
-                SignRiskEmitter.emit("auth_failed", user_id: user&.id, ip: request.remote_ip, reason: "totp_replay")
-                @totp_form.errors.add(:token, t("sign.app.in.mfa.verification_failed"))
-                return render :new, status: :unprocessable_content
-              end
-
+            def handle_totp_success(user)
               result = finalize_mfa_login!(user)
               case result[:status]
               when :session_limit_hard_reject

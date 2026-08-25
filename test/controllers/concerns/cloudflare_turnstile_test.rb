@@ -18,14 +18,14 @@ class CloudflareTurnstileTest < ActiveSupport::TestCase
   end
 
   def test_validation_in_test_mode
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
 
     assert_equal({ "success" => true }, @controller.cloudflare_turnstile_validation)
   end
 
   def test_validation_in_real_mode_calls_verifier
-    CloudflareTurnstile.test_mode = false
+    TurnstileVerifierStub.challenge_enabled = false
     @controller.stub(:params, ActionController::Parameters.new({ "cf-turnstile-response" => "tok" })) do
       JitSecurityTurnstileVerifier.stub(:verify, { "success" => true }) do
         assert_equal({ "success" => true }, @controller.cloudflare_turnstile_validation)
@@ -34,7 +34,7 @@ class CloudflareTurnstileTest < ActiveSupport::TestCase
   end
 
   def test_validation_in_real_mode_tolerates_missing_token
-    CloudflareTurnstile.test_mode = false
+    TurnstileVerifierStub.challenge_enabled = false
     @controller.stub(:params, ActionController::Parameters.new({})) do
       missing_response = { "success" => false, "error" => "missing cf-turnstile-response" }
       result = nil
@@ -48,8 +48,8 @@ class CloudflareTurnstileTest < ActiveSupport::TestCase
   end
 
   def test_verify_turnstile_stealth_failure
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     @controller.stub(:render, true) do
       assert_not @controller.verify_turnstile_stealth!

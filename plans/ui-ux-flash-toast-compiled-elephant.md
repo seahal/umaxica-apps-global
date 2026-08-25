@@ -124,7 +124,7 @@ ADR 改訂が当初想定よりアプリ挙動へ波及する場合は、`adr/RE
 
 - 影響が狭いものから順に: `bin/rails test test/controllers/concerns/...` → surface 単位の
   `bin/rails test test/controllers/{sign,acme}/...` → 認証フロー統合テスト。
-- フロント型変更後に Vitest（`vp test`）と型チェックを実行し、`FlashData`
+- フロント型変更後に Vitest（`pnpm test`）と型チェックを実行し、`FlashData`
   撤去で参照切れが無いか確認。
 - リポジトリ全体に `flash` 残存が無いか最終 grep（`flash[`, `flash.now`, `notice:`, `alert:`,
   `_flash_messages`, `FlashData`）。`regression-guards.mdc`

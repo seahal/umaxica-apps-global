@@ -2,10 +2,7 @@
 # frozen_string_literal: true
 
 class SignAppUpSocialCancellation
-  SUPPORTED_PROVIDERS = {
-    "apple" => ClientAppleIdentity,
-    "google" => ClientGoogleIdentity,
-  }.freeze
+  SUPPORTED_PROVIDERS = %w(apple google).freeze
 
   def self.call(...)
     new(...).call
@@ -30,7 +27,7 @@ class SignAppUpSocialCancellation
       errors: ["pending actor is required"],
     ) unless pending_actor?(actor)
 
-    identity = identity_class.find_by(id: cycle.pending_contact_id)
+    identity = pending_identity_for(actor)
     return SignUpResult.build(
       status: :blocked, ticket: cycle,
       errors: ["pending social identity is required"],
@@ -46,7 +43,7 @@ class SignAppUpSocialCancellation
   attr_reader :cycle
 
   def social_cycle?
-    SUPPORTED_PROVIDERS.key?(normalized_provider) &&
+    SUPPORTED_PROVIDERS.include?(normalized_provider) &&
       cycle.social_entry_method?
   end
 
@@ -60,8 +57,9 @@ class SignAppUpSocialCancellation
     cycle.social_provider.presence || cycle.entry_method
   end
 
-  def identity_class
-    SUPPORTED_PROVIDERS.fetch(normalized_provider)
+  def pending_identity_for(actor)
+    identity = ExternalAuthentication::IdentityRepositoryFactory.current.build(normalized_provider).find_for_user(actor)
+    identity if identity && identity.id.to_s == cycle.pending_contact_id.to_s
   end
 
   def pending_actor?(actor)

@@ -19,6 +19,9 @@ scope(module: :auth, as: :auth) do
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
+
       resource(:health, only: :show)
       namespace(:health) do
         resource(:liveness, only: :show)
@@ -29,6 +32,17 @@ scope(module: :auth, as: :auth) do
       resources(:robots, only: :index, path: "robots.txt")
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
+
+      namespace :apple do
+        resources :notifications, only: :create
+      end
 
       # Canonical ceremony entrypoints and authed-out confirmation/cleanup.
       namespace :sign do
@@ -53,10 +67,6 @@ scope(module: :auth, as: :auth) do
         namespace :v0 do
           namespace :in do
             namespace :email do
-              resource :otp, only: :create
-            end
-
-            namespace :telephone do
               resource :otp, only: :create
             end
           end
@@ -125,11 +135,11 @@ scope(module: :auth, as: :auth) do
             resource :verification, only: :create
           end
 
-          resource :secret_credential, only: %i(new create)
+          resource :secret, only: %i(new create)
           resource :session, only: %i(show update destroy)
 
           resource :guard, only: :show
-          resource :check, only: %i(show update destroy)
+          resource :check, only: :show
 
           resource :challenge, only: :show
           namespace :challenge do
@@ -140,8 +150,7 @@ scope(module: :auth, as: :auth) do
       end
 
       namespace(:social) do
-        # Non-resourceful exception: OmniAuth middleware owns these paths, and
-        # Apple's form_post response mode requires the POST variant.
+        # Non-resourceful exception: OmniAuth middleware owns these fixed provider callback paths.
         get(
           "google/callback",
           to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
@@ -149,10 +158,9 @@ scope(module: :auth, as: :auth) do
           defaults: { provider: "google" },
         )
 
-        match(
+        get(
           "apple/callback",
           to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
-          via: %i(get post),
           as: :apple_callback,
           defaults: { provider: "apple" },
         )
@@ -163,16 +171,22 @@ scope(module: :auth, as: :auth) do
           as: :failure,
         )
 
-        # Ceremony start pages. session = sign-in intent, registration =
-        # sign-up entry; the provider is carried by route defaults.
+        # Ceremony start. session = sign-in intent, registration = sign-up
+        # entry; the provider is carried by route defaults.
+        #
+        # POST only, and deliberately so: the press of an in-application button
+        # supplies the CSRF token the OmniAuth request phase requires, and the
+        # ceremony hands that same POST on with a 307. There is no GET entry, so
+        # a link cannot start an authentication ceremony. People choose their
+        # provider on the sign-in or sign-up page.
         scope :google, as: :google, defaults: { provider: "google", intent: "login" } do
-          resource :session, only: :new, controller: :sessions
-          resource :registration, only: :new, controller: :registrations, defaults: { entry: "auth_up" }
+          resource :session, only: :create, controller: :sessions
+          resource :registration, only: :create, controller: :registrations, defaults: { entry: "auth_up" }
         end
 
         scope :apple, as: :apple, defaults: { provider: "apple", intent: "login" } do
-          resource :session, only: :new, controller: :sessions
-          resource :registration, only: :new, controller: :registrations, defaults: { entry: "auth_up" }
+          resource :session, only: :create, controller: :sessions
+          resource :registration, only: :create, controller: :registrations, defaults: { entry: "auth_up" }
         end
       end
 
@@ -225,6 +239,9 @@ scope(module: :auth, as: :auth) do
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
+
       resource(:health, only: :show)
       namespace(:health) do
         resource(:liveness, only: :show)
@@ -235,6 +252,13 @@ scope(module: :auth, as: :auth) do
       resources(:robots, only: :index, path: "robots.txt")
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
 
       # Canonical ceremony entrypoints and authed-out confirmation.
       namespace :sign do
@@ -259,10 +283,6 @@ scope(module: :auth, as: :auth) do
         namespace :v0 do
           namespace :in do
             namespace :email do
-              resource :otp, only: :create
-            end
-
-            namespace :telephone do
               resource :otp, only: :create
             end
           end
@@ -319,11 +339,11 @@ scope(module: :auth, as: :auth) do
             resource :verification, only: :create
           end
 
-          resource :secret_credential, only: %i(new create)
+          resource :secret, only: %i(new create)
           resource :session, only: %i(show update destroy)
 
           resource :guard, only: :show
-          resource :check, only: %i(show update destroy)
+          resource :check, only: :show
 
           resource :challenge, only: :show
 
@@ -375,6 +395,9 @@ scope(module: :auth, as: :auth) do
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
+
       resource(:health, only: :show)
       namespace(:health) do
         resource(:liveness, only: :show)
@@ -385,6 +408,13 @@ scope(module: :auth, as: :auth) do
       resources(:robots, only: :index, path: "robots.txt")
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
 
       # Staff management areas.
       resource :configuration, only: :show
@@ -447,26 +477,42 @@ scope(module: :auth, as: :auth) do
             resource :verification, only: :create
           end
 
-          resource :secret_credential, only: %i(new create)
+          resource :secret, only: %i(new create)
           resource :session, only: %i(show update destroy)
 
           resource :guard, only: :show
-          resource :check, only: %i(show update destroy)
+          resource :check, only: :show
 
           resource :challenge, only: :show
 
           namespace :challenge do
             resource :passkey, only: %i(new create)
           end
-
-          # Entra ID (Microsoft) sign-in ceremony.
-          # The callback path is fixed in the Entra app registration.
-          resource :entra, only: :new
-          namespace :entra do
-            resource :authorization, only: :create
-            resource :callback, only: :show
-          end
         end
+      end
+
+      # OmniAuth-based Entra ID (Microsoft) sign-in.
+      # See adr/org-entra-omniauth-strategy-migration.md.
+      namespace(:social) do
+        scope :entra, as: :entra, defaults: { provider: "entra" } do
+          resource :session, only: %i(new create), controller: :sessions
+        end
+
+        # Non-resourceful exception: OmniAuth middleware owns these fixed
+        # provider paths (see config/routes/auth.rb:146-160 for the app-side
+        # equivalent, and config/initializers/omniauth.rb for the strategy).
+        get(
+          "entra/callback",
+          to: "/auth/org/omniauth/omniauth_callbacks#omniauth",
+          as: :entra_callback,
+          defaults: { provider: "entra" },
+        )
+
+        get(
+          "entra/failure",
+          to: "/auth/org/omniauth/omniauth_callbacks#failure",
+          as: :entra_failure,
+        )
       end
 
       # Step-up verification.

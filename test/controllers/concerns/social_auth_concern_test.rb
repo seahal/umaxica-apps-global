@@ -2,9 +2,12 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 # require "helpers/global_test_support"
 
 class SocialAuthConcernTest < ActiveSupport::TestCase
+  include ExternalIdentityTestHelper
+
   StepUpToken =
     Struct.new(
       :currently_usable,
@@ -165,13 +168,21 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
   test "process social auth callback does not return session stored pt" do
     harness = Harness.new
     harness.send(:prepare_social_auth_intent!, "login", provider: "google", pt: "encoded-pt")
+    callback_result = ExternalAuthentication::CallbackResult.verified(
+      principal: ExternalAuthentication::VerifiedPrincipal.new(
+        provider: "google",
+        subject: "concern-unknown-google",
+        issuer: "https://accounts.google.com",
+        audience: "google-client-id",
+        verified_at: Time.current,
+        verification_authority: "omniauth-google-oauth2/contract",
+      ),
+      credential_candidate: nil,
+    )
 
-    SocialAuthCoordinator.stub(:handle_callback, ->(**) { { user: clients(:one), existing_account: true } }) do
-      result = harness.send(:process_social_auth_callback)
+    result = harness.send(:process_social_auth_callback, callback_result)
 
-      assert_nil result[:pt]
-    end
-
+    assert_nil result.pt
     assert_nil harness.session_hash[SocialAuth::SOCIAL_PT_SESSION_KEY]
   end
 
@@ -181,14 +192,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
       birthdate: "2000-02-03",
     )
     uid = "established_google_#{SecureRandom.hex(4)}"
-    ClientGoogleIdentity.create!(
-      user: user,
-      uid: uid,
-      provider: "google_app",
-      token: "tok",
-      expires_at: 1.week.from_now.to_i,
-      user_google_identity_status: client_google_identity_statuses(:active),
-    )
+    create_active_external_identity(client: user, provider: "google", subject: uid)
 
     harness = Harness.new
     harness.send(:prepare_social_auth_intent!, "login", provider: "google_app")
@@ -196,16 +200,21 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     harness.session_hash.delete(SocialAuth::SOCIAL_CEREMONY_GRANT_SESSION_KEY)
     harness.request_object.set_header("omniauth.auth", OmniAuth::AuthHash.new(provider: "google_app", uid: uid))
 
-    # The sign-side inline commit must never run for an established grantless login.
-    committed = false
+    callback_result = ExternalAuthentication::CallbackResult.verified(
+      principal: ExternalAuthentication::VerifiedPrincipal.new(
+        provider: "google",
+        subject: uid,
+        issuer: "https://accounts.google.com",
+        audience: "google-client-id",
+        verified_at: Time.current,
+        verification_authority: "omniauth-google-oauth2/contract",
+      ),
+      credential_candidate: nil,
+    )
 
-    SocialAuthCoordinator.stub(:handle_callback, ->(**) { committed = true; { user: user } }) do
-      assert_raises(SocialAuth::UnauthorizedError) do
-        harness.send(:process_social_auth_callback)
-      end
+    assert_raises(SocialAuth::UnauthorizedError) do
+      harness.send(:process_social_auth_callback, callback_result)
     end
-
-    assert_not committed, "sign must not establish a session for a grantless established social login"
   end
 
   test "grantless unknown social login still falls through to compatibility signup" do
@@ -217,12 +226,21 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
       OmniAuth::AuthHash.new(provider: "google_app", uid: "unknown_#{SecureRandom.hex(4)}"),
     )
 
-    handled = false
-    SocialAuthCoordinator.stub(:handle_callback, ->(**) { handled = true; { user: nil, existing_account: nil } }) do
-      harness.send(:process_social_auth_callback)
-    end
+    callback_result = ExternalAuthentication::CallbackResult.verified(
+      principal: ExternalAuthentication::VerifiedPrincipal.new(
+        provider: "google",
+        subject: "unknown_#{SecureRandom.hex(4)}",
+        issuer: "https://accounts.google.com",
+        audience: "google-client-id",
+        verified_at: Time.current,
+        verification_authority: "omniauth-google-oauth2/contract",
+      ),
+      credential_candidate: nil,
+    )
 
-    assert handled, "unknown social signup remains bounded-legacy compatibility on sign"
+    result = harness.send(:process_social_auth_callback, callback_result)
+
+    assert_predicate result, :signup_required?, "unknown social signup remains bounded-legacy compatibility on sign"
   end
 
   private

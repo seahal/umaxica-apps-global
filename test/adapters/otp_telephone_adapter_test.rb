@@ -53,8 +53,31 @@ class OtpTelephoneAdapterTest < ActiveSupport::TestCase
     message = I18n.t("sign.telephone_verification.sms_message", code: "111111")
 
     assert_equal(
-      [{ to: "+819012345678", title: message, body: message }],
+      [{ to: "+819012345678", title: "Verification code", body: message }],
       delivered,
     )
+  end
+
+  test "deliver never puts the otp code in the sms title" do
+    record = Object.new
+    record.define_singleton_method(:number) { "+819012345678" }
+    delivered = []
+
+    OutboundSms.stub(:deliver_later, ->(**kwargs) { delivered << kwargs }) do
+      %i(default localized_verification).each do |message_style|
+        OtpTelephoneAdapter.new.deliver(
+          record: record,
+          otp_code: "222333",
+          message_style: message_style,
+        )
+      end
+    end
+
+    delivered.each do |payload|
+      assert_not_includes payload.fetch(:title), "222333",
+                          "Amazon SNS drops `subject` for direct phone-number publishes, so a code " \
+                          "in the title reaches no recipient while still being persisted as a " \
+                          "plaintext Solid Queue job argument"
+    end
   end
 end

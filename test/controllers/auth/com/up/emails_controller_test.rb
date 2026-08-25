@@ -10,8 +10,8 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   setup do
     host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     cookies["csrf_token"] = csrf_token_value
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
     Prosopite.pause do
       [1, 2, 3].each { |id| VisitorStatus.find_or_create_by!(id: id) }
       [0, 1, 2, 3].each { |id| VisitorVisibility.find_or_create_by!(id: id) }
@@ -25,18 +25,22 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "should get new" do
     get new_auth_com_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "[data-controller='turnstile'][data-turnstile-mode-value='render']"
-    assert_select "h2", I18n.t("sign.com.registration.email.new.page_title")
-    assert_select "input[type=checkbox][name='visitor_email[notifiable]']", count: 1
-    assert_select "input[type=checkbox][name='visitor_email[promotional]']", count: 0
+    assert_equal "auth/com/sign/up/emails/new", inertia_component
+    assert_equal "render", inertia_props.fetch("turnstile").fetch("mode")
+    assert_equal I18n.t("sign.com.registration.email.new.page_title"), inertia_props.fetch("title")
+    assert_equal "visitor_email", inertia_props.fetch("scope")
+    checkbox_names = inertia_props.fetch("checkboxes").map { |checkbox| checkbox.fetch("name") }
+
+    assert_includes checkbox_names, "notifiable"
+    assert_not_includes checkbox_names, "promotional"
     assert_no_match(/UMAXICA \(sign, app\)/, response.body)
   end
 
@@ -54,13 +58,16 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get auth_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")
-    assert_select "label", text: I18n.t("sign.app.authentication.email.edit.code_label")
-    assert_select "input[placeholder=?]", I18n.t("sign.app.authentication.email.edit.code_placeholder")
-    assert_select "input[name='visitor_email[pass_code]'][autocomplete='one-time-code']", count: 1
-    assert_select "input[type=submit][value=?]", I18n.t("sign.app.authentication.email.edit.submit")
+    assert_equal "auth/com/sign/up/emails/edit", inertia_component
+    assert_equal I18n.t("sign.app.authentication.email.edit.page_title"), inertia_props.fetch("title")
+    assert_equal I18n.t("sign.app.authentication.email.edit.code_label"), inertia_props.fetch("code_label")
+    assert_equal I18n.t("sign.app.authentication.email.edit.code_placeholder"),
+                 inertia_props.fetch("code_placeholder")
+    assert_equal "visitor_email", inertia_props.fetch("scope")
+    assert_equal I18n.t("sign.app.authentication.email.edit.submit"), inertia_props.fetch("submit_label")
     assert_includes response.body, "メールアドレス"
-    assert_includes response.body, I18n.t("sign.app.authentication.email.edit.delivery_help")
+    assert_equal I18n.t("sign.app.authentication.email.edit.delivery_help"),
+                 inertia_props.fetch("delivery_help")
   end
 
   test "new rejects when visitor is already logged in" do
@@ -109,8 +116,9 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get new_auth_com_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "a[href=?]", auth_com_sign_up_path(ri: "jp"), count: 1
-    assert_select "a[href=?]", auth_com_sign_in_path(ri: "jp"), count: 1
+    link_hrefs = inertia_props.fetch("links").map { |link| link.fetch("href") }
+
+    assert_equal [auth_com_sign_up_path(ri: "jp"), auth_com_sign_in_path(ri: "jp")], link_hrefs
   end
 
   test "create redirects to edit and allows edit page" do
@@ -144,11 +152,12 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.com.registration.email.create.address_required")
+    assert_includes inertia_props.fetch("errors").join(" "),
+                    I18n.t("sign.com.registration.email.create.address_required")
   end
 
   test "create renders unprocessable when turnstile fails" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     assert_no_difference("VisitorEmail.count") do
       post auth_com_sign_up_email_url(ri: "jp"),
@@ -163,7 +172,8 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.com.registration.email.create.turnstile_validation_failed")
+    assert_includes inertia_props.fetch("errors").join(" "),
+                    I18n.t("sign.com.registration.email.create.turnstile_validation_failed")
   end
 
   test "create with existing email still redirects and does not create a new record" do
@@ -199,8 +209,8 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "edit missing email resets flow and redirects to new" do
     get auth_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
-    assert_response :unprocessable_content
-    assert_equal "ticket is required", response.body
+    assert_response :see_other
+    assert_redirected_to auth_com_sign_up_path(ri: "jp")
   end
 
   test "edit with expired session renders form error without clearing requirements" do
@@ -224,7 +234,8 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get auth_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.app.registration.email.edit.session_expired")
+    assert_includes inertia_props.fetch("errors").join(" "),
+                    I18n.t("sign.app.registration.email.edit.session_expired")
     assert_equal completed_requirements, cycle.reload.completed_requirements
     assert_equal flow_count, VisitorSignUpFlow.count
   end
@@ -241,7 +252,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
          headers: default_headers
 
     assert_response :unprocessable_content
-    assert_not_includes response.body, "Visitorを入力してください"
+    assert_not_includes inertia_props.fetch("errors").join(" "), "Visitorを入力してください"
   end
 
   test "create with unconfirmed policy fails" do
@@ -259,7 +270,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "create with turnstile failure returns unprocessable content" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     post auth_com_sign_up_email_url(ri: "jp"),
          params: {
@@ -317,6 +328,39 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     new_public_id = VisitorEmail.order(:created_at).last.public_id
 
     assert VisitorEmail.exists?(public_id: new_public_id)
+  end
+
+  test "create rejects signup for an email blocked by an in-force registration_blocked Identifier Effect, sending no OTP" do
+    operator = operators(:one)
+    the_case = ComEnforcementCase.new(
+      kind: "permanent_ban",
+      duration_mode: "permanent",
+      visibility: "visible",
+      release_mode: "break_glass_only",
+      effective_at: Time.current,
+      reason_code: "abuse",
+      principal_public_id: "some_prior_visitor_public_id",
+      applied_by_operator_public_id: operator.public_id,
+    )
+    digest = EnforcementIdentifierDigest.for_email(realm: "com", value: "com_enforcement_blocked@example.com")
+    the_case.identifier_effects.build(**digest, registration_blocked: true, effective_at: Time.current)
+    the_case.apply!
+
+    assert_enqueued_emails 0 do
+      post auth_com_sign_up_email_url(ri: "jp"),
+           params: {
+             visitor_email: {
+               raw_address: "Com_Enforcement_Blocked@Example.com",
+               confirm_policy: "1",
+             },
+             "cf-turnstile-response": "test",
+           },
+           headers: default_headers
+    end
+
+    assert_response :unprocessable_content
+    assert_includes inertia_props.fetch("errors").join(" "),
+                    I18n.t("sign.com.registration.email.create.address_required")
   end
 
   def default_headers
@@ -874,11 +918,14 @@ class Auth::Com::Sign::Up::EmailsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -925,9 +972,9 @@ class Auth::Com::Sign::Up::EmailsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -940,7 +987,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1195,11 +1242,14 @@ class Auth::Com::Sign::Up::EmailsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

@@ -22,11 +22,36 @@ layout.
 
 ## Configure
 
-Add `OBJECT_STORAGE_BUCKET`, `OBJECT_STORAGE_ACCESS_KEY_ID`, `OBJECT_STORAGE_SECRET_ACCESS_KEY`,
-`RUSTFS_RPC_SECRET`, `RUSTFS_API_HOST_PORT`, and `RUSTFS_CONSOLE_HOST_PORT` directly to the
-ignored `.env` file; there is no committed template. Keep `RUSTFS_RPC_SECRET` different from
-`OBJECT_STORAGE_SECRET_ACCESS_KEY`. These values are only for local development; production must
-use its platform credential provider and must not set a RustFS endpoint override.
+Credentials and non-secret settings come from two different places.
+
+`bin/setup-dev-secrets` generates and registers the three credentials as Podman secrets, exactly as
+it does for PostgreSQL. No manual step is required:
+
+| Podman secret            | Local source file            | Consumed by                                    |
+| ------------------------ | ---------------------------- | ---------------------------------------------- |
+| `dev_rustfs_access_key`  | `.secrets/rustfs-access-key` | `rustfs` entrypoint, `core` Rails tasks         |
+| `dev_rustfs_secret_key`  | `.secrets/rustfs-secret-key` | `rustfs` entrypoint, `core` Rails tasks         |
+| `dev_rustfs_rpc_secret`  | `.secrets/rustfs-rpc-secret` | `rustfs` entrypoint only                        |
+
+Compose mounts them at `/run/secrets/<name>`. The `rustfs` entrypoint reads the files directly, and
+the `core` container receives `OBJECT_STORAGE_ACCESS_KEY_ID_FILE` and
+`OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE` pointing at the same paths, which
+`lib/tasks/object_storage.rake` resolves. A configured `_FILE` path is authoritative: an unreadable
+file aborts the task rather than falling back to an inline value.
+
+`rustfs-access-key` is generated as uppercase hexadecimal rather than Base64. SigV4 builds its
+credential scope as `<access key>/<date>/<region>/s3/aws4_request`, so a `/` inside the access key
+corrupts every signed request. The `rustfs` entrypoint rejects an access key containing `/` at
+startup so the failure names its cause instead of surfacing as an opaque 403.
+
+The non-secret settings need no local configuration at all. `OBJECT_STORAGE_BUCKET` is fixed to
+`umaxica-local` in the `core` service environment (`compose.yaml`), and the loopback host ports are
+fixed to `9000` (S3 API) and `9001` (console) in `.devcontainer/compose.override.yml`. The ignored
+repository-root `.env` carries only the Cloudflare Tunnel token and the host `UID`/`GID` that
+`.devcontainer/write-host-ids.sh` writes; it holds no object-storage settings.
+
+These values are only for local development; production must use its platform credential provider
+and must not set a RustFS endpoint override.
 
 All commands below use the base Compose file and the devcontainer override:
 
@@ -39,30 +64,31 @@ command stored in a variable, write the full `podman compose -f ...` prefix inst
 
 ## Linux Host Gate
 
-First confirm that the normal Compose project remains independent of object storage. An explicit
-empty env file prevents a developer's `.env` from satisfying this negative gate accidentally:
+First confirm that the credentials are registered, since both `core` and `rustfs` now mount them
+and Compose refuses to start a service whose secret is missing:
 
 ```sh
-env -u OBJECT_STORAGE_BUCKET \
-  -u OBJECT_STORAGE_ACCESS_KEY_ID \
-  -u OBJECT_STORAGE_SECRET_ACCESS_KEY \
-  -u RUSTFS_RPC_SECRET \
+bin/setup-dev-secrets
+podman secret ls --format '{{.Name}}' | grep dev_rustfs_
+```
+
+Then confirm that the object-storage configuration is self-contained in the Compose files. An
+explicit empty env file prevents a developer's `.env` from satisfying this gate accidentally, and
+unsetting the former interpolation variables proves nothing still reads them:
+
+```sh
+env -u OBJECT_STORAGE_BUCKET -u RUSTFS_API_HOST_PORT -u RUSTFS_CONSOLE_HOST_PORT \
   $COMPOSE --env-file /dev/null config
+env -u OBJECT_STORAGE_BUCKET -u RUSTFS_API_HOST_PORT -u RUSTFS_CONSOLE_HOST_PORT \
+  $COMPOSE --env-file /dev/null --profile object-storage config
 ```
 
-Then require the local profile variables in the host shell and validate the enabled profile:
+The rendered configuration must show `OBJECT_STORAGE_BUCKET: umaxica-local` on `core` and the two
+`127.0.0.1:9000` / `127.0.0.1:9001` publications on `rustfs` with no environment help.
 
-```sh
-: "${OBJECT_STORAGE_BUCKET:?must be set}"
-: "${OBJECT_STORAGE_ACCESS_KEY_ID:?must be set}"
-: "${OBJECT_STORAGE_SECRET_ACCESS_KEY:?must be set}"
-: "${RUSTFS_RPC_SECRET:?must be set}"
-$COMPOSE --profile object-storage config
-```
-
-Compose interpolation deliberately permits empty object-storage values. The RustFS container
-entrypoint and the Rails tasks enforce required non-empty values only when those operations run.
-This keeps the normal profile usable without object-storage credentials.
+The bucket name is now a fixed part of the `core` service contract, so the normal profile carries it
+whether or not RustFS runs. The RustFS container entrypoint and the Rails tasks still enforce
+required non-empty credentials only when those operations run.
 
 Start the optional profile:
 
@@ -76,8 +102,8 @@ The Compose healthcheck covers the S3 API readiness endpoint. Check the S3 API a
 independently from the host:
 
 ```sh
-curl --fail --silent --show-error http://127.0.0.1:${RUSTFS_API_HOST_PORT:-9000}/health/ready
-curl --fail --silent --show-error http://127.0.0.1:${RUSTFS_CONSOLE_HOST_PORT:-9001}/rustfs/console/health
+curl --fail --silent --show-error http://127.0.0.1:9000/health/ready
+curl --fail --silent --show-error http://127.0.0.1:9001/rustfs/console/health
 ```
 
 ## Prepare the Bucket and Run the Rails Smoke Test

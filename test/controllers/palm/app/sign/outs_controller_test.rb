@@ -35,9 +35,41 @@ module Palm
             state: "client-state",
           )
 
+          # Palm participates in the ri contract, so a GET without a region is canonicalized first.
+          assert_response :redirect
+          assert_equal "jp", Rack::Utils.parse_nested_query(URI.parse(response.location).query)["ri"]
+
+          follow_redirect!
+
           assert_response :success
-          assert_select "h1", text: "Signed out"
-          assert_select "code", text: "client-state"
+          assert_equal "palm/app/sign_outs/show", inertia_component
+          assert_equal I18n.t("palm.app.sign_out.heading"), inertia_props.fetch("heading")
+          assert_equal "client-state", inertia_props.fetch("state")
+        end
+
+        test "get sign out renders directly when the region is already present" do
+          transaction = AcmeLogoutTransaction.create!(
+            origin_surface: "palm",
+            initiating_client_id: "app-ios-rp",
+            completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "palm"),
+            actor_ref: clients(:one).public_id,
+            session_ref: "session-public-id",
+            callback_state: "client-state",
+            expected_step: AcmeLogoutTransaction.step_sequence_for("palm").first,
+            status: AcmeLogoutTransaction::STATUS_FINALIZED,
+            expires_at: 10.minutes.from_now,
+            completed_steps: %w(origin_cleared acme_cleared sign_cleared finalized),
+          )
+
+          get palm_app_sign_out_url(
+            logout_challenge: transaction.logout_challenge,
+            state: "client-state",
+            ri: "us",
+          )
+
+          assert_response :success
+          assert_equal "palm/app/sign_outs/show", inertia_component
+          assert_equal I18n.t("palm.app.sign_out.heading"), inertia_props.fetch("heading")
         end
 
         test "post sign out revokes the current bearer token and returns opaque browser launch data" do
@@ -92,16 +124,16 @@ module Palm
           sign_form = css_select("form#sign-out-handoff-form").first
           sign_uri = URI.parse(sign_form["action"])
 
-          assert_equal ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"), sign_uri.host
+          assert_equal Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host, sign_uri.host
           assert_equal "/sign/out", sign_uri.path
 
           post auth_app_sign_out_url(
-            host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
+            host: Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host,
             ri: "jp",
             logout_challenge: query["logout_challenge"],
           ), headers: as_user_headers(
             native_client,
-            host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
+            host: Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host,
             session_public_id: browser_token.public_id,
             headers: {
               "Origin" => "https://#{ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost")}",
@@ -121,7 +153,9 @@ module Palm
           get jump_rt_url_from_location(response.location)
 
           assert_response :success
-          assert_select "h1"
+          # The browser lands on the base surface's sign-out completion, which is an Inertia page.
+          assert_equal "base/app/sign_outs/complete", inertia_component
+          assert_predicate inertia_props.fetch("title"), :present?
         end
 
         private
@@ -596,11 +630,14 @@ class Palm::App::Sign::OutsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

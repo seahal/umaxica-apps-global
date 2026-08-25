@@ -1,13 +1,13 @@
 import type { ComponentType } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
-import { ReactAriaProbe } from "@/features/react_aria_probe/ReactAriaProbe";
+import { UiGallery } from "@/features/ui_gallery/UiGallery";
 
 type ReactComponentProps = Record<string, unknown>;
 type ReactIslandComponent = ComponentType<ReactComponentProps>;
 
 const reactIslands: Record<string, ReactIslandComponent> = {
-  ReactAriaProbe,
+  UiGallery,
 };
 
 const mountedRoots = new WeakMap<Element, Root>();
@@ -20,13 +20,13 @@ export function parseReactIslandProps(value: string | null | undefined): ReactCo
   }
 
   try {
-    const parsed: Record<string, unknown> = JSON.parse(value);
+    const parsed: unknown = JSON.parse(value);
 
-    if (parsed === null || Array.isArray(parsed) || typeof parsed !== "object") {
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
       return {};
     }
 
-    return parsed;
+    return { ...parsed };
   } catch {
     return {};
   }
@@ -40,7 +40,7 @@ export function mountReactIslands(root: ParentNode = document): void {
       return;
     }
 
-    const componentName = element.dataset.reactComponent;
+    const componentName = element.dataset["reactComponent"];
 
     if (!componentName) {
       return;
@@ -52,7 +52,7 @@ export function mountReactIslands(root: ParentNode = document): void {
       return;
     }
 
-    const props = parseReactIslandProps(element.dataset.reactProps);
+    const props = parseReactIslandProps(element.dataset["reactProps"]);
     const reactRoot = createRoot(element);
 
     mountedRoots.set(element, reactRoot);

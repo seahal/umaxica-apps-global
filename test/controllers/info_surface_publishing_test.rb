@@ -19,7 +19,7 @@ class InfoSurfacePublishingTest < ActionDispatch::IntegrationTest
       get "/api/v0/entries", headers: { "Host" => surface.fetch(:host_fallback), "Accept" => "application/json" }, as: :json
 
       assert_response :success, audience
-      json_entry = response.parsed_body.fetch("entries").find { |candidate| candidate.fetch("slug") == entry.slugs.first.slug }
+      json_entry = response.parsed_body.fetch("data").find { |candidate| candidate.fetch("slug") == entry.slugs.first.slug }
 
       assert json_entry, "expected #{audience} index to include the published entry"
       assert_equal "info", json_entry.fetch("namespace")
@@ -28,7 +28,7 @@ class InfoSurfacePublishingTest < ActionDispatch::IntegrationTest
       get "/api/v0/entries/#{entry.slugs.first.slug}", headers: { "Host" => surface.fetch(:host_fallback), "Accept" => "application/json" }, as: :json
 
       assert_response :success, audience
-      assert_equal entry.slugs.first.slug, response.parsed_body.fetch("entry").fetch("slug")
+      assert_equal entry.slugs.first.slug, response.parsed_body.fetch("slug")
     end
   end
 

@@ -53,7 +53,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
     SocialCallbackGuard.instance_variable_set(:@allowed_hosts, ["id.example.test"])
     SocialCallbackGuard.instance_variable_set(:@allowed_request_origins, ["https://id.example.test"])
 
-    missing_source_env = Rack::MockRequest.env_for("/social/apple", method: "GET")
+    missing_source_env = Rack::MockRequest.env_for("/social/apple", method: "POST")
     missing_source_env["rack.session"] = {}
     status, = SocialCallbackGuard.verify_request_phase!(missing_source_env)
 
@@ -61,7 +61,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
 
     mismatch_env = Rack::MockRequest.env_for(
       "/social/apple",
-      :method => "GET",
+      :method => "POST",
       "HTTP_ORIGIN" => "https://evil.example.test",
     )
     mismatch_env["rack.session"] = {}
@@ -79,7 +79,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
 
     env = Rack::MockRequest.env_for(
       "/social/apple?state=known-state",
-      :method => "GET",
+      :method => "POST",
       "HTTP_ORIGIN" => "https://id.example.test",
     )
     env["rack.session"] = {}
@@ -97,7 +97,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
 
     generated_env = Rack::MockRequest.env_for(
       "/social/apple",
-      :method => "GET",
+      :method => "POST",
       "HTTP_ORIGIN" => "https://id.example.test",
     )
     generated_env["rack.session"] = {}

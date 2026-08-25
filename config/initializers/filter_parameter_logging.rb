@@ -35,6 +35,8 @@ Rails.application.config.filter_parameters += %i(
   turnstile_response
   uid
   state
+  nonce
+  assertion
   session_id
   credential_id
   smtp_password

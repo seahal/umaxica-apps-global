@@ -8,10 +8,13 @@ class AcmeLogoutTransactionTest < ActiveSupport::TestCase
 
   test "logout challenge is an opaque public identifier" do
     transaction = build_transaction(origin_surface: "sign")
+    other = build_transaction(origin_surface: "sign")
 
     assert_predicate transaction, :valid?
+    assert_predicate other, :valid?
     assert_match(/\A[A-Za-z0-9_-]{10,}\z/, transaction.logout_challenge)
-    assert_no_match(/\d{4,}/, transaction.logout_challenge)
+    assert_no_match(/\A\d+\z/, transaction.logout_challenge)
+    assert_not_equal transaction.logout_challenge, other.logout_challenge
   end
 
   test "sign origin progresses origin cleared then acme cleared then finalization" do

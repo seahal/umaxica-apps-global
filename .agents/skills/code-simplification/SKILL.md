@@ -1,9 +1,10 @@
 ---
 name: code-simplification
 description:
-  Simplifies code for clarity. Use when refactoring code for clarity without changing behavior. Use
-  when code works but is harder to read, maintain, or extend than it should be. Use when reviewing
-  code that has accumulated unnecessary complexity.
+  Reduces complexity in working code while preserving behavior exactly. Use when a feature works and
+  its tests pass but the implementation reads heavier than it needs to, when review flags
+  readability or complexity, when encountering deep nesting or long functions or unclear names, or
+  when consolidating logic scattered across files.
 ---
 
 # Code Simplification
@@ -12,21 +13,9 @@ description:
 > [Claude Code Simplifier plugin](https://github.com/anthropics/claude-plugins-official/blob/main/plugins/code-simplifier/agents/code-simplifier.md).
 > Adapted here as a model-agnostic, process-driven skill for any AI coding agent.
 
-## Overview
-
-Simplify code by reducing complexity while preserving exact behavior. The goal is not fewer lines —
-it's code that is easier to read, understand, modify, and debug. Every simplification must pass a
-simple test: "Would a new team member understand this faster than the original?"
-
-## When to Use
-
-- After a feature is working and tests pass, but the implementation feels heavier than it needs to
-  be
-- During code review when readability or complexity issues are flagged
-- When you encounter deeply nested logic, long functions, or unclear names
-- When refactoring code written under time pressure
-- When consolidating related logic scattered across files
-- After merging changes that introduced duplication or inconsistency
+The goal is not fewer lines — it is code that is faster to read, understand, modify, and debug.
+Every simplification has to pass one test: would a new team member understand this faster than the
+original?
 
 **When NOT to use:**
 
@@ -320,18 +309,6 @@ function UserBadge({ user }: Props) {
 // Before — consider whether context or composition solves this better.
 // This is a judgment call — flag it, don't auto-refactor.
 ```
-
-## Common Rationalizations
-
-| Rationalization                                      | Reality                                                                                                                                               |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "It's working, no need to touch it"                  | Working code that's hard to read will be hard to fix when it breaks. Simplifying now saves time on every future change.                               |
-| "Fewer lines is always simpler"                      | A 1-line nested ternary is not simpler than a 5-line if/else. Simplicity is about comprehension speed, not line count.                                |
-| "I'll just quickly simplify this unrelated code too" | Unscoped simplification creates noisy diffs and risks regressions in code you didn't intend to change. Stay focused.                                  |
-| "The types make it self-documenting"                 | Types document structure, not intent. A well-named function explains _why_ better than a type signature explains _what_.                              |
-| "This abstraction might be useful later"             | Don't preserve speculative abstractions. If it's not used now, it's complexity without value. Remove it and re-add when needed.                       |
-| "The original author must have had a reason"         | Maybe. Check git blame — apply Chesterton's Fence. But accumulated complexity often has no reason; it's just the residue of iteration under pressure. |
-| "I'll refactor while adding this feature"            | Separate refactoring from feature work. Mixed changes are harder to review, revert, and understand in history.                                        |
 
 ## Red Flags
 

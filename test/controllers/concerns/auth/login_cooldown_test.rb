@@ -46,15 +46,16 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
     @harness = CooldownHarness.new
     @user = clients(:one)
     ClientToken.where(user_id: @user.id).delete_all
-    AuthenticationBase.login_cooldown_enabled = true
+    @original_login_cooldown = login_cooldown
+    self.login_cooldown = 30.seconds
   end
 
   teardown do
-    AuthenticationBase.login_cooldown_enabled = false
+    self.login_cooldown = @original_login_cooldown
   end
 
-  test "LOGIN_COOLDOWN is 30 seconds" do
-    assert_equal 30.seconds, AuthenticationBase::LOGIN_COOLDOWN
+  test "login_cooldown reports the configured window" do
+    assert_equal 30.seconds, AuthenticationBase.login_cooldown
   end
 
   test "LoginCooldownError is a StandardError" do

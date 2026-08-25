@@ -37,7 +37,11 @@ module OtpLockable
 
   # Written to locked_at to mark a record as not locked. "-infinity" reads as a
   # lockout that expired in the distant past, i.e. no active lock.
-  OTP_UNLOCKED_SENTINEL = "-infinity"
+  #
+  # Must be the Float, not the "-infinity" string: ActiveRecord's timestamp type
+  # cast silently turns the string sentinel into nil (violating the NOT NULL
+  # column), while the Float casts to PostgreSQL's -infinity correctly.
+  OTP_UNLOCKED_SENTINEL = -Float::INFINITY
 
   included do
     after_initialize do
@@ -81,11 +85,11 @@ module OtpLockable
   def clear_otp
     attrs = {
       otp_counter: "0",
-      otp_expires_at: "-infinity",
+      otp_expires_at: -Float::INFINITY,
       otp_attempts_count: 0,
       locked_at: OTP_UNLOCKED_SENTINEL,
     }
-    attrs[:otp_last_sent_at] = "-infinity" if respond_to?(:otp_last_sent_at=)
+    attrs[:otp_last_sent_at] = -Float::INFINITY if respond_to?(:otp_last_sent_at=)
 
     update!(attrs)
   end

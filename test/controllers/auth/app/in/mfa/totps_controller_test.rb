@@ -11,8 +11,8 @@ module Auth::App::In
 
     setup do
       host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-      CloudflareTurnstile.test_mode = true
-      CloudflareTurnstile.test_validation_response = { "success" => true }
+      TurnstileVerifierStub.challenge_enabled = true
+      TurnstileVerifierStub.challenge_response = { "success" => true }
 
       @user = Client.create!(mfa_level_enabled: true)
       @email = "mfa_totp_#{SecureRandom.hex(4)}@example.com".freeze
@@ -34,8 +34,8 @@ module Auth::App::In
     end
 
     teardown do
-      CloudflareTurnstile.test_mode = false
-      CloudflareTurnstile.test_validation_response = nil
+      TurnstileVerifierStub.challenge_enabled = false
+      TurnstileVerifierStub.challenge_response = nil
     end
 
     def with_prosopite_paused
@@ -52,14 +52,22 @@ module Auth::App::In
       end
 
       assert_response :success
-      assert_select "input[name='cf-turnstile-response']"
-      assert_select "h1", text: I18n.t("sign.app.in.mfa.totp.title")
-      assert_select "label", text: I18n.t("sign.app.in.mfa.totp.token_label")
-      assert_select "input[placeholder=?]", I18n.t("sign.app.in.mfa.totp.token_placeholder")
-      assert_select "input[name='totp_challenge_form[token]'][autocomplete='one-time-code']", count: 0
-      assert_select "input[type=submit][value=?]", I18n.t("sign.app.in.mfa.totp.submit")
-      assert_includes response.body, "認証アプリ"
-      assert_includes response.body, I18n.t("sign.app.in.mfa.totp.help")
+      assert_equal "auth/app/sign/in/challenge/totps/new", inertia_component
+
+      form = inertia_props.fetch("form")
+      token_field = form.fetch("token_field")
+
+      # The stealth challenge runs invisibly; the widget writes the same field the server verifies.
+      assert_equal "execute", inertia_props.fetch("turnstile").fetch("mode")
+      assert_equal I18n.t("sign.app.in.mfa.totp.title"), inertia_props.fetch("title")
+      assert_equal I18n.t("sign.app.in.mfa.totp.token_label"), token_field.fetch("label")
+      assert_equal I18n.t("sign.app.in.mfa.totp.token_placeholder"), token_field.fetch("placeholder")
+      assert_equal "totp_challenge_form[token]", token_field.fetch("name")
+      # A time-based code is not a delivered one-time code, so the field offers no autocomplete.
+      assert_not token_field.key?("autocomplete")
+      assert_equal I18n.t("sign.app.in.mfa.totp.submit"), form.fetch("submit_label")
+      assert_includes inertia_props.fetch("description"), "認証アプリ"
+      assert_equal I18n.t("sign.app.in.mfa.totp.help"), token_field.fetch("help")
       assert_not_includes response.body, "届きます"
       assert_not_includes response.body, "送信され"
     end
@@ -140,7 +148,7 @@ module Auth::App::In
         establish_pending_mfa_via_secret_credential!
       end
 
-      CloudflareTurnstile.test_validation_response = { "success" => false }
+      TurnstileVerifierStub.challenge_response = { "success" => false }
 
       totp_code = ROTP::TOTP.new(@totp.private_key).now
 
@@ -151,7 +159,7 @@ module Auth::App::In
       end
 
       assert_response :unprocessable_content
-      assert_includes response.body, I18n.t("session_limit.turnstile_failed")
+      assert_includes inertia_props.fetch("form_errors"), I18n.t("session_limit.turnstile_failed")
       assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
     end
 
@@ -195,7 +203,7 @@ module Auth::App::In
     def establish_pending_mfa_via_secret_credential!
       with_prosopite_paused do
         post(
-          auth_app_sign_in_secret_credential_path(ri: "jp"), params: {
+          auth_app_sign_in_secret_path(ri: "jp"), params: {
             secret_credential_login_form: {
               identifier: @email,
               secret_credential_value: @raw_secret_credential,
@@ -590,11 +598,14 @@ class Auth::App::In::MfaTotpsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -641,9 +652,9 @@ class Auth::App::In::MfaTotpsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -656,7 +667,7 @@ class Auth::App::In::MfaTotpsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -923,11 +934,14 @@ class Auth::App::In::MfaTotpsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

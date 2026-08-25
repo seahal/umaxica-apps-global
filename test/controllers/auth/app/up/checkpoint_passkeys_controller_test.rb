@@ -14,13 +14,13 @@ module Auth::App::Up
     setup do
       host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
 
-      CloudflareTurnstile.test_mode = true
-      CloudflareTurnstile.test_validation_response = { "success" => true }
+      TurnstileVerifierStub.challenge_enabled = true
+      TurnstileVerifierStub.challenge_response = { "success" => true }
     end
 
     teardown do
-      CloudflareTurnstile.test_mode = false
-      CloudflareTurnstile.test_validation_response = nil
+      TurnstileVerifierStub.challenge_enabled = false
+      TurnstileVerifierStub.challenge_response = nil
     end
 
     test "GET show returns 200 with passkey endpoint data attrs" do
@@ -30,17 +30,18 @@ module Auth::App::Up
       get auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
 
       assert_response :success
-      assert_select "[data-controller='passkey-registration']"
+      assert_equal "auth/app/sign/up/checkpoint/passkeys/new", inertia_component
+      props = inertia_props
       begin_path = auth_app_sign_up_check_telephone_passkey_path(ri: "jp")
 
-      assert_select "[data-passkey-registration-begin-url-value='#{begin_path}']"
+      assert_equal begin_path, props.fetch("begin_url")
       finish_path = auth_app_sign_up_check_telephone_passkey_path(ri: "jp")
 
-      assert_select "[data-passkey-registration-finish-url-value='#{finish_path}']"
+      assert_equal finish_path, props.fetch("finish_url")
       passcode_path = auth_app_sign_up_check_telephone_passcode_path(ri: "jp")
 
-      assert_select "[data-passkey-registration-success-redirect-url-value='#{passcode_path}']"
-      assert_select "[data-passkey-registration-checkpoint-version-value='#{cycle.checkpoint_version}']"
+      assert_equal passcode_path, props.fetch("success_redirect_url")
+      assert_equal cycle.checkpoint_version, props.fetch("checkpoint_version")
     end
 
     test "POST begin returns challenge and options" do
@@ -199,7 +200,11 @@ module Auth::App::Up
       get auth_app_dashboard_url(ri: "jp", host: auth_host)
 
       assert_response :redirect
-      assert_match(%r{\Ahttps://jump\.umaxica\.net/}, response.location)
+      # Auth and Base are same-site, so the authorize hop goes straight to Base. The jump
+      # gateway is for cross-site hops and is not used here.
+      assert_equal Rails.configuration.x.boot_config.fetch(:hosts).base_service.host,
+                   URI.parse(response.location).host
+      assert_equal "/oauth/authorize", URI.parse(response.location).path
       assert_no_match(
         /#{Regexp.escape(::AuthenticationClient::ACCESS_COOKIE_KEY.to_s)}=/,
         response.headers["Set-Cookie"].to_s,

@@ -12,13 +12,13 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     reset_cookie_jar!
     cookies["csrf_token"] = csrf_token_value
     Rails.configuration.x.rate_limit.fetch(:store).clear
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
     Rails.configuration.x.rate_limit.fetch(:store).clear
     reset_cookie_jar!
   end
@@ -27,9 +27,13 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get new_auth_app_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "div[id^='cf-turnstile-']", count: 1
-    assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-    assert_includes response.body, 'data-turnstile-mode-value="render"'
+    # The widget and its hidden response field are the React component's
+    # (spec/features/auth/signup/contact_sign_up_form.test.tsx); what the server owns is the
+    # visible-mode configuration it hands over.
+    turnstile = inertia_props.fetch("turnstile")
+
+    assert_equal "render", turnstile.fetch("mode")
+    assert_predicate turnstile.fetch("site_key"), :present?
     assert_select "script[type='module'][src*='vite']", minimum: 1
     assert_nil response.headers["Content-Security-Policy-Report-Only"]
     assert_includes response.headers["Content-Security-Policy"], "default-src 'self'"
@@ -53,7 +57,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
         { "success" => false }
       end
 
-    CloudflareTurnstile.test_mode = false
+    TurnstileVerifierStub.challenge_enabled = false
     JitSecurityTurnstileVerifier.stub(:verify, verifier) do
       post(
         auth_app_sign_up_email_url(ri: "jp"),
@@ -71,7 +75,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :unprocessable_content
     assert_equal [{ token: "signup-token", remote_ip: "127.0.0.1", mode: :visible }], calls
   ensure
-    CloudflareTurnstile.test_mode = true
+    TurnstileVerifierStub.challenge_enabled = true
   end
 
   test "collection get redirects to add ri" do
@@ -85,9 +89,13 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_response :success
 
-    assert_select "h2", I18n.t("sign.app.registration.email.new.page_title")
-    assert_select "input[type=checkbox][name='client_email[promotional]']", count: 1
-    assert_select "input[type=checkbox][name='client_email[notifiable]']", count: 1
+    assert_equal "auth/app/sign/up/emails/new", inertia_component
+    assert_equal I18n.t("sign.app.registration.email.new.page_title"), inertia_props.fetch("title")
+    assert_equal "client_email", inertia_props.fetch("scope")
+    checkbox_names = inertia_props.fetch("checkboxes").map { |checkbox| checkbox.fetch("name") }
+
+    assert_equal 1, checkbox_names.count("promotional")
+    assert_equal 1, checkbox_names.count("notifiable")
     assert_no_match(/UMAXICA \(sign, app\)/, response.body)
   end
 
@@ -96,8 +104,12 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_response :success
 
-    assert_select "a[href=?]", auth_app_sign_up_path(ri: "jp"), count: 2
-    assert_select "a[href=?]", new_auth_app_sign_in_email_path(ri: "jp"), count: 1
+    # One link on the page itself and one in the surface chrome, as before.
+    page_links = inertia_props.fetch("links").map { |link| link.fetch("href") }
+    chrome_links = inertia_props.fetch("chrome").fetch("primary_navigation").map { |link| link.fetch("href") }
+
+    assert_equal 2, (page_links + chrome_links).count(auth_app_sign_up_path(ri: "jp"))
+    assert_equal 1, page_links.count(new_auth_app_sign_in_email_path(ri: "jp"))
   end
 
   test "edit uses current registration email from session" do
@@ -119,13 +131,20 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get auth_app_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")
-    assert_select "label", text: I18n.t("sign.app.authentication.email.edit.code_label")
-    assert_select "input[placeholder=?]", I18n.t("sign.app.authentication.email.edit.code_placeholder")
-    assert_select "input[name='client_email[pass_code]'][autocomplete='one-time-code']", count: 1
-    assert_select "input[type=submit][value=?]", I18n.t("sign.app.authentication.email.edit.submit")
+    assert_equal "auth/app/sign/up/emails/edit", inertia_component
+    assert_equal I18n.t("sign.app.authentication.email.edit.page_title"), inertia_props.fetch("title")
+    assert_equal I18n.t("sign.app.authentication.email.edit.code_label"), inertia_props.fetch("code_label")
+    assert_equal(
+      I18n.t("sign.app.authentication.email.edit.code_placeholder"),
+      inertia_props.fetch("code_placeholder"),
+    )
+    assert_equal "client_email", inertia_props.fetch("scope")
+    assert_equal I18n.t("sign.app.authentication.email.edit.submit"), inertia_props.fetch("submit_label")
     assert_includes response.body, "メールアドレス"
-    assert_includes response.body, I18n.t("sign.app.authentication.email.edit.delivery_help")
+    assert_equal(
+      I18n.t("sign.app.authentication.email.edit.delivery_help"),
+      inertia_props.fetch("delivery_help"),
+    )
   end
 
   test "update accepts a valid otp submitted through client_email" do
@@ -234,7 +253,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "create renders unprocessable when turnstile fails" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     assert_no_difference("ClientEmail.count") do
       post auth_app_sign_up_email_url(ri: "jp"),
@@ -434,7 +453,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "create with turnstile failure enqueues no emails and returns 422" do
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     email = "turnstile_fail@example.com"
 
@@ -455,7 +474,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :unprocessable_content
     assert_includes @response.body, I18n.t("sign.app.registration.email.create.turnstile_validation_failed")
   ensure
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   test "rejects wrong OTP codes with error message" do
@@ -556,8 +575,8 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
             },
             headers: default_headers
 
-      assert_response :unprocessable_content
-      assert_equal "ticket is required", response.body
+      assert_response :see_other
+      assert_redirected_to auth_app_sign_up_path(ri: "jp")
     end
   end
 
@@ -620,7 +639,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get new_auth_app_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "div[id^='cf-turnstile-']", count: 1
+    assert_equal "render", inertia_props.fetch("turnstile").fetch("mode")
   end
 
   test "turnstile validation error message i18n key exists" do
@@ -954,26 +973,28 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get auth_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
-    assert_select "[data-birthdate-format=iso]"
-    assert_select "input[type=number][name=birthdate_year][autocomplete=bday-year]"
-    assert_select "input[type=number][name=birthdate_month][autocomplete=bday-month]"
-    assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
-    assert_select "input[type=hidden][name=requirement][value=birthdate]"
+    assert_equal "auth/app/sign/up/checkpoints/show", inertia_component
+    birthdate = inertia_props.fetch("birthdate")
+
+    assert_equal "iso", birthdate.fetch("fields").fetch("format")
+    assert_equal(
+      %w(year month day),
+      birthdate.fetch("fields").fetch("parts").map { |part| part.fetch("part") },
+    )
     birthdate_path = auth_app_sign_up_check_email_birthdate_path(ri: "jp")
 
-    assert_select "form[data-turbo=false][method=post][action='#{birthdate_path}']"
-    assert_select "form[action='#{birthdate_path}'] input[name=_method][value=patch]"
+    assert_equal birthdate_path, birthdate.fetch("action")
     cancellation_path = auth_app_sign_up_check_email_birthdate_path(ri: "jp")
 
-    assert_select "form[data-turbo=false][method=post][action='#{cancellation_path}']"
-    assert_select "form[action='#{cancellation_path}'] input[name=_method][value=delete]"
-    assert_select "a[href*=?]", auth_app_sign_up_path, count: 0
-    assert_select "a[href*=?]", auth_app_sign_in_path, count: 0
+    assert_equal cancellation_path, inertia_props.fetch("cancellation").fetch("action")
+    # The checkpoint offers no escape hatch: `@hide_auth_navigation` suppresses the surface
+    # navigation that would otherwise link to sign-up and sign-in.
+    assert_nil inertia_props.fetch("chrome").fetch("primary_navigation")
 
     get auth_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
-    assert_select "[data-birthdate-format=iso]"
+    assert_equal "iso", inertia_props.fetch("birthdate").fetch("fields").fetch("format")
 
     cycle = current_sign_up_flow(user_email)
 
@@ -1175,7 +1196,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get auth_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "[data-birthdate-format=iso]"
+    assert_equal "iso", inertia_props.fetch("birthdate").fetch("fields").fetch("format")
 
     patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: {
@@ -1275,8 +1296,8 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     get auth_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
-    assert_response :unprocessable_content
-    assert_equal "ticket is required", response.body
+    assert_response :see_other
+    assert_redirected_to auth_app_sign_up_path(ri: "jp")
   end
 
   test "email signup checkpoint birthdate is idempotent after requirement is cleared" do
@@ -1377,8 +1398,9 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
             },
             headers: default_headers
 
-      assert_response :unprocessable_content
-      assert_equal "ticket is required", response.body
+      # The age-restricted session state keeps blocking the retry instead of restarting sign-up.
+      assert_response :success
+      assert_includes response.body, "この登録方法ではアカウントを作成できません"
       assert_equal ClientSignUpFlowStatus::FAILED, cycle.reload.status_id
       assert_not cycle.requirement_cleared?(:birthdate)
     end
@@ -1640,6 +1662,39 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "otp_resend_too_soon i18n key exists in both locales" do
     assert_not_nil I18n.t("sign.app.registration.email.create.otp_resend_too_soon", locale: :ja, default: nil)
     assert_not_nil I18n.t("sign.app.registration.email.create.otp_resend_too_soon", locale: :en, default: nil)
+  end
+
+  test "create rejects signup for an email blocked by an in-force registration_blocked Identifier Effect, sending no OTP" do
+    operator = operators(:one)
+    the_case = AppEnforcementCase.new(
+      kind: "permanent_ban",
+      duration_mode: "permanent",
+      visibility: "visible",
+      release_mode: "break_glass_only",
+      effective_at: Time.current,
+      reason_code: "abuse",
+      principal_public_id: "some_prior_client_public_id",
+      applied_by_operator_public_id: operator.public_id,
+    )
+    digest = EnforcementIdentifierDigest.for_email(realm: "app", value: "enforcement_blocked@example.com")
+    the_case.identifier_effects.build(**digest, registration_blocked: true, effective_at: Time.current)
+    the_case.apply!
+
+    assert_enqueued_emails 0 do
+      post auth_app_sign_up_email_url(ri: "jp"),
+           params: {
+             user_email: {
+               raw_address: "Enforcement_Blocked@Example.com",
+               confirm_policy: "1",
+             },
+             "cf-turnstile-response": "test",
+           },
+           headers: default_headers
+    end
+
+    assert_response :unprocessable_content
+    assert_includes inertia_props.fetch("errors"), I18n.t("sign.app.registration.email.create.address_required")
+    assert_not ClientEmail.exists?(address_digest: IdentifierBlindIndex.bidx_for_email("enforcement_blocked@example.com"))
   end
 
   private
@@ -2295,11 +2350,14 @@ class Auth::App::Sign::Up::EmailsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -2346,9 +2404,9 @@ class Auth::App::Sign::Up::EmailsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -2361,7 +2419,7 @@ class Auth::App::Sign::Up::EmailsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -2628,11 +2686,14 @@ class Auth::App::Sign::Up::EmailsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

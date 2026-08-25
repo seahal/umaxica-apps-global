@@ -63,10 +63,14 @@ AUTH_JWT_PRIVATE_KEYSET
 AUTH_JWT_PUBLIC_KEYSET
 AUTH_JWT_REVOKED_KIDS
 AUTH_JWT_ISSUER
-AUTH_JWT_AUDIENCES
+AUTH_JWT_CLIENT_AUDIENCES
+AUTH_JWT_VISITOR_AUDIENCES
+AUTH_JWT_OPERATOR_AUDIENCES
 ```
 
-If `AUTH_JWT_AUDIENCES` is blank, the current compatibility default is `umaxica-api`.
+All three auth audience variables are required and must contain non-empty, comma-separated values.
+Audience values must not overlap across client, visitor, and operator resource types; missing,
+blank, or overlapping configuration fails closed.
 
 Preference:
 

@@ -3,7 +3,7 @@
 
 module Webauthn
   # Immutable record of what a verified WebAuthn ceremony actually proved.
-  # Consumers must branch on these fields — never on "a passkey was used" —
+  # Consumers must branch on these fields -- never on "a passkey was used" --
   # because only a user-verified assertion supports the AAL2-aligned claim
   # (docs/security/authentication-assurance.md).
   AuthenticationContext =

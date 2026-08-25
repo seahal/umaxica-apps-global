@@ -1,46 +1,28 @@
 ---
 name: interview-me
 description:
-  Extracts what the user actually wants instead of what they think they should want. Achieves this
-  through one-question-at-a-time interview until ~95% confidence about the underlying intent. Use
-  when an ask is underspecified ("build me X" without "for whom" or "why now"), when the user
-  explicitly invokes ("interview me", "grill me", "are we sure?", "stress-test my thinking"), or
-  when you catch yourself silently filling in ambiguous requirements before any plan, spec, or code
-  exists.
+  Extracts what the user actually wants rather than what they think they should want, through a
+  one-question-at-a-time interview run until the underlying intent is predictable. Use when an ask
+  is underspecified ("build me X" with no "for whom" or "why now"), when ambiguous requirements are
+  about to be filled in silently before any plan or spec or code exists, or when the user invokes it
+  directly with "interview me", "grill me", "are we sure?", or "stress-test my thinking".
 ---
 
 # Interview Me
 
-## Overview
+People ask for "a dashboard" because that is what one asks for, not because a dashboard solves their
+problem. The cheapest moment to find that gap is before any plan, spec, or code exists — afterwards,
+switching costs are real and the misfit gets rationalized into "good enough".
 
-What people ask for and what they actually want are different things. They ask for "a dashboard"
-because that's what one asks for, not because a dashboard solves their problem. They say "make it
-faster" without a number to hit.
+The other Define-phase skills assume the shape of the want is already known: `idea-refine` generates
+variations from an idea, `spec-driven-development` writes requirements down,
+`doubt-driven-development` stress-tests a drafted plan. This one comes before all of them.
 
-The cheapest moment to find this gap is before any plan, spec, or code exists. Once you've started
-building, switching costs are real, and the user will rationalize the wrong thing into a "good
-enough" thing. The misfit gets locked in.
-
-This skill closes the gap before it costs anything. The other Define-phase skills assume you already
-know roughly what you want: `idea-refine` generates variations from an idea,
-`spec-driven-development` writes the requirements down, `doubt-driven-development` stress-tests a
-plan after you've drafted one. Interview-me is the part before all of those, where you ask one
-question at a time, with your best guess attached, until you can predict what the user is going to
-say before they say it.
-
-## When to Use
-
-Apply this skill when:
-
-- The ask is missing at least one of: **who** the user is, **why** they want it, what **success**
-  looks like, what the binding **constraint** is
-- The request is conventional rather than specific ("build me X", "make it faster") and you can't
-  unpack the convention without guessing
-- You're tempted to start with assumptions you haven't surfaced
-- The user hasn't said which value they're optimizing for when two reasonable ones are in tension
-  (simplicity vs. flexibility, cost vs. speed)
-- The user explicitly invokes: "interview me", "grill me", "before we start, are we sure?",
-  "stress-test my thinking"
+Apply it when the ask is missing at least one of **who** the user is, **why** they want it, what
+**success** looks like, or what the binding **constraint** is; when the request is conventional
+rather than specific and the convention cannot be unpacked without guessing; or when two reasonable
+values are in tension (simplicity vs. flexibility, cost vs. speed) and the user has not said which
+one wins.
 
 **When NOT to use:**
 
@@ -235,19 +217,6 @@ Different artifact, different scope, different work. The dashboard would have be
   moments.
 - **`source-driven-development`**: orthogonal. Interview-me clarifies what the user wants; SDD
   verifies framework facts. They don't compete.
-
-## Common Rationalizations
-
-| Rationalization                                           | Reality                                                                                                                                                                       |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "The ask is clear enough"                                 | If you can't write the user's desired outcome in one sentence right now, the ask isn't clear. Run Step 1 before deciding.                                                     |
-| "Asking too many questions wastes their time"             | Time wasted by 4–6 targeted questions is small. Time wasted by building the wrong thing is enormous, and the user is the one bearing that cost.                               |
-| "I'll figure it out as I build"                           | Switching costs after code exists are 10x what they are now. Discovery during implementation is rework.                                                                       |
-| "They said 'whatever you think,' so I should just decide" | "Whatever you think" is delegation, not decision. Re-ask with two concrete options as a choice.                                                                               |
-| "I should give them several options to pick from"         | Options work when the user knows what they want and is choosing between trade-offs. They don't know what they want yet. Listing options widens the search; asking narrows it. |
-| "If I attach my guess, I'm leading them"                  | Leading is the point. Reacting is faster than generating from scratch. The risk is sycophancy, not leading; mitigate by being visibly willing to be wrong.                    |
-| "We've talked enough, I get it"                           | Test it: can you predict their reaction to the next three questions? If not, you don't get it yet.                                                                            |
-| "The user said yes, we're done"                           | If the yes followed a vague restate or an open-ended "sounds good," the yes is hollow. Restate concretely and re-confirm.                                                     |
 
 ## Red Flags
 

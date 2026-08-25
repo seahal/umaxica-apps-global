@@ -11,11 +11,38 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
   end
 
-  test "direct entry without a login challenge starts OIDC handoff" do
+  test "direct entry without a login challenge lists the sign-in methods" do
     get auth_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 
-    assert_response :redirect
+    assert_response :success
     assert_nil session[:oidc_authorization_login_challenge]
+    assert_equal "auth/org/sign/ins/show", inertia_component
+    assert_includes method_hrefs, new_auth_org_sign_in_passkey_path(ri: "jp")
+    assert_includes method_hrefs, new_auth_org_sign_in_secret_path(ri: "jp")
+  end
+
+  test "direct entry lists every sign-in method as a sibling in one list" do
+    get auth_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_response :success
+    methods = inertia_props.fetch("methods")
+
+    # One list, one entry per method: the Entra button is a sibling of the two links, not a
+    # separate block below them.
+    assert_equal 3, methods.length
+    assert_equal "link", method_for("passkey").fetch("kind")
+    assert_equal new_auth_org_sign_in_passkey_path(ri: "jp"), method_for("passkey").fetch("href")
+    assert_equal "link", method_for("secret_credential").fetch("kind")
+    assert_equal new_auth_org_sign_in_secret_path(ri: "jp"), method_for("secret_credential").fetch("href")
+    assert_equal "provider", method_for("entra").fetch("kind")
+    assert_equal auth_org_social_entra_session_path(ri: "jp"), method_for("entra").fetch("href")
+  end
+
+  test "direct entry offers the reciprocal sign up link" do
+    get auth_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_response :success
+    assert_equal auth_org_sign_up_path(ri: "jp"), inertia_props.fetch("registration_link").fetch("href")
   end
 
   test "valid login challenge renders local ceremony" do
@@ -46,11 +73,10 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
 
     query = { ri: "jp" }
 
-    assert_select "a[href=?]", new_auth_org_sign_in_passkey_path(query)
-    assert_select "a[href=?]", new_auth_org_sign_in_secret_credential_path(query)
-    assert_select "form[action*=?]", "/social/auth/", count: 0
-    assert_select "form[action*=?]", "/auth/google", count: 0
-    assert_select "form[action*=?]", "/auth/apple", count: 0
+    assert_includes method_hrefs, new_auth_org_sign_in_passkey_path(query)
+    assert_includes method_hrefs, new_auth_org_sign_in_secret_path(query)
+    # The org surface offers no consumer social providers.
+    assert_empty method_hrefs.grep(%r{/social/auth/|/auth/google|/auth/apple})
   end
 
   test "local ceremony ignores inbound pt and keeps authentication links on ceremony flow" do
@@ -67,8 +93,8 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     ), headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "a[href=?]", new_auth_org_sign_in_passkey_path(ri: "jp")
-    assert_select "a[href=?]", new_auth_org_sign_in_secret_credential_path(ri: "jp")
+    assert_includes method_hrefs, new_auth_org_sign_in_passkey_path(ri: "jp")
+    assert_includes method_hrefs, new_auth_org_sign_in_secret_path(ri: "jp")
   end
 
   test "local ceremony does not render sign up link on sign in page" do
@@ -82,7 +108,7 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
         headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "a[href=?]", auth_org_sign_up_path(ri: "jp"), count: 0
+    assert_nil inertia_props["registration_link"]
   end
 
   test "local ceremony renders back to root link" do
@@ -99,7 +125,8 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
 
     base_staff_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "base.org.localhost")
 
-    assert_select "a[href=?]", auth_org_root_url(ri: "jp", host: base_staff_host)
+    assert_equal auth_org_root_url(ri: "jp", host: base_staff_host),
+                 inertia_props.fetch("back_to_root").fetch("href")
   end
 
   test "rejects direct entry when logged in" do
@@ -112,6 +139,14 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def method_hrefs
+    inertia_props.fetch("methods").map { |method| method.fetch("href") }
+  end
+
+  def method_for(key)
+    inertia_props.fetch("methods").find { |method| method.fetch("key") == key }
+  end
 
   def authorize_params
     {

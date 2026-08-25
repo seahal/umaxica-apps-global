@@ -33,8 +33,7 @@ class WithdrawalPersonalDataAnonymizer
       actor.client_totp_credentials, status_column: :user_identity_totp_credential_status_id,
                                      revoked_status: ClientTotpCredentialStatus::REVOKED,
     )
-    anonymize_social(actor.user_google_identity, revoked_status: ClientGoogleIdentityStatus::REVOKED)
-    anonymize_social(actor.user_apple_identity, revoked_status: ClientAppleIdentityStatus::REVOKED)
+    remove_common_social_identities
   end
 
   def anonymize_visitor
@@ -85,15 +84,22 @@ class WithdrawalPersonalDataAnonymizer
     end
   end
 
-  def anonymize_social(record, revoked_status:)
+  def anonymize_social(record, revoked_status:, before_anonymize: nil)
     return unless record
 
+    before_anonymize&.call(record)
     record.update!(
       uid: "withdrawn-#{record.class.name.underscore.dasherize}-#{record.id}",
       token: "withdrawn",
       refresh_token: "",
       status_id: revoked_status,
     )
+  end
+
+  def remove_common_social_identities
+    actor.client_external_identities.find_each do |identity|
+      identity.destroy!
+    end
   end
 
   def revoked_or_suspended_email_status(email)

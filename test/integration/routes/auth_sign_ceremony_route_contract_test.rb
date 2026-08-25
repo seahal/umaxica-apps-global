@@ -108,6 +108,11 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "auth/app/apple/notifications", action: "create" },
+      { path: "http://#{SIGN_APP_HOST}/apple/notifications", method: :post },
+    )
+
+    assert_recognizes(
       { controller: "auth/app/dashboards", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/dashboard", method: :get },
     )
@@ -225,15 +230,11 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_APP_HOST}/sign/in/check", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "auth/app/sign/in/checks", action: "update" },
-      { path: "http://#{SIGN_APP_HOST}/sign/in/check", method: :patch },
-    )
-
-    assert_recognizes(
-      { controller: "auth/app/sign/in/checks", action: "destroy" },
-      { path: "http://#{SIGN_APP_HOST}/sign/in/check", method: :delete },
-    )
+    %i(patch delete).each do |method|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/in/check", method: method)
+      end
+    end
 
     assert_recognizes(
       { controller: "auth/app/sign/in/sessions", action: "destroy" },
@@ -266,13 +267,13 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "auth/app/sign/in/secret_credentials", action: "new" },
-      { path: "http://#{SIGN_APP_HOST}/sign/in/secret_credential/new", method: :get },
+      { controller: "auth/app/sign/in/secrets", action: "new" },
+      { path: "http://#{SIGN_APP_HOST}/sign/in/secret/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "auth/app/sign/in/secret_credentials", action: "create" },
-      { path: "http://#{SIGN_APP_HOST}/sign/in/secret_credential", method: :post },
+      { controller: "auth/app/sign/in/secrets", action: "create" },
+      { path: "http://#{SIGN_APP_HOST}/sign/in/secret", method: :post },
     )
 
     [
@@ -312,10 +313,12 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "auth/app/omniauth/omniauth_callbacks", action: "omniauth" },
-      { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :post },
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_APP_HOST}/social/apple/callback",
+        method: :post,
+      )
+    end
 
     assert_recognizes(
       { controller: "auth/app/omniauth/omniauth_callbacks", action: "failure" },
@@ -329,32 +332,43 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       end
     end
 
+    # The ceremony is POST only. A GET entry carries no CSRF token, so a link
+    # could start it, which is login CSRF.
+    %w(google apple).each do |_provider|
+      %W(/social/\#{provider}/session /social/\#{provider}/session/new
+         /social/\#{provider}/registration /social/\#{provider}/registration/new).each do |_path|
+        assert_raises(ActionController::RoutingError) do
+          Rails.application.routes.recognize_path("http://\#{SIGN_APP_HOST}\#{path}", method: :get)
+        end
+      end
+    end
+
     assert_recognizes(
-      { controller: "auth/app/social/sessions", action: "new", provider: "google", intent: "login" },
-      { path: "http://#{SIGN_APP_HOST}/social/google/session/new", method: :get },
+      { controller: "auth/app/social/sessions", action: "create", provider: "google", intent: "login" },
+      { path: "http://#{SIGN_APP_HOST}/social/google/session", method: :post },
     )
 
     assert_recognizes(
       { controller: "auth/app/social/registrations",
-        action: "new",
+        action: "create",
         provider: "google",
         intent: "login",
         entry: "auth_up", },
-      { path: "http://#{SIGN_APP_HOST}/social/google/registration/new", method: :get },
+      { path: "http://#{SIGN_APP_HOST}/social/google/registration", method: :post },
     )
 
     assert_recognizes(
-      { controller: "auth/app/social/sessions", action: "new", provider: "apple", intent: "login" },
-      { path: "http://#{SIGN_APP_HOST}/social/apple/session/new", method: :get },
+      { controller: "auth/app/social/sessions", action: "create", provider: "apple", intent: "login" },
+      { path: "http://#{SIGN_APP_HOST}/social/apple/session", method: :post },
     )
 
     assert_recognizes(
       { controller: "auth/app/social/registrations",
-        action: "new",
+        action: "create",
         provider: "apple",
         intent: "login",
         entry: "auth_up", },
-      { path: "http://#{SIGN_APP_HOST}/social/apple/registration/new", method: :get },
+      { path: "http://#{SIGN_APP_HOST}/social/apple/registration", method: :post },
     )
 
     assert_recognizes(
@@ -367,10 +381,12 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "auth/app/omniauth/omniauth_callbacks", action: "omniauth" },
-      { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :post },
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_APP_HOST}/social/apple/callback",
+        method: :post,
+      )
+    end
 
     assert_recognizes(
       { controller: "auth/app/settings/totps", action: "index" },
@@ -614,15 +630,11 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_COM_HOST}/sign/in/check", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "auth/com/sign/in/checks", action: "update" },
-      { path: "http://#{SIGN_COM_HOST}/sign/in/check", method: :patch },
-    )
-
-    assert_recognizes(
-      { controller: "auth/com/sign/in/checks", action: "destroy" },
-      { path: "http://#{SIGN_COM_HOST}/sign/in/check", method: :delete },
-    )
+    %i(patch delete).each do |method|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/sign/in/check", method: method)
+      end
+    end
 
     assert_recognizes(
       { controller: "auth/com/sign/in/sessions", action: "destroy" },
@@ -655,13 +667,13 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "auth/com/sign/in/secret_credentials", action: "new" },
-      { path: "http://#{SIGN_COM_HOST}/sign/in/secret_credential/new", method: :get },
+      { controller: "auth/com/sign/in/secrets", action: "new" },
+      { path: "http://#{SIGN_COM_HOST}/sign/in/secret/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "auth/com/sign/in/secret_credentials", action: "create" },
-      { path: "http://#{SIGN_COM_HOST}/sign/in/secret_credential", method: :post },
+      { controller: "auth/com/sign/in/secrets", action: "create" },
+      { path: "http://#{SIGN_COM_HOST}/sign/in/secret", method: :post },
     )
 
     [
@@ -820,15 +832,11 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_ORG_HOST}/sign/in/check", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "auth/org/sign/in/checks", action: "update" },
-      { path: "http://#{SIGN_ORG_HOST}/sign/in/check", method: :patch },
-    )
-
-    assert_recognizes(
-      { controller: "auth/org/sign/in/checks", action: "destroy" },
-      { path: "http://#{SIGN_ORG_HOST}/sign/in/check", method: :delete },
-    )
+    %i(patch delete).each do |method|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}/sign/in/check", method: method)
+      end
+    end
 
     assert_recognizes(
       { controller: "auth/org/sign/in/sessions", action: "destroy" },
@@ -861,14 +869,32 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "auth/org/sign/in/secret_credentials", action: "new" },
-      { path: "http://#{SIGN_ORG_HOST}/sign/in/secret_credential/new", method: :get },
+      { controller: "auth/org/sign/in/secrets", action: "new" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/in/secret/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "auth/org/sign/in/secret_credentials", action: "create" },
-      { path: "http://#{SIGN_ORG_HOST}/sign/in/secret_credential", method: :post },
+      { controller: "auth/org/sign/in/secrets", action: "create" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/in/secret", method: :post },
     )
+
+    # Entra sign-in ceremony start. Sign-in only: the org surface has no social
+    # registration counterpart to the app surface's social/*/registration.
+    assert_recognizes(
+      { controller: "auth/org/social/sessions", action: "new", provider: "entra" },
+      { path: "http://#{SIGN_ORG_HOST}/social/entra/session/new", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "auth/org/social/sessions", action: "create", provider: "entra" },
+      { path: "http://#{SIGN_ORG_HOST}/social/entra/session", method: :post },
+    )
+
+    %w(/social/entra/registration /social/entra/registration/new).each do |path|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}#{path}", method: :get)
+      end
+    end
   end
 
   test "auth org route contract (continued)" do
@@ -935,7 +961,7 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
         "http://#{SIGN_APP_HOST}/social/apple/session/new",
-        method: :post,
+        method: :get,
       )
     end
 
@@ -1065,11 +1091,22 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       )
     end
 
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path(
-        "http://#{SIGN_APP_HOST}/sign/in/secret/new",
-        method: :get,
-      )
+    # The secret credential sign-in path is `/sign/in/secret`; the former
+    # `/sign/in/secret_credential` spelling is retired with no compatibility redirect.
+    [SIGN_APP_HOST, SIGN_COM_HOST, SIGN_ORG_HOST].each do |host|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path(
+          "http://#{host}/sign/in/secret_credential/new",
+          method: :get,
+        )
+      end
+
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path(
+          "http://#{host}/sign/in/secret_credential",
+          method: :post,
+        )
+      end
     end
   end
   # rubocop:enable Minitest/MultipleAssertions

@@ -29,6 +29,10 @@ module AuthenticationBase
   # 8) MFA/session helper decisions ................................. L1873-L1966
   # ==========================================================================
 
+  included do
+    after_action :verify_private_action_authorized! if respond_to?(:after_action)
+  end
+
   # ==========================================================================
   # 1) JWT & AuthenticationToken primitives
   # ==========================================================================
@@ -81,6 +85,8 @@ module AuthenticationBase
   ACCESS_COOKIE_KEY = AuthenticationCookieName.access
   REFRESH_COOKIE_KEY = AuthenticationCookieName.refresh
   DBSC_COOKIE_KEY = AuthenticationCookieName.dbsc
+  BULLETIN_SESSION_KEY = :sign_in_checkpoint
+  BULLETIN_TIMEOUT = 2.hours
   OIDC_RP_SESSION_KEYS = %i(
     oidc_code_verifier
     oidc_state
@@ -94,7 +100,6 @@ module AuthenticationBase
   REFRESH_TOKEN_TTL = ::SecurityTokenLifetimes::CLIENT_REFRESH_TOKEN_TTL
   DBSC_COOKIE_TTL = 10.minutes
   RESTRICTED_SESSION_TTL = 15.minutes
-  LOGIN_COOLDOWN = 30.seconds
   SESSION_LIMIT_HARD_REJECT_MESSAGE = I18n.t("errors.messages.session_limit_exceeded")
   LOGIN_COOLDOWN_MESSAGE = I18n.t("errors.messages.login_cooldown")
 
@@ -102,16 +107,12 @@ module AuthenticationBase
 
   class ConcurrentSessionLimitExceededError < StandardError; end
 
-  # Prevents rapid re-login by enforcing a 30-second cooldown between sessions.
-  LOGIN_COOLDOWN_ENABLED = Concurrent::AtomicReference.new(true)
-
   class << self
-    def login_cooldown_enabled
-      LOGIN_COOLDOWN_ENABLED.get
-    end
-
-    def login_cooldown_enabled=(value)
-      LOGIN_COOLDOWN_ENABLED.set(value)
+    # Prevents rapid re-login by enforcing a cooldown between sessions. The window is
+    # application configuration (config/initializers/login_cooldown.rb), read on every
+    # check so that no mutable state is held here; a zero duration disables the gate.
+    def login_cooldown
+      Rails.application.config.x.authentication.login_cooldown
     end
   end
 
@@ -216,13 +217,6 @@ module AuthenticationBase
   # Default session key for storing return-to parameter.
   DEFAULT_PT_SESSION_KEY = AuthIoKeys::Session::DEFAULT_PT
   CHECKPOINT_SESSION_KEY = AuthIoKeys::Session::CHECKPOINT
-  BULLETIN_SESSION_KEY = AuthIoKeys::Session::BULLETIN
-  BULLETIN_TIMEOUT = 2.hours
-
-  # ======================================================================
-  # 3-1) Checkpoint notice flow (Session I/O boundary)
-  # ======================================================================
-
   # ======================================================================
   # 4) Session auth lifecycle (public API, Cookie/session/request I/O boundary)
   # ======================================================================
@@ -348,7 +342,8 @@ module AuthenticationBase
   end
 
   def log_in(resource, record_login_audit: true, token_kind_id: "BROWSER_WEB", require_totp_check: true,
-             audit_context: {}, bootstrap_actor: false, skip_login_cooldown: false)
+             audit_context: {}, bootstrap_actor: false, skip_login_cooldown: false,
+             established_authentication_method: nil)
     return { status: :access_locked } if administratively_locked_resource?(resource)
     return { status: :login_forbidden } unless resource.login_allowed?
 
@@ -371,10 +366,34 @@ module AuthenticationBase
       issue_login_tokens_within_lock(
         resource, record_login_audit: record_login_audit, token_kind_id: token_kind_id,
                   audit_context: audit_context, bootstrap_actor: bootstrap_actor,
+                  established_authentication_method: established_authentication_method,
       )
     end
   rescue ConcurrentSessionLimitExceededError
     session_limit_hard_reject_result(resource)
+  end
+
+  # Vocabulary for `established_authentication_method` (adr/unified-enforcement.md,
+  # Session attribution). Deliberately distinct from `auth_method:` (a flow-type
+  # marker also used for MFA gating and audit context -- values like
+  # "session_limit_promotion" or "social" are never authentication methods) and
+  # from the OIDC `amr` claim. Only genuine primary-credential auth_method values
+  # map to a symbol here; anything else resolves to nil, which is a defined, safe
+  # state (adr/unified-enforcement.md, Session revocation) rather than a guess.
+  ESTABLISHED_AUTHENTICATION_METHOD_MAP = {
+    "email" => "email",
+    "telephone" => "telephone",
+    "secret_credential" => "secret",
+    "passkey" => "passkey",
+    "totp" => "totp",
+    "google" => "google",
+    "apple" => "apple",
+    "entra_id" => "entra",
+    "entra" => "entra",
+  }.freeze
+
+  def established_authentication_method_for(auth_method)
+    ESTABLISHED_AUTHENTICATION_METHOD_MAP[auth_method.to_s]
   end
 
   def check_totp_requirement_before_session_rotation(require_totp_check, resource)
@@ -463,7 +482,8 @@ module AuthenticationBase
     end
   end
 
-  def issue_login_tokens_within_lock(resource, record_login_audit:, token_kind_id:, audit_context:, bootstrap_actor:)
+  def issue_login_tokens_within_lock(resource, record_login_audit:, token_kind_id:, audit_context:, bootstrap_actor:,
+                                     established_authentication_method: nil)
     # Sign-up handoff must always issue an active token. If a rare data
     # condition (e.g. an orphan social_identity that resolves to a
     # session-saturated actor) made `session_limit_state_for` return
@@ -488,6 +508,7 @@ module AuthenticationBase
       resolved_token_kind_id,
       token_status_id: token_status_id,
       dpop_jkt: dpop_result[:jkt],
+      established_authentication_method: established_authentication_method,
     )
     device_session = ensure_device_session_for!(resource, token_record, dpop_jkt: dpop_result[:jkt])
     restricted_expires_at = is_restricted ? restricted_session_expires_at : nil
@@ -692,7 +713,34 @@ module AuthenticationBase
       else
         redirect_to_jump_url(url, **redirect_options)
       end
+
+      convert_redirect_to_inertia_location!
     end
+  end
+
+  # An Inertia visit is a `fetch` call, so a 3xx is followed by the browser transparently and the
+  # client ends up parsing the credential ceremony's HTML as though it were an Inertia response. It
+  # raises "All Inertia requests must receive a valid Inertia response" and the application stays on
+  # the page it was already showing, with no way to reach sign-in.
+  #
+  # The Inertia protocol reserves 409 + X-Inertia-Location for leaving the Inertia application; the
+  # client turns it into a full document visit. Authentication redirects always leave the
+  # application -- they go to the OIDC authorization endpoint or the jump gateway, neither of which
+  # renders an Inertia response -- so the conversion applies to every branch above.
+  def convert_redirect_to_inertia_location!
+    return unless request.respond_to?(:inertia?) && request.inertia?
+    return unless response.redirect?
+
+    location = response.location
+
+    # This is `InertiaRails::Controller#inertia_location` written out. That helper calls `head`,
+    # which refuses to run once a response body exists, and the redirect above has already written
+    # one. Assigning the status, the header and the body directly replaces the redirect in place
+    # without tripping AbstractController::DoubleRenderError.
+    response.headers.delete("Location")
+    response.headers["X-Inertia-Location"] = location
+    self.status = :conflict
+    self.response_body = ""
   end
 
   # Abstract methods - must be implemented by including modules
@@ -1771,6 +1819,12 @@ module AuthenticationBase
   # ======================================================================
   # --- Policy enforcement methods ---
 
+  def verify_private_action_authorized!
+    return unless self.class.authentication_mode_for(action_name) == :private
+
+    verify_authorized
+  end
+
   def enforce_access_policy!
     mode = self.class.authentication_mode_for(action_name)
     policy = policy_for_authentication_mode(mode)
@@ -1941,7 +1995,8 @@ module AuthenticationBase
     end
   end
 
-  def create_login_token_record(resource, token_kind_id, token_status_id: nil, dpop_jkt: nil)
+  def create_login_token_record(resource, token_kind_id, token_status_id: nil, dpop_jkt: nil,
+                                established_authentication_method: nil)
     token_record_connection_owner.connected_to(role: :writing) do
       token_attributes = { resource_foreign_key => resource.id }
       token_attributes[:dpop_jkt] = dpop_jkt if dpop_jkt.present?
@@ -1950,6 +2005,13 @@ module AuthenticationBase
       if token_class.column_names.include?(kind_column)
         ensure_token_kind_exists!(token_kind_id)
         token_attributes[kind_column] = token_kind_id
+      end
+
+      # adr/unified-enforcement.md, Session attribution: nil is a defined, safe
+      # state, never backfilled with a guess.
+      if established_authentication_method.present? &&
+          token_class.column_names.include?("established_authentication_method")
+        token_attributes[:established_authentication_method] = established_authentication_method
       end
 
       token_attributes.merge!(default_status_token_attributes(token_status_id))
@@ -2170,7 +2232,8 @@ module AuthenticationBase
     { status: :mfa_required }
   end
 
-  def set_pending_mfa!(resource:, primary:, pt: nil, ri: nil, auth_method: nil)
+  def set_pending_mfa!(resource:, primary:, pt: nil, ri: nil, auth_method: nil,
+                       established_authentication_method: nil)
     issued_at = Time.current.to_i
     expires_at = pending_mfa_ttl.from_now.to_i
     session[:pending_mfa] = {
@@ -2179,12 +2242,17 @@ module AuthenticationBase
       "resource_type" => resource_type,
       "primary" => primary.to_s,
       "auth_method" => auth_method.to_s.presence || primary.to_s,
+      "established_authentication_method" => established_authentication_method.presence,
       "pt" => pt.presence,
       "ri" => ri.to_s.presence,
       "issued_at" => issued_at,
       "expires_at" => expires_at,
-      "attempts" => 0,
     }
+    # No per-ceremony attempt counter is kept here. A session-scoped counter is not
+    # a control: an attacker discards the session and starts a fresh one. Second-factor
+    # guessing is bounded per account by the "*_create_account" rate_limit rules on the
+    # TOTP challenge and secret-credential controllers, which are keyed on the
+    # pending-MFA user id and backed by the shared rate-limit store.
     # Backward compatibility for existing controllers still using mfa_user_id.
     session[:mfa_user_id] = resource.id
   end
@@ -2231,13 +2299,30 @@ module AuthenticationBase
     session.delete(:mfa_user_id)
   end
 
-  # Completes login after successful MFA verification.
-  # Consumes the pending MFA session, logs in the user, and returns a result hash
-  # with redirect information.
-  #
-  # @param user [User] the user to log in
-  # @return [Hash] result with :status, :redirect_path, etc.
-  def normalize_amr(token_kind_id)
+  # adr/unified-enforcement.md, JWT AMR: derives `amr` from
+  # `established_authentication_method` (Session attribution) when the session
+  # record carries one, falling back to the legacy token_kind_id-based mapping
+  # only when it does not (legacy/NULL sessions, or non-interactive token
+  # kinds). RFC 8176 has no registered value distinguishing google/apple, so
+  # the existing provider-specific extension values are unchanged; telephone,
+  # totp, and entra are now populated instead of falling through to `[]` as
+  # they did previously.
+  ESTABLISHED_AUTHENTICATION_METHOD_AMR_MAP = {
+    "email" => ["email_otp"],
+    "telephone" => ["sms"],
+    "secret" => ["passcode"],
+    "passkey" => ["passkey"],
+    "totp" => ["otp"],
+    "google" => ["google"],
+    "apple" => ["apple"],
+    "entra" => ["entra_id"],
+  }.freeze
+
+  def normalize_amr(token_kind_id, token_record: nil)
+    established_method = token_record.try(:established_authentication_method)
+    mapped = ESTABLISHED_AUTHENTICATION_METHOD_AMR_MAP[established_method.to_s]
+    return mapped if mapped
+
     case token_kind_id.to_s
     when "email" then ["email_otp"]
     when "passkey" then ["passkey"]
@@ -2248,8 +2333,16 @@ module AuthenticationBase
     end
   end
 
+  # Completes login after successful MFA verification.
+  # Consumes the pending MFA session, logs in the user, and returns a result hash
+  # with redirect information.
+  #
+  # @param user [User] the user to log in
+  # @return [Hash] result with :status, :redirect_path, etc.
   def finalize_mfa_login!(user)
     pt = pending_mfa&.dig(:pt)
+    pending_mfa_auth_method = pending_mfa&.dig(:auth_method)
+    pending_mfa_established_authentication_method = pending_mfa&.dig(:established_authentication_method)
     cycle = pending_mfa_sign_in_flow_for(user)
     clear_pending_mfa!
 
@@ -2258,9 +2351,14 @@ module AuthenticationBase
       pt: pt,
       record_login_audit: true,
       token_kind_id: "BROWSER_WEB",
-      audit_context: { auth_method: pending_mfa&.dig(:auth_method).presence || "mfa" },
+      audit_context: { auth_method: pending_mfa_auth_method.presence || "mfa" },
       bootstrap_actor: false,
       skip_login_cooldown: true,
+      # The primary factor that gated MFA, not the step-up factor itself --
+      # step-up attribution lives on last_step_up_method (adr/unified-enforcement.md,
+      # Session revocation, rule 3). Captured before clear_pending_mfa! deletes
+      # the session-backed value.
+      established_authentication_method: pending_mfa_established_authentication_method,
     )
     advance_pending_sign_in_flow_after_primary!(cycle, user, result) if cycle
 
@@ -2322,8 +2420,15 @@ module AuthenticationBase
   # Paired vocabulary with logout_current_session! for the privilege
   # transition points.
   def establish_signed_in_session!(resource, pt:, ri:, auth_method:, token_kind_id: "BROWSER_WEB",
-                                   record_login_audit: true, audit_context: {}, bootstrap_actor: false)
+                                   record_login_audit: true, audit_context: {}, bootstrap_actor: false,
+                                   established_authentication_method: nil)
     auth_method = auth_method.to_s
+    # `auth_method:` alone is sometimes ambiguous (e.g. "social" cannot express
+    # google vs apple) -- callers with better information pass the resolved
+    # value explicitly; otherwise it is derived from auth_method's known 1:1
+    # mappings only. See ESTABLISHED_AUTHENTICATION_METHOD_MAP above.
+    resolved_established_authentication_method =
+      established_authentication_method.presence || established_authentication_method_for(auth_method)
     cycle = start_sign_in_flow_for!(resource, pt: pt)
     login_audit_context = { auth_method: auth_method }.merge(audit_context)
     if mfa_bypassed_for_auth_method?(auth_method) || !mfa_required_for?(resource)
@@ -2334,6 +2439,7 @@ module AuthenticationBase
         token_kind_id: token_kind_id,
         audit_context: login_audit_context,
         bootstrap_actor: bootstrap_actor,
+        established_authentication_method: resolved_established_authentication_method,
       )
       advance_pending_sign_in_flow_after_primary!(cycle, resource, result)
       return result
@@ -2345,6 +2451,7 @@ module AuthenticationBase
     set_pending_mfa!(
       resource: resource, primary: auth_method, pt: resolved_pt, ri: ri,
       auth_method: auth_method,
+      established_authentication_method: resolved_established_authentication_method,
     )
 
     {
@@ -2355,13 +2462,25 @@ module AuthenticationBase
   end
 
   def pending_sign_in_result_after_primary!(resource, pt:, record_login_audit:, token_kind_id:,
-                                            audit_context:, bootstrap_actor:, skip_login_cooldown: false)
+                                            audit_context:, bootstrap_actor:, skip_login_cooldown: false,
+                                            established_authentication_method: nil)
     return { status: :login_forbidden } unless resource.login_allowed?
 
     session_limit_state = bootstrap_actor ? :within_limit : session_limit_state_for(resource)
     return session_limit_hard_reject_result(resource) if session_limit_state == :hard_reject
 
     if session_limit_state == :issue_restricted
+      # This branch returns before log_in, so log_in's reset_session never runs -
+      # yet store_pending_login_resource below writes the authenticated principal's
+      # id into the session, and the session-management page treats that id as
+      # authoritative (it lists and revokes the actor's sessions). That is a
+      # privilege transition from anonymous to identified, so the session id must be
+      # rotated here for the same reason log_in rotates it. OIDC RP state is
+      # preserved across the reset exactly as log_in does at :359-362.
+      oidc_rp_session_state = preserved_oidc_rp_session_state
+      reset_session
+      restore_oidc_rp_session_state!(oidc_rp_session_state)
+
       store_pending_login_resource(resource)
       issue_session_limit_gate!(
         pt: session_limit_gate_pt,
@@ -2384,6 +2503,7 @@ module AuthenticationBase
       audit_context: audit_context,
       bootstrap_actor: bootstrap_actor,
       skip_login_cooldown: skip_login_cooldown,
+      established_authentication_method: established_authentication_method,
     )
     return result unless result[:status] == :success
 
@@ -2391,7 +2511,8 @@ module AuthenticationBase
   end
 
   def check_login_cooldown!(resource, bootstrap_actor: false, skip_login_cooldown: false)
-    return unless AuthenticationBase.login_cooldown_enabled
+    cooldown = AuthenticationBase.login_cooldown
+    return unless cooldown.positive?
     # Bootstrap handoffs (sign-up completion, OIDC authorization resume) issue a
     # token within seconds of the one minted moments earlier in the same flow.
     # That fresh token is not a rapid re-login attempt, so skip the cooldown gate
@@ -2412,7 +2533,7 @@ module AuthenticationBase
         token_class.where(fk => resource.id).order(created_at: :desc).pick(:created_at)
       }
 
-    raise LoginCooldownError if latest_at && latest_at > LOGIN_COOLDOWN.ago
+    raise LoginCooldownError if latest_at && latest_at > cooldown.ago
   end
 
   def render_login_cooldown
@@ -2852,6 +2973,8 @@ module AuthenticationBase
     else
       redirect_to(path, allow_other_host: false, alert: message)
     end
+
+    convert_redirect_to_inertia_location!
   end
 
   def withdrawal_required_session_entry_path

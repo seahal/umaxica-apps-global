@@ -16,7 +16,7 @@ class OperatorEntraIdentityTest < ActiveSupport::TestCase
       organization_id: 1,
       entra_tenant_id: VALID_TENANT_ID,
       entra_client_id: "client-id-for-identity-tests",
-      entra_client_secret: "secret",
+      entra_credential_key: "secret",
       status_id: OrganizationEntraConnectionState::ACTIVE,
     )
   end
@@ -103,11 +103,13 @@ class OperatorEntraIdentityTest < ActiveSupport::TestCase
     assert identity.errors.of_kind?(:operator_id, :blank)
   end
 
-  test "requires connection_id" do
+  # connection_id is optional: sign-in resolves an identity by (tid, oid) and
+  # never reads a connection, so an identity provisioned for the single
+  # configured tenant carries no connection reference.
+  test "does not require connection_id" do
     identity = build_identity(connection_id: nil)
 
-    assert_not identity.valid?
-    assert identity.errors.of_kind?(:connection, :blank)
+    assert_predicate identity, :valid?
   end
 
   test "requires entra_tenant_id" do

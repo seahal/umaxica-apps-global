@@ -6,6 +6,8 @@ require "test_helper"
 # require "helpers/root_theme_cookie_helper"
 
 class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest
+  BRAND = ENV.fetch("BRAND_NAME").upcase
+
   fixtures :operators, :operator_statuses
 
   # include RootThemeCookieHelper
@@ -14,44 +16,50 @@ class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
   end
 
-  test "GET / renders root page" do
+  test "permanently redirects the jp region to the sign in entry point" do
     get auth_org_root_url(ri: "jp")
 
-    assert_response :success
-    assert_select "title", "Sign Org"
-    assert_select "h1", text: "Sign Org"
+    assert_response :moved_permanently
+    assert_equal auth_org_sign_in_url(ri: "jp", host: ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")),
+                 response.location
+    assert_includes response.location, "/sign/in?ri=jp"
   end
 
-  test "creates preference cookies on root" do
-    assert_difference("OrgPreference.count", 1) do
-      get auth_org_root_url(ri: "jp")
+  test "permanently redirects the us region to the sign in entry point" do
+    get auth_org_root_url(ri: "us")
+
+    assert_response :moved_permanently
+    assert_equal auth_org_sign_in_url(ri: "us", host: ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")),
+                 response.location
+    assert_includes response.location, "/sign/in?ri=us"
+  end
+
+  test "an unrecognized region falls through to the shared region normalization" do
+    get auth_org_root_url(ri: "xx")
+
+    assert_response :found
+    assert_equal auth_org_root_url(ri: "jp"), response.location
+  end
+
+  test "the sign in entry point terminates the redirect chain for both regions" do
+    %w(jp us).each do |region|
+      get auth_org_root_url(ri: region)
+
+      assert_response :moved_permanently
+      follow_redirect!
+
+      assert_response :success, "the #{region} sign in entry point must not redirect again"
     end
-
-    assert_response :success
-    assert_predicate cookies[PreferenceCookieName.access(surface: :org)], :present?
-    assert_predicate cookies[PreferenceCookieName.refresh(surface: :org)], :present?
   end
 
-  test "sets theme cookie" do
-    assert_theme_cookie_for(
-      "sy",
-      path: auth_org_root_path(ri: "jp"),
-    )
-  end
-
-  test "GET / redirects to dashboard when logged in" do
+  test "the root redirect takes precedence over the logged in dashboard redirect" do
     staff = operators(:one)
 
     get auth_org_root_url(ri: "jp"),
         headers: as_staff_headers(staff, host: ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost"))
 
-    assert_response :redirect
-    assert_redirected_to base_org_dashboard_url(
-      ri: "jp",
-      host: ENV.fetch(
-        "PUBLIC_BASE_STAFF_URL", Rails.configuration.x.boot_config.fetch(:hosts).base_staff.host,
-      ),
-    )
+    assert_response :moved_permanently
+    assert_includes response.location, "/sign/in?ri=jp"
   end
   private
 

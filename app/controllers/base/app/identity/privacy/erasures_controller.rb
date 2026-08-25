@@ -6,6 +6,7 @@ module Base
     module Identity
       module Privacy
         class ErasuresController < BaseController
+          include ::SurfaceInertiaPage
           include CommonRedirect
           include WithdrawalCeremonyAuthentication
           include PrivacyErasureRequestFlow
@@ -17,6 +18,24 @@ module Base
 
           def new
             render_privacy_erasure_new(current_withdrawal_subject)
+            return if performed?
+
+            render inertia: true, props: {
+              title: "Early personal data erasure",
+              notices: [
+                "This is a privacy request for personal data deletion or restriction. It is separate " \
+                "from normal withdrawal.",
+                "After processing, recovery may no longer be available. Some data may be retained for " \
+                "legal, safety, audit, billing, or dispute handling reasons.",
+                "Messages, posts, audit logs, billing records, and similar records may follow separate " \
+                "retention policies.",
+              ],
+              form: {
+                action: base_app_identity_privacy_erasure_path(ri: params[:ri]),
+                jurisdiction: "unknown",
+                submit_label: "Request early erasure",
+              },
+            }
           end
 
           def create

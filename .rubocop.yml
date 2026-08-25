@@ -236,7 +236,6 @@ Layout/TrailingEmptyLines:
   Enabled: true
   EnforcedStyle: final_newline
 
-
 # ---------- 複数行のフォーマット ----------
 Layout/MultilineMethodCallIndentation:
   Enabled: true
@@ -648,7 +647,6 @@ Rails/BulkChangeTable:
 
 Rails/HttpPositionalArguments:
   Enabled: true
-
 
 Rails/UnknownEnv:
   Enabled: true
@@ -1400,16 +1398,9 @@ Style/IpAddresses:
     - "config/**/*"
     - "test/**/*"
     - "docker/**/*"
+    - "podman/**/*"
     - "db/**/*_migrate/**/*"
     - "db/initial_schemas/**/*"
-
-# rubocop:disable コメントの使用を可視化（安易な無効化を抑止）
-    - Rails/SkipsModelValidations
-    - Minitest/NoAssertions
-    - Lint/EmptyBlock
-    - Rails/ActionControllerTestCase
-    - ThreadSafety/ClassAndModuleAttributes
-
 
 # メソッド呼び出しの括弧を強制（可読性向上）
 Style/MethodCallWithArgsParentheses:
@@ -1462,8 +1453,8 @@ Style/MethodCallWithArgsParentheses:
     - protected
     - public
   AllowedPatterns:
-    - '^assert'
-    - '^refute'
+    - "^assert"
+    - "^refute"
   Exclude:
     - "Gemfile"
 
@@ -1508,6 +1499,9 @@ Rails/ApplicationController:
 ThreadSafety/ClassInstanceVariable:
   Exclude:
     - "test/**/*.rb"
+    # Write-once memoization of a pure function of boot config and process environment, both fixed
+    # after boot. A race can only recompute the same frozen value.
+    - "app/values/fqdn_availability_registry.rb"
     - "app/controllers/concerns/social_callback_guard.rb"
     - "lib/jit/security/turnstile_verifier.rb"
     - "lib/jit/security/jwt/jti_generator.rb"

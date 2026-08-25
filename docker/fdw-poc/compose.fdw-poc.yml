@@ -16,17 +16,15 @@ services:
   fdw-poc:
     build:
       context: ../../docker/fdw-poc
-      dockerfile: Dockerfile
+      dockerfile: Containerfile
     profiles:
       - fdw-poc
     environment:
       POSTGRES_DB: fdw_poc
       POSTGRES_USER: fdw_poc
       POSTGRES_PASSWORD: "${FDW_POC_POSTGRES_PASSWORD:?FDW_POC_POSTGRES_PASSWORD must be set}"
-    # PGDATA lives in tmpfs: the whole database is discarded on stop, matching the
-    # "temporary FDW database objects" requirement with no volume cleanup needed.
-    tmpfs:
-      - /var/lib/postgresql/data
+    volumes:
+      - fdw-poc-data:/var/lib/postgresql/data
     depends_on:
       rustfs:
         condition: service_healthy
@@ -52,3 +50,6 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: "no"
+
+volumes:
+  fdw-poc-data: {}

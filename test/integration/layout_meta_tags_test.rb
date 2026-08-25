@@ -6,7 +6,6 @@ require "test_helper"
 class LayoutMetaTagsTest < ActiveSupport::TestCase
   LAYOUT_PATHS = {
     "Base::App" => "app/views/layouts/base/app/application.html.erb",
-    "Base::App::Inertia" => "app/views/layouts/base/app/inertia.html.erb",
     "Base::Com" => "app/views/layouts/base/com/application.html.erb",
     "Base::Org" => "app/views/layouts/base/org/application.html.erb",
     "Auth::App" => "app/views/layouts/auth/app/application.html.erb",
@@ -14,14 +13,19 @@ class LayoutMetaTagsTest < ActiveSupport::TestCase
     "Auth::Org" => "app/views/layouts/auth/org/application.html.erb",
   }.freeze
 
+  INERTIA_LAYOUT_PATHS = {
+    "Base::App::Inertia" => "app/views/layouts/base/app/inertia.html.erb",
+  }.freeze
+
   test "all layouts include a charset meta tag" do
-    LAYOUT_PATHS.each do |name, path|
+    LAYOUT_PATHS.merge(INERTIA_LAYOUT_PATHS).each do |name, path|
       content = Rails.root.join(path).read
 
       assert_includes content, '<meta charset="utf-8">', "Expected charset meta tag in #{name} layout (#{path})"
     end
   end
 
+  # Turbo layouts only: an Inertia shell never loads Turbo (see StylesheetTagsTest).
   test "all layouts include turbo-refresh-scroll meta tag" do
     LAYOUT_PATHS.each do |name, path|
       content = Rails.root.join(path).read
@@ -34,7 +38,7 @@ class LayoutMetaTagsTest < ActiveSupport::TestCase
   end
 
   test "all layouts include title tag" do
-    LAYOUT_PATHS.each do |name, path|
+    LAYOUT_PATHS.merge(INERTIA_LAYOUT_PATHS).each do |name, path|
       content = Rails.root.join(path).read
 
       assert_match(

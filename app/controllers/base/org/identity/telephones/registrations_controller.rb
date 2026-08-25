@@ -11,7 +11,12 @@ module Base
           include SignOperatorTelephoneRegistrable
           include SignSettingsTelephoneRegistration
 
+          include EnforcementIdentifierGate
+
           include ::VerificationOperator
+
+          include ::SurfaceInertiaPage
+          include ::TurnstilePageProps
 
           AUTHENTICATION_MODE = :private
 
@@ -24,11 +29,12 @@ module Base
           def new
             @staff_telephone = OperatorTelephone.new
             reset_registration_session!
+            render inertia: true, props: new_page_props
           end
 
           def edit
             @staff_telephone = current_registration_telephone
-            return if valid_registration_session?
+            return render(inertia: true, props: edit_page_props) if valid_registration_session?
 
             reset_registration_session!
             redirect_to(
@@ -40,15 +46,28 @@ module Base
             unless cloudflare_turnstile_stealth_validation["success"]
               @staff_telephone = OperatorTelephone.new
               @staff_telephone.errors.add(:base, t("turnstile_error"))
-              render(:new, status: :unprocessable_content)
+              render_new_failure
               return
             end
 
             tel_params = params(staff_telephone: [:raw_number, :number])
             number = tel_params[:raw_number] || tel_params[:number]
 
+            # adr/unified-enforcement.md, Identifier attachment enforcement: an in-force
+            # Identifier Effect with attachment_blocked rejects attaching this identifier to
+            # an existing account, at the same enumeration-resistance discipline as the
+            # ordinary validation failure.
+            if number.present? && enforcement_blocks_telephone_attachment?(
+              effect_class: OrgEnforcementIdentifierEffect, realm: "org", telephone: number,
+            )
+              @staff_telephone = OperatorTelephone.new
+              @staff_telephone.errors.add(:raw_number, :blank)
+              render_new_failure
+              return
+            end
+
             unless initiate_staff_telephone_verification(current_operator, number)
-              render :new, status: :unprocessable_content
+              render_new_failure
               return
             end
 
@@ -76,14 +95,14 @@ module Base
 
             unless cloudflare_turnstile_stealth_validation["success"]
               @staff_telephone.errors.add(:base, t("turnstile_error"))
-              render(:edit, status: :unprocessable_content)
+              render_edit_failure
               return
             end
 
             submitted_code = params.dig(:staff_telephone, :pass_code)
             if submitted_code.blank?
               @staff_telephone.errors.add(:pass_code, t("sign.org.registration.telephone.update.code_required"))
-              render :edit, status: :unprocessable_content
+              render_edit_failure
               return
             end
 
@@ -93,6 +112,58 @@ module Base
           end
 
           private
+
+          def render_new_failure
+            render inertia: "base/org/identity/telephones/registrations/new",
+                   props: new_page_props,
+                   status: :unprocessable_content
+          end
+
+          def render_edit_failure
+            render inertia: "base/org/identity/telephones/registrations/edit",
+                   props: edit_page_props,
+                   status: :unprocessable_content
+          end
+
+          def new_page_props
+            {
+              title: t("sign.org.settings.telephone.new.title"),
+              form: {
+                action: base_org_identity_telephones_registration_path,
+                scope: "staff_telephone",
+                number_label: t("activerecord.attributes.staff_telephone.number"),
+                number_placeholder: "+819012345678",
+                submit: t("actions.submit"),
+                turnstile: turnstile_stealth_props,
+              },
+              cancel_link: {
+                label: t("actions.cancel"),
+                href: base_org_identity_telephones_path(ri: params[:ri]),
+              },
+              error_messages: @staff_telephone.errors.full_messages,
+            }
+          end
+
+          def edit_page_props
+            {
+              title: t("sign.app.registration.telephone.edit.page_title"),
+              description: t("sign.app.registration.telephone.create.verification_code_sent"),
+              delivery_help: t("sign.app.registration.telephone.edit.delivery_help"),
+              form: {
+                action: base_org_identity_telephones_registration_path,
+                scope: "staff_telephone",
+                code_label: t("sign.app.registration.telephone.edit.code_label"),
+                code_placeholder: t("sign.app.registration.telephone.edit.code_placeholder"),
+                submit: t("sign.app.registration.telephone.edit.submit"),
+                turnstile: turnstile_stealth_props,
+              },
+              cancel_link: {
+                label: t("actions.cancel"),
+                href: base_org_identity_telephones_path(ri: params[:ri]),
+              },
+              error_messages: @staff_telephone.errors.full_messages,
+            }
+          end
 
           def authorize_telephone_registration!
             authorize!(OperatorTelephone, to: :create?)
@@ -121,7 +192,7 @@ module Base
                 new_base_org_identity_telephones_registration_path,
               )
             else
-              render :edit, status: :unprocessable_content
+              render_edit_failure
             end
           end
 

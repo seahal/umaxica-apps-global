@@ -281,7 +281,7 @@ bundle exec rails db:migrate
 bundle exec rails test
 bundle exec rubocop
 bundle exec erb_lint .
-vp check
+pnpm check
 # Confirm no stale references remain:
 grep -rn "Accountably\|CatTag\|ConsumeOnceToken\|HealthsController\|colortheme" \
   app/ lib/ test/ config/routes/

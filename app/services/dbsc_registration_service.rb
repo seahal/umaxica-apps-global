@@ -22,7 +22,9 @@ class DbscRegistrationService < ApplicationService
     jwk = DbscRecordAdapter.normalize_public_key(header["jwk"])
     return failure("missing_public_key") if jwk.blank?
 
-    verify_key = JWT::JWK.import(jwk).public_key
+    # The JWK arrives in the client's proof header, so the key-type contract is
+    # enforced here rather than trusting whatever the client offers.
+    verify_key = DbscRecordAdapter.verification_key_from_jwk(jwk, source: "registration JWK")
     signature = proof_validator.verify_signature(verify_key, header["alg"])
     return failure("invalid_proof", message: signature.message) unless signature.ok
 
@@ -38,6 +40,8 @@ class DbscRegistrationService < ApplicationService
     end
 
     { ok: true, session_id: session_id, record: record }
+  rescue DbscRecordAdapter::PublicKeyError => e
+    failure("invalid_public_key", message: e.message)
   rescue JWT::JWKError, JSON::ParserError, ArgumentError => e
     failure("invalid_proof", message: e.message)
   end

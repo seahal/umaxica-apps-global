@@ -352,7 +352,7 @@ class EmailTest < ActiveSupport::TestCase
 
   test "otp_active? returns true when OTP is not expired and not locked" do
     email = create_email(address: "otp9@example.com", confirm_policy: true)
-    email.update!(otp_expires_at: 1.hour.from_now, locked_at: "-infinity") # Use sentinel
+    email.update!(otp_expires_at: 1.hour.from_now, locked_at: -Float::INFINITY) # Use sentinel
 
     assert_predicate email, :otp_active?
   end
@@ -434,7 +434,7 @@ class EmailTest < ActiveSupport::TestCase
     assert_equal 0, email.otp_cooldown_remaining
 
     # Handles sentinel -infinity
-    email.update!(otp_last_sent_at: "-infinity")
+    email.update!(otp_last_sent_at: -Float::INFINITY)
 
     assert_not email.otp_cooldown_active?
   end
@@ -450,7 +450,7 @@ class EmailTest < ActiveSupport::TestCase
 
     assert_not email.reregistration_window_active?
 
-    email.update!(otp_last_sent_at: "-infinity")
+    email.update!(otp_last_sent_at: -Float::INFINITY)
 
     assert_not email.reregistration_window_active?
   end

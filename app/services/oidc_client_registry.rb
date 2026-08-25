@@ -45,20 +45,25 @@ module OidcClientRegistry
     return nil unless config
 
     registered_auth_method = config[:token_endpoint_auth_method]
-    redirect_uris_by_realm = redirect_uris_by_realm_for(config)
+    # A realm may be configured from several ENV keys that resolve to the same host (the public and
+    # private auth origins are identical outside production), so collapse repeats here rather than
+    # letting every consumer see the same URI twice.
+    redirect_uris_by_realm = redirect_uris_by_realm_for(config).transform_values(&:uniq)
+    all_redirect_uris = redirect_uris_by_realm.values.flatten
+    all_redirect_uris.uniq!
 
     VisitorAccount.new(
       client_id: client_id.to_s,
       client_secret: resolve_secret_credential(client_id.to_s),
-      redirect_uris: redirect_uris_by_realm.values.flatten,
+      redirect_uris: all_redirect_uris,
       redirect_uris_by_realm: redirect_uris_by_realm,
-      post_logout_redirect_uris: config[:post_logout_redirect_uris] || [],
-      backchannel_logout_uris: config[:backchannel_logout_uris] || [],
+      post_logout_redirect_uris: (config[:post_logout_redirect_uris] || []).uniq,
+      backchannel_logout_uris: (config[:backchannel_logout_uris] || []).uniq,
       backchannel_logout_session_required: config.fetch(:backchannel_logout_session_required, false),
       aud: config[:aud],
       resource_type: config[:resource_type],
       name: config[:name],
-      domains: domains_from_redirect_uris(redirect_uris_by_realm.values.flatten),
+      domains: domains_from_redirect_uris(all_redirect_uris),
       allowed_scopes: normalize_allowed_scopes(config.fetch(:allowed_scopes, DEFAULT_ALLOWED_SCOPES)),
       registered_token_endpoint_auth_method: registered_auth_method,
       metadata_token_endpoint_auth_method: registered_auth_method || metadata_auth_method(client_id.to_s),
@@ -151,11 +156,14 @@ module OidcClientRegistry
   def audiences_for_resource_type(resource_type)
     normalized_resource_type = normalize_resource_type(resource_type)
 
-    clients.values.filter_map do |config|
-      next unless normalize_resource_type(config[:resource_type]) == normalized_resource_type
+    result =
+      clients.values.filter_map do |config|
+        next unless normalize_resource_type(config[:resource_type]) == normalized_resource_type
 
-      config[:aud]
-    end.uniq
+        config[:aud]
+      end
+    result.uniq!
+    result
   end
 
   def normalize_allowed_scopes(allowed_scopes)
@@ -192,7 +200,8 @@ module OidcClientRegistry
       ).map { |name| [name, hosts.public_send(name).to_s] }
     env_signature =
       %w(
-        PUBLIC_AUTH_SERVICE_URL PRIVATE_AUTH_STAFF_URL PRIVATE_AUTH_CORPORATE_URL
+        PUBLIC_AUTH_SERVICE_URL PUBLIC_AUTH_STAFF_URL PUBLIC_AUTH_CORPORATE_URL
+        PRIVATE_AUTH_SERVICE_URL PRIVATE_AUTH_STAFF_URL PRIVATE_AUTH_CORPORATE_URL
         BASE_SERVICE_URL BASE_STAFF_URL BASE_CORPORATE_URL
         SIDE_SERVICE_URL SIDE_STAFF_URL SIDE_CORPORATE_URL
         CORE_SERVICE_URL CORE_STAFF_URL CORE_CORPORATE_URL
@@ -216,7 +225,9 @@ module OidcClientRegistry
   end
 
   def domains_from_redirect_uris(redirect_uris)
-    redirect_uris.filter_map { |uri| URI.parse(uri).host.presence }.uniq
+    result = redirect_uris.filter_map { |uri| URI.parse(uri).host.presence }
+    result.uniq!
+    result
   rescue URI::InvalidURIError
     []
   end

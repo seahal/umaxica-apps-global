@@ -5,6 +5,8 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class RetentionPurgeJobTest < ActiveJob::TestCase
+  teardown { Flipper.disable(RetentionPurgeJob::FEATURE_NAME) }
+
   test "anonymizes account records where purged_at is in the past" do
     user_to_purge = Client.create!(public_id: "purge_#{SecureRandom.uuid}".chars.first(16).join, status_id: ClientStatus::ACTIVE)
     user_to_keep = Client.create!(public_id: "keep_#{SecureRandom.uuid}".chars.first(16).join, status_id: ClientStatus::ACTIVE)
@@ -162,5 +164,101 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
     assert_empty missing,
                  "Models include Retainable but are absent from RetentionPurgeJob::RETAINABLE_MODELS -- " \
                  "rows in these tables will never be physically purged: #{missing.map(&:name).sort.join(", ")}"
+  end
+
+  test "purge skips a client blocked by an in-force principal_hard_delete_blocked Principal Effect" do
+    client = Client.create!(public_id: "block_#{SecureRandom.uuid}".chars.first(16).join, status_id: ClientStatus::ACTIVE)
+    operator = operators(:one)
+    client.update_columns(discarded_at: 1.hour.ago, purged_at: 1.hour.ago)
+
+    the_case = AppEnforcementCase.new(
+      kind: "permanent_ban",
+      duration_mode: "permanent",
+      visibility: "visible",
+      release_mode: "break_glass_only",
+      effective_at: Time.current,
+      reason_code: "abuse",
+      principal_public_id: client.public_id,
+      applied_by_operator_public_id: operator.public_id,
+    )
+    the_case.build_principal_effect(
+      principal_public_id: client.public_id,
+      principal_hard_delete_blocked: true,
+      effective_at: Time.current,
+    )
+    the_case.apply!
+
+    assert_no_difference -> { Client.count } do
+      RetentionPurgeJob.perform_now
+    end
+
+    assert Client.exists?(client.id)
+    assert_nil client.reload.terminated_at
+  end
+
+  test "purge excludes an operator blocked by an in-force withdrawal_purge_blocked Principal Effect from the batch delete" do
+    blocked_operator = Operator.create!
+    applying_operator = operators(:one)
+    blocked_operator.update_columns(discarded_at: 1.hour.ago, purged_at: 1.hour.ago)
+
+    the_case = OrgEnforcementCase.new(
+      kind: "permanent_ban",
+      duration_mode: "permanent",
+      visibility: "visible",
+      release_mode: "break_glass_only",
+      effective_at: Time.current,
+      reason_code: "abuse",
+      principal_public_id: blocked_operator.public_id,
+      applied_by_operator_public_id: applying_operator.public_id,
+      approved_by_operator_public_id: operators(:two).public_id,
+    )
+    the_case.build_principal_effect(
+      principal_public_id: blocked_operator.public_id,
+      withdrawal_purge_blocked: true,
+      effective_at: Time.current,
+    )
+    the_case.apply!
+
+    assert_no_difference -> { Operator.count } do
+      RetentionPurgeJob.perform_now
+    end
+
+    assert Operator.exists?(blocked_operator.id)
+  end
+
+  # The kill switch is operational, not a retention rule: a suspended run must
+  # leave every due row exactly as it found it, finish without raising (a raise
+  # would requeue deliberately paused work), and stay catch-up safe so the next
+  # unsuspended run completes the deletion.
+  test "a suspended purge deletes nothing and is not an error" do
+    Flipper.enable(RetentionPurgeJob::FEATURE_NAME)
+    user = Client.create!(public_id: "suser_#{SecureRandom.uuid}".chars.first(16).join, status_id: ClientStatus::ACTIVE)
+    operator_due = Operator.create!
+    user.update_columns(discarded_at: 1.hour.ago, purged_at: 1.hour.ago)
+    operator_due.update_columns(discarded_at: 1.hour.ago, purged_at: 1.hour.ago)
+
+    assert_nothing_raised do
+      assert_no_difference -> { Operator.count } do
+        RetentionPurgeJob.perform_now
+      end
+    end
+
+    assert Operator.exists?(operator_due.id)
+    assert_nil user.reload.terminated_at
+  end
+
+  test "the next unsuspended run catches up on work skipped while suspended" do
+    operator_due = Operator.create!
+    operator_due.update_columns(discarded_at: 1.hour.ago, purged_at: 1.hour.ago)
+
+    Flipper.enable(RetentionPurgeJob::FEATURE_NAME)
+    RetentionPurgeJob.perform_now
+
+    assert Operator.exists?(operator_due.id)
+
+    Flipper.disable(RetentionPurgeJob::FEATURE_NAME)
+    RetentionPurgeJob.perform_now
+
+    assert_not Operator.exists?(operator_due.id)
   end
 end

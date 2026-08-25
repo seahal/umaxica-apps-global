@@ -1,27 +1,21 @@
 ---
 name: security-and-hardening
 description:
-  Hardens code against vulnerabilities. Use when handling user input, authentication, data storage,
-  or external integrations. Use when building any feature that accepts untrusted data, manages user
-  sessions, or interacts with third-party services.
+  Hardens web application code against the OWASP Top 10 through threat modeling, input validation,
+  and least privilege. Use when handling user input, implementing authentication or authorization,
+  storing or transmitting sensitive data, adding file uploads or webhooks or callbacks, integrating
+  external APIs, or building features that call an LLM.
 ---
 
 # Security and Hardening
 
-## Overview
+Security is a constraint on every line that touches user data, authentication, or external systems,
+not a phase that follows them. Treat external input as hostile and every authorization check as
+mandatory.
 
-Security-first development practices for web applications. Treat every external input as hostile,
-every secret as sacred, and every authorization check as mandatory. Security isn't a phase — it's a
-constraint on every line of code that touches user data, authentication, or external systems.
-
-## When to Use
-
-- Building anything that accepts user input
-- Implementing authentication or authorization
-- Storing or transmitting sensitive data
-- Integrating with external APIs or services
-- Adding file uploads, webhooks, or callbacks
-- Handling payment or PII data
+**Detailed checklists:** [references/security-checklist.md](references/security-checklist.md) —
+OWASP Top 10 quick reference, pre-commit verification, the full review checklist, and leaked-secret
+response.
 
 ## Process: Threat Model First
 
@@ -85,8 +79,8 @@ If you can't name the trust boundaries for a feature, you're not ready to secure
 
 ## OWASP Top 10 Prevention Patterns
 
-These are prevention patterns, not a ranking. For the 2021 ordering, see the quick-reference table
-in `references/security-checklist.md`.
+These are prevention patterns, not a ranking. For the category ordering, see the quick-reference
+table in [references/security-checklist.md](references/security-checklist.md).
 
 ### Injection (SQL, NoSQL, OS Command)
 
@@ -377,16 +371,10 @@ app.use(
   *.key
 ```
 
-**Always check before committing:**
-
-```bash
-# Check for accidentally staged secrets
-git diff --cached | grep -i "password\|secret\|api_key\|token"
-```
-
 **If a secret is ever committed, rotate it.** Deleting the line or rewriting history is not enough —
-assume it's compromised the moment it reaches a remote. Revoke and reissue the key first, then purge
-it from history.
+assume it is compromised the moment it reaches a remote. Revoke and reissue the key first, then
+purge it from history. For the pre-commit scan and the full response sequence, see
+[references/security-checklist.md](references/security-checklist.md).
 
 ## Securing AI / LLM Features
 
@@ -426,71 +414,6 @@ try {
 await runAllowlistedAction(intent.action, intent.params);
 container.textContent = await llm.reply(userMessage);
 ```
-
-## Security Review Checklist
-
-```markdown
-### Authentication
-
-- [ ] Passwords hashed with bcrypt/scrypt/argon2 (salt rounds ≥ 12)
-- [ ] Session tokens are httpOnly, secure, sameSite
-- [ ] Login has rate limiting
-- [ ] Password reset tokens expire
-
-### Authorization
-
-- [ ] Every endpoint checks user permissions
-- [ ] Users can only access their own resources
-- [ ] Admin actions require admin role verification
-
-### Input
-
-- [ ] All user input validated at the boundary
-- [ ] SQL queries are parameterized
-- [ ] HTML output is encoded/escaped
-- [ ] Server-side URL fetches are allowlisted (no SSRF to internal services)
-
-### Data
-
-- [ ] No secrets in code or version control
-- [ ] Sensitive fields excluded from API responses
-- [ ] PII encrypted at rest (if applicable)
-
-### Infrastructure
-
-- [ ] Security headers configured (CSP, HSTS, etc.)
-- [ ] CORS restricted to known origins
-- [ ] Dependencies audited for vulnerabilities
-- [ ] Error messages don't expose internals
-
-### Supply Chain
-
-- [ ] Lockfile committed; CI installs with `npm ci`
-- [ ] New dependencies reviewed (maintenance, downloads, postinstall scripts)
-
-### AI / LLM (if used)
-
-- [ ] Model output treated as untrusted (no eval/SQL/innerHTML/shell)
-- [ ] Secrets and other users' data kept out of prompts
-- [ ] Tool/agent permissions scoped; destructive actions require confirmation
-```
-
-## See Also
-
-For detailed security checklists and pre-commit verification steps, see
-`references/security-checklist.md`.
-
-## Common Rationalizations
-
-| Rationalization                                     | Reality                                                                                                  |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| "This is an internal tool, security doesn't matter" | Internal tools get compromised. Attackers target the weakest link.                                       |
-| "We'll add security later"                          | Security retrofitting is 10x harder than building it in. Add it now.                                     |
-| "No one would try to exploit this"                  | Automated scanners will find it. Security by obscurity is not security.                                  |
-| "The framework handles security"                    | Frameworks provide tools, not guarantees. You still need to use them correctly.                          |
-| "It's just a prototype"                             | Prototypes become production. Security habits from day one.                                              |
-| "Threat modeling is overkill here"                  | Five minutes of "how would I attack this?" prevents the design flaws no control can patch later.         |
-| "It's just LLM output, it's only text"              | That "text" can be a SQL statement, a script tag, or a shell command. Treat it like any untrusted input. |
 
 ## Red Flags
 

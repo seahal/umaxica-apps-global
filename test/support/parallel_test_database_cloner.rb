@@ -136,10 +136,13 @@ module ParallelTestDatabaseCloner
 
     errors = Queue.new
     Array.new(thread_count) {
-      Thread.new do
+      Thread.new do # rubocop:disable ThreadSafety/NewThread
         connection = connect(config, ENV.fetch("POSTGRESQL_DATABASE", "db"))
         begin
-          while (group = queue.pop)
+          loop do
+            group = queue.pop
+            break if group.nil?
+
             group.each { |task| rebuild_clone(connection, **task) }
           end
         rescue => e
@@ -183,7 +186,17 @@ module ParallelTestDatabaseCloner
 
   def schema_sha(config)
     schema_path = ActiveRecord::Tasks::DatabaseTasks.schema_dump_path(config, config.schema_format)
-    File.exist?(schema_path) ? Digest::SHA1.file(schema_path).hexdigest : nil
+    return nil unless File.exist?(schema_path)
+
+    digest = Digest::SHA1.new
+    digest << File.binread(schema_path)
+    Array(config.migrations_paths).sort.each do |path|
+      Dir.glob(File.join(path, "*.rb")).each do |migration_path|
+        digest << migration_path
+        digest << File.binread(migration_path)
+      end
+    end
+    digest.hexdigest
   end
 
   def connect(config, database)

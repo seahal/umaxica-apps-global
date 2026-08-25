@@ -55,8 +55,23 @@ module SignUpExplicitStepControllerSupport
 
   def render_step_gate_failure(gate)
     return redirect_to_sign_in_sequence_after_completed_sign_up if completed_sign_up_handoff_request?(gate)
+    return restart_sign_up_without_ticket if restartable_missing_ticket_request?(gate)
 
     render plain: gate.errors.to_sentence.presence || "invalid_sign_up_step", status: :unprocessable_content
+  end
+
+  # A reload or resubmit after the sign-up ticket is gone (expired, consumed, or its session
+  # dropped) is a normal browser action, not a client error. Send the visitor back to the
+  # sign-up entry point instead of leaving them on a dead-end body they cannot act on.
+  def restartable_missing_ticket_request?(gate)
+    gate.errors.include?("ticket is required") && !request.format.json?
+  end
+
+  def restart_sign_up_without_ticket
+    return render_sign_up_age_restricted if sign_up_session_state.age_restricted?
+
+    sign_up_session_state.clear_all!
+    redirect_to(sign_up_restart_path, status: :see_other)
   end
 
   def completed_sign_up_handoff_request?(gate)

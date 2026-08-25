@@ -9,20 +9,19 @@ services:
         DOCKER_UID: "${UID:-1000}"
         DOCKER_GID: "${GID:-1000}"
     userns_mode: keep-id
-    # `userns_mode: keep-id` already maps the host UID to the in-container
-    # UID baked by the Dockerfile. Specifying `user:` on top double-maps and
-    # breaks bind-mount ownership under rootless podman. Clear the inherited
-    # value so the image's USER (provisioned at build time from DOCKER_UID/
-    # DOCKER_GID) wins.
+    # Tailscale is not in use right now, so there is no service that needs a
+    # real root control-plane PID 1 inside the container. `keep-id` maps the
+    # host user directly to the workload UID/GID baked into the image
+    # (DOCKER_UID/DOCKER_GID above), so bind-mounted repo files keep host
+    # ownership. Clear the base compose file's `user: root`: rootless
+    # Podman's keep-id handling silently overrides an explicit `user:`
+    # anyway, and core-entrypoint now runs the workload directly (no chown,
+    # no setpriv drop) when it's already started as the keep-id-mapped
+    # workload UID. Re-enabling tailscale-core-supervisor (compose.custom.yaml)
+    # requires reverting both of these, since that path needs real root.
     user: !reset null
-    # Reset the base tmpfs list and keep only the entries that are safe in
-    # devcontainer: workspace/tmp and workspace/log caused lost state and
-    # sporadic write failures so those fall back to the bind-mounted dirs.
-    # /tmp and tmp/pids stay on tmpfs so stale server.pid never survives a
-    # container restart ("A server is already running" error).
-    tmpfs: !reset
-      - /tmp
-      - /home/global/workspace/tmp/pids
+    tty: true
+    stdin_open: true
     # Workspace bind mount lives in the override. `:Z` adds an SELinux private
     # label on Fedora/RHEL hosts; harmless on non-SELinux hosts (Arch, Ubuntu).
     # Relative paths in compose files resolve against the project directory
@@ -38,30 +37,6 @@ services:
       # workspace paths in Compose long syntax so Gate C can inspect the
       # effective mount flags. The host SSH directory is intentionally absent:
       # inbound Remote Codex does not need host private keys.
-      - type: bind
-        source: "${HOME:?HOME must be set}/.config/git"
-        target: "/home/global/.config/git"
-        read_only: true
-        bind:
-          selinux: z
-      - type: bind
-        source: "${HOME:?HOME must be set}/.gitconfig"
-        target: "/home/global/.gitconfig"
-        read_only: true
-        bind:
-          selinux: z
-      - type: bind
-        source: "${HOME:?HOME must be set}/.config/opencode"
-        target: "/home/global/.config/opencode"
-        read_only: true
-        bind:
-          selinux: z
-      - type: bind
-        source: "${HOME:?HOME must be set}/.config/gh"
-        target: "/home/global/.config/gh"
-        read_only: true
-        bind:
-          selinux: z
       - type: bind
         source: "/etc/timezone"
         target: "/etc/timezone"
@@ -85,16 +60,14 @@ services:
         bind:
           selinux: Z
     ports:
-      - "3000:3000"
-      - "3036:3036"
+      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3036:3036"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
       - TMPDIR=/home/global/workspace/tmp
       - DEVCONTAINER=1
       - RUBY_DEBUG_OPEN=false
-      - VITE_RUBY_HOST=0.0.0.0
-      - VITE_RUBY_PORT=3036
   rustfs:
     ports:
       - "127.0.0.1:${RUSTFS_API_HOST_PORT:-9000}:9000"
@@ -105,21 +78,13 @@ services:
     container_name: global-devcontainer-replica
   valkey:
     container_name: global-devcontainer-valkey
-  kafka:
-    ports:
-      - "9092:9092"
+  # kafka needs no devcontainer override: it publishes no host port and its
+  # container name is not referenced by tooling.
   loki:
     container_name: global-devcontainer-loki
   tempo:
     container_name: global-devcontainer-tempo
-    ports:
-      - "3200:3200"
-      - "4317:4317"
-      - "4318:4318"
-      - "9411:9411"
   grafana:
     container_name: global-devcontainer-grafana
-  # pgadmin, tinyrdm, and cloudflare-tunnel are defined
-  # entirely in compose.custom.yaml (repo root), not here -- see
-  # docs/operations/remote-codex-over-tailscale.md and
+  # cloudflare-tunnel is defined in compose.custom.yaml (repo root); see
   # docs/operations/cloudflare-private-origin.md.

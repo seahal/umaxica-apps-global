@@ -55,6 +55,22 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Org,
     },
     {
+      host: ENV.fetch("PRIVATE_BASE_NETWORK_URL", "base.net.localhost"),
+      controller: "base/net/healths",
+      liveness_controller: "base/net/health/livenesses",
+      readiness_controller: "base/net/health/readinesses",
+      startup_controller: "base/net/health/startups",
+      profile: Health::Profiles::App,
+    },
+    {
+      host: ENV.fetch("PRIVATE_BASE_DEVELOPER_URL", "base.dev.localhost"),
+      controller: "base/dev/healths",
+      liveness_controller: "base/dev/health/livenesses",
+      readiness_controller: "base/dev/health/readinesses",
+      startup_controller: "base/dev/health/startups",
+      profile: Health::Profiles::App,
+    },
+    {
       host: ENV.fetch("PUBLIC_PALM_SERVICE_URL"),
       controller: "palm/app/healths",
       liveness_controller: "palm/app/health/livenesses",
@@ -217,6 +233,46 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
         assert_same surface[:profile], controller_class.const_get(:HEALTH_PROFILE, false)
       end
+    end
+  end
+
+  # One Rails process answers on every surface hostname, and the probe bodies were otherwise
+  # identical, so a caller that sent the wrong `Host` still got a 200 and could not tell which
+  # surface produced it. The namespace is what makes that detectable.
+  test "every probe names the surface that answered" do
+    namespaces =
+      SURFACES.to_h do |surface|
+        host!(surface[:host])
+
+        get("/health/liveness")
+
+        assert_response :success
+
+        expected = surface[:liveness_controller].split("/").first(2).join("/")
+
+        assert_equal expected, response.parsed_body["namespace"],
+                     "#{surface[:host]} answered from #{surface[:liveness_controller]} but named " \
+                     "#{response.parsed_body["namespace"].inspect}"
+
+        [surface[:host], expected]
+      end
+
+    assert_equal namespaces.values.uniq.length, namespaces.values.length,
+                 "two hostnames report the same namespace, so a misdirected request between them " \
+                 "would still look correct: #{namespaces.inspect}"
+  end
+
+  test "readiness and startup name the surface that answered too" do
+    surface = SURFACES.first
+    host! surface[:host]
+
+    {
+      "/health/readiness" => surface[:readiness_controller],
+      "/health/startup" => surface[:startup_controller],
+    }.each do |path, controller|
+      get path
+
+      assert_equal controller.split("/").first(2).join("/"), response.parsed_body["namespace"]
     end
   end
 

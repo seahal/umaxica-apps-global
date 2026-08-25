@@ -1,26 +1,17 @@
 ---
 name: api-and-interface-design
 description:
-  Guides stable API and interface design. Use when designing APIs, module boundaries, or any public
-  interface. Use when creating REST or GraphQL endpoints, defining type contracts between modules,
-  or establishing boundaries between frontend and backend.
+  Designs stable interfaces that are hard to misuse. Use when creating REST or GraphQL endpoints,
+  defining contracts between modules or teams, designing component prop interfaces, shaping a
+  database schema that will drive an API, or changing an existing public interface.
 ---
 
 # API and Interface Design
 
-## Overview
-
-Design stable, well-documented interfaces that are hard to misuse. Good interfaces make the right
-thing easy and the wrong thing hard. This applies to REST APIs, GraphQL schemas, module boundaries,
-component props, and any surface where one piece of code talks to another.
-
-## When to Use
-
-- Designing new API endpoints
-- Defining module boundaries or contracts between teams
-- Creating component prop interfaces
-- Establishing database schema that informs API shape
-- Changing existing public interfaces
+A good interface makes the right thing easy and the wrong thing hard. This applies to REST APIs,
+GraphQL schemas, module boundaries, component props, and any surface where one piece of code talks
+to another. Once a behavior is observable, someone depends on it, so treat every public behavior as
+a commitment.
 
 ## Core Principles
 
@@ -278,18 +269,6 @@ type UserId = string & { readonly __brand: 'UserId' };
 // Prevents accidentally passing a UserId where a TaskId is expected
 function getTask(id: TaskId): Promise<Task> { ... }
 ```
-
-## Common Rationalizations
-
-| Rationalization                            | Reality                                                                                                          |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| "We'll document the API later"             | The types ARE the documentation. Define them first.                                                              |
-| "We don't need pagination for now"         | You will the moment someone has 100+ items. Add it from the start.                                               |
-| "PATCH is complicated, let's just use PUT" | PUT requires the full object every time. PATCH is what clients actually want.                                    |
-| "We'll version the API when we need to"    | Breaking changes without versioning break consumers. Design for extension from the start.                        |
-| "Nobody uses that undocumented behavior"   | Hyrum's Law: if it's observable, somebody depends on it. Treat every public behavior as a commitment.            |
-| "We can just maintain two versions"        | Multiple versions multiply maintenance cost and create diamond dependency problems. Prefer the One-Version Rule. |
-| "Internal APIs don't need contracts"       | Internal consumers are still consumers. Contracts prevent coupling and enable parallel work.                     |
 
 ## Red Flags
 

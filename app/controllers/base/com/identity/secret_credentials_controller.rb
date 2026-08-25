@@ -5,6 +5,8 @@ module Base
   module Com
     module Identity
       class SecretCredentialsController < ::Base::Com::ApplicationController
+        include ::SurfaceInertiaPage
+        include ::TurnstilePageProps
         include ::VerificationVisitor
 
         include ::SignSettingsSecretCredentialTurnstileGuard
@@ -22,11 +24,14 @@ module Base
         before_action :verify_secret_credential_turnstile!, only: :create
 
         def index
+          authorize!(VisitorSecretCredential, to: :index?)
           @secret_credentials = current_visitor.visitor_secret_credentials.order(created_at: :asc)
+          render inertia: true, props: index_page_props
         end
 
         def show
           authorize!(@secret_credential)
+          render inertia: true, props: show_page_props
         end
 
         def new
@@ -39,10 +44,12 @@ module Base
           @raw_secret_credential = VisitorSecretCredential.generate_raw_secret_credential
           session[:visitor_secret_credential_raw] = @raw_secret_credential
           @secret_credential.name = @raw_secret_credential.first(4)
+          render inertia: true, props: new_page_props
         end
 
         def edit
           authorize!(@secret_credential)
+          render inertia: true, props: edit_page_props
         end
 
         def create
@@ -69,7 +76,7 @@ module Base
         rescue ActiveRecord::RecordInvalid => e
           @secret_credential ||= e.record
           @raw_secret_credential ||= raw_secret_credential
-          render :new, status: :unprocessable_content
+          render_new_failure
         end
 
         def update
@@ -115,6 +122,128 @@ module Base
         end
 
         private
+
+        # The failed create stays on the same page and the same 422 the ERB flow answered with.
+        def render_new_failure
+          render inertia: "base/com/identity/secret_credentials/new",
+                 props: new_page_props,
+                 status: :unprocessable_content
+        end
+
+        def index_page_props
+          {
+            title: "Secrets",
+            back_link: { label: "Back", href: base_com_identity_path(ri: params[:ri]) },
+            new_link: { label: "New", href: new_base_com_identity_secret_path(ri: params[:ri]) },
+            columns: { name: "Name", created: "Created", last_used: "Last used", actions: "Actions" },
+            destroy_confirm: t("messages.confirm_destroy"),
+            destroy_label: t("actions.destroy"),
+            turnstile: turnstile_stealth_props,
+            credentials: @secret_credentials.map { |credential| serialize_credential_row(credential) },
+          }
+        end
+
+        def serialize_credential_row(credential)
+          {
+            public_id: credential.public_id,
+            name: credential.name,
+            created_at: l(credential.created_at, format: :short),
+            last_used_at: credential.last_used_at ? l(credential.last_used_at, format: :short) : "-",
+            show_link: {
+              label: "Show",
+              href: base_com_identity_secret_path(credential.public_id, ri: params[:ri]),
+            },
+            edit_link: {
+              label: t("actions.edit"),
+              href: edit_base_com_identity_secret_path(credential.public_id, ri: params[:ri]),
+            },
+            destroy_url: base_com_identity_secret_path(credential.public_id, ri: params[:ri]),
+          }
+        end
+
+        def show_page_props
+          {
+            title: "Secret",
+            name: @secret_credential.name,
+            created_term: "Created",
+            created_at: l(@secret_credential.created_at, format: :long),
+            last_used_term: "Last used",
+            last_used_at: if @secret_credential.last_used_at
+                            l(@secret_credential.last_used_at, format: :long)
+                          else
+                            t("defaults.never")
+                          end,
+            back_link: { label: "Back", href: base_com_identity_secrets_path(ri: params[:ri]) },
+            edit_link: {
+              label: t("actions.edit"),
+              href: edit_base_com_identity_secret_path(@secret_credential.public_id, ri: params[:ri]),
+            },
+          }
+        end
+
+        # The raw secret is shown exactly once, on this page, to the owner who just generated it.
+        # That is the same disclosure the ERB made; nothing else about it is persisted in props.
+        def new_page_props
+          {
+            title: t("sign.app.settings.secret_credentials.new.title"),
+            description: t("sign.app.settings.secret_credentials.new.description"),
+            errors: secret_credential_error_props,
+            form: {
+              url: base_com_identity_secrets_path(ri: params[:ri]),
+              method: "post",
+              scope: "visitor_secret_credential",
+              submit_label: t("actions.save"),
+            },
+            name_label: VisitorSecretCredential.human_attribute_name(:name),
+            name_value: @secret_credential.name.to_s,
+            enabled_label: t("views.sign.app.settings.secret_credentials.new.confirm_saved_label"),
+            enabled: false,
+            secret: {
+              label: "Secret",
+              value: @raw_secret_credential.to_s,
+              one_time_notice: t("views.sign.app.settings.secret_credentials.new.one_time_notice"),
+            },
+            cancel_link: { label: t("actions.cancel"), href: base_com_identity_secrets_path(ri: params[:ri]) },
+            turnstile: turnstile_stealth_props,
+          }
+        end
+
+        def edit_page_props
+          {
+            title: t("sign.app.settings.secret_credentials.edit.title"),
+            description: t("sign.app.settings.secret_credentials.edit.description"),
+            errors: secret_credential_error_props,
+            form: {
+              url: base_com_identity_secret_path(@secret_credential.public_id, ri: params[:ri]),
+              method: "patch",
+              scope: "visitor_secret_credential",
+              submit_label: t("actions.update"),
+            },
+            name_label: VisitorSecretCredential.human_attribute_name(:name),
+            name_value: @secret_credential.name.to_s,
+            enabled_label: VisitorSecretCredential.human_attribute_name(:enabled),
+            # `enabled` was never a column: the ERB checkbox mapped to the credential status, and
+            # `apply_secret_credential_update!` turns it back into that status on the way in.
+            enabled: @secret_credential.visitor_secret_credential_status_id ==
+              VisitorSecretCredentialStatus::ACTIVE,
+            cancel_link: { label: t("actions.cancel"), href: base_com_identity_secrets_path(ri: params[:ri]) },
+            turnstile: turnstile_stealth_props,
+          }
+        end
+
+        def secret_credential_error_props
+          messages = @secret_credential.errors.full_messages
+          return if messages.empty?
+
+          {
+            header: t(
+              "errors.template.header",
+              model: @secret_credential.model_name.human,
+              count: @secret_credential.errors.count,
+            ),
+            messages: messages,
+          }
+        end
 
         def set_secret_credential
           @secret_credential = current_visitor.visitor_secret_credentials.find_by!(public_id: params.expect(:id))

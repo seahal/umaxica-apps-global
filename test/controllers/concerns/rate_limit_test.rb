@@ -11,7 +11,7 @@ class RateLimitDummyController < ApplicationController
     to: 1,
     within: 1.minute,
     by: -> { request.remote_ip },
-    with: -> { render_rate_limited(rule_name: "dummy_ip", retry_after: 60) },
+    with: -> { render_rate_limited(retry_after: 60) },
     store: rate_limit_store,
     name: "dummy_ip",
     only: :index,
@@ -29,7 +29,7 @@ class RateLimitShortNameController < ApplicationController
     to: 1,
     within: 1.minute,
     by: -> { request.remote_ip },
-    with: -> { render_rate_limited(rule_name: "short", retry_after: 60) },
+    with: -> { render_rate_limited(retry_after: 60) },
     store: rate_limit_store,
     name: "short",
     only: :index,
@@ -38,7 +38,7 @@ class RateLimitShortNameController < ApplicationController
     to: 10,
     within: 1.minute,
     by: -> { request.remote_ip },
-    with: -> { render_rate_limited(rule_name: "long", retry_after: 60) },
+    with: -> { render_rate_limited(retry_after: 60) },
     store: rate_limit_store,
     name: "long",
     only: :index,
@@ -58,7 +58,7 @@ class RateLimitSharedScopeOneController < ApplicationController
     by: -> { request.remote_ip },
     scope: "shared_test_scope",
     name: "shared",
-    with: -> { render_rate_limited(rule_name: "shared_scope", retry_after: 60) },
+    with: -> { render_rate_limited(retry_after: 60) },
     store: rate_limit_store,
   )
 
@@ -76,7 +76,7 @@ class RateLimitSharedScopeTwoController < ApplicationController
     by: -> { request.remote_ip },
     scope: "shared_test_scope",
     name: "shared",
-    with: -> { render_rate_limited(rule_name: "shared_scope", retry_after: 60) },
+    with: -> { render_rate_limited(retry_after: 60) },
     store: rate_limit_store,
   )
 
@@ -96,7 +96,7 @@ class RateLimitTest < ActionDispatch::IntegrationTest
     clear_rate_limit_store
   end
 
-  test "rails rate limiter returns json 429 with layer headers and i18n message" do
+  test "rails rate limiter returns a 429 problem document with Retry-After and RateLimit" do
     with_routing do |set|
       set.draw { get "/test_rate_limit", to: "rate_limit_dummy#index" }
 
@@ -107,17 +107,35 @@ class RateLimitTest < ActionDispatch::IntegrationTest
       get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "application/json" }
 
       assert_response :too_many_requests
-      assert_equal "application/json; charset=utf-8", response.content_type
-      assert_equal "rails", response.headers["X-RateLimit-Layer"]
-      assert_equal "dummy_ip", response.headers["X-RateLimit-Rule"]
+      assert_equal "application/problem+json; charset=utf-8", response.content_type
       assert_equal "60", response.headers["Retry-After"]
+      assert_equal %("default";r=0;t=60), response.headers["RateLimit"]
 
       body = response.parsed_body
 
-      assert_equal "rate_limited", body["error"]
-      assert_equal "dummy_ip", body["rule"]
-      assert_equal I18n.t("errors.rate_limit.exceeded"), body["message"]
-      assert_equal 60, body["retry_after"]
+      assert_equal "urn:umaxica:problem:rate-limited", body.fetch("type")
+      assert_equal 429, body.fetch("status")
+      assert_equal I18n.t("errors.rate_limit.exceeded"), body.fetch("detail")
+      assert_predicate body.fetch("request_id"), :present?
+    end
+  end
+
+  # The rule that fired must not reach the client: it tells a caller which quota to avoid and how to
+  # reshape traffic around it. Operators read it from the notification asserted below instead.
+  test "the response discloses neither the rule that fired nor the enforcing layer" do
+    with_routing do |set|
+      set.draw { get "/test_rate_limit", to: "rate_limit_dummy#index" }
+
+      get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "application/json" }
+      get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "application/json" }
+
+      assert_response :too_many_requests
+      assert_nil response.headers["X-RateLimit-Rule"]
+      assert_nil response.headers["X-RateLimit-Layer"]
+      assert_not_includes response.body, "dummy_ip"
+      # RateLimit-Policy carries a quota and window that render_rate_limited does not receive.
+      # Omitting it is deliberate; a fabricated policy would misstate the limit.
+      assert_nil response.headers["RateLimit-Policy"]
     end
   end
 
@@ -164,7 +182,6 @@ class RateLimitTest < ActionDispatch::IntegrationTest
       get "/test_named", headers: { "Host" => "example.com" }
 
       assert_response :too_many_requests
-      assert_equal "short", response.headers["X-RateLimit-Rule"]
     end
   end
 
@@ -182,7 +199,6 @@ class RateLimitTest < ActionDispatch::IntegrationTest
       get "/test_scope_two", headers: { "Host" => "example.com" }
 
       assert_response :too_many_requests
-      assert_equal "shared_scope", response.headers["X-RateLimit-Rule"]
     end
   end
 

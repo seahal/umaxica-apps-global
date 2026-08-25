@@ -17,6 +17,7 @@ class PageTitlePresenceTest < ActiveSupport::TestCase
     /<%=?\s*title\s+/, # meta-tags gem helper
     /set_meta_tags.*title/,
     %r{<title[^>]*>},  # standalone full-page views that own their own <title> tag
+    /display_meta_tags/, # standalone full-page views rendering their title through meta-tags
   ].freeze
 
   # Files excluded from page_title requirement with reasons

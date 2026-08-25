@@ -4,6 +4,8 @@
 module Base
   module Org
     class AccountsController < Base::Org::ApplicationController
+      include ::SurfaceInertiaPage
+
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
 
@@ -12,11 +14,13 @@ module Base
       def index
         authorize!(current_operator, to: :show?)
         @accounts = switcher.available_accounts
+        render inertia: true, props: { title: "Account", body: "account" }
       end
 
       def show
         @account = find_account!
         authorize!(@account, to: :show?, with: AccountPolicy)
+        render inertia: true, props: { title: "Account", body: "account" }
       end
 
       private

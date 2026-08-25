@@ -1,27 +1,17 @@
 ---
 name: incremental-implementation
 description:
-  Delivers changes incrementally. Use when implementing any feature or change that touches more than
-  one file. Use when you're about to write a large amount of code at once, or when a task feels too
-  big to land in one step.
+  Delivers a change as thin vertical slices, each tested and committed before the next begins. Use
+  when implementing a feature or refactor that touches more than one file, when working from a task
+  breakdown, or before writing more than roughly 100 lines without running tests.
 ---
 
 # Incremental Implementation
 
-## Overview
+Each increment leaves the system working and testable. A bug in the first slice makes every later
+slice wrong, so each one is verified before the next begins.
 
-Build in thin vertical slices — implement one piece, test it, verify it, then expand. Avoid
-implementing an entire feature in one pass. Each increment should leave the system in a working,
-testable state. This is the execution discipline that makes large features manageable.
-
-## When to Use
-
-- Implementing any multi-file change
-- Building a new feature from a task breakdown
-- Refactoring existing code
-- Any time you're tempted to write more than ~100 lines before testing
-
-**When NOT to use:** Single-file, single-function changes where the scope is already minimal.
+**When NOT to use:** single-file, single-function changes whose scope is already minimal.
 
 ## The Increment Cycle
 
@@ -222,17 +212,6 @@ After each increment, verify:
 **Note:** Run each verification command after a change that could affect it. After a successful run,
 don't repeat the same command unless the code has changed since — re-running on unchanged code adds
 no information.
-
-## Common Rationalizations
-
-| Rationalization                                      | Reality                                                                                                                                                     |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "I'll test it all at the end"                        | Bugs compound. A bug in Slice 1 makes Slices 2-5 wrong. Test each slice.                                                                                    |
-| "It's faster to do it all at once"                   | It _feels_ faster until something breaks and you can't find which of 500 changed lines caused it.                                                           |
-| "These changes are too small to commit separately"   | Small commits are free. Large commits hide bugs and make rollbacks painful.                                                                                 |
-| "I'll add the feature flag later"                    | If the feature isn't complete, it shouldn't be user-visible. Add the flag now.                                                                              |
-| "This refactor is small enough to include"           | Refactors mixed with features make both harder to review and debug. Separate them.                                                                          |
-| "Let me run the build command again just to be sure" | After a successful run, repeating the same command adds nothing unless the code has changed since. Run it again after subsequent edits, not as reassurance. |
 
 ## Red Flags
 

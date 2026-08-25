@@ -5,6 +5,7 @@ module Base
   module App
     module Identity
       class EmailsController < BaseController
+        include ::SurfaceInertiaPage
         include CloudflareTurnstile
         include VerificationClient
 
@@ -15,28 +16,33 @@ module Base
         before_action :authorize_emails!, only: :index
 
         def index
-          @client_emails = current_client.client_emails
-          render "base/app/identity/emails/index"
+          render inertia: true, props: emails_index_props(current_client.client_emails)
         end
 
         def edit
           @user_email = current_client.client_emails.find_by!(public_id: params.expect(:id))
           authorize!(@user_email)
-          render "base/app/identity/emails/edit"
+          render inertia: true, props: email_edit_props(@user_email)
         end
 
         def update
           @user_email = current_client.client_emails.find_by!(public_id: params.expect(:id))
           authorize!(@user_email)
           unless cloudflare_turnstile_stealth_validation["success"]
-            @user_email.errors.add(:base, t("turnstile_error"))
-            return render("base/app/identity/emails/edit", status: :unprocessable_content)
+            return render(
+              inertia: "base/app/identity/emails/edit",
+              props: email_edit_props(@user_email, error: t("turnstile_error")),
+              status: :unprocessable_content,
+            )
           end
           if @user_email.update(email_preference_params)
             redirect_to(edit_base_app_identity_email_path(@user_email.public_id, ri: params[:ri]), status: :see_other)
           else
-            @user_email.errors.add(:base, t("sign.app.settings.email.update.failure"))
-            render("base/app/identity/emails/edit", status: :unprocessable_content)
+            render(
+              inertia: "base/app/identity/emails/edit",
+              props: email_edit_props(@user_email, error: t("sign.app.settings.email.update.failure")),
+              status: :unprocessable_content,
+            )
           end
         end
 
@@ -59,6 +65,75 @@ module Base
         def authorize_emails! = authorize!(ClientEmail, to: :index?)
 
         def verified_email?(email) = AuthMethodGuard::VERIFIED_EMAIL_STATUSES.include?(email.user_email_status_id)
+
+        def emails_index_props(emails)
+          {
+            title: "Emails",
+            empty_message: t("views.sign.app.settings.emails.index.empty"),
+            back_link: {
+              label: t("sign.app.settings.show.back"),
+              href: base_app_identity_path(ri: params[:ri]),
+            },
+            new_link: {
+              label: t("sign.app.settings.email.index.new_link"),
+              href: new_base_app_identity_emails_registration_path(ri: params[:ri]),
+            },
+            table_headings: {
+              address: t("activerecord.attributes.user_email.address"),
+              status: "Status",
+              actions: "Actions",
+            },
+            emails: emails.map { |email| serialize_email(email) },
+          }
+        end
+
+        def serialize_email(email)
+          {
+            public_id: email.public_id,
+            address: email.address,
+            status_label: verified_status?(email) ?
+              t("views.sign.app.settings.emails.index.verified") : t("views.sign.app.settings.emails.index.unverified"),
+            edit_link: {
+              label: t("sign.app.settings.email.index.edit"),
+              href: edit_base_app_identity_email_path(email.public_id, ri: params[:ri]),
+            },
+          }
+        end
+
+        def verified_status?(email)
+          [ClientEmailStatus::VERIFIED, ClientEmailStatus::VERIFIED_WITH_SIGN_UP].include?(email.user_email_status_id)
+        end
+
+        def email_edit_props(email, error: nil)
+          {
+            title: t("sign.app.settings.email.edit.title"),
+            address: email.address,
+            form: {
+              action: base_app_identity_email_path(email.public_id, ri: params[:ri]),
+              submit_label: t("sign.app.settings.email.edit.save"),
+              locked: email.subscription_preferences_locked?,
+              always_on_label: t("sign.app.settings.email.edit.always_on"),
+              always_on_description: t("sign.app.settings.email.edit.always_on_description"),
+              promotional: {
+                checked: email.promotional?,
+                label: t("sign.app.settings.email.edit.promotional_label"),
+                description: t("sign.app.settings.email.edit.promotional_description"),
+              },
+              notifiable: {
+                checked: email.notifiable?,
+                label: t("sign.app.settings.email.edit.notifiable_label"),
+                description: t("sign.app.settings.email.edit.notifiable_description"),
+              },
+            },
+            delete: {
+              label: t("sign.app.settings.email.index.delete"),
+              confirm: t("sign.app.settings.email.index.delete_confirm"),
+              url: base_app_identity_email_path(email.public_id, ri: params[:ri]),
+            },
+            cancel_link: { label: "Cancel", href: base_app_identity_emails_path },
+            error: error,
+          }
+        end
 
         def email_preference_params
           permitted_params = params.fetch(:user_email, {}).permit(:promotional, :notifiable)

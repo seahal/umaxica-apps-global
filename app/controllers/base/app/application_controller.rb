@@ -4,6 +4,7 @@
 module Base
   module App
     class ApplicationController < ActionController::Base
+      include ::FqdnAvailabilityGate
       include ::RateLimit
       include ::JumpRtReturnVerification
 
@@ -43,7 +44,8 @@ module Base
       rescue_from ActionController::InvalidCrossOriginRequest, with: :handle_csrf_failure
       rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error
       helper_method :current_actor, :current_account, :current_session_public_id, :current_session_restricted?,
-                    :signed_pt_param, :current_client, :logged_in?, :active_client?, :logged_in_client?
+                    :signed_pt_param, :current_client, :logged_in?, :active_client?, :logged_in_client?,
+                    :apple_only_credential?
 
       allow_browser versions: :modern
 
@@ -63,7 +65,7 @@ module Base
         scope: "base_app_default_web",
         name: "default_web",
         store: rate_limit_store,
-        with: -> { render_rate_limited(rule_name: "base_app_default_web", retry_after: 60) },
+        with: -> { render_rate_limited(retry_after: 60) },
       )
       before_action :set_current_context
       before_action :reset_flash
@@ -87,11 +89,11 @@ module Base
       before_action :set_current_observability
       prepend_around_action :with_actor_lifecycle
 
-      # Base app accepts browser POSTs only from its own Base host and the Auth authority.
+      # Base app accepts ordinary browser POSTs only from its own Base host.
+      # Cross-surface protocol endpoints declare their trusted origins locally.
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
                              ENV.fetch("PUBLIC_BASE_SERVICE_URL"),
-                             ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
                            ),
                            with: :exception
 
@@ -119,6 +121,41 @@ module Base
       end
 
       private
+
+      def apple_only_credential?
+        AppleOnlyCredentialStatus.call(current_client)
+      end
+
+      # The Inertia props for the "add another sign-in method" prompt, or nil when the actor already
+      # has another credential. Returning nil keeps the decision on the server: a page that is not
+      # given the prop cannot show the prompt.
+      def apple_only_credential_warning_props
+        return unless apple_only_credential?
+
+        {
+          heading: t("base.app.identity.credential_warning.heading"),
+          body: t("base.app.identity.credential_warning.body"),
+          items: [
+            {
+              label: t("base.app.identity.credential_warning.passkey"),
+              href: apple_only_credential_auth_url(:new_auth_app_settings_passkey_url),
+            },
+            {
+              label: t("base.app.identity.credential_warning.google"),
+              href: apple_only_credential_auth_url(:edit_auth_app_settings_google_url),
+            },
+          ],
+        }
+      end
+
+      def apple_only_credential_auth_url(route_helper)
+        public_send(
+          route_helper,
+          ri: params[:ri],
+          host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+          protocol: "https",
+        )
+      end
 
       def actor_verification_path(**args)
         base_app_verification_path(**args)

@@ -198,6 +198,20 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     controller.define_singleton_method(:edit_auth_com_verification_email_path) { |nonce, **kwargs|
       "/verification/emails/#{nonce}/edit?#{kwargs.to_query}"
     }
+    controller.define_singleton_method(:auth_com_verification_emails_path) { |**kwargs|
+      "/verification/emails?#{kwargs.to_query}"
+    }
+    controller.define_singleton_method(:form_authenticity_token) { "test-token" }
+    controller.define_singleton_method(:auth_com_verification_path) { |params = {}| "/verification?#{params.to_query}" }
+    controller.define_singleton_method(:auth_com_verification_email_path) { |id, **kwargs|
+      "/verification/emails/#{id}?#{kwargs.to_query}"
+    }
+    controller.define_singleton_method(:auth_com_verification_email_redelivery_path) { |id, **kwargs|
+      "/verification/emails/#{id}/redelivery?#{kwargs.to_query}"
+    }
+    controller.define_singleton_method(:incoming_scope) { "settings_email" }
+    controller.define_singleton_method(:incoming_pt) { "return-token" }
+    controller.define_singleton_method(:t) { |key| key.to_s }
     controller.define_singleton_method(:send_email_otp!) { @send_email_for_test }
     controller.define_singleton_method(:verify_email_otp!) { @verify_email_for_test }
     controller.define_singleton_method(:consume_step_up_session!) do |*|
@@ -231,7 +245,8 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     controller.instance_variable_set(:@send_email_for_test, false)
     controller.create
 
-    assert_equal [[:new], { status: :unprocessable_content }], renders.last
+    assert_equal "auth/com/verification/emails/new", renders.last.last.fetch(:inertia)
+    assert_equal :unprocessable_content, renders.last.last.fetch(:status)
 
     controller.instance_variable_set(:@send_email_for_test, true)
     controller.create
@@ -255,7 +270,8 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     controller.instance_variable_set(:@verify_email_for_test, false)
     controller.update
 
-    assert_equal [[:edit], { status: :unprocessable_content }], renders.last
+    assert_equal "auth/com/verification/emails/edit", renders.last.last.fetch(:inertia)
+    assert_equal :unprocessable_content, renders.last.last.fetch(:status)
 
     controller.instance_variable_set(:@verify_email_for_test, true)
     controller.update
@@ -842,11 +858,14 @@ class Auth::Com::Verification::EmailsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -893,9 +912,9 @@ class Auth::Com::Verification::EmailsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -908,7 +927,7 @@ class Auth::Com::Verification::EmailsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1168,11 +1187,14 @@ class Auth::Com::Verification::EmailsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

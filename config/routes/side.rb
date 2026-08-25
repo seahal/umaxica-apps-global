@@ -10,6 +10,14 @@ scope module: :side, as: :side do
       # Thin landing endpoint.
       root to: "roots#index"
 
+      # Model Context Protocol endpoint. The MCP spec requires a single path serving POST; the
+      # transport carries every protocol method in the JSON-RPC body, so one create action is the
+      # whole endpoint.
+      resource :mcp, only: :create
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       # Basic health summary.
       resource :health, only: :show
 
@@ -52,6 +60,13 @@ scope module: :side, as: :side do
 
       # Browser CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
+
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
     end
   end
 
@@ -63,6 +78,14 @@ scope module: :side, as: :side do
       # Thin landing endpoint.
       root to: "roots#index"
 
+      # Model Context Protocol endpoint. The MCP spec requires a single path serving POST; the
+      # transport carries every protocol method in the JSON-RPC body, so one create action is the
+      # whole endpoint.
+      resource :mcp, only: :create
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       # Basic health summary.
       resource :health, only: :show
 
@@ -105,6 +128,13 @@ scope module: :side, as: :side do
 
       # Browser CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
+
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
     end
   end
 
@@ -115,6 +145,14 @@ scope module: :side, as: :side do
       # Thin landing endpoint.
       root to: "roots#index"
 
+      # Model Context Protocol endpoint. The MCP spec requires a single path serving POST; the
+      # transport carries every protocol method in the JSON-RPC body, so one create action is the
+      # whole endpoint.
+      resource :mcp, only: :create
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       # Basic health summary.
       resource :health, only: :show
 
@@ -157,6 +195,13 @@ scope module: :side, as: :side do
 
       # Browser CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
+
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
     end
   end
 end

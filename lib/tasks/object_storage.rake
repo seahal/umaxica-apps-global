@@ -14,10 +14,19 @@ module ObjectStorageTasks
     OBJECT_STORAGE_FORCE_PATH_STYLE
   ).freeze
 
+  # Credentials are delivered as mounted Podman secrets, so their values are read
+  # from a file path rather than from the variable itself. This mirrors
+  # POSTGRESQL_PASSWORD_FILE in config/database.yml; the direct variables remain
+  # supported for deployments whose credential provider exports values inline.
+  FILE_BACKED_ENVIRONMENT = %w(
+    OBJECT_STORAGE_ACCESS_KEY_ID
+    OBJECT_STORAGE_SECRET_ACCESS_KEY
+  ).freeze
+
   def configuration
     values =
       REQUIRED_ENVIRONMENT.to_h do |name|
-        value = ENV.fetch(name)
+        value = fetch_environment(name)
         raise ArgumentError, "#{name} must not be blank" if value.empty?
 
         [name, value]
@@ -29,6 +38,16 @@ module ObjectStorageTasks
         values.fetch("OBJECT_STORAGE_FORCE_PATH_STYLE"),
       ),
     )
+  end
+
+  # A configured `<NAME>_FILE` is authoritative: a missing or unreadable file
+  # raises instead of falling back to the direct variable, so a broken secret
+  # mount cannot quietly authenticate with stale or absent credentials.
+  def fetch_environment(name)
+    path = ENV["#{name}_FILE"] if FILE_BACKED_ENVIRONMENT.include?(name)
+    return ENV.fetch(name) if path.blank?
+
+    File.read(path).strip
   end
 
   def client(configuration)

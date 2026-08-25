@@ -36,7 +36,8 @@ class Base::App::BillingsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :success
-    assert_select "h1", text: "Billings"
-    assert_select "p", text: I18n.t("billings.signed_in_required")
+    assert_equal "base/app/billings/index", inertia_component
+    assert_equal "Billings", inertia_props.fetch("title")
+    assert_equal I18n.t("billings.signed_in_required"), inertia_props.fetch("description")
   end
 end

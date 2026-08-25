@@ -128,6 +128,13 @@ class SignUpArtifactCleanup
 
       record.class.transaction do
         record.lock!
+
+        if record.is_a?(ClientExternalIdentity)
+          revoke_pending_apple_credential(record)
+          record.destroy!
+          next
+        end
+
         status_column = deleted_status_column(record)
         deleted_id = deleted_status_id(record)
 
@@ -176,12 +183,11 @@ class SignUpArtifactCleanup
   end
 
   def client_social_identity(actor)
-    case cycle.social_provider.presence || cycle.entry_method
-    when "google"
-      ClientGoogleIdentity.find_by(id: cycle.pending_contact_id, user_id: actor.id)
-    when "apple"
-      ClientAppleIdentity.find_by(id: cycle.pending_contact_id, user_id: actor.id)
-    end
+    provider = cycle.social_provider.presence || cycle.entry_method
+    return unless %w(apple google).include?(provider)
+
+    identity = ExternalAuthentication::IdentityRepositoryFactory.current.build(provider).find_for_user(actor)
+    identity if identity && identity.id.to_s == cycle.pending_contact_id.to_s
   end
 
   def client_pending_passkey(actor)
@@ -198,7 +204,7 @@ class SignUpArtifactCleanup
       contact.user_email_status_id == ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP
     when ClientTelephone
       contact.user_telephone_status_id == ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP
-    when ClientGoogleIdentity, ClientAppleIdentity
+    when ClientExternalIdentity
       true
     else
       false
@@ -253,12 +259,14 @@ class SignUpArtifactCleanup
     when ClientEmail then deleted_status_id_for(ClientEmailStatus)
     when ClientTelephone then deleted_status_id_for(ClientTelephoneStatus)
     when ClientPasskey then deleted_status_id_for(ClientPasskeyStatus)
-    when ClientGoogleIdentity then deleted_status_id_for(ClientGoogleIdentityStatus)
-    when ClientAppleIdentity then deleted_status_id_for(ClientAppleIdentityStatus)
     when VisitorEmail then deleted_status_id_for(VisitorEmailStatus)
     when VisitorTelephone then deleted_status_id_for(VisitorTelephoneStatus)
     when VisitorPasskey then deleted_status_id_for(VisitorPasskeyStatus)
     end
+  end
+
+  def revoke_pending_apple_credential(_identity)
+    nil
   end
 
   def deleted_status_id_for(status_class)

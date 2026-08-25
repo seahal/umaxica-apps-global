@@ -4,10 +4,12 @@
 module Core
   module Dev
     class RootsController < Core::Dev::BareController
+      include ::SurfaceInertiaPage
+
       AUTHENTICATION_MODE = :deny_all
 
       def index
-        render template: "core/dev/roots/index", layout: false
+        render inertia: true, props: { title: nil }
       end
     end
   end

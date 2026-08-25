@@ -9,7 +9,8 @@ module IdentityStepUpCeremonyContract
 
   ALGORITHM = "ES384"
   SURFACES = %w(app com org).freeze
-  METHODS = %w(passkey totp email_otp telephone_otp secret_credential).freeze
+  # Telephone OTP is deliberately absent: SMS is not an accepted step-up proof.
+  METHODS = %w(passkey totp email_otp secret_credential).freeze
   AALS = %w(aal1 aal2).freeze
   LEEWAY = 30
 

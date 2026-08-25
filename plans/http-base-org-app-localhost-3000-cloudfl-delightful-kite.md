@@ -1,5 +1,25 @@
 # core-jp.umaxica.* を Cloudflare Tunnel 経由で core BFF に到達させる計画
 
+## Superseded (2026-08-09)
+
+This plan is superseded by `adr/core-canonical-public-host.md`, which chose
+`jp.umaxica.{app,com,org}` as the canonical public Core host. The "ユーザー決定" recorded below —
+standardising on `core-jp.umaxica.*` — no longer holds; `compose.yaml` now sets
+`PUBLIC_CORE_*_URL` to the `jp.umaxica.*` family.
+
+Two of this plan's premises had already gone stale before that decision:
+
+- It states that the `core-jp.umaxica.*` entries in the `core` service's `frontend` network
+  aliases are registered and need no change. Those aliases were removed: browser-facing site
+  names are deliberately absent from that block, because aliasing them made the development
+  container answer to public names on the same network the tunnel connector uses. See the
+  comment in `compose.yaml` and `docs/architecture/cloudflare-request-paths.md`.
+- It assumes development is reachable through a Cloudflare Tunnel hostname. Development is
+  deliberately not tunnel-exposed; there is no development tunnel hostname, Access application,
+  or Access service token.
+
+Retained for traceability. Do not execute the steps below.
+
 ## Context（なぜこの変更か）
 
 Cloudflare Tunnel の公開ホスト `core-jp.umaxica.{app,com,org}` →

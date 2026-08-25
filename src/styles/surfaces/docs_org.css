@@ -1,0 +1,29 @@
+/*
+ * Stylesheet for the docs/org FQDN.
+ *
+ * One trust boundary links exactly one of these files and nothing else, so a rule written for
+ * another surface cannot reach this one. `source(none)` turns off Tailwind's automatic source
+ * detection, which scans the whole Vite root and would otherwise generate every surface's
+ * utilities into every surface's stylesheet; the `@source` line below names the only markup this
+ * surface renders.
+ *
+ * This root page is a standalone document that bypasses the surface layouts, and it previously
+ * carried a forty-line embedded stylesheet duplicated across all twelve such pages. That CSS never
+ * applied: it had no CSP nonce, and `style-src-elem` admits only `'self'`, `https:` and a nonce,
+ * so the browser refused it.
+ */
+@import "tailwindcss" source(none);
+@import "../theme.css";
+@import "../base.css";
+
+@plugin "@tailwindcss/typography";
+
+@source "../../../app/views/docs/org";
+
+/*
+ * Edition identity: one hue per TLD so an FQDN is recognisable on sight. `theme.css` mixes both the
+ * light and the dark page background from this one token, so the two modes cannot drift apart.
+ */
+:root {
+  --ui-tint: var(--color-green-500);
+}

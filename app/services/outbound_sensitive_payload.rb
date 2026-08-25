@@ -4,6 +4,9 @@
 module OutboundSensitivePayload
   SMS_BODY_PURPOSE = "outbound.sms.body"
   EMAIL_OTP_PURPOSE = "outbound.email.otp"
+  SMS_DELIVERY_PURPOSE = "outbound.sms.delivery.v1"
+  OIDC_BACKCHANNEL_LOGOUT_PURPOSE = "outbound.oidc.backchannel_logout.v1"
+  ENVELOPE_VERSION = 1
   ENCRYPTOR_CACHE = Concurrent::Map.new
 
   module_function
@@ -16,12 +19,71 @@ module OutboundSensitivePayload
     decrypt(token, purpose: SMS_BODY_PURPOSE)
   end
 
+  def encrypt_sms_delivery(to:, title:, body:)
+    encrypt_envelope(
+      { "version" => ENVELOPE_VERSION, "to" => to, "title" => title, "body" => body },
+      purpose: SMS_DELIVERY_PURPOSE,
+      required_keys: %w(version to title body),
+    )
+  end
+
+  def decrypt_sms_delivery(token)
+    decrypt_envelope(token, purpose: SMS_DELIVERY_PURPOSE, required_keys: %w(version to title body))
+  end
+
+  def encrypt_oidc_backchannel_logout(uri:, client_id:, resource_type:, subject:, sid:)
+    encrypt_envelope(
+      {
+        "version" => ENVELOPE_VERSION,
+        "uri" => uri,
+        "client_id" => client_id,
+        "resource_type" => resource_type,
+        "subject" => subject,
+        "sid" => sid,
+      },
+      purpose: OIDC_BACKCHANNEL_LOGOUT_PURPOSE,
+      required_keys: %w(version uri client_id resource_type subject sid),
+    )
+  end
+
+  def decrypt_oidc_backchannel_logout(token)
+    decrypt_envelope(
+      token,
+      purpose: OIDC_BACKCHANNEL_LOGOUT_PURPOSE,
+      required_keys: %w(version uri client_id resource_type subject sid),
+    )
+  end
+
   def encrypt_email_otp(hotp_token)
     encrypt(hotp_token, purpose: EMAIL_OTP_PURPOSE)
   end
 
   def decrypt_email_otp(token)
     decrypt(token, purpose: EMAIL_OTP_PURPOSE)
+  end
+
+  def encrypt_envelope(payload, purpose:, required_keys:)
+    validate_envelope!(payload, required_keys:)
+    encrypt(JSON.generate(payload), purpose:)
+  end
+
+  def decrypt_envelope(token, purpose:, required_keys:)
+    payload = JSON.parse(decrypt(token, purpose:))
+    validate_envelope!(payload, required_keys:)
+    payload.symbolize_keys
+  rescue JSON::ParserError, TypeError
+    raise ArgumentError, "Invalid encrypted sensitive payload"
+  end
+
+  def validate_envelope!(payload, required_keys:)
+    unless payload.is_a?(Hash) && payload.keys.sort == required_keys.sort
+      raise ArgumentError, "Invalid sensitive payload schema"
+    end
+    raise ArgumentError, "Unsupported sensitive payload version" unless payload["version"] == ENVELOPE_VERSION
+
+    required_keys.excluding("version", "subject").each do |key|
+      raise ArgumentError, "Sensitive payload field #{key} cannot be blank" if payload[key].blank?
+    end
   end
 
   def encrypt(value, purpose:)

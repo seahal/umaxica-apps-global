@@ -4,10 +4,9 @@
   <%= display_meta_tags site: "#{ENV.fetch('BRAND_NAME')} (com) Acme Home" %>
   <title>UMAXICA <%= content_for?(:page_title) ? "| #{yield(:page_title)} " : "" %></title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <style>
-      /* Email styles need to be inline */
-  </style>
-  <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+  <%# No external stylesheet: mail clients cannot resolve a relative asset URL,
+      and the asset has no source in this repository, so the link only produced
+      a missing-asset failure. Email styles are inline. %>
 </head>
 
 <body>

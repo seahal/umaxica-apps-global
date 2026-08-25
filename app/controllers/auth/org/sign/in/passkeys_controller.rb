@@ -26,6 +26,9 @@ module Auth
 
           include CloudflareTurnstile
 
+          include ::TurnstilePageProps
+          include ::SurfaceInertiaPage
+
           AUTHENTICATION_MODE = :guest
           rate_limit(
             to: 5,
@@ -35,7 +38,7 @@ module Auth
             name: "passkey_options_ip_burst",
             store: rate_limit_store,
             only: :options,
-            with: -> { render_rate_limited(rule_name: "auth_org_sign_in_passkey_options_ip_burst", retry_after: 60) },
+            with: -> { render_rate_limited(retry_after: 60) },
           )
           rate_limit(
             to: 20,
@@ -46,7 +49,7 @@ module Auth
             store: rate_limit_store,
             only: :options,
             with: -> {
-              render_rate_limited(rule_name: "auth_org_sign_in_passkey_options_ip_sustained", retry_after: 900)
+              render_rate_limited(retry_after: 900)
             },
           )
           rate_limit(
@@ -58,7 +61,7 @@ module Auth
             store: rate_limit_store,
             only: :verification,
             with: -> {
-              render_rate_limited(rule_name: "auth_org_sign_in_passkey_verification_ip_burst", retry_after: 60)
+              render_rate_limited(retry_after: 60)
             },
           )
           rate_limit(
@@ -70,7 +73,7 @@ module Auth
             store: rate_limit_store,
             only: :verification,
             with: -> {
-              render_rate_limited(rule_name: "auth_org_sign_in_passkey_verification_ip_sustained", retry_after: 900)
+              render_rate_limited(retry_after: 900)
             },
           )
           before_action :start_minimum_response_budget
@@ -79,9 +82,40 @@ module Auth
           # GET /in/passkeys/new
           # Render login page with identifier input and passkey button
           def new
+            render inertia: true, props: passkey_sign_in_props
           end
 
           private
+
+          def passkey_sign_in_props
+            pt = signed_pt_param
+            region = current_region_identifier
+
+            {
+              title: t("sign.org.authentication.passkey.new.page_title"),
+              description: t("sign.org.authentication.passkey.new.description"),
+              panel: {
+                options_url: auth_org_sign_in_passkey_options_path(pt: pt, ri: region),
+                verification_url: auth_org_sign_in_passkey_verification_path(pt: pt, ri: region),
+                region: region.to_s,
+                identifier_param: "identifier",
+                turnstile_site_key: turnstile_site_key(:CLOUDFLARE_TURNSTILE_SITE_STEALTH_KEY),
+                turnstile_error_message: t("turnstile_error"),
+                field: {
+                  label: t("sign.org.authentication.passkey.new.identifier_label"),
+                  placeholder: t("sign.org.authentication.passkey.new.identifier_placeholder"),
+                  min_length: Operator::PUBLIC_ID_LENGTH,
+                  max_length: Operator::PUBLIC_ID_LENGTH,
+                  pattern: "[0-9A-FGHJKMNPQRSTVWXYZ]{16}",
+                },
+                submit_label: t("sign.org.authentication.passkey.new.submit"),
+              },
+              back_link: {
+                label: t("sign.org.authentication.new.back"),
+                href: auth_org_sign_in_path(pt: pt, ri: region),
+              },
+            }
+          end
 
           def before_passkey_options_request!
             verify_turnstile_stealth!

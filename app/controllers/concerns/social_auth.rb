@@ -231,35 +231,40 @@ module SocialAuth
     step_up_audience if respond_to?(:step_up_audience, true)
   end
 
-  def process_social_auth_callback
-    auth_hash = omniauth_auth_hash
+  def process_social_auth_callback(callback_result)
+    unless callback_result.is_a?(ExternalAuthentication::CallbackResult) && callback_result.verified?
+      raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
+    end
+
+    @external_authentication_callback_result = callback_result
+
     intent = current_social_auth_intent
     entry = current_social_auth_entry
     flow_id = session[SOCIAL_FLOW_ID_SESSION_KEY]
     log_social_auth_callback_received(intent, flow_id)
     authorize_social_auth_link!(social_auth_user) if intent == "link"
 
-    result = resolve_social_auth_callback_result(auth_hash, intent)
-    result[:entry] = entry if entry.present?
+    result = resolve_social_auth_callback_result(callback_result, intent)
+    result = result.with(entry: entry) if result && entry.present?
 
     clear_social_auth_intent!
     log_social_auth_callback_completed(intent, flow_id)
     result
   end
 
-  def reject_grantless_established_social_login!(auth_hash, intent)
+  def reject_grantless_established_social_login!(principal, intent)
     return unless intent.to_s == "login"
     return if social_ceremony_grant_token.present?
-    return unless acme_social_login_completion_supported?(auth_hash)
+    return unless acme_social_login_completion_supported?(principal)
 
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent")
   end
 
-  def process_social_ceremony_login_callback(auth_hash)
+  def process_social_ceremony_login_callback(callback_result)
     grant = social_ceremony_grant
     result_token = IdentitySocialCeremonyResultIssuer.issue!(
       grant_token: social_ceremony_grant_token,
-      auth_hash: auth_hash,
+      callback_result: callback_result,
       surface: "app",
       actor_ref: grant["actor_ref"],
       session_ref: grant["session_ref"],
@@ -270,16 +275,20 @@ module SocialAuth
     render(
       "sign/shared/social_completion",
       locals: {
+        # The browser posts this form, so the target must be the public base
+        # host, not the internal one, and https, because the CSP form-action
+        # allowlist carries https origins only.
         completion_url: base_app_social_authentication_completion_url(
-          id: auth_hash["provider"] || auth_hash[:provider],
-          host: ENV.fetch("PRIVATE_BASE_SERVICE_URL"),
+          id: callback_result.principal.provider,
+          host: base_authority_host,
+          protocol: "https",
         ),
         result_token: result_token,
         ri: params[:ri],
       },
       layout: false,
     )
-    { user: nil, identity: nil, jwt_payload: {}, existing_account: nil, social_completion_rendered: true }
+    nil
   end
 
   # Whether a callback identity is an *established / completed* account that must
@@ -294,20 +303,17 @@ module SocialAuth
   # rejected by) the acme-owned established-login path. Unknown / incomplete
   # accounts remain on the compatibility signup path. If account completeness
   # gains a first-class status predicate, replace this with that predicate.
-  def acme_social_login_completion_supported?(auth_hash)
-    identity = social_auth_identity_for_callback(auth_hash)
+  def acme_social_login_completion_supported?(principal)
+    identity = social_auth_identity_for_callback(principal)
 
     identity&.user&.birthdate.present?
   end
 
-  def social_auth_identity_for_callback(auth_hash)
-    return nil if auth_hash.blank?
+  def social_auth_identity_for_callback(principal)
+    return nil unless principal.is_a?(ExternalAuthentication::VerifiedPrincipal)
 
-    provider = auth_hash["provider"] || auth_hash[:provider]
-    uid = SocialAuthUidExtractor.call(auth_hash: auth_hash)
-    return nil if provider.blank? || uid.blank?
-
-    SocialIdentifiable.model_for_provider(provider).find_by(uid: uid, provider: provider)
+    ExternalAuthentication::IdentityRepositoryFactory.current.build(principal.provider)
+      .find_by_subject(principal.subject, lock: false)
   rescue SocialAuth::BaseError, ArgumentError
     nil
   end
@@ -600,18 +606,52 @@ module SocialAuth
     )
   end
 
-  def resolve_social_auth_callback_result(auth_hash, intent)
+  def resolve_social_auth_callback_result(callback_result, intent)
+    principal = callback_result.principal
     if social_ceremony_grant_token.present? && social_ceremony_grant_operation == "login" &&
-        acme_social_login_completion_supported?(auth_hash)
-      process_social_ceremony_login_callback(auth_hash)
+        acme_social_login_completion_supported?(principal)
+      process_social_ceremony_login_callback(callback_result)
     else
-      reject_grantless_established_social_login!(auth_hash, intent)
-      SocialAuthCoordinator.handle_callback(
-        auth_hash: auth_hash,
-        current_client: social_auth_user,
-        intent: intent,
-        sign_up_entry: intent == "login",
+      reject_grantless_established_social_login!(principal, intent)
+      resolve_external_authentication_use_case(callback_result, intent)
+    end
+  end
+
+  def resolve_external_authentication_use_case(callback_result, intent)
+    case intent.to_s
+    when "login"
+      login_result = ExternalAuthenticationLoginUseCase.call(
+        principal: callback_result.principal,
+        credential_candidate: callback_result.credential_candidate,
+        sign_up_entry: true,
       )
+      return ExternalAuthentication::CallbackOutcome.new(
+        status: :signup_required,
+        user: nil,
+        identity: nil,
+        existing_account: false,
+      ) if login_result.signup_required?
+
+      ExternalAuthentication::CallbackOutcome.new(
+        status: :authenticated,
+        user: login_result.user,
+        identity: login_result.identity,
+        existing_account: login_result.existing_account,
+      )
+    when "link"
+      link_result = ExternalAuthenticationLinkUseCase.call(
+        principal: callback_result.principal,
+        credential_candidate: callback_result.credential_candidate,
+        user: social_auth_user,
+      )
+      ExternalAuthentication::CallbackOutcome.new(
+        status: :link_completed,
+        user: link_result.user,
+        identity: link_result.identity,
+        existing_account: nil,
+      )
+    else
+      raise SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent")
     end
   end
 

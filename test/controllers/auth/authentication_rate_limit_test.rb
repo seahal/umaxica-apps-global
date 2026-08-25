@@ -19,48 +19,48 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
 
     5.times do
-      post auth_app_sign_in_secret_credential_url(ri: "jp"),
+      post auth_app_sign_in_secret_url(ri: "jp"),
            params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
     end
 
-    post auth_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_url(ri: "jp"),
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
 
-    assert_sign_rate_limited("auth_app_sign_in_secret_credential_create_ip_burst")
+    assert_sign_rate_limited
   end
 
   test "com secret credential sign-in hits explicit rails rate limit" do
     host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
 
     5.times do
-      post auth_com_sign_in_secret_credential_url(ri: "jp"),
+      post auth_com_sign_in_secret_url(ri: "jp"),
            params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
     end
 
-    post auth_com_sign_in_secret_credential_url(ri: "jp"),
+    post auth_com_sign_in_secret_url(ri: "jp"),
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
 
-    assert_sign_rate_limited("auth_com_sign_in_secret_credential_create_ip_burst")
+    assert_sign_rate_limited
   end
 
   test "org secret credential sign-in hits explicit rails rate limit" do
     host! ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
 
     5.times do
-      post auth_org_sign_in_secret_credential_url(ri: "jp"),
+      post auth_org_sign_in_secret_url(ri: "jp"),
            params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
     end
 
-    post auth_org_sign_in_secret_credential_url(ri: "jp"),
+    post auth_org_sign_in_secret_url(ri: "jp"),
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
 
-    assert_sign_rate_limited("auth_org_sign_in_secret_credential_create_ip_burst")
+    assert_sign_rate_limited
   end
 
   test "app passkey options sign-in hits explicit rails rate limit" do
     host!(ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"))
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
 
     5.times do
       post(auth_app_sign_in_passkey_options_url(ri: "jp"), params: { identifier: "" }, as: :json)
@@ -68,26 +68,29 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
 
     post(auth_app_sign_in_passkey_options_url(ri: "jp"), params: { identifier: "" }, as: :json)
 
-    assert_sign_rate_limited("auth_app_sign_in_passkey_options_ip_burst")
+    assert_sign_rate_limited
   ensure
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   private
 
-  def assert_sign_rate_limited(rule_name)
+  # The rule that fired is deliberately absent from the response: naming it tells a caller how to
+  # reshape traffic to evade the limit. It is asserted through the `rate_limit.action_controller`
+  # notification instead (see test/controllers/concerns/rate_limit_test.rb).
+  def assert_sign_rate_limited
     assert_response :too_many_requests
-    assert_equal "rails", response.headers["X-RateLimit-Layer"]
-    assert_equal rule_name, response.headers["X-RateLimit-Rule"]
     assert_equal "60", response.headers["Retry-After"]
+    assert_nil response.headers["X-RateLimit-Rule"]
+    assert_nil response.headers["X-RateLimit-Layer"]
 
-    if response.media_type == "application/json"
+    if response.media_type == "application/problem+json"
       body = response.parsed_body
 
-      assert_equal "rate_limited", body["error"]
-      assert_equal rule_name, body["rule"]
-      assert_equal I18n.t("errors.rate_limit.exceeded"), body["message"]
+      assert_equal "urn:umaxica:problem:rate-limited", body.fetch("type")
+      assert_equal 429, body.fetch("status")
+      assert_equal I18n.t("errors.rate_limit.exceeded"), body.fetch("detail")
     else
       assert_equal "text/plain", response.media_type
       assert_equal I18n.t("errors.rate_limit.exceeded"), response.body

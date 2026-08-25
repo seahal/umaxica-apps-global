@@ -10,21 +10,32 @@ module OidcClientStoresStaticClientStore
   def clients
     {
       # Sign credential gateway as RP. This is an RP client-auth key only; Sign remains non-OP.
+      #
+      # Each realm registers both its public (browser-visible) and private (pod-internal) auth host.
+      # OidcSsoInitiator#oidc_callback_url matches a registered redirect URI against request.host,
+      # and the Auth surfaces are routed on both variants, so registering only one variant makes the
+      # other host fail with "OIDC redirect URI is not registered for this host".
       "sign-rp" => {
         redirect_uris_by_realm: {
-          "client" => build_redirect_uris("PUBLIC_AUTH_SERVICE_URL", "id.app.localhost"),
-          "operator" => build_redirect_uris("PRIVATE_AUTH_STAFF_URL", "id.org.localhost"),
-          "visitor" => build_redirect_uris("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost"),
+          "client" => build_redirect_uris("PUBLIC_AUTH_SERVICE_URL") +
+            build_redirect_uris("PRIVATE_AUTH_SERVICE_URL"),
+          "operator" => build_redirect_uris("PUBLIC_AUTH_STAFF_URL") +
+            build_redirect_uris("PRIVATE_AUTH_STAFF_URL"),
+          "visitor" => build_redirect_uris("PUBLIC_AUTH_CORPORATE_URL") +
+            build_redirect_uris("PRIVATE_AUTH_CORPORATE_URL"),
         },
-        post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_AUTH_SERVICE_URL", "id.app.localhost") +
-          build_post_logout_redirect_uris("PRIVATE_AUTH_STAFF_URL", "id.org.localhost") +
-          build_post_logout_redirect_uris("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost"),
-        backchannel_logout_uris: build_logout_uris(
-          "PUBLIC_AUTH_SERVICE_URL", "id.app.localhost",
-          "backchannel/logout",
-        ) +
-          build_logout_uris("PRIVATE_AUTH_STAFF_URL", "id.org.localhost", "backchannel/logout") +
-          build_logout_uris("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost", "backchannel/logout"),
+        post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_AUTH_SERVICE_URL") +
+          build_post_logout_redirect_uris("PRIVATE_AUTH_SERVICE_URL") +
+          build_post_logout_redirect_uris("PUBLIC_AUTH_STAFF_URL") +
+          build_post_logout_redirect_uris("PRIVATE_AUTH_STAFF_URL") +
+          build_post_logout_redirect_uris("PUBLIC_AUTH_CORPORATE_URL") +
+          build_post_logout_redirect_uris("PRIVATE_AUTH_CORPORATE_URL"),
+        backchannel_logout_uris: build_logout_uris("PUBLIC_AUTH_SERVICE_URL", "backchannel/logout") +
+          build_logout_uris("PRIVATE_AUTH_SERVICE_URL", "backchannel/logout") +
+          build_logout_uris("PUBLIC_AUTH_STAFF_URL", "backchannel/logout") +
+          build_logout_uris("PRIVATE_AUTH_STAFF_URL", "backchannel/logout") +
+          build_logout_uris("PUBLIC_AUTH_CORPORATE_URL", "backchannel/logout") +
+          build_logout_uris("PRIVATE_AUTH_CORPORATE_URL", "backchannel/logout"),
         backchannel_logout_session_required: true,
         aud: "sign-rp",
         resource_type: "client",
@@ -66,9 +77,9 @@ module OidcClientStoresStaticClientStore
         post_logout_redirect_uris: build_post_logout_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
           build_post_logout_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
           build_post_logout_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
-        backchannel_logout_uris: build_logout_uris("SIDE_SERVICE_URL", "side.app.localhost", "backchannel/logout") +
-          build_logout_uris("SIDE_STAFF_URL", "side.org.localhost", "backchannel/logout") +
-          build_logout_uris("SIDE_CORPORATE_URL", "side.com.localhost", "backchannel/logout"),
+        backchannel_logout_uris: build_logout_uris("SIDE_SERVICE_URL", "backchannel/logout", "side.app.localhost") +
+          build_logout_uris("SIDE_STAFF_URL", "backchannel/logout", "side.org.localhost") +
+          build_logout_uris("SIDE_CORPORATE_URL", "backchannel/logout", "side.com.localhost"),
         backchannel_logout_session_required: true,
         aud: "side-rails-rp",
         resource_type: "client",
@@ -80,18 +91,16 @@ module OidcClientStoresStaticClientStore
       # Core browser RP.
       "core-next-rp" => {
         redirect_uris_by_realm: {
-          "client" => build_redirect_uris("PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app"),
-          "operator" => build_redirect_uris("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org"),
-          "visitor" => build_redirect_uris("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com"),
+          "client" => build_redirect_uris("PUBLIC_CORE_SERVICE_URL"),
+          "operator" => build_redirect_uris("PUBLIC_CORE_STAFF_URL"),
+          "visitor" => build_redirect_uris("PUBLIC_CORE_CORPORATE_URL"),
         },
-        post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app") +
-          build_post_logout_redirect_uris("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org") +
-          build_post_logout_redirect_uris("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com"),
-        backchannel_logout_uris: build_logout_uris(
-          "PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app", "backchannel/logout",
-        ) +
-          build_logout_uris("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org", "backchannel/logout") +
-          build_logout_uris("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com", "backchannel/logout"),
+        post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_CORE_SERVICE_URL") +
+          build_post_logout_redirect_uris("PUBLIC_CORE_STAFF_URL") +
+          build_post_logout_redirect_uris("PUBLIC_CORE_CORPORATE_URL"),
+        backchannel_logout_uris: build_logout_uris("PUBLIC_CORE_SERVICE_URL", "backchannel/logout") +
+          build_logout_uris("PUBLIC_CORE_STAFF_URL", "backchannel/logout") +
+          build_logout_uris("PUBLIC_CORE_CORPORATE_URL", "backchannel/logout"),
         backchannel_logout_session_required: true,
         aud: "core-next-rp",
         resource_type: "client",
@@ -185,7 +194,9 @@ module OidcClientStoresStaticClientStore
     }.freeze
   end
 
-  def build_redirect_uris(env_key, default_host)
+  # default_host is only consulted for env keys boot_host_for does not map; keys it maps resolve
+  # from boot config and must not carry a literal default that can drift from the real host.
+  def build_redirect_uris(env_key, default_host = nil)
     configured_hosts_for(env_key, default_host).map do |host|
       protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
       port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":3000"
@@ -193,7 +204,7 @@ module OidcClientStoresStaticClientStore
     end
   end
 
-  def build_post_logout_redirect_uris(env_key, default_host)
+  def build_post_logout_redirect_uris(env_key, default_host = nil)
     configured_hosts_for(env_key, default_host).map do |host|
       protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
       port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":3000"
@@ -201,7 +212,7 @@ module OidcClientStoresStaticClientStore
     end
   end
 
-  def build_logout_uris(env_key, default_host, endpoint)
+  def build_logout_uris(env_key, endpoint, default_host = nil)
     configured_hosts_for(env_key, default_host).map do |host|
       protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
       port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":3000"
@@ -218,7 +229,7 @@ module OidcClientStoresStaticClientStore
     false
   end
 
-  def configured_hosts_for(env_key, default_host)
+  def configured_hosts_for(env_key, default_host = nil)
     hosts = [
       ENV.fetch(env_key, nil).presence,
       boot_host_for(env_key, default_host),
@@ -228,23 +239,26 @@ module OidcClientStoresStaticClientStore
     hosts
   end
 
-  def boot_host_for(env_key, default_host)
+  def boot_host_for(env_key, default_host = nil)
     hosts = Rails.configuration.x.boot_config.fetch(:hosts)
     host =
       case env_key
-      when "PUBLIC_AUTH_SERVICE_URL" then hosts.sign_service.to_s
-      when "PRIVATE_AUTH_STAFF_URL" then hosts.sign_staff.to_s
-      when "PRIVATE_AUTH_CORPORATE_URL" then hosts.sign_corporate.to_s
+      when "PUBLIC_AUTH_SERVICE_URL", "PRIVATE_AUTH_SERVICE_URL" then hosts.sign_service.to_s
+      when "PUBLIC_AUTH_STAFF_URL", "PRIVATE_AUTH_STAFF_URL" then hosts.sign_staff.to_s
+      when "PUBLIC_AUTH_CORPORATE_URL", "PRIVATE_AUTH_CORPORATE_URL" then hosts.sign_corporate.to_s
       when "BASE_SERVICE_URL" then hosts.base_service.to_s
       when "BASE_STAFF_URL" then hosts.base_staff.to_s
       when "BASE_CORPORATE_URL" then hosts.base_corporate.to_s
       when "SIDE_SERVICE_URL" then hosts.side_service.to_s
       when "SIDE_STAFF_URL" then hosts.side_staff.to_s
       when "SIDE_CORPORATE_URL" then hosts.side_corporate.to_s
-      when "CORE_SERVICE_URL" then hosts.core_service.to_s
-      when "CORE_STAFF_URL" then hosts.core_staff.to_s
-      when "CORE_CORPORATE_URL" then hosts.core_corporate.to_s
-      else default_host
+      when "PUBLIC_CORE_SERVICE_URL", "CORE_SERVICE_URL" then hosts.core_service.to_s
+      when "PUBLIC_CORE_STAFF_URL", "CORE_STAFF_URL" then hosts.core_staff.to_s
+      when "PUBLIC_CORE_CORPORATE_URL", "CORE_CORPORATE_URL" then hosts.core_corporate.to_s
+      else
+        raise KeyError, "No boot host mapping for #{env_key} and no default host given" if default_host.blank?
+
+        default_host
       end
 
     normalize_host(host)

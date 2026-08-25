@@ -136,54 +136,6 @@ module Security
         },
         {
           pattern: "csrf null_session",
-          path: "app/controllers/core/app/oidc/backchannel/logouts_controller.rb",
-          line: /protect_from_forgery with: :null_session/,
-          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
-        },
-        {
-          pattern: "csrf null_session",
-          path: "app/controllers/core/com/oidc/backchannel/logouts_controller.rb",
-          line: /protect_from_forgery with: :null_session/,
-          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
-        },
-        {
-          pattern: "csrf null_session",
-          path: "app/controllers/core/org/oidc/backchannel/logouts_controller.rb",
-          line: /protect_from_forgery with: :null_session/,
-          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
-        },
-        {
-          pattern: "csrf null_session",
-          path: "app/controllers/auth/app/oidc/backchannel/logouts_controller.rb",
-          line: /protect_from_forgery with: :null_session/,
-          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
-        },
-        {
-          pattern: "csrf null_session",
-          path: "app/controllers/auth/com/oidc/backchannel/logouts_controller.rb",
-          line: /protect_from_forgery with: :null_session/,
-          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
-        },
-        {
-          pattern: "csrf null_session",
-          path: "app/controllers/auth/org/oidc/backchannel/logouts_controller.rb",
-          line: /protect_from_forgery with: :null_session/,
-          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
-        },
-        {
-          pattern: "csrf null_session",
-          path: "app/controllers/base/app/oauth/protocol_controller.rb",
-          line: /with: :null_session/,
-          reason: "OAuth protocol endpoints use client auth or bearer tokens and skip Rails browser session state.",
-        },
-        {
-          pattern: "csrf null_session",
-          path: "app/controllers/base/app/oauth/tokens_controller.rb",
-          line: /with: :null_session/,
-          reason: "OAuth protocol endpoints use client auth or bearer tokens and skip Rails browser session state.",
-        },
-        {
-          pattern: "csrf null_session",
           path: "app/controllers/sign/app/oidc/backchannel/logouts_controller.rb",
           line: /protect_from_forgery with: :null_session/,
           reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
@@ -239,7 +191,7 @@ module Security
         {
           pattern: "cross-host redirect escape hatch",
           path: "app/controllers/auth/app/sign/ins_controller.rb",
-          line: /redirect_to\(base_app_dashboard_url\(ri: params\[:ri\], host: base_authority_host\), allow_other_host: true\)/,
+          line: /\A\s*allow_other_host: true,\s*\z/,
           reason: "Auth app sign-in sends authenticated browsers to the reviewed Base dashboard host.",
         },
         {
@@ -252,12 +204,13 @@ module Security
           pattern: "cross-host redirect escape hatch",
           path: "app/controllers/auth/app/sign/outs_controller.rb",
           line: /allow_other_host: true,/,
-          reason: "Sign-out completion crosses the reviewed Auth/Base host boundary.",
+          reason: "The coordinated sign-out continuation returns the browser to the reviewed " \
+                  "Base completion page after the auth-host cleanup hop.",
         },
         {
           pattern: "cross-host redirect escape hatch",
           path: "app/controllers/auth/app/sign/ups_controller.rb",
-          line: /redirect_to\(base_app_dashboard_url\(ri: params\[:ri\], host: base_authority_host\), allow_other_host: true\)/,
+          line: /\A\s*allow_other_host: true,\s*\z/,
           reason: "Auth app sign-up sends authenticated browsers to the reviewed Base dashboard host.",
         },
         {
@@ -265,18 +218,6 @@ module Security
           path: "app/controllers/auth/org/sign/in/entra/authorizations_controller.rb",
           line: /allow_other_host: true,/,
           reason: "Org Entra sign-in completion returns through the reviewed RP resume URL.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/base/app/outs_controller.rb",
-          line: /allow_other_host: true,/,
-          reason: "Base app sign-out completion crosses the reviewed Auth/Base host boundary.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/base/app/sign_outs_controller.rb",
-          line: /allow_other_host: true,/,
-          reason: "Base app sign-out completion crosses the reviewed Auth/Base host boundary.",
         },
         {
           pattern: "cross-host redirect escape hatch",

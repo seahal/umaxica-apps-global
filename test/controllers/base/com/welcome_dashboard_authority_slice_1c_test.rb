@@ -31,19 +31,25 @@ class Base::Com::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     get base_com_dashboard_url(ri: "jp"), headers: session_headers(token)
 
     assert_response :success
-    assert_select "h1", "Dashboard"
+    assert_equal "base/com/dashboards/show", inertia_component
+    assert_equal "Dashboard", inertia_props.fetch("title")
     assert_no_match(/id\.umaxica/, response.body)
-    assert_select "a[href=?]", base_com_root_path(ri: "jp")
-    assert_select "a[href=?]", base_com_dashboard_path(ri: "jp")
-    assert_select "a[href=?]", base_com_accounts_path(ri: "jp"), text: "Account"
-    assert_select "a[href=?]", base_com_organizations_path(ri: "jp"), text: "Organization"
-    assert_select "a[href=?]", base_com_selector_path(ri: "jp")
-    assert_select "a[href=?]", new_base_com_sign_out_path(ri: "jp")
-    assert_select "a[href=?]", base_com_oidc_authorization_path(ri: "jp", screen_hint: "signin")
-    assert_select "a[href=?]", base_com_oidc_authorization_path(ri: "jp", screen_hint: "signup")
-    assert_select "a", text: "OIDC discovery"
-    assert_select "a", text: "JWKS"
-    assert_select "a", text: "UserInfo"
+
+    links = inertia_props.fetch("sections").flat_map { |section| section.fetch("items") }
+    hrefs = links.map { |link| link.fetch("href") }
+    labelled = links.to_h { |link| [link.fetch("label"), link.fetch("href")] }
+
+    assert_includes hrefs, base_com_root_path(ri: "jp")
+    assert_includes hrefs, base_com_dashboard_path(ri: "jp")
+    assert_equal base_com_accounts_path(ri: "jp"), labelled.fetch("Account")
+    assert_equal base_com_organizations_path(ri: "jp"), labelled.fetch("Organization")
+    assert_includes hrefs, base_com_selector_path(ri: "jp")
+    assert_includes hrefs, new_base_com_sign_out_path(ri: "jp")
+    assert_includes hrefs, base_com_oidc_authorization_path(ri: "jp", screen_hint: "signin")
+    assert_includes hrefs, base_com_oidc_authorization_path(ri: "jp", screen_hint: "signup")
+    assert_includes labelled.keys, "OIDC discovery"
+    assert_includes labelled.keys, "JWKS"
+    assert_includes labelled.keys, "UserInfo"
     assert_no_match(%r{//example|umaxica\.example|evil\.example}, response.body)
   end
 
@@ -606,11 +612,14 @@ class Base::Com::WelcomeDashboardAuthoritySlice1CTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -657,9 +666,9 @@ class Base::Com::WelcomeDashboardAuthoritySlice1CTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -672,7 +681,7 @@ class Base::Com::WelcomeDashboardAuthoritySlice1CTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -968,11 +977,14 @@ class Base::Com::WelcomeDashboardAuthoritySlice1CTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

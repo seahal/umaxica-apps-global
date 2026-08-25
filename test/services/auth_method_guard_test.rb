@@ -2,15 +2,17 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 # require "helpers/global_test_support"
 
 class AuthMethodGuardTest < ActiveSupport::TestCase
+  include ExternalIdentityTestHelper
+
   fixtures :clients
 
   setup do
     @user = clients(:one)
-    ClientGoogleIdentity.where(user: @user).delete_all
-    ClientAppleIdentity.where(user: @user).delete_all
+    @user.client_external_identities.delete_all
     ClientEmail.where(user: @user).delete_all
     ClientTelephone.where(user: @user).delete_all
     ClientSecretCredential.where(user: @user).delete_all
@@ -27,14 +29,7 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "remaining_count includes active Google identity" do
     user = @user
 
-    ClientGoogleIdentity.create!(
-      user: user,
-      uid: "test_google_#{SecureRandom.hex(4)}",
-      provider: "google_app",
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-      token: "token",
-      expires_at: 1.week.from_now.to_i,
-    )
+    create_active_external_identity(client: user, provider: "google")
 
     assert_equal 1, AuthMethodGuard.remaining_count(user)
   end
@@ -42,14 +37,7 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "remaining_count includes active Apple identity" do
     user = @user
 
-    ClientAppleIdentity.create!(
-      user: user,
-      uid: "test_apple_#{SecureRandom.hex(4)}",
-      provider: "apple",
-      status_id: ClientAppleIdentityStatus::ACTIVE,
-      token: "token",
-      expires_at: 1.week.from_now.to_i,
-    )
+    create_active_external_identity(client: user, provider: "apple")
 
     assert_equal 1, AuthMethodGuard.remaining_count(user)
   end
@@ -106,14 +94,7 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "remaining_count excludes specified identity" do
     user = @user
 
-    google = ClientGoogleIdentity.create!(
-      user: user,
-      uid: "test_google_#{SecureRandom.hex(4)}",
-      provider: "google_app",
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-      token: "token",
-      expires_at: 1.week.from_now.to_i,
-    )
+    google = create_active_external_identity(client: user, provider: "google")
 
     assert_equal 0, AuthMethodGuard.remaining_count(user, excluding: google)
   end
@@ -121,14 +102,7 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "last_method returns true when only one method exists" do
     user = @user
 
-    google = ClientGoogleIdentity.create!(
-      user: user,
-      uid: "test_google_#{SecureRandom.hex(4)}",
-      provider: "google_app",
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-      token: "token",
-      expires_at: 1.week.from_now.to_i,
-    )
+    google = create_active_external_identity(client: user, provider: "google")
 
     assert_equal 1, AuthMethodGuard.remaining_count(user)
     assert AuthMethodGuard.last_method?(user, excluding: google)
@@ -137,14 +111,7 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "last_method returns false when multiple methods exist" do
     user = @user
 
-    ClientGoogleIdentity.create!(
-      user: user,
-      uid: "test_google_#{SecureRandom.hex(4)}",
-      provider: "google_app",
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-      token: "token",
-      expires_at: 1.week.from_now.to_i,
-    )
+    create_active_external_identity(client: user, provider: "google")
 
     ClientEmail.create!(
       user: user,
@@ -158,23 +125,8 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "remaining_count counts multiple methods correctly" do
     user = @user
 
-    ClientGoogleIdentity.create!(
-      user: user,
-      uid: "test_google_#{SecureRandom.hex(4)}",
-      provider: "google_app",
-      status_id: ClientGoogleIdentityStatus::ACTIVE,
-      token: "token",
-      expires_at: 1.week.from_now.to_i,
-    )
-
-    ClientAppleIdentity.create!(
-      user: user,
-      uid: "test_apple_#{SecureRandom.hex(4)}",
-      provider: "apple",
-      status_id: ClientAppleIdentityStatus::ACTIVE,
-      token: "token",
-      expires_at: 1.week.from_now.to_i,
-    )
+    create_active_external_identity(client: user, provider: "google")
+    create_active_external_identity(client: user, provider: "apple")
 
     ClientEmail.create!(
       user: user,
@@ -188,14 +140,7 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "remaining_count excludes inactive Google identity" do
     user = @user
 
-    ClientGoogleIdentity.create!(
-      user: user,
-      uid: "test_google_#{SecureRandom.hex(4)}",
-      provider: "google_app",
-      status_id: ClientGoogleIdentityStatus::REVOKED,
-      token: "token",
-      expires_at: 1.week.from_now.to_i,
-    )
+    create_active_external_identity(client: user, provider: "google", state: "consent_revoked")
 
     assert_equal 0, AuthMethodGuard.remaining_count(user)
   end

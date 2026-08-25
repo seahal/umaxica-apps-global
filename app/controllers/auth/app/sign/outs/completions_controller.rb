@@ -12,7 +12,7 @@ module Auth
           after_action :sign_out_notice_cache_headers!, only: :show
 
           def show
-            render "auth/shared/sign_outs/complete"
+            complete
           end
         end
       end

@@ -96,7 +96,23 @@ class Base::App::SwitchersControllerTest < ActionDispatch::IntegrationTest
     ), params: invalid_switch_params
 
     assert_response :unprocessable_content
+    assert_equal "base/app/switchers/show", inertia_component
+    assert_predicate inertia_props.fetch("error"), :present?
     assert_context_unchanged!(current_context)
+  end
+
+  test "switcher show renders the inertia page as html" do
+    select_token!
+
+    get base_app_switcher_url(host: @host, ri: "jp"), headers: as_user_headers(
+      @user,
+      host: @host,
+      session_public_id: @token.public_id,
+    )
+
+    assert_response :success
+    assert_equal "base/app/switchers/show", inertia_component
+    assert_equal "Switcher", inertia_props.fetch("title")
   end
 
   private

@@ -354,7 +354,7 @@ app/
 - **issuer 不変**: ceremony contract 改修前後で各 `iss` 文字列が完全一致する snapshot テスト。
 
 JS 側（React Router /
-Hono）でログイン・callback 遷移に関与する箇所があれば Vitest で対応（`vp test`）。
+Hono）でログイン・callback 遷移に関与する箇所があれば Vitest で対応（`pnpm test`）。
 
 ---
 

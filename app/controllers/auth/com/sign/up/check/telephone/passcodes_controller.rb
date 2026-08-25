@@ -12,6 +12,8 @@ module Auth
               include SignPasscodeRegistrationFlow
               include SignUpSequenceControllerSupport
               include SignUpExplicitStepControllerSupport
+              include ::ComSignUpCheckpointPage
+              include ::SurfaceInertiaPage
 
               AUTHENTICATION_MODE = :guest
 
@@ -26,7 +28,7 @@ module Auth
 
                 @sign_up_actor = sign_up_pending_actor
                 prepare_passcode_registration
-                render "auth/com/sign/up/checkpoint/passcodes/new"
+                render_sign_up_passcode_page
               end
 
               def update
@@ -47,7 +49,7 @@ module Auth
               rescue ActiveRecord::RecordInvalid => e
                 @secret_credential = e.record
                 @raw_secret_credential = session[passcode_registration_raw_session_key]
-                render "auth/com/sign/up/checkpoint/passcodes/new", status: :unprocessable_content
+                render_sign_up_passcode_page(status: :unprocessable_content)
               end
 
               def destroy
@@ -56,11 +58,37 @@ module Auth
 
               private
 
+              # The generated passcode is the content of this page: it is displayed exactly once,
+              # which is what the template did. Nothing else about the credential crosses.
+              def render_sign_up_passcode_page(status: :ok)
+                render inertia: "auth/com/sign/up/checkpoint/passcodes/new",
+                       props: {
+                         title: t("sign.com.registration.checkpoint.show.passcode.title"),
+                         description: t("sign.com.registration.checkpoint.show.passcode.description"),
+                         action: auth_com_sign_up_check_telephone_passcode_path(
+                           ri: params[:ri],
+                           pt: signed_pt_param,
+                         ),
+                         scope: "visitor_secret_credential",
+                         checkpoint_version: (
+                           params[:checkpoint_version].presence || @sign_up_ticket.checkpoint_version
+                         ).to_i,
+                         errors: @secret_credential&.errors&.full_messages || [],
+                         name_label: VisitorSecretCredential.human_attribute_name(:name),
+                         secret_heading: "Secret",
+                         secret: @raw_secret_credential.to_s,
+                         one_time_notice: t("views.sign.app.settings.secret_credentials.new.one_time_notice"),
+                         save_label: t("actions.save"),
+                         cancel_label: t("actions.cancel"),
+                       },
+                       status: status
+              end
+
               def load_sign_up_actor
                 @sign_up_actor = sign_up_pending_actor
                 return if @sign_up_actor
 
-                render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
+                render plain: I18n.t("errors.messages.not_found"), status: :not_found
               end
 
               def passcode_registration_secret_credentials = @sign_up_actor.visitor_secret_credentials

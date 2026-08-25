@@ -5,18 +5,21 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :client_statuses, :client_apple_identity_statuses, :app_preference_chronicle_levels
+  fixtures :clients, :client_statuses, :app_preference_chronicle_levels
 
   setup do
     OmniAuth.config.test_mode = true
-    JitSecurityTurnstileVerifier.test_mode = true
-    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+    TurnstileVerifierStub.enabled = true
+    # The ceremony runs on the Auth host the application is configured with: a request
+    # made to any other host gets a session cookie the application does not read back,
+    # so the sign-up ticket is lost and the flow restarts instead of advancing.
+    @host = configured_host(:sign_service)
     @callback_headers = social_callback_headers(@host)
   end
 
   teardown do
     OmniAuth.config.mock_auth[:apple] = nil
-    JitSecurityTurnstileVerifier.test_mode = false
+    TurnstileVerifierStub.enabled = false
   end
 
   test "sign up waits for confirmation before creating user and identity" do
@@ -25,9 +28,9 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-             params: { state: state },
-             headers: @callback_headers
+        get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+            params: { state: state },
+            headers: @callback_headers
       end
     end
 
@@ -38,7 +41,10 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :ok
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+    # created; the page object names that component and carries the label it asks agreement to.
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
 
     cycle = ClientSignUpFlow.order(:id).last
     patch sign_app_sign_up_check_apple_confirmation_url(ri: "jp"),
@@ -73,9 +79,9 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     state = start_social_auth_flow(intent: "login")
     setup_apple_mock_auth(uid: "apple_flow_cancel")
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: @callback_headers
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: @callback_headers
 
     assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
 
@@ -104,16 +110,16 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     state = start_social_auth_flow(intent: "login")
     setup_apple_mock_auth(uid: "apple_flow_existing", token: "token_new")
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: @callback_headers
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: @callback_headers
 
     submit_social_completion_if_present!
 
     assert_response :redirect
     redirect_uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), redirect_uri.host
+    assert_equal ENV.fetch("PUBLIC_BASE_SERVICE_URL"), redirect_uri.host
     assert_equal "/dashboard", redirect_uri.path
     assert_empty redirect_uri.query.to_s
   end
@@ -127,6 +133,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
       info: {},
       credentials: {
         token: token,
+        refresh_token: "apple_refresh_token",
         expires_at: 1.week.from_now.to_i,
       },
       extra: { id_info: { nonce: session[:social_auth_nonce] } },
@@ -688,11 +695,14 @@ class AppleSocialFlowsTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -739,9 +749,9 @@ class AppleSocialFlowsTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -754,7 +764,7 @@ class AppleSocialFlowsTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -822,6 +832,10 @@ class AppleSocialFlowsTest
     return unless response.media_type == "text/html"
     return unless response.body.include?("social-completion-form")
 
+    # A browser only reaches the completion endpoint when CSP allows the form
+    # target. See test/support/form_action_policy_helper.rb.
+    assert_forms_submittable_under_policy
+
     form = response.parsed_body.at_css("form#social-completion-form")
     raise StandardError, "social completion form missing" unless form
 
@@ -835,7 +849,8 @@ class AppleSocialFlowsTest
       form["action"],
       params: params,
       headers: {
-        "Host" => configured_host(:acme_service),
+        # A browser sends the form target as the Host, not a separately configured one.
+        "Host" => URI.parse(form["action"]).host,
         "Origin" => "https://#{configured_host(:sign_service)}",
         "Sec-Fetch-Site" => "same-site",
       },
@@ -1095,11 +1110,14 @@ class AppleSocialFlowsTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

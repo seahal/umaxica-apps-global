@@ -15,7 +15,7 @@ module AuthenticationJwtTokens
       dpop_jkt: dpop_jkt,
       expires_at: access_expires_at,
       acr: "aal1",
-      amr: normalize_amr(token_kind_id),
+      amr: normalize_amr(token_kind_id, token_record: token_record),
       jwt_issuer_id: auth_jwt_issuer_id,
     )
   end

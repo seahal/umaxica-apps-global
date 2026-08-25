@@ -9,6 +9,8 @@ module Auth
         include ::SignOutNotice
         include ::SignOutCancellation
         include ::OidcRpLogoutLauncher
+        include ::SurfaceInertiaPage
+        include ::SignOutInertiaPages
 
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
@@ -22,7 +24,7 @@ module Auth
         end
 
         def edit
-          render "auth/shared/sign_outs/edit"
+          render_sign_out_confirmation_page
         end
 
         def create

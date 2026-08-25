@@ -7,47 +7,79 @@ require "test_helper"
 class Base::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    @user = create_verified_user_with_email(email_address: "base-app-sign-out-#{SecureRandom.hex(4)}@example.com")
     host! @host
+    # The shared completion path renders through the jump-aware helpers, which need signing keys.
+    load_jump_rt_env!
   end
 
-  test "new renders confirmation page" do
-    user = create_verified_user_with_email(email_address: "base-sign-out-new@example.com")
-    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+  test "new redirects to the confirmation page without mutation" do
+    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    get new_base_app_sign_out_url(host: @host, ri: "jp"), headers: {
-      **as_user_headers(user, host: @host, session_public_id: token.public_id),
-    }
+    get new_base_app_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
+
+    assert_response :see_other
+    assert_equal edit_base_app_sign_out_path(ri: "jp"), URI.parse(response.location).request_uri
+    assert_predicate token.reload, :currently_usable?
+  end
+
+  test "edit sign out renders confirmation without mutation" do
+    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+
+    get edit_base_app_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.shared.sign_out.title")
+    assert_equal "base/app/sign_outs/edit", inertia_component
+    assert_equal I18n.t("sign.shared.sign_out.confirm_description"), inertia_props.fetch("description")
+    assert_includes inertia_props.fetch("form").fetch("action"), base_app_sign_out_path
+    assert_predicate token.reload, :currently_usable?
   end
 
-  test "post sign out issues logout transaction and redirects to sign receiver" do
-    user = create_verified_user_with_email(email_address: "base-sign-out-post@example.com")
-    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+  test "post sign out revokes the current session and completes on the base surface" do
+    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-    post base_app_sign_out_url(host: @host), headers: browser_headers.merge(
-      "Host" => @host,
-      **as_user_headers(user, host: @host, session_public_id: token.public_id),
-    )
+    post base_app_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
 
     assert_response :see_other
+    assert_predicate token.reload, :revoked?
+
+    # Completion is surface-local: the browser must not be handed to another host,
+    # and the completion marker must not travel in the URL.
     location = URI.parse(response.location)
 
-    assert_equal Rails.configuration.x.boot_config.fetch(:hosts).auth_service.host, location.host
-    assert_equal "/sign/out", location.path
-    assert_predicate Rack::Utils.parse_nested_query(location.query.to_s)["logout_token"], :present?
-    assert_predicate token.reload, :revoked?
+    assert_equal @host, location.host
+    assert_equal base_app_sign_out_completion_path(ri: "jp"), location.request_uri
+
+    get response.location
+
+    assert_response :success
+    assert_equal "base/app/sign_outs/complete", inertia_component
+    assert_equal I18n.t("sign.shared.sign_out.completed_title"), inertia_props.fetch("title")
   end
 
-  test "post sign out without active session redirects to complete" do
-    post base_app_sign_out_url(host: @host), headers: browser_headers.merge("Host" => @host)
+  test "post sign out without a resolved session renders friendly completion" do
+    post base_app_sign_out_url(host: @host, ri: "jp")
 
-    assert_response :see_other
-    assert_equal base_app_sign_out_completion_url(host: @host, protocol: "https"), response.location
+    assert_response :success
+    assert_equal "base/app/sign_outs/complete", inertia_component
+    assert_equal I18n.t("sign.shared.sign_out.completed_title"), inertia_props.fetch("title")
   end
+
   private
+
+  def session_headers(token)
+    access_token = jwt_access_token_for(
+      @user, host: @host, session_public_id: token.public_id, resource_type: "client",
+    )
+    set_access_cookie(access_token)
+    {
+      "Host" => @host,
+      "X-TEST-CURRENT-USER" => @user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+    }
+  end
 
   def host_headers(host = nil)
     host_value = host || (respond_to?(:request, true) ? request&.host : nil) || ENV["DEFAULT_URL_HOST"]
@@ -587,11 +619,14 @@ class Base::App::SignOutsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -638,9 +673,9 @@ class Base::App::SignOutsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -653,7 +688,7 @@ class Base::App::SignOutsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -896,11 +931,14 @@ class Base::App::SignOutsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

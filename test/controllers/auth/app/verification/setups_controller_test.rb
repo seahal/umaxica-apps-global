@@ -15,10 +15,12 @@ class Auth::App::Verification::SetupsControllerTest < ActionDispatch::Integratio
     get new_auth_app_verification_setup_url(ri: "jp", pt: pt), headers: headers
 
     assert_response :success
-    assert_select "a[href=?]", new_auth_app_settings_passkey_path(ri: "jp", pt: pt), count: 1
-    assert_select "a[href*=?]", "/identity/emails/registration/new", count: 1
-    assert_select "a[href=?]", new_auth_app_settings_totp_path(ri: "jp", pt: pt), count: 1
-    assert_select "ul"
+    assert_equal "auth/app/verification/setups/new", inertia_component
+    hrefs = inertia_props.fetch("methods").map { |method| method.fetch("href") }
+
+    assert_equal 1, hrefs.count(new_auth_app_settings_passkey_path(ri: "jp", pt: pt))
+    assert_equal 1, hrefs.count { |href| href.include?("/identity/emails/registration/new") }
+    assert_equal 1, hrefs.count(new_auth_app_settings_totp_path(ri: "jp", pt: pt))
   end
   private
 

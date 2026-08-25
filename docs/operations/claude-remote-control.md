@@ -52,7 +52,7 @@ it is not the persistent OAuth credential store.
 
 ```text
 Host: systemd --user unit (claude-remote-control.service)
-    |  ExecStart -> docker/remote-control/bin/start-remote-control.sh
+    |  ExecStart -> podman/remote-control/bin/start-remote-control.sh
     |     1. devcontainer up   (idempotent; brings up the Dev Container stack)
     |     2. wait for `devcontainer exec ... true` to succeed
     |     3. exec devcontainer exec ... claude remote-control --spawn=same-dir
@@ -67,8 +67,8 @@ Anthropic API (api.anthropic.com) <-> claude.ai/code, Claude mobile app
 
 | Path | Purpose |
 |---|---|
-| `docker/remote-control/claude-remote-control.service.template` | User-level systemd unit template. Not installed automatically. |
-| `docker/remote-control/bin/start-remote-control.sh` | Brings up the stack, waits for `core` health, execs Remote Control. |
+| `podman/remote-control/claude-remote-control.service.template` | User-level systemd unit template. Not installed automatically. |
+| `podman/remote-control/bin/start-remote-control.sh` | Brings up the stack, waits for `core` health, execs Remote Control. |
 
 ## Install (manual host gate — you run these, not the agent)
 
@@ -81,7 +81,7 @@ inside the container, per the repository's operating constraints.
    the default systemd user `PATH`):
    ```sh
    mkdir -p ~/.config/systemd/user
-   cp docker/remote-control/claude-remote-control.service.template \
+   cp podman/remote-control/claude-remote-control.service.template \
      ~/.config/systemd/user/claude-remote-control.service
    $EDITOR ~/.config/systemd/user/claude-remote-control.service
    ```

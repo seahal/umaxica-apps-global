@@ -4,6 +4,14 @@ These examples demonstrate what good ideation sessions look like across differen
 Study the rhythm, tone, and structure — not just the content. The skill should feel equally at home
 with a vague startup concept, a feature for an existing product, or a process improvement.
 
+## Contents
+
+- Example 1: Vague early-stage concept (full three-phase session, including the one-pager it
+  produces)
+- Example 2: Feature idea within an existing product (codebase-aware)
+- Example 3: Process or workflow idea (non-product)
+- What to notice in these examples
+
 ---
 
 ## Example 1: Vague Early-Stage Concept (Full 3-Phase Session)

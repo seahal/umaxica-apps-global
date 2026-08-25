@@ -4,7 +4,7 @@
 # Shared outer flow for OmniAuth callback controllers.
 #
 # The callback meaning remains surface-owned:
-# - app delegates successful callbacks to SocialAuthCoordinator.
+# - app delegates successful callbacks to operation-specific external authentication use cases.
 # - org resolves an existing Operator by staff email.
 module SocialOmniauthCallbackFlow
   extend ActiveSupport::Concern

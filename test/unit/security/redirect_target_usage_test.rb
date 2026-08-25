@@ -11,8 +11,6 @@ class RedirectTargetUsageTest < ActiveSupport::TestCase
 
   ALLOW_OTHER_HOST_ALLOWLIST = %w(
     app/controllers/base/app/oidc/authorizations_controller.rb
-    app/controllers/base/app/outs_controller.rb
-    app/controllers/base/app/sign_outs_controller.rb
     app/controllers/base/com/oidc/authorizations_controller.rb
     app/controllers/base/org/oidc/authorizations_controller.rb
     app/controllers/auth/app/sign/in/sessions_controller.rb

@@ -51,9 +51,13 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     assert_response :success
     assert_not response.redirect?
-    assert_select "form[data-turbo=false][action=?]", auth_com_sign_in_session_path(ri: "jp")
-    assert_select "input[type=radio][name=ref]"
-    assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
+    assert_equal "auth/com/sign/in/sessions/show", inertia_component
+
+    props = inertia_props
+
+    assert_equal auth_com_sign_in_session_path(ri: "jp"), props.fetch("form").fetch("action")
+    assert_predicate props.fetch("active_sessions").fetch("items").filter_map { |item| item["ref"] }, :present?
+    assert_equal I18n.t("sign.app.in.session.cancel_logout"), props.fetch("cancel").fetch("label")
   end
 
   test "update without selections flashes alert and re-renders show" do
@@ -240,13 +244,14 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     controller.update
 
-    assert_equal [[:show], { status: :unprocessable_content }], renders.last
+    assert_equal "auth/com/sign/in/sessions/show", renders.last.second[:inertia]
+    assert_equal :unprocessable_content, renders.last.second[:status]
 
     destroy_token = create_active_session(@visitor)
     controller.params[:ref] = destroy_token.signed_ref
     controller.destroy
 
-    assert_equal [:show], renders.last.first
+    assert_equal "auth/com/sign/in/sessions/show", renders.last.second[:inertia]
 
     controller.params.delete(:ref)
     restricted_token.update!(visitor_token_status_id: VisitorTokenStatus::RESTRICTED)
@@ -674,11 +679,14 @@ class Auth::Com::Sign::In::SessionsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -725,9 +733,9 @@ class Auth::Com::Sign::In::SessionsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -740,7 +748,7 @@ class Auth::Com::Sign::In::SessionsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -995,11 +1003,14 @@ class Auth::Com::Sign::In::SessionsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

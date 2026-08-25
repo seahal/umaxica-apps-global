@@ -18,6 +18,7 @@ module SignVerificationEntry
     end
 
     @available_methods = available_step_up_methods
+    render_verification_entry_page
   rescue ActionController::BadRequest
     clear_step_up_state! if respond_to?(:clear_step_up_state!, true)
     redirect_to(
@@ -27,6 +28,12 @@ module SignVerificationEntry
   end
 
   private
+
+  # Which template answers the entry screen is a surface decision; a surface whose page is an
+  # Inertia component overrides this rather than keeping an ERB template it no longer renders.
+  def render_verification_entry_page
+    render :show
+  end
 
   def verification_success_notice_key
     raise NotImplementedError, "#{self.class} must define #verification_success_notice_key"

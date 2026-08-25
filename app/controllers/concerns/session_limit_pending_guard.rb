@@ -14,7 +14,7 @@ module SessionLimitPendingGuard
     return unless respond_to?(:session_limit_pending?) && session_limit_pending?
     return if pending_allowed_action?
 
-    flash[:alert] = t("session_limit.pending.message", default: "セッション整理が必要です。既存のセッションを無効化してください。")
+    flash[:alert] = t("session_limit.pending.message")
     redirect_to(pending_session_limit_redirect_path)
   end
 

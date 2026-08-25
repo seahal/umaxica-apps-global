@@ -10,6 +10,9 @@ scope module: :palm, as: :palm do
       # Thin landing endpoint.
       root to: "roots#index"
 
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       # Basic health summary.
       resource :health, only: :show
 
@@ -45,6 +48,13 @@ scope module: :palm, as: :palm do
 
       # Browser CSP report sink.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
+
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
 
       # Native bearer-token API.
       namespace :api do

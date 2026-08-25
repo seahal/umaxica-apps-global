@@ -1,28 +1,18 @@
 ---
 name: planning-and-task-breakdown
 description:
-  Breaks work into ordered tasks. Use when you have a spec or clear requirements and need to break
-  work into implementable tasks. Use when a task feels too large to start, when you need to estimate
-  scope, or when parallel work is possible.
+  Decomposes a spec into ordered tasks with explicit acceptance criteria and verification steps. Use
+  when a spec needs breaking into implementable units, when a task is too large or vague to start,
+  when implementation order is not obvious, or when work needs to be split across sessions or
+  agents.
 ---
 
 # Planning and Task Breakdown
 
-## Overview
+Every task should be small enough to implement, test, and verify in one focused session, and should
+leave the system working when it lands.
 
-Decompose work into small, verifiable tasks with explicit acceptance criteria. Good task breakdown
-is the difference between an agent that completes work reliably and one that produces a tangled
-mess. Every task should be small enough to implement, test, and verify in a single focused session.
-
-## When to Use
-
-- You have a spec and need to break it into implementable units
-- A task feels too large or vague to start
-- Work needs to be parallelized across multiple agents or sessions
-- You need to communicate scope to a human
-- The implementation order isn't obvious
-
-**When NOT to use:** Single-file changes with obvious scope, or when the spec already contains
+**When NOT to use:** single-file changes with obvious scope, or a spec that already contains
 well-defined tasks.
 
 ## The Planning Process
@@ -219,15 +209,6 @@ When multiple agents or sessions are available:
 - **Must be sequential:** Database migrations, shared state changes, dependency chains
 - **Needs coordination:** Features that share an API contract (define the contract first, then
   parallelize)
-
-## Common Rationalizations
-
-| Rationalization                | Reality                                                                                      |
-| ------------------------------ | -------------------------------------------------------------------------------------------- |
-| "I'll figure it out as I go"   | That's how you end up with a tangled mess and rework. 10 minutes of planning saves hours.    |
-| "The tasks are obvious"        | Write them down anyway. Explicit tasks surface hidden dependencies and forgotten edge cases. |
-| "Planning is overhead"         | Planning is the task. Implementation without a plan is just typing.                          |
-| "I can hold it all in my head" | Context windows are finite. Written plans survive session boundaries and compaction.         |
 
 ## Red Flags
 

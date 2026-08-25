@@ -4,6 +4,7 @@
 module Base
   module Org
     class ApplicationController < ActionController::Base
+      include ::FqdnAvailabilityGate
       include ::RateLimit
       include ::JumpRtReturnVerification
 
@@ -64,7 +65,7 @@ module Base
         scope: "base_org_default_web",
         name: "default_web",
         store: rate_limit_store,
-        with: -> { render_rate_limited(rule_name: "base_org_default_web", retry_after: 60) },
+        with: -> { render_rate_limited(retry_after: 60) },
       )
       before_action :set_current_context
       before_action :reset_flash
@@ -97,8 +98,11 @@ module Base
         "base-rails-rp"
       end
 
+      # The browser is redirected to this host for the OIDC hop, so it has to be the public
+      # Auth origin, matching Base::App::ApplicationController. An internal host here sends
+      # the visitor to a name their browser cannot resolve.
       def oidc_sign_host
-        ENV.fetch("PRIVATE_AUTH_STAFF_URL")
+        ENV.fetch("PUBLIC_AUTH_STAFF_URL")
       end
 
       def oidc_base_authority_host

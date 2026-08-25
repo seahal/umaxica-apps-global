@@ -34,12 +34,12 @@ module Sign
 
       job_args = enqueued_jobs.last[:args].first
 
-      assert_equal "+819012399998", job_args["to"]
-      assert_equal "Verification code", job_args["title"]
-      assert_nil job_args["body"]
-      assert_equal "Your verification code: 123456",
-                   OutboundSensitivePayload.decrypt_sms_body(job_args["encrypted_body"])
-      assert_not_includes job_args["title"], "123456"
+      payload = OutboundSensitivePayload.decrypt_sms_delivery(job_args.fetch("encrypted_payload"))
+
+      assert_equal "+819012399998", payload.fetch(:to)
+      assert_equal "Verification code", payload.fetch(:title)
+      assert_equal "Your verification code: 123456", payload.fetch(:body)
+      assert_not_includes job_args.inspect, "+819012399998"
       assert_not_includes job_args.inspect, "123456"
     end
   end

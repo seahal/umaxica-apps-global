@@ -6,6 +6,7 @@ module Base
     module Preference
       class CustomizationsController < Base::Com::PreferencesBaseController
         include ::PreferenceSignScreenActions
+        include ::BasePreferenceScreenPage
 
         AUTHENTICATION_MODE = :open
 
@@ -13,7 +14,9 @@ module Base
 
         def edit
           edit_reset_preference_screen
-          render "base/shared/preference/customizations" unless performed?
+          return if performed?
+
+          render inertia: preference_customization_component, props: preference_customization_page_props
         end
 
         def destroy

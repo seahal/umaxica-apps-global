@@ -6,13 +6,15 @@ require "test_helper"
 
 # This test verifies current base and auth route helper boundaries.
 class AcmeCrossDomainLinksTest < ActionDispatch::IntegrationTest
-  test "base app root exposes the authorization entry point" do
+  # The base app root is a canonicalization endpoint: it hands the browser to the regional root
+  # rather than rendering an entry point of its own.
+  test "base app root permanently redirects to the regional root" do
     host! ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
 
     get base_app_root_url(ri: "jp")
 
-    assert_response :success
-    assert_select "a[href='/oidc/authorization?ri=jp']", minimum: 1
+    assert_response :moved_permanently
+    assert_equal "https://jp.umaxica.app/", response.location
   end
 
   test "cross domain url helpers are accessible from base" do

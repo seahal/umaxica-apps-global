@@ -31,12 +31,4 @@ module SignUpSocialCheckBirthdateControllerSupport
   def sign_up_sequence_session_key = :auth_app_up_sequence_id
 
   def sign_up_step = :birthdate
-
-  def render_sign_up_checkpoint
-    @sign_up_missing_requirements = sign_up_missing_requirements
-    @sign_up_completed_requirements = @sign_up_ticket.completed_requirements
-    @sign_up_pending_actor = sign_up_pending_actor
-
-    render "auth/app/sign/up/checkpoints/show", status: :ok
-  end
 end

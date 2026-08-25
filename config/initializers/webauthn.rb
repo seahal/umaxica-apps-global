@@ -11,7 +11,7 @@
 #   overridable per surface via the same env keys for test harnesses.
 #
 # Ceremonies always use an explicit WebAuthn::RelyingParty built by
-# Webauthn::RelyingPartyConfig — the gem's global configuration is never used,
+# Webauthn::RelyingPartyConfig -- the gem's global configuration is never used,
 # so nothing else is configured here.
 Rails.application.config.after_initialize do
   next unless Rails.env.production?

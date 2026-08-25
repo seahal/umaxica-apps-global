@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# rubocop:disable I18n/RailsI18n/DecorateString
+
 require "test_helper"
 # require "helpers/global_test_support"
 
@@ -34,6 +36,19 @@ class OidcAuthorizeCoordinatorTest < ActiveSupport::TestCase
                  "#{uri.scheme}://#{uri.host}#{uri.path}"
     assert_predicate query["code"], :present?
     assert_equal "test_state", query["state"]
+    # RFC 9207: the response must name the issuing authorization server, so a client
+    # registered against more than one AS cannot be tricked into redeeming the code
+    # at the wrong one (RFC 9700 section 4.4.2, mix-up attack).
+    assert_equal OidcIssuer.for_resource_type("client"), query["iss"]
+  end
+
+  test "the authorization response issuer matches the surface that minted the code" do
+    result = authorize_service_call(params: valid_params, resource: @user)
+    query = URI.decode_www_form(URI.parse(result.redirect_url).query).to_h
+
+    assert_not_equal OidcIssuer.for_resource_type("operator"), query["iss"],
+                     "The iss parameter must identify this surface's issuer, not another surface's."
+    assert_not_equal OidcIssuer.for_resource_type("visitor"), query["iss"]
   end
 
   test "fails for missing response_type" do
@@ -910,11 +925,14 @@ class OidcAuthorizeCoordinatorTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -961,9 +979,9 @@ class OidcAuthorizeCoordinatorTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -976,7 +994,7 @@ class OidcAuthorizeCoordinatorTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1219,11 +1237,14 @@ class OidcAuthorizeCoordinatorTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -1274,3 +1295,5 @@ class OidcAuthorizeCoordinatorTest
       )
   end
 end
+
+# rubocop:enable I18n/RailsI18n/DecorateString

@@ -161,6 +161,80 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
     assert_equal "base.umaxica.org", values.base_staff.host
   end
 
+  test "sign origins fall back to PUBLIC_AUTH_*_URL instead of a localhost default" do
+    env = {
+      "PUBLIC_AUTH_SERVICE_URL" => "auth.umaxica.app",
+      "PUBLIC_AUTH_CORPORATE_URL" => "auth.umaxica.com",
+      "PUBLIC_AUTH_STAFF_URL" => "auth.umaxica.org",
+    }
+    values = ConfigValues::HostFamilyValues.build(env: env, production: false)
+
+    assert_equal "auth.umaxica.app", values.sign_service.host
+    assert_equal "auth.umaxica.com", values.sign_corporate.host
+    assert_equal "auth.umaxica.org", values.sign_staff.host
+  end
+
+  # Only the base, side, auth and core families read a PUBLIC_* key. Widening the
+  # fallback to every family moves the OIDC issuer and authorize hosts off their
+  # development defaults, which breaks the SSO redirect contract.
+  test "other families keep their localhost defaults when only PUBLIC_* keys exist" do
+    env = {
+      "PUBLIC_HELP_SERVICE_URL" => "help.umaxica.app",
+      "PUBLIC_INFO_SERVICE_URL" => "info.umaxica.app",
+    }
+    values = ConfigValues::HostFamilyValues.build(env: env, production: false)
+
+    assert_equal "help.app.localhost", values.help_service.host
+    assert_equal "info.app.localhost", values.info_service.host
+  end
+
+  # Deployments publish this family as PUBLIC_CORE_*_URL. Without this fallback the core
+  # origins kept the jpx.umaxica.* development defaults, so production Host Authorization
+  # and the core-next-rp redirect URIs named jpx while config/routes/core.rb routed the
+  # surface on the PUBLIC_CORE_* value.
+  test "core origins fall back to PUBLIC_CORE_*_URL instead of the jpx default" do
+    env = {
+      "PUBLIC_CORE_SERVICE_URL" => "core-jp.umaxica.app",
+      "PUBLIC_CORE_CORPORATE_URL" => "core-jp.umaxica.com",
+      "PUBLIC_CORE_STAFF_URL" => "core-jp.umaxica.org",
+    }
+    values = ConfigValues::HostFamilyValues.build(env: env, production: false)
+
+    assert_equal "core-jp.umaxica.app", values.core_service.host
+    assert_equal "core-jp.umaxica.com", values.core_corporate.host
+    assert_equal "core-jp.umaxica.org", values.core_staff.host
+  end
+
+  test "CORE_*_URL still configures core origins when no PUBLIC_CORE_* key exists" do
+    env = { "CORE_SERVICE_URL" => "core.example.test" }
+    values = ConfigValues::HostFamilyValues.build(env: env, production: false)
+
+    assert_equal "core.example.test", values.core_service.host
+  end
+
+  # Reverse of the base/side/auth precedence, and deliberately so: config/routes/core.rb
+  # constrains the surface on `PUBLIC_CORE_*_URL || CORE_*_URL`, so boot config must resolve
+  # the same host the route constraint accepts.
+  test "PUBLIC_CORE_*_URL takes precedence over CORE_*_URL for core origins" do
+    env = {
+      "PUBLIC_CORE_SERVICE_URL" => "core-jp.umaxica.app",
+      "CORE_SERVICE_URL" => "jpx.umaxica.app",
+    }
+    values = ConfigValues::HostFamilyValues.build(env: env, production: false)
+
+    assert_equal "core-jp.umaxica.app", values.core_service.host
+  end
+
+  test "AUTH_*_URL takes precedence over PUBLIC_AUTH_*_URL for sign origins" do
+    env = {
+      "AUTH_SERVICE_URL" => "sign.example.test",
+      "PUBLIC_AUTH_SERVICE_URL" => "auth.umaxica.app",
+    }
+    values = ConfigValues::HostFamilyValues.build(env: env, production: false)
+
+    assert_equal "sign.example.test", values.sign_service.host
+  end
+
   test "origin adds an https scheme when the raw value lacks one" do
     env = {
       "AUTH_SERVICE_URL" => "https://sign.example.test",

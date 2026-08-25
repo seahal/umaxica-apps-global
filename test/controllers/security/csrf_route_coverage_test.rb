@@ -17,6 +17,8 @@ module Security
       %r{\A/oauth/revoke(?:\(\.:format\))?\z},
       # OIDC back-channel logout: machine-to-machine from IdP, no browser CSRF token.
       %r{\A/oidc/backchannel/logout(?:\(\.:format\))?\z},
+      # Apple Server Notifications: machine-to-machine from Apple, JWS-signature verified, no browser CSRF token.
+      %r{\A/apple/notifications(?:\(\.:format\))?\z},
     ].freeze
 
     test "state-changing application routes do not use null-session csrf handling" do
@@ -295,11 +297,14 @@ class Security::CsrfRouteCoverageTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

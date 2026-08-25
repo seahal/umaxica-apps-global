@@ -56,14 +56,12 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
 
   test "sign check routes use checks controller namespace and old checkpoint route is absent" do
     assert_recognizes_sign_route(:app, "/sign/in/check", :get, "auth/app/sign/in/checks", "show")
-    assert_recognizes_sign_route(:app, "/sign/in/check", :patch, "auth/app/sign/in/checks", "update")
-    assert_recognizes_sign_route(:app, "/sign/in/check", :delete, "auth/app/sign/in/checks", "destroy")
     assert_recognizes_sign_route(:com, "/sign/in/check", :get, "auth/com/sign/in/checks", "show")
-    assert_recognizes_sign_route(:com, "/sign/in/check", :delete, "auth/com/sign/in/checks", "destroy")
     assert_recognizes_sign_route(:org, "/sign/in/check", :get, "auth/org/sign/in/checks", "show")
-    assert_recognizes_sign_route(:org, "/sign/in/check", :delete, "auth/org/sign/in/checks", "destroy")
 
     SURFACES.each_key do |surface|
+      assert_unrecognized(surface, "/sign/in/check", :patch)
+      assert_unrecognized(surface, "/sign/in/check", :delete)
       assert_unrecognized(surface, "/sign/in/checkpoint", :get)
       assert_unrecognized(surface, "/sign/in/checkpoint", :patch)
       assert_unrecognized(surface, "/sign/in/checkpoint", :delete)

@@ -13,13 +13,13 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     @user = Client.create!(status_id: ClientStatus::NOTHING)
     @headers = as_user_headers(@user, host: @host)
     @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   def with_prosopite_paused
@@ -52,14 +52,14 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     end
 
     assert_response :success
-    assert_select "input[name='cf-turnstile-response']"
-    assert_select "h1", text: I18n.t("sign.app.verification.edit.title")
-    assert_select "label", text: I18n.t("sign.app.verification.edit.code_label")
-    assert_select "input[placeholder=?]", I18n.t("sign.app.verification.edit.code_placeholder")
-    assert_select "input[name='verification[code]'][autocomplete='one-time-code']", count: 0
-    assert_select "input[type=submit][value=?]", I18n.t("sign.app.verification.edit.submit")
-    assert_includes response.body, "認証アプリ"
-    assert_includes response.body, I18n.t("sign.app.verification.edit.totp_help")
+    assert_equal "auth/app/verification/totps/new", inertia_component
+    assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
+    assert_equal I18n.t("sign.app.verification.edit.title"), inertia_props.fetch("heading")
+    assert_equal I18n.t("sign.app.verification.edit.code_label"), inertia_form.fetch("code_label")
+    assert_equal I18n.t("sign.app.verification.edit.code_placeholder"), inertia_form.fetch("code_placeholder")
+    assert_equal I18n.t("sign.app.verification.edit.submit"), inertia_form.fetch("submit_label")
+    assert_includes inertia_props.fetch("description"), "認証アプリ"
+    assert_equal I18n.t("sign.app.verification.edit.totp_help"), inertia_props.fetch("totp_help")
     assert_not_includes response.body, "届きます"
     assert_not_includes response.body, "送信され"
 
@@ -142,6 +142,42 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     assert_redirected_to auth_app_settings_url(ri: "jp")
   end
 
+  test "rejects a totp window already consumed by another authentication flow" do
+    private_key = "JBSWY3DPEHPK3PXP"
+    credential = ClientTotpCredential.create!(
+      user: @user,
+      private_key: private_key,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
+      last_otp_at: Time.zone.at(0),
+    )
+    return_to = "/settings/emails?ri=jp"
+    pt = signed_step_up_pt(return_to)
+    grant = signed_step_up_grant_for(
+      actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
+    )
+
+    with_prosopite_paused do
+      get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
+          headers: @headers
+    end
+
+    assert_response :success
+
+    code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
+    consumed_window = ROTP::TOTP.new(private_key).verify(code)
+    credential.update!(last_otp_at: Time.zone.at(consumed_window))
+
+    with_prosopite_paused do
+      post auth_app_verification_totp_url(ri: "jp"),
+           params: { verification: { code: code } },
+           headers: @headers
+    end
+
+    assert_response :unprocessable_content
+    assert_equal consumed_window, credential.reload.last_otp_at.to_i
+    assert_equal 1, ClientStepUpSession.where(user_token: @token).count
+  end
+
   test "renders new on failure" do
     private_key = "JBSWY3DPEHPK3PXP"
     ClientTotpCredential.create!(
@@ -220,9 +256,10 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     end
 
     assert_response :success
-    assert_select "input[name='verification[scope]'][value='settings_email']"
-    assert_select "input[name='verification[pt]'][value='#{pt}']"
-    assert_select "input[name='cf-turnstile-response']"
+    assert_equal "auth/app/verification/totps/new", inertia_component
+    assert_equal "settings_email", inertia_form.fetch("scope")
+    assert_equal pt, inertia_form.fetch("pt")
+    assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
   end
 
   test "settings_totp flow keeps pt through method selection and returns to totps" do
@@ -247,8 +284,8 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       end
 
       assert_response :success
-      assert_select(
-        "a[href=?]",
+      assert_includes(
+        inertia_props.fetch("methods").map { |method| method.fetch("href") },
         new_auth_app_verification_totp_path(ri: "jp", scope: "settings_totp", pt: pt),
       )
 
@@ -261,9 +298,10 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       end
 
       assert_response :success
-      assert_select "input[name='verification[scope]'][value='settings_totp']"
-      assert_select "input[name='verification[pt]'][value='#{pt}']"
-      assert_select "input[name='cf-turnstile-response']"
+      assert_equal "auth/app/verification/totps/new", inertia_component
+      assert_equal "settings_totp", inertia_form.fetch("scope")
+      assert_equal pt, inertia_form.fetch("pt")
+      assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
 
       code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
       with_prosopite_paused do
@@ -305,7 +343,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     assert_response :success
 
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
     with_prosopite_paused do
@@ -315,7 +353,8 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     end
 
     assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("turnstile_error")
+    assert_equal "auth/app/verification/totps/new", inertia_component
+    assert_includes inertia_props.fetch("errors"), I18n.t("turnstile_error")
   end
 
   test "POST redirects to setup when bootstrap and no usable step-up methods exist" do
@@ -334,6 +373,10 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
   end
 
   private
+
+  def inertia_form
+    inertia_props.fetch("form")
+  end
 
   def signed_step_up_pt(return_to)
     signed_step_up_pt_for(
@@ -965,11 +1008,14 @@ class Auth::App::Verification::TotpsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -1016,9 +1062,9 @@ class Auth::App::Verification::TotpsControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -1031,7 +1077,7 @@ class Auth::App::Verification::TotpsControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1300,11 +1346,14 @@ class Auth::App::Verification::TotpsControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

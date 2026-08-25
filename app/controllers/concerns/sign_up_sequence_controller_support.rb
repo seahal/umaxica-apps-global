@@ -22,7 +22,7 @@ module SignUpSequenceControllerSupport
     @sign_up_ticket = current_sign_up_flow_ticket
     return if @sign_up_ticket
 
-    render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
+    render plain: I18n.t("errors.messages.not_found"), status: :not_found
   end
 
   def load_sign_up_checkpoint_ticket
@@ -182,7 +182,7 @@ module SignUpSequenceControllerSupport
 
     actor = sign_up_pending_actor
     unless actor
-      render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
+      render plain: I18n.t("errors.messages.not_found"), status: :not_found
       return false
     end
 
@@ -202,7 +202,7 @@ module SignUpSequenceControllerSupport
 
     actor = sign_up_pending_actor
     unless actor
-      render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
+      render plain: I18n.t("errors.messages.not_found"), status: :not_found
       return
     end
 
@@ -251,7 +251,7 @@ module SignUpSequenceControllerSupport
       end
     @sign_up_age_restricted_message = I18n.t(i18n_key)
     @sign_up_age_restricted_restart_path = sign_up_restart_path
-    render "auth/app/sign/up/checkpoints/age_restricted", status: :ok
+    render "auth/#{sign_up_surface}/sign/up/checkpoints/age_restricted", status: :ok
   end
 
   def finalize_sign_up_from_checkpoint!(json: false)
@@ -495,9 +495,9 @@ module SignUpSequenceControllerSupport
   def sign_up_telephone_edit_path
     case sign_up_surface
     when :app
-      sign_app_sign_up_check_telephone_otp_path(ri: params[:ri])
+      auth_app_sign_up_check_telephone_otp_path(ri: params[:ri])
     when :com
-      sign_com_sign_up_check_telephone_otp_path(ri: params[:ri])
+      auth_com_sign_up_check_telephone_otp_path(ri: params[:ri])
     else
       sign_up_default_sign_in_path
     end
@@ -563,7 +563,7 @@ module SignUpSequenceControllerSupport
     :failed
   end
 
-  def finalize_com_sign_up_actor!(_actor)
+  def finalize_com_sign_up_actor!(actor)
     case @sign_up_ticket.pending_contact_type
     when "telephone"
       # Com sign-up has its own telephone finalizer because the checkpoint
@@ -600,6 +600,10 @@ module SignUpSequenceControllerSupport
       auth_method: sign_up_auth_method,
       audit_context: { flow: "sign_up", sign_up_flow_id: @sign_up_ticket.public_id },
       bootstrap_actor: true,
+      # sign_up_auth_method collapses google/apple to "social" for the MFA-gating
+      # value; the sign-up ticket's entry_method still carries the precise
+      # provider (adr/unified-enforcement.md, Session attribution).
+      established_authentication_method: established_authentication_method_for(@sign_up_ticket.entry_method),
     )
     reset_current_db_sign_in_flow_for_sequence!
     sign_in_result_from_session_result(result, actor: actor)
@@ -765,9 +769,9 @@ module SignUpSequenceControllerSupport
         credential_class: VisitorSecretCredential,
         reveal_purpose: "visitor.recovery_secret_credential",
         reveal_url: ->(token) {
-          sign_com_settings_secrets_url(
+          base_com_identity_secrets_url(
             ri: params[:ri], token: token,
-            host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
+            host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL"),
           )
         },
       }

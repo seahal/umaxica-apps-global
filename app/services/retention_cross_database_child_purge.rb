@@ -61,5 +61,10 @@ class RetentionCrossDatabaseChildPurge
 
   def purge_operator
     OperatorNotificationRecord.where(staff_id: actor.id).delete_all # org_signal DB
+    # org_zenith DB. Withdrawn at suspend/terminate and kept for audit until the
+    # operator's retention window expires; this is where that window ends. Until
+    # it does, the row still holds its (tid, oid), so a returning person cannot be
+    # provisioned onto the same Entra object before the purge runs.
+    OperatorEntraIdentity.where(operator_id: actor.id).delete_all
   end
 end

@@ -9,6 +9,8 @@ module Auth
           module Email
             class BirthdatesController < ::Auth::App::ApplicationController
               include SignUpExplicitStepControllerSupport
+              include ::SurfaceInertiaPage
+              include AppSignUpCheckpointPage
 
               AUTHENTICATION_MODE = :open
               before_action :hide_sign_up_auth_navigation
@@ -40,14 +42,6 @@ module Auth
               def sign_up_family = "email"
 
               def sign_up_step = :birthdate
-
-              def render_sign_up_checkpoint
-                @sign_up_missing_requirements = sign_up_missing_requirements
-                @sign_up_completed_requirements = @sign_up_ticket.completed_requirements
-                @sign_up_pending_actor = sign_up_pending_actor
-
-                render "auth/app/sign/up/checkpoints/show", status: :ok
-              end
             end
           end
         end

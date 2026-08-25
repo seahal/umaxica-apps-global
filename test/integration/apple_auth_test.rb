@@ -2,23 +2,29 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/external_identity_test_helper"
 # require "helpers/global_test_support"
 
 class AppleAuthTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_apple_identity_statuses
+  include ExternalIdentityTestHelper
+
+  fixtures :client_statuses
 
   setup do
     OmniAuth.config.test_mode = true
-    CloudflareTurnstile.test_mode = true
-    JitSecurityTurnstileVerifier.test_mode = true
-    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.enabled = true
+    # The ceremony runs on the Auth host the application is configured with: a request
+    # made to any other host gets a session cookie the application does not read back,
+    # so the sign-up ticket is lost and the flow restarts instead of advancing.
+    @host = configured_host(:sign_service)
     @callback_headers = social_callback_headers(@host)
   end
 
   teardown do
     OmniAuth.config.mock_auth[:apple] = nil
     OmniAuth.config.mock_auth[:google] = nil
-    JitSecurityTurnstileVerifier.test_mode = false
+    TurnstileVerifierStub.enabled = false
   end
 
   test "first Apple login waits for confirmation before creating user" do
@@ -32,6 +38,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
         info: {},
         credentials: {
           token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
@@ -39,9 +46,9 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     )
 
     assert_no_difference("Client.count") do
-      assert_no_difference("ClientAppleIdentity.count") do
-        post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
-             headers: browser_headers.merge(@callback_headers)
+      assert_no_difference("ClientExternalIdentity.count") do
+        get auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+            headers: browser_headers.merge(@callback_headers)
       end
     end
 
@@ -51,15 +58,21 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_sign_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+
+    # created; the page object names that component and carries the label it asks agreement to.
+
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
 
     assert_difference("Client.count", 1) do
-      assert_difference("ClientAppleIdentity.count", 1) do
+      assert_difference("ClientExternalIdentity.count", 1) do
         confirm_social_signup
       end
     end
 
-    user = ClientAppleIdentity.find_by(uid: "apple_uid_new").user
+    user = ClientExternalIdentity.find_by(provider: "apple", subject: "apple_uid_new").user
 
     assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, user.status_id
     assert_nil ClientEmail.find_by(user: user)
@@ -88,14 +101,15 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
         info: {},
         credentials: {
           token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
-         headers: browser_headers.merge(@callback_headers)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+        headers: browser_headers.merge(@callback_headers)
 
     assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
 
@@ -124,14 +138,15 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
         info: {},
         credentials: {
           token: "new_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
-         headers: browser_headers.merge(@callback_headers)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+        headers: browser_headers.merge(@callback_headers)
 
     assert_redirected_to sign_app_sign_in_url(ri: "jp")
     assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before login completion"
@@ -154,6 +169,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
         info: {}, # Deliberately empty - no email provided
         credentials: {
           token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
@@ -161,9 +177,9 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     )
 
     assert_no_difference("Client.count") do
-      assert_no_difference("ClientAppleIdentity.count") do
-        post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
-             headers: browser_headers.merge(@callback_headers)
+      assert_no_difference("ClientExternalIdentity.count") do
+        get auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+            headers: browser_headers.merge(@callback_headers)
       end
     end
 
@@ -173,15 +189,21 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_sign_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+
+    # created; the page object names that component and carries the label it asks agreement to.
+
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
 
     assert_difference("Client.count", 1) do
-      assert_difference("ClientAppleIdentity.count", 1) do
+      assert_difference("ClientExternalIdentity.count", 1) do
         confirm_social_signup
       end
     end
 
-    identity = ClientAppleIdentity.find_by(uid: uid)
+    identity = ClientExternalIdentity.find_by(provider: "apple", subject: uid)
 
     assert_not_nil identity, "ClientAppleIdentity identity should exist"
     assert_not_nil identity.user, "Client should be associated with identity"
@@ -205,26 +227,27 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
         info: {}, # No email in auth hash
         credentials: {
           token: "apple_token",
+          refresh_token: "apple_refresh_token",
           expires_at: 1.week.from_now.to_i,
         },
         extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
-         headers: browser_headers.merge(@callback_headers)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+        headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
     follow_redirect!
     follow_redirect!
 
     assert_difference("Client.count", 1) do
-      assert_difference("ClientAppleIdentity.count", 1) do
+      assert_difference("ClientExternalIdentity.count", 1) do
         confirm_social_signup
       end
     end
 
-    identity = ClientAppleIdentity.find_by(uid: uid)
+    identity = ClientExternalIdentity.find_by(provider: "apple", subject: uid)
 
     assert_not_nil identity
 
@@ -256,7 +279,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     )
 
     assert_no_difference("Client.count") do
-      assert_no_difference("ClientGoogleIdentity.count") do
+      assert_no_difference("ClientExternalIdentity.count") do
         get auth_app_social_google_callback_url(ri: "jp", state: @social_state),
             headers: browser_headers.merge(@callback_headers)
       end
@@ -268,15 +291,21 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_sign_up_check_google_confirmation_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+
+    # created; the page object names that component and carries the label it asks agreement to.
+
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
 
     assert_difference("Client.count", 1) do
-      assert_difference("ClientGoogleIdentity.count", 1) do
+      assert_difference("ClientExternalIdentity.count", 1) do
         confirm_social_signup
       end
     end
 
-    identity = ClientGoogleIdentity.find_by(uid: uid)
+    identity = ClientExternalIdentity.find_by(provider: "google", subject: uid)
 
     assert_not_nil identity
     assert_nil ClientEmail.find_by(user: identity.user), "NO ClientEmail for Google login user"
@@ -870,11 +899,14 @@ class AppleAuthTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -921,9 +953,9 @@ class AppleAuthTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -936,7 +968,7 @@ class AppleAuthTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1004,6 +1036,10 @@ class AppleAuthTest
     return unless response.media_type == "text/html"
     return unless response.body.include?("social-completion-form")
 
+    # A browser only reaches the completion endpoint when CSP allows the form
+    # target. See test/support/form_action_policy_helper.rb.
+    assert_forms_submittable_under_policy
+
     form = response.parsed_body.at_css("form#social-completion-form")
     raise StandardError, "social completion form missing" unless form
 
@@ -1017,7 +1053,8 @@ class AppleAuthTest
       form["action"],
       params: params,
       headers: {
-        "Host" => configured_host(:base_service),
+        # A browser sends the form target as the Host, not a separately configured one.
+        "Host" => URI.parse(form["action"]).host,
         "Origin" => "https://#{configured_host(:sign_service)}",
         "Sec-Fetch-Site" => "same-site",
       },
@@ -1277,11 +1314,14 @@ class AppleAuthTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

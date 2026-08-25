@@ -20,7 +20,7 @@ task's required workflow.
   traces pointing outside the repo are context only.
 - **No questions / no pausing**: make the safest allowed decision; if blocked, write notes and stop.
 - **Allowed commands ONLY**: `bin/rails test test/`, `bin/rails test`, `bin/rails test <path>`,
-  `bin/rails test <path>:<line>`, `vp test`, `vp check`, `vp check --fix`, `bundle exec rubocop -a`.
+  `bin/rails test <path>:<line>`, `pnpm test`, `pnpm check`, `pnpm fix`, `bundle exec rubocop -a`.
 - **Forbidden commands**: all `git`, `bundle install/update`, coverage commands, network/external,
   runtime/gem/Bundler/OS diagnostics. **NOTE:** `bin/rails db:migrate:reset` / `db:migrate` are
   **not** in the allowed list → treated as forbidden (see Risk R1).
@@ -102,7 +102,7 @@ drive-by fixes.
 After the small batch of fixes:
 
 ```
-vp check --fix
+pnpm fix
 bundle exec rubocop -a
 bin/rails test test/
 ```

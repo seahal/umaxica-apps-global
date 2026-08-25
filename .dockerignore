@@ -15,6 +15,11 @@ docs/
 
 # Development files
 .devcontainer/
+!.devcontainer/
+.devcontainer/*
+!.devcontainer/tailscale-core-supervisor.sh
+!.devcontainer/tailscale-core-status.sh
+!.devcontainer/tailscale-core-login-environment.sh
 .vscode/
 .idea/
 
@@ -22,6 +27,10 @@ docs/
 .env*
 !.env.example
 !.env*.erb
+
+# Local credentials are excluded independently of Git. Keep this synchronized
+# with .containerignore because Podman prefers that file when both exist.
+.secrets/
 
 # Security files
 config/master.key
@@ -45,6 +54,9 @@ tmp/storage/*
 #vendor/cache/
 .bundle
 .bun/
+# The asset stage installs from pnpm-lock.yaml; a host node_modules would carry the wrong
+# platform binaries into the build and defeat the lockfile pinning.
+node_modules/
 
 # Assets and builds
 app/assets/builds/*
@@ -53,6 +65,11 @@ public/assets
 !public/assets/.manifest.json
 public/packs/
 public/packs-test/
+# Vite output is produced by the production-assets stage. Copying a host build in would ship
+# whatever the developer last compiled, including a development-mode React bundle.
+public/vite
+public/vite-dev
+public/vite-test
 
 # Test files
 test/
@@ -121,6 +138,13 @@ docker-compose*
 compose.yaml
 compose.yaml
 docker/
+podman/
+!podman/
+podman/*
+!podman/core/
+podman/core/*
+!podman/core/entrypoint.sh
+!podman/core/dev-supervisor.sh
 gke/
 
 # CI/CD

@@ -64,7 +64,7 @@ host—marketing, authentication, docs/news, help/support, BFF, and API—consis
 ### 2.3 Constraints
 
 - Ruby 3.4.7 / Rails 8.x
-- pnpm 11.0.8 / Node 22.13+ for JavaScript tooling (Vite-backed)
+- pnpm 11.22.0 / Node 24.19.0 (Active LTS) for JavaScript tooling (Vite-backed)
 - PostgreSQL 18 primaries/replicas per logical database
 - Valkey for caching/rate limiting
 - Cloudflare/ Fastly handle TLS and CDN duties
@@ -111,8 +111,8 @@ concerns scoped.
    Turnstile, rate limiting, redirect sanitization). Models inherit from base records
    (`IdentitiesRecord`, `ComPrincipalRecord`, etc.) to target specific DB clusters. Services (e.g.,
    `Outbound::Sms`, `AccountService`) encapsulate integration logic.
-3. **Integration**: ActionMailer namespaces, Sms providers, Active Storage/Shrine, OpenTelemetry
-   instrumentation, Redis/Valkey caching, external CDNs/cloud providers.
+3. **Integration**: ActionMailer namespaces, Sms providers, OpenTelemetry instrumentation,
+   Redis/Valkey caching, external CDNs/cloud providers.
 
 ---
 
@@ -277,7 +277,7 @@ Sensitive columns leverage Active Record encryption.
 | SMS            | HTTPS         | `Outbound::Sms` sends OTP codes through the configured provider. SMS job arguments carry encrypted message bodies.                          |
 | Redis/Valkey   | RESP          | Sessions, rate limiting, Memorize store.                                                                                                    |
 | OTLP           | HTTP/gRPC     | OpenTelemetry exporter pushes spans to Tempo (`http://tempo:4318/v1/traces`).                                                               |
-| Object storage | S3-compatible | Opt-in RustFS smoke-test integration for local development; production storage is deferred.                                                |
+| Object storage | S3-compatible | Opt-in RustFS smoke-test integration for local development; production storage is deferred.                                                 |
 
 ---
 
@@ -315,7 +315,8 @@ Sensitive columns leverage Active Record encryption.
 ## 11. Appendices
 
 - Sequence diagrams and state flows live in `docs/uml/` (to be updated alongside DDS).
-- Environment variable catalog: RustFS/object-storage variables are documented inline as
-  comments in the ignored `.env` file (see `docs/operations/local-object-storage-rustfs.md`);
-  there is no committed `.env.example` template.
+- Environment variable catalog: RustFS/object-storage credentials are Podman secrets provisioned by
+  `bin/setup-dev-secrets`; only the non-secret bucket and host-port settings live in the ignored
+  `.env` file (see `docs/operations/local-object-storage-rustfs.md`). There is no committed
+  `.env.example` template.
 - Testing strategy captured in `docs/test.md`.

@@ -9,19 +9,23 @@ module Base
     # context. It never creates or edits entities -- that is the accounts/organizations/avatars
     # controllers' job. Requires a selected actor context (FullAccessController).
     class SwitchersController < Base::App::FullAccessController
+      include ::SurfaceInertiaPage
+
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
 
       def show
-        @switcher = current_context
+        authorize!(current_client, to: :show?)
+        switcher = current_context
 
         respond_to do |format|
-          format.json { render json: @switcher }
-          format.html { render :show }
+          format.json { render json: switcher }
+          format.html { render inertia: true, props: switcher_page_props(switcher) }
         end
       end
 
       def update
+        authorize!(current_client, to: :update?)
         BaseSwitcherAuthority.switch(
           surface: :app,
           principal: current_client,
@@ -34,15 +38,43 @@ module Base
           format.html { redirect_to(base_app_dashboard_path(ri: params[:ri]), status: :see_other) }
         end
       rescue BaseSwitcherAuthority::InvalidSwitch => e
-        @switcher = current_context
+        switcher = current_context
 
         respond_to do |format|
           format.json { render json: { status: "invalid_switch", error: e.message }, status: :unprocessable_content }
-          format.html { render :show, status: :unprocessable_content }
+          format.html do
+            render inertia: "base/app/switchers/show",
+                   props: switcher_page_props(switcher, error: e.message),
+                   status: :unprocessable_content
+          end
         end
       end
 
       private
+
+      def switcher_page_props(switcher, error: nil)
+        current = switcher[:current]
+
+        {
+          title: "Switcher",
+          current: current && {
+            account_public_id: current[:account_public_id],
+            organization_public_id: current[:organization_public_id],
+            organization_unit_public_id: current[:organization_unit_public_id],
+            avatar_public_id: current[:avatar_public_id],
+          },
+          candidates: Array(switcher[:candidates]).map { |candidate| serialize_candidate(candidate) },
+          error: error,
+        }
+      end
+
+      def serialize_candidate(candidate)
+        {
+          account_public_id: candidate[:public_id],
+          organization_public_id: candidate.dig(:organization, :public_id),
+          avatar_public_id: candidate.dig(:avatar, :public_id),
+        }
+      end
 
       def current_context
         BaseSwitcherAuthority.current(

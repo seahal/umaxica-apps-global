@@ -10,20 +10,20 @@ class SocialIdentityPolicyTest < ActiveSupport::TestCase
   test "client google identity destroy allows owner only" do
     owner = clients(:one)
     other = clients(:two)
-    identity = ClientGoogleIdentity.new(user_id: owner.id)
+    identity = ClientExternalIdentity.new(client: owner, provider: "google")
 
-    assert_predicate ClientGoogleIdentityPolicy.new(identity, user: owner), :destroy?
-    assert_not ClientGoogleIdentityPolicy.new(identity, user: other).destroy?
-    assert_not ClientGoogleIdentityPolicy.new(identity, user: operators(:one)).destroy?
+    assert_predicate ClientExternalIdentityPolicy.new(identity, user: owner), :destroy?
+    assert_not ClientExternalIdentityPolicy.new(identity, user: other).destroy?
+    assert_not ClientExternalIdentityPolicy.new(identity, user: operators(:one)).destroy?
   end
 
   test "client apple identity destroy allows owner only" do
     owner = clients(:one)
     other = clients(:two)
-    identity = ClientAppleIdentity.new(user_id: owner.id)
+    identity = ClientExternalIdentity.new(client: owner, provider: "apple")
 
-    assert_predicate ClientAppleIdentityPolicy.new(identity, user: owner), :destroy?
-    assert_not ClientAppleIdentityPolicy.new(identity, user: other).destroy?
-    assert_not ClientAppleIdentityPolicy.new(identity, user: operators(:one)).destroy?
+    assert_predicate ClientExternalIdentityPolicy.new(identity, user: owner), :destroy?
+    assert_not ClientExternalIdentityPolicy.new(identity, user: other).destroy?
+    assert_not ClientExternalIdentityPolicy.new(identity, user: operators(:one)).destroy?
   end
 end

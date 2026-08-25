@@ -5,12 +5,18 @@ module Auth
   module App
     module Settings
       class GooglesController < ::Auth::App::ApplicationController
+        include ::SurfaceInertiaPage
+        include ::TurnstilePageProps
         include CloudflareTurnstile
         include SocialAuth
         include ::SignSocialAuthenticationEndpoint
         include ::VerificationClient
 
         AUTHENTICATION_MODE = :private
+        # Any ERB response that still leaves this controller - an error page, a shared ceremony
+        # template - needs the ERB layout, because the slim Inertia shell has no `yield` and would
+        # silently drop the body.
+        layout :social_settings_layout
 
         before_action :authenticate_client!
         before_action :authorize_google_settings!, only: %i(show edit create destroy)
@@ -20,9 +26,11 @@ module Auth
         # Object-level authorization (ActionPolicy): the Google link-status page reads the client's
         # own account, so gate owner-self via ClientPolicy#show? (mirrors the birthdate page).
         def show
+          render_inertia_page(props: show_page_props)
         end
 
         def edit
+          render_inertia_page(props: edit_page_props)
         end
 
         def create
@@ -34,6 +42,17 @@ module Auth
         end
 
         private
+
+        # Renders one Inertia page and tells `social_settings_layout` that the slim Inertia shell is
+        # the right layout for this response.
+        def render_inertia_page(props:, component: true, status: :ok)
+          @renders_inertia_page = true
+          render inertia: component, props: props, status: status
+        end
+
+        def social_settings_layout
+          @renders_inertia_page ? "auth/app/inertia" : "auth/app/application"
+        end
 
         def authorize_google_settings!
           authorize!(current_client, to: :show?)
@@ -68,8 +87,73 @@ module Auth
         end
 
         def render_unlink_blocked
-          render :edit, status: :unprocessable_content
+          render_inertia_page(
+            component: "auth/app/settings/googles/edit",
+            props: edit_page_props,
+            status: :unprocessable_content,
+          )
           false
+        end
+
+        def show_page_props
+          {
+            title: t("controller.sign.app.setting.index.google"),
+            heading: t("controller.sign.app.setting.index.google"),
+            description: t("views.sign.app.settings.googles.show.description"),
+            status: social_link_status_label,
+            back_link: { label: t("sign.app.settings.show.back"), href: auth_app_settings_path },
+            edit_link: {
+              label: t("actions.edit"),
+              href: edit_auth_app_settings_google_path(ri: params[:ri]),
+            },
+          }
+        end
+
+        def social_link_status_label
+          if current_client.active_social_provider?(social_provider)
+            t("views.sign.app.settings.googles.show.linked")
+          else
+            t("views.sign.app.settings.googles.show.unlinked")
+          end
+        end
+
+        def edit_page_props
+          linked = current_client.active_social_provider?(social_provider)
+          unlink_allowed =
+            linked && current_client.social_unlink_methods_remaining?(excluding_provider: social_provider)
+
+          {
+            title: t("controller.sign.app.setting.index.google"),
+            heading: t("controller.sign.app.setting.index.google"),
+            description: t("views.sign.app.settings.googles.show.description"),
+            back_link: {
+              label: t("sign.app.settings.show.back"),
+              href: auth_app_settings_google_path(ri: params[:ri]),
+            },
+            unlink: unlink_props(linked: linked, allowed: unlink_allowed),
+            connect: linked ? nil : connect_props,
+            turnstile: unlink_allowed ? turnstile_stealth_props : nil,
+          }
+        end
+
+        # The disconnect form exists only while the provider is linked, and stays disabled while
+        # unlinking would leave the account without another sign-in method.
+        def unlink_props(linked:, allowed:)
+          return nil unless linked
+
+          {
+            action: auth_app_settings_google_path(ri: params[:ri]),
+            submit_label: t("actions.disconnect"),
+            allowed: allowed,
+            blocked_notice: allowed ? nil : t("errors.social_auth.insufficient_login_methods"),
+          }
+        end
+
+        def connect_props
+          {
+            action: auth_app_settings_google_path(ri: params[:ri]),
+            label: t("actions.connect"),
+          }
         end
 
         def social_provider_linked?

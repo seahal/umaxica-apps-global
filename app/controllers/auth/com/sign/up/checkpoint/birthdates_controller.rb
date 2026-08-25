@@ -8,6 +8,8 @@ module Auth
         module Checkpoint
           class BirthdatesController < ::Auth::Com::ApplicationController
             include SignUpSequenceControllerSupport
+            include ::ComSignUpCheckpointPage
+            include ::SurfaceInertiaPage
 
             AUTHENTICATION_MODE = :guest
 

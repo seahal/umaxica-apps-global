@@ -470,13 +470,9 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
     assert_equal 0, @harness.epoch_seconds(nil)
   end
 
-  test "login_cooldown_enabled is a shared toggle" do
-    original = AuthenticationBase.login_cooldown_enabled
-
-    AuthenticationBase.login_cooldown_enabled = !original
-
-    assert_equal !original, AuthenticationBase.login_cooldown_enabled
-  ensure
-    AuthenticationBase.login_cooldown_enabled = original
+  test "login_cooldown reads the configured window" do
+    with_login_cooldown(45.seconds) do
+      assert_equal 45.seconds, AuthenticationBase.login_cooldown
+    end
   end
 end

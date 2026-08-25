@@ -5,17 +5,22 @@ module Auth
   module App
     module Sign
       class UpsController < ::Auth::App::ApplicationController
+        include ::SurfaceInertiaPage
+        include SignUpSuspensionGuard
+        include AppSignUpEntryPage
+
         # Use :open instead of :guest so already-authenticated users reach the
         # action body and get redirected to their dashboard (see
         # `redirect_logged_in_direct_entry!`) instead of receiving a 403 from
         # the guest enforcement. Matches the sibling InsController policy.
         AUTHENTICATION_MODE = :open
+
+        before_action :reject_suspended_sign_up!
         declare_authentication_mode! :open
-        skip_before_action :set_region, raise: false
 
         def show
           return redirect_logged_in_direct_entry! if logged_in? && params[:login_challenge].blank?
-          return normalize_to_acme_authorize! if params[:login_challenge].blank?
+          return render_method_selection! if params[:login_challenge].blank?
 
           transaction =
             OidcAuthorizationTransactionCoordinator.find_by_login_challenge!(
@@ -30,25 +35,40 @@ module Auth
 
           session[:oidc_authorization_login_challenge] = transaction.login_challenge
           @oidc_authorization_intent = transaction.intent
-          render "auth/app/sign_ups/new"
+          render_sign_up_entry_page!
         rescue ActiveRecord::RecordNotFound
-          render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+          render plain: I18n.t("errors.messages.invalid_request"),
                  status: :bad_request
         end
 
         private
+
+        def sign_up_surface = :app
 
         # Logged-in users hitting /sign/up directly are sent to their post-auth
         # landing instead of receiving a 403. The 403 surfaced as a hard error
         # in the cross-host redirect chain when the SSO handshake briefly
         # revisited this endpoint.
         def redirect_logged_in_direct_entry!
-          redirect_to(base_app_dashboard_url(ri: params[:ri], host: base_authority_host), allow_other_host: true)
+          redirect_to(
+            base_app_dashboard_url(ri: current_region_identifier, host: base_authority_host),
+            allow_other_host: true,
+          )
         end
 
-        def normalize_to_acme_authorize!
-          url = initiate_oidc_session!(pt: auth_app_root_path(ri: params[:ri]), screen_hint: "signup")
-          redirect_to_oidc_authorization_url(url)
+        # Direct entry without an authorization transaction lists the registration methods instead
+        # of bouncing through Base. The round trip dropped `ri`, so every link on the returned page
+        # needed a further redirect to restore it. Sign-up finalization never reads
+        # `oidc_authorization_login_challenge`; it hands off to the sign-in sequence, which already
+        # branches on a missing challenge.
+        def render_method_selection!
+          render_sign_up_entry_page!
+        end
+
+        # The action's component name would be `auth/app/sign/ups/show`; the page it renders is the
+        # registration entry page, so it is named for the page rather than for the route.
+        def render_sign_up_entry_page!
+          render inertia: AppSignUpEntryPage::SIGN_UP_ENTRY_COMPONENT, props: sign_up_entry_page_props
         end
       end
     end

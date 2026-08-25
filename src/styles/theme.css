@@ -1,0 +1,286 @@
+/*
+ * The design token layer, imported by every stylesheet under `surfaces/`.
+ *
+ * Three responsibilities, in the order they appear below:
+ *
+ *   1. Define the `dark` variant. Tailwind v4 has no configuration file, so a `dark:` utility
+ *      compiles to `prefers-color-scheme` until a `@custom-variant` says otherwise. Without this
+ *      block the visitor's explicit light/dark choice is ignored by every `dark:` utility.
+ *   2. Hold the semantic palette as plain `--ui-*` custom properties, so one set of names has a
+ *      light value and a dark value.
+ *   3. Publish those properties as Tailwind theme tokens, so `bg-surface` / `text-fg` exist as
+ *      utilities and no component has to name a raw colour.
+ */
+
+/*
+ * The theme lives on `<html data-theme>`, written by the server from the `ct` cookie
+ * (`app/helpers/application_helper.rb#theme_cookie_value`) and kept in sync by `src/lib/theme.ts`.
+ * The attribute is always one of `light`, `dark` or `system`, so the two branches below are total:
+ *
+ *   - `dark`   always dark, whatever the operating system says
+ *   - `system` dark only while the operating system is dark
+ *   - `light`  matches neither branch, so it stays light under a dark operating system
+ *
+ * That last case is the one a bare `prefers-color-scheme` gets wrong. Keying on the attribute
+ * rather than a class also means the first paint is already correct: the server renders the
+ * attribute, so there is no flash before JavaScript runs.
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    &:where([data-theme="system"], [data-theme="system"] *) {
+      @slot;
+    }
+  }
+}
+
+/*
+ * The semantic palette. Every value is a Tailwind palette colour rather than a hand-mixed hex, so
+ * the scale stays consistent and a token can be re-pointed without inventing a new shade.
+ *
+ * `--ui-tint` is the per-edition identity hue and the one token a surface stylesheet overrides;
+ * everything else is shared. The page background is mixed from it below rather than named twice,
+ * because naming it twice is what went wrong: the light canvas was a `<hue>-100` pastel while the
+ * dark one was a raw `<hue>-950`, which carries about three times the chroma and is *lighter* than
+ * `--ui-surface`. The dark page therefore read as a saturated colour with the cards sunk into it,
+ * the reverse of the light page. One mix per mode keeps that relationship the same in both.
+ */
+:root {
+  color-scheme: light;
+
+  /*
+   * System fonts only, Latin face first so Latin text is not rendered by the Japanese face. No
+   * webfont, so nothing here blocks first paint. `base_family.css` re-points this for the base
+   * family rather than restating the whole rule at a higher specificity.
+   */
+  --ui-font-sans:
+    "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+
+  /* Neutral by default; a surface names its own hue and nothing else. */
+  --ui-tint: var(--color-zinc-500);
+
+  /*
+   * The ground is named first because Tailwind emits the mix behind an `@supports` guard and falls
+   * back to its first colour: an engine without `color-mix` gets the plain ground rather than an
+   * undiluted `-500` for a page background.
+   */
+  --ui-canvas: color-mix(in oklab, var(--color-white) 85%, var(--ui-tint));
+  --ui-surface: var(--color-white);
+  --ui-surface-muted: var(--color-zinc-50);
+
+  --ui-fg: var(--color-zinc-900);
+  --ui-fg-muted: var(--color-zinc-600);
+
+  --ui-border: var(--color-zinc-300);
+  --ui-ring: var(--color-blue-600);
+
+  --ui-accent: var(--color-blue-600);
+  --ui-accent-hover: var(--color-blue-700);
+  --ui-accent-fg: var(--color-white);
+
+  --ui-danger: var(--color-red-600);
+  --ui-danger-hover: var(--color-red-700);
+  --ui-danger-fg: var(--color-white);
+
+  @variant dark {
+    color-scheme: dark;
+
+    /*
+     * Half the tint of the light canvas and mixed into near-black, so the identity hue is still
+     * recognisable while the page stays darker than every surface stacked on it.
+     */
+    --ui-canvas: color-mix(in oklab, var(--color-zinc-950) 92%, var(--ui-tint));
+    --ui-surface: var(--color-zinc-900);
+    --ui-surface-muted: var(--color-zinc-800);
+
+    --ui-fg: var(--color-zinc-100);
+    --ui-fg-muted: var(--color-zinc-400);
+
+    --ui-border: var(--color-zinc-700);
+    --ui-ring: var(--color-blue-400);
+
+    --ui-accent: var(--color-blue-500);
+    --ui-accent-hover: var(--color-blue-400);
+    --ui-accent-fg: var(--color-zinc-950);
+
+    --ui-danger: var(--color-red-500);
+    --ui-danger-hover: var(--color-red-400);
+    --ui-danger-fg: var(--color-zinc-950);
+  }
+}
+
+/*
+ * `inline` because each value is a reference to another custom property. Without it Tailwind
+ * resolves the reference where the token is declared rather than where the utility is used, which
+ * would freeze every token at its light value.
+ */
+@theme inline {
+  --font-sans: var(--ui-font-sans);
+
+  --color-canvas: var(--ui-canvas);
+  --color-surface: var(--ui-surface);
+  --color-surface-muted: var(--ui-surface-muted);
+
+  --color-fg: var(--ui-fg);
+  --color-fg-muted: var(--ui-fg-muted);
+
+  /*
+   * `line` rather than `border`, because `--color-border-*` would generate `border-border-*`.
+   * The focus colour is deliberately absent: the ring is painted once by the `:focus-visible`
+   * rule below, so no component needs a utility for it.
+   */
+  --color-line: var(--ui-border);
+
+  --color-accent: var(--ui-accent);
+  --color-accent-hover: var(--ui-accent-hover);
+  --color-accent-fg: var(--ui-accent-fg);
+
+  --color-danger: var(--ui-danger);
+  --color-danger-hover: var(--ui-danger-hover);
+  --color-danger-fg: var(--ui-danger-fg);
+}
+
+/*
+ * Motion. Both animations are referenced by existing markup; `fade-in-up` was used by
+ * `auth/org/omniauth/omniauth_callbacks/error.html.erb` without ever being defined, so nothing
+ * animated. Declaring them here makes `animate-shake` and `animate-fade-in-up` real utilities.
+ */
+@theme {
+  --animate-shake: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  --animate-fade-in-up: fade-in-up 0.3s ease-out both;
+
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+
+    25% {
+      transform: translateX(-4px);
+    }
+
+    75% {
+      transform: translateX(4px);
+    }
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/*
+ * Unlayered, so the page ground wins over every Tailwind layer. A surface stylesheet re-points
+ * `--ui-canvas` rather than restating this rule, which is why the fourteen surface files no longer
+ * carry a `body` block of their own.
+ */
+body {
+  background-color: var(--ui-canvas);
+  color: var(--ui-fg);
+  font-family: var(--ui-font-sans);
+}
+
+/*
+ * Nobody should have to remember to write a focus ring. Applying it to `:focus-visible` rather than
+ * `:focus` keeps it off pointer interactions, and `currentcolor` is a fallback only: the token is
+ * what normally paints it.
+ */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ui-ring);
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * Form controls, painted from the tokens.
+ *
+ * `@tailwindcss/forms` styles every control from the `base` layer with a hardcoded `#fff`
+ * background, a grey border and a blue focus ring, and it emits those rules after everything this
+ * file writes to `base`. So a control kept its light appearance under a dark theme while `--ui-fg`
+ * painted the text near-white on top of it, and the value became unreadable.
+ *
+ * `components` rather than `base`, because layer order settles this without a specificity fight:
+ * `components` beats every `base` rule wherever it sits, and still loses to a utility, so a
+ * component that names its own colours - `TextField`'s `bg-surface` - keeps winning. The selector
+ * list is the plugin's own, so exactly the controls it paints are repainted and buttons,
+ * `[type="file"]` and the rest keep the preflight behaviour they already had.
+ */
+@layer components {
+  input:where(
+    [type="text"],
+    [type="email"],
+    [type="url"],
+    [type="password"],
+    [type="number"],
+    [type="date"],
+    [type="datetime-local"],
+    [type="month"],
+    [type="search"],
+    [type="tel"],
+    [type="time"],
+    [type="week"],
+    :not([type])
+  ),
+  textarea,
+  select {
+    background-color: var(--ui-surface);
+    border-color: var(--ui-border);
+    color: var(--ui-fg);
+
+    /*
+     * The plugin replaces the outline with a box-shadow ring and its own blue. Re-pointing the
+     * two colours it uses keeps the ring on the theme; `:focus-visible` still paints the outline
+     * for every control the plugin does not touch.
+     */
+    &:focus {
+      --tw-ring-color: var(--ui-ring);
+
+      border-color: var(--ui-ring);
+    }
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--ui-fg-muted);
+  }
+
+  /*
+   * The plugin fills a checked box with `currentcolor` and draws the tick on top of it, so `color`
+   * is the fill and the unchecked box is `background-color`.
+   */
+  input:where([type="checkbox"], [type="radio"]) {
+    background-color: var(--ui-surface);
+    border-color: var(--ui-border);
+    color: var(--ui-accent);
+  }
+}
+
+/*
+ * Respect a request for less motion. The animations above are decorative feedback, so removing
+ * them costs nothing; `both` fill modes mean the end state is already what the element should look
+ * like.
+ */
+@media (prefers-reduced-motion: reduce) {
+  @layer base {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

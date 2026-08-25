@@ -11,14 +11,14 @@ require "test_helper"
 # - New user creation via social login
 # - JWT/session tokens are issued on success
 class SocialAuthLoginTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
+  fixtures :client_statuses
 
   setup do
     OmniAuth.config.test_mode = true
-    CloudflareTurnstile.test_mode = true
-    JitSecurityTurnstileVerifier.test_mode = true
-    @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
-    AuthenticationBase.login_cooldown_enabled = false
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.enabled = true
+    @original_login_cooldown = login_cooldown
+    self.login_cooldown = 0.seconds
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
     @callback_headers = social_callback_headers(@host)
   end
@@ -26,9 +26,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   teardown do
     OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
-    CloudflareTurnstile.test_mode = false
-    JitSecurityTurnstileVerifier.test_mode = false
-    AuthenticationBase.login_cooldown_enabled = @original_login_cooldown_enabled
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.enabled = false
+    self.login_cooldown = @original_login_cooldown
   end
 
   # ============================================================================
@@ -144,9 +144,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     get response.location, headers: browser_headers
 
     assert_response :success
-    assert_select "h1", "Session limit"
+    assert_equal "Session limit", inertia_props.fetch("heading")
 
-    session_ref = css_select("input[name=session_ref]").first["value"]
+    session_ref = inertia_props.fetch("sessions").first.fetch("session_ref")
     selected_session = SessionLimitResolutionTokenRef.find_client_token(session_ref)
 
     patch acme_app_sign_in_limitation_url(host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")),
@@ -216,16 +216,19 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_equal "post", form["method"]
     assert_equal(
+      # The browser posts this form, so the target is the public Base origin over
+      # https: the CSP form-action allowlist carries https public origins only.
       base_app_social_authentication_completion_url(
         id: "google",
-        host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
+        host: ENV.fetch("PUBLIC_BASE_SERVICE_URL"),
+        protocol: "https",
       ),
       form["action"],
     )
     assert form.at_css("input[name='social_ceremony_result']")
     assert_nil form.at_css("input[name='return_to']")
 
-    assert_equal "old_token", identity.reload.token
+    assert_not_respond_to identity.reload, :token
   end
 
   test "Google sign up entry with existing identity falls through to sign in flow" do
@@ -288,9 +291,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     state = start_social_auth_flow(provider: "apple", intent: "login")
     setup_apple_mock_auth(uid: existing_uid)
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: browser_headers.merge(@callback_headers)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
     assert_equal user_count_before, Client.count
@@ -321,9 +324,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal "apple", sign_up_cycle.entry_method
     assert_equal "social_callback", sign_up_cycle.step
 
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: browser_headers.merge(@callback_headers)
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
     assert_response :redirect
@@ -378,7 +381,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "新しいUmaxica Identityを作成します。"
     assert_includes response.body, "既存アカウントとは後から統合できません。"
     assert_includes response.body, "間違いならキャンセルしてください。"
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+    # created; the page object names that component and carries the label it asks agreement to.
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
     assert_select "script:not([nonce])", false
 
     cycle = ClientSignUpFlow.order(:id).last
@@ -501,9 +507,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
           assert_no_difference("Organization.count") do
             assert_no_difference("Avatar.count") do
               assert_no_difference("ClientToken.count") do
-                post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-                     params: { state: state },
-                     headers: browser_headers.merge(@callback_headers)
+                get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+                    params: { state: state },
+                    headers: browser_headers.merge(@callback_headers)
                 submit_social_completion_if_present!
               end
             end
@@ -520,7 +526,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert_includes response.body, "このAppleアカウントは未登録です。"
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+    # created; the page object names that component and carries the label it asks agreement to.
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
 
     cycle = ClientSignUpFlow.order(:id).last
 
@@ -648,6 +657,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
       info: {}, # Apple may not provide any info when email scope is not requested
       credentials: {
         token: "apple_token_#{SecureRandom.hex(8)}",
+        refresh_token: "apple_refresh_token",
         expires_at: 1.week.from_now.to_i,
       },
       extra: { id_info: { nonce: session[:social_auth_nonce] } },
@@ -1219,11 +1229,14 @@ class SocialAuthLoginTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -1266,13 +1279,15 @@ class SocialAuthLoginTest
     host = @host.presence || configured_host(:sign_service)
     host!(host) if respond_to?(:host!)
     normalized_provider = SocialIdentifiable.normalize_provider(provider)
+    # The ceremony entry is POST only (see SocialCeremonyEntry): a GET entry would
+    # be login CSRF, so there is no `new_` action to seed the flow through.
     continue_path =
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -1285,7 +1300,7 @@ class SocialAuthLoginTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1632,11 +1647,14 @@ class SocialAuthLoginTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

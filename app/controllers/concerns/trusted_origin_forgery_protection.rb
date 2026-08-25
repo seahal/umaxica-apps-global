@@ -15,6 +15,8 @@ module TrustedOriginForgeryProtection
             I18n.t("trusted_origin.null_origin_error")
     end
 
+    return false if origin.nil? && sec_fetch_site_value == "same-site"
+
     origin.nil? || origin == request.base_url || forgery_protection_trusted_origins.include?(origin)
   end
 end

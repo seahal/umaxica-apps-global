@@ -7,7 +7,7 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   AnonymizedRecord =
-    Struct.new(:id, :updated_attrs, :discarded_at, :model_class) do
+    Struct.new(:id, :updated_attrs, :discarded_at, :model_class, :destroyed) do
       def update!(attrs)
         self.updated_attrs = attrs
       end
@@ -18,6 +18,10 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
 
       def is_a?(klass)
         klass == model_class || super
+      end
+
+      def destroy!
+        self.destroyed = true
       end
     end
 
@@ -37,7 +41,7 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
     client_passkey = AnonymizedRecord.new(13, nil, nil, ClientPasskey)
     client_secret = AnonymizedRecord.new(14, nil, nil, ClientSecretCredential)
     client_totp = AnonymizedRecord.new(15, nil, nil, ClientTotpCredential)
-    google_identity = AnonymizedRecord.new(16, nil, nil, ClientGoogleIdentity)
+    external_identity = AnonymizedRecord.new(18, nil, nil, ClientExternalIdentity)
 
     define_client_actor(
       client,
@@ -46,8 +50,9 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
       passkeys: [client_passkey],
       secrets: [client_secret],
       totps: [client_totp],
-      google_identity: google_identity,
+      google_identity: nil,
       apple_identity: nil,
+      external_identities: [external_identity],
     )
 
     RetentionCrossDatabaseChildPurge.stub(:call, ->(actor:) { purge_calls << actor }) do
@@ -80,9 +85,7 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
                  client_totp.updated_attrs.fetch(:user_identity_totp_credential_status_id)
     assert_in_delta Time.current.to_f, client_totp.updated_attrs.fetch(:discarded_at).to_f, 1
 
-    assert_equal "withdrawn-client-google-identity-16", google_identity.updated_attrs.fetch(:uid)
-    assert_equal "withdrawn", google_identity.updated_attrs.fetch(:token)
-    assert_equal ClientGoogleIdentityStatus::REVOKED, google_identity.updated_attrs.fetch(:status_id)
+    assert external_identity.destroyed
   end
 
   test "anonymizes a visitor actor" do
@@ -129,7 +132,8 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
 
   private
 
-  def define_client_actor(actor, emails:, telephones:, passkeys:, secrets:, totps:, google_identity:, apple_identity:)
+  def define_client_actor(actor, emails:, telephones:, passkeys:, secrets:, totps:, google_identity:, apple_identity:,
+                          external_identities: [])
     actor.define_singleton_method(:client_emails) { Scope.new(emails) }
     actor.define_singleton_method(:client_telephones) { Scope.new(telephones) }
     actor.define_singleton_method(:client_passkeys) { Scope.new(passkeys) }
@@ -137,6 +141,7 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
     actor.define_singleton_method(:client_totp_credentials) { Scope.new(totps) }
     actor.define_singleton_method(:user_google_identity) { google_identity }
     actor.define_singleton_method(:user_apple_identity) { apple_identity }
+    actor.define_singleton_method(:client_external_identities) { Scope.new(external_identities) }
   end
 
   def define_visitor_actor(actor, emails:, telephones:, passkeys:, secrets:)

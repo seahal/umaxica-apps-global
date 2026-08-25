@@ -11,18 +11,28 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
   BASE_COM_HOST = ENV.fetch("PUBLIC_BASE_CORPORATE_URL")
   BASE_ORG_HOST = ENV.fetch("PUBLIC_BASE_STAFF_URL")
 
-  test "base private network and developer hosts preserve their constrained routes" do
+  # Every path on these hosts resolves inside the host's own module. Health and revision used to
+  # resolve to Base::App instead, which left the hosts unable to name themselves in a health
+  # response and left Base::Net and Base::Dev controllers on disk that no route reached.
+  test "base private network and developer hosts route entirely within their own modules" do
     {
-      "base.net.localhost" => "base/net/csp_violation_reports",
-      "base.dev.localhost" => "base/dev/csp_violation_reports",
-    }.each do |host, controller|
-      recognized = Rails.application.routes.recognize_path(
-        "http://#{host}/csp-violation-report",
-        method: :post,
-      )
+      "base.net.localhost" => "base/net",
+      "base.dev.localhost" => "base/dev",
+    }.each do |host, module_prefix|
+      {
+        ["/", :get] => ["roots", "index"],
+        ["/revision", :get] => ["revisions", "show"],
+        ["/health", :get] => ["healths", "show"],
+        ["/health/liveness", :get] => ["health/livenesses", "show"],
+        ["/health/readiness", :get] => ["health/readinesses", "show"],
+        ["/health/startup", :get] => ["health/startups", "show"],
+        ["/csp-violation-report", :post] => ["csp_violation_reports", "create"],
+      }.each do |(path, method), (controller, action)|
+        recognized = Rails.application.routes.recognize_path("http://#{host}#{path}", method: method)
 
-      assert_equal controller, recognized[:controller]
-      assert_equal "create", recognized[:action]
+        assert_equal "#{module_prefix}/#{controller}", recognized[:controller]
+        assert_equal action, recognized[:action]
+      end
     end
   end
 

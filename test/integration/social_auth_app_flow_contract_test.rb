@@ -6,22 +6,20 @@ require "test_helper"
 
 class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   fixtures :client_statuses, :client_email_statuses, :client_totp_credential_statuses,
-           :client_google_identity_statuses, :client_apple_identity_statuses
+           :client_secret_credential_statuses
 
   PROVIDERS = {
     google: {
       provider: "google",
       normalized: "google",
-      model: ClientGoogleIdentity,
-      active_status: ClientGoogleIdentityStatus::ACTIVE,
+      model: ClientExternalIdentity,
       config_path: :auth_app_settings_path,
       token_prefix: "google",
     },
     apple: {
       provider: "apple",
       normalized: "apple",
-      model: ClientAppleIdentity,
-      active_status: ClientAppleIdentityStatus::ACTIVE,
+      model: ClientExternalIdentity,
       config_path: :auth_app_settings_apple_path,
       token_prefix: "apple",
     },
@@ -29,20 +27,23 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    CloudflareTurnstile.test_mode = true
-    JitSecurityTurnstileVerifier.test_mode = true
-    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.enabled = true
+    # The ceremony runs on the Auth host the application is configured with: a request
+    # made to any other host gets a session cookie the application does not read back,
+    # so the sign-up ticket is lost and the flow restarts instead of advancing.
+    @host = configured_host(:sign_service)
     @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
     OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
-    JitSecurityTurnstileVerifier.test_mode = false
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
+    TurnstileVerifierStub.enabled = false
   end
 
   test "Google sign up entry creates one client and one active social identity without email" do
@@ -118,7 +119,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     # Settings link commits on Sign after the Sign-owned OAuth state and step-up checks.
     assert_no_difference("Client.count") do
-      assert_difference("ClientAppleIdentity.count", 1) do
+      assert_difference("ClientExternalIdentity.count", 1) do
         perform_social_callback(
           PROVIDERS.fetch(:apple),
           params: { state: grant_session.state },
@@ -128,11 +129,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to auth_app_settings_path(ri: "jp")
-    relinked_identity = ClientAppleIdentity.find_by!(uid: new_uid)
+    relinked_identity = ClientExternalIdentity.find_by!(provider: "apple", subject: new_uid)
 
     assert_equal user.id, relinked_identity.user_id
-    assert_equal ClientAppleIdentityStatus::ACTIVE, relinked_identity.status_id
-    assert_equal "relinked_apple_token", relinked_identity.token
+    assert_equal "active", relinked_identity.state
     assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
   end
 
@@ -191,7 +191,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     user = create_social_client
     google_identity = create_social_identity(PROVIDERS.fetch(:google), user:, uid: "turnstile_google")
     create_social_identity(PROVIDERS.fetch(:apple), user:, uid: "turnstile_backup_apple")
-    CloudflareTurnstile.test_validation_response = { "success" => false }
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
     delete_with_verified_session(user, PROVIDERS.fetch(:google))
 
@@ -224,8 +224,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :ok
-    assert_select "input[name=confirm_new_social_identity]"
-    assert_select "input[name=confirm_new_social_identity][required]"
+    # The social sign-up checkpoint asks for an explicit confirmation before an identity is
+    # created; the page object names that component and carries the label it asks agreement to.
+    assert_equal "auth/app/sign/up/check/social/confirmations/show", inertia_component
+    assert_predicate inertia_props.fetch("confirm_label"), :present?
 
     cycle = ClientSignUpFlow.order(:id).last
 
@@ -261,7 +263,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    identity = config.fetch(:model).find_by!(uid: uid)
+    identity = config.fetch(:model).find_by!(provider: config.fetch(:provider), subject: uid)
     user = identity.user
 
     assert_response :redirect
@@ -269,9 +271,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert ClientToken.exists?(user_id: user.id)
 
     assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, user.status_id
-    assert_equal config.fetch(:active_status), identity.status_id
+    assert_equal "active", identity.state
     assert_equal config.fetch(:provider), identity.provider
-    assert_equal "new_signup_token", identity.token
     assert_not_nil identity.last_authenticated_at
     assert_nil ClientEmail.find_by(user: user)
   end
@@ -279,7 +280,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   def assert_social_sign_in_contract(config)
     uid = "#{config.fetch(:normalized)}_signin_#{SecureRandom.hex(4)}"
     user = create_social_client
-    identity = create_social_identity(config, user:, uid:, token: "old_token")
+    identity = create_social_identity(config, user:, uid:)
 
     state = seed_social_auth_session(provider: config.fetch(:provider), intent: "login", ri: "jp")
     setup_mock_auth(config, uid:, token: "fresh_token")
@@ -294,11 +295,12 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to "http://#{@base_host}/dashboard"
+    # The completion form posts to the public base origin, so the dashboard
+    # handoff continues from there.
+    assert_redirected_to "https://#{ENV.fetch("PUBLIC_BASE_SERVICE_URL")}/dashboard"
     identity.reload
 
     assert_equal user.id, identity.user_id
-    assert_equal "fresh_token", identity.token
     assert_not_nil identity.last_authenticated_at
   end
 
@@ -321,17 +323,16 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to auth_app_settings_path(ri: "jp")
-    identity = config.fetch(:model).find_by!(uid: uid)
+    identity = config.fetch(:model).find_by!(provider: config.fetch(:provider), subject: uid)
 
     assert_equal user.id, identity.user_id
-    assert_equal config.fetch(:active_status), identity.status_id
-    assert_equal "linked_token", identity.token
+    assert_equal "active", identity.state
     assert_not_nil identity.last_authenticated_at
   end
 
   def assert_settings_replacement_rejected(config)
     user = create_social_client
-    existing = create_social_identity(config, user:, uid: "existing_#{config.fetch(:normalized)}", token: "keep_token")
+    existing = create_social_identity(config, user:, uid: "existing_#{config.fetch(:normalized)}")
 
     headers = as_user_headers(user, host: @host)
     token = ClientToken.find_by!(public_id: headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
@@ -345,8 +346,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     existing.reload
 
     assert_equal "existing_#{config.fetch(:normalized)}", existing.uid
-    assert_equal "keep_token", existing.token
-    assert_nil config.fetch(:model).find_by(uid: "different_#{config.fetch(:normalized)}")
+    assert_nil config.fetch(:model).find_by(
+      provider: config.fetch(:provider),
+      subject: "different_#{config.fetch(:normalized)}",
+    )
   end
 
   def assert_last_social_unlink_rejected(config)
@@ -361,7 +364,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   def perform_social_callback(config, params:, headers:)
     if config.fetch(:provider) == "apple"
-      post(auth_app_social_apple_callback_url(provider: "apple", ri: "jp"), params: params, headers: headers)
+      get(auth_app_social_apple_callback_url(provider: "apple", ri: "jp"), params: params, headers: headers)
     else
       get(
         auth_app_social_google_callback_url(provider: config.fetch(:provider), ri: "jp"),
@@ -375,7 +378,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   def setup_mock_auth(config, uid:, token:)
     normalized = config.fetch(:normalized)
     credentials = { token: token, expires_at: 1.week.from_now.to_i }
-    credentials[:refresh_token] = "refresh_#{token}" if normalized == "google"
+    credentials[:refresh_token] = "refresh_#{token}" if normalized == "apple"
 
     extra = {}
     extra[:id_info] = { nonce: session[:social_auth_nonce] } if normalized == "apple"
@@ -410,14 +413,16 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     user
   end
 
-  def create_social_identity(config, user:, uid:, token: "token")
+  def create_social_identity(config, user:, uid:)
     config.fetch(:model).create!(
-      user: user,
-      uid: uid,
+      client: user,
+      subject: uid,
       provider: config.fetch(:provider),
-      token: token,
-      expires_at: 1.week.from_now.to_i,
-      status_id: config.fetch(:active_status),
+      issuer: ExternalAuthentication::ProviderRegistry.fetch(config.fetch(:provider)).issuer,
+      audience: "#{config.fetch(:provider)}-test-client-id",
+      verification_authority: "test",
+      verified_at: Time.current,
+      state: "active",
     )
   end
 
@@ -1042,11 +1047,14 @@ class SocialAuthAppFlowContractTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -1093,9 +1101,9 @@ class SocialAuthAppFlowContractTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -1108,7 +1116,7 @@ class SocialAuthAppFlowContractTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1184,6 +1192,10 @@ class SocialAuthAppFlowContractTest
   def submit_social_completion_if_present!
     return unless response.media_type == "text/html"
     return unless response.body.include?("social-completion-form")
+
+    # A browser only reaches the completion endpoint when CSP allows the form
+    # target. See test/support/form_action_policy_helper.rb.
+    assert_forms_submittable_under_policy
 
     form = response.parsed_body.at_css("form#social-completion-form")
     raise StandardError, "social completion form missing" unless form
@@ -1446,11 +1458,14 @@ class SocialAuthAppFlowContractTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

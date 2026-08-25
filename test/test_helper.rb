@@ -1,21 +1,42 @@
 # frozen_string_literal: true
 
+if ENV["COVERAGE"] == "true"
+  # `require "simplecov"` already loads ./.simplecov, and that file loads the
+  # "rails" profile along with the rest of the configuration. Passing the
+  # profile to `start` as well would apply it a second time (only duplicating
+  # filters, but splitting the configuration across two places). Keep .simplecov
+  # as the single source of configuration and let `start` just begin tracking.
+  require "simplecov"
+  SimpleCov.start
+end
+
 ENV["RAILS_ENV"] ||= "test"
-ENV["AUTH_SERVICE_URL"] = "auth.app.localhost"
-ENV["AUTH_CORPORATE_URL"] = "auth.com.localhost"
-ENV["AUTH_STAFF_URL"] = "auth.org.localhost"
-ENV["PUBLIC_AUTH_SERVICE_URL"] = "auth.app.localhost"
-ENV["PUBLIC_AUTH_CORPORATE_URL"] = "auth.com.localhost"
-ENV["PUBLIC_AUTH_STAFF_URL"] = "auth.org.localhost"
-ENV["PRIVATE_AUTH_SERVICE_URL"] = "auth.app.localhost"
-ENV["PRIVATE_AUTH_CORPORATE_URL"] = "auth.com.localhost"
-ENV["PRIVATE_AUTH_STAFF_URL"] = "auth.org.localhost"
+# Host names are deliberately NOT set here. This file is read after the application has
+# already booted whenever the runner boots first (`bin/rails test` with no path argument,
+# which is the documented command), and config/application.rb freezes
+# Rails.configuration.x.boot_config from ENV at boot. An assignment made here therefore
+# reaches ENV but never boot_config, leaving two disagreeing sources of truth for the same
+# host and making results depend on how the suite was invoked. Host configuration belongs
+# to the process environment (compose.yaml, the CI job env), which is set before boot.
+# test/config/host_configuration_consistency_test.rb fails loudly if the two ever diverge.
+ENV["SOCIAL_AUTH_CEREMONY_HMAC_KEY"] = "test-social-auth-ceremony-hmac-key"
 ENV["SMTP_FROM_ADDRESS_APP"] = "from@umaxica.app"
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
 
 require_relative "../config/environment"
 require "rails/test_help"
 require_relative "support/parallel_test_database_cloner"
+require_relative "support/external_identity_test_helper"
+require_relative "support/publishing_content_helper"
+require_relative "support/form_action_policy_helper"
+require_relative "support/fetch_metadata_defaults"
+require_relative "support/turnstile_verifier_stub"
+require_relative "support/login_cooldown_helper"
+require_relative "support/inertia_page_object"
+
+# Inject the Turnstile stub for the whole suite. Application code resolves the verifier
+# through Turnstile::VerifierFactory, so no production class knows about the test suite.
+Rails.application.config.x.turnstile.verifier = "TurnstileVerifierStub"
 
 module AuthenticationHarness
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " \
@@ -210,12 +231,34 @@ end
 module ActiveSupport
   class TestCase
     include AuthenticationHarness
+    include ExternalIdentityTestHelper
+    include PublishingContentHelper
+    include FormActionPolicyHelper
+    include LoginCooldownHelper
 
     parallel_workers =
       if ENV["COVERAGE"] == "true"
+        # `parallelize(workers: 1)` below cannot pin the run to one worker on its
+        # own: ActiveSupport::TestCase.parallelize reads ENV["PARALLEL_WORKERS"]
+        # in preference to its `workers:` argument. A surviving
+        # PARALLEL_WORKERS > 1 would therefore fork that many workers while
+        # ParallelTestDatabaseCloner.install! -- which returns early at
+        # workers <= 1 -- had prepared no per-worker clones and registered no
+        # after_fork_hook, leaving every worker on the same unprepared test
+        # database. Refuse the combination instead of running it.
+        requested_workers = ENV["PARALLEL_WORKERS"]
+        if requested_workers.present? && requested_workers != "1"
+          # rubocop:disable I18n/RailsI18n/DecorateString
+          raise ArgumentError,
+                "COVERAGE=true runs on a single test worker, but PARALLEL_WORKERS=#{requested_workers} " \
+                "is set and Rails gives the environment variable precedence. " \
+                "Unset PARALLEL_WORKERS, or set it to 1, for a coverage run."
+          # rubocop:enable I18n/RailsI18n/DecorateString
+        end
+
         1
       else
-        # Physical cores, not logical: measured on a 16C/32T host — 32 workers
+        # Physical cores, not logical: measured on a 16C/32T host -- 32 workers
         # lost more in fork + per-worker DB-clone overhead than they gained.
         Integer(ENV.fetch("PARALLEL_WORKERS") { Concurrent.physical_processor_count.to_s }, 10)
       end
@@ -234,12 +277,27 @@ module ActiveSupport
     # controllers that captured the original store at class-load time).
     setup { Rails.configuration.x.rate_limit.fetch(:store).clear }
 
+    # Social ceremony availability is a Flipper kill switch that fails closed, so the suite's
+    # baseline is every provider enabled; tests that exercise a disabled provider turn it off
+    # themselves. This runs per test rather than once at boot because the in-memory adapter is
+    # rebuilt whenever Flipper's instance is, which would silently drop a boot-time enable.
+    setup do
+      ExternalAuthentication::FlipperProviderAvailabilityAdapter::PROVIDER_FEATURE_NAMES
+        .each_value { |feature| Flipper.enable(feature) }
+    end
+
+    # Same reasoning for the per-FQDN availability kill switch: it fails closed, so every served
+    # FQDN is on by default here and a test that wants a surface switched off disables it itself.
+    setup do
+      FqdnAvailabilityRegistry.flag_names.each { |feature| Flipper.enable(feature) }
+    end
+
     # I18n.locale is thread-local and is set by controller `set_locale`
     # before_actions during integration/controller tests. Those tests share
     # worker processes with model tests, so a request that leaves I18n.locale
     # at, e.g., :en would make a later model test read English validation
     # messages where it expects the default locale. Reset to the default after
     # every test so locale never leaks across the shared process.
-    teardown { I18n.locale = I18n.default_locale }
+    teardown { I18n.locale = I18n.default_locale } # rubocop:disable Rails/I18nLocaleAssignment
   end
 end

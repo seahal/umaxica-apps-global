@@ -1,6 +1,10 @@
 # typed: false
 # frozen_string_literal: true
 
+# Environment files are evaluated before autoloading is set up, so this is required explicitly rather
+# than resolved from lib/ by Zeitwerk.
+require_relative "../../lib/health_probe_paths"
+
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
@@ -20,7 +24,15 @@ Rails.application.configure do
   # config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
 
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
-  config.asset_host = ENV["PUBLIC_ASSET_URL"] || ENV["ASSET_URL"] || "https://asset-jp.umaxica.net"
+  #
+  # `PUBLIC_ASSET_URL` is the preferred name (adr/public-private-url-boundaries.md);
+  # `ASSET_URL` stays a supported compatibility input because CI sets it
+  # (.github/workflows/ci.yml). There is deliberately no literal default: a hardcoded
+  # asset host silently served every production asset from one environment's CDN if the
+  # variable was ever missing. Fail at boot and name what is missing instead.
+  config.asset_host =
+    ENV["PUBLIC_ASSET_URL"].presence || ENV["ASSET_URL"].presence ||
+    raise(KeyError, "PUBLIC_ASSET_URL must be set in production (legacy alias: ASSET_URL)")
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   # config.active_storage.service = :local
@@ -121,9 +133,9 @@ Rails.application.configure do
     read_timeout: 10,
   }
 
-  # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
-  # the I18n.default_locale when a translation cannot be found).
-  config.i18n.fallbacks = true
+  # Locale fallbacks are configured in config/initializers/locale.rb, which is the single source of
+  # truth for the load path, available locales, and the fallback chain. Setting them here as well
+  # would be overwritten by that initializer and hide which value actually applies.
 
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
@@ -155,12 +167,17 @@ Rails.application.configure do
     "www.umaxica.app",
     "www.umaxica.com",
     "www.umaxica.org",
+    # Legacy Core host family. `adr/core-canonical-public-host.md` chose jp.umaxica.* as
+    # canonical; these stay until the external OAuth/OIDC redirect URIs are re-registered
+    # and the jpx.* column defaults are migrated, then they are removed.
     "jpx.umaxica.app",
     "jpx.umaxica.com",
     "jpx.umaxica.org",
-    boot_hosts.base_service.host,
-    boot_hosts.base_corporate.host,
-    boot_hosts.base_staff.host,
+    # Canonical Core host family. Listed alongside the legacy families during the cutover so
+    # the origin answers on the new name before the edge publishes it.
+    "jp.umaxica.app",
+    "jp.umaxica.com",
+    "jp.umaxica.org",
     boot_hosts.palm_service.host,
     boot_hosts.palm_corporate.host,
     boot_hosts.palm_staff.host,
@@ -170,23 +187,57 @@ Rails.application.configure do
     boot_hosts.info_service.host,
     boot_hosts.info_corporate.host,
     boot_hosts.info_staff.host,
-    "news.app.localhost",
-    "news.com.localhost",
-    "news.org.localhost",
-    "docs.app.localhost",
-    "docs.com.localhost",
-    "docs.org.localhost",
   ]
+  # The docs and news surfaces have no host entry. Their only entries here were
+  # `docs.*.localhost` and `news.*.localhost` -- private development ingress names, which
+  # no production request can carry: the edge routes no such name, and
+  # ConfigValues::HostFamilyValues defines no docs/news member to derive a real one from.
+  # They were removed rather than left as a development ingress name accepted in
+  # production. Add the real ingress hosts here (preferably via boot_config) before serving
+  # either surface publicly.
 
-  # Skip DNS rebinding protection only for health checks and load balancer probes.
-  config.host_authorization = { exclude: ->(request) { request.path == "/health" } }
+  # Skip DNS rebinding protection for the internal health probes, and only for them.
+  #
+  # This previously matched `"/health"` alone, while the probe set this application mounts is four
+  # paths. `/health/liveness`, `/health/readiness` and `/health/startup` were therefore answered by
+  # Host Authorization rather than by the probe whenever the caller addressed the origin by container
+  # name or pod IP -- the normal orchestrator case, since those names are deliberately not in
+  # `config.hosts`.
+  #
+  # `HealthProbePaths` matches the four paths exactly rather than by `/health/` prefix, so a probe
+  # added later cannot inherit the exemption without a deliberate decision. See that file for what
+  # the exemption costs and why it is acceptable for these four responses.
+  #
+  # Preferred over widening this list: give the probe a `Host` that is already in `config.hosts`.
+  # A probe that sets its own `Host` header needs no exemption at all.
+  config.host_authorization = { exclude: ->(request) { HealthProbePaths.probe?(request) } }
 
   ### Added by owner
   # We've configured this production environment to prevent the delivery of public static content.
   config.public_file_server.enabled = false
 
-  # Enable Gzip compression
-  config.middleware.use(Rack::Deflater)
+  # Gzip compression, restricted to content types that carry no secret alongside
+  # attacker-influenced text.
+  #
+  # Compressing HTML is the BREACH precondition: every authenticated page embeds
+  # the CSRF authenticity token, and the sign-in and identity surfaces reflect
+  # submitted input back into the same response. An attacker who can trigger
+  # requests and observe compressed response sizes can recover the token a byte
+  # at a time, and Rails adds no length randomization. text/html is therefore
+  # excluded here rather than compressed.
+  config.middleware.use(
+    Rack::Deflater,
+    include: %w(
+      application/javascript
+      application/json
+      application/xml
+      image/svg+xml
+      text/css
+      text/javascript
+      text/plain
+      text/xml
+    ),
+  )
 
   # Additional security headers
   config.action_dispatch.default_headers.merge!(

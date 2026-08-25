@@ -53,4 +53,37 @@ class AuthenticationSessionRevokerTest < ActiveSupport::TestCase
 
     assert_equal [1, 1], tokens.map(&:revoke_calls)
   end
+
+  test "tokens_for_method returns sessions matching the method and sessions with no recorded method" do
+    client = Client.create!(status_id: ClientStatus::ACTIVE)
+    matching = ClientToken.create!(user_id: client.id, established_authentication_method: "passkey")
+    unattributed = ClientToken.create!(user_id: client.id, established_authentication_method: nil)
+    other_method = ClientToken.create!(user_id: client.id, established_authentication_method: "email")
+
+    result_ids = AuthenticationSessionRevoker.tokens_for_method(client, "passkey").pluck(:id)
+
+    assert_includes result_ids, matching.id
+    assert_includes result_ids, unattributed.id
+    assert_not_includes result_ids, other_method.id
+  end
+
+  test "tokens_for_method additionally includes TOTP step-up sessions only when the method is totp" do
+    client = Client.create!(status_id: ClientStatus::ACTIVE)
+    totp_matching = ClientToken.create!(user_id: client.id, established_authentication_method: "totp")
+    passkey_with_totp_step_up = ClientToken.create!(
+      user_id: client.id,
+      established_authentication_method: "passkey",
+      last_step_up_method: "totp",
+    )
+    passkey_without_step_up = ClientToken.create!(user_id: client.id, established_authentication_method: "passkey")
+
+    totp_result_ids = AuthenticationSessionRevoker.tokens_for_method(client, "totp").pluck(:id)
+    passkey_result_ids = AuthenticationSessionRevoker.tokens_for_method(client, "passkey").pluck(:id)
+
+    assert_includes totp_result_ids, totp_matching.id
+    assert_includes totp_result_ids, passkey_with_totp_step_up.id
+    assert_includes passkey_result_ids, passkey_with_totp_step_up.id
+    assert_not_includes passkey_result_ids, totp_matching.id
+    assert_not_includes totp_result_ids, passkey_without_step_up.id
+  end
 end

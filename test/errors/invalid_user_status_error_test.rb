@@ -37,7 +37,7 @@ class InvalidUserStatusErrorTest < ActiveSupport::TestCase
   def test_invalid_user_status_error_status_code
     error = InvalidUserStatusError.new(invalid_status: "BANNED")
 
-    assert_equal :unprocessable_entity, error.status_code
+    assert_equal :unprocessable_content, error.status_code
   end
 
   def test_invalid_user_status_error_is_application_error

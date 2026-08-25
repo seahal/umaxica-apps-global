@@ -11,6 +11,12 @@ scope(module: :base, as: :base) do
   ) do
     scope(module: :app, as: :app) do
       root "roots#index"
+
+      # Model Context Protocol endpoint. The MCP spec requires a single path serving POST; the
+      # transport carries every protocol method in the JSON-RPC body, so one create action is the
+      # whole endpoint.
+      resource :mcp, only: :create
+
       resource :welcome, only: :show
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
@@ -52,6 +58,9 @@ scope(module: :base, as: :base) do
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
+
       resource(:health, only: :show)
       namespace(:health) do
         resource(:liveness, only: :show)
@@ -62,6 +71,13 @@ scope(module: :base, as: :base) do
       resources(:robots, only: :index, path: "robots.txt")
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
 
       # Base owns the post-authentication sign-out confirmation flow.
       scope path: :sign do
@@ -120,8 +136,7 @@ scope(module: :base, as: :base) do
           resource :completion, only: :create
         end
 
-        # Non-resourceful exception: OmniAuth middleware owns these paths, and
-        # Apple's form_post response mode requires the POST variant.
+        # Non-resourceful exception: OmniAuth middleware owns these fixed provider callback paths.
         get(
           "google/callback",
           to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
@@ -129,10 +144,9 @@ scope(module: :base, as: :base) do
           defaults: { provider: "google" },
         )
 
-        match(
+        get(
           "apple/callback",
           to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
-          via: %i(get post),
           as: :apple_callback,
           defaults: { provider: "apple" },
         )
@@ -179,6 +193,14 @@ scope(module: :base, as: :base) do
       end
 
       namespace :identity do
+        resource :standing, only: :show
+        resource :recovery, only: :show do
+          resource :completion, only: :create, module: :recovery
+        end
+        namespace :recovery do
+          resource :session, only: %i(new create)
+          resources :appeals, only: :create
+        end
         namespace :mfa do
           resource :reset, only: %i(show create)
           resource :challenge, only: %i(show update)
@@ -209,9 +231,6 @@ scope(module: :base, as: :base) do
         resource :revocation, only: :destroy, path: "sessions", controller: "revocations/alls", as: :session_set
         resource :revocation, only: :destroy, path: "other_sessions", controller: "revocations/others",
                               as: :other_sessions
-        namespace :sessions do
-          resource :revocation, only: :create, controller: "/base/app/identity/revocations"
-        end
 
         resources :activities, only: :index
 
@@ -237,6 +256,12 @@ scope(module: :base, as: :base) do
   ) do
     scope(module: :com, as: :com) do
       root "roots#index"
+
+      # Model Context Protocol endpoint. The MCP spec requires a single path serving POST; the
+      # transport carries every protocol method in the JSON-RPC body, so one create action is the
+      # whole endpoint.
+      resource :mcp, only: :create
+
       resource :welcome, only: :show
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
@@ -275,6 +300,9 @@ scope(module: :base, as: :base) do
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
+
       resource(:health, only: :show)
       namespace(:health) do
         resource(:liveness, only: :show)
@@ -285,6 +313,13 @@ scope(module: :base, as: :base) do
       resources(:robots, only: :index, path: "robots.txt")
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
 
       # Base owns the post-authentication sign-out confirmation flow.
       scope path: :sign do
@@ -337,6 +372,14 @@ scope(module: :base, as: :base) do
 
       resource :identity, only: :show
       namespace :identity do
+        resource :standing, only: :show
+        resource :recovery, only: :show do
+          resource :completion, only: :create, module: :recovery
+        end
+        namespace :recovery do
+          resource :session, only: %i(new create)
+          resources :appeals, only: :create
+        end
         namespace :emails do
           resource :registration, only: %i(new create edit update)
         end
@@ -383,6 +426,12 @@ scope(module: :base, as: :base) do
   ) do
     scope(module: :org, as: :org) do
       root "roots#index"
+
+      # Model Context Protocol endpoint. The MCP spec requires a single path serving POST; the
+      # transport carries every protocol method in the JSON-RPC body, so one create action is the
+      # whole endpoint.
+      resource :mcp, only: :create
+
       resource :welcome, only: :show
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
@@ -421,6 +470,9 @@ scope(module: :base, as: :base) do
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
+
       resource(:health, only: :show)
       namespace(:health) do
         resource(:liveness, only: :show)
@@ -431,6 +483,13 @@ scope(module: :base, as: :base) do
       resources(:robots, only: :index, path: "robots.txt")
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+
+      # PWA offline fallback. This is the route form Rails' own application generator emits, kept
+      # verbatim except for the leading slash on the controller, which escapes the enclosing
+      # `scope(module:)`. Approved exception to the resourceful routing rule; do not reshape it into
+      # `resource`. See adr/pwa-offline-route-exception.md.
+      get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
+      get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
 
       # Staff management areas.
       resource :configuration, only: :show
@@ -450,6 +509,19 @@ scope(module: :base, as: :base) do
             controller: "visitors/sessions/emergency_revocations",
             path: "sessions/emergency_revocation",
           )
+        end
+
+        # adr/unified-enforcement.md, Approval: realm-scoped noun resources, per
+        # .agents/harnesses/rules/generic/routing.mdc (no verb actions such as
+        # `approve`/`release`; each is its own nested resource with only `create`).
+        %i(app com org).each do |enforcement_realm|
+          scope(path: enforcement_realm, as: enforcement_realm, defaults: { realm: enforcement_realm }) do
+            resources :enforcement_cases, only: %i(index show create) do
+              resource :approval, only: :create, controller: "enforcement_cases/approvals"
+              resource :release, only: :create, controller: "enforcement_cases/releases"
+              resource :appeal_review, only: :create, controller: "enforcement_cases/appeal_reviews"
+            end
+          end
         end
       end
       resources :billing, only: :index
@@ -505,6 +577,7 @@ scope(module: :base, as: :base) do
 
       resource :identity, only: :show
       namespace :identity do
+        resource :standing, only: :show
         namespace :emails do
           resource :registration, only: %i(new create edit update)
         end
@@ -534,29 +607,65 @@ scope(module: :base, as: :base) do
   end
 
   constraints(host: [ENV["PRIVATE_BASE_NETWORK_URL"], "base.net.localhost"].compact) do
-    scope(module: :app, as: :network) do
+    scope(module: :net, as: :network) do
+      # Thin landing endpoint.
+      root(to: "roots#index")
+
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
+
       resource(:health, only: :show)
       namespace(:health) do
         resource(:liveness, only: :show)
         resource(:readiness, only: :show)
         resource(:startup, only: :show)
       end
-    end
-    scope(module: :net, as: :network) do
+
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
     end
   end
 
-  constraints(host: [ENV["PRIVATE_BASE_DEVELOPER_URL"], "base.dev.localhost"].compact) do
-    scope(module: :app, as: :developer) do
+  constraints(
+    host: [ENV["PUBLIC_BASE_DEVELOPER_URL"], ENV["PRIVATE_BASE_DEVELOPER_URL"],
+           "base.dev.localhost",].compact,
+  ) do
+    # Feature-flag control surface. Cloudflare Access fronts this host, but the mounted Rack app
+    # must not depend on the edge alone: Flipper::UI subclasses nothing of this application, so
+    # enforce_access_policy! and surface isolation never run for it, and any request that reaches
+    # the origin directly would get unauthenticated read/write over every feature flag.
+    #
+    # Fails closed: when the credentials are not configured the block returns false and every
+    # request is answered with 401, rather than defaulting to open access.
+    mount(
+      Rack::Auth::Basic.new(Flipper::UI.app(Flipper)) do |user, password|
+        expected_user = Rails.app.creds.option(:FLIPPER_UI_USER)
+        expected_password = Rails.app.creds.option(:FLIPPER_UI_PASSWORD)
+
+        if expected_user.blank? || expected_password.blank?
+          false
+        else
+          # Non-short-circuiting `&` so both comparisons always run.
+          ActiveSupport::SecurityUtils.secure_compare(user.to_s, expected_user) &
+            ActiveSupport::SecurityUtils.secure_compare(password.to_s, expected_password)
+        end
+      end.tap { |app| app.realm = "Flipper" } => "/flipper",
+      :as => :flipper,
+    )
+
+    scope(module: :dev, as: :developer) do
+      # Thin landing endpoint.
+      root(to: "roots#index")
+
+      # Deployment identifier endpoint.
+      resource(:revision, only: :show)
+
       resource(:health, only: :show)
       namespace(:health) do
         resource(:liveness, only: :show)
         resource(:readiness, only: :show)
         resource(:startup, only: :show)
       end
-    end
-    scope(module: :dev, as: :developer) do
+
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
     end
   end

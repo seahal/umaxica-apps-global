@@ -1,9 +1,68 @@
 # Container Engine Notes (Podman / Docker)
 
-The compose stack at `compose.yaml` is primarily exercised with Docker. It is intended to work with
-Podman (4.1+) as well, but rootless Podman has a few operational requirements that Docker users do
-not have to think about. This document captures those so a contributor running Podman does not lose
-hours to silent misconfiguration.
+## Compose provider for the Dev Container
+
+VS Code is the primary entry point. Complete the one-time Podman user settings
+in [VS Code Dev Containers on Rootless
+Podman](devcontainer-cli-podman-startup.md), then run **Dev Containers: Rebuild
+and Reopen in Container**.
+
+For diagnostics or automation, use the equivalent standard CLI command from
+the repository root:
+
+```sh
+PODMAN_COMPOSE_PROVIDER=/usr/bin/podman-compose \
+devcontainer up \
+  --docker-path /usr/bin/podman \
+  --docker-compose-path /usr/bin/podman-compose \
+  --workspace-folder .
+```
+
+`PODMAN_COMPOSE_PROVIDER` is not optional. Once `--docker-path` points at
+Podman, the Dev Containers CLI invokes the `podman compose` subcommand, and
+`podman compose` delegates to an external provider that prefers `docker-compose`
+when one is installed. Docker Compose reports `unsupported external secret` for
+this stack because it cannot attach external Podman secrets through the Podman
+API, and on a host with no running Docker daemon it fails earlier still, against
+a missing `podman.sock`. The variable is what pins the provider;
+`--docker-compose-path` alone does not, because the subcommand form does not
+consult it.
+
+This is a security requirement. Do not replace external Podman secrets with
+host credential bind mounts or Compose `file:` secrets. The Dev Container
+`initializeCommand` registers the internal service secrets through
+`bin/setup-dev-secrets` before the container starts. Global and Edge intentionally do not share a
+host Podman network; Edge reaches the Rails origin through Cloudflare Workers VPC.
+
+`--docker-path` is equally required. Without it the Dev Containers CLI runs
+lifecycle queries such as `docker ps` through its default Docker executable,
+which on a host that also has Docker installed silently drives the wrong engine.
+Neither the flags nor the variable have a `devcontainer.json` equivalent, so
+none of them can be moved into repository configuration.
+
+There is intentionally no repository launcher. VS Code invokes the standard
+Dev Containers CLI, keeping one lifecycle instead of adding a project-specific
+bootstrap interface. The remaining Podman-specific properties live in Compose
+configuration.
+
+If an interrupted start leaves `global-devcontainer-core` in Created or Exited
+state, use **Dev Containers: Rebuild and Reopen in Container**. The CLI
+equivalent is the same `devcontainer up` command with
+`--remove-existing-container`.
+
+Compose networks are repository-managed rootless Podman networks. In
+particular, `outer.external` is a YAML boolean and is not environment-variable
+interpolated. Interpolation turns this field into a string; affected
+podman-compose releases then fail in network argument construction with
+`AttributeError: 'str' object has no attribute 'get'`.
+
+`bin/setup-dev-secrets` reports secret names and state only; it never prints
+secret values.
+
+The compose stack at `compose.yaml` is exercised with rootless Podman. Some
+Compose-compatible tooling remains useful for static validation, but it is not
+the supported runtime provider when Podman-managed secrets are attached. This
+document records the rootless Podman requirements that are easy to miss.
 
 ## Restart policies
 
@@ -38,19 +97,11 @@ the build UID differs slightly from the runtime UID. Pinning `user:` on the comp
 intentionally cleared in the override because pinning would double-map under `keep-id` and break
 ownership.
 
-## Postgres tmpfs sizing
+## PostgreSQL storage
 
-Primary and replica DBs run on `tmpfs`. The sizes (`POSTGRES_PRIMARY_TMPFS_SIZE`,
-`POSTGRES_REPLICA_TMPFS_SIZE`) are billed against the user's memory cgroup under rootless Podman. On
-hosts with constrained `memory.max` for the user slice, set lower values in `.env`:
-
-```bash
-POSTGRES_PRIMARY_TMPFS_SIZE=24g
-POSTGRES_REPLICA_TMPFS_SIZE=16g
-```
-
-Reducing these caps cuts the maximum number of parallel test workers the DBs can fan out to before
-evicting.
+Primary and replica data use named volumes. The no-tmpfs baseline is
+intentional: explicit tmpfs and `shm_size` settings are not part of the current
+stack. Reintroducing either requires workload and memory-pressure measurements.
 
 ## SELinux
 
@@ -63,7 +114,7 @@ If a service fails to read a mounted file with "permission denied" on an SELinux
 POSIX permissions look correct, relabel manually:
 
 ```bash
-chcon -Rt container_file_t docker/<service>/
+chcon -Rt container_file_t podman/<service>/
 ```
 
 ## Devcontainer overrides

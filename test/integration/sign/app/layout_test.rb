@@ -20,12 +20,22 @@ class SignAppLayoutTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_select "nav" do
-      assert_select "a[href*=?]", auth_app_sign_up_path, text: I18n.t("sign.app.layout.nav.sign_up")
-      assert_select "a[href*=?]", auth_app_sign_in_path, text: I18n.t("sign.app.layout.nav.log_in")
-      assert_select "a[href*=?]", "/configuration", count: 0
-      assert_select "a[href*=?][data-turbo-method='delete']", "/authentication", count: 0
-    end
+    # The navigation is no longer markup in the layout: the React layout renders the shared
+    # `chrome` prop, so what the visitor is offered is decided here, on the server.
+    navigation = inertia_props.fetch("chrome").fetch("primary_navigation")
+
+    assert_equal(
+      [
+        { "label" => I18n.t("sign.app.layout.nav.sign_up"), "href" => auth_app_sign_up_path(ri: "jp") },
+        { "label" => I18n.t("sign.app.layout.nav.log_in"), "href" => auth_app_sign_in_path(ri: "jp") },
+      ],
+      navigation,
+    )
+
+    hrefs = navigation.map { |link| link.fetch("href") }
+
+    assert_empty hrefs.grep(%r{/configuration})
+    assert_empty hrefs.grep(%r{/authentication})
   end
 
   # test "layout links when logged in" do

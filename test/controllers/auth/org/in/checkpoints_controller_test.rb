@@ -18,7 +18,12 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
     get auth_org_sign_in_check_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :redirect
-    assert_includes response.location, "rt="
+    # Auth and Base are same-site, so the authorize hop goes straight to Base. The jump
+    # gateway (an `rt=` token) is for cross-site hops and is not used here.
+    assert_equal Rails.configuration.x.boot_config.fetch(:hosts).base_staff.host,
+                 URI.parse(response.location).host
+    assert_equal "/oauth/authorize", URI.parse(response.location).path
+    assert_not_includes response.location, "rt="
   end
 
   test "show without sign in sequence is rejected" do
@@ -28,7 +33,7 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
     assert_response :bad_request
   end
 
-  test "show with bulletin returns success" do
+  test "legacy bulletin state does not bypass checkpoint authorization" do
     start_checkpoint_sequence
 
     get auth_org_sign_in_check_url(ri: "jp"),
@@ -39,7 +44,7 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
     assert_response :bad_request
   end
 
-  test "update refreshes state and issued_at then redirects to show" do
+  test "update is not routed" do
     start_checkpoint_sequence
     previous_issued_at = 10.minutes.ago.to_i
 
@@ -48,10 +53,10 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
             "X-TEST-BULLETIN" => bulletin_json(issued_at: previous_issued_at, state: "new"),
           )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
-  test "destroy is rejected by routing" do
+  test "destroy is not routed" do
     start_checkpoint_sequence
     pt = Base64.urlsafe_encode64("/settings")
 
@@ -60,10 +65,10 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
-  test "destroy without pt is rejected by routing" do
+  test "destroy without return target is not routed" do
     start_checkpoint_sequence
 
     delete auth_org_sign_in_check_url(ri: "jp"),
@@ -71,10 +76,10 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
-  test "show and update return timeout when expired" do
+  test "legacy expired bulletin state does not bypass checkpoint authorization" do
     start_checkpoint_sequence
     expired_at = 2.hours.ago.to_i - 1
 
@@ -84,14 +89,9 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
         )
 
     assert_response :bad_request
-
-    patch auth_org_sign_in_check_url(ri: "jp"),
-          headers: checkpoint_headers
-
-    assert_response :bad_request
   end
 
-  test "destroy is rejected by routing when expired" do
+  test "destroy is not routed when legacy bulletin state is expired" do
     start_checkpoint_sequence
     pt = Base64.urlsafe_encode64("/settings")
 
@@ -100,7 +100,7 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
              "X-TEST-BULLETIN" => bulletin_json(issued_at: 2.hours.ago.to_i - 1, state: "updated"),
            )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
   private

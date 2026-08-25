@@ -151,15 +151,25 @@ module SignVerificationStepUpLifecycle
   end
 
   def render_acme_step_up_completion!(result_token:, ri:)
-    render(
-      "sign/shared/step_up_completion",
+    options = {
       locals: {
         completion_url: acme_step_up_completion_url_for(step_up_ceremony_surface),
         result_token: result_token,
         ri: ri,
         csrf_token: acme_step_up_completion_csrf_token,
       },
-    )
+    }
+    layout = step_up_handoff_layout
+    options[:layout] = layout if layout
+
+    render("sign/shared/step_up_completion", **options)
+  end
+
+  # The completion page is a cross-host handoff form, not a page of the surface. A controller whose
+  # own layout is the Inertia shell has to name the document layout here, or the handoff would be
+  # rendered into a shell that never mounts it. `nil` keeps Rails' own layout lookup.
+  def step_up_handoff_layout
+    nil
   end
 
   def acme_step_up_completion_state?

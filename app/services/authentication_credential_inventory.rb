@@ -71,14 +71,6 @@ class AuthenticationCredentialInventory
       def removable_login_credential? = removable_aal1_credential?
 
       def removable_step_up_credential? = removable_aal2_credential?
-
-      def after_excluding(credential, reload: false)
-        self.class.inventory_class.call(actor, excluding: credential, reload: reload)
-      end
-
-      def self.inventory_class
-        AuthenticationCredentialInventory
-      end
     end
 
   def self.call(actor, excluding: nil, reload: false)
@@ -152,24 +144,15 @@ class AuthenticationCredentialInventory
   end
 
   def client_social_login_methods
-    methods = []
-    methods << :google if active_client_google?
-    methods << :apple if active_client_apple?
-    methods
+    common_client_social_login_methods
   end
 
-  def active_client_google?
-    return false unless actor.respond_to?(:user_google_identity)
+  def common_client_social_login_methods
+    return [] unless actor.respond_to?(:client_external_identities)
 
-    identity = actor.user_google_identity
-    identity&.status_id == ClientGoogleIdentityStatus::ACTIVE && !excluded?(identity)
-  end
-
-  def active_client_apple?
-    return false unless actor.respond_to?(:user_apple_identity)
-
-    identity = actor.user_apple_identity
-    identity&.status_id == ClientAppleIdentityStatus::ACTIVE && !excluded?(identity)
+    scope = actor.client_external_identities.where(state: "active")
+    scope = scope.where.not(id: excluding.id) if excluding.is_a?(ClientExternalIdentity)
+    scope.pluck(:provider).map(&:to_sym)
   end
 
   def aal1_email_count
@@ -305,10 +288,6 @@ class AuthenticationCredentialInventory
   def count_scope(scope, class_name)
     scope = scope.where.not(id: excluding.id) if excluding_record?(class_name)
     scope.count
-  end
-
-  def excluded?(record)
-    excluding.present? && excluding.respond_to?(:id) && excluding.class == record.class && excluding.id == record.id
   end
 
   def excluding_record?(class_name)

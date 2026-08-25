@@ -5,67 +5,84 @@ require "test_helper"
 
 class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
   test "app web preference PATCH endpoints reject missing CSRF token" do
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
 
     host!(ENV.fetch("PUBLIC_BASE_SERVICE_URL"))
 
-    patch(base_app_web_v0_theme_path, params: { theme: "dark" }, headers: { "Accept" => "application/json" }, as: :json)
+    patch(
+      base_app_web_v0_theme_path, params: { theme: "dark" },
+                                  headers: { "Accept" => "application/json", "Sec-Fetch-Site" => "cross-site" }, as: :json,
+    )
 
     assert_response :forbidden
 
     patch(
-      base_app_web_v0_cookie_path, params: { consented: true }, headers: { "Accept" => "application/json" },
-                                   as: :json,
+      base_app_web_v0_cookie_path, params: { consented: true },
+                                   headers: { "Accept" => "application/json", "Sec-Fetch-Site" => "cross-site" }, as: :json,
     )
 
     assert_response :forbidden
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   test "com web preference PATCH endpoints reject missing CSRF token" do
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
 
     host!(ENV.fetch("PUBLIC_BASE_CORPORATE_URL"))
 
-    patch(base_com_web_v0_theme_path, params: { theme: "dark" }, headers: { "Accept" => "application/json" }, as: :json)
+    patch(
+      base_com_web_v0_theme_path, params: { theme: "dark" },
+                                  headers: { "Accept" => "application/json", "Sec-Fetch-Site" => "cross-site" }, as: :json,
+    )
 
     assert_response :forbidden
 
     patch(
-      base_com_web_v0_cookie_path, params: { consented: true }, headers: { "Accept" => "application/json" },
-                                   as: :json,
+      base_com_web_v0_cookie_path, params: { consented: true },
+                                   headers: { "Accept" => "application/json", "Sec-Fetch-Site" => "cross-site" }, as: :json,
     )
 
     assert_response :forbidden
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   test "org web preference PATCH endpoints reject missing CSRF token" do
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
 
     host!(ENV.fetch("PUBLIC_BASE_STAFF_URL"))
 
-    patch(base_org_web_v0_theme_path, params: { theme: "dark" }, headers: { "Accept" => "application/json" }, as: :json)
+    patch(
+      base_org_web_v0_theme_path, params: { theme: "dark" },
+                                  headers: { "Accept" => "application/json", "Sec-Fetch-Site" => "cross-site" }, as: :json,
+    )
 
     assert_response :forbidden
 
     patch(
-      base_org_web_v0_cookie_path, params: { consented: true }, headers: { "Accept" => "application/json" },
-                                   as: :json,
+      base_org_web_v0_cookie_path, params: { consented: true },
+                                   headers: { "Accept" => "application/json", "Sec-Fetch-Site" => "cross-site" }, as: :json,
     )
 
     assert_response :forbidden
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   test "same-origin strict-mode POST reaches app controller without a CSRF rejection" do
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
 
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL")
@@ -84,11 +101,14 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
 
     assert_not_equal I18n.t("errors.invalid_authenticity_token"), response.parsed_body["error"]
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   test "same-site strict-mode POST reaches allowed base surfaces without a CSRF rejection" do
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
 
     [
@@ -111,11 +131,43 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
       assert_not_equal 403, response.status
     end
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
+  end
+
+  test "same-site POST without an Origin is forbidden on base surfaces" do
+    ActionController::Base.allow_forgery_protection = true
+
+    [
+      [ENV.fetch("PUBLIC_BASE_SERVICE_URL"), base_app_web_v0_theme_path],
+      [ENV.fetch("PUBLIC_BASE_CORPORATE_URL"), base_com_web_v0_theme_path],
+      [ENV.fetch("PUBLIC_BASE_STAFF_URL"), base_org_web_v0_theme_path],
+    ].each do |host, path|
+      host!(host)
+      patch(
+        path,
+        params: { theme: "dark" },
+        headers: {
+          "Accept" => "application/json",
+          "Sec-Fetch-Site" => "same-site",
+        },
+        as: :json,
+      )
+
+      assert_response :forbidden
+    end
+  ensure
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   test "cross-site POST from untrusted origin is forbidden" do
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
 
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL")
@@ -134,11 +186,14 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
 
     assert_response :forbidden
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   test "cross-site POST rejects trusted-origin suffix scheme and port confusion" do
-    original = ActionController::Base.allow_forgery_protection
     original_trusted_origins = Base::App::ApplicationController.forgery_protection_trusted_origins
     ActionController::Base.allow_forgery_protection = true
     Base::App::ApplicationController.forgery_protection_trusted_origins = [
@@ -168,12 +223,15 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
       assert_response :forbidden, origin
     end
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
     Base::App::ApplicationController.forgery_protection_trusted_origins = original_trusted_origins
   end
 
-  test "cross-site POST from trusted auth origin is allowed" do
-    original = ActionController::Base.allow_forgery_protection
+  test "ordinary base app endpoint rejects cross-site POST from auth origin" do
     ActionController::Base.allow_forgery_protection = true
 
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL")
@@ -184,20 +242,22 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
       params: { theme: "dark" },
       headers: {
         "Accept" => "application/json",
-        "Origin" => Base::App::ApplicationController.forgery_protection_trusted_origins.grep(/auth/).first,
+        "Origin" => "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL")}",
         "Sec-Fetch-Site" => "cross-site",
       },
       as: :json,
     )
 
-    assert_not_equal 403, response.status
-    assert_not_equal I18n.t("errors.invalid_authenticity_token"), response.parsed_body["error"]
+    assert_response :forbidden
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
-  test "trusted app auth origin cross-site POST passes with a real session-bound token" do
-    original = ActionController::Base.allow_forgery_protection
+  test "ordinary base app endpoint rejects auth origin even with a real session-bound token" do
     ActionController::Base.allow_forgery_protection = true
 
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL")
@@ -232,21 +292,23 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
       params: { theme: "dark" },
       headers: {
         "Accept" => "application/json",
-        "Origin" => Base::App::ApplicationController.forgery_protection_trusted_origins.grep(/auth/).first,
+        "Origin" => "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL")}",
         "Sec-Fetch-Site" => "cross-site",
         "X-CSRF-Token" => token,
       },
       as: :json,
     )
 
-    assert_not_equal I18n.t("errors.invalid_authenticity_token"), response.parsed_body["error"]
-    assert_not_equal 403, response.status
+    assert_response :forbidden
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   test "missing Sec-Fetch-Site remains fail-closed without a Rails session-bound token" do
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
 
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL")
@@ -261,17 +323,23 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
         "Accept" => "application/json",
         "Origin" => "https://#{host}",
         "X-CSRF-Token" => token,
+        # Empty means absent: FetchMetadataDefaults injects same-origin unless the test
+        # states the header itself, and same-origin never reaches the legacy token path.
+        "Sec-Fetch-Site" => "",
       },
       as: :json,
     )
 
     assert_response :forbidden
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   test "missing Sec-Fetch-Site legacy fallback passes only with the same session-bound token" do
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
 
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL")
@@ -308,6 +376,9 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
         "Accept" => "application/json",
         "Origin" => "https://#{host}",
         "X-CSRF-Token" => token,
+        # Empty means absent: FetchMetadataDefaults injects same-origin unless the test
+        # states the header itself, and same-origin never reaches the legacy token path.
+        "Sec-Fetch-Site" => "",
       },
       as: :json,
     )
@@ -323,6 +394,9 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
         "Accept" => "application/json",
         "Origin" => "https://#{host}",
         "X-CSRF-Token" => token,
+        # Empty means absent: FetchMetadataDefaults injects same-origin unless the test
+        # states the header itself, and same-origin never reaches the legacy token path.
+        "Sec-Fetch-Site" => "",
       },
       as: :json,
     )
@@ -336,6 +410,9 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
         "Accept" => "application/json",
         "Origin" => "https://#{host}",
         "X-CSRF-Token" => "invalid-token",
+        # Empty means absent: FetchMetadataDefaults injects same-origin unless the test
+        # states the header itself, and same-origin never reaches the legacy token path.
+        "Sec-Fetch-Site" => "",
       },
       as: :json,
     )
@@ -348,17 +425,23 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
       headers: {
         "Accept" => "application/json",
         "Origin" => "https://#{host}",
+        # Empty means absent: FetchMetadataDefaults injects same-origin unless the test
+        # states the header itself, and same-origin never reaches the legacy token path.
+        "Sec-Fetch-Site" => "",
       },
       as: :json,
     )
 
     assert_response :forbidden
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   test "protocol exception endpoints remain tokenless but protected by protocol-specific guards" do
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
 
     host!(ENV.fetch("PUBLIC_BASE_SERVICE_URL"))
@@ -380,6 +463,10 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
 
     assert_not_equal 403, response.status
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 end

@@ -4,7 +4,12 @@
 # Core owns the BFF surface.
 scope module: :core, as: :core do
   # Application BFF host.
-  constraints host: [ENV["PUBLIC_CORE_SERVICE_URL"] || ENV["CORE_SERVICE_URL"], "core.app.localhost"].compact do
+  # Two request paths reach this surface with different Host headers, so both names are
+  # listed. Requests forwarded by cloudflared carry the browser-facing PUBLIC_* site name,
+  # which boot_config resolves; requests that arrive directly on the compose `frontend`
+  # network carry the PRIVATE_* ingress alias. See docs/architecture/cloudflare-request-paths.md.
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).core_service.host,
+                     ENV["PRIVATE_CORE_SERVICE_URL"],].compact do
     scope module: :app, as: :app do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -14,6 +19,9 @@ scope module: :core, as: :core do
         # JWKS endpoint; keep fixed JSON suffix.
         resource :jwks, only: :show, path: "jwks.json", format: false
       end
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
 
       # Health summary and probes.
       resource :health, only: :show
@@ -83,7 +91,12 @@ scope module: :core, as: :core do
   end
 
   # Corporate BFF host.
-  constraints host: [ENV["PUBLIC_CORE_CORPORATE_URL"] || ENV["CORE_CORPORATE_URL"], "core.com.localhost"].compact do
+  # Two request paths reach this surface with different Host headers, so both names are
+  # listed. Requests forwarded by cloudflared carry the browser-facing PUBLIC_* site name,
+  # which boot_config resolves; requests that arrive directly on the compose `frontend`
+  # network carry the PRIVATE_* ingress alias. See docs/architecture/cloudflare-request-paths.md.
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).core_corporate.host,
+                     ENV["PRIVATE_CORE_CORPORATE_URL"],].compact do
     scope module: :com, as: :com do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -93,6 +106,9 @@ scope module: :core, as: :core do
         # JWKS endpoint; keep fixed JSON suffix.
         resource :jwks, only: :show, path: "jwks.json", format: false
       end
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
 
       # Health summary and probes.
       resource :health, only: :show
@@ -162,7 +178,12 @@ scope module: :core, as: :core do
   end
 
   # Staff BFF host.
-  constraints host: [ENV["PUBLIC_CORE_STAFF_URL"] || ENV["CORE_STAFF_URL"], "core.org.localhost"].compact do
+  # Two request paths reach this surface with different Host headers, so both names are
+  # listed. Requests forwarded by cloudflared carry the browser-facing PUBLIC_* site name,
+  # which boot_config resolves; requests that arrive directly on the compose `frontend`
+  # network carry the PRIVATE_* ingress alias. See docs/architecture/cloudflare-request-paths.md.
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).core_staff.host,
+                     ENV["PRIVATE_CORE_STAFF_URL"],].compact do
     scope module: :org, as: :org do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -172,6 +193,9 @@ scope module: :core, as: :core do
         # JWKS endpoint; keep fixed JSON suffix.
         resource :jwks, only: :show, path: "jwks.json", format: false
       end
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
 
       # Health summary and probes.
       resource :health, only: :show
@@ -249,6 +273,9 @@ scope module: :core, as: :core do
       # Thin landing endpoint.
       root to: "roots#index"
 
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
+
       # Health summary and probes.
       resource :health, only: :show
       namespace :health do
@@ -267,6 +294,9 @@ scope module: :core, as: :core do
     scope module: :dev, as: :developer do
       # Thin landing endpoint.
       root to: "roots#index"
+
+      # Deployment identifier endpoint.
+      resource :revision, only: :show
 
       # Health summary and probes.
       resource :health, only: :show

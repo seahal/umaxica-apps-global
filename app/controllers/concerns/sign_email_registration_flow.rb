@@ -7,12 +7,13 @@ module SignEmailRegistrationFlow
   def new
     @user_email = ClientEmail.new
     reset_email_registration_flow!
+    render_email_registration_new
   end
 
   def edit
     @user_email = current_registration_email
     @verification_token = params[:token]
-    return if valid_registration_email_session?
+    return render_email_registration_edit if valid_registration_email_session?
 
     reset_email_registration_flow!
     redirect_to(new_registration_path_with_notice)
@@ -24,12 +25,25 @@ module SignEmailRegistrationFlow
     confirm_policy = email_params[:confirm_policy]
     email_address = email_params[:raw_address] || email_params[:address]
 
+    # adr/unified-enforcement.md, Identifier attachment enforcement: an in-force
+    # Identifier Effect with attachment_blocked rejects attaching this identifier to
+    # an existing account, at the same enumeration-resistance discipline as the
+    # ordinary validation failure.
+    if email_address.present? && enforcement_blocks_email_attachment?(
+      effect_class: AppEnforcementIdentifierEffect, realm: "app", email: email_address,
+    )
+      @user_email = ClientEmail.new
+      @user_email.errors.add(:address, :blank)
+      render_email_registration_new(status: :unprocessable_content)
+      return
+    end
+
     unless initiate_email_verification!(
       email_address,
       confirm_policy: confirm_policy || "1",
       email_preferences: email_params.slice(*preference_keys),
     )
-      render :new, status: :unprocessable_content
+      render_email_registration_new(status: :unprocessable_content)
       return
     end
 
@@ -62,7 +76,7 @@ module SignEmailRegistrationFlow
     unless cloudflare_turnstile_stealth_validation["success"]
       @user_email.errors.add(:base, t("turnstile_error"))
       flash.now[:alert] = t("turnstile_error")
-      render :edit, status: :unprocessable_content
+      render_email_registration_edit(status: :unprocessable_content)
       return
     end
 
@@ -70,7 +84,7 @@ module SignEmailRegistrationFlow
     submitted_code ||= params.dig(:client_email, :pass_code)
     if submitted_code.blank?
       @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.code_required"))
-      render :edit, status: :unprocessable_content
+      render_email_registration_edit(status: :unprocessable_content)
       return
     end
 
@@ -115,6 +129,16 @@ module SignEmailRegistrationFlow
   end
 
   private
+
+  # The registration screens, as the including surface renders them. A surface that has moved them
+  # to Inertia overrides these two methods and every path above follows.
+  def render_email_registration_new(status: :ok)
+    render :new, status: status
+  end
+
+  def render_email_registration_edit(status: :ok)
+    render :edit, status: status
+  end
 
   def build_user_email(email_address, confirm_policy, email_preferences = {})
     super
@@ -191,7 +215,7 @@ module SignEmailRegistrationFlow
       redirect_to(new_email_registration_path)
       return false
     elsif !result
-      render :edit, status: :unprocessable_content
+      render_email_registration_edit(status: :unprocessable_content)
       return false
     end
 

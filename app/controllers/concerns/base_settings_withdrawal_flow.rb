@@ -16,7 +16,7 @@ module BaseSettingsWithdrawalFlow
     if @schedule_form.valid?
       @schedule_confirmed = true
     else
-      render :new, status: :unprocessable_content
+      render_withdrawal_new(status: :unprocessable_content)
     end
   end
 
@@ -100,7 +100,7 @@ module BaseSettingsWithdrawalFlow
   def start_withdrawal_request!(actor)
     unless @schedule_form.valid?
       @schedule_confirmed = false
-      return render :new, status: :unprocessable_content
+      return render_withdrawal_new(status: :unprocessable_content)
     end
 
     ::WithdrawalLifecycle.start!(
@@ -167,6 +167,13 @@ module BaseSettingsWithdrawalFlow
 
   def render_update_validation_error
     @schedule_confirmed = true
-    render :new, status: :unprocessable_content
+    render_withdrawal_new(status: :unprocessable_content)
+  end
+
+  # The withdrawal entry screen, as its surface renders it. `render :new` resolves the including
+  # controller's own template, so a surface that has moved the screen to Inertia overrides this and
+  # every failure path above follows it.
+  def render_withdrawal_new(status: :ok)
+    render :new, status: status
   end
 end

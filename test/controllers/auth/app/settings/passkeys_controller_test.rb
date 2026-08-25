@@ -40,13 +40,13 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
         description: "My Passkey",
       )
 
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
     @original_webauthn_env.each do |key, value|
       value.nil? ? ENV.delete(key) : ENV[key] = value
     end
@@ -357,7 +357,11 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "table"
+    assert_equal "auth/app/settings/passkeys/index", inertia_component
+    assert_equal(
+      [@passkey.public_id],
+      inertia_props.fetch("passkeys").map { |row| row.fetch("public_id") },
+    )
   end
 
   test "should show up link on index page" do
@@ -366,7 +370,10 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "a[href=?]", new_auth_app_settings_passkey_path(ri: "jp")
+    assert_equal(
+      new_auth_app_settings_passkey_path(ri: "jp"),
+      inertia_props.fetch("new_link").fetch("href"),
+    )
   end
 
   test "should get new" do
@@ -376,7 +383,19 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "a[href=?]", auth_app_settings_passkeys_path(ri: "jp")
+    assert_equal "auth/app/settings/passkeys/new", inertia_component
+    assert_equal(
+      auth_app_settings_passkeys_path(ri: "jp"),
+      inertia_props.fetch("back_link").fetch("href"),
+    )
+    assert_equal(
+      auth_app_settings_passkeys_options_path(ri: "jp"),
+      inertia_props.fetch("panel").fetch("options_url"),
+    )
+    assert_equal(
+      auth_app_settings_passkeys_verification_path(ri: "jp"),
+      inertia_props.fetch("panel").fetch("verification_url"),
+    )
   end
 
   test "new denies with zero unused usable recovery passcodes" do
@@ -436,7 +455,11 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_includes response.body, I18n.t("defaults.never")
+    assert_equal "auth/app/settings/passkeys/show", inertia_component
+    assert_includes(
+      inertia_props.fetch("details").map { |detail| detail.fetch("value") },
+      I18n.t("defaults.never"),
+    )
   end
 
   test "show renders back link before passkey details" do
@@ -445,7 +468,10 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "a[href=?]", auth_app_settings_passkeys_path(ri: "jp")
+    assert_equal(
+      auth_app_settings_passkeys_path(ri: "jp"),
+      inertia_props.fetch("back_link").fetch("href"),
+    )
   end
 
   test "new allows bootstrap passkey registration with two recovery passcodes" do
@@ -514,7 +540,11 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "form[action=?]", auth_app_settings_passkey_path(@passkey.public_id, ri: "jp")
+    assert_equal "auth/app/settings/passkeys/edit", inertia_component
+    assert_equal(
+      auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"),
+      inertia_props.fetch("form").fetch("action"),
+    )
     assert_equal @passkey.public_id, request.path_parameters[:id]
     assert_nil request.path_parameters[:public_id]
   end
@@ -525,7 +555,10 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "a[href=?]", auth_app_settings_passkeys_path(ri: "jp")
+    assert_equal(
+      auth_app_settings_passkeys_path(ri: "jp"),
+      inertia_props.fetch("back_link").fetch("href"),
+    )
   end
 
   test "should update description with public_id" do
@@ -596,7 +629,10 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_select "a[href=?]", edit_auth_app_settings_passkey_path(@passkey.public_id, ri: "jp")
+    assert_includes(
+      inertia_props.fetch("passkeys").map { |row| row.fetch("edit_href") },
+      edit_auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"),
+    )
   end
 
   private
@@ -1280,11 +1316,14 @@ class Auth::App::Settings::PasskeysControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -1331,9 +1370,9 @@ class Auth::App::Settings::PasskeysControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -1346,7 +1385,7 @@ class Auth::App::Settings::PasskeysControllerTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -1619,11 +1658,14 @@ class Auth::App::Settings::PasskeysControllerTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

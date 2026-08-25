@@ -73,7 +73,7 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
           as: :json
 
       assert_response :success, surface.fetch(:label)
-      entry = response.parsed_body.fetch("entries").first
+      entry = response.parsed_body.fetch("data").first
 
       assert_equal published.slug, entry.fetch("slug"), surface.fetch(:label)
       assert_equal surface.fetch(:label).downcase, entry.fetch("namespace"), surface.fetch(:label)
@@ -85,7 +85,7 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
           as: :json
 
       assert_response :success, surface.fetch(:label)
-      assert_equal published.slug, response.parsed_body.fetch("entry").fetch("slug"), surface.fetch(:label)
+      assert_equal published.slug, response.parsed_body.fetch("slug"), surface.fetch(:label)
     end
   end
 
@@ -112,24 +112,11 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
   end
 
   def create_publishing_entry(audience:, surface:, namespace:)
-    locale = "test-smoke"
-    slug = "#{namespace}-surface-smoke"
-    edition = Publishing::Edition.find_or_create_by!(audience:, surface:, locale:)
-    entry = Publishing::Entry.create!(edition:, locale:)
-    Publishing::EntrySlug.create!(entry:, edition:, locale:, slug:, state: "canonical", canonicalized_at: Time.current)
-    digest = Digest::SHA256.hexdigest(slug)
-    revision =
-      Publishing::EntryRevision.create!(
-        entry:, locale:, title: "#{namespace.titleize} Surface Smoke", summary: "#{namespace.titleize} summary",
-        body: { "text" => "#{namespace.titleize} body" }, schema_version: 1, content_digest: digest, sequence: 1,
+    entry =
+      publishing_published_entry(
+        audience:, surface:, locale: "test-smoke", slug: "#{namespace}-surface-smoke",
+        title: "#{namespace.titleize} Surface Smoke", published_at: 1.minute.ago,
       )
-    entry.update!(current_revision: revision)
-    version =
-      Publishing::EntryVersion.create!(
-        entry:, entry_revision: revision, locale:, title: revision.title, summary: revision.summary,
-        body: revision.body, schema_version: 1, content_digest: digest, sequence: 1,
-      )
-    Publishing::Publication.create!(entry:, entry_version: version, effective_from: 1.minute.ago)
     entry.slugs.canonical.first
   end
 end

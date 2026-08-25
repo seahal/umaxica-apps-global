@@ -22,13 +22,13 @@ class SignComCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
       VisitorTokenStatus.ensure_defaults!
       VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
     end
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => true }
   end
 
   teardown do
-    CloudflareTurnstile.test_mode = false
-    CloudflareTurnstile.test_validation_response = nil
+    TurnstileVerifierStub.challenge_enabled = false
+    TurnstileVerifierStub.challenge_response = nil
   end
 
   test "email removal preserves aal methods when contactability remains" do
@@ -102,6 +102,32 @@ class SignComCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
       delete auth_com_settings_passkey_url(passkey.public_id, ri: "jp", host: @host),
              headers: visitor_headers(visitor, scope: "settings_passkey", host: @host)
     end
+  end
+
+  test "visitor can browse and rename an active secret credential" do
+    visitor = create_visitor
+    create_verified_telephone(visitor, "+819022220005")
+    create_active_passkey(visitor)
+    secret_credential = create_active_secret_credential(visitor)
+    headers = visitor_headers(visitor, scope: "settings_secret_credential", host: @base_host)
+
+    get base_com_identity_secrets_url(ri: "jp", host: @base_host), headers: headers
+
+    assert_response :success
+    assert_includes response.body, secret_credential.name
+
+    get base_com_identity_secret_url(secret_credential.public_id, ri: "jp", host: @base_host), headers: headers
+
+    assert_response :success
+    assert_includes response.body, secret_credential.name
+
+    patch base_com_identity_secret_url(secret_credential.public_id, ri: "jp", host: @base_host),
+          params: { visitor_secret_credential: { name: "Renamed credential", enabled: "1" } },
+          headers: headers
+
+    assert_redirected_to base_com_identity_secret_url(secret_credential.public_id, ri: "jp", host: @base_host)
+    assert_equal "Renamed credential", secret_credential.reload.name
+    assert_predicate secret_credential, :active?
   end
 
   private
@@ -538,11 +564,14 @@ class SignComCredentialRemovalConstraintsTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value
@@ -589,9 +618,9 @@ class SignComCredentialRemovalConstraintsTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?
@@ -604,7 +633,7 @@ class SignComCredentialRemovalConstraintsTest
       ) if intent.to_s == "link" && token
       headers = headers.merge(user_headers)
     end
-    (intent.to_s == "link") ? post(continue_path, headers: headers) : get(continue_path, headers: headers)
+    post(continue_path, headers: headers)
     social_auth_state_from_response
   end
 
@@ -866,11 +895,14 @@ class SignComCredentialRemovalConstraintsTest
   end
 
   def with_forgery_protection
-    original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     yield
   ensure
-    ActionController::Base.allow_forgery_protection = original
+    # Restore the environment default, not the value observed on entry: if the flag was
+    # already leaked as true, restoring the observation would pin the leak for the rest
+    # of the process and every later test expecting protection off would fail.
+    ActionController::Base.allow_forgery_protection =
+      Rails.configuration.action_controller.allow_forgery_protection
   end
 
   def csrf_token_value

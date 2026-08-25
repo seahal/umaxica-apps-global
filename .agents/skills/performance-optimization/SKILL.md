@@ -1,29 +1,23 @@
 ---
 name: performance-optimization
 description:
-  Optimizes application performance. Use when performance requirements exist, when you suspect
-  performance regressions, or when Core Web Vitals or load times need improvement. Use when
-  profiling reveals bottlenecks that need fixing.
+  Profiles first and optimizes only the measured bottleneck. Use when the spec sets load-time
+  budgets or response-time SLAs, when users or monitoring report slow behavior, when Core Web Vitals
+  fall below threshold, when a change is suspected of introducing a regression, or when building
+  features that handle large datasets or high traffic.
 ---
 
 # Performance Optimization
 
-## Overview
+Profile, identify the actual bottleneck, fix it, measure again. Optimization without measurement
+adds complexity in places that were never the problem.
 
-Measure before optimizing. Performance work without measurement is guessing — and guessing leads to
-premature optimization that adds complexity without improving what matters. Profile first, identify
-the actual bottleneck, fix it, measure again. Optimize only what measurements prove matters.
+**When NOT to use:** before there is evidence of a problem. Premature optimization costs more than
+the performance it gains.
 
-## When to Use
-
-- Performance requirements exist in the spec (load time budgets, response time SLAs)
-- Users or monitoring report slow behavior
-- Core Web Vitals scores are below thresholds
-- You suspect a change introduced a regression
-- Building features that handle large datasets or high traffic
-
-**When NOT to use:** Don't optimize before you have evidence of a problem. Premature optimization
-adds complexity that costs more than the performance it gains.
+**Detailed checklists:** [references/performance-checklist.md](references/performance-checklist.md)
+— Core Web Vitals thresholds, the performance budget, CI enforcement, and the anti-pattern
+reference.
 
 ## Core Web Vitals Targets
 
@@ -329,21 +323,6 @@ npx bundlesize --config bundlesize.config.json
 # Lighthouse CI
 npx lhci autorun
 ```
-
-## See Also
-
-For detailed performance checklists, optimization commands, and anti-pattern reference, see
-`references/performance-checklist.md`.
-
-## Common Rationalizations
-
-| Rationalization                     | Reality                                                                                |
-| ----------------------------------- | -------------------------------------------------------------------------------------- |
-| "We'll optimize later"              | Performance debt compounds. Fix obvious anti-patterns now, defer micro-optimizations.  |
-| "It's fast on my machine"           | Your machine isn't the user's. Profile on representative hardware and networks.        |
-| "This optimization is obvious"      | If you didn't measure, you don't know. Profile first.                                  |
-| "Users won't notice 100ms"          | Research shows 100ms delays impact conversion rates. Users notice more than you think. |
-| "The framework handles performance" | Frameworks prevent some issues but can't fix N+1 queries or oversized bundles.         |
 
 ## Red Flags
 

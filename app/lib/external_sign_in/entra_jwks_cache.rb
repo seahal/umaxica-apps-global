@@ -8,6 +8,8 @@ module ExternalSignIn
   # Returns a callable suitable for the JWT gem's jwks: option.
   # Cache is invalidated when the JWT gem signals kid_not_found (key rotation).
   class EntraJwksCache
+    class FetchError < StandardError; end
+
     JWKS_URI_TEMPLATE = "https://login.microsoftonline.com/%s/discovery/v2.0/keys"
     CACHE_TTL = 1.hour
 
@@ -34,11 +36,15 @@ module ExternalSignIn
     end
 
     def fetch_jwks
-      uri = URI(format(JWKS_URI_TEMPLATE, tenant_id))
-      response = Net::HTTP.get_response(uri)
-      raise StandardError, "JWKS fetch failed (HTTP #{response.code}) for tenant #{tenant_id}" unless response.is_a?(Net::HTTPSuccess)
+      response = Net::HTTP.get_response(URI(format(JWKS_URI_TEMPLATE, tenant_id)))
+      raise FetchError, "JWKS fetch failed (HTTP #{response.code}) for tenant #{tenant_id}" unless response.is_a?(Net::HTTPSuccess)
 
-      JSON.parse(response.body)
+      jwks = JSON.parse(response.body)
+      raise FetchError, "JWKS response has an invalid shape for tenant #{tenant_id}" unless jwks.is_a?(Hash) && jwks["keys"].is_a?(Array)
+
+      jwks
+    rescue JSON::ParserError, URI::InvalidURIError, Timeout::Error, SocketError, SystemCallError, TypeError => e
+      raise FetchError.new("JWKS request failed for tenant #{tenant_id}"), cause: e
     end
   end
 end
