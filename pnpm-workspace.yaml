@@ -37,9 +37,6 @@ pmOnFail: error
 strictDepBuilds: true
 trustPolicy: no-downgrade
 unicode: false
-overrides:
-  vitest: "catalog:"
-  vite: "catalog:"
 catalog:
   "@types/node": 26.2.0
   vite: 8.2.2

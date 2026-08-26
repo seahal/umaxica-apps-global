@@ -60,23 +60,36 @@ Two properties combined to make it persist:
 
 ## Deviations From Plan
 
-- Change: reverted an unrelated `pnpm-lock.yaml` modification that appeared during the test runs.
-  - Why: it was not part of this task and was not present when the session started.
-  - Risk: none to this change, but see the follow-up below — it comes back on every test run.
-  - Follow-up: the uncommitted `test/test_helper.rb` Vite build step invokes pnpm during test boot,
-    and `pnpm exec` (pnpm 11.22.0) rewrites `pnpm-lock.yaml`, dropping the `vite` and `vitest`
-    catalog entries and inlining their specifiers. Reproduced standalone with
-    `pnpm exec vite build --mode test`, so it is a lockfile/`pnpm-workspace.yaml` `overrides`
-    inconsistency surfaced by the new pnpm invocation, not caused by it. `bin/rails test` currently
-    dirties a tracked file on every run. Needs a decision: regenerate and commit the lock, or stop
-    routing the test build through `pnpm exec`.
+- Change: also removed the `vite`/`vitest` entries from `overrides` in `pnpm-workspace.yaml` and
+  regenerated `pnpm-lock.yaml`, which is outside the fixture fix.
+  - Why: every pnpm invocation rewrote `pnpm-lock.yaml`, so the test suite dirtied a tracked file on
+    each run. `pnpm test` reproduced it as readily as the new `test/test_helper.rb` Vite build step,
+    because pnpm auto-installs before running a script; the build step only made `bin/rails test`
+    one more such invocation rather than causing the churn. The `overrides` entries pointed at
+    `catalog:` while the catalog already pinned the same versions, so pnpm 11.22.0 resolved the
+    override first, expanded the importers' `catalog:` specifiers to literals, and dropped the now
+    unused catalog entries — a rewrite the committed lockfile did not carry.
+  - Risk: low. Resolved versions are unchanged (`vite@8.2.2`, `vitest@4.1.11`); the lockfile diff
+    only drops its `overrides` block and restores each package's declared `vite` peer range, which
+    the override had been rewriting to a pinned `8.2.1`. Verified stable: repeated `pnpm install`,
+    `pnpm test`, `pnpm exec vite build --mode test`, and `bin/rails test` leave the lockfile
+    untouched.
+  - Alternatives considered: committing the lockfile pnpm produced with `overrides` still present.
+    Rejected because it discards the `vite`/`vitest` catalog entries and keeps two mechanisms
+    pinning the same versions.
 
 ## Review Notes
 
-- Tests run: `bin/rails test` (full suite, 12 parallel workers) —
-  `10293 runs, 58501 assertions, 0 failures, 0 errors, 1 skips`, exit 0. Also
-  `bin/rails test test/services/sign_up_session_state_test.rb` (14 runs, 0 failures) as a targeted
-  check that the new fixture files load.
-- Tests not run: `pnpm test`. No JavaScript changed.
+- Tests run: `bin/rails test` (full suite, 12 parallel workers), green on seeds 17391 and 45307 —
+  `10293 runs, 58501 assertions, 0 failures, 0 errors, 1 skips`. `pnpm test` — 70 files, 804 tests,
+  all passing. Also `bin/rails test test/services/sign_up_session_state_test.rb` as a targeted check
+  that the new fixture files load.
+- Tests not run: `pnpm test:e2e`.
+- Known unrelated flake: on seed 17000,
+  `CsrfNotificationEmissionTest#test_a_blocked_request_is_recorded_once,_by_the_subscriber,_with_no_framework_CSRF_warning`
+  failed on `Caused by:` and `Information for cause:` continuation lines for
+  `ActionController::InvalidCrossOriginRequest`. `RESCUE_FROM_LINE_MARKER` filters only the first
+  line of that report, so the continuations reach the assertion. It passes in isolation and passed
+  on the two other seeds; nothing in this change touches CSRF logging. Not investigated further.
 - Documentation promotion needed: none. The rationale for empty fixtures already lives in the
   fixture files' own comments.
