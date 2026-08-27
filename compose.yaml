@@ -254,10 +254,12 @@ services:
       # workspace paths in Compose long syntax so the effective mount flags stay
       # inspectable. The host SSH directory is intentionally absent: inbound
       # Remote Codex does not need host private keys.
-      - type: bind
-        source: "/etc/timezone"
-        target: "/etc/timezone"
-        read_only: true
+      # Do not bind /etc/timezone. That path is Debian/Ubuntu-only; on Fedora,
+      # RHEL, or Arch Podman fails before start with
+      # `statfs /etc/timezone: no such file or directory`. Host timezone comes
+      # from /etc/localtime in .devcontainer/compose.override.yml. Compose
+      # merges volume entries by container target, so an overlay localtime
+      # mount does not replace a distinct timezone bind here.
       - type: bind
         source: "./.github"
         target: "/home/global/workspace/.github"
