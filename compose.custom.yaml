@@ -65,6 +65,16 @@ services:
     # `command: [sleep, infinity]` (by not overriding it here) lets
     # core-entrypoint idle as the keep-id-mapped user. Re-enabling it means
     # restoring the command override here and reverting both of those.
+    volumes:
+      # Host timezone. /etc/timezone is Debian/Ubuntu-only; Fedora, RHEL, and
+      # Arch do not have it, and Podman then fails at start. /etc/localtime
+      # exists on each of those hosts. Do not set `selinux: Z` here: locale_t
+      # is already readable by container_t, and relabeling a host /etc file
+      # must never be done.
+      - type: bind
+        source: "/etc/localtime"
+        target: "/etc/localtime"
+        read_only: true
     environment:
       # Optional exact Rails Host Authorization entry for Tailscale Serve.
       # The value is a hostname, not a credential; unset keeps normal startup

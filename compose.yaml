@@ -257,9 +257,9 @@ services:
       # Do not bind /etc/timezone. That path is Debian/Ubuntu-only; on Fedora,
       # RHEL, or Arch Podman fails before start with
       # `statfs /etc/timezone: no such file or directory`. Host timezone comes
-      # from /etc/localtime in .devcontainer/compose.override.yml. Compose
-      # merges volume entries by container target, so an overlay localtime
-      # mount does not replace a distinct timezone bind here.
+      # from /etc/localtime in compose.custom.yaml. Compose merges volume
+      # entries by container target, so an overlay localtime mount does not
+      # replace a distinct timezone bind here.
       - type: bind
         source: "./.github"
         target: "/home/global/workspace/.github"
@@ -757,7 +757,8 @@ networks:
     external: false
   # NOTE: `cloudflare-tunnel` lives entirely in compose.custom.yaml (repo
   # root), an overlay included unconditionally via
-  # .devcontainer/devcontainer.json's dockerComposeFile array. The connector
+  # .devcontainer/devcontainer.json's dockerComposeFile array
+  # (`compose.yaml` then `compose.custom.yaml`). The connector
   # itself sits behind that file's `tunnel` profile, so even with the overlay
   # merged a plain `up` does not start it. This base compose.yaml alone must
   # never create, start, or pull it. See

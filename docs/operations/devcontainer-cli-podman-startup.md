@@ -37,7 +37,7 @@ Containers CLI can invoke `podman compose`, and Podman otherwise prefers an inst
 2. Run **Dev Containers: Rebuild and Reopen in Container** from the Command Palette.
 3. After the first successful build, use **Dev Containers: Reopen in Container** for routine starts.
 
-VS Code reads `.devcontainer/devcontainer.json`, combines the three declared Compose files,
+VS Code reads `.devcontainer/devcontainer.json`, combines the two declared Compose files,
 provisions the configured features, runs the lifecycle commands, and opens `/home/global/workspace`
 as user `global`.
 

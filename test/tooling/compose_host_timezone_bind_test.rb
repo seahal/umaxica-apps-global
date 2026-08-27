@@ -6,15 +6,16 @@ require "yaml"
 # /etc/timezone is a Debian/Ubuntu file. Fedora, RHEL, and Arch do not have it, and
 # Podman then refuses to start the container:
 #   statfs /etc/timezone: no such file or directory
-# Compose merges volume entries by container target, so an overlay that mounts
-# /etc/localtime does not replace a distinct /etc/timezone bind in compose.yaml.
+# Compose merges volume entries by container target, so a compose.custom.yaml
+# /etc/localtime mount does not replace a distinct /etc/timezone bind in
+# compose.yaml.
 class ComposeHostTimezoneBindTest < Minitest::Test
   REPOSITORY_ROOT = File.expand_path("../..", __dir__)
 
   def test_no_compose_file_binds_host_etc_timezone
     offenders = []
 
-    %w(compose.yaml compose.custom.yaml .devcontainer/compose.override.yml).each do |relative_path|
+    %w(compose.yaml compose.custom.yaml).each do |relative_path|
       path = File.join(REPOSITORY_ROOT, relative_path)
       next unless File.exist?(path)
 
@@ -45,5 +46,15 @@ class ComposeHostTimezoneBindTest < Minitest::Test
                  "/etc/timezone is absent on Fedora/RHEL/Arch. Bind /etc/localtime instead; " \
                  "Compose will not drop a distinct /etc/timezone target when an overlay adds " \
                  "/etc/localtime."
+
+    custom = YAML.safe_load_file(
+      File.join(REPOSITORY_ROOT, "compose.custom.yaml"),
+      aliases: true,
+    )
+    localtime_binds = Array(custom.fetch("services").fetch("core")["volumes"]).select do |mount|
+      mount.is_a?(Hash) && mount["source"] == "/etc/localtime" && mount["target"] == "/etc/localtime"
+    end
+
+    assert_equal 1, localtime_binds.size
   end
 end

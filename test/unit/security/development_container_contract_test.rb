@@ -4,7 +4,7 @@ require "test_helper"
 
 class DevelopmentContainerContractTest < ActiveSupport::TestCase
   REPOSITORY_ROOT = Rails.root
-  CONFIGURATION_FILES = %w(compose.yaml compose.custom.yaml .devcontainer/compose.override.yml).freeze
+  CONFIGURATION_FILES = %w(compose.yaml compose.custom.yaml).freeze
 
   test "repository uses Containerfile build definitions exclusively" do
     dockerfiles = `git ls-files '*Dockerfile*'`.lines.map(&:strip).reject(&:empty?)
@@ -74,15 +74,18 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     assert_includes supervisor, "TAILSCALED_BIN=/usr/sbin/tailscaled"
   end
 
-  test "security scans include the Dev Container overlay while it is still loaded" do
-    devcontainer = REPOSITORY_ROOT.join(".devcontainer/devcontainer.json").read
+  test "the Dev Container loads only the two repository Compose files" do
+    devcontainer = `git show :.devcontainer/devcontainer.json`
+    tracked_override = `git ls-files -- .devcontainer/compose.override.yml`.strip
 
-    assert_includes devcontainer, "./compose.override.yml"
-    assert_includes CONFIGURATION_FILES, ".devcontainer/compose.override.yml"
+    assert_includes devcontainer, "../compose.yaml"
+    assert_includes devcontainer, "../compose.custom.yaml"
+    assert_not_includes devcontainer, "compose.override.yml"
+    assert_empty tracked_override
   end
 
   test "compose network external flags are booleans rather than interpolated strings" do
-    compose_files = ["compose.yaml", "compose.custom.yaml", ".devcontainer/compose.override.yml"]
+    compose_files = ["compose.yaml", "compose.custom.yaml"]
 
     compose_files.each do |relative_path|
       contents = REPOSITORY_ROOT.join(relative_path).read
@@ -128,7 +131,7 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
   end
 
   test "no service restarts without a bound" do
-    %w(compose.yaml compose.custom.yaml .devcontainer/compose.override.yml).each do |relative_path|
+    %w(compose.yaml compose.custom.yaml).each do |relative_path|
       compose = YAML.safe_load_file(REPOSITORY_ROOT.join(relative_path), aliases: true)
 
       compose.fetch("services", {}).each do |name, service|
