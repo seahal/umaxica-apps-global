@@ -6,6 +6,12 @@ require "active_support/core_ext/integer/time"
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # config/credentials/development.key must be provisioned before boot
+  # (docs/operations/development-credential-provisioning.md). Without this, a missing key
+  # makes Rails treat the credentials payload as empty and the failure surfaces far from
+  # its cause.
+  config.require_master_key = true
+
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
 

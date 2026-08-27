@@ -8,12 +8,12 @@ each item belongs, and who issues it.
 
 ## What is not in git
 
-| Item | Location | Ignore rule in `.gitignore` |
-| :--- | :--- | :--- |
+| Item              | Location              | Ignore rule in `.gitignore` |
+| :---------------- | :-------------------- | :-------------------------- |
 | `development.key` | `config/credentials/` | `/config/credentials/*.key` |
-| `test.key` | `config/credentials/` | `/config/credentials/*.key` |
-| `.env` | repository root | `.env` |
-| `.secrets/` | repository root | `.secrets/` |
+| `test.key`        | `config/credentials/` | `/config/credentials/*.key` |
+| `.env`            | repository root       | `.env`                      |
+| `.secrets/`       | repository root       | `.secrets/`                 |
 
 `config/credentials/development.yml.enc` and `config/credentials/test.yml.enc` are tracked, and are
 unreadable without the matching `.key` file. Committing a `.key` file defeats the encryption of the
@@ -50,9 +50,16 @@ bin/rails credentials:show --environment development
 bin/rails credentials:show --environment test
 ```
 
-A missing or wrong key surfaces as `ActiveSupport::MessageEncryptor::InvalidMessage` during boot or
-during a test run. That error means the key does not match the payload; it does not mean the
-committed payload is corrupt.
+The two failure modes surface differently:
+
+- **Key absent.** `ActiveSupport::EncryptedFile::MissingKeyError`, naming the expected key path and
+  `RAILS_MASTER_KEY`. `config/environments/development.rb` and `config/environments/test.rb` set
+  `config.require_master_key = true` for this reason; without it Rails would treat the credentials
+  payload as empty and fail later as an unrelated `KeyError`. Production leaves the setting `false`
+  because it reads its secrets from the environment.
+- **Key present but wrong.** `ActiveSupport::MessageEncryptor::InvalidMessage` during boot or during
+  a test run. That error means the key does not match the payload; it does not mean the committed
+  payload is corrupt.
 
 CI does not use these files. GitHub Actions supplies the key through the `RAILS_MASTER_KEY` secret
 (`.github/workflows/ci.yml`).
@@ -61,11 +68,11 @@ CI does not use these files. GitHub Actions supplies the key through the `RAILS_
 
 Compose reads the repository-root `.env`. It currently carries three settings:
 
-| Key | Source |
-| :--- | :--- |
-| `UID` | written automatically by `.devcontainer/write-host-ids.sh` |
-| `GID` | written automatically by `.devcontainer/write-host-ids.sh` |
-| `CLOUDFLARED_TOKEN` | Cloudflare dashboard, or the development lead |
+| Key                 | Source                                                     |
+| :------------------ | :--------------------------------------------------------- |
+| `UID`               | written automatically by `.devcontainer/write-host-ids.sh` |
+| `GID`               | written automatically by `.devcontainer/write-host-ids.sh` |
+| `CLOUDFLARED_TOKEN` | Cloudflare dashboard, or the development lead              |
 
 `UID` and `GID` need no manual action: `.devcontainer/devcontainer.json` runs
 `.devcontainer/write-host-ids.sh` as its `initializeCommand`, and that script preserves any existing

@@ -8,6 +8,13 @@ require_relative "../../lib/health_probe_paths"
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # Deliberately false, unlike development and test. No config/credentials/production.yml.enc
+  # and no config/master.key exist, so config.credentials.key_path resolves to
+  # config/master.key. Production reads its secrets from ENV through Rails.app.creds, and
+  # requiring the key would make every lookup that falls through ENV raise MissingKeyError at
+  # boot. Set this to true only together with issuing production credentials.
+  config.require_master_key = false
+
   # Code is not reloaded between requests.
   config.enable_reloading = false
 
