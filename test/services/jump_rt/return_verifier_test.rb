@@ -244,6 +244,26 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
     assert_equal "invalid_url", verify(token).error
   end
 
+  test "rejects missing oversized and non compact tokens before signature checks" do
+    assert_equal "missing_token", verify("").error
+    assert_equal "malformed", verify("a." * ((JumpRtReturnVerifier::MAX_TOKEN_LENGTH / 2) + 2)).error
+    assert_equal "malformed", verify("not-a-jwt").error
+  end
+
+  test "rejects payload claim mismatches that the happy path does not exercise" do
+    assert_includes %w(invalid_claim invalid_signature), verify(sign_return_token(schema: 2)).error
+    assert_includes %w(invalid_claim invalid_signature), verify(sign_return_token(sub: "other")).error
+    assert_includes %w(invalid_claim invalid_signature), verify(sign_return_token(dst: "external")).error
+    assert_includes %w(invalid_claim invalid_signature), verify(sign_return_token(jti: "")).error
+    assert_includes %w(invalid_claim invalid_signature), verify(sign_return_token(src: "")).error
+    assert_includes %w(invalid_claim invalid_signature), verify(sign_return_token(nbf: @now.to_i + 90, exp: @now.to_i + 60)).error
+  end
+
+  test "rejects claimed urls that include userinfo or fragments" do
+    assert_equal "invalid_url", verify(sign_return_token(url: "https://user:pass@www.umaxica.app/path?ok=1")).error
+    assert_equal "invalid_url", verify(sign_return_token(url: "https://www.umaxica.app/path?ok=1#frag")).error
+  end
+
   test "fetch_jwks rejects invalid jwks origin configuration" do
     verifier = JumpRtReturnVerifier.new(
       token: "dummy",

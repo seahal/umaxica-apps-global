@@ -1,15 +1,51 @@
 ---
-name: umaxica-apps-global
+# This repository keeps exactly two Compose files:
+#
+#   compose.yaml         — the project-common definition. Everything every developer
+#                          and the Dev Container needs, including the workspace bind
+#                          mount and the loopback host publications.
+#   compose.custom.yaml  — the developer-owned overlay. Anything specific to one
+#                          machine or one person's setup (tunnel connector, host
+#                          devices, personal tooling).
+#
+# `.devcontainer/devcontainer.json` loads both, in that order. There is no third
+# overlay; do not reintroduce one.
+#
+# The `-dc` suffix is historical and is kept deliberately: the project name is the
+# prefix of every named volume, so changing it would orphan the development
+# PostgreSQL, Valkey, bundle, and node_modules volumes.
+name: umaxica-apps-global-dc
 services:
   core:
+    container_name: global-devcontainer-core
     build:
       context: "."
       dockerfile: "./Containerfile"
-      target: development
+      # `development` is the normal image. Set CORE_BUILD_TARGET=workspace in the
+      # repository-local `.env` to build the nested-rootless-Podman `workspace`
+      # stage instead; that stage additionally needs a `/dev/fuse` device entry,
+      # which is host-shaped and therefore belongs in compose.custom.yaml.
+      # See docs/operations/development-container-targets.md.
+      target: "${CORE_BUILD_TARGET:-development}"
       args:
         COMMIT_HASH: abcdef
-        # DOCKER_UID/DOCKER_GID are host-shaped; they are supplied by the
-        # devcontainer override (.devcontainer/compose.override.yml).
+        # Host-shaped, but parameterized, so they stay project-common. `$UID`/`$GID`
+        # are bash builtins rather than exported variables, so Compose only sees real
+        # values after `.devcontainer/write-host-ids.sh` writes them into `.env`
+        # (the Dev Containers CLI runs it as `initializeCommand`).
+        DOCKER_UID: "${UID:-1000}"
+        DOCKER_GID: "${GID:-1000}"
+    # `keep-id` maps the host user directly to the workload UID/GID baked into the
+    # image (DOCKER_UID/DOCKER_GID above), so bind-mounted repo files keep host
+    # ownership. No `user:` key: rootless Podman's keep-id handling silently
+    # overrides an explicit `user:` anyway, and core-entrypoint runs the workload
+    # directly (no chown, no setpriv drop) when it is already started as the
+    # keep-id-mapped workload UID. Re-enabling tailscale-core-supervisor
+    # (compose.custom.yaml) needs a real root PID 1 and therefore conflicts with
+    # both of these.
+    userns_mode: keep-id
+    tty: true
+    stdin_open: true
     entrypoint:
       - "/usr/local/bin/core-entrypoint"
     # The container stays up idle; start the Rails/Vite/jobs stack manually
@@ -191,11 +227,10 @@ services:
       # .pnpm-store, which conflicts with the store vite-ruby's own pnpm calls used and
       # fails every session with ERR_PNPM_UNEXPECTED_STORE.
       npm_config_store_dir: /home/global/.local/share/pnpm/store
+      TMPDIR: /home/global/workspace/tmp
+      DEVCONTAINER: "1"
+      RUBY_DEBUG_OPEN: "false"
     restart: always
-    # PID 1 owns only fixed initialization and Tailscale responsibilities.
-    # core-entrypoint drops the application workload to CORE_WORKLOAD_USER;
-    # Dev Container shells also use the non-root containerUser.
-    user: root
     # Named volumes for high-write paths prevent rootless podman UID-mapping
     # from rewriting host file ownership on the bind-mounted workspace:
     #   - umaxica-home-cache  → pnpm / Vite / YJIT scratch
@@ -205,6 +240,42 @@ services:
     # Discard any of these with `podman volume rm <name>` to recover from
     # a corrupted cache without affecting credentials or workspace state.
     volumes:
+      # Relative paths in Compose files resolve against the project directory (the
+      # directory holding the first `-f` file), so `.` is the repository root.
+      # `:Z` adds an SELinux private label on Fedora/RHEL hosts and is harmless on
+      # non-SELinux hosts (Arch, Ubuntu).
+      - type: bind
+        source: "."
+        target: "/home/global/workspace"
+        bind:
+          selinux: Z
+      # The Dev Container string-form `readonly` mounts are writable with the
+      # current rootless Podman provider. Keep host configuration and guarded
+      # workspace paths in Compose long syntax so the effective mount flags stay
+      # inspectable. The host SSH directory is intentionally absent: inbound
+      # Remote Codex does not need host private keys.
+      - type: bind
+        source: "/etc/timezone"
+        target: "/etc/timezone"
+        read_only: true
+      - type: bind
+        source: "./.github"
+        target: "/home/global/workspace/.github"
+        read_only: true
+        bind:
+          selinux: Z
+      - type: bind
+        source: "./bin"
+        target: "/home/global/workspace/bin"
+        read_only: true
+        bind:
+          selinux: Z
+      - type: bind
+        source: "./.devcontainer"
+        target: "/home/global/workspace/.devcontainer"
+        read_only: true
+        bind:
+          selinux: Z
       - type: volume
         source: umaxica-home-cache
         target: "/home/global/.cache"
@@ -222,16 +293,26 @@ services:
       - type: volume
         source: umaxica-bundle
         target: "/home/global/workspace/vendor/bundle"
+      # Storage for the nested rootless Podman of the `workspace` build target.
+      # Inert on the `development` target, which has no inner Podman; keeping the
+      # mount here means CORE_BUILD_TARGET=workspace needs no extra volume wiring.
+      - type: volume
+        source: workspace-podman-storage
+        target: "/home/global/.local/share/containers"
     secrets:
       - dev_postgres_writer
       - dev_rustfs_access_key
       - dev_rustfs_secret_key
-    # Workspace bind mount, host-port publishing, and host-gateway alias are
-    # host-shaped — see the devcontainer override. `BINDING: 0.0.0.0` above is
-    # the *container-side* listener and must stay: cloudflare-tunnel and the
-    # probe containers reach Rails over the `frontend` network, not through the
-    # host. The host-side publication is loopback-only; the two are separate
-    # decisions (docs/operations/development-host-port-exposure.md).
+    # Loopback-only host publication. `BINDING: 0.0.0.0` above is the
+    # *container-side* listener and must stay: cloudflare-tunnel and the probe
+    # containers reach Rails over the `frontend` network, not through the host.
+    # The two are separate decisions
+    # (docs/operations/development-host-port-exposure.md).
+    ports:
+      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3036:3036"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       backend: {}
       frontend:
@@ -330,6 +411,9 @@ services:
     image: docker.io/rustfs/rustfs:1.0.0-beta.10
     profiles:
       - object-storage
+    ports:
+      - "127.0.0.1:${RUSTFS_API_HOST_PORT:-9000}:9000"
+      - "127.0.0.1:${RUSTFS_CONSOLE_HOST_PORT:-9001}:9001"
     depends_on:
       rustfs-permissions:
         condition: service_completed_successfully
@@ -399,6 +483,7 @@ services:
     networks:
       - backend
   primary:
+    container_name: global-devcontainer-primary
     build:
       context: ./podman/psql-pub
       dockerfile: Containerfile
@@ -460,6 +545,7 @@ services:
       retries: 40
       start_period: 5s
   replica:
+    container_name: global-devcontainer-replica
     build:
       context: ./podman/psql-sub
       dockerfile: Containerfile
@@ -507,6 +593,7 @@ services:
       retries: 30
       start_period: 10s
   valkey:
+    container_name: global-devcontainer-valkey
     image: docker.io/valkey/valkey:8.0-alpine3.22
     networks:
       - backend
@@ -576,6 +663,7 @@ services:
       retries: 5
       start_period: 30s
   loki:
+    container_name: global-devcontainer-loki
     image: docker.io/grafana/loki:latest
     # Rootless podman creates named volumes as the host user. Running these
     # opt-in observability services as container root keeps their data
@@ -590,6 +678,7 @@ services:
       - observability
     restart: "no"
   tempo:
+    container_name: global-devcontainer-tempo
     image: docker.io/grafana/tempo:2.10.5
     # See loki: rootless podman named-volume ownership needs the container
     # writer to map back to the host user.
@@ -609,6 +698,7 @@ services:
       - observability
     restart: "no"
   grafana:
+    container_name: global-devcontainer-grafana
     image: docker.io/grafana/grafana:latest
     # Grafana writes SQLite migrations under /var/lib/grafana; with rootless
     # podman the named volume can otherwise appear read-only to Grafana's UID.
@@ -672,6 +762,7 @@ networks:
   # docs/operations/cloudflare-private-origin.md.
 volumes:
   primary-data: {}
+  workspace-podman-storage: {}
   replica-data: {}
   valkey-volume: {}
   loki-volume: {}

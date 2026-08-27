@@ -21,6 +21,7 @@ module Base
         before_action :authorize_telephone_registration!, only: %i(new create)
 
         def index
+          authorize!(OperatorTelephone, to: :index?)
           @staff_telephones = current_operator.staff_telephones.order(created_at: :asc)
           render inertia: true, props: index_page_props
         end

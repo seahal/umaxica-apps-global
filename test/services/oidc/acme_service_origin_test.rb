@@ -165,6 +165,11 @@ class Oidc::AcmeServiceOriginTest < ActiveSupport::TestCase
 
   test "host and authorize parsing return safe outcomes for malformed URLs" do
     assert_nil Oidc::AcmeServiceOrigin.host_from("http://[")
+    assert_nil Oidc::AcmeServiceOrigin.host_from("   ")
+    assert_nil Oidc::AcmeServiceOrigin.host_from("https://user:pass@www.umaxica.app")
+    assert_nil Oidc::AcmeServiceOrigin.host_from("https://www.umaxica.app/path")
+    assert_nil Oidc::AcmeServiceOrigin.host_from("https://www.umaxica.app?q=1")
+    assert_nil Oidc::AcmeServiceOrigin.host_from("https://www.umaxica.app#frag")
 
     origin = build_origin("www.umaxica.app", default_scheme: "https")
     decision = origin.decision_for_authorize_url(
@@ -174,6 +179,25 @@ class Oidc::AcmeServiceOriginTest < ActiveSupport::TestCase
 
     assert_predicate decision, :rejected?
     assert_equal "invalid_url", decision.reason_code
+
+    native = origin.decision_for_authorize_url(
+      "umaxica://authorize",
+      request: test_request(host: "log.umaxica.app", scheme: "https"),
+    )
+
+    assert_predicate native, :jump?
+    assert_equal "native_custom_scheme", native.reason_code
+
+    other_path = origin.decision_for_authorize_url(
+      "https://www.umaxica.app/not-authorize",
+      request: test_request(host: "log.umaxica.app", scheme: "https"),
+    )
+
+    assert_equal "not_acme_authorize", other_path.reason_code
+    assert_nil origin.same_site_rejection_reason(
+      "https://www.umaxica.app/oauth/authorize",
+      request: test_request(host: "www.umaxica.app", scheme: "https"),
+    )
   end
 
   private

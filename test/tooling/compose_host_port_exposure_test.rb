@@ -16,8 +16,6 @@ class ComposeHostPortExposureTest < Minitest::Test
   COMPOSE_FILES = %w(
     compose.yaml
     compose.custom.yaml
-    compose.workspace.yaml
-    .devcontainer/compose.override.yml
     podman/fdw-poc/compose.fdw-poc.yml
     docker/fdw-poc/compose.fdw-poc.yml
   ).freeze

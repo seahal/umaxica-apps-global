@@ -48,6 +48,16 @@ bin/rails assets:clobber        # Remove compiled assets
 - Node.js `24.19.0` (Active LTS)
 - `pnpm@11.22.0`
 
+### Credentials and secrets
+
+`config/credentials/development.key`, `config/credentials/test.key`, and the repository-root `.env`
+are not tracked in git. Obtain the two key files from the development lead; without them the
+application cannot boot and `bin/rails test` cannot run. Credentials for AWS, Cloudflare, Fastly,
+and other providers — staging, production, or an individual environment — are also requested from
+the development lead and are never committed.
+
+See `docs/operations/development-credential-provisioning.md` for the full procedure.
+
 ### The pnpm toolchain
 
 The development image installs pnpm from the npm registry at the `PNPM_VERSION` build argument in
@@ -287,12 +297,12 @@ These checks cover formatting, linting, security audits, database consistency, a
 
 ## Troubleshooting
 
-| Problem                                  | Fix                                                       |
-| :--------------------------------------- | :-------------------------------------------------------- |
-| Tailwind changes are not reflected       | Run `bin/rails assets:clobber` and restart `bin/dev`      |
-| Tests fail because databases are missing | Run `bin/rails db:prepare`                                |
-| `bin/dev` stops during boot              | Check `PUBLIC_AUTH_*_URL` and database availability       |
-| Credentials cannot be decrypted          | Use the shared Rails credentials key for this environment |
+| Problem                                  | Fix                                                                          |
+| :--------------------------------------- | :--------------------------------------------------------------------------- |
+| Tailwind changes are not reflected       | Run `bin/rails assets:clobber` and restart `bin/dev`                         |
+| Tests fail because databases are missing | Run `bin/rails db:prepare`                                                   |
+| `bin/dev` stops during boot              | Check `PUBLIC_AUTH_*_URL` and database availability                          |
+| Credentials cannot be decrypted          | Obtain the key; see `docs/operations/development-credential-provisioning.md` |
 
 ## Acknowledgement
 

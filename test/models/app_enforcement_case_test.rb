@@ -4,6 +4,49 @@
 require "test_helper"
 
 class AppEnforcementCaseTest < ActiveSupport::TestCase
+  test "in_force requires an active unended currently effective unexpired case" do
+    the_case = AppEnforcementCase.new(state: "draft")
+
+    assert_not the_case.in_force?
+
+    the_case.state = "active"
+    the_case.ended_at = Time.current
+
+    assert_not the_case.in_force?
+
+    the_case.ended_at = nil
+    the_case.effective_at = 1.day.from_now
+
+    assert_not the_case.in_force?
+
+    the_case.effective_at = 1.day.ago
+    the_case.expires_at = 1.minute.ago
+
+    assert_not the_case.in_force?
+
+    the_case.expires_at = 1.day.from_now
+
+    assert the_case.in_force?
+  end
+
+  test "requires_approval is true for break glass and hidden operator bans" do
+    the_case = AppEnforcementCase.new(kind: "cooldown", visibility: "visible")
+    the_case.define_singleton_method(:break_glass?) { true }
+
+    assert the_case.requires_approval?
+
+    ban = AppEnforcementCase.new(kind: "permanent_ban", visibility: "hidden")
+    ban.define_singleton_method(:break_glass?) { false }
+
+    assert ban.requires_approval?
+  end
+
+  test "end_case rejects an unknown reason" do
+    the_case = AppEnforcementCase.new
+
+    assert_raises(ArgumentError) { the_case.end_case!(reason: "not-a-reason") }
+  end
+
   test "cooldown requires expires_at and rejects a missing one at the database level" do
     client = clients(:one)
     operator = operators(:one)

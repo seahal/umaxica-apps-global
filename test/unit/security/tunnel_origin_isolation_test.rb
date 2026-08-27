@@ -12,18 +12,28 @@ module Security
   # reaches Rails directly, bypassing cloudflared, can therefore set an arbitrary
   # X-Forwarded-For (or, if ever configured, CF-Connecting-IP) value and have it
   # trusted regardless of `trusted_proxies`. The actual control against spoofing is
-  # network isolation: `core` must never be reachable except through the tunnel.
-  # See docs/architecture/cloudflare-request-paths.md.
+  # network isolation: `core` must never be reachable from off the host except
+  # through the tunnel. See docs/architecture/cloudflare-request-paths.md.
+  #
+  # The developer's own browser needs `core`, so `compose.yaml` does publish it -
+  # but every entry must carry an explicit loopback bind address. A bare
+  # `3000:3000` makes Podman bind 0.0.0.0, which puts Rails on the LAN, Wi-Fi, and
+  # Tailscale interfaces and hands any neighbour an unimpeded
+  # X-Forwarded-For/CF-Connecting-IP forgery path.
   class TunnelOriginIsolationTest < ActiveSupport::TestCase
-    test "the base compose definition never publishes a host port for core" do
+    LOOPBACK_PUBLICATION = /\A(?:127\.0\.0\.1|\[::1\]):\d+:\d+(?:\/\w+)?\z/
+
+    test "the compose definition publishes core only on loopback" do
       compose = YAML.unsafe_load_file(Rails.root.join("compose.yaml"))
       core_service = compose.fetch("services").fetch("core")
 
-      assert_not core_service.key?("ports"),
-                 "core must not publish a host port in the base compose.yaml - publishing a " \
-                 "port would let a client reach Rails directly, bypassing cloudflared, and " \
-                 "forge X-Forwarded-For/CF-Connecting-IP unimpeded. Host-local port forwarding " \
-                 "belongs only in the devcontainer override, never in the base definition."
+      Array(core_service["ports"]).each do |publication|
+        assert_match LOOPBACK_PUBLICATION, publication,
+                     "core publishes #{publication.inspect} without an explicit loopback bind " \
+                     "address. Podman would bind 0.0.0.0, letting any host on the network reach " \
+                     "Rails directly, bypassing cloudflared, and forge " \
+                     "X-Forwarded-For/CF-Connecting-IP unimpeded."
+      end
     end
 
     test "X-Forwarded-For from an untrusted direct peer is still honored by RemoteIp (documents the real risk)" do

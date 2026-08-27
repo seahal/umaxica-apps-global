@@ -46,17 +46,17 @@ startup so the failure names its cause instead of surfacing as an opaque 403.
 
 The non-secret settings need no local configuration at all. `OBJECT_STORAGE_BUCKET` is fixed to
 `umaxica-local` in the `core` service environment (`compose.yaml`), and the loopback host ports are
-fixed to `9000` (S3 API) and `9001` (console) in `.devcontainer/compose.override.yml`. The ignored
+fixed to `9000` (S3 API) and `9001` (console) in `compose.yaml`. The ignored
 repository-root `.env` carries only the Cloudflare Tunnel token and the host `UID`/`GID` that
 `.devcontainer/write-host-ids.sh` writes; it holds no object-storage settings.
 
 These values are only for local development; production must use its platform credential provider
 and must not set a RustFS endpoint override.
 
-All commands below use the base Compose file and the devcontainer override:
+All commands below use the base Compose file and the developer overlay:
 
 ```sh
-COMPOSE="podman compose -f compose.yaml -f .devcontainer/compose.override.yml"
+COMPOSE="podman compose -f compose.yaml -f compose.custom.yaml"
 ```
 
 The shell variable is only a documentation shorthand. If the Compose provider does not accept a

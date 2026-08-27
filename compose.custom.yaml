@@ -1,9 +1,19 @@
-name: umaxica-apps-global-dc
-# Always-on overlay: unconditionally referenced by .devcontainer/devcontainer.json's
-# dockerComposeFile array, and merged manually with `-f compose.custom.yaml` for
-# non-devcontainer `podman compose` invocations. Presence in the merge is the opt-in: a
-# standard `devcontainer up` starts the connector and fails at Compose resolution when its
-# tunnel token is not configured.
+# The developer-owned overlay, and the only overlay. `compose.yaml` holds everything
+# that is project-common; anything specific to one machine or one person's setup
+# belongs here. `.devcontainer/devcontainer.json` loads the two files in order, and
+# non-devcontainer runs merge them the same way:
+#
+#   podman compose -f compose.yaml -f compose.custom.yaml up -d core
+#
+# The file is committed, so it is always in the merge and its presence is the opt-in:
+# a standard `devcontainer up` starts the connector and fails at Compose resolution
+# when its tunnel token is not configured.
+#
+# Host devices belong here too. The `workspace` build target
+# (CORE_BUILD_TARGET=workspace in `.env`) additionally needs
+# `devices: ["/dev/fuse:/dev/fuse"]` on `core`; it is absent because not every host
+# exposes `/dev/fuse`, and a missing device makes the whole project fail to start.
+# See docs/operations/development-container-targets.md.
 #
 # The remotely managed tunnel token comes from the repository-local, gitignored `.env`.
 # It is passed only to the cloudflared process and is never copied into an image, workspace
@@ -49,12 +59,12 @@ services:
         max-size: "10m"
         max-file: "3"
   core:
-    # Tailscale is not in use right now. tailscale-core-supervisor needs a
-    # real root control-plane PID 1 (see .devcontainer/compose.override.yml),
-    # which conflicts with `userns_mode: keep-id` there. Falling back to the
-    # base compose.yaml `command: [sleep, infinity]` (by not overriding it
-    # here) lets core-entrypoint idle as the keep-id-mapped user.
-    # Re-enable by restoring this override and reverting the override file.
+    # Tailscale is not in use right now. tailscale-core-supervisor needs a real
+    # root control-plane PID 1, which conflicts with the `userns_mode: keep-id`
+    # and the absent `user:` key in compose.yaml. Falling back to the base
+    # `command: [sleep, infinity]` (by not overriding it here) lets
+    # core-entrypoint idle as the keep-id-mapped user. Re-enabling it means
+    # restoring the command override here and reverting both of those.
     environment:
       # Optional exact Rails Host Authorization entry for Tailscale Serve.
       # The value is a hostname, not a credential; unset keeps normal startup

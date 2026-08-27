@@ -89,4 +89,139 @@ class AppleNotificationVerifierTest < ActiveSupport::TestCase
 
     assert_equal :jti_missing, error.code
   end
+
+  test "rejects malformed tokens missing kids invalid events and stale issued at" do
+    now = Time.utc(2026, 7, 24, 12, 0, 0)
+    key = OpenSSL::PKey::RSA.generate(2048)
+    loader = ->(_options) { { keys: [JWT::JWK.new(key.public_key, kid: "apple-key").export] } }
+
+    malformed =
+      assert_raises(ExternalAuthentication::AppleNotificationVerifier::VerificationError) do
+        ExternalAuthentication::AppleNotificationVerifier.new(
+          jws: "not.a.jws",
+          audience: "primary-app-id",
+          jwks_loader: loader,
+          clock: -> { now },
+        ).call
+      end
+    assert_equal :malformed_jws, malformed.code
+
+    missing_kid = JWT.encode(
+      { iss: "https://appleid.apple.com",
+        aud: "primary-app-id",
+        iat: now.to_i,
+        jti: "jti",
+        events: { type: "consent-revoked", sub: "apple-subject", event_time: now.to_i }, },
+      key,
+      "RS256",
+    )
+    kid_error =
+      assert_raises(ExternalAuthentication::AppleNotificationVerifier::VerificationError) do
+        ExternalAuthentication::AppleNotificationVerifier.new(
+          jws: missing_kid,
+          audience: "primary-app-id",
+          jwks_loader: loader,
+          clock: -> { now },
+        ).call
+      end
+    assert_equal :kid_missing, kid_error.code
+
+    bad_events = JWT.encode(
+      { iss: "https://appleid.apple.com", aud: "primary-app-id", iat: now.to_i, jti: "jti", events: "nope" },
+      key,
+      "RS256",
+      { kid: "apple-key" },
+    )
+    events_error =
+      assert_raises(ExternalAuthentication::AppleNotificationVerifier::VerificationError) do
+        ExternalAuthentication::AppleNotificationVerifier.new(
+          jws: bad_events,
+          audience: "primary-app-id",
+          jwks_loader: loader,
+          clock: -> { now },
+        ).call
+      end
+    assert_equal :events_invalid, events_error.code
+
+    bad_type = JWT.encode(
+      { iss: "https://appleid.apple.com",
+        aud: "primary-app-id",
+        iat: now.to_i,
+        jti: "jti",
+        events: { type: "unknown", sub: "apple-subject", event_time: now.to_i }, },
+      key,
+      "RS256",
+      { kid: "apple-key" },
+    )
+    type_error =
+      assert_raises(ExternalAuthentication::AppleNotificationVerifier::VerificationError) do
+        ExternalAuthentication::AppleNotificationVerifier.new(
+          jws: bad_type,
+          audience: "primary-app-id",
+          jwks_loader: loader,
+          clock: -> { now },
+        ).call
+      end
+    assert_equal :event_type_invalid, type_error.code
+
+    future = JWT.encode(
+      { iss: "https://appleid.apple.com",
+        aud: "primary-app-id",
+        iat: now.to_i + 1.hour.to_i,
+        jti: "jti",
+        events: { type: "consent-revoked", sub: "apple-subject", event_time: now.to_i }, },
+      key,
+      "RS256",
+      { kid: "apple-key" },
+    )
+    future_error =
+      assert_raises(ExternalAuthentication::AppleNotificationVerifier::VerificationError) do
+        ExternalAuthentication::AppleNotificationVerifier.new(
+          jws: future,
+          audience: "primary-app-id",
+          jwks_loader: loader,
+          clock: -> { now },
+        ).call
+      end
+    assert_equal :issued_at_future, future_error.code
+
+    expired = JWT.encode(
+      { iss: "https://appleid.apple.com",
+        aud: "primary-app-id",
+        iat: now.to_i - 48.hours.to_i,
+        jti: "jti",
+        events: { type: "consent-revoked", sub: "apple-subject", event_time: now.to_i }, },
+      key,
+      "RS256",
+      { kid: "apple-key" },
+    )
+    expired_error =
+      assert_raises(ExternalAuthentication::AppleNotificationVerifier::VerificationError) do
+        ExternalAuthentication::AppleNotificationVerifier.new(
+          jws: expired,
+          audience: "primary-app-id",
+          jwks_loader: loader,
+          clock: -> { now },
+        ).call
+      end
+    assert_equal :issued_at_expired, expired_error.code
+  end
+
+  test "from_credentials requires a string audience" do
+    Rails.app.creds.stub(:option, nil) do
+      assert_raises(ExternalAuthentication::AppleNotificationVerifier::ConfigurationError) do
+        ExternalAuthentication::AppleNotificationVerifier.from_credentials(jws: "token")
+      end
+    end
+  end
+
+  test "initialize requires a callable jwks loader" do
+    assert_raises(ArgumentError) do
+      ExternalAuthentication::AppleNotificationVerifier.new(
+        jws: "token",
+        audience: "primary-app-id",
+        jwks_loader: Object.new,
+      )
+    end
+  end
 end

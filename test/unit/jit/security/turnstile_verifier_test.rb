@@ -44,6 +44,44 @@ module Jit
         end
       end
 
+      test "verify_for_ceremony requires binding and a ceremony id" do
+        TurnstileVerifierStub.enabled = false
+        missing_ceremony = JitSecurityTurnstileVerifier.new(
+          token: "tok",
+          remote_ip: "1.2.3.4",
+          secret_key: "secret",
+          ceremony_id: "",
+        )
+        missing_ceremony.stub(:verify, { "success" => true, "hostname" => "www.umaxica.app", "action" => "login" }) do
+          result = missing_ceremony.verify_for_ceremony
+
+          assert_not result["success"]
+          assert_equal "missing ceremony binding", result["error"]
+        end
+
+        verifier = JitSecurityTurnstileVerifier.new(
+          token: "tok",
+          remote_ip: "1.2.3.4",
+          secret_key: "secret",
+          ceremony_id: "ceremony-1",
+          expected_hostname: "www.umaxica.app",
+          expected_action: "login",
+        )
+        verifier.stub(:verify, { "success" => true, "hostname" => "other.example", "action" => "login" }) do
+          result = verifier.verify_for_ceremony
+
+          assert_not result["success"]
+          assert_equal "turnstile binding mismatch", result["error"]
+        end
+      end
+
+      test "parse_expires_at falls back when the challenge timestamp is unusable" do
+        verifier = JitSecurityTurnstileVerifier.new(token: "tok", remote_ip: "1.2.3.4", secret_key: "secret")
+
+        assert_kind_of ActiveSupport::TimeWithZone, verifier.send(:parse_expires_at, nil)
+        assert_kind_of ActiveSupport::TimeWithZone, verifier.send(:parse_expires_at, "not-a-time")
+      end
+
       test "injected verifier returns the stubbed response" do
         TurnstileVerifierStub.response = { "success" => true, "mock" => true }
         result = Turnstile::VerifierFactory.current.verify(token: "foo", remote_ip: "127.0.0.1")

@@ -145,7 +145,6 @@ alone does not revoke a copied token at Cloudflare:
 ```bash
 podman compose \
   -f compose.yaml \
-  -f .devcontainer/compose.override.yml \
   -f compose.custom.yaml \
   up -d --force-recreate --no-deps cloudflare-tunnel
 ```
