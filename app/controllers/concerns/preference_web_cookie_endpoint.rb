@@ -108,7 +108,7 @@ module PreferenceWebCookieEndpoint
   def refresh_token_expires_at
     public_id = decoded_preference_payload&.dig("public_id")
     record = find_preference_by_public_id(public_id)
-    expires_at = record&.expires_at
+    expires_at = record&.discarded_at
     return expires_at if expires_at.present? && !expires_at.is_a?(Float)
 
     nil
@@ -229,7 +229,7 @@ module PreferenceWebCookieEndpoint
   end
 
   def consented_buffer_expires_at(preference)
-    expires_at = preference&.expires_at
+    expires_at = preference&.discarded_at
     return expires_at if expires_at.present? && !expires_at.is_a?(Float)
 
     PreferenceBase::REFRESH_TOKEN_TTL.from_now

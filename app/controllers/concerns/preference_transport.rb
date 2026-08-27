@@ -7,9 +7,6 @@ module PreferenceTransport
   private
 
   def resolve_preference_transport
-    # FIXME: Split this transport resolver into focused reader/setter/writer concerns.
-    # It currently owns preference record creation, refresh-token rotation,
-    # access-token issuance, cookie writes, and controller state assignment.
     set_preferences_cookie
   end
 

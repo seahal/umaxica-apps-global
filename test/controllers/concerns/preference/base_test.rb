@@ -484,7 +484,7 @@ module Preference
   class PreferenceBaseMethodsTest < ActiveSupport::TestCase
     FakePreferenceState =
       Struct.new(
-        :binding_method, :dbsc_status, :dbsc_session_id, :expires_at,
+        :binding_method, :dbsc_status, :dbsc_session_id,
         :status_id, :discarded_at, :replaced_by_id, :public_id,
         keyword_init: true,
       ) do

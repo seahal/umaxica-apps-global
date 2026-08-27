@@ -23,9 +23,6 @@ module ActorSupport
     # Note: HostContextResolver's `surface` is the TLD tier, not the ActorValuesContext
     # `surface` route/product axis. The latter, plus transport/channel, are left at
     # their safe baseline here.
-    # TODO: derive surface from routing and refine transport/channel from the
-    # resolved credential source when those axes gain consumers. Until then the
-    # anonymous baseline is transport: :none, channel/surface: :unknown.
     Actor.install_context!(
       tld: context.surface,
       surface: :unknown,

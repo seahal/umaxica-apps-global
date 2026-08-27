@@ -66,7 +66,7 @@ module Auth
           status_id: AppPreferenceStatus::NOTHING,
           binding_method_id: AppPreferenceBindingMethod::LEGACY,
           dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
-          expires_at: 20.years.from_now,
+          discarded_at: 20.years.from_now,
         )
         AppPreferenceCookie.create!(preference: preference)
         cookies[::PreferenceCookieName.refresh(surface: :app)] = token

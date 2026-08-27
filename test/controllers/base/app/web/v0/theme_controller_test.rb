@@ -73,7 +73,7 @@ class Base::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
   test "PATCH update with preference record updates theme and issues access token" do
     preference = AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
-      expires_at: PreferenceBase::REFRESH_TOKEN_TTL.from_now,
+      discarded_at: PreferenceBase::REFRESH_TOKEN_TTL.from_now,
     )
     option_class = PreferenceClassRegistry.option_class("App", :theme)
     ensure_theme_defaults!(option_class)
@@ -112,7 +112,7 @@ class Base::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
   test "PATCH update with refresh token fallback updates preference record" do
     preference = AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
-      expires_at: PreferenceBase::REFRESH_TOKEN_TTL.from_now,
+      discarded_at: PreferenceBase::REFRESH_TOKEN_TTL.from_now,
     )
     option_class = PreferenceClassRegistry.option_class("App", :theme)
     ensure_theme_defaults!(option_class)

@@ -1,7 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-# TODO: Find out why needs this code
 class ApplicationRecord < ActiveRecord::Base
   primary_abstract_class
 
