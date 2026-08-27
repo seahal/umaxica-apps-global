@@ -56,27 +56,29 @@ class AppPreference < AppSettingRecord
 
   self.belongs_to_required_by_default = false
 
-  # FIXME: this is a hack.
-  alias_attribute :expires_at, :discarded_at
+  # Retention and token expiry are the same event for a single-use preference token:
+  # SingleUseToken declares `expires_at_column: :discarded_at`, and issuance writes the TTL
+  # straight into `discarded_at`. The column is NOT NULL and defaults to the Retainable
+  # sentinel (Float::INFINITY), so callers must handle that value rather than nil.
 
   DBSC_BINDING_METHOD_CLASS = AppPreferenceBindingMethod
   DBSC_STATUS_CLASS = AppPreferenceDbscStatus
 
-  # FIXME: this attribute should be set by the migration.
-  attribute :status_id, default: AppPreferenceStatus::NOTHING
-
   belongs_to :app_preference_status,
              foreign_key: :status_id,
              inverse_of: :app_preferences
-  # TODO: what is this relation?
+  # How this preference token is bound to the device: none, DBSC, or the legacy scheme.
+  # Resolved through DbscBindable.
   belongs_to :app_preference_binding_method,
              foreign_key: :binding_method_id,
              inverse_of: :app_preferences
-  # TODO: what is this relation?
+  # DBSC registration lifecycle state for this token: nothing, active, pending, failed,
+  # or revoked.
   belongs_to :app_preference_dbsc_status,
              foreign_key: :dbsc_status_id,
              inverse_of: :app_preferences
-  # TODO: what is this relation?
+  # Successor row created when this single-use token was rotated. Points at itself until a
+  # real rotation happens; see SingleUseToken#rotated_within_grace?.
   belongs_to :replaced_by,
              class_name: "AppPreference"
 
@@ -124,17 +126,17 @@ class AppPreference < AppSettingRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  # FIXME: too nasty name is this.
   has_one :app_preference_adult_content_gate,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  # TODO: what is this relation?
+  # Audit trail for this preference, stored in the chronicle database and keyed by subject_id.
   has_many :app_preference_chronicles,
            foreign_key: :subject_id,
            inverse_of: :app_preference,
            dependent: :destroy
-  # TODO: what is this relation?
+  # Inverse of `replaced_by`: the rows this one superseded. Includes self while the
+  # self-replacement marker is in place.
   has_many :replacements,
            class_name: "AppPreference",
            foreign_key: :replaced_by_id,
@@ -144,9 +146,6 @@ class AppPreference < AppSettingRecord
   # validations
   validates :status_id, numericality: { only_integer: true }
   validates :jti, uniqueness: true, allow_nil: true
-
-  attribute :binding_method_id, default: AppPreferenceBindingMethod::NOTHING
-  attribute :dbsc_status_id, default: AppPreferenceDbscStatus::NOTHING
 
   before_validation :default_replaced_by_to_self, on: :create
   after_create :persist_self_replacement

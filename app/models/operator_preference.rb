@@ -90,7 +90,6 @@ class OperatorPreference < OrgPrincipalRecord
   validates :targetable, inclusion: { in: [true, false] }
   validates :public_id, length: { maximum: 21 }, uniqueness: true, allow_blank: true
 
-  after_initialize :set_defaults
   before_validation :generate_public_id, on: :create
 
   def adult_content_gate
@@ -101,15 +100,5 @@ class OperatorPreference < OrgPrincipalRecord
 
   def generate_public_id
     self.public_id = Nanoid.generate(size: 21) if public_id.blank?
-  end
-
-  # FIXME: i want to remove these lines.
-  def set_defaults
-    return unless new_record?
-
-    self.consented = false if consented.nil?
-    self.functional = false if functional.nil?
-    self.performant = false if performant.nil?
-    self.targetable = false if targetable.nil?
   end
 end

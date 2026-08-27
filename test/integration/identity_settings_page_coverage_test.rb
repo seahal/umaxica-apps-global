@@ -60,11 +60,6 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
       number: "+819055510001",
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    unverified = VisitorTelephone.create!(
-      visitor: visitor,
-      number: "+819055510002",
-      visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
-    )
     extra = VisitorTelephone.create!(
       visitor: visitor,
       number: "+819055510003",
@@ -94,6 +89,12 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
+    unverified = visitor.visitor_telephones.where(
+      visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
+    ).order(:created_at).last
+
+    assert_predicate unverified, :present?
+
     get new_base_com_identity_telephones_registration_url(ri: "jp", host: host), headers: headers
 
     assert_response :success
@@ -114,6 +115,8 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
          headers: headers
 
     assert_response :unprocessable_content
+
+    verified.destroy!
 
     TurnstileVerifierStub.challenge_response = { "success" => true }
     OtpAdapter.stub(:for, fake_adapter) do

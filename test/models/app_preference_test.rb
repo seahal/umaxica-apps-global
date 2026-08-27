@@ -53,6 +53,20 @@ class AppPreferenceTest < ActiveSupport::TestCase
     AppPreferenceStatus.ensure_defaults!
   end
 
+  test "reference ids default to nothing from the column defaults" do
+    preference = AppPreference.new
+
+    assert_equal AppPreferenceStatus::NOTHING, preference.status_id
+    assert_equal AppPreferenceBindingMethod::NOTHING, preference.binding_method_id
+    assert_equal AppPreferenceDbscStatus::NOTHING, preference.dbsc_status_id
+
+    persisted = AppPreference.create!.reload
+
+    assert_equal AppPreferenceStatus::NOTHING, persisted.status_id
+    assert_equal AppPreferenceBindingMethod::NOTHING, persisted.binding_method_id
+    assert_equal AppPreferenceDbscStatus::NOTHING, persisted.dbsc_status_id
+  end
+
   test "generates public_id on create" do
     preference = AppPreference.create!
 

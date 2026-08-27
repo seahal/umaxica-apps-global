@@ -12,7 +12,7 @@
 #  updated_at   :datetime         not null
 #  division_id  :bigint
 #  public_id    :string           not null
-#  status_id    :bigint           default(5), not null
+#  status_id    :bigint           default(0), not null
 #  user_id      :bigint
 #
 # Indexes
@@ -34,8 +34,6 @@
 class Member < AppPrincipalRecord
   include Retainable
   include ::Account
-
-  attribute :status_id, default: MemberStatus::NOTHING
 
   belongs_to :user, class_name: "Client", inverse_of: :owned_members
   belongs_to :member_status,

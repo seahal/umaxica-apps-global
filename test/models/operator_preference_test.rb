@@ -126,19 +126,18 @@ class OperatorPreferenceTest < ActiveSupport::TestCase
     assert_equal staff.id, staff.staff_preference.staff_id
   end
 
-  test "set_defaults fills nil booleans on new records" do
+  test "explicit nil consent flags are rejected instead of silently defaulting" do
     pref = OperatorPreference.new(staff: operators(:sample_staff))
     pref.consented = nil
     pref.functional = nil
     pref.performant = nil
     pref.targetable = nil
 
-    pref.send(:set_defaults)
-
-    assert_not pref.consented
-    assert_not pref.functional
-    assert_not pref.performant
-    assert_not pref.targetable
+    assert_not pref.valid?
+    assert_includes pref.errors.attribute_names, :consented
+    assert_includes pref.errors.attribute_names, :functional
+    assert_includes pref.errors.attribute_names, :performant
+    assert_includes pref.errors.attribute_names, :targetable
   end
 
   test "adult_content_gate returns nothing when no gate is set" do

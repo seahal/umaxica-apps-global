@@ -12,7 +12,7 @@
 #  updated_at   :datetime         not null
 #  division_id  :bigint
 #  public_id    :string           not null
-#  status_id    :bigint           default(5), not null
+#  status_id    :bigint           default(0), not null
 #  user_id      :bigint
 #
 # Indexes
@@ -36,5 +36,9 @@ require "test_helper"
 class MemberTest < ActiveSupport::TestCase
   test "class is defined" do
     assert_equal "Member", Member.name
+  end
+
+  test "status_id defaults to nothing from the column default" do
+    assert_equal MemberStatus::NOTHING, Member.new.status_id
   end
 end

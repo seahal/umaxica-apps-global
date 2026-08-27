@@ -9,7 +9,7 @@
 #  updated_at :datetime         not null
 #
 nothing:
-  id: 5
+  id: 0
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 active:
@@ -26,5 +26,9 @@ inactive:
   updated_at: <%= Time.current %>
 pending:
   id: 3
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+legacy_nothing:
+  id: 5
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
