@@ -309,6 +309,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     ncdu \
     netcat-openbsd \
     openssh-client \
+    openssh-server \
     openssl \
     ripgrep \
     silversearcher-ag \
@@ -378,26 +379,32 @@ RUN rm -f /usr/local/bin/pn \
 # with EACCES until someone chowns it by hand — once per container recreate.
 # Materializing the full XDG tree here means Podman never has to invent a
 # parent, and the chown below stamps the workload owner on all of it.
+# The two umaxica-* paths below serve the opt-in sshd (REMOTE_SSHD=1). They are
+# created here, owned by the workload user, so Podman's copy-up gives the host-key
+# volume and the read-only authorized_keys bind the right ownership instead of
+# inventing a root-owned parent that sshd's StrictModes then rejects.
 RUN mkdir -p "${HOME}/workspace" \
     "${HOME}/.cache" \
     "${HOME}/.config" \
     "${HOME}/.local/bin" \
     "${HOME}/.local/share" \
     "${HOME}/.local/state" \
-    && chown -R "${DOCKER_UID}:${DOCKER_GID}" "${HOME}" /usr/local/bundle
+    "${HOME}/.local/state/umaxica-sshd" \
+    "${HOME}/.config/umaxica" \
+    && chown -R "${DOCKER_UID}:${DOCKER_GID}" "${HOME}" /usr/local/bundle \
+    && chmod 0700 "${HOME}/.local/state/umaxica-sshd" \
+    && chmod 0755 "${HOME}/.config/umaxica"
 
 COPY --chown=0:0 podman/core/entrypoint.sh /usr/local/bin/core-entrypoint
 COPY --chown=0:0 podman/core/dev-supervisor.sh /usr/local/bin/core-dev-supervisor
-COPY --chown=0:0 .devcontainer/tailscale-core-supervisor.sh /usr/local/bin/tailscale-core-supervisor
-COPY --chown=0:0 .devcontainer/tailscale-core-status.sh /usr/local/bin/tailscale-core-status
-COPY --chown=0:0 .devcontainer/tailscale-core-login-environment.sh /etc/profile.d/umaxica-core-development.sh
+# Root-owned and read-only: the sshd configuration must not be rewritable by the
+# development shell it admits.
+COPY --chown=0:0 podman/core/sshd_config /etc/umaxica/sshd_config
 
 RUN chmod 0555 \
     /usr/local/bin/core-entrypoint \
     /usr/local/bin/core-dev-supervisor \
-    /usr/local/bin/tailscale-core-supervisor \
-    /usr/local/bin/tailscale-core-status \
-    && chmod 0444 /etc/profile.d/umaxica-core-development.sh
+    && chmod 0444 /etc/umaxica/sshd_config
 
 USER ${DOCKER_USER}
 

@@ -239,15 +239,8 @@ Rails.application.configure do
       [origin.host, ("#{origin.host}:#{origin.port}" if origin.port != default_port)]
     end
 
-  tailscale_serve_host = ENV["TAILSCALE_SERVE_HOST"].presence
-  if tailscale_serve_host && !tailscale_serve_host.match?(/\A[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.ts\.net\z/)
-    raise ArgumentError, "TAILSCALE_SERVE_HOST must be a bare .ts.net hostname"
-  end
-
   config.hosts.concat(
-    (
-      boot_config_hosts + localhost_tunnel_hosts + env_hosts + [tailscale_serve_host]
-    ).compact_blank.uniq,
+    (boot_config_hosts + localhost_tunnel_hosts + env_hosts).compact_blank.uniq,
   )
 
   ## file watcher

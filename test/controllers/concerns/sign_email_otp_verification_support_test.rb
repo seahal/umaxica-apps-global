@@ -34,6 +34,7 @@ class SignEmailOtpVerificationSupportTest < ActiveSupport::TestCase
     assert_equal [I18n.t("sign.app.verification.errors.invalid_code")], harness.verification_errors
 
     harness.params = ActionController::Parameters.new(verification: { code: "123456" })
+
     assert_not harness.send(:verify_email_otp!)
     assert_equal [I18n.t("sign.app.verification.errors.resend_required")], harness.verification_errors
 
@@ -47,11 +48,13 @@ class SignEmailOtpVerificationSupportTest < ActiveSupport::TestCase
       "otp_digest" => "deadbeef",
     }
     harness.params = ActionController::Parameters.new(verification: { code: "123456" })
+
     assert_not harness.send(:verify_email_otp!)
     assert_equal [I18n.t("sign.app.verification.errors.code_expired")], harness.verification_errors
 
     session.define_singleton_method(:discarded_at) { 1.hour.from_now }
     harness.current_step_up_session = session
+
     assert_not harness.send(:verify_email_otp!)
     assert_equal [I18n.t("sign.app.verification.errors.incorrect_code")], harness.verification_errors
   end

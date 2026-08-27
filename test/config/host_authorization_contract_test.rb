@@ -54,8 +54,7 @@ class HostAuthorizationContractTest < Minitest::Test
       end
       puts JSON.generate(statuses)
     RUBY
-    tailscale_serve_host = "umaxica-global-core.example-tailnet.ts.net"
-    hosts = PRIVATE_ORIGIN_HOSTS + [tailscale_serve_host, "evil.example.com"]
+    hosts = PRIVATE_ORIGIN_HOSTS + ["evil.example.com"]
     stdout, stderr, status = Open3.capture3(
       {
         "RAILS_ENV" => "development",
@@ -64,7 +63,6 @@ class HostAuthorizationContractTest < Minitest::Test
         "PRIVATE_AUTH_STAFF_URL" => "http://configured-auth.org.localhost:3000",
         "PRIVATE_BASE_NETWORK_URL" => "http://configured-base.net.localhost:3000",
         "PRIVATE_BASE_DEVELOPER_URL" => "http://configured-base.dev.localhost:3000",
-        "TAILSCALE_SERVE_HOST" => tailscale_serve_host,
       },
       "bin/rails",
       "runner",
@@ -78,7 +76,6 @@ class HostAuthorizationContractTest < Minitest::Test
     PRIVATE_ORIGIN_HOSTS.each do |host|
       assert_equal 200, statuses.fetch(host), "expected Host Authorization to accept #{host}"
     end
-    assert_equal 200, statuses.fetch(tailscale_serve_host)
     assert_equal 403, statuses.fetch("evil.example.com")
   end
 
@@ -163,17 +160,6 @@ class HostAuthorizationContractTest < Minitest::Test
                       "compose.yaml aliases #{host} to core, but no PUBLIC_*_URL names it, " \
                       "so development Host Authorization would reject it"
     end
-  end
-
-  def test_tailscale_serve_host_is_optional_but_must_be_a_bare_ts_net_hostname
-    development_config = File.read(File.expand_path("../../config/environments/development.rb", __dir__))
-
-    assert_match(/ENV\["TAILSCALE_SERVE_HOST"\]/, development_config)
-    assert_match(/must be a bare \.ts\.net hostname/, development_config)
-    # Plain Minitest does not provide Rails' assert_no_match assertion.
-    # rubocop:disable Rails/RefuteMethods
-    refute_match(/config\.hosts\s*<<\s*\/.*ts\\\.net/, development_config)
-    # rubocop:enable Rails/RefuteMethods
   end
 
   def test_host_configuration_does_not_contain_a_catastrophic_broad_bypass

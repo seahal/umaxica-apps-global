@@ -1,9 +1,8 @@
 # Cloudflare Request Paths and Trust Boundaries
 
 This document describes every request path that reaches Rails, the trust domain each hop belongs to,
-and which component can forge which header. It exists because Tailscale, Cloudflare Tunnel,
-Cloudflare Access, and Workers VPC are four distinct trust domains that must not be conflated (see
-`docs/operations/remote-codex-over-tailscale.md` for the Tailscale/development path in detail).
+and which component can forge which header. It exists because Cloudflare Tunnel, Cloudflare Access,
+and Workers VPC are distinct trust domains that must not be conflated.
 
 ## Hostname Families, Routing Targets, and Host Authorization
 
@@ -118,7 +117,6 @@ Rails accept it.
 
 | Domain            | Purpose                                                | Never used for                                                                                                    |
 | ----------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| Tailscale         | Development and operator access to `core` over SSH     | Production traffic, Rails authentication                                                                          |
 | Cloudflare Tunnel | Selected externally reachable Rails ingress            | Service-to-service (Workers/Next.js) traffic                                                                      |
 | Workers VPC       | Cloudflare Worker/Next.js -> Rails, service-to-service | Public browser traffic, operator access                                                                           |
 | Cloudflare Access | Perimeter for explicitly protected hostnames           | Rails' primary identity system — Rails authentication and authorization remain authoritative regardless of Access |
@@ -237,19 +235,6 @@ surface hostname that matches the surface route constraint — for Core that is
 Omitting `X-Forwarded-Host` is part of the decision, not an incidental detail: per the Host
 Authorization note above, setting it would add a second name to admit and could force the
 `PUBLIC_* ∪ PRIVATE_*` union that choosing `PUBLIC_*` for `Host` exists to avoid.
-
-### 4. Tailscale development access
-
-```text
-Mac (Tailscale client) --(Tailscale network)--> core userspace tailscaled
-  +-- built-in Tailscale SSH --> global
-  `-- HTTPS Serve --> Rails on 127.0.0.1:3000
-```
-
-- The binaries, supervisor, and state volume exist only in the development target and Dev Container
-  overlay; they are absent from production. This path uses Tailscale SSH rather than OpenSSH or TCP
-  port 22 forwarding. See `docs/operations/remote-codex-over-tailscale.md` and
-  `docs/operations/claude-remote-control.md` (which remains independent).
 
 ## Header Trust Summary
 

@@ -1,457 +1,329 @@
+---
+description: Design system, covering color roles, typography, spacing, shapes, composition, and component conventions
+globs: src/**/*.css,src/**/*.tsx
+alwaysApply: false
+paths: src/**/*.css, src/**/*.tsx
+---
+
+# Design System
+
 ## Overview
 
-Claude.com is the warmest, most editorial interface in the AI-product category. The base atmosphere
-is a **tinted cream canvas** (`{colors.canvas}` — #faf9f5) — distinctly warm, deliberately not the
-cool gray-white that every other AI brand uses. Headlines run a **slab-serif display** ("Copernicus"
-/ Tiempos Headline) at weight 400 with negative letter-spacing, paired with **StyreneB / Inter**
-body sans. The combination feels like a literary publication, not a SaaS marketing page.
+Token values are defined in `src/styles.css`: shadcn/ui's neutral base, kept
+achromatic for every surface and text role, with a hue only on `destructive`
+and the chart series, and a radius scale derived from `--radius`.
+That base is a starting point rather than an identity, so a project that wants a
+palette, a typeface, or a corner treatment of its own replaces the values there
+and leaves the rules below alone.
 
-Brand voltage comes from the **cream + coral pairing** — coral (`{colors.primary}` — #cc785c) is the
-signature Anthropic accent, used on every primary CTA, on the brand wordmark, and on full-bleed
-callout cards. The coral is warm, slightly muted, never cyan/blue — a deliberate counter-positioning
-against OpenAI's cool slate, Google's saturated blue, and Microsoft's corporate cyan.
-
-The system has three surface modes that alternate page-by-page:
-
-1. **Cream canvas** (`{colors.canvas}`) — default body floor
-2. **Light cream cards** (`{colors.surface-card}`) — feature card backgrounds
-3. **Dark navy product surfaces** (`{colors.surface-dark}`) — code editor mockups, model showcase
-   cards, pre-footer CTAs, footer itself
-
-The dark surfaces are where Claude shows its product chrome — code blocks, terminal output, model
-comparison tables, agentic-flow diagrams. The cream-to-dark contrast is the page's pacing rhythm.
-
-**Key Characteristics:**
-
-- Warm cream canvas (`{colors.canvas}` — #faf9f5) with dark warm-ink text (`{colors.ink}` —
-  #141413). The brand's defining color choice.
-- Coral primary CTA (`{colors.primary}` — #cc785c). Used scarcely on individual buttons, generously
-  on full-bleed coral callout cards.
-- Slab-serif display headlines via Copernicus / Tiempos Headline at weight 400 with negative
-  letter-spacing. Pairs with humanist sans body for a literary editorial voice.
-- Dark navy product mockup cards (`{colors.surface-dark}` — #181715) carrying code blocks, terminal
-  panels, model comparison data — the brand shows the product chrome at scale rather than abstract
-  marketing illustrations.
-- Light cream feature cards (`{colors.surface-card}` — #efe9de) — slightly darker than canvas, used
-  for content-driven feature explanations.
-- Anthropic radial-spike mark — a small black asterisk-like glyph (4-spoke radial) — appears as the
-  brand wordmark prefix and as a content marker.
-- Border radius is hierarchical: `{rounded.md}` (8px) for buttons + inputs, `{rounded.lg}` (12px)
-  for content + product cards, `{rounded.xl}` (16px) for the hero illustration container,
-  `{rounded.pill}` for badges.
-- Section rhythm `{spacing.section}` (96px) — modern-SaaS standard. Internal card padding stays
-  generous at `{spacing.xl}` (32px).
+This document governs how those tokens are used. A token value changes in
+`src/styles.css` and never here. Keyboard behavior, forms, hydration, and
+performance sit outside its subject.
 
 ## Colors
 
-### Brand & Accent
+### Semantic Roles
 
-- **Coral / Primary** (`{colors.primary}` — #cc785c): The signature Anthropic warm coral. Used on
-  every primary CTA background, on full-bleed coral callout cards, on the brand wordmark accent. The
-  most-recognized Anthropic color outside of the spike-mark logo.
-- **Coral Active** (`{colors.primary-active}` — #a9583e): The press / hover-darker variant.
-- **Coral Disabled** (`{colors.primary-disabled}` — #e6dfd8): A desaturated cream-tinted disabled
-  state.
-- **Accent Teal** (`{colors.accent-teal}` — #5db8a6): Used sparingly on secondary product surfaces
-  (terminal status indicators, "active connection" dots in connectors page).
-- **Accent Amber** (`{colors.accent-amber}` — #e8a55a): A small companion warm-tone used on category
-  badges and inline highlights.
+- **primary**: Main actions. Never as a background fill.
+- **secondary**: De-emphasized actions.
+- **muted / muted-foreground**: Helper text, placeholders, disabled states.
+- **accent**: See Accent Color below.
+- **destructive**: Deletion and error actions only. Not for general warnings.
+- **border / input**: Structural separation. Subtle, never dominant.
 
-### Surface
+### Accent Color
 
-- **Canvas** (`{colors.canvas}` — #faf9f5): The default page floor. Tinted cream — warm,
-  deliberately not pure white.
-- **Surface Soft** (`{colors.surface-soft}` — #f5f0e8): Section dividers, very-soft band
-  backgrounds.
-- **Surface Card** (`{colors.surface-card}` — #efe9de): Feature cards, content cards. One step
-  darker than canvas.
-- **Surface Cream Strong** (`{colors.surface-cream-strong}` — #e8e0d2): A strongest-cream variant
-  used on selected category tabs and emphasized section bands.
-- **Surface Dark** (`{colors.surface-dark}` — #181715): Code editor mockups, model showcase cards,
-  footer. The dominant dark surface.
-- **Surface Dark Elevated** (`{colors.surface-dark-elevated}` — #252320): Elevated cards inside dark
-  bands (settings panels in mockups).
-- **Surface Dark Soft** (`{colors.surface-dark-soft}` — #1f1e1b): Slightly lighter dark, used for
-  code block backgrounds inside larger dark cards.
-- **Hairline** (`{colors.hairline}` — #e6dfd8): The 1px border tone on cream surfaces. Same hex as
-  `{colors.primary-disabled}` — borders feel like one elevation step rather than ink lines.
-- **Hairline Soft** (`{colors.hairline-soft}` — #ebe6df): Barely-visible divider used inside the
-  same band.
+Accent is one hue applied consistently to a chosen category of elements.
+Pick which element types carry accent, then apply it to ALL instances of
+that type, never selectively. Mixing strategies (some links colored, some
+not) reads as inconsistency rather than design.
 
-### Text
+- Match the accent's undertone to the neutral palette. Cool neutrals pair
+  with cool accents, and cross-temperature creates tension.
+- Apply the accent as a value step, usually desaturated, rather than as a
+  saturated fill. Where every accent on a screen is the same vivid swatch,
+  the screen reads as a template.
+- Derive hover/active variants by adjusting lightness, never by picking new
+  colors.
+- Accent is independent of destructive. Never use the accent hue for errors
+  or warnings.
+- On landing pages, accent also appears in brand visuals (logo, hero,
+  illustrations). On app UIs, accent stays on interactive elements only.
 
-- **Ink** (`{colors.ink}` — #141413): All headlines and primary text. Warm dark, slightly
-  off-pure-black.
-- **Body Strong** (`{colors.body-strong}` — #252523): Emphasized paragraphs, lead text.
-- **Body** (`{colors.body}` — #3d3d3a): Default running-text color.
-- **Muted** (`{colors.muted}` — #6c6a64): Sub-headings, breadcrumbs, footer-adjacent secondary text.
-- **Muted Soft** (`{colors.muted-soft}` — #8e8b82): Captions, fine-print, copyright lines.
-- **On Primary** (`{colors.on-primary}` — #ffffff): Text on coral buttons.
-- **On Dark** (`{colors.on-dark}` — #faf9f5): Cream-tinted white used on dark surfaces (echoes the
-  canvas tone).
-- **On Dark Soft** (`{colors.on-dark-soft}` — #a09d96): Footer body text, secondary labels in dark
-  mockups.
+### Color Usage Rules
 
-### Semantic
+- Never rely on color alone to convey state. Always pair it with shape, icon,
+  or text.
+- When deriving hover/disabled/active variants, verify contrast against
+  WCAG AA (4.5:1 for text, 3:1 for UI elements). Perceptually uniform color
+  spaces do not exempt you from contrast checking.
+- Keep distinguishable gray shades to a minimum, because too many similar
+  grays make contrast between adjacent surfaces indistinguishable.
+- A label on a filled surface clears its fill by a real value gap. A dim tint
+  of the fill color, or ink close in value to the surface behind it, leaves
+  text the reader has to fight for.
+- Use semantic token names in components, never a raw color value.
+- Give a large surface one tone, and put headline emphasis in weight, scale, or
+  a value step. A gradient blended across a background or poured into type
+  reads as unchosen whichever pair of hues it takes, and blue into purple is
+  the pair that arrives by default.
 
-- **Success** (`{colors.success}` — #5db872): Green status dots, "available" indicators.
-- **Warning** (`{colors.warning}` — #d4a017): Warning callouts (rare on marketing surfaces).
-- **Error** (`{colors.error}` — #c64545): Validation errors.
+### Dark Mode
+
+Dark mode is a paired color scale rather than a separate system. When adding
+a new token, define both light and dark values together. Never invert hex
+values directly, because that shifts hues. Adjust lightness while preserving
+chroma and hue. Token switching carries the whole scheme, so no component
+branches on the mode.
+
+Pure white on dark backgrounds causes eye strain. Use the off-white
+`--foreground` defined in `src/styles.css`.
+
+Declare `color-scheme` in each mode alongside the tokens, so the browser paints
+the scrollbars, the native controls, and the caret in the same mode.
+
+### Chart Colors
+
+Chart colors are defined in `src/styles.css` in a fixed order. Assign data
+series in that order, and give each series a second cue beyond hue, such as a
+marker shape, a dash pattern, or a direct label.
 
 ## Typography
 
-### Font Family
+### Fonts
 
-The system runs **Copernicus** (or **Tiempos Headline** as substitute) as the slab-serif display
-face for headlines, and **StyreneB** (or **Inter** as substitute) as the humanist sans for body,
-navigation, and UI labels. **JetBrains Mono** handles code blocks. The fallback stack walks
-`Tiempos Headline, Garamond, "Times New Roman", serif` for display and
-`Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif` for body.
+`src/styles.css` does not override `--font-sans` or `--font-mono`, so Tailwind's
+system stacks apply. A project that picks its own defines the body family and
+the monospace family there together, matching stroke weight and proportions.
 
-The display/body split is editorial:
+Where a project takes a display face, choose it for this product and self-host
+it, with one neutral family under it for body text. `system-ui` is a genuine
+neutral, so it belongs under a display face rather than carrying one.
 
-- Copernicus serif (weight 400, negative tracking) → h1, h2, h3, hero display
-- StyreneB sans (weight 400-500) → body, navigation, buttons, captions, labels
-- JetBrains Mono → all code blocks and terminal text
+### Typographic Rules
 
-### Hierarchy
+- Japanese body text needs wider line-height than Western text, because the
+  characters are taller and denser.
+- Body letter-spacing is slightly open (not solid-set).
+- Heading letter-spacing is tighter (feels more composed at large sizes).
+- Label and caption letter-spacing is wider (for scannability).
 
-| Token                            | Size | Weight | Line Height | Letter Spacing | Use                                                           |
-| -------------------------------- | ---- | ------ | ----------- | -------------- | ------------------------------------------------------------- |
-| `{typography.display-xl}`        | 64px | 400    | 1.05        | -1.5px         | Homepage h1 ("Meet your thinking partner") — Copernicus serif |
-| `{typography.display-lg}`        | 48px | 400    | 1.1         | -1px           | Section heads — Copernicus                                    |
-| `{typography.display-md}`        | 36px | 400    | 1.15        | -0.5px         | Sub-section heads, model names — Copernicus                   |
-| `{typography.display-sm}`        | 28px | 400    | 1.2         | -0.3px         | Pricing tier names, callout headlines — Copernicus            |
-| `{typography.title-lg}`          | 22px | 500    | 1.3         | 0              | Pricing plan size labels — StyreneB                           |
-| `{typography.title-md}`          | 18px | 500    | 1.4         | 0              | Feature card titles, intro paragraphs                         |
-| `{typography.title-sm}`          | 16px | 500    | 1.4         | 0              | Connector tile titles, list labels                            |
-| `{typography.body-md}`           | 16px | 400    | 1.55        | 0              | Default running-text — StyreneB                               |
-| `{typography.body-sm}`           | 14px | 400    | 1.55        | 0              | Footer body, fine-print                                       |
-| `{typography.caption}`           | 13px | 500    | 1.4         | 0              | Badge labels, captions                                        |
-| `{typography.caption-uppercase}` | 12px | 500    | 1.4         | 1.5px          | Category tags, "NEW" badges                                   |
-| `{typography.code}`              | 14px | 400    | 1.6         | 0              | Code blocks — JetBrains Mono                                  |
-| `{typography.button}`            | 14px | 500    | 1.0         | 0              | Standard button labels                                        |
-| `{typography.nav-link}`          | 14px | 500    | 1.4         | 0              | Top-nav menu items                                            |
+### Typographic Pitfalls
 
-### Principles
-
-Display sizes use weight 400 (regular), never bold. Negative letter-spacing (-0.3 to -1.5px) is
-essential — Copernicus without it reads as off-brand. The serif character is what gives Anthropic
-its literary, considered voice; switching to a sans-serif display would make Claude feel like every
-other AI tool.
-
-Body type stays at weight 400 for paragraphs, weight 500 for labels and emphasized phrases. The sans
-body is humanist (StyreneB) — never geometric. Inter is an acceptable substitute because of its
-similar humanist proportions; Helvetica or Arial would be too neutral and break the warm-editorial
-feel.
-
-### Note on Font Substitutes
-
-If Copernicus / Tiempos Headline is unavailable, **Cormorant Garamond** at weight 500 with -0.02em
-letter-spacing is the closest open-source approximation. **EB Garamond** is a fallback. For
-StyreneB, **Inter** is the closest match — both are humanist sans designed for screen reading.
-**Söhne** is another close alternative if licensed.
+- Limit to 2 typefaces max (body + code).
+- Keep body text line length under ~75 characters.
+- Never center-align multi-line paragraphs.
+- Maintain a clear typographic hierarchy. Where two text elements look the
+  same weight and size, one of them is wrong.
+- Set monospace where the content is data: a timestamp, a code, a price, a
+  table. Captions, labels, and running copy take the body family.
+- Give the small text roles different treatments. Where the eyebrow, the button
+  label, the caption, and the footer line all wear the same tracked-out caps,
+  the screen reads as a template instead of a voice.
+- Set `font-variant-numeric: tabular-nums` where numbers line up for
+  comparison, so the digits keep their columns.
+- Keep a mobile input at 16px or larger, because iOS Safari zooms the page for
+  anything smaller.
+- Type the real characters: `…`, curly quotes, and a non-breaking space inside
+  a measurement or a key combination.
+- Font metrics (ascent/descent) create phantom padding that differs between
+  design tools and browsers.
 
 ## Layout
 
-### Spacing System
+### Spacing Tiers
 
-- **Base unit:** 4px.
-- **Tokens:** `{spacing.xxs}` 4px · `{spacing.xs}` 8px · `{spacing.sm}` 12px · `{spacing.md}` 16px ·
-  `{spacing.lg}` 24px · `{spacing.xl}` 32px · `{spacing.xxl}` 48px · `{spacing.section}` 96px.
-- **Section padding:** `{spacing.section}` (96px) — modern-SaaS rhythm.
-- **Card internal padding:** `{spacing.xl}` (32px) for feature cards, pricing tier cards, model
-  comparison cards; `{spacing.lg}` (24px) for code-window cards and connector tiles.
-- **Callout / CTA bands:** `{spacing.xxl}` (48px) inside coral callout cards; 64px inside the larger
-  dark CTA band.
+Spacing follows Tailwind's default scale. Use the right tier for
+the right context: smallest for intra-component gaps, medium for
+inter-component, largest for page structure.
 
-### Grid & Container
+### Spacing Rules
 
-- **Max content width:** ~1200px centered.
-- **Editorial body:** Single 12-column grid; hero often uses 6/6 split (h1 left, illustration
-  right).
-- **Feature card grids:** 3-up at desktop, 2-up at tablet, 1-up at mobile.
-- **Connector tile grids:** 4-up or 6-up at desktop, 2-up at tablet, 1-up at mobile.
-- **Pricing grid:** 3-up at desktop (Free / Pro / Team / Enterprise often), 1-up at mobile.
+- Use parent `gap` (flex/grid), never per-element `margin`. Per-element
+  margins collapse, double up, and require CSS changes when elements are
+  removed. Inline siblings also pick up a space from the source newlines
+  between them, which `flex` or `grid` on the parent removes.
+- Never mix spacing scales in the same layout.
+- `padding` is internal space, and `margin` is external space. Don't swap
+  them.
+- When line-height contributes to vertical rhythm, account for it in padding
+  calculations, because the visual gap is line-height plus padding rather
+  than padding alone.
+- Respect the safe areas with `env(safe-area-inset-*)` where a fixed or
+  full-bleed element reaches the viewport edge.
+- Don't add padding to a child when the parent already provides it. Read the
+  parent's styles before adding spacing to children, since doubling padding
+  is a common cause of uneven gaps. External examples and copy-paste snippets
+  often assume a different parent context, so always verify against the
+  actual component you're composing into.
 
-### Whitespace Philosophy
+### Alignment
 
-The cream canvas + serif display + generous internal padding create an editorial pacing — Claude
-reads like a long-form magazine column rather than a marketing template. Whitespace between bands
-stays uniform at 96px; whitespace inside cards is generous (32px), letting type breathe.
-
-## Elevation & Depth
-
-| Level              | Treatment                                      | Use                                                                            |
-| ------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------ |
-| Flat               | No shadow, no border                           | Body sections, top nav, hero bands                                             |
-| Soft hairline      | 1px `{colors.hairline}` border                 | Inputs, sub-nav, occasionally on cards                                         |
-| Cream card         | `{colors.surface-card}` background — no shadow | Feature cards, content cards                                                   |
-| Dark surface card  | `{colors.surface-dark}` background — no shadow | Code editor mockups, model showcase cards                                      |
-| Subtle drop shadow | Faint shadow at low alpha                      | Hover-elevated states (the system uses `0 1px 3px rgba(20,20,19,0.08)` rarely) |
-
-The elevation philosophy is **color-block first, shadow rare**. Most depth comes from the
-cream-vs-dark surface contrast. Shadows are minimal. The dark surface mockups have their own
-internal product chrome (code editor scrollbars, line numbers, syntax highlighting) which adds
-detail without needing external shadows.
-
-### Decorative Depth
-
-- The Anthropic spike-mark glyph (4-spoke radial asterisk) appears as a small black mark in the
-  brand wordmark and inline as a content marker.
-- Code editor mockups carry their own internal depth: syntax-highlighted text in muted blues /
-  oranges / grays, line numbers in `{colors.muted-soft}`, status bars at the bottom in
-  `{colors.surface-dark-elevated}`.
-- Some hero illustrations use simple line-art with coral and dark-navy strokes on cream — minimal,
-  hand-drawn-feeling, never photorealistic.
+- Put parallel items on one grid, so the title, the body, and the control share
+  a line across every column. Give the columns equal height, anchor the control
+  to the bottom of each, and hold the slot of a value that is missing in one
+  column. Copy length then stops deciding where a neighbor's content lands.
+- Verify what the design centers rather than eyeballing it. In SVG,
+  `text-anchor: middle` sets the horizontal alone, `dominant-baseline: central`
+  or a measured `dy` sets the vertical, and a rotated, stroked, or padded shape
+  moves where the center is.
+- Give text a gutter from every edge it nears, and keep those gutters equal. A
+  line that reaches the rim of its container reads as overflow.
 
 ## Shapes
 
-### Border Radius Scale
+Every radius tier derives from `--radius` in `src/styles.css`. Pick the tier
+that matches the element's size, and do not introduce values outside the
+defined set.
 
-| Token            | Value        | Use                                                             |
-| ---------------- | ------------ | --------------------------------------------------------------- |
-| `{rounded.xs}`   | 4px          | Reserved for badge accents and tiny dropdowns                   |
-| `{rounded.sm}`   | 6px          | Small inline buttons, dropdown items                            |
-| `{rounded.md}`   | 8px          | Standard CTA buttons, text inputs, category tabs                |
-| `{rounded.lg}`   | 12px         | Content cards (feature, pricing, code-window, model-comparison) |
-| `{rounded.xl}`   | 16px         | Hero illustration container, the larger marquee components      |
-| `{rounded.pill}` | 9999px       | Badge pills, "NEW" tags                                         |
-| `{rounded.full}` | 9999px / 50% | Avatar substitutes, icon buttons                                |
+Nest radii by subtracting the gap. An inner radius equals the outer radius minus
+the padding between them, and where both take the same value, the two curves
+stop running parallel at the corner.
 
-### Photography & Illustrations
+## Elevation
 
-Claude's hero rarely uses photography. Instead it uses:
+Hierarchy and separation come from background color difference, border,
+spacing, and typography, never from shadow.
 
-- Simple line-art illustrations with coral + dark-navy strokes on the cream canvas
-- Code editor mockups (the dominant "hero" treatment on developer-focused pages)
-- Terminal output mockups with monospace text on dark
-- Model comparison cards (Opus / Sonnet / Haiku) with abstract geometric thumbnails
+Shadow is limited to two cases:
+- **Drag state**: the element being dragged gets shadow to communicate
+  "lifted off the surface." Remove on drop.
+- **Sticky header on scroll**: shadow appears dynamically when content
+  scrolls beneath a sticky element. No shadow at rest.
 
-When photography is used (rare — mostly testimonials), avatars crop to perfect circles at 40px
-diameter.
+In those two cases, cast the shadow from one direction with a small offset and
+a small blur, tinted to the surface or to the element's own color. A bloom
+spread evenly on all sides, or a second box placed behind the element to imitate
+one, reads as a sticker rather than a lit object.
 
-## Components
+Everything else uses border or backdrop dim for separation. Where a container
+needs an edge, shift its surface a step from the background and stroke it with
+its own color at low opacity, which keeps border, shadow, and text on one hue.
 
-### Top Navigation
+A translucent surface needs a backdrop worth showing through and a blur that
+blends at every edge. Where the blur bands, the shadow leaks past the shape, or
+the effect jumps on hover, give the element an opaque surface.
 
-**`top-nav`** — Cream nav bar pinned to the top of every page. 64px tall, `{colors.canvas}`
-background. Carries the Anthropic spike-mark + "Claude" wordmark at left, primary horizontal menu
-(Product, Solutions, Use Cases, Pricing, Research, Company) center-left, right-side cluster with
-"Sign in" text-link, "Try Claude" `{component.button-primary}` (coral). Menu items in
-`{typography.nav-link}` (StyreneB 14px / 500).
+## Interaction & Content
 
-### Buttons
+### Interactive States
 
-**`button-primary`** — The signature coral CTA. Background `{colors.primary}` (#cc785c), text
-`{colors.on-primary}` (white), type `{typography.button}` (StyreneB 14px / 500), padding 12px ×
-20px, height 40px, rounded `{rounded.md}` (8px). Active state `button-primary-active` darkens to
-`{colors.primary-active}` (#a9583e).
+Every interactive element must define all five states: default, hover,
+focus-visible, active, and disabled. Never remove the focus indicator.
 
-**`button-secondary`** — Cream button with hairline outline. Background `{colors.canvas}`, text
-`{colors.ink}`, 1px hairline border, same padding + height + radius as primary.
+A hover state changes fill, color, or an icon's position while the element keeps
+its size and place. Reserve any lift for a card, and let a value shift carry it
+rather than a shadow.
 
-**`button-secondary-on-dark`** — Used over `{colors.surface-dark}` cards. Background
-`{colors.surface-dark-elevated}` (#252320), text `{colors.on-dark}`. Stays dark — the system never
-inverts to a light secondary on dark surfaces.
+Set `background` explicitly on every button, because the user-agent default
+differs across browsers.
 
-**`button-text-link`** — Inline text button, no background. Used for "Sign in" in the top nav and
-inline CTA links.
+Touch targets must be at least 44px × 44px. If the visual element is smaller,
+expand the hit area with padding or a transparent pseudo-element.
 
-**`button-icon-circular`** — 36px circular icon button. Background `{colors.canvas}`, hairline
-border, ink-color icon. Used for carousel arrows, share, "view more".
+Limit primary actions to one per screen. Require a confirmation step before
+destructive actions. Labels belong outside input fields (no floating labels).
 
-**`text-link`** — Inline body links in `{colors.primary}` (the coral). Underlined on press; the
-coral inline link is one of the system's most distinctive small details.
+Every control on screen answers a click, confirmed by clicking it. Where
+something is a static prop, give it the form of a label or a figure so nobody
+aims at it.
 
-### Cards & Containers
+A control that starts a request keeps its label and adds a spinner, so its width
+holds and the reader can see which action is running.
 
-**`hero-band`** — Cream-canvas hero with a 6-6 grid: h1 + sub-headline + button row on the left,
-hero illustration card or product mockup card on the right. Vertical padding `{spacing.section}`
-(96px).
+### Content States
 
-**`hero-illustration-card`** — A larger card holding the hero's right-side artifact — sometimes a
-coral-stroke line illustration on cream background, sometimes a dark code editor mockup. Background
-`{colors.canvas}` or `{colors.surface-dark}` depending on context, rounded `{rounded.xl}` (16px).
+Every data-displaying component must account for: loading, empty (zero
+results), error, and populated states. Loading must show a visible indicator
+rather than a blank screen. A skeleton mirrors the dimensions of the content it
+stands in for, so nothing shifts when the data lands. Error messages must
+identify what went wrong and what the user can do.
 
-**`feature-card`** — Used in 3-up feature grids. Background `{colors.surface-card}` (#efe9de —
-slightly darker cream), rounded `{rounded.lg}` (12px), internal padding `{spacing.xl}` (32px).
-Carries a small icon at top, an `{typography.title-md}` headline, and a body description in
-`{typography.body-md}`.
+Text and controls reach their visible state without JavaScript and without a
+scroll event. Animate what is already on screen, so a reveal that never fires
+costs a transition instead of the content.
 
-**`product-mockup-card-dark`** — Dark navy card showing actual Claude product chrome (chat
-interface, code editor, agent controls). Background `{colors.surface-dark}`, rounded `{rounded.lg}`,
-internal padding `{spacing.xl}` (32px). Carries text labels in `{colors.on-dark}` and product UI
-fragments below.
+### Dynamic Content
 
-**`code-window-card`** — A specialized dark card showing a code editor with line numbers,
-syntax-highlighted code in `{typography.code}` (JetBrains Mono), and sometimes a "Run" button or
-terminal output panel below. Background `{colors.surface-dark}` with `{colors.surface-dark-soft}`
-for the inner code block, rounded `{rounded.lg}`, padding `{spacing.lg}` (24px). The signature
-visual element of Claude Code product pages.
+Design for variable-length content. User names, titles, descriptions, and
+translations will overflow, truncate, or wrap. Test every text container with:
+- Single-character input
+- Maximum-length input (or a long unbroken string)
+- Multi-line overflow
 
-**`model-comparison-card`** — Used on the homepage's "Which problem are you up against?" section
-comparing Opus / Sonnet / Haiku. Background `{colors.canvas}` with hairline border, rounded
-`{rounded.lg}`, internal padding `{spacing.xl}` (32px). Carries the model name, a short capability
-blurb, and a `{component.text-link}` to learn more.
+Containers that accept user-generated text need explicit word-break handling. A
+flex child needs `min-w-0` before `truncate` or `line-clamp-*` takes effect,
+because its default `min-width: auto` refuses to shrink.
 
-**`pricing-tier-card`** — Standard tier card. Background `{colors.canvas}` with hairline border,
-rounded `{rounded.lg}`, padding `{spacing.xl}` (32px). Carries the plan name in
-`{typography.title-lg}` (StyreneB), price in `{typography.display-sm}` (Copernicus serif!), feature
-checklist in `{typography.body-md}`, and a `{component.button-primary}` at the bottom.
+## CSS Architecture
 
-**`pricing-tier-card-featured`** — The featured tier (typically "Pro" or "Team"). Background flips
-to `{colors.surface-dark}`, text inverts to `{colors.on-dark}`. The dark surface IS the
-featured-tier signal.
+### Sizing
 
-**`callout-card-coral`** — A full-bleed coral card carrying a major call-to-action. Background
-`{colors.primary}` (#cc785c), text `{colors.on-primary}` (white), rounded `{rounded.lg}`, padding
-`{spacing.xxl}` (48px). The coral surface IS the voltage; the CTA inside uses an inverted button
-style (cream/canvas button on coral).
+Prefer `max-width` and `min-width` over fixed `width`. Prefer `min-height`
+over fixed `height`. Components should flex with content rather than fight it.
+Take `auto-fit` in `repeat()` where the tracks should stretch to fill the row,
+and `auto-fill` where the empty tracks should hold their width.
 
-**`connector-tile`** — Used on the connectors page's integration grid. Background `{colors.canvas}`
-with hairline border, rounded `{rounded.lg}`, padding 20px. Each tile carries a logo at top, a
-`{typography.title-sm}` connector name, and a short description.
+### Overflow
 
-### Inputs & Forms
+`overflow: hidden` clips everything: shadows, positioned children, focus
+outlines. Use it only when clipping is the explicit intent, never as a layout
+shortcut.
 
-**`text-input`** — Standard text input. Background `{colors.canvas}`, text `{colors.ink}`, type
-`{typography.body-md}`, rounded `{rounded.md}` (8px), padding 10px × 14px, height 40px. 1px hairline
-border in `{colors.hairline}`.
+Where you add a clip, a notch, or a fixed height, pad the content clear of the
+cut by more than the cut removes, then zoom into that edge and read it. Content
+that continues under an overlapping layer stays on the layer that remains
+visible.
 
-**`text-input-focused`** — Focus state. Border thickens or shifts to `{colors.primary}` (coral) for
-emphasis. Carries a 3px coral-at-15%-alpha outer ring.
+### Specificity
 
-**`cookie-consent-card`** — Bottom-right floating dark cookie banner. Background
-`{colors.surface-dark}`, text `{colors.on-dark}`, rounded `{rounded.lg}`, padding `{spacing.lg}`
-(24px). One of the few places dark surface appears at small scale on cream pages.
+Avoid over-targeting selectors. `z-index` only works on positioned, flex,
+or grid children, never on elements in normal flow.
 
-### Tags / Badges
+### Animations
 
-**`badge-pill`** — Small pill label used for category tags. Background `{colors.surface-card}`, text
-`{colors.ink}`, type `{typography.caption}` (13px / 500), rounded `{rounded.pill}`, padding 4px ×
-12px.
+Animate `transform` and `opacity` only, never layout properties, which
+trigger reflow on every frame.
 
-**`badge-coral`** — Coral-fill badge for "NEW", "BETA", featured highlights. Background
-`{colors.primary}`, text `{colors.on-primary}`, type `{typography.caption-uppercase}` (12px / 500 /
-1.5px tracking), rounded `{rounded.pill}`, padding 4px × 12px.
+## Decoration
 
-### Tab / Filter
+A decoration earns its place by encoding information. Each form below arrives by
+reflex when nothing was decided, so the bullet names the move that replaces it.
 
-**`category-tab`** + **`category-tab-active`** — Used in sub-nav rows on solutions / connectors
-pages. Inactive: transparent background, `{colors.muted}` text. Active: `{colors.surface-card}`
-background, `{colors.ink}` text. Padding 8px × 14px, rounded `{rounded.md}`.
+- **Place a mark bare.** A tile, chip, or circle behind an icon or a logo
+  carries nothing, so size and color the mark itself.
+- **Rank with type, weight, and spacing.** A hairline beside a label, a dot
+  under the active nav item, and a colored bar down a card's edge each stand in
+  for structure they do not hold.
+- **Contain a status only where it needs the container.** The rest of the
+  metadata sits in the type hierarchy rather than in a pill of its own.
+- **Vary how a section begins.** A number, an image, or a full sentence each
+  open one. A small label above a large heading arrives on its own, and an
+  eyebrow badge above an H1 is the same move.
+- **Separate two actions by weight or placement.** A filled button paired with
+  an outlined one is the default action row, and it carries no decision about
+  which of the two matters.
+- **Draw the stock parts for this product.** The theme switch, the step
+  sequence, the feature row, and the avatar each have one default form that
+  carries no decision, and a sun-and-moon toggle is the clearest of them.
+- **Let a background be one considered surface.** A sheet of faint grid lines
+  reads as graph paper at any opacity, and a blurred blob of accent color
+  bleeding from a corner is the same reflex in color.
 
-### CTA / Footer
+## Composition
 
-**`cta-band-coral`** — A pre-footer "Try Claude" CTA card. Full-width coral fill, white type,
-rounded `{rounded.lg}`, padding 64px. Carries an h2 in `{typography.display-sm}` (still serif!), a
-sub-line, and a cream-button CTA.
+Passing every rule above leaves a screen that breaks nothing. What makes it a
+design is a decision this screen carries that another product could not take
+unchanged. Decide that first, then build the sections from it.
 
-**`cta-band-dark`** — Alternative pre-footer band on developer-focused pages. Background
-`{colors.surface-dark}`, text `{colors.on-dark}`, rounded `{rounded.lg}`, padding 64px. Often pairs
-with a code-window card.
-
-**`footer`** — Dark navy footer that closes every page. Background `{colors.surface-dark}`
-(#181715), text `{colors.on-dark-soft}`. 4-column link list at desktop covering Product / Company /
-Resources / Legal. Vertical padding 64px. The Anthropic spike-mark + "Anthropic" wordmark sits at
-the top in `{colors.on-dark}`. The footer never inverts.
-
-## Do's and Don'ts
-
-### Do
-
-- Anchor every page on the cream canvas. Pure white reads as "any other AI tool"; the warm tint is
-  the brand differentiator.
-- Use Copernicus serif for every display headline. Pair with StyreneB sans body. Negative
-  letter-spacing on display sizes is non-negotiable.
-- Reserve `{colors.primary}` (coral) for primary CTAs and full-bleed
-  `{component.callout-card-coral}` moments. Don't paint accent moments coral elsewhere.
-- Use `{component.product-mockup-card-dark}` and `{component.code-window-card}` to show actual
-  Claude product chrome. Don't paint marketing illustrations of code when you can show real code.
-- Pair `{component.feature-card}` (cream) with `{component.product-mockup-card-dark}` (navy) in
-  alternating bands. The cream-to-dark rhythm is the brand's pacing mechanism.
-- Use the Anthropic spike-mark glyph as the brand wordmark prefix. Never invert the mark to
-  white-on-dark within the wordmark itself.
-- Apply `{spacing.section}` (96px) between major bands.
-
-### Don't
-
-- Don't use cool grays or pure white for canvas. Cream is the brand.
-- Don't bold serif display weight. Copernicus at 700 reads as bombastic; the system stays at 400.
-- Don't use cool blue or saturated cyan as a brand accent. The coral is the brand voltage.
-- Don't put coral everywhere. The coral is scarce on individual elements and generous only on
-  full-bleed coral callout cards.
-- Don't use Inter for display headlines. The serif character is the brand voice.
-- Don't repeat the same surface mode in two consecutive bands. The pacing alternates: cream →
-  cream-card → dark-mockup → cream → coral-callout → dark-footer.
-- Don't add hover state styling beyond what the system already encodes — primary darkens on press;
-  nothing else changes.
-
-## Responsive Behavior
-
-### Breakpoints
-
-| Name    | Width       | Key Changes                                                                                                                                            |
-| ------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Mobile  | < 768px     | Hamburger nav; hero h1 64→32px; hero-illustration-card stacks below content; feature grids 1-up; connector tiles 2-up; pricing 1-up; footer 4 cols → 1 |
-| Tablet  | 768–1024px  | Top nav stays horizontal but tightens; feature cards 2-up; connector tiles 3-up; pricing 2-up                                                          |
-| Desktop | 1024–1440px | Full top-nav with all menu items; 3-up feature cards; 4-up or 6-up connector tiles; 3-up pricing tiers                                                 |
-| Wide    | > 1440px    | Same as desktop with more outer breathing room; max content width caps at 1200px                                                                       |
-
-### Touch Targets
-
-- `{component.button-primary}` at minimum 40 × 40px.
-- `{component.button-icon-circular}` at exactly 36 × 36 — slightly under WCAG 44 but visually
-  centered.
-- `{component.text-input}` height is 40px.
-- Connector tile entire card area is tappable; effective tap area >> 44px.
-
-### Collapsing Strategy
-
-- Top nav collapses to hamburger at < 768px; menu opens as a full-screen cream sheet.
-- Hero band's 6-6 grid collapses to single-column on mobile — h1 + sub-head + buttons first, then
-  the illustration / mockup card below.
-- Feature grids reduce columns rather than scaling cards down.
-- Pricing tier cards collapse 4 → 2 → 1; featured-tier dark surface stays visually distinct at every
-  breakpoint.
-- Code-window cards retain code legibility at every breakpoint by allowing horizontal scroll within
-  the card rather than wrapping code lines.
-
-### Image Behavior
-
-- Code blocks inside dark mockups stay at fixed font-size; horizontal scroll on mobile rather than
-  wrapping.
-- Hero illustrations scale proportionally; line-art strokes thin slightly on mobile.
-- Avatar photos in testimonials crop to circles at every breakpoint.
-
-## Iteration Guide
-
-1. Focus on ONE component at a time. Reference its YAML key (`{component.feature-card}`,
-   `{component.code-window-card}`).
-2. Variants of an existing component (`-active`, `-disabled`, `-focused`) live as separate entries
-   in `components:`.
-3. Use `{token.refs}` everywhere — never inline hex.
-4. Never document hover. Default and Active/Pressed states only.
-5. Display headlines stay Copernicus serif 400 with negative tracking. Body stays StyreneB /
-   Inter 400. The split is unbreakable.
-6. Cream + coral + dark navy is the trinity. Don't introduce a fourth surface tone (no purple cards,
-   no green sections).
-7. When in doubt about emphasis: bigger Copernicus serif before bolder weight.
-
-## Known Gaps
-
-- Copernicus and StyreneB are licensed Anthropic typefaces and not available as public web fonts.
-  Substitutes (Tiempos Headline / Cormorant Garamond / EB Garamond for serif; Inter / Söhne for
-  sans) are documented in the typography section.
-- The Anthropic radial-spike-mark is a brand glyph rendered as inline SVG; it's not formalized as a
-  system token here. Treat it as a logo asset.
-- Animation and transition timings (chat message reveal, code block typewriter effect on the
-  homepage, agentic-flow diagram animations) are not in scope.
-- Form validation states beyond `{component.text-input-focused}` are not extracted — error / success
-  states would need a sign-up or feedback flow to confirm.
-- The actual Claude product surface (claude.ai chat interface) shares some tokens with the marketing
-  site but adds many product-specific components (chat bubbles, message tools, file upload chips,
-  conversation history sidebar) that are out of scope for this marketing-surface document.
-- The "agent" / "computer use" demo cards on certain pages display animated Claude controlling a
-  browser — the static screenshot doesn't fully capture the animation chrome.
+- Hold one palette, one type voice, and one geometry across the screen. Parts
+  that are each correct and belong to nothing read as incoherent before any
+  single part reads as wrong.
+- Choose the surface tone for this product. A neutral that reads as tasteful is
+  still the tone that arrives on its own, and which neutral reads that way turns
+  over every year or two.
+- Compose the screen as a whole. Presets compound, so a run of blocks that each
+  pass on their own still reads as one template with the content swapped.
+- Build on the primitives in `src/components/ui/` and restyle what you take.
+  Taking a prebuilt block's behavior costs nothing, and taking its styling
+  costs the identity.

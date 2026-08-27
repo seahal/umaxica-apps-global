@@ -1,183 +1,191 @@
-# Direct-Core Development Access over Tailscale
+# Remote Codex over Tailscale
 
-## Current architecture
+The Codex App reaches a shell inside the `core` development container over the tailnet. SSH
+terminates inside `core`, so the session has the workspace, Ruby, Bundler, and pnpm directly —
+no `podman exec` hop after login.
 
-The Dev Container Feature installs `tailscale` and `tailscaled` into the development-only `core`
-image. The PID 1 wrapper starts the normal `bin/dev` workload and a userspace-networking daemon in
-parallel:
-
-```text
-Tailnet client
-  +-- Tailscale SSH --> core built-in Tailscale SSH --> global
-  `-- HTTPS Serve --> core userspace tailscaled --> 127.0.0.1:3000
-
-core PID 1 (root): tailscale-core-supervisor
-  +-- setpriv --> global --> bin/dev --> Foreman --> Rails, Vite, jobs
-  `-- tailscaled --tun=userspace-networking
-```
-
-There is no Tailscale sidecar, OpenSSH server, TCP port 22 forwarding, `/dev/net/tun`, `NET_ADMIN`,
-privileged mode, or host-network mode. This is Tailscale SSH, not OpenSSH over Tailscale. The
-independent Cloudflare Tunnel sidecar remains responsible for its Web, Access, and Workers VPC
-paths.
-
-The official machine name is `umaxica-global-core`. Its tailnet-only Serve URL is configured by
-Tailscale and must also be supplied to Rails as the exact `TAILSCALE_SERVE_HOST`; the application
-does not allow a broad `.ts.net` host pattern.
-
-## Image, state, and trust boundaries
-
-The Tailscale binaries are installed by the Feature declared in `.devcontainer/devcontainer.json`.
-Production targets do not contain the binaries or the supervisor.
-
-`/var/lib/tailscale-core` is a tmpfs, not a persistent volume. The node identity and Serve
-configuration live only for the lifetime of the container, so recreating `core` deregisters the node
-and requires a fresh interactive `tailscale up`. This is deliberate: a persisted node identity is a
-long-lived machine credential, and this repository no longer keeps any. The interactive bootstrap
-credential is not stored in Compose or in the repository.
-
-The image does not install `sudo` or assign a password to `global`. A root-owned entrypoint performs
-fixed tmpfs initialization, and the root-owned supervisor runs `tailscaled`; both launch the
-development workload as `global` with `setpriv`. The installed control-plane scripts are not loaded
-from the writable workspace.
-
-This prevents Rails, Claude Code, Codex, or arbitrary development code running as `global` from
-using a general-purpose privilege-escalation command. It does not protect the container from the
-host account that owns rootless Podman: that operator can deliberately enter the container namespace
-as UID 0 with `podman exec --user 0`. Credentials mounted for `global` also remain readable by that
-user.
-
-## Bootstrap and recovery
-
-An empty state volume requires an explicit interactive login:
-
-```sh
-podman exec -it --user 0 global-devcontainer-core \
-  /usr/bin/tailscale \
-  --socket=/run/tailscale/tailscaled.sock login \
-  --hostname=umaxica-global-core \
-  --accept-dns=false
-
-podman exec --user 0 global-devcontainer-core \
-  /usr/bin/tailscale \
-  --socket=/run/tailscale/tailscaled.sock set \
-  --accept-dns=false \
-  --ssh
-```
-
-Approve only the expected machine name and tailnet. Do not put an auth key in Compose, `.env`, a
-command argument, or an image layer for this workflow.
-
-Configure the tailnet-only Rails proxy once; `--bg` stores the configuration in the persistent
-state:
-
-```sh
-podman exec --user 0 global-devcontainer-core \
-  /usr/bin/tailscale \
-  --socket=/run/tailscale/tailscaled.sock serve \
-  --bg http://127.0.0.1:3000
-```
-
-Set the returned bare hostname in the shell that creates the container or in the repository-local,
-gitignored `.env`:
+## Architecture
 
 ```text
-TAILSCALE_SERVE_HOST=umaxica-global-core.<tailnet>.ts.net
+Codex App
+   |
+   |  SSH over Tailscale, tailnet TCP/22
+   v
+tailscale-core sidecar        userspace networking, no capabilities
+   |
+   |  TCPForward -> core:2222        (remote-access network only)
+   v
+core
+   +-- sshd, running as `global`
+   +-- /home/global/workspace        the repository
+   +-- ruby / bundle / pnpm
 ```
 
-This value is a hostname, not a credential. Empty means that Rails does not add a Tailscale host. A
-non-empty value that is not a bare `.ts.net` hostname makes development boot fail rather than
-silently widening Host Authorization.
+Three properties are load-bearing and should not be "simplified" away.
 
-## Operation
+**Tailscale is not in `core`.** An earlier design ran `tailscaled` inside `core` under a root
+PID 1 supervisor. That conflicts with `userns_mode: keep-id` and the deliberate absence of a
+`user:` key in `compose.yaml`, which is why it was removed. The daemon lives in its own
+container and `core` carries only OpenSSH.
 
-Check daemon and SSH readiness without printing full Tailnet metadata:
+**Tailscale SSH is deliberately not enabled.** `--ssh` would make the *sidecar* the login
+target, giving a shell in a container that holds nothing but `tailscaled`. The OpenSSH server
+in `core` is the point.
+
+**sshd binds 2222, not 22.** `core` has no root and no `sudo`, so sshd runs as the unprivileged
+`global` user and cannot bind a privileged port. The tailnet-facing port is still 22; the
+sidecar's `TCPForward` bridges the two. Port 2222 is never published to the host and is
+reachable only on the `remote-access` network.
+
+## Privilege boundary
+
+The sidecar declares no `privileged`, no `network_mode: host`, no `/dev/net/tun`, no `cap_add`,
+no container-engine socket, and no `ports:`. None are needed: userspace netstack terminates the
+tailnet TCP connection inside `tailscaled` and dials `core` as an ordinary socket. Tailscale's
+own Docker example pairs `NET_ADMIN`/`NET_RAW` with userspace mode — that is over-provisioned;
+do not copy it.
+
+The sidecar joins only `remote-access`. It cannot resolve or reach PostgreSQL, Valkey, or Kafka.
+
+`sshd` disables agent, TCP, and stream-local forwarding, so a compromised session cannot use the
+SSH channel as a pivot into the Podman networks.
+
+What this does **not** protect against: the host account that owns rootless Podman can always
+enter `core` as UID 0 with `podman exec --user 0`. Anything readable by `global` — including the
+sshd host key — is readable by that operator. This is unchanged from normal development.
+
+## Files
+
+| Path | Role |
+| --- | --- |
+| `compose.custom.yaml` | `tailscale-core` sidecar, `remote-access` network, both volumes, and the `core` overlay |
+| `podman/tailscale/serve/serve.json` | `{"TCP":{"22":{"TCPForward":"core:2222"}}}` |
+| `podman/core/sshd_config` | Baked to `/etc/umaxica/sshd_config`, root-owned and read-only |
+| `podman/core/entrypoint.sh` | `REMOTE_SSHD=1`-gated `start_remote_sshd` |
+| `.secrets/codex_authorized_keys` | The Codex App's public key; gitignored |
+
+`docker/` holds byte-identical copies of the `podman/` control-plane files; a contract test
+enforces that. Only `podman/` is built into the image.
+
+Tailscale state lives on the `tailscale-core-state` named volume at `/var/lib/tailscale`. The
+sshd host key lives on `umaxica-sshd-hostkey` at `/home/global/.local/state/umaxica-sshd`, so the
+client's `known_hosts` entry survives container recreation.
+
+## Bootstrap
+
+Remote access is off by default. A developer who does not use it needs to do nothing, and a
+plain `podman compose up` never creates, starts, or pulls the sidecar.
+
+**1. Install the Codex App's public key.**
 
 ```sh
-podman exec --user 0 global-devcontainer-core \
-  /usr/local/bin/tailscale-core-status
-
-podman exec --user 0 global-devcontainer-core \
-  /usr/bin/tailscale \
-  --socket=/run/tailscale/tailscaled.sock serve status
+bin/setup-dev-secrets                      # creates .secrets/codex_authorized_keys if absent
+cat >> .secrets/codex_authorized_keys      # paste the PUBLIC key, then Ctrl-D
 ```
 
-Connect from an enrolled client:
+**2. Create a Tailscale auth key** in the admin console with these properties:
+
+- **one-off** (not reusable) — it is revoked immediately after registration
+- **tagged** `tag:umaxica-core` — tagged nodes are exempt from user key expiry, which a
+  long-lived development container needs
+- **pre-approved**, if the tailnet has device approval enabled
+- **not ephemeral** — an ephemeral node is deleted when it goes offline, which would destroy
+  the identity this design exists to preserve
+
+**3. Enable and start.** Add to the gitignored repository `.env`:
+
+```text
+COMPOSE_PROFILES=remote
+REMOTE_SSHD=1
+TS_AUTHKEY=tskey-auth-...
+```
 
 ```sh
-ssh global@umaxica-global-core
+podman compose -f compose.yaml -f compose.custom.yaml up -d core tailscale-core
 ```
 
-Tailnet SSH policy must allow this node only as `global`; no matching rule may allow `root`.
-Tailscale grants are additive, so check broad existing rules as well as the rule written for this
-node.
-
-Verify that the session is the real development container:
+**4. Confirm registration, then remove the key.**
 
 ```sh
-hostname
-whoami
-cat /proc/1/cmdline
-cd /home/global/workspace
-git rev-parse --show-toplevel
-bin/rails runner 'puts Rails.version'
+podman exec umaxica-apps-global-dc_tailscale-core_1 tailscale status
+podman exec umaxica-apps-global-dc_tailscale-core_1 tailscale serve status
 ```
 
-The supervisor retries an independently failed `tailscaled` with bounded backoff. Exhausting that
-budget degrades remote access but leaves Rails, Vite, jobs, Claude Code, and the local Dev Container
-running.
+Once the node appears, **revoke the auth key in the admin console and blank the `TS_AUTHKEY`
+line in `.env`**. `TS_AUTH_ONCE=true` means the persisted state alone is sufficient from then
+on. Leaving a live key in `.env` is exactly the long-lived credential this procedure avoids.
 
-If the development workload (`bin/dev`) exits for any reason, the supervisor does not tear down
-Tailscale or terminate itself. It restarts the workload with exponential backoff (capped at 30
-seconds, resetting after 30 seconds of uptime) and retries indefinitely, so a transient failure --
-missing gems, Postgres not ready yet -- recovers automatically once the underlying cause is fixed,
-without needing to recreate the container. Remote SSH access stays available throughout so a failing
-workload can be diagnosed in place. TERM and INT are fanned out and child processes are reaped only
-on an intentional shutdown (container stop/recreate), not on a workload crash.
+**5. Grant tailnet access.** The ACL must allow the client machine to reach
+`tag:umaxica-core:22`. Tailscale grants are additive: check existing broad rules too, and make
+sure none admits `root`.
 
-## Cloudflare independence
+## Client configuration
 
-`cloudflare-tunnel` remains a separate Compose service on `frontend` using QUIC and its own
-tunnel-scoped token from the gitignored repository `.env`. Removing the Tailscale sidecar does not
-change its image, command, DNS/origin aliases, Access policies, Workers VPC routes, credentials, or
-restart policy. Tailscale SSH/Serve and Cloudflare Tunnel can operate at the same time because they
-have independent responsibilities.
+```sshconfig
+Host core-dev
+  HostName umaxica-global-core
+  User global
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+```
 
-## Rollback
+`HostName` may also be the full `umaxica-global-core.<tailnet>.ts.net`. No `Port` line: the
+tailnet-facing port is 22.
 
-During the rollback window, retain the old `tailscale-codex-state` Podman volume and the Tailnet
-node renamed `umaxica-global-core-sidecar-retired`. To restore the legacy path, revert the
-repository change, rename the current direct node away from `umaxica-global-core`, recreate the
-sidecar with its retained state, and rename the restored sidecar to the official name. Do not run
-both nodes under the same machine name.
+## Verification
 
-Removing `TAILSCALE_SERVE_HOST` disables only the Rails Host Authorization entry. Disable Serve
-explicitly with `tailscale serve --https=443 off`; disable SSH with `tailscale set --ssh=false`.
-Recreating the container discards the node state and deregisters it, so plan the Tailnet side
-accordingly.
+Confirm the session is really inside `core`, not the sidecar and not the host:
 
-## Verified boundary (2026-07-22)
+```sh
+ssh core-dev
+hostname                 # global-devcontainer-core
+pwd                      # /home/global/workspace
+cat /proc/1/cmdline      # sleep infinity  -- core's PID 1, not tailscaled
+git status
+ruby --version
+bundle --version
+pnpm --version
+```
 
-- Rootless Podman rebuilt and recreated `core` without TUN, added capabilities, or privileged mode.
-- Persistent identity and HTTPS Serve configuration survived recreation and a later restart.
-- External `ssh global@umaxica-global-core` reached the recreated `core` and showed the expected PID
-  1 supervisor and `bin/dev` command.
-- `bin/dev` started Foreman, Rails, Vite, and Solid Queue alongside tailscaled.
-- HTTPS Serve reached the same Rails response as localhost. Rails was returning HTTP 500 locally at
-  the time, so application-level HTTP success remains a separate local Rails issue rather than a
-  tunnel transport failure.
-- The legacy sidecar container was stopped and removed. Its state volume and retired Tailnet node
-  were deliberately retained for rollback.
-- The Cloudflare Tunnel sidecar remained running throughout the cutover.
+`bun` is intentionally absent: this image's JavaScript toolchain is Node 24 with pnpm.
 
-Host-reboot recovery and deliberate tailscaled failure-injection remain unverified. The sudo-less
-control-plane/workload split also remains unverified against the live host until `core` is
-explicitly rebuilt and recreated.
+Restart survival, which is the point of persisting state — run it with `TS_AUTHKEY` already
+blank:
 
-## Official references
+```sh
+podman compose -f compose.yaml -f compose.custom.yaml down
+podman compose -f compose.yaml -f compose.custom.yaml up -d core tailscale-core
+podman exec umaxica-apps-global-dc_tailscale-core_1 tailscale status
+ssh core-dev hostname
+```
 
-- [Tailscale SSH](https://tailscale.com/docs/features/tailscale-ssh)
-- [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve)
-- [Tailscale Serve CLI](https://tailscale.com/docs/reference/tailscale-cli/serve)
-- [Userspace networking](https://tailscale.com/docs/concepts/userspace-networking)
-- [Machine names](https://tailscale.com/docs/concepts/machine-names)
+The node must return under the same name. A name that has drifted to
+`umaxica-global-core-1` means the state volume was not preserved.
+
+## Troubleshooting
+
+`core` exits at startup with `core-entrypoint: REMOTE_SSHD=1 but ... is missing or empty` —
+the public key was never installed. This is deliberate: a container that came up silently
+without its remote path would look healthy while being unreachable. Note that `core` carries
+`restart: always`, so this misconfiguration presents as a restart loop rather than a single
+exit. Recover by installing the key, or by setting `REMOTE_SSHD=0` in `.env` and recreating —
+the message is in `podman logs global-devcontainer-core` either way.
+
+`ssh` connects but is refused — check the ACL grant on `tag:umaxica-core`, then confirm the
+forward and the listener:
+
+```sh
+podman exec umaxica-apps-global-dc_tailscale-core_1 getent hosts core
+podman exec global-devcontainer-core ss -ltn | grep 2222
+```
+
+Host key changed after recreation — the `umaxica-sshd-hostkey` volume was deleted. Remove the
+stale `known_hosts` entry on the client.
+
+Deleting `tailscale-core-state` deregisters the node and requires a fresh auth key.
+
+## Relationship to Claude Remote Control
+
+`docs/operations/claude-remote-control.md` describes a separate, outbound-only path that needs
+no inbound port. The two are independent; neither replaces the other, and running one does not
+require the other.

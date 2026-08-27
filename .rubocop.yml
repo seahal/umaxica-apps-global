@@ -40,6 +40,7 @@ plugins:
 AllCops:
   TargetRubyVersion: 4.0
   NewCops: enable
+  UseProjectIndex: true
   SuggestExtensions: false
   UseCache: true
   CacheRootDirectory: tmp/rubocop_cache

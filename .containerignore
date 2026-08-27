@@ -19,9 +19,6 @@ docs/
 .devcontainer/
 !.devcontainer/
 .devcontainer/*
-!.devcontainer/tailscale-core-supervisor.sh
-!.devcontainer/tailscale-core-status.sh
-!.devcontainer/tailscale-core-login-environment.sh
 .vscode/
 .idea/
 
@@ -131,6 +128,7 @@ podman/*
 podman/core/*
 !podman/core/entrypoint.sh
 !podman/core/dev-supervisor.sh
+!podman/core/sshd_config
 gke/
 
 # CI
