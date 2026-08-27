@@ -138,11 +138,16 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
 
+    pending_telephone = visitor.visitor_telephones.where(
+      visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
+    ).where.not(id: unverified.id).order(:created_at).last
     patch base_com_identity_telephones_registration_url(ri: "jp", host: host),
           params: { user_telephone: { pass_code: "000000" } },
           headers: headers
 
-    assert_includes [302, 303, 422], response.status
+    assert_response :unprocessable_content
+    assert_predicate pending_telephone, :present?
+    assert_equal VisitorTelephoneStatus::UNVERIFIED, pending_telephone.reload.visitor_telephone_status_id
 
     store = Rails.configuration.x.rate_limit.fetch(:store)
     6.times do
@@ -264,11 +269,13 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
+    secret_count = visitor.visitor_secret_credentials.count
     post base_com_identity_secrets_url(ri: "jp", host: host),
          params: { visitor_secret_credential: { name: "", enabled: "1" } },
          headers: headers
 
-    assert_includes [302, 303, 422], response.status
+    assert_response :unprocessable_content
+    assert_equal secret_count, visitor.visitor_secret_credentials.count
 
     delete base_com_identity_secret_url(extra_secret.public_id, ri: "jp", host: host), headers: headers
 
@@ -287,7 +294,11 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
           params: { visitor_email: { promotional: "0", notifiable: "1" } },
           headers: headers
 
-    assert_includes [302, 303, 422], response.status
+    assert_response :see_other
+    visitor_email.reload
+
+    assert_not visitor_email.promotional
+    assert visitor_email.notifiable
 
     TurnstileVerifierStub.challenge_response = { "success" => false }
     patch base_com_identity_email_url(visitor_email.public_id, ri: "jp", host: host),
@@ -299,7 +310,8 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
 
     delete base_com_identity_email_url(extra_visitor_email.public_id, ri: "jp", host: host), headers: headers
 
-    assert_includes [302, 303], response.status
+    assert_response :see_other
+    assert_nil VisitorEmail.find_by(id: extra_visitor_email.id)
 
     get new_base_com_identity_emails_registration_url(ri: "jp", host: host), headers: headers
 
@@ -331,11 +343,13 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
 
+    pending_email = visitor.visitor_emails.order(:created_at).last
     patch base_com_identity_emails_registration_url(ri: "jp", host: host),
           params: { visitor_email: { pass_code: "000000" } },
           headers: headers
 
-    assert_includes [302, 303, 422], response.status
+    assert_response :unprocessable_content
+    assert_equal VisitorEmailStatus::UNVERIFIED, pending_email.reload.visitor_email_status_id
   end
 
   test "operator browses identity sessions secrets and telephones" do
@@ -413,18 +427,7 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
 
     get base_org_identity_sessions_url(ri: "jp", host: host), headers: headers
 
-    assert_includes [200, 302, 303], response.status
-
-    other_session = OperatorToken.where(staff: operator).where.not(id: token.id).where("discarded_at > ?", Time.current).first
-    if other_session
-      get base_org_identity_session_url(other_session.public_id, ri: "jp", host: host), headers: headers
-
-      assert_includes [200, 302, 303, 406], response.status
-
-      delete base_org_identity_session_url(other_session.public_id, ri: "jp", host: host), headers: headers
-
-      assert_includes [200, 302, 303], response.status
-    end
+    assert_response :success
 
     get base_org_identity_secrets_url(ri: "jp", host: host), headers: headers
 
@@ -442,11 +445,13 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
+    secret_count = operator.staff_secret_credentials.count
     post base_org_identity_secrets_url(ri: "jp", host: host),
          params: { staff_secret_credential: { name: "Created org secret", enabled: "1" } },
          headers: headers
 
-    assert_includes [302, 303, 422], response.status
+    assert_response :redirect
+    assert_equal secret_count + 1, operator.staff_secret_credentials.count
 
     patch base_org_identity_secret_url(secret.public_id, ri: "jp", host: host),
           params: { staff_secret_credential: { name: "Renamed org secret", enabled: "1" } },
@@ -485,11 +490,59 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
            headers: headers
     end
 
-    assert_includes [302, 303, 422], response.status
+    assert_response :redirect
+    pending_org_telephone = operator.staff_telephones.where(
+      staff_telephone_status_id: OperatorTelephoneStatus::UNVERIFIED,
+    ).where.not(id: extra_telephone.id).order(:created_at).last
+
+    assert_predicate pending_org_telephone, :present?
+    assert_equal OperatorTelephoneStatus::UNVERIFIED, pending_org_telephone.staff_telephone_status_id
 
     delete base_org_identity_telephone_url(extra_telephone.id, ri: "jp", host: host), headers: headers
 
     assert_response :redirect
+  end
+
+  test "operator updates identity emails and starts email registration" do
+    host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
+    host! host
+    operator = operators(:one)
+    token = OperatorToken.create!(
+      staff: operator,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::ACTIVE,
+      discarded_at: 1.day.from_now,
+    )
+    BaseSelectorBootstrapAuthority.call(surface: :org, principal: operator)
+    BaseSelectorAuthority.prepare(surface: :org, principal: operator, session: token)
+    _verification, raw_verification = OperatorVerification.issue_for_token!(token: token)
+    cookies[OperatorVerification.cookie_name] = raw_verification
+    token.update!(
+      last_step_up_at: Time.current,
+      last_step_up_scope: "settings_email",
+      last_step_up_aal: "aal2",
+      last_step_up_method: "passkey",
+      last_step_up_session_public_id: token.public_id,
+      last_step_up_purpose: "step_up",
+      last_step_up_audience: "step_up:org",
+    )
+    access_token = AuthenticationToken.encode(
+      operator,
+      host: host,
+      session_public_id: token.public_id,
+      resource_type: "operator",
+      jwt_issuer_id: "surface:BASE_ORG",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+    headers = {
+      "Authorization" => "Bearer #{access_token}",
+      "Accept" => "text/html,application/xhtml+xml",
+      "Client-Agent" => "Mozilla/5.0",
+      "Host" => host,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:deliver) { |**_args| true }
 
     operator_email = OperatorEmail.create!(
       staff: operator,
@@ -515,7 +568,11 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
           params: { staff_email: { promotional: "0", notifiable: "1" } },
           headers: headers
 
-    assert_includes [302, 303, 422], response.status
+    assert_response :see_other
+    operator_email.reload
+
+    assert_not operator_email.promotional
+    assert operator_email.notifiable
 
     TurnstileVerifierStub.challenge_response = { "success" => false }
     patch base_org_identity_email_url(operator_email.public_id, ri: "jp", host: host),
@@ -527,7 +584,8 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
 
     delete base_org_identity_email_url(extra_operator_email.public_id, ri: "jp", host: host), headers: headers
 
-    assert_includes [302, 303], response.status
+    assert_response :see_other
+    assert_nil OperatorEmail.find_by(id: extra_operator_email.id)
 
     get new_base_org_identity_emails_registration_url(ri: "jp", host: host), headers: headers
 
@@ -545,13 +603,20 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_content
 
     TurnstileVerifierStub.challenge_response = { "success" => true }
+    org_email_address = "org-coverage-#{SecureRandom.hex(4)}@example.test"
     OtpAdapter.stub(:for, fake_adapter) do
       post base_org_identity_emails_registration_url(ri: "jp", host: host),
-           params: { staff_email: { raw_address: "org-coverage-#{SecureRandom.hex(4)}@example.test" } },
+           params: { staff_email: { raw_address: org_email_address } },
            headers: headers
     end
 
-    assert_includes [302, 303, 422], response.status
+    assert_response :redirect
+    pending_org_email = operator.staff_emails.where(
+      staff_email_status_id: OperatorEmailStatus::UNVERIFIED,
+    ).where.not(id: extra_operator_email.id).order(:created_at).last
+
+    assert_predicate pending_org_email, :present?
+    assert_equal OperatorEmailStatus::UNVERIFIED, pending_org_email.staff_email_status_id
 
     token.update!(last_step_up_scope: "settings_telephone")
     get new_base_org_identity_telephones_registration_url(ri: "jp", host: host), headers: headers
@@ -560,7 +625,7 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
 
     get edit_base_org_identity_telephones_registration_url(ri: "jp", host: host), headers: headers
 
-    assert_includes [302, 303], response.status
+    assert_response :found
   end
 
   test "client browses identity secrets and telephones" do
@@ -631,16 +696,6 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
       description: "Coverage passkey",
       status_id: ClientPasskeyStatus::ACTIVE,
     )
-    telephone = ClientTelephone.create!(
-      user: user,
-      number: "+819077710001",
-      user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
-    )
-    extra_telephone = ClientTelephone.create!(
-      user: user,
-      number: "+819077710002",
-      user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
-    )
 
     get base_app_identity_secrets_url(ri: "jp", host: host), headers: headers
 
@@ -658,20 +713,76 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
           params: { user_secret_credential: { name: "Renamed app secret", enabled: "1" } },
           headers: headers
 
-    assert_includes [302, 303, 422], response.status
+    assert_response :see_other
+    assert_equal "Renamed app secret", secret.reload.name
 
     delete base_app_identity_secret_url(extra_secret.public_id, ri: "jp", host: host), headers: headers
 
-    assert_includes [302, 303], response.status
+    assert_response :see_other
+    assert_operator extra_secret.reload.discarded_at, :<=, Time.current
+  end
 
-    token.update!(last_step_up_scope: "settings_telephone")
+  test "client starts a telephone registration and deletes an extra telephone" do
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    host! host
+    user = clients(:one)
+    token = ClientToken.create!(
+      user: user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      discarded_at: 1.day.from_now,
+    )
+    BaseSelectorBootstrapAuthority.call(surface: :app, principal: user)
+    BaseSelectorAuthority.prepare(surface: :app, principal: user, session: token)
+    _verification, raw_verification = ClientVerification.issue_for_token!(token: token)
+    cookies[ClientVerification.cookie_name] = raw_verification
+    token.update!(
+      last_step_up_at: Time.current,
+      last_step_up_scope: "settings_telephone",
+      last_step_up_aal: "aal2",
+      last_step_up_method: "passkey",
+      last_step_up_session_public_id: token.public_id,
+      last_step_up_purpose: "step_up",
+      last_step_up_audience: "step_up:app",
+    )
+    access_token = AuthenticationToken.encode(
+      user,
+      host: host,
+      session_public_id: token.public_id,
+      resource_type: "client",
+      jwt_issuer_id: "surface:BASE_APP",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+    headers = {
+      "Authorization" => "Bearer #{access_token}",
+      "Accept" => "text/html,application/xhtml+xml",
+      "Client-Agent" => "Mozilla/5.0",
+      "Host" => host,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
+
+    ClientTelephone.create!(
+      user: user,
+      number: "+819077710001",
+      user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+    )
+    extra_telephone = ClientTelephone.create!(
+      user: user,
+      number: "+819077710002",
+      user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
+    )
+    ClientPasskey.create!(
+      user: user,
+      webauthn_id: "app_telephone_passkey_#{SecureRandom.hex(8)}",
+      public_key: "public_key_#{SecureRandom.hex(8)}",
+      sign_count: 0,
+      description: "Coverage passkey",
+      status_id: ClientPasskeyStatus::ACTIVE,
+    )
+
     get base_app_identity_telephones_url(ri: "jp", host: host), headers: headers
 
-    assert_includes [200, 302, 303], response.status
-
-    get edit_base_app_identity_telephone_url(telephone.public_id, ri: "jp", host: host), headers: headers
-
-    assert_includes [200, 302, 303, 406], response.status
+    assert_response :success
 
     fake_adapter = Object.new
     fake_adapter.define_singleton_method(:deliver) { |**_args| true }
@@ -681,10 +792,17 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
            headers: headers
     end
 
-    assert_includes [302, 303, 422], response.status
+    assert_response :see_other
+    pending_app_telephone = user.client_telephones.where(
+      user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
+    ).where.not(id: extra_telephone.id).order(:created_at).last
+
+    assert_predicate pending_app_telephone, :present?
+    assert_equal ClientTelephoneStatus::UNVERIFIED, pending_app_telephone.user_telephone_status_id
 
     delete base_app_identity_telephone_url(extra_telephone.public_id, ri: "jp", host: host), headers: headers
 
-    assert_includes [302, 303], response.status
+    assert_response :see_other
+    assert_nil ClientTelephone.unscoped.find_by(id: extra_telephone.id)
   end
 end
