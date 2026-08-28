@@ -19,6 +19,11 @@ docs/
 .devcontainer/
 !.devcontainer/
 .devcontainer/*
+# ...except the two files the image bakes for the opt-in remote-access overlay.
+# They live under .devcontainer/ because umaxica-apps-edge and portal keep their
+# copies there too, and the three are meant to stay byte-comparable.
+!.devcontainer/remote-sshd_config
+!.devcontainer/remote-sshd-entrypoint.sh
 .vscode/
 .idea/
 

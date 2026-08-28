@@ -19,7 +19,7 @@ ARG REVISION=""
 # exact patch so Global and Edge cannot drift to different Node builds.
 ARG NODE_VERSION=24.19.0
 # pnpm is pinned for the same reason; `pnpm@latest` made every rebuild irreproducible.
-ARG PNPM_VERSION=11.22.0
+ARG PNPM_VERSION=12.0.0
 
 # ============================================================================
 # Node.js toolchain (binaries copied into the development and asset images)
@@ -108,13 +108,14 @@ RUN npm install -g "pnpm@${PNPM_VERSION}" \
     && test "$(pnpm --version)" = "${PNPM_VERSION}"
 
 # Dependencies resolve from the lockfile alone, so this layer is reused until a dependency
-# changes. `--prod=false` is required: Vite and its plugins are devDependencies, and pnpm would
-# otherwise skip them because NODE_ENV is production.
+# changes. No `--prod` flag here: Vite and its plugins are devDependencies, and pnpm 12 installs
+# them regardless of NODE_ENV -- only an explicit `--prod` skips them, and `--prod=false` (pnpm 11's
+# way of countering NODE_ENV=production) is rejected outright as `--prod` no longer takes a value.
 # The cache target is the store path pnpm-workspace.yaml pins (`storeDir`), which wins over any
 # store configured here; mounting anywhere else would leave the cache unused.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prod=false
+    pnpm install --frozen-lockfile
 
 COPY config/vite.json ./config/vite.json
 COPY vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json ./
@@ -344,7 +345,7 @@ RUN if [ -z "${GITHUB_ACTIONS}" ]; then \
 #
 # PNPM_VERSION and package.json#packageManager declare the same version but are
 # separate concerns: this ARG decides what the image ships, while
-# `packageManager` is pnpm's own pin (pnpm 11 reads it through `pmOnFail`, which
+# `packageManager` is pnpm's own pin (pnpm 12 reads it through `pmOnFail`, which
 # pnpm-workspace.yaml sets to `error`) and is what CI reads. It is not a Corepack
 # artefact. The assertion below keeps the image side honest; `pmOnFail: error`
 # catches the two declarations drifting apart.
@@ -379,32 +380,40 @@ RUN rm -f /usr/local/bin/pn \
 # with EACCES until someone chowns it by hand — once per container recreate.
 # Materializing the full XDG tree here means Podman never has to invent a
 # parent, and the chown below stamps the workload owner on all of it.
-# The two umaxica-* paths below serve the opt-in sshd (REMOTE_SSHD=1). They are
-# created here, owned by the workload user, so Podman's copy-up gives the host-key
-# volume and the read-only authorized_keys bind the right ownership instead of
-# inventing a root-owned parent that sshd's StrictModes then rejects.
+# The two remote-sshd paths below serve the opt-in `compose.remote-access.yaml`
+# overlay. They are created here, owned by the workload user, so Podman's copy-up
+# gives the host-key volume and the read-only authorized_keys bind the right
+# ownership instead of inventing a root-owned parent that sshd's StrictModes then
+# rejects. Same paths in umaxica-apps-edge and portal.
 RUN mkdir -p "${HOME}/workspace" \
     "${HOME}/.cache" \
     "${HOME}/.config" \
     "${HOME}/.local/bin" \
     "${HOME}/.local/share" \
     "${HOME}/.local/state" \
-    "${HOME}/.local/state/umaxica-sshd" \
+    "${HOME}/.local/state/remote-sshd" \
     "${HOME}/.config/umaxica" \
     && chown -R "${DOCKER_UID}:${DOCKER_GID}" "${HOME}" /usr/local/bundle \
-    && chmod 0700 "${HOME}/.local/state/umaxica-sshd" \
+    && chmod 0700 "${HOME}/.local/state/remote-sshd" \
     && chmod 0755 "${HOME}/.config/umaxica"
 
 COPY --chown=0:0 podman/core/entrypoint.sh /usr/local/bin/core-entrypoint
 COPY --chown=0:0 podman/core/dev-supervisor.sh /usr/local/bin/core-dev-supervisor
-# Root-owned and read-only: the sshd configuration must not be rewritable by the
-# development shell it admits.
-COPY --chown=0:0 podman/core/sshd_config /etc/umaxica/sshd_config
+# Root-owned and read-only: `global` owns the workspace bind, so leaving either of
+# these there would let anything with a development shell rewrite what the next
+# container start executes -- including which keys it accepts.
+#
+# Both are inert unless `compose.remote-access.yaml` replaces `core`'s command.
+# The names are the shared ones: umaxica-apps-edge and portal bake the same two
+# paths from the same two source files.
+COPY --chown=0:0 .devcontainer/remote-sshd_config /etc/ssh/remote-sshd_config
+COPY --chown=0:0 .devcontainer/remote-sshd-entrypoint.sh /usr/local/bin/remote-sshd-entrypoint
 
 RUN chmod 0555 \
     /usr/local/bin/core-entrypoint \
     /usr/local/bin/core-dev-supervisor \
-    && chmod 0444 /etc/umaxica/sshd_config
+    /usr/local/bin/remote-sshd-entrypoint \
+    && chmod 0444 /etc/ssh/remote-sshd_config
 
 USER ${DOCKER_USER}
 
