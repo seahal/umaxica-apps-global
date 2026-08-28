@@ -17,8 +17,7 @@
 #
 # The remotely managed tunnel token comes from the repository-local, gitignored `.env`.
 # It is passed only to the cloudflared process and is never copied into an image, workspace
-# file, command argument, or host bind mount. Tailscale remains independent and uses an
-# interactive `tailscale up`.
+# file, command argument, or host bind mount.
 services:
   cloudflare-tunnel:
     # Cloudflare supports cloudflared releases for one year. Keep this explicit tag current;
@@ -59,12 +58,6 @@ services:
         max-size: "10m"
         max-file: "3"
   core:
-    # Tailscale is not in use right now. tailscale-core-supervisor needs a real
-    # root control-plane PID 1, which conflicts with the `userns_mode: keep-id`
-    # and the absent `user:` key in compose.yaml. Falling back to the base
-    # `command: [sleep, infinity]` (by not overriding it here) lets
-    # core-entrypoint idle as the keep-id-mapped user. Re-enabling it means
-    # restoring the command override here and reverting both of those.
     volumes:
       # Host timezone. /etc/timezone is Debian/Ubuntu-only; Fedora, RHEL, and
       # Arch do not have it, and Podman then fails at start. /etc/localtime
@@ -75,13 +68,3 @@ services:
         source: "/etc/localtime"
         target: "/etc/localtime"
         read_only: true
-    environment:
-      # Optional exact Rails Host Authorization entry for Tailscale Serve.
-      # The value is a hostname, not a credential; unset keeps normal startup
-      # independent from Tailscale.
-      TAILSCALE_SERVE_HOST: "${TAILSCALE_SERVE_HOST:-}"
-    # Tailscale identity is no longer persisted. `tailscale up` is an interactive
-    # browser login and its state lives in tmpfs, so it is discarded with the
-    # container instead of surviving as a long-lived machine credential.
-    tmpfs:
-      - /var/lib/tailscale-core:mode=0700

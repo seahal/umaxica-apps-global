@@ -46,7 +46,7 @@ bin/rails assets:clobber        # Remove compiled assets
 - Ruby `4.0.x`
 - Bundler
 - Node.js `24.19.0` (Active LTS)
-- `pnpm@11.22.0`
+- `pnpm@12.0.0`
 
 ### Credentials and secrets
 

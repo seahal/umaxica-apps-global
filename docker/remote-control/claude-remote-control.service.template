@@ -8,10 +8,8 @@
 # reboot test are all actions you run yourself, never automated from inside the
 # container.
 #
-# WS3B only: deliberately independent of direct-core Tailscale access (WS3A) —
-# Remote Control needs outbound HTTPS to api.anthropic.com only, no inbound SSH
-# and no Tailscale network. Do not add a dependency on the development
-# container here.
+# Remote Control needs outbound HTTPS to api.anthropic.com only, and no inbound
+# ports. Do not add a dependency on the development container here.
 #
 # No secrets belong in this file. Authentication is the OAuth session already
 # established by `claude auth login` inside `core` (state lives under the
@@ -23,7 +21,6 @@ Description=Claude Code Remote Control (Umaxica core devcontainer)
 After=network-online.target
 Wants=network-online.target
 # If you also enable podman-restart.service for reboot recovery (see
-# docs/operations/remote-codex-over-tailscale.md and
 # plans/umaxica-rails-expressive-dewdrop.md), consider ordering after it too:
 # After=network-online.target podman-restart.service
 

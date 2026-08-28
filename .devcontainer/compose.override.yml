@@ -9,17 +9,12 @@ services:
         DOCKER_UID: "${UID:-1000}"
         DOCKER_GID: "${GID:-1000}"
     userns_mode: keep-id
-    # Tailscale is not in use right now, so there is no service that needs a
-    # real root control-plane PID 1 inside the container. `keep-id` maps the
-    # host user directly to the workload UID/GID baked into the image
-    # (DOCKER_UID/DOCKER_GID above), so bind-mounted repo files keep host
-    # ownership. Clear the base compose file's `user: root`: rootless
-    # Podman's keep-id handling silently overrides an explicit `user:`
-    # anyway, and core-entrypoint now runs the workload directly (no chown,
-    # no setpriv drop) when it's already started as the keep-id-mapped
-    # workload UID. Re-enabling tailscale-core-supervisor (compose.custom.yaml)
-    # requires reverting both of these, since that path needs real root.
-    user: !reset null
+    # No service needs a real root control-plane PID 1 inside the container.
+    # `keep-id` maps the host user directly to the workload UID/GID baked into
+    # the image (DOCKER_UID/DOCKER_GID above), so bind-mounted repo files keep
+    # host ownership. No `user:` key here either: the base file no longer sets
+    # one for `core`, and a `!reset` tag survives into `podman compose config`
+    # output, which the Dev Containers CLI YAML parser rejects.
     tty: true
     stdin_open: true
     # Workspace bind mount lives in the override. `:Z` adds an SELinux private

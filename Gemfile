@@ -136,6 +136,7 @@ gem "json-canonicalization"
 # ?
 gem "svix"
 gem "mcp"
+gem "rubydex", require: false
 
 # Switch
 # Sourced from git rather than the 1.4.2 release: that release calls
