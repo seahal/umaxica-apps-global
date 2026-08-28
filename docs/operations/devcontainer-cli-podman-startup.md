@@ -129,9 +129,27 @@ reaches past the repository's security boundary and injects host state the image
 exclude.
 
 If `global-devcontainer-core` exists in Created or Exited state, use **Dev Containers: Rebuild and
-Reopen in Container**. For the CLI recovery path, append `--remove-existing-container` to
-`devcontainer up`. Do not use either rebuild path for routine starts because it recreates the Dev
+Reopen in Container**. Do not use a rebuild path for routine starts because it recreates the Dev
 Container.
+
+Do not use `--remove-existing-container` on the CLI recovery path. It issues a bare
+`podman rm -f <core>` that ignores dependent containers, and `cloudflare-tunnel` declares
+`depends_on: core`, which podman-compose turns into a podman `--requires` edge. While the tunnel is
+running the removal always fails with `has dependent containers which must be removed before it`.
+Take the whole project down first instead, then start it again:
+
+```sh
+podman compose --project-name umaxicaappsglobaldc \
+  -f compose.yaml -f .devcontainer/compose.override.yml -f compose.custom.yaml down
+
+devcontainer up \
+  --docker-path /usr/bin/podman \
+  --docker-compose-path /usr/bin/podman-compose \
+  --workspace-folder .
+```
+
+`down` destroys the tmpfs-backed `primary` and `replica` data. Rebuild the development and test
+databases and re-clone the replica afterwards.
 
 ## Related
 

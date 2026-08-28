@@ -25,10 +25,10 @@ class OidcBackchannelLogoutDeliveryJob < ApplicationJob
         "oidc.backchannel_logout.delivered",
         client_id: client_id,
         host: parsed_uri.host,
-        status: response.code.to_i,
+        status: response.status,
       ),
     )
-  rescue URI::InvalidURIError, SocketError, SystemCallError, IOError, Timeout::Error, OpenSSL::SSL::SSLError => e
+  rescue URI::InvalidURIError, IOError, *OutboundHttp::Connection::NETWORK_ERRORS => e
     Rails.logger.info(
       JitLogEvent.format(
         "oidc.backchannel_logout.delivery_failed",
@@ -75,17 +75,20 @@ class OidcBackchannelLogoutDeliveryJob < ApplicationJob
     nil
   end
 
+  # No connection-level retry and no redirect following. ActiveJob already
+  # retries this delivery, and the destination is an allowlisted relying-party
+  # URI: following a redirect off that list would reintroduce the SSRF the
+  # registry check in registered_uri! exists to prevent.
+  #
+  # require_https is false because the scheme comes from the client registration
+  # rather than from this job, matching the previous `use_ssl: scheme == "https"`.
   def post_logout_token(uri, logout_token)
-    Net::HTTP.start(
-      uri.host,
-      uri.port,
-      use_ssl: uri.scheme == "https",
+    connection = OutboundHttp::Connection.build(
+      url: uri,
       open_timeout: OPEN_TIMEOUT,
       read_timeout: READ_TIMEOUT,
-    ) do |http|
-      request = Net::HTTP::Post.new(uri.request_uri)
-      request.set_form_data("logout_token" => logout_token)
-      http.request(request)
-    end
+      require_https: false,
+    )
+    connection.post(uri, "logout_token" => logout_token)
   end
 end

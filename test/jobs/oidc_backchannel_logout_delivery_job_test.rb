@@ -5,19 +5,22 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class OidcBackchannelLogoutDeliveryJobTest < ActiveSupport::TestCase
+  LOGOUT_URI = "https://id.app.localhost/oidc/backchannel_logout"
+
   teardown { Flipper.remove(:oidc_backchannel_logout_suspended) }
 
   test "perform mints the logout token during delivery" do
     sid = SecureRandom.uuid
-    request = nil
-    fake_response = Struct.new(:code).new("200")
-    fake_http = Object.new
-    fake_http.define_singleton_method(:request) do |logout_request|
-      request = logout_request
-      fake_response
-    end
+    posted_body = nil
+    stubs =
+      Faraday::Adapter::Test::Stubs.new do |stub|
+        stub.post(LOGOUT_URI) do |env|
+          posted_body = env.body
+          [200, {}, ""]
+        end
+      end
 
-    Net::HTTP.stub(:start, proc { |*_, &block| block.call(fake_http) }) do
+    stub_outbound_http(stubs) do
       OidcLogoutTokenCodec.stub(
         :encode, proc { |**kwargs|
                    assert_equal "sign-rp", kwargs.fetch(:client_id)
@@ -28,7 +31,7 @@ class OidcBackchannelLogoutDeliveryJobTest < ActiveSupport::TestCase
                  },
       ) do
         encrypted_payload = OutboundSensitivePayload.encrypt_oidc_backchannel_logout(
-          uri: "https://id.app.localhost/oidc/backchannel_logout",
+          uri: LOGOUT_URI,
           client_id: "sign-rp",
           resource_type: "client",
           subject: "subject-1",
@@ -36,14 +39,16 @@ class OidcBackchannelLogoutDeliveryJobTest < ActiveSupport::TestCase
         )
         OidcClientRegistry.stub(
           :backchannel_logout_uris_for,
-          ["https://id.app.localhost/oidc/backchannel_logout"],
+          [LOGOUT_URI],
         ) do
           OidcBackchannelLogoutDeliveryJob.perform_now(encrypted_payload)
         end
       end
     end
 
-    assert_equal "jwt-token", Rack::Utils.parse_nested_query(request.body)["logout_token"]
+    stubs.verify_stubbed_calls
+
+    assert_equal "jwt-token", Rack::Utils.parse_nested_query(posted_body)["logout_token"]
   end
 
   test "a global suspension mints no token and posts to no relying party" do
@@ -72,15 +77,13 @@ class OidcBackchannelLogoutDeliveryJobTest < ActiveSupport::TestCase
   # Returns the host that was posted to.
   def deliver_to(client_id, expect_delivery: false)
     host = nil
-    fake_response = Struct.new(:code).new("200")
-    fake_http = Object.new
-    fake_http.define_singleton_method(:request) { |_request| fake_response }
-
-    http_stub =
-      proc do |posted_host, *_rest, &block|
-        flunk("posted to #{posted_host} while suspended") unless expect_delivery
-        host = posted_host
-        block.call(fake_http)
+    stubs =
+      Faraday::Adapter::Test::Stubs.new do |stub|
+        stub.post(LOGOUT_URI) do |env|
+          flunk("posted to #{env.url.host} while suspended") unless expect_delivery
+          host = env.url.host
+          [200, {}, ""]
+        end
       end
     codec_stub =
       proc do |**_kwargs|
@@ -88,14 +91,14 @@ class OidcBackchannelLogoutDeliveryJobTest < ActiveSupport::TestCase
         "jwt-token"
       end
 
-    Net::HTTP.stub(:start, http_stub) do
+    stub_outbound_http(stubs) do
       OidcLogoutTokenCodec.stub(:encode, codec_stub) do
         OidcClientRegistry.stub(
           :backchannel_logout_uris_for,
-          ["https://id.app.localhost/oidc/backchannel_logout"],
+          [LOGOUT_URI],
         ) do
           OidcBackchannelLogoutDeliveryJob.perform_now(
-            "https://id.app.localhost/oidc/backchannel_logout",
+            LOGOUT_URI,
             client_id,
             "client",
             "subject-1",

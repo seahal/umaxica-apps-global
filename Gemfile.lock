@@ -1188,6 +1188,7 @@ DEPENDENCIES
   derailed_benchmarks
   discard
   erb_lint
+  faraday
   flay
   flipper!
   flipper-active_record!

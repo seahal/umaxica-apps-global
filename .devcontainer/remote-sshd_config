@@ -1,0 +1,120 @@
+# OpenSSH server for the umaxica-apps-global development container's remote-access path.
+#
+#   Codex App --(tailnet tcp/22)--> tailscaled in this container --(127.0.0.1:2222)--> this sshd
+#
+# Identical in umaxica-apps-global, umaxica-apps-edge and portal except for the
+# account name, its home, and the SetEnv block at the bottom. Change one, change
+# all three -- a divergence here is how one repository quietly ends up with a
+# weaker server than its siblings.
+#
+# This sshd runs as `global`, not root: `core` runs under `userns_mode: keep-id`
+# with `cap_drop: ALL` and `no-new-privileges`, so it can neither bind a
+# privileged port nor privilege-separate to another account. Port 2222 and
+# `AllowUsers global` are consequences of that, not preferences -- the only
+# account this server can ever hand out a shell for is the one it already runs as.
+#
+# Nothing here is published to the host or the internet. tailscaled runs in this
+# same container (see remote-sshd-entrypoint.sh), accepts tailnet tcp/22 and
+# forwards it here over loopback.
+
+Port 2222
+# Only tailscaled's forward ever dials this server, and it does so over
+# loopback; listening any wider would offer sshd to every compose network the
+# container sits on for no caller.
+ListenAddress 127.0.0.1
+AddressFamily inet
+
+# Both paths live on the `sshd-host-keys` volume. The host key is persisted so the
+# fingerprint survives a container recreate -- a regenerated key makes every client
+# refuse to connect with a host-key-changed error, which reads like an attack
+# rather than a rebuild. The PID file is deliberately NOT under the workspace bind:
+# anything with a shell in this container can write there.
+HostKey /home/global/.local/state/remote-sshd/ssh_host_ed25519_key
+PidFile /home/global/.local/state/remote-sshd/sshd.pid
+
+# A read-only bind of `.secrets/codex_authorized_keys`, outside the workspace on
+# purpose: nothing a development shell can write may grant itself new access.
+# Deliberately not the host's own ~/.ssh/authorized_keys -- that would admit every
+# key that can log into the host, rather than the one key Codex App uses.
+AuthorizedKeysFile /home/global/.config/umaxica/authorized_keys
+# Refuse group- or other-writable key paths. On by default; stated because the
+# path above is a bind mount whose host-side mode is easy to get wrong.
+StrictModes yes
+
+AllowUsers global
+PermitRootLogin no
+PubkeyAuthentication yes
+AuthenticationMethods publickey
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitEmptyPasswords no
+# A non-root sshd cannot run the PAM stack; leaving UsePAM on makes it exit at
+# startup rather than fall back.
+UsePAM no
+# ~/.ssh/environment is inside the workspace-owning account's home, so honouring
+# it would let a compromised shell set PATH or LD_PRELOAD for the next login.
+PermitUserEnvironment no
+
+# The tailnet is not the public internet, but it is not a single trusted host
+# either. These bound what one reachable peer can do without hurting normal use.
+MaxAuthTries 3
+LoginGraceTime 20
+MaxSessions 10
+MaxStartups 10:30:60
+
+# Codex App and VS Code Remote SSH forward dev-server ports over the session, so
+# this stays on -- without it no Rails/Astro/wrangler preview is reachable
+# remotely. PermitOpen is what keeps it from also being a pivot: the session can
+# reach ports inside this container and nothing else, so the Podman networks
+# carrying PostgreSQL, Valkey and Kafka stay out of reach.
+AllowTcpForwarding yes
+PermitOpen localhost:* 127.0.0.1:* [::1]:*
+AllowStreamLocalForwarding no
+GatewayPorts no
+# Agent forwarding would put the client's private keys behind a socket inside the
+# container, which is exactly the host-credential reuse the container security
+# policy exists to prevent.
+AllowAgentForwarding no
+X11Forwarding no
+PermitTunnel no
+PermitTTY yes
+
+# Ciphers, MACs and KexAlgorithms are deliberately left at the compiled-in
+# defaults. The three repositories sit on different base images (Debian trixie and
+# bookworm) and therefore different OpenSSH releases; an algorithm name one of
+# them does not know is a startup failure, not a downgrade. The defaults of every
+# OpenSSH in use here already exclude everything worth excluding.
+
+# VERBOSE records the key fingerprint and the outcome of each attempt -- what
+# identifies a session -- and never the key material itself.
+LogLevel VERBOSE
+ClientAliveInterval 60
+ClientAliveCountMax 3
+PrintMotd no
+
+# sshd builds a session environment from scratch rather than inheriting the
+# image's ENV block, so without these an SSH login gets the system default PATH
+# and none of the toolchain. `podman exec` and the devcontainer terminal see ENV
+# and work; only SSH does not, which makes the breakage look like a broken
+# installation rather than a missing variable.
+#
+# SetEnv rather than /etc/profile.d, because it also covers non-login shells:
+# `ssh host pnpm --version`, and every Remote SSH agent that runs commands without
+# one. Keep in sync with the ENV block in the image definition.
+#
+# ONE line, not one per variable. sshd_config keeps the FIRST value it sees for a
+# keyword and discards the rest, so a second `SetEnv` line is silently ignored --
+# the session then gets the PATH and nothing else, which reads as a broken
+# toolchain rather than as a config that parsed cleanly and dropped four
+# assignments on the floor.
+#
+# BASH_ENV is on that line for a different reason than the rest: it points at the
+# snapshot of the container's own environment that the wrapper writes at startup.
+# `SetEnv` is a static list and cannot carry a service environment that changes
+# with compose.yaml, so the variables Compose sets on the service arrive through
+# that file instead. See remote-sshd-entrypoint.sh.
+SetEnv GEM_HOME=/usr/local/bundle PATH=/home/global/.local/bin:/usr/local/bundle/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin BUNDLE_PATH=vendor/bundle PNPM_HOME=/home/global/.local/share/pnpm XDG_CONFIG_HOME=/home/global/.config XDG_CACHE_HOME=/home/global/.cache XDG_DATA_HOME=/home/global/.local/share XDG_STATE_HOME=/home/global/.local/state LANG=C.UTF-8 BASH_ENV=/run/sshd/session-env.sh
+
+# Codex App and VS Code Remote SSH both use SFTP to read and write files. Without
+# this the connection succeeds and file editing silently does not.
+Subsystem sftp internal-sftp

@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-require "net/http"
-
 module ExternalSignIn
   # Fetches and caches the Entra ID JWKS for a specific tenant.
   # Returns a callable suitable for the JWT gem's jwks: option.
@@ -12,6 +10,10 @@ module ExternalSignIn
 
     JWKS_URI_TEMPLATE = "https://login.microsoftonline.com/%s/discovery/v2.0/keys"
     CACHE_TTL = 1.hour
+    # This fetch previously ran on the stdlib default read timeout, so an
+    # unresponsive Entra endpoint held a sign-in request thread for a minute.
+    OPEN_TIMEOUT = 2
+    READ_TIMEOUT = 5
 
     def initialize(tenant_id:)
       @tenant_id = tenant_id
@@ -36,8 +38,15 @@ module ExternalSignIn
     end
 
     def fetch_jwks
-      response = Net::HTTP.get_response(URI(format(JWKS_URI_TEMPLATE, tenant_id)))
-      raise FetchError, "JWKS fetch failed (HTTP #{response.code}) for tenant #{tenant_id}" unless response.is_a?(Net::HTTPSuccess)
+      uri = URI(format(JWKS_URI_TEMPLATE, tenant_id))
+      connection = OutboundHttp::Connection.build(
+        url: uri,
+        open_timeout: OPEN_TIMEOUT,
+        read_timeout: READ_TIMEOUT,
+        require_https: true,
+      )
+      response = connection.get(uri)
+      raise FetchError, "JWKS fetch failed (HTTP #{response.status}) for tenant #{tenant_id}" unless response.success?
 
       jwks = JSON.parse(response.body)
       raise FetchError,
@@ -45,7 +54,7 @@ module ExternalSignIn
             "#{tenant_id}" unless jwks.is_a?(Hash) && jwks["keys"].is_a?(Array)
 
       jwks
-    rescue JSON::ParserError, URI::InvalidURIError, Timeout::Error, SocketError, SystemCallError, TypeError => e
+    rescue JSON::ParserError, URI::InvalidURIError, TypeError, *OutboundHttp::Connection::NETWORK_ERRORS => e
       raise FetchError.new("JWKS request failed for tenant #{tenant_id}"), cause: e
     end
   end

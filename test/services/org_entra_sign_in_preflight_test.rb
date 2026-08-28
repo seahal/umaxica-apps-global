@@ -63,14 +63,28 @@ class OrgEntraSignInPreflightTest < ActiveSupport::TestCase
     end
   end
 
+  # The discovery fetch runs through OutboundHttp::Connection, so an unreachable
+  # tenant arrives as a Faraday error rather than the raw SocketError the stdlib
+  # transport used to raise. issuer_check names those errors explicitly instead
+  # of rescuing StandardError, so a configuration or programming fault inside
+  # the check still fails loudly rather than reading as an unreachable tenant.
   test "fails without leaking an exception message when the tenant is unreachable" do
-    result = run_preflight(metadata: -> { raise SocketError, "getaddrinfo: nodename nor servname provided" })
+    unreachable = -> { raise Faraday::ConnectionFailed, "getaddrinfo: nodename nor servname provided" }
+    result = run_preflight(metadata: unreachable)
 
     assert_not result.ok?
     detail = check(result, "issuer").detail
 
     assert_includes detail, "could not reach the tenant"
     assert_not_includes detail, "getaddrinfo"
+  end
+
+  test "fails without leaking an exception message when the tenant times out" do
+    result = run_preflight(metadata: -> { raise Faraday::TimeoutError, "read timeout" })
+
+    assert_not result.ok?
+
+    assert_includes check(result, "issuer").detail, "could not reach the tenant"
   end
 
   test "fails when the kill switch is off" do

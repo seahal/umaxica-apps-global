@@ -100,16 +100,13 @@ module Jit
       test "performs http request when verifying" do
         TurnstileVerifierStub.enabled = false
 
-        mock_response = Minitest::Mock.new
-        mock_response.expect(:body, '{"success": true}')
+        mock_response_body = '{"success": true}'
 
-        Net::HTTP.stub(:post_form, mock_response) do
+        stub_turnstile_response(mock_response_body) do
           result = JitSecurityTurnstileVerifier.verify(token: "valid", remote_ip: "1.2.3.4", secret_key: "secret")
 
           assert result["success"]
         end
-
-        mock_response.verify
       end
 
       # -- mode: :stealth -------------------------------------------------
@@ -117,18 +114,15 @@ module Jit
       test "mode stealth uses JitSecurityTurnstileConfig stealth secret key" do
         TurnstileVerifierStub.enabled = false
 
-        mock_response = Minitest::Mock.new
-        mock_response.expect(:body, '{"success": true}')
+        mock_response_body = '{"success": true}'
 
         JitSecurityTurnstileConfig.stub(:stealth_secret_key, "stealth-secret") do
-          Net::HTTP.stub(:post_form, mock_response) do
+          stub_turnstile_response(mock_response_body) do
             result = JitSecurityTurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4", mode: :stealth)
 
             assert result["success"]
           end
         end
-
-        mock_response.verify
       end
 
       test "mode stealth returns failure without HTTP when secret is nil" do
@@ -137,7 +131,7 @@ module Jit
         http_called = false
 
         JitSecurityTurnstileConfig.stub(:stealth_secret_key, nil) do
-          Net::HTTP.stub(:post_form, ->(_uri, _params) { http_called = true }) do
+          OutboundHttp::Connection.stub(:build, ->(**_kwargs) { http_called = true }) do
             result = JitSecurityTurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4", mode: :stealth)
 
             assert_not result["success"]
@@ -151,47 +145,40 @@ module Jit
       test "mode visible uses JitSecurityTurnstileConfig visible secret key" do
         TurnstileVerifierStub.enabled = false
 
-        mock_response = Minitest::Mock.new
-        mock_response.expect(:body, '{"success": true}')
+        mock_response_body = '{"success": true}'
 
         JitSecurityTurnstileConfig.stub(:visible_secret_key, "visible-secret") do
-          Net::HTTP.stub(:post_form, mock_response) do
+          stub_turnstile_response(mock_response_body) do
             result = JitSecurityTurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4", mode: :visible)
 
             assert result["success"]
           end
         end
-
-        mock_response.verify
       end
 
       test "no mode falls back to visible secret key" do
         TurnstileVerifierStub.enabled = false
 
-        mock_response = Minitest::Mock.new
-        mock_response.expect(:body, '{"success": true}')
+        mock_response_body = '{"success": true}'
 
         JitSecurityTurnstileConfig.stub(:visible_secret_key, "visible-secret") do
-          Net::HTTP.stub(:post_form, mock_response) do
+          stub_turnstile_response(mock_response_body) do
             result = JitSecurityTurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4")
 
             assert result["success"]
           end
         end
-
-        mock_response.verify
       end
 
       test "explicit secret_key takes priority over mode" do
         TurnstileVerifierStub.enabled = false
 
-        mock_response = Minitest::Mock.new
-        mock_response.expect(:body, '{"success": true}')
+        mock_response_body = '{"success": true}'
 
         config_called = false
         fake = -> { config_called = true; "should-not-use" }
         JitSecurityTurnstileConfig.stub(:stealth_secret_key, fake) do
-          Net::HTTP.stub(:post_form, mock_response) do
+          stub_turnstile_response(mock_response_body) do
             result = JitSecurityTurnstileVerifier.verify(
               token: "tok", remote_ip: "1.2.3.4", secret_key: "explicit",
               mode: :stealth,
@@ -202,24 +189,19 @@ module Jit
         end
 
         assert_not config_called, "JitSecurityTurnstileConfig should not be called when secret_key is explicit"
-        mock_response.verify
       end
 
       test "logs sanitized response details in development" do
         TurnstileVerifierStub.enabled = false
 
-        mock_response = Minitest::Mock.new
-        mock_response.expect(
-          :body,
-          {
-            "success" => false,
-            "error-codes" => ["timeout-or-duplicate"],
-            "hostname" => "log.umaxica.app",
-            "action" => "signup",
-            "challenge_ts" => "2026-06-19T00:00:00Z",
-            "cdata" => "opaque",
-          }.to_json,
-        )
+        mock_response_body = {
+          "success" => false,
+          "error-codes" => ["timeout-or-duplicate"],
+          "hostname" => "log.umaxica.app",
+          "action" => "signup",
+          "challenge_ts" => "2026-06-19T00:00:00Z",
+          "cdata" => "opaque",
+        }.to_json
 
         logger = Minitest::Mock.new
         logger.expect(:warn, nil) do |message|
@@ -241,7 +223,7 @@ module Jit
         Rails.stub(:env, dev_env) do
           Rails.stub(:logger, logger) do
             JitSecurityTurnstileConfig.stub(:visible_secret_key, "visible-secret") do
-              Net::HTTP.stub(:post_form, mock_response) do
+              stub_turnstile_response(mock_response_body) do
                 result = JitSecurityTurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4")
 
                 assert_not result["success"]
@@ -250,8 +232,6 @@ module Jit
             end
           end
         end
-
-        mock_response.verify
         logger.verify
       end
 
@@ -266,11 +246,10 @@ module Jit
           "challenge_ts" => "2026-06-19T00:00:00Z",
         }.to_json
 
-        mock_response = Minitest::Mock.new
-        mock_response.expect(:body, response)
+        mock_response_body = response
 
         JitSecurityTurnstileConfig.stub(:visible_secret_key, "visible-secret") do
-          Net::HTTP.stub(:post_form, mock_response) do
+          stub_turnstile_response(mock_response_body) do
             failure = JitSecurityTurnstileVerifier.verify_for_ceremony(
               token: "tok",
               remote_ip: "1.2.3.4",
@@ -284,8 +263,6 @@ module Jit
             assert_equal "turnstile binding mismatch", failure["error"]
           end
         end
-
-        mock_response.verify
       end
 
       test "verify_for_ceremony consumes replay token once and rejects replay" do
@@ -299,15 +276,13 @@ module Jit
           "challenge_ts" => "2026-06-19T00:00:00Z",
         }.to_json
 
-        mock_response = Minitest::Mock.new
-        mock_response.expect(:body, response)
-        mock_response2 = Minitest::Mock.new
-        mock_response2.expect(:body, response)
+        mock_response_body = response
+        mock_response2_body = response
 
         consumed = []
         TurnstileReplayStore.stub(:consume!, ->(**kwargs) { consumed << kwargs; true }) do
           JitSecurityTurnstileConfig.stub(:visible_secret_key, "visible-secret") do
-            Net::HTTP.stub(:post_form, mock_response) do
+            stub_turnstile_response(mock_response_body) do
               ok = JitSecurityTurnstileVerifier.verify_for_ceremony(
                 token: "tok",
                 remote_ip: "1.2.3.4",
@@ -327,7 +302,7 @@ module Jit
 
         TurnstileReplayStore.stub(:consume!, ->(**_) { raise ActiveRecord::RecordNotUnique }) do
           JitSecurityTurnstileConfig.stub(:visible_secret_key, "visible-secret") do
-            Net::HTTP.stub(:post_form, mock_response2) do
+            stub_turnstile_response(mock_response2_body) do
               replay = JitSecurityTurnstileVerifier.verify_for_ceremony(
                 token: "tok",
                 remote_ip: "1.2.3.4",
@@ -342,22 +317,18 @@ module Jit
             end
           end
         end
-
-        mock_response.verify
-        mock_response2.verify
       end
 
       test "does not log response details outside development" do
         TurnstileVerifierStub.enabled = false
 
-        mock_response = Minitest::Mock.new
-        mock_response.expect(:body, '{"success": true}')
+        mock_response_body = '{"success": true}'
 
         logger = Minitest::Mock.new
 
         Rails.stub(:env, ActiveSupport::StringInquirer.new("test")) do
           Rails.stub(:logger, logger) do
-            Net::HTTP.stub(:post_form, mock_response) do
+            stub_turnstile_response(mock_response_body) do
               result = JitSecurityTurnstileVerifier.verify(
                 token: "tok",
                 remote_ip: "1.2.3.4",
@@ -368,9 +339,24 @@ module Jit
             end
           end
         end
-
-        mock_response.verify
         logger.verify
+      end
+
+      private
+
+      # siteverify is reached through OutboundHttp::Connection, so the stub
+      # states the URL and the response body rather than mocking a transport
+      # method. Verifying the stub keeps the "the request was actually made"
+      # assertion the Minitest::Mock#verify calls used to provide.
+      def stub_turnstile_response(body)
+        stubs =
+          Faraday::Adapter::Test::Stubs.new do |stub|
+            stub.post(JitSecurityTurnstileVerifier::VERIFY_URI.to_s) { [200, {}, body] }
+          end
+
+        stub_outbound_http(stubs) { yield }
+
+        stubs.verify_stubbed_calls
       end
     end
   end

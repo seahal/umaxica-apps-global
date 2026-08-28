@@ -37,63 +37,53 @@ class AppleNotificationJwksCacheTest < ActiveSupport::TestCase
   end
 
   test "default fetch raises FetchError when HTTP response is not success" do
-    response = Net::HTTPBadRequest.new("1.1", "400", "Bad Request")
-    response.instance_variable_set(:@read, true)
-    response.body = "nope"
-
-    http = Object.new
-    http.define_singleton_method(:request) { |_req| response }
-
-    Net::HTTP.stub(:start, ->(*_args, **_kwargs, &block) { block.call(http) }) do
-      error =
-        assert_raises(ExternalAuthentication::AppleNotificationJwksCache::FetchError) do
-          ExternalAuthentication::AppleNotificationJwksCache.new.send(:fetch_jwks)
-        end
-
-      assert_instance_of ExternalAuthentication::AppleNotificationJwksCache::FetchError, error
-    end
+    assert_fetch_error { [400, {}, "nope"] }
   end
 
   test "default fetch raises FetchError for oversized or invalid JSON bodies" do
-    oversized = Net::HTTPOK.new("1.1", "200", "OK")
-    oversized.instance_variable_set(:@read, true)
-    oversized.body = "x" * (ExternalAuthentication::AppleNotificationJwksCache::MAXIMUM_RESPONSE_BYTES + 1)
+    oversized = "x" * (ExternalAuthentication::AppleNotificationJwksCache::MAXIMUM_RESPONSE_BYTES + 1)
 
-    invalid = Net::HTTPOK.new("1.1", "200", "OK")
-    invalid.instance_variable_set(:@read, true)
-    invalid.body = "not-json"
+    assert_fetch_error { [200, {}, oversized] }
+    assert_fetch_error { [200, {}, "not-json"] }
+    assert_fetch_error { [200, {}, '{"hello":[]}'] }
+  end
 
-    missing_keys = Net::HTTPOK.new("1.1", "200", "OK")
-    missing_keys.instance_variable_set(:@read, true)
-    missing_keys.body = '{"hello":[]}'
-
-    http = Object.new
-    bodies = [oversized, invalid, missing_keys]
-    http.define_singleton_method(:request) { |_req| bodies.shift }
-
-    Net::HTTP.stub(:start, ->(*_args, **_kwargs, &block) { block.call(http) }) do
-      cache = ExternalAuthentication::AppleNotificationJwksCache.new
-
-      3.times do
-        assert_raises(ExternalAuthentication::AppleNotificationJwksCache::FetchError) do
-          cache.send(:fetch_jwks)
-        end
-      end
-    end
+  # Faraday reports transport failures through its own hierarchy, so the cache
+  # has to rescue those rather than the stdlib classes it used to see.
+  test "default fetch raises FetchError for transport failures" do
+    assert_fetch_error { raise Faraday::TimeoutError, "read timeout" }
+    assert_fetch_error { raise Faraday::ConnectionFailed, "connection refused" }
   end
 
   test "default fetch returns parsed JWKS on success" do
-    ok = Net::HTTPOK.new("1.1", "200", "OK")
-    ok.instance_variable_set(:@read, true)
-    ok.body = '{"keys":[{"kid":"apple","kty":"RSA"}]}'
+    stubs = stub_apple_jwks { [200, {}, '{"keys":[{"kid":"apple","kty":"RSA"}]}'] }
 
-    http = Object.new
-    http.define_singleton_method(:request) { |_req| ok }
-
-    Net::HTTP.stub(:start, ->(*_args, **_kwargs, &block) { block.call(http) }) do
+    stub_outbound_http(stubs) do
       jwks = ExternalAuthentication::AppleNotificationJwksCache.new.send(:fetch_jwks)
 
       assert_equal([{ "kid" => "apple", "kty" => "RSA" }], jwks["keys"])
     end
+
+    stubs.verify_stubbed_calls
+  end
+
+  private
+
+  def stub_apple_jwks(&)
+    Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.get(ExternalAuthentication::AppleNotificationJwksCache::JWKS_URI.to_s, &)
+    end
+  end
+
+  def assert_fetch_error(&)
+    stubs = stub_apple_jwks(&)
+
+    stub_outbound_http(stubs) do
+      assert_raises(ExternalAuthentication::AppleNotificationJwksCache::FetchError) do
+        ExternalAuthentication::AppleNotificationJwksCache.new.send(:fetch_jwks)
+      end
+    end
+
+    stubs.verify_stubbed_calls
   end
 end

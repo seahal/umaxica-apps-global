@@ -57,6 +57,7 @@ require_relative "support/publishing_content_helper"
 require_relative "support/form_action_policy_helper"
 require_relative "support/fetch_metadata_defaults"
 require_relative "support/turnstile_verifier_stub"
+require_relative "support/outbound_http_stub"
 require_relative "support/login_cooldown_helper"
 require_relative "support/inertia_page_object"
 
@@ -262,6 +263,7 @@ module ActiveSupport
     include PublishingContentHelper
     include FormActionPolicyHelper
     include LoginCooldownHelper
+    include OutboundHttpStub
 
     parallel_workers =
       if ENV["COVERAGE"] == "true"

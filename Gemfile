@@ -41,6 +41,10 @@ gem "pg_search"
 gem "rails-pg-extras", require: false
 # Redis client.
 gem "redis"
+# HTTP client for hand-written outbound requests. Already resolved transitively
+# through the OIDC and OAuth gem chain; declared here because application code
+# depends on it directly via OutboundHttp::Connection.
+gem "faraday"
 # JSON response builder.
 gem "jbuilder"
 # OpenStruct standard library dependency.
