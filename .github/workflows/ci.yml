@@ -70,7 +70,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile --prod=false
+      - run: pnpm install --frozen-lockfile
       - run: pnpm exec vite build --mode production
       - name: Assert the production React runtime
         run: |

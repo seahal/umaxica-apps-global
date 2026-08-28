@@ -40,9 +40,7 @@ services:
     # ownership. No `user:` key: rootless Podman's keep-id handling silently
     # overrides an explicit `user:` anyway, and core-entrypoint runs the workload
     # directly (no chown, no setpriv drop) when it is already started as the
-    # keep-id-mapped workload UID. Re-enabling tailscale-core-supervisor
-    # (compose.custom.yaml) needs a real root PID 1 and therefore conflicts with
-    # both of these.
+    # keep-id-mapped workload UID.
     userns_mode: keep-id
     tty: true
     stdin_open: true

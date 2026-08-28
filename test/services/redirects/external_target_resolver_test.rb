@@ -140,6 +140,7 @@ class RedirectsExternalTargetResolverTest < ActiveSupport::TestCase
       allowed_urls: ["https://safe.example"],
       source: :user_input,
     )
+
     assert_equal "invalid_uri", no_host.failure_reason
     assert_equal "https_required", http_url.failure_reason
     assert_equal "invalid_uri", malformed.failure_reason

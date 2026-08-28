@@ -3,23 +3,17 @@
 Claude Code Remote Control connects [claude.ai/code](https://claude.ai/code) or the
 Claude mobile app to a `claude` process running inside `core`. Execution and
 filesystem access stay entirely on the host machine; only outbound HTTPS traffic to
-`api.anthropic.com` is required. This is **separate from** the existing Tailscale +
-SSH path used by the macOS Codex app (WS3A, see
-`docs/operations/remote-codex-over-tailscale.md`). Remote Control needs neither
-inbound SSH nor a separate Tailscale service.
+`api.anthropic.com` is required. Remote Control needs no inbound SSH and no
+inbound ports at all.
 
-## Relationship to WS3A (Tailscale/Codex)
+| | Claude Remote Control |
+|---|---|
+| Transport | Outbound HTTPS only, no inbound ports |
+| Client | claude.ai/code, Claude mobile app |
+| Auth | `claude.ai` OAuth session inside `core` |
 
-| | WS3A: Tailscale/Codex | WS3B: Claude Remote Control |
-|---|---|---|
-| Transport | Tailscale + inbound SSH into `core` | Outbound HTTPS only, no inbound ports |
-| Client | macOS Codex app | claude.ai/code, Claude mobile app |
-| Auth | Tailnet identity + Tailscale SSH policy | `claude.ai` OAuth session inside `core` |
-| Dependency on the other | None | None |
-
-They share only: host reboot recovery, rootless Podman availability, `core`
-container lifecycle, persistent development volumes, and logging conventions. The
-systemd unit in this document does not depend on the direct-core Tailscale daemon.
+It depends only on: host reboot recovery, rootless Podman availability, `core`
+container lifecycle, persistent development volumes, and logging conventions.
 
 ## Requirements (from Anthropic's official documentation)
 
@@ -93,8 +87,7 @@ inside the container, per the repository's operating constraints.
    ```
 
 3. If reboot recovery is not already configured for this project (see
-   `docs/operations/remote-codex-over-tailscale.md` and
-   `plans/umaxica-rails-expressive-dewdrop.md`), also enable lingering and
+      `plans/umaxica-rails-expressive-dewdrop.md`), also enable lingering and
    `podman-restart.service` so the container stack itself survives a reboot before
    this unit tries to use it:
    ```sh
@@ -153,7 +146,7 @@ single "does it come back" check, per the repository's engagement rules.
 
 - This gate does not modify `/etc`, enable lingering, or install the unit — all of
   that remains a manual host action per the repository's engagement rules.
-- This gate does not change the Tailscale/Codex (WS3A) reboot-autostart gap, which
+- This gate does not change the reboot-autostart gap, which
   remains open and undocumented-as-fixed unless separately scoped.
 - No secrets are stored in the unit file or helper script; authentication relies
   entirely on the OAuth session persisted in the `~/.claude` named volume.

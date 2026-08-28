@@ -5,9 +5,6 @@ readonly PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
 unset BASH_ENV ENV CDPATH
 
-readonly SUPERVISOR_BIN=/usr/local/bin/tailscale-core-supervisor
-readonly LOGIN_ENVIRONMENT=/run/core-development-environment
-
 readonly WORKLOAD_USER=${CORE_WORKLOAD_USER:?CORE_WORKLOAD_USER must be set}
 readonly WORKLOAD_GROUP=${CORE_WORKLOAD_GROUP:?CORE_WORKLOAD_GROUP must be set}
 
@@ -25,31 +22,17 @@ then
 fi
 readonly WORKLOAD_GID
 
-write_login_environment() {
-  install -m 0400 -o "${WORKLOAD_UID}" -g "${WORKLOAD_GID}" /dev/null "${LOGIN_ENVIRONMENT}"
-  while IFS= read -r -d '' assignment; do
-    local name=${assignment%%=*}
-
-    [[ "${name}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
-
-    case "${name}" in
-      TS_AUTH* | TAILSCALE_AUTH* | TUNNEL_TOKEN* | CLOUDFLARED_TOKEN*)
-        continue
-        ;;
-    esac
-
-    printf '%s\0' "${assignment}"
-  done < /proc/self/environ > "${LOGIN_ENVIRONMENT}"
-}
+# Remote SSH is no longer started from here. `compose.remote-access.yaml`
+# replaces `command:` with /usr/local/bin/remote-sshd-entrypoint, which this
+# entrypoint execs like any other command, so sshd runs in the foreground under
+# the same keep-id identity instead of being forked into the background from a
+# branch that had to police its own EUID. See
+# docs/operations/remote-codex-over-tailscale.md.
 
 if (( EUID == WORKLOAD_UID )); then
   # No root control plane in play: `userns_mode: keep-id` already maps this
-  # process to the host-shaped workload user directly (no root-only service
-  # such as tailscale-core-supervisor is in the command), so there is
-  # nothing left to chown or drop privilege from. /run is root-owned and not
-  # writable here, so skip the login-environment file too -- it only feeds
-  # Tailscale SSH login shells, which this path does not run. Run the
-  # workload as-is.
+  # process to the host-shaped workload user directly, so there is nothing
+  # left to chown or drop privilege from. Run the workload as-is.
   exec "$@"
 fi
 
@@ -75,12 +58,6 @@ normalize_runtime_directory /tmp
 normalize_runtime_directory "/home/${WORKLOAD_USER}/workspace/tmp"
 normalize_runtime_directory "/home/${WORKLOAD_USER}/workspace/tmp/pids"
 normalize_runtime_directory "/home/${WORKLOAD_USER}/workspace/log"
-
-write_login_environment
-
-if [[ "${1:-}" == "${SUPERVISOR_BIN}" ]]; then
-  exec "$@"
-fi
 
 exec /usr/bin/setpriv \
   --reuid="${WORKLOAD_UID}" \

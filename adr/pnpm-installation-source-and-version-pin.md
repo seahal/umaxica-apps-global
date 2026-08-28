@@ -18,7 +18,7 @@ at Node 25 or later it would not, and `ln -sf` does not fail on a missing target
 `NODE_VERSION` would have produced a dangling symlink and a clean build log.
 
 The second was an unowned invariant. The pnpm version was declared twice — `Containerfile`'s
-`ARG PNPM_VERSION` and `package.json#packageManager` — with nothing reconciling them. pnpm 11 reads
+`ARG PNPM_VERSION` and `package.json#packageManager` — with nothing reconciling them. pnpm reads
 `packageManager` itself through the `pmOnFail` setting, which replaced
 `managePackageManagerVersions`, `packageManagerStrict`, and `packageManagerStrictVersion`
 (pnpm.io/blog/releases/11.0). Its default is `download`: on a mismatch pnpm fetches the declared
@@ -65,12 +65,15 @@ independently: each `npm install -g` is followed by an assertion that `pnpm --ve
 `PNPM_VERSION`, so the version the image ships is a build-time fact rather than an assumption.
 
 Changing the pinned version means changing `package.json#packageManager` and `ARG PNPM_VERSION`
-together and rebuilding the container.
+together, running `pnpm install --lockfile-only` so `pnpm-lock.yaml` records the new version under
+`packageManagerDependencies`, and rebuilding the container. Skipping the lockfile step makes
+`pnpm install --frozen-lockfile` fail with `ERR_PNPM_FROZEN_LOCKFILE_WITH_OUTDATED_LOCKFILE`.
 
-`devEngines.packageManager` — pnpm 11's newer field, which supports ranges and records its
-resolution in `pnpm-lock.yaml` under `packageManagerDependencies` — is not adopted here. It would
-give a lockfile-verified pin, but reading it requires a newer CI setup action than this repository
-currently uses, so it is deferred to that upgrade.
+`devEngines.packageManager` — pnpm's newer field, which supports ranges — is not adopted here. It
+would allow a range rather than an exact version, but reading it requires a newer CI setup action
+than this repository currently uses, so it is deferred to that upgrade. The lockfile verification
+it used to be wanted for is no longer exclusive to it: since pnpm 12, a plain `packageManager` pin
+is recorded in `pnpm-lock.yaml` under `packageManagerDependencies` as well.
 
 ## Consequences
 

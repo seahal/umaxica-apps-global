@@ -5,7 +5,6 @@
 # resulting process and can restart it automatically. Never run this as root or
 # install any part of this directory into /etc.
 #
-# WS3B only: this script has no dependency on the Tailscale/Codex sidecar (WS3A).
 # See docs/operations/claude-remote-control.md for the full runbook.
 set -euo pipefail
 

@@ -35,7 +35,7 @@
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
+    "@types/react-dom": "^19.2.5",
     "@vitejs/plugin-react": "^6.1.0",
     "react": "^19.2.8",
     "react-aria-components": "^1.20.0",
@@ -47,7 +47,7 @@
     "@redocly/cli": "^2.47.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.5",
+    "@testing-library/user-event": "^14.6.6",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "jsdom": "^30.0.1",
@@ -65,7 +65,7 @@
   },
   "engines": {
     "node": ">=24.19.0 <25",
-    "pnpm": ">=11.22.0"
+    "pnpm": ">=12.0.0"
   },
-  "packageManager": "pnpm@11.22.0+sha512.1ff870c4c6133dfd88fb2afc46dd13d47f09c9794b438c6fdb47ca98caf3bc16381ee0be93a091b8e3824cf01f889f46d7d9e20910fb0be1ab0fb5baa80dd621"
+  "packageManager": "pnpm@12.0.0+sha512.9e2e3dc3911995868dc94b8175c217c27e95408fa03b4a22749778f2b34f773b77cdd3b39ede8171b22fcd53be6a35342e9fac9948a68ef58df6488ce89a7e67"
 }

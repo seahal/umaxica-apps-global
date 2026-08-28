@@ -26,19 +26,19 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
 
     the_case.expires_at = 1.day.from_now
 
-    assert the_case.in_force?
+    assert_predicate the_case, :in_force?
   end
 
   test "requires_approval is true for break glass and hidden operator bans" do
     the_case = AppEnforcementCase.new(kind: "cooldown", visibility: "visible")
     the_case.define_singleton_method(:break_glass?) { true }
 
-    assert the_case.requires_approval?
+    assert_predicate the_case, :requires_approval?
 
     ban = AppEnforcementCase.new(kind: "permanent_ban", visibility: "hidden")
     ban.define_singleton_method(:break_glass?) { false }
 
-    assert ban.requires_approval?
+    assert_predicate ban, :requires_approval?
   end
 
   test "end_case rejects an unknown reason" do

@@ -1,12 +1,6 @@
 allowBuilds:
   lefthook: true
   puppeteer: false
-# vite-ruby's automatic dependency check runs `pnpm install` from the Rails process, which has
-# no TTY. When pnpm decides the modules directory must be replaced -- a changed store path is
-# enough -- it otherwise aborts with ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY, the Vite build
-# fails, and every `vite_typescript_tag` raises ViteRuby::MissingEntrypointError. Let the purge
-# proceed unattended instead.
-confirmModulesPurge: false
 # Without this, pnpm resolves the store per invocation and the answers disagree: `node_modules`
 # is its own mount, so pnpm's heuristic rejects the home store and falls back to a project-local
 # `.pnpm-store`, while any invocation that saw a different data root picked a third location.
@@ -20,7 +14,11 @@ confirmModulesPurge: false
 # store on the `node_modules` volume would allow linking but was rejected in
 # `plans/pnpm-up-err-pnpm-unexpected-store-virtual-lemur.md` -- discarding that volume to recover
 # from a corrupt install would then also discard the store.
-storeDir: ~/.local/share/pnpm/store
+#
+# `${HOME}`, not `~`: pnpm 12 no longer expands a leading tilde here and takes it as a literal
+# directory name, which put the store at `<project>/~/.local/share/pnpm/store` -- off every cache
+# mount and volume that targets the real home, so nothing was ever reused.
+storeDir: ${HOME}/.local/share/pnpm/store
 minimumReleaseAge: 4320
 minimumReleaseAgeIgnoreMissingTime: false
 registries:
@@ -36,7 +34,6 @@ registries:
 pmOnFail: error
 strictDepBuilds: true
 trustPolicy: no-downgrade
-unicode: false
 overrides:
   vitest: "catalog:"
   vite: "catalog:"
