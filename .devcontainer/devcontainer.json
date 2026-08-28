@@ -1,6 +1,6 @@
 {
   "name": "umaxica-apps-global-dc",
-  "dockerComposeFile": ["../compose.yaml", "../compose.custom.yaml"],
+  "dockerComposeFile": ["../compose.yaml", "./compose.override.yml", "../compose.custom.yaml"],
   "initializeCommand": ".devcontainer/write-host-ids.sh && bin/setup-dev-secrets",
   "service": "core",
   "remoteUser": "global",
@@ -108,7 +108,8 @@
     "ghcr.io/jsburckhardt/devcontainer-features/herdr:1": { "VERSION": "v0.8.0" },
     "ghcr.io/srzstephen/devcontainer-features/claude-code:1": {},
     "ghcr.io/nolanjx/devcontainer-features/codex:1": {},
-    "ghcr.io/devcontainer-community/devcontainer-features/tailscale.com:1": {}
+    "ghcr.io/devcontainer-community/devcontainer-features/tailscale.com:1": {},
+    "ghcr.io/sliekens/devcontainer-features/grok-build:1": {}
   }
   // No host credential enters the `core` service. The Cloudflare tunnel token from
   // the repository-local `.env` is scoped to the separate `cloudflare-tunnel` sidecar and
@@ -126,7 +127,7 @@
   // service passwords (Postgres, RustFS, Grafana, HMAC salts) created by
   // bin/setup-dev-secrets. No user credential is registered there.
   //
-  // Read-only workspace write-guards are declared in compose.yaml,
+  // Read-only workspace write-guards are declared in compose.override.yml,
   // because the Dev Container string-form `readonly` option is not effective
   // with the current rootless Podman provider. Heavy-write cache directories
   // route through named volumes under /home/global so they never churn host
