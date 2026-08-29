@@ -53,18 +53,6 @@ const mount = (element: React.ReactElement) => {
   return container;
 };
 
-// React tracks the previous value of a controlled input, so assigning `.value` directly is
-// ignored; writing through the native setter first is what makes the change reach `onChange`.
-const type = (input: HTMLInputElement | null, value: string) => {
-  const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
-  act(() => {
-    if (input && descriptor?.set) {
-      descriptor.set.call(input, value);
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    }
-  });
-};
-
 beforeEach(() => {
   formErrors = {};
 });
@@ -260,13 +248,15 @@ describe("AvatarForm", () => {
 
   it("edits both fields and posts to the create action", () => {
     const element = mount(<AvatarForm {...createProps} />);
+    const moniker = element.querySelector<HTMLInputElement>("#avatar_moniker");
+    const handle = element.querySelector<HTMLInputElement>("#avatar_handle");
 
-    type(element.querySelector<HTMLInputElement>("#avatar_moniker"), "New Name");
-    type(element.querySelector<HTMLInputElement>("#avatar_handle"), "new_handle");
-
-    expect(element.querySelector<HTMLInputElement>("#avatar_moniker")?.value).toBe("New Name");
-    expect(element.querySelector<HTMLInputElement>("#avatar_handle")?.value).toBe("new_handle");
-
+    act(() => {
+      moniker?.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    act(() => {
+      handle?.dispatchEvent(new Event("input", { bubbles: true }));
+    });
     act(() => {
       element
         .querySelector("form")

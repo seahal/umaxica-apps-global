@@ -591,7 +591,7 @@ module PreferenceBase
   def preference_dbsc_cookie_expires_at(preference, now: Time.current)
     return unless preference&.binding_method_dbsc?
 
-    times = [now + 10.minutes, preference.discarded_at]
+    times = [now + 10.minutes, preference.expires_at]
     times << preference.revoked_at if preference.respond_to?(:revoked_at)
     times.compact.min
   end
@@ -870,7 +870,7 @@ module PreferenceBase
   def valid_refresh_preference?(preference)
     preference.present? &&
       preference.status_id != preference_status_class::DELETED &&
-      preference.discarded_at > Time.current &&
+      (preference.expires_at.nil? || preference.expires_at > Time.current) &&
       !preference.replay? &&
       !preference.revoked?
   end

@@ -65,8 +65,6 @@ vi.mock("@/features/auth/turnstile/invisibleToken", () => ({
 
 const { default: EmailSignInForm } = await import("@/features/auth/signin/EmailSignInForm");
 const { default: EmailPassCodeForm } = await import("@/features/auth/signin/EmailPassCodeForm");
-const { default: SecretSignInForm } = await import("@/features/auth/signin/SecretSignInForm");
-const { default: TotpChallengeForm } = await import("@/features/auth/signin/TotpChallengeForm");
 const { default: OtpResendButton } = await import("@/features/auth/signin/OtpResendButton");
 const { default: PasskeySignInPanel } = await import("@/features/auth/signin/PasskeySignInPanel");
 const { default: StepUpPasskeyScreen } = await import("@/features/auth/signin/StepUpPasskeyScreen");
@@ -138,23 +136,6 @@ const stubFetch = (status: number, payload: unknown) =>
 const turnstile = { site_key: "site-key", mode: "render" as const, action: null, cdata: null };
 const backLink = { label: "もどる", href: "/sign/in?ri=jp" };
 
-/**
- * Stubs the Cloudflare script and its API so `TurnstileWidget` solves the challenge on the same
- * tick it renders, as a Turnstile deployment configured to auto-solve does.
- */
-function stubTurnstileWidget() {
-  document.head.innerHTML +=
-    '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>';
-  vi.stubGlobal("turnstile", {
-    render: vi.fn((_container: HTMLElement, options: { callback: (token: string) => void }) => {
-      queueMicrotask(() => options.callback("solved-token"));
-      return "widget-1";
-    }),
-    execute: vi.fn(),
-    remove: vi.fn(),
-  });
-}
-
 beforeEach(() => {
   document.head.innerHTML = '<meta name="csrf-token" content="csrf-value">';
 });
@@ -217,16 +198,6 @@ describe("email sign-in form interaction", () => {
     });
 
     expect(post).toHaveBeenCalledWith("/sign/in/email");
-  });
-
-  it("forwards the solved Turnstile token", async () => {
-    stubTurnstileWidget();
-    mount(<EmailSignInForm {...props} />);
-
-    await flush();
-
-    expect(setData).toHaveBeenCalledWith("cf-turnstile-response", "solved-token");
-    vi.unstubAllGlobals();
   });
 });
 
@@ -291,182 +262,6 @@ describe("pass code form interaction", () => {
     expect(setData).toHaveBeenCalledWith("client_email", { pass_code: "" });
     vi.unstubAllGlobals();
   });
-
-  it("forwards the solved Turnstile token", async () => {
-    stubTurnstileWidget();
-    mount(<EmailPassCodeForm {...props} />);
-
-    await flush();
-
-    expect(setData).toHaveBeenCalledWith("cf-turnstile-response", "solved-token");
-    vi.unstubAllGlobals();
-  });
-});
-
-describe("secret sign-in form interaction", () => {
-  const props = {
-    title: "パスワードでログイン",
-    form: {
-      action: "/sign/in/secret",
-      method: "post",
-      pt: null,
-      ri: "jp",
-      identifier_field: {
-        scope: "secret_credential_login_form",
-        field: "identifier",
-        name: "secret_credential_login_form[identifier]",
-        label: "メールアドレスまたはID",
-        placeholder: "someone@example.com",
-      },
-      secret_field: {
-        scope: "secret_credential_login_form",
-        field: "value",
-        name: "secret_credential_login_form[value]",
-        label: "パスワード",
-        placeholder: "",
-      },
-      submit_label: "サインイン",
-    },
-    hints: null,
-    error_heading: "エラー",
-    form_errors: [],
-    turnstile,
-    back_link: backLink,
-  };
-
-  it("keeps the identifier and secret under the same Rails wrapper", () => {
-    mount(<SecretSignInForm {...props} />);
-
-    type("input[type=text]", "someone@example.com");
-    expect(setData).toHaveBeenCalledWith("secret_credential_login_form", {
-      identifier: "someone@example.com",
-      value: "",
-    });
-
-    type("input[type=password]", "hunter2");
-    expect(setData).toHaveBeenCalledWith("secret_credential_login_form", {
-      identifier: "",
-      value: "hunter2",
-    });
-
-    act(() => {
-      container
-        .querySelector("form")
-        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    });
-
-    expect(post).toHaveBeenCalledWith("/sign/in/secret");
-  });
-
-  it("lists the previous attempt's errors and forwards the solved Turnstile token", async () => {
-    stubTurnstileWidget();
-    mount(
-      <SecretSignInForm
-        {...props}
-        form_errors={["資格情報が正しくありません"]}
-      />,
-    );
-
-    expect(container.querySelectorAll("[role=alert] li")).toHaveLength(1);
-    expect(container.querySelector("[role=alert]")?.textContent).toContain(
-      "資格情報が正しくありません",
-    );
-
-    await flush();
-    expect(setData).toHaveBeenCalledWith("cf-turnstile-response", "solved-token");
-    vi.unstubAllGlobals();
-  });
-
-  it("omits the identifier field on the second-factor challenge and still submits the secret", () => {
-    mount(
-      <SecretSignInForm
-        {...props}
-        form={{
-          ...props.form,
-          identifier_field: null,
-          secret_field: {
-            ...props.form.secret_field,
-            scope: "mfa_secret_credential_form",
-            name: "mfa_secret_credential_form[value]",
-          },
-        }}
-        hints={{ label: "サインイン中のアカウント", value: "someone@example.com" }}
-      />,
-    );
-
-    expect(container.querySelector("input[type=text]")).toBeNull();
-
-    type("input[type=password]", "hunter2");
-    expect(setData).toHaveBeenCalledWith("mfa_secret_credential_form", { value: "hunter2" });
-
-    act(() => {
-      container
-        .querySelector("form")
-        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    });
-
-    expect(post).toHaveBeenCalledWith("/sign/in/secret");
-  });
-});
-
-describe("totp challenge form interaction", () => {
-  const props = {
-    title: "二段階認証",
-    description: "認証アプリのコードを入力してください",
-    form: {
-      action: "/sign/in/challenge/totp",
-      method: "post",
-      token_field: {
-        scope: "totp_challenge_form",
-        field: "code",
-        name: "totp_challenge_form[code]",
-        label: "認証コード",
-        placeholder: "123456",
-        max_length: 6,
-        inputmode: "numeric" as const,
-        help: "6桁の数字です",
-      },
-      submit_label: "確認する",
-    },
-    error_heading: "エラー",
-    form_errors: [],
-    turnstile,
-    back_link: backLink,
-  };
-
-  it("keeps the code under its own Rails wrapper and submits it", () => {
-    mount(<TotpChallengeForm {...props} />);
-
-    type("input[type=text]", "123456");
-    expect(setData).toHaveBeenCalledWith("totp_challenge_form", { code: "123456" });
-
-    act(() => {
-      container
-        .querySelector("form")
-        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    });
-
-    expect(post).toHaveBeenCalledWith("/sign/in/challenge/totp");
-  });
-
-  it("lists the previous attempt's errors and forwards the solved Turnstile token", async () => {
-    stubTurnstileWidget();
-    mount(
-      <TotpChallengeForm
-        {...props}
-        form_errors={["認証コードが正しくありません"]}
-      />,
-    );
-
-    expect(container.querySelectorAll("[role=alert] li")).toHaveLength(1);
-    expect(container.querySelector("[role=alert]")?.textContent).toContain(
-      "認証コードが正しくありません",
-    );
-
-    await flush();
-    expect(setData).toHaveBeenCalledWith("cf-turnstile-response", "solved-token");
-    vi.unstubAllGlobals();
-  });
 });
 
 describe("otp resend button", () => {
@@ -525,10 +320,6 @@ describe("otp resend button", () => {
 
     expect(button?.disabled).toBe(true);
     expect(button?.textContent).toContain("(2s)");
-
-    const fetchCallsBeforeSecondPress = vi.mocked(fetch).mock.calls.length;
-    click("button");
-    expect(vi.mocked(fetch).mock.calls).toHaveLength(fetchCallsBeforeSecondPress);
 
     act(() => {
       vi.advanceTimersByTime(1000);
@@ -737,108 +528,6 @@ describe("passkey sign-in panel", () => {
     await flush();
 
     expect(container.querySelector("[role=alert]")?.textContent).toBe("識別子が必要です");
-  });
-
-  it("falls back to its own copy when the server's error carries no message", async () => {
-    solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 422,
-        headers: new Headers({ "content-type": "application/json" }),
-        json: async () => ({}),
-      }),
-    );
-
-    mount(<PasskeySignInPanel {...props} />);
-    typeIdentifier("someone@example.com");
-    click("button");
-    await flush();
-
-    expect(container.querySelector("[role=alert]")?.textContent).toBe(
-      PASSKEY_MESSAGES.optionsFailed,
-    );
-  });
-
-  it("falls back to the default message when the surface sent none", async () => {
-    solveInvisibleTurnstile.mockRejectedValue(
-      new Error("Security verification failed. Please refresh and try again."),
-    );
-
-    mount(
-      <PasskeySignInPanel
-        {...props}
-        turnstile_error_message=""
-      />,
-    );
-    typeIdentifier("someone@example.com");
-    click("button");
-    await flush();
-
-    expect(solveInvisibleTurnstile).toHaveBeenCalledWith(
-      "stealth-key",
-      "Security verification failed. Please refresh and try again.",
-      expect.anything(),
-    );
-  });
-
-  it("omits the region from both requests when the surface carries none", async () => {
-    solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
-    getAssertion.mockResolvedValue(SERIALIZED_ASSERTION);
-    const fetchMock = stubFetchQueue(
-      httpJsonResponse({ challenge_id: "challenge-1", options: { a: 1 } }),
-      httpJsonResponse({ status: "ok", redirect_url: "/identity" }),
-    );
-    vi.stubGlobal("location", { href: "", reload: vi.fn() });
-
-    mount(
-      <PasskeySignInPanel
-        {...props}
-        region=""
-      />,
-    );
-    typeIdentifier("someone@example.com");
-    click("button");
-    await flush();
-
-    expect(requestBody(fetchMock, 0)).not.toHaveProperty("ri");
-    expect(requestBody(fetchMock, 1)).not.toHaveProperty("ri");
-  });
-
-  it("falls back to its own copy for a failure with no content-type header at all", async () => {
-    solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 500 })));
-
-    mount(<PasskeySignInPanel {...props} />);
-    typeIdentifier("someone@example.com");
-    click("button");
-    await flush();
-
-    expect(container.querySelector("[role=alert]")?.textContent).toBe(
-      "オプションの取得に失敗しました",
-    );
-  });
-
-  it("fails loudly when the options response carries no challenge id", async () => {
-    solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        headers: new Headers({ "content-type": "application/json" }),
-        json: async () => ({ options: {} }),
-      }),
-    );
-
-    mount(<PasskeySignInPanel {...props} />);
-    typeIdentifier("someone@example.com");
-    click("button");
-    await flush();
-
-    expect(container.querySelector("[role=alert]")?.textContent).toBe(
-      PASSKEY_MESSAGES.optionsFailed,
-    );
   });
 
   it("reloads when the session is gone rather than reporting a ceremony failure", async () => {

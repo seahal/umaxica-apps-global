@@ -9,7 +9,6 @@ import TurnstileController from "@/controllers/turnstile_controller";
 import type { TurnstileOptions } from "@/lib/turnstile";
 
 import { recordEvents } from "../support/events";
-import { present } from "../support/present";
 import { mountController } from "../support/stimulus";
 
 const MARKUP = `
@@ -185,75 +184,6 @@ describe("TurnstileController", () => {
       lastOptions()?.callback("a-token");
 
       expect(announced.detail()).toMatchObject({ widgetId: "widget-host" });
-    });
-  });
-
-  describe("connect", () => {
-    it("re-runs the challenge listener attached for turbo:load, guarded by its own completion flag", async () => {
-      // Dispatching a real `turbo:load` event pollutes every other spec's still-pending `once`
-      // listener in this file, so the handler is invoked directly - it is the same bound method
-      // the listener calls, just without the shared `document` as the trigger.
-      const { controller } = await mount();
-      await vi.waitFor(() => expect(rendered).toHaveLength(1));
-
-      controller.runScheduledChallenge();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Already completed, so the handler ran without rendering a second widget.
-      expect(rendered).toHaveLength(1);
-    });
-
-    it("waits for DOMContentLoaded before scheduling the challenge when connected mid-parse", async () => {
-      // Stimulus itself defers `Application#start()` until the document is ready, so faking
-      // `readyState` before mounting would silently stop Stimulus from connecting anything at
-      // all. Mounting for real first, then re-running `connect()` under the stub, exercises this
-      // controller's own branch without touching Stimulus's.
-      const { controller } = await mount();
-      await vi.waitFor(() => expect(rendered).toHaveLength(1));
-      rendered.length = 0;
-
-      const readyStateDescriptor = present(
-        Object.getOwnPropertyDescriptor(Document.prototype, "readyState"),
-        "the platform's own readyState descriptor",
-      );
-      Object.defineProperty(document, "readyState", { value: "loading", configurable: true });
-
-      try {
-        controller.connect();
-        expect(rendered).toHaveLength(0);
-
-        document.dispatchEvent(new Event("DOMContentLoaded"));
-        await Promise.resolve();
-        await Promise.resolve();
-
-        expect(rendered).toHaveLength(1);
-      } finally {
-        Object.defineProperty(document, "readyState", readyStateDescriptor);
-      }
-    });
-
-    it("does not track a form when the controller is not inside one", async () => {
-      const { controller } = await mount(`<div data-controller="turnstile"></div>`);
-
-      expect(() => controller.disconnect()).not.toThrow();
-    });
-  });
-
-  describe("disconnect", () => {
-    it("stops guarding form submissions once disconnected", async () => {
-      const { controller, element } = await mount();
-      await controller.scheduleChallenge();
-      lastOptions()?.callback("a-token");
-      const form = element.closest("form")!;
-
-      controller.disconnect();
-
-      const submit = new Event("submit", { bubbles: true, cancelable: true });
-      form.dispatchEvent(submit);
-
-      expect(submit.defaultPrevented).toBe(false);
-      expect(form.querySelector("button")?.disabled).toBe(false);
     });
   });
 

@@ -210,6 +210,7 @@ scope(module: :auth, as: :auth) do
       namespace :settings do
         resources :totps, only: %i(index new create edit update destroy)
 
+        # TODO: cache passkeys/passkey lookups.
         resources :passkeys do
           resource :removal, only: :create
         end

@@ -128,18 +128,19 @@ class VisitorPreferenceTest < ActiveSupport::TestCase
     assert_equal "infinity", VisitorPreferencePageSizeOption.new(id: VisitorPreferencePageSizeOption::PER_INFINITY).name
   end
 
-  test "explicit nil consent flags are rejected instead of silently defaulting" do
+  test "set_defaults fills nil booleans on new records" do
     preference = VisitorPreference.new(visitor: Visitor.create!)
     preference.consented = nil
     preference.functional = nil
     preference.performant = nil
     preference.targetable = nil
 
-    assert_not preference.valid?
-    assert_includes preference.errors.attribute_names, :consented
-    assert_includes preference.errors.attribute_names, :functional
-    assert_includes preference.errors.attribute_names, :performant
-    assert_includes preference.errors.attribute_names, :targetable
+    preference.send(:set_defaults)
+
+    assert_not preference.consented
+    assert_not preference.functional
+    assert_not preference.performant
+    assert_not preference.targetable
   end
 
   test "adult_content_gate returns nothing when no gate is set" do

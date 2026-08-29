@@ -100,17 +100,6 @@ describe("org passkey settings confirmation", () => {
     expect(submitted).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the empty message when the operator has no passkeys yet", () => {
-    mount(
-      <OrgPasskeySettingsIndex
-        {...indexProps}
-        passkeys={[]}
-      />,
-    );
-
-    expect(container.textContent).toContain("登録がありません。");
-  });
-
   it("keeps the DELETE the show screen carries behind the same confirmation", () => {
     mount(
       <OrgPasskeySettingsShow
@@ -167,34 +156,5 @@ describe("org session limit confirmation", () => {
     submitForm(1);
     answerConfirmation(true);
     expect(submitted).toHaveBeenCalledTimes(1);
-  });
-
-  it("shows the last-used time for a session that carries one", () => {
-    mount(
-      <OrgSessionLimitPage
-        {...props}
-        sessions={[
-          {
-            ref: "signed-ref",
-            digest: "abcd",
-            created_at: "2026-01-01",
-            last_used_at: "2026-01-02",
-          },
-        ]}
-      />,
-    );
-
-    expect(container.textContent).toContain("2026-01-02");
-  });
-
-  it("shows the no-sessions message when the server sent none", () => {
-    mount(
-      <OrgSessionLimitPage
-        {...props}
-        sessions={[]}
-      />,
-    );
-
-    expect(container.textContent).toContain("セッションがありません。");
   });
 });

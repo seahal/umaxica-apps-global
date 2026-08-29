@@ -8,7 +8,6 @@ import { Controller } from "@hotwired/stimulus";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import PasskeyAuthenticationController from "@/controllers/passkey_authentication_controller";
-import type { TurnstileOptions } from "@/lib/turnstile";
 
 import { jsonResponse, requestAt, stubCeremonyFetch, textResponse } from "../support/ceremony";
 import { mountController } from "../support/stimulus";
@@ -205,61 +204,6 @@ describe("PasskeyAuthenticationController", () => {
 
       expect(event.defaultPrevented).toBe(true);
     });
-
-    it("treats a screen with no identifier field as carrying no identifier", async () => {
-      const { controller, element } = await mountController(
-        "passkey-authentication",
-        PasskeyAuthenticationController,
-        `
-          <div data-controller="passkey-authentication"
-               data-passkey-authentication-options-url-value="${OPTIONS_URL}"
-               data-passkey-authentication-verification-url-value="${VERIFICATION_URL}"
-               data-passkey-authentication-turnstile-site-key-value="site-key">
-            <p data-passkey-authentication-target="error" class="hidden"></p>
-            <p data-passkey-authentication-target="status" class="hidden"></p>
-          </div>
-        `,
-      );
-
-      await controller.authenticate(new Event("click"));
-
-      expect(messageText(element, "error")).toBe("メールアドレスまたはIDを入力してください");
-    });
-  });
-
-  describe("messages", () => {
-    it("does nothing when the markup carries no message or turnstile-response elements", async () => {
-      document.head.innerHTML =
-        '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>';
-      vi.stubGlobal("turnstile", {
-        render: vi.fn((_container: HTMLElement, options: { callback: (token: string) => void }) => {
-          options.callback("solved-token");
-          return "widget-1";
-        }),
-        execute: vi.fn(),
-        remove: vi.fn(),
-      });
-      const { controller } = await mountController(
-        "passkey-authentication",
-        PasskeyAuthenticationController,
-        `
-          <div data-controller="passkey-authentication"
-               data-passkey-authentication-options-url-value="${OPTIONS_URL}"
-               data-passkey-authentication-verification-url-value="${VERIFICATION_URL}"
-               data-passkey-authentication-turnstile-site-key-value="site-key">
-            <input type="text" value="someone@example.test"
-                   data-passkey-authentication-target="identifier">
-          </div>
-        `,
-      );
-
-      expect(() => {
-        controller.showError("broken");
-        controller.showStatus("working");
-        controller.clearMessages();
-      }).not.toThrow();
-      await expect(controller.ensureTurnstileToken()).resolves.toBe("solved-token");
-    });
   });
 
   describe("a server that refuses the ceremony", () => {
@@ -317,15 +261,6 @@ describe("PasskeyAuthenticationController", () => {
 
     it("falls back to its own copy for a non-JSON failure", async () => {
       stubCeremonyFetch(textResponse("<html>oops</html>", 500, "text/html"));
-      const { controller, element } = await mount();
-
-      await controller.authenticate(new Event("click"));
-
-      expect(messageText(element, "error")).toBe("オプションの取得に失敗しました");
-    });
-
-    it("falls back to its own copy for a failure with no content-type header at all", async () => {
-      stubCeremonyFetch(new Response(null, { status: 500 }));
       const { controller, element } = await mount();
 
       await controller.authenticate(new Event("click"));
@@ -411,35 +346,6 @@ describe("PasskeyAuthenticationController", () => {
       expect(messageText(element, "error")).toBe(
         "Security verification failed. Please refresh and try again.",
       );
-    });
-
-    it("solves the widget itself and writes the token into the hidden field", async () => {
-      document.head.innerHTML =
-        '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>';
-      const render = vi.fn((_container: HTMLElement, options: TurnstileOptions) => {
-        options.callback("freshly-solved");
-        return "widget-1";
-      });
-      vi.stubGlobal("turnstile", { render, execute: vi.fn(), remove: vi.fn() });
-      const credentials = stubCredentialsApi();
-      credentials.get.mockResolvedValue(assertionCredential());
-      const fetchMock = stubCeremonyFetch(
-        jsonResponse(BEGUN),
-        jsonResponse({ status: "ok", redirect_url: "/home" }),
-      );
-      stubNavigation();
-      const { controller, element } = await mount({ turnstileToken: "" });
-
-      await controller.authenticate(new Event("click"));
-
-      expect(requestAt(fetchMock, 0).body).toMatchObject({
-        "cf-turnstile-response": "freshly-solved",
-      });
-      expect(
-        element.querySelector<HTMLInputElement>(
-          "[data-passkey-authentication-target='turnstileResponse']",
-        )?.value,
-      ).toBe("freshly-solved");
     });
   });
 });

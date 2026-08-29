@@ -94,11 +94,11 @@ detailed cases, and acceptance criteria derived from the SRS and HLD.
 
 ## 5. Test Environments
 
-| Env                     | Purpose                                 | Stack                                                                                                                               |
-| ----------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Local                   | Developer loop                          | Podman Compose (Postgres primaries/replicas, Valkey, fakecloud, Loki, Tempo, Grafana), Foreman with Rails + pnpm-managed JS tooling |
-| Staging                 | Integrated QA, performance & regression | Mirrors production hostnames, uses managed Postgres/Valkey, OTEL exports to staging Tempo                                           |
-| Production Verification | Smoke tests post-deploy                 | Fastly/Cloudflare fronted hosts, managed infra                                                                                      |
+| Env                     | Purpose                                 | Stack                                                                                                                           |
+| ----------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Local                   | Developer loop                          | Podman Compose (Postgres primaries/replicas, Valkey, optional RustFS, Loki, Tempo, Grafana), Foreman with Rails + pnpm-managed JS tooling |
+| Staging                 | Integrated QA, performance & regression | Mirrors production hostnames, uses managed Postgres/Valkey, OTEL exports to staging Tempo                                       |
+| Production Verification | Smoke tests post-deploy                 | Fastly/Cloudflare fronted hosts, managed infra                                                                                  |
 
 **Data**: Seed states provided via fixtures; Compose services start with empty DBs. Sensitive data
 must be synthetic. Contact forms require Turnstile test keys or bypass for automated runs.

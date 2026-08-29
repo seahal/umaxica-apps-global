@@ -172,15 +172,3 @@ node_modules
 # Vite uses dotenv and suggests to ignore local-only env files. See
 # https://vitejs.dev/guide/env-and-mode.html#env-files
 *.local
-
-# OpenTofu / Terraform. The development environment under terraform/environments
-# uses a local backend describing a disposable local emulator, so its state is
-# machine-local and must never be committed.
-**/.terraform/
-# .terraform.lock.hcl is deliberately NOT ignored: it pins provider versions and
-# checksums, and committing it is what makes `tofu init` reproducible.
-*.tfstate
-*.tfstate.*
-*.tfvars
-!*.tfvars.example
-crash.log

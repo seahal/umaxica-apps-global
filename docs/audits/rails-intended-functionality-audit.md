@@ -50,7 +50,7 @@ remain documented and unchanged (§5.2).
 | Inertia client boot           | SPA mounts on `#app`                                                                | `src/entrypoints/inertia/base_app.tsx` (was `src/entrypoints/inertia.tsx`), `@inertiajs/react 3.6.1` | Only test is `spec/entrypoints/inertia.test.ts`, which **mocks** `createInertiaApp`                                         | untested (see §2.4)            |
 | Flipper FQDN gate             | 503 before rate limiting for a switched-off or unknown FQDN                         | Did not exist                                                                                        | `test/integration/fqdn_availability_gate_test.rb`, 15 tests — pass [run]                                                    | **implemented**                |
 | Flipper registry discipline   | All reads through `FeatureFlags`                                                    | `app/values/feature_flags.rb` + invariant test                                                       | New flags registered; invariants pass [run]                                                                                 | working                        |
-| Shrine/S3                     | Not wired                                                                           | Boot-time `Shrine.storages` only; no uploader, no attachment, no S3                                  | `app/uploaders/` holds only `.keep`; `aws-sdk-s3` never required [repo]                                                     | superseded 2026-08-28 (see §4) |
+| Shrine/S3                     | Not wired                                                                           | Boot-time `Shrine.storages` only; no uploader, no attachment, no S3                                  | `app/uploaders/` holds only `.keep`; `aws-sdk-s3` never required [repo]                                                     | vestigial (audit only)         |
 | Authentication (Entra)        | `tid+oid` lookup, `openid profile`, no UserInfo, `acct=0`, no JIT                   | Matches `adr/org-entra-id-sign-in-boundary.md` on every point checked                                | `lib/omniauth/strategies/umaxica_entra.rb:43`, `app/lib/external_sign_in/{providers/entra_id,org_entra_resolver}.rb` [repo] | working                        |
 | Cloudflare Access boundary    | Access identity must not become Rails identity                                      | Rails reads no `CF-Access-*` header anywhere                                                         | Repo-wide grep returns nothing [repo]                                                                                       | working                        |
 | Health endpoints              | `/health` + three probes, internal-only                                             | As documented; no `/up` route exists                                                                 | `docs/operations/health-check.md` matches routes [repo]                                                                     | working                        |
@@ -197,15 +197,6 @@ Not everything examined was broken. The following were verified and are correct:
 ## 4. Shrine/S3 readiness — AUDIT ONLY, NO FEATURE IMPLEMENTATION
 
 No Shrine or S3 code was written, and no Shrine configuration was changed.
-
-> **Status update (2026-08-28).** The findings below record the state at the time of that audit and
-> are kept as written. The Shrine storage foundation has since been implemented: production now
-> resolves to AWS S3 only and fails closed on missing configuration, no environment writes uploads
-> under `public/`, and `ApplicationUploader` provides storage selection and object-key generation.
-> `determine_mime_type` and `validation_helpers` are loaded. Still absent, and still deferred: any
-> model attachment (including `avatars.image_data`), derivatives, signed-URL policy, direct upload,
-> and orphan cleanup. See `config/initializers/shrine.rb` and
-> `lib/object_storage_shrine_configuration.rb`.
 
 **What exists.** `shrine 3.9.0`, `image_processing`, `ruby-vips`, and `aws-sdk-s3 1.229.0` are in
 the lockfile. `config/initializers/shrine.rb` is the entire integration: `Memory` storages in test,

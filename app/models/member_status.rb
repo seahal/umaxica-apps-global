@@ -13,14 +13,12 @@
 class MemberStatus < AppPrincipalRecord
   include ReferenceRecord
 
-  # Fixed IDs - do not modify these values
-  NOTHING = 0
   ACTIVE = 1
   INACTIVE = 2
   PENDING = 3
   DELETED = 4
-  LEGACY_NOTHING = 5
-  DEFAULTS = [NOTHING, ACTIVE, INACTIVE, PENDING, DELETED, LEGACY_NOTHING].freeze
+  NOTHING = 5 # FIXME: i want to set nothing as 0.
+  DEFAULTS = [ACTIVE, INACTIVE, PENDING, DELETED, NOTHING].freeze
 
   validates :created_at, :updated_at, presence: true
 

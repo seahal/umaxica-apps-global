@@ -7,7 +7,7 @@
 #
 # Usage (from the repository root, alongside the normal Compose invocation):
 #   podman compose -f compose.yaml -f podman/fdw-poc/compose.fdw-poc.yml \
-#     --profile fdw-poc up -d fakecloud fdw-poc
+#     --profile object-storage --profile fdw-poc up -d rustfs-permissions rustfs fdw-poc
 #
 # Requires FDW_POC_POSTGRES_PASSWORD to be set in the host shell or an env file;
 # there is no default and no fallback, so misconfiguration fails loudly.
@@ -26,7 +26,7 @@ services:
     volumes:
       - fdw-poc-data:/var/lib/postgresql/data
     depends_on:
-      fakecloud:
+      rustfs:
         condition: service_healthy
     networks:
       - backend
@@ -35,7 +35,7 @@ services:
     restart: "no"
 
   # Disposable, pinned S3 client used only for bucket creation and independent
-  # post-write verification against fakecloud S3. Never given host ports; invoked only via
+  # post-write verification against RustFS. Never given host ports; invoked only via
   # `podman compose ... run --rm fdw-poc-awscli <args>`. Credentials are passed at
   # invocation time (`-e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY`, sourced from the
   # invoking shell's environment) and are never baked into this file. Keeping this

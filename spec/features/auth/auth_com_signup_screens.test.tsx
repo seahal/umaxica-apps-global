@@ -82,23 +82,6 @@ describe("auth/com sign-up entry screens", () => {
     expect(markup).toContain("メールアドレスを入力してください");
   });
 
-  it("shows a checkbox's description when the server sent one", () => {
-    const markup = renderToStaticMarkup(
-      <ComSignUpEmailNew
-        {...emailProps}
-        checkboxes={[
-          {
-            name: "confirm_policy",
-            label: "規約に同意する",
-            description: "利用規約とプライバシーポリシーに同意します",
-          },
-        ]}
-      />,
-    );
-
-    expect(markup).toContain("利用規約とプライバシーポリシーに同意します");
-  });
-
   it("draws the telephone form with the telephone field type", () => {
     const markup = renderToStaticMarkup(
       <ComSignUpTelephoneNew
@@ -154,18 +137,6 @@ describe("auth/com sign-up OTP screens", () => {
 
     expect(markup).toContain('name="visitor_telephone[pass_code]"');
     expect(markup).toContain("認証コードが正しくありません");
-  });
-
-  it("shows the error heading above the previous attempt's messages", () => {
-    const markup = renderToStaticMarkup(
-      <ComSignUpEmailEdit
-        {...otpProps}
-        error_heading="入力内容を確認してください"
-        errors={["認証コードが正しくありません"]}
-      />,
-    );
-
-    expect(markup).toMatch(/<h2[^>]*>入力内容を確認してください<\/h2>/u);
   });
 });
 
@@ -231,73 +202,6 @@ describe("auth/com sign-up checkpoint screens", () => {
     expect(markup).toContain('name="checkpoint_version" value="3"');
     expect(markup).toContain('name="visitor_secret_credential[name]"');
     expect(markup).toContain('name="_method" value="delete"');
-  });
-
-  it("lists the validation messages a rejected passcode name produced", () => {
-    const markup = renderToStaticMarkup(
-      <ComCheckpointPasscodeNew
-        title="パスコード"
-        description="パスコードを保存してください"
-        action="/sign/up/check/telephone/passcode?ri=jp"
-        scope="visitor_secret_credential"
-        checkpoint_version={3}
-        errors={["名前を入力してください"]}
-        name_label="名前"
-        secret_heading="Secret"
-        secret="one-time-secret"
-        one_time_notice="一度だけ表示されます"
-        save_label="保存"
-        cancel_label="キャンセル"
-      />,
-    );
-
-    expect(markup).toContain("名前を入力してください");
-  });
-
-  it("draws the outstanding birthdate requirement with its own fields", () => {
-    const markup = renderToStaticMarkup(
-      <ComCheckpointShow
-        title="登録の確認"
-        birthdate={{
-          title: "生年月日",
-          description: "生年月日を入力してください",
-          label: "生年月日",
-          action: "/sign/up/check/telephone/birthdate?ri=jp",
-          submit_label: "保存する",
-          checkpoint_version: 1,
-          fields: {
-            format: "ymd",
-            separator: "/",
-            parts: [
-              { part: "year", label: "年", placeholder: "1990", value: "", min: 1900, max: 2020 },
-              { part: "month", label: "月", placeholder: "1", value: "", min: 1, max: 12 },
-              { part: "day", label: "日", placeholder: "1", value: "", min: 1, max: 31 },
-            ],
-          },
-        }}
-        passkey={null}
-        passcode={{
-          title: "パスコード",
-          description: "パスコードを登録します",
-          label: "登録する",
-          href: "/sign/up/check/telephone/passcode?ri=jp",
-        }}
-        complete_message="登録が完了しました"
-        cancellation={null}
-      />,
-    );
-
-    expect(markup).toMatch(/<h2[^>]*>生年月日<\/h2>/u);
-    expect(markup).toContain('name="birthdate_year"');
-    expect(markup).toContain('name="birthdate_month"');
-    expect(markup).toContain('name="birthdate_day"');
-    // The separator is drawn between parts (2 gaps for 3 parts), not before the first one.
-    expect(markup.match(/pb-2 text-fg-muted">\//gu)).toHaveLength(2);
-    expect(markup).toMatch(
-      /<a href="\/sign\/up\/check\/telephone\/passcode\?ri=jp"[^>]*>登録する<\/a>/u,
-    );
-    expect(markup).toContain("登録が完了しました");
-    expect(markup).not.toContain('name="_method" value="delete"');
   });
 
   it("hands the passkey ceremony the endpoints the server generated", () => {

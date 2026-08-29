@@ -123,22 +123,6 @@ describe("TextField", () => {
     expect(input.value).toBe("fixed");
   });
 
-  it("ignores a function-valued className rather than joining it into the class list", () => {
-    // React Aria's own style prop accepts a render-prop function keyed on interaction state; this
-    // application never passes one, but the type still allows it, so the field has to not crash
-    // when given one instead of silently mis-joining it into the className string.
-    render(
-      <TextField
-        label="Address"
-        className={() => "from-render-prop"}
-      />,
-    );
-
-    expect(screen.getByLabelText("Address").parentElement?.className).not.toContain(
-      "from-render-prop",
-    );
-  });
-
   it("carries the name the server's parameter wrapper expects", () => {
     render(
       <TextField

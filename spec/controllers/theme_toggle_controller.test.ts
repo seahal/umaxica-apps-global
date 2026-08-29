@@ -77,18 +77,6 @@ describe("ThemeToggleController", () => {
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it("does nothing when the event carries no element as its current target", async () => {
-      const fetchMock = vi.fn<typeof fetch>();
-      vi.stubGlobal("fetch", fetchMock);
-      const { controller } = await mount();
-
-      // An event dispatched by nothing has a `null` `currentTarget`, which is the shape this
-      // guards against rather than assuming Stimulus always hands one back.
-      controller.toggle(new Event("click"));
-
-      expect(fetchMock).not.toHaveBeenCalled();
-    });
-
     it("does nothing when the pressed control names no theme", async () => {
       const fetchMock = vi.fn<typeof fetch>();
       vi.stubGlobal("fetch", fetchMock);

@@ -1,6 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
+# FIXME: I want to delete this file.
 module Auth
   class RedirectOnlyController < ApplicationController
     include ::SignAcmeAuthorityRedirect

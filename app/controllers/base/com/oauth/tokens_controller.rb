@@ -9,11 +9,6 @@ module Base
         include BaseOauthEndpoint
         include BaseOauthTokenEndpoint
 
-        # The OAuth resource type this endpoint may redeem authorization codes for.
-        # Surface isolation depends on this being stated here, not derived from the
-        # class name, module name, request host, or a model name.
-        OAUTH_RESOURCE_TYPE = "visitor"
-
         AUTHENTICATION_MODE = :open
 
         before_action :skip_oauth_session!

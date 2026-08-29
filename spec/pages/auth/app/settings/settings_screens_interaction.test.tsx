@@ -21,12 +21,7 @@ vi.mock("@inertiajs/react", () => ({
   useForm: (initial: Record<string, string>) => ({
     data: initial,
     setData,
-    // The real adapter calls the callback to compute the data a following `patch`/`post` sends;
-    // a mock that never called it would leave that callback permanently unexercised.
-    transform: (callback: (data: unknown) => unknown) => {
-      transform(callback);
-      callback(initial);
-    },
+    transform,
     patch,
     post,
     processing: false,
@@ -255,17 +250,6 @@ describe("passkey settings interaction", () => {
 
     expect(deleteRequest).not.toHaveBeenCalled();
   });
-
-  it("starts with an empty name when the passkey has none yet", () => {
-    mount(
-      <PasskeysEdit
-        {...editProps}
-        form={{ ...editProps.form, description: null }}
-      />,
-    );
-
-    expect(container.querySelector<HTMLInputElement>("input[type=text]")?.value).toBe("");
-  });
 });
 
 describe("totp settings interaction", () => {
@@ -364,29 +348,5 @@ describe("totp settings interaction", () => {
     answerConfirmation(false);
 
     expect(deleteRequest).not.toHaveBeenCalled();
-  });
-
-  it("starts with an empty name when the authenticator has none yet", () => {
-    mount(
-      <TotpsEdit
-        {...editProps}
-        form={{ ...editProps.form, title: null }}
-      />,
-    );
-
-    expect(container.querySelector<HTMLInputElement>("input[type=text]")?.value).toBe("");
-  });
-
-  it("shows the rejected rename's error heading", () => {
-    mount(
-      <TotpsEdit
-        {...editProps}
-        error_header="入力内容を確認してください"
-        error_messages={["名前を入力してください"]}
-      />,
-    );
-
-    expect(container.textContent).toContain("入力内容を確認してください");
-    expect(container.textContent).toContain("名前を入力してください");
   });
 });

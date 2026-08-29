@@ -15,12 +15,6 @@ Rails.application.configure do
   # the secure_password algorithm is loaded first.
   config.after_initialize { ActiveModel::SecurePassword.min_cost = true }
 
-  # Credentials are required to run the suite. Without this, a missing
-  # config/credentials/test.key (or RAILS_MASTER_KEY in CI) makes Rails treat the
-  # credentials payload as empty, and the run fails later as an unrelated KeyError from
-  # Rails.app.creds. Fail at the first credentials read with MissingKeyError instead.
-  config.require_master_key = true
-
   # While tests run files are not watched, reloading is not necessary.
   config.enable_reloading = false
 

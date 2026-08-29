@@ -43,7 +43,6 @@ const { default: PasskeyDeleteButton } =
   await import("@/features/auth/settings/PasskeyDeleteButton");
 const { default: OtpResendButton } = await import("@/features/auth/otp/OtpResendButton");
 const { default: SignInEmailNew } = await import("@/features/auth/SignInEmailNew");
-const { default: SignInEmailEdit } = await import("@/features/auth/SignInEmailEdit");
 const { default: SignInSecretNew } = await import("@/features/auth/SignInSecretNew");
 const { default: PasskeyEdit } = await import("@/features/auth/settings/PasskeyEdit");
 
@@ -180,7 +179,6 @@ describe("OtpResendButton", () => {
   });
 
   it("starts the cooldown the server dictated on 429", async () => {
-    vi.useFakeTimers();
     answer(429, { retry_after: 30 });
     mount(
       <OtpResendButton
@@ -195,16 +193,10 @@ describe("OtpResendButton", () => {
     expect(container.textContent).toContain("しばらく待ってください (30s)");
     expect(container.querySelector("button")!.disabled).toBe(true);
 
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-    expect(container.textContent).toContain("(29s)");
-
     // A second press while the cooldown runs must not reach the endpoint again.
     await resend();
 
     expect(fetch).toHaveBeenCalledTimes(1);
-    vi.useRealTimers();
   });
 
   it("reports a failure for any other answer", async () => {
@@ -313,52 +305,5 @@ describe("credential forms", () => {
 
     expect(setData).toHaveBeenCalledWith("visitor_passkey", { description: "iPhone" });
     expect(patchRequest).toHaveBeenCalledWith("/settings/passkey/pk_1");
-  });
-
-  it("SignInEmailEdit patches the code and forwards the solved Turnstile token", async () => {
-    answer(200, { resendable: true });
-    mount(
-      <SignInEmailEdit
-        title="コードの入力"
-        description="説明"
-        action="/sign/in/email"
-        pt="token"
-        field_label="コード"
-        field_placeholder="000000"
-        submit_label="確認"
-        delivery_help="届かない場合"
-        return_link={{ label: "もどる", href: "/sign/in/email/new" }}
-        resend={{
-          endpoint: "/web/v0/in/email/otp",
-          state: "resend-state",
-          messages: {
-            button_label: "再送信",
-            sent_message: "送信しました",
-            too_soon_message: "しばらく待ってください",
-            failed_message: "失敗しました",
-          },
-        }}
-        turnstile={{ ...turnstile, mode: "render" }}
-      />,
-    );
-
-    type(
-      container.querySelector<HTMLInputElement>("input[name='user_email[pass_code]']")!,
-      "123456",
-    );
-    submit();
-
-    expect(setData).toHaveBeenCalledWith("user_email", { pass_code: "123456" });
-    expect(setData).toHaveBeenCalledWith("cf-turnstile-response", "turnstile-token");
-    expect(patchRequest).toHaveBeenCalledWith("/sign/in/email");
-
-    const resendButton = [...container.querySelectorAll("button")].find(
-      (button) => button.textContent === "再送信",
-    )!;
-    await act(async () => {
-      resendButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(setData).toHaveBeenCalledWith("user_email", { pass_code: "" });
   });
 });

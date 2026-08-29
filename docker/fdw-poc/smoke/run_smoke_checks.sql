@@ -4,7 +4,7 @@
 --
 -- Run inside the fdw-poc container, e.g.:
 --   podman compose -f compose.yaml -f docker/fdw-poc/compose.fdw-poc.yml \
---     --profile fdw-poc \
+--     --profile object-storage --profile fdw-poc \
 --     exec -T fdw-poc psql -U fdw_poc -d fdw_poc -v ON_ERROR_STOP=0 \
 --     -f /dev/stdin < docker/fdw-poc/smoke/run_smoke_checks.sql | tee smoke-results.txt
 --
@@ -24,15 +24,15 @@ CREATE FOREIGN DATA WRAPPER IF NOT EXISTS s3_wrapper
   HANDLER s3_fdw_handler
   VALIDATOR s3_fdw_validator;
 
-CREATE SERVER IF NOT EXISTS fdw_poc_s3
+CREATE SERVER IF NOT EXISTS fdw_poc_rustfs
   FOREIGN DATA WRAPPER s3_wrapper
   OPTIONS (
     aws_region 'us-east-1',
-    endpoint_url 'http://fakecloud:4566'
+    endpoint_url 'http://rustfs:9000'
   );
 
 CREATE USER MAPPING IF NOT EXISTS FOR fdw_poc
-  SERVER fdw_poc_s3
+  SERVER fdw_poc_rustfs
   OPTIONS (
     access_key_id 'CHANGEME_ACCESS_KEY',
     secret_access_key 'CHANGEME_SECRET_KEY'
@@ -40,15 +40,15 @@ CREATE USER MAPPING IF NOT EXISTS FOR fdw_poc
 
 -- A second server + user mapping with a deliberately wrong secret, for the
 -- invalid-credential check in section 4.
-CREATE SERVER IF NOT EXISTS fdw_poc_s3_bad_creds
+CREATE SERVER IF NOT EXISTS fdw_poc_rustfs_bad_creds
   FOREIGN DATA WRAPPER s3_wrapper
   OPTIONS (
     aws_region 'us-east-1',
-    endpoint_url 'http://fakecloud:4566'
+    endpoint_url 'http://rustfs:9000'
   );
 
 CREATE USER MAPPING IF NOT EXISTS FOR fdw_poc
-  SERVER fdw_poc_s3_bad_creds
+  SERVER fdw_poc_rustfs_bad_creds
   OPTIONS (
     access_key_id 'CHANGEME_ACCESS_KEY',
     secret_access_key 'deliberately-wrong-secret'
@@ -60,7 +60,7 @@ CREATE FOREIGN TABLE IF NOT EXISTS fdw_poc_csv (
   id integer,
   name text,
   amount numeric
-) SERVER fdw_poc_s3
+) SERVER fdw_poc_rustfs
 OPTIONS (
   uri 's3://fdw-poc-bucket/fixtures/sample.csv',
   format 'csv',
@@ -85,7 +85,7 @@ CREATE FOREIGN TABLE IF NOT EXISTS fdw_poc_jsonl (
   id integer,
   name text,
   amount numeric
-) SERVER fdw_poc_s3
+) SERVER fdw_poc_rustfs
 OPTIONS (
   uri 's3://fdw-poc-bucket/fixtures/sample.jsonl',
   format 'jsonl'
@@ -109,7 +109,7 @@ CREATE FOREIGN TABLE IF NOT EXISTS fdw_poc_parquet (
   id integer,
   name text,
   amount numeric
-) SERVER fdw_poc_s3
+) SERVER fdw_poc_rustfs
 OPTIONS (
   uri 's3://fdw-poc-bucket/fixtures/sample.parquet',
   format 'parquet'
@@ -133,7 +133,7 @@ CREATE FOREIGN TABLE IF NOT EXISTS fdw_poc_missing (
   id integer,
   name text,
   amount numeric
-) SERVER fdw_poc_s3
+) SERVER fdw_poc_rustfs
 OPTIONS (
   uri 's3://fdw-poc-bucket/fixtures/does-not-exist.csv',
   format 'csv',
@@ -146,7 +146,7 @@ CREATE FOREIGN TABLE IF NOT EXISTS fdw_poc_bad_creds (
   id integer,
   name text,
   amount numeric
-) SERVER fdw_poc_s3_bad_creds
+) SERVER fdw_poc_rustfs_bad_creds
 OPTIONS (
   uri 's3://fdw-poc-bucket/fixtures/sample.csv',
   format 'csv',
@@ -159,7 +159,7 @@ CREATE FOREIGN TABLE IF NOT EXISTS fdw_poc_schema_mismatch (
   id integer,
   name text,
   amount integer -- sample.csv has fractional amounts (10.50); this type is wrong on purpose
-) SERVER fdw_poc_s3
+) SERVER fdw_poc_rustfs
 OPTIONS (
   uri 's3://fdw-poc-bucket/fixtures/sample.csv',
   format 'csv',
@@ -173,7 +173,7 @@ CREATE FOREIGN TABLE IF NOT EXISTS fdw_poc_missing_column (
   name text,
   amount numeric,
   currency text -- not present in sample.csv
-) SERVER fdw_poc_s3
+) SERVER fdw_poc_rustfs
 OPTIONS (
   uri 's3://fdw-poc-bucket/fixtures/sample.csv',
   format 'csv',

@@ -5,26 +5,15 @@ encryption key plus an optional previous key chain.
 
 ## Configuration
 
-Three keys are required in every environment, including development and test. Set them in
-credentials or the environment:
+Set the current key in credentials or environment as:
 
 - `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY`
-- `ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY`
-- `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT`
-
-`JitSecurityActiveRecordEncryptionKeyProvider` resolves them through `Rails.app.creds` (environment
-first, then credentials) and raises a `KeyError` naming the missing key if any is absent or blank.
-There is no derivable fallback in any environment: a key computed from public strings is not a
-security boundary, and a development-and-test-only fallback still yields a database whose ciphertext
-protects nothing while booting silently. Local keys ship in `config/credentials/development.yml.enc`
-and `config/credentials/test.yml.enc`; see `docs/operations/development-credential-provisioning.md`
-for the key files that decrypt them.
 
 To keep old ciphertext readable while a rollout is in flight, set:
 
 - `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY_PREVIOUS`
 
-The previous value is optional and can be a single string or a JSON array of strings.
+The previous value can be a single string or a JSON array of strings.
 
 ## Rotation procedure
 

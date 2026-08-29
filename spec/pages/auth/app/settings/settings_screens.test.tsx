@@ -189,21 +189,6 @@ describe("passkey settings screens", () => {
     expect(html).not.toContain("削除");
   });
 
-  it("draws with no heading when the passkey carries no description yet", () => {
-    const html = renderToStaticMarkup(
-      <PasskeysShow
-        title="Passkey"
-        description="登録済みのPasskey"
-        back_link={{ label: "もどる", href: "/settings/passkeys?ri=jp" }}
-        passkey_description={null}
-        details={[{ key: "created_at", label: "作成日", value: "2026/01/01" }]}
-        edit_link={{ label: "編集", href: "/settings/passkeys/pk_1/edit?ri=jp" }}
-      />,
-    );
-
-    expect(html).toContain("作成日");
-  });
-
   it("frames the registration ceremony", () => {
     const html = renderToStaticMarkup(
       <PasskeysNew

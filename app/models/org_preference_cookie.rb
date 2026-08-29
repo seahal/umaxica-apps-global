@@ -31,8 +31,21 @@ class OrgPreferenceCookie < OrgSettingRecord
 
   validates :preference_id, uniqueness: true
 
+  after_initialize :set_defaults
+
   validates :targetable, inclusion: { in: [true, false] }
   validates :performant, inclusion: { in: [true, false] }
   validates :functional, inclusion: { in: [true, false] }
   validates :consented, inclusion: { in: [true, false] }
+
+  private
+
+  def set_defaults
+    return unless new_record?
+
+    self.targetable = false if targetable.nil?
+    self.performant = false if performant.nil?
+    self.functional = false if functional.nil?
+    self.consented = false if consented.nil?
+  end
 end

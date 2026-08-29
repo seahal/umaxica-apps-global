@@ -34,9 +34,6 @@ export default function TurnstileWidget({
   const [token, setToken] = useState("");
   const [failure, setFailure] = useState<string | null>(null);
 
-  // The challenge is rendered once per mount; its configuration comes from the server and does not
-  // change while the page is open, so the effect deliberately takes an empty dependency list.
-  // oxlint-disable react-hooks/exhaustive-deps
   useEffect(() => {
     let removed = false;
     let widgetId: string | null = null;
@@ -93,8 +90,10 @@ export default function TurnstileWidget({
         api.remove(widgetId);
       }
     };
+    // The challenge is rendered once per mount; its configuration comes from the server and does
+    // not change while the page is open.
+    // oxlint-disable-next-line exhaustive-deps
   }, []);
-  // oxlint-enable react-hooks/exhaustive-deps
 
   return (
     <div className="flex flex-col gap-2">

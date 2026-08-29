@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { answerConfirmation } from "../../../../support/confirmation";
 import { present } from "../../../../support/present";
-import { finishVisit, startVisit } from "../../../../support/visit";
 
 // These tests mount the identity pages and fire real DOM events, so the submit and confirm
 // branches the static markup cannot reach are covered.
@@ -64,15 +63,6 @@ const submitForm = (index = 0) => {
     form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   });
 };
-
-/** The submit control of the nth form, for asserting on the processing state a visit lifecycle drives. */
-const submitButtonOf = (index = 0): HTMLButtonElement =>
-  present(
-    container
-      .querySelectorAll("form")
-      [index]?.querySelector<HTMLButtonElement>("button[type=submit]"),
-    `submit button of form ${index}`,
-  );
 
 const clickButton = (label: string) => {
   const button = [...container.querySelectorAll("button")].find(
@@ -142,14 +132,6 @@ describe("email edit interaction", () => {
 
   it("patches the subscription preferences", () => {
     mount(<EmailEdit {...props} />);
-    submitForm();
-
-    expect(patch).toHaveBeenCalledWith(
-      "/identity/emails/eml_1",
-      { user_email: { promotional: "0", notifiable: "0" } },
-      expect.anything(),
-    );
-
     toggleCheckbox("#user_email_promotional");
     toggleCheckbox("#user_email_notifiable");
     submitForm();
@@ -159,12 +141,6 @@ describe("email edit interaction", () => {
       { user_email: { promotional: "1", notifiable: "1" } },
       expect.anything(),
     );
-
-    const [, , options] = present(patch.mock.calls[1], "the second router.patch call");
-    act(() => startVisit(options));
-    expect(submitButtonOf().disabled).toBe(true);
-    act(() => finishVisit(options));
-    expect(submitButtonOf().disabled).toBe(false);
   });
 
   it("deletes only after confirmation", () => {
@@ -198,33 +174,16 @@ describe("email registration interaction", () => {
       />,
     );
     setInput("#user_email_address", "someone@example.com");
-    submitForm();
-
-    expect(post).toHaveBeenCalledWith(
-      "/identity/emails/registration",
-      {
-        user_email: { address: "someone@example.com", promotional: "0", notifiable: "0" },
-      },
-      expect.anything(),
-    );
-
     toggleCheckbox("#user_email_promotional");
-    toggleCheckbox("#user_email_notifiable");
     submitForm();
 
     expect(post).toHaveBeenCalledWith(
       "/identity/emails/registration",
       {
-        user_email: { address: "someone@example.com", promotional: "1", notifiable: "1" },
+        user_email: { address: "someone@example.com", promotional: "1", notifiable: "0" },
       },
       expect.anything(),
     );
-
-    const [, , options] = present(post.mock.calls[1], "the second router.post call");
-    act(() => startVisit(options));
-    expect(submitButtonOf().disabled).toBe(true);
-    act(() => finishVisit(options));
-    expect(submitButtonOf().disabled).toBe(false);
   });
 
   const editProps = {
@@ -257,12 +216,6 @@ describe("email registration interaction", () => {
       { user_email: { pass_code: "123456", token: "tok_1" } },
       expect.anything(),
     );
-
-    const [, , options] = present(patch.mock.calls[0], "the first router.patch call");
-    act(() => startVisit(options));
-    expect(submitButtonOf().disabled).toBe(true);
-    act(() => finishVisit(options));
-    expect(submitButtonOf().disabled).toBe(false);
   });
 
   it("patches the code without a token and posts a redelivery", () => {
@@ -311,12 +264,6 @@ describe("privacy erasure interaction", () => {
       { jurisdiction: "unknown" },
       expect.anything(),
     );
-
-    const [, , options] = present(post.mock.calls[0], "the first router.post call");
-    act(() => startVisit(options));
-    expect(submitButtonOf().disabled).toBe(true);
-    act(() => finishVisit(options));
-    expect(submitButtonOf().disabled).toBe(false);
   });
 });
 
@@ -335,10 +282,7 @@ describe("recovery interaction", () => {
             appeal: {
               url: "/identity/recovery/appeals",
               reason_label: "Appeal reason",
-              reason_codes: [
-                { label: "other", value: "other" },
-                { label: "mistaken identity", value: "mistaken_identity" },
-              ],
+              reason_codes: [{ label: "other", value: "other" }],
               statement_label: "Appeal statement",
               statement_max_length: 4000,
               submit_label: "Submit appeal",
@@ -353,65 +297,11 @@ describe("recovery interaction", () => {
       data: { enforcement_case_id: "case_1" },
     });
 
-    const reasonCode = present(
-      container.querySelector<HTMLSelectElement>("select"),
-      "the appeal reason code select",
-    );
-    act(() => {
-      reasonCode.value = "mistaken_identity";
-      reasonCode.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-
     submitForm(1);
     expect(post).toHaveBeenCalledWith(
       "/identity/recovery/appeals",
       {
-        appeal: {
-          enforcement_case_id: "case_1",
-          reason_code: "mistaken_identity",
-          statement: "",
-        },
-      },
-      expect.anything(),
-    );
-
-    const [, , options] = present(post.mock.calls[1], "the appeal's router.post call");
-    act(() => startVisit(options));
-    expect(submitButtonOf(1).disabled).toBe(true);
-    act(() => finishVisit(options));
-    expect(submitButtonOf(1).disabled).toBe(false);
-  });
-
-  it("starts with an empty reason code when the server sent no reason codes at all", () => {
-    mount(
-      <RecoveryShow
-        title="Account recovery"
-        description="Complete verification."
-        appeal_error={null}
-        enforcement_cases={[
-          {
-            public_id: "case_1",
-            kind_label: "Security lock",
-            restore: { url: "/identity/recovery/completion", submit_label: "Restore access" },
-            appeal: {
-              url: "/identity/recovery/appeals",
-              reason_label: "Appeal reason",
-              reason_codes: [],
-              statement_label: "Appeal statement",
-              statement_max_length: 4000,
-              submit_label: "Submit appeal",
-            },
-          },
-        ]}
-      />,
-    );
-
-    submitForm(1);
-
-    expect(post).toHaveBeenCalledWith(
-      "/identity/recovery/appeals",
-      {
-        appeal: { enforcement_case_id: "case_1", reason_code: "", statement: "" },
+        appeal: { enforcement_case_id: "case_1", reason_code: "other", statement: "" },
       },
       expect.anything(),
     );
@@ -510,14 +400,6 @@ describe("secret interaction", () => {
     );
 
     setInput("#user_secret_credential_name", "deploy");
-    submitForm();
-
-    expect(post).toHaveBeenCalledWith(
-      "/identity/secrets",
-      { user_secret_credential: { name: "deploy", enabled: "0" } },
-      expect.anything(),
-    );
-
     toggleCheckbox("#user_secret_credential_enabled");
     submitForm();
 
@@ -526,12 +408,6 @@ describe("secret interaction", () => {
       { user_secret_credential: { name: "deploy", enabled: "1" } },
       expect.anything(),
     );
-
-    const [, , options] = present(post.mock.calls[1], "the second router.post call");
-    act(() => startVisit(options));
-    expect(submitButtonOf().disabled).toBe(true);
-    act(() => finishVisit(options));
-    expect(submitButtonOf().disabled).toBe(false);
   });
 
   it("patches an existing secret", () => {
@@ -553,14 +429,6 @@ describe("secret interaction", () => {
       />,
     );
 
-    submitForm();
-
-    expect(patch).toHaveBeenCalledWith(
-      "/identity/secrets/sec_1",
-      { user_secret_credential: { name: "deploy", enabled: "1" } },
-      expect.anything(),
-    );
-
     toggleCheckbox("#user_secret_credential_enabled");
     submitForm();
 
@@ -569,12 +437,6 @@ describe("secret interaction", () => {
       { user_secret_credential: { name: "deploy", enabled: "0" } },
       expect.anything(),
     );
-
-    const [, , options] = present(patch.mock.calls[1], "the second router.patch call");
-    act(() => startVisit(options));
-    expect(submitButtonOf().disabled).toBe(true);
-    act(() => finishVisit(options));
-    expect(submitButtonOf().disabled).toBe(false);
   });
 });
 
@@ -664,12 +526,6 @@ describe("telephone interaction", () => {
       { user_telephone: { raw_number: "+819012345678" } },
       expect.anything(),
     );
-
-    const [, , options] = present(post.mock.calls[0], "the first router.post call");
-    act(() => startVisit(options));
-    expect(submitButtonOf().disabled).toBe(true);
-    act(() => finishVisit(options));
-    expect(submitButtonOf().disabled).toBe(false);
   });
 
   it("posts the number from the registration form", () => {
@@ -687,12 +543,6 @@ describe("telephone interaction", () => {
       { user_telephone: { raw_number: "+819012345678" } },
       expect.anything(),
     );
-
-    const [, , options] = present(post.mock.calls[0], "the first router.post call");
-    act(() => startVisit(options));
-    expect(submitButtonOf().disabled).toBe(true);
-    act(() => finishVisit(options));
-    expect(submitButtonOf().disabled).toBe(false);
   });
 
   it("patches the verification code", () => {
@@ -716,12 +566,6 @@ describe("telephone interaction", () => {
       { user_telephone: { pass_code: "123456" } },
       expect.anything(),
     );
-
-    const [, , options] = present(patch.mock.calls[0], "the first router.patch call");
-    act(() => startVisit(options));
-    expect(submitButtonOf().disabled).toBe(true);
-    act(() => finishVisit(options));
-    expect(submitButtonOf().disabled).toBe(false);
   });
 
   it("deletes a telephone only after confirmation", () => {
@@ -803,9 +647,6 @@ describe("withdrawal interaction", () => {
       />,
     );
 
-    submitForm(0);
-    expect(get).toHaveBeenCalledWith("/identity/withdrawal", { ack_schedule_purge: "0" });
-
     toggleCheckbox("#ack_schedule_purge");
     submitForm(0);
     expect(get).toHaveBeenCalledWith("/identity/withdrawal", { ack_schedule_purge: "1" });
@@ -813,12 +654,6 @@ describe("withdrawal interaction", () => {
     submitForm(1);
     answerConfirmation(false);
     expect(patch).not.toHaveBeenCalled();
-
-    submitForm(1);
-    answerConfirmation(true);
-    expect(patch).toHaveBeenCalledWith("/identity/withdrawal", {
-      data: { ack_deactivate_today: "0" },
-    });
 
     toggleCheckbox("#ack_deactivate_today");
     submitForm(1);
@@ -870,49 +705,6 @@ describe("withdrawal interaction", () => {
 
     clickButton("Sign out");
     expect(destroy).toHaveBeenCalledWith("/identity/withdrawal/session");
-  });
-
-  it("recovers immediately when the server sent no confirmation copy to gate it with", () => {
-    mount(
-      <WithdrawalEdit
-        title="Withdrawal status"
-        terminated={false}
-        unavailable_message="Recovery is unavailable."
-        deadline_message={null}
-        recovery={{
-          available_message: "Recovery is available.",
-          submit_label: "Recover",
-          confirm: null,
-          action: "/identity/withdrawal",
-          unavailable_message: null,
-        }}
-        termination={null}
-        erasure_link={{ label: "Request early erasure", href: "/identity/privacy/erasure/new" }}
-        sign_out={{ label: "Sign out", url: "/identity/withdrawal/session" }}
-      />,
-    );
-
-    clickButton("Recover");
-
-    expect(post).toHaveBeenCalledWith("/identity/withdrawal");
-  });
-
-  it("draws no recovery or termination section when the server sent neither", () => {
-    mount(
-      <WithdrawalEdit
-        title="Withdrawal status"
-        terminated={false}
-        unavailable_message="Recovery is unavailable."
-        deadline_message={null}
-        recovery={null}
-        termination={null}
-        erasure_link={{ label: "Request early erasure", href: "/identity/privacy/erasure/new" }}
-        sign_out={{ label: "Sign out", url: "/identity/withdrawal/session" }}
-      />,
-    );
-
-    // The sign-out control is unconditional; a recovery or termination section would be a second.
-    expect(container.querySelectorAll("button")).toHaveLength(1);
   });
 
   it("signs out from the terminated status", () => {

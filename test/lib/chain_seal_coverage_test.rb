@@ -64,44 +64,32 @@ class ChainSealCoverageTest < ActiveSupport::TestCase
     end
   end
 
-  test "seal rejects a missing or spaced kid" do
-    assert_raises(ChainSeal::FormatError) do
-      ChainSeal.seal(payload: @payload, kid: nil, private_key: @private_key)
-    end
-    assert_raises(ChainSeal::FormatError) do
-      ChainSeal.seal(payload: @payload, kid: "bad kid", private_key: @private_key)
-    end
-  end
-
-  test "parse rejects malformed hashes signatures and versions" do
-    genesis = ChainSeal::GENESIS_PREVIOUS_HASH
-    block_hash = "a" * 64
-    signature = "A" * 128
-
-    assert_raises(ChainSeal::FormatError) do
-      ChainSeal.parse("$bc1$jcs-rfc8785$sha3-256$es384$kid-1$#{genesis}$zz$#{signature}")
-    end
-    assert_raises(ChainSeal::FormatError) do
-      ChainSeal.parse("$bc1$jcs-rfc8785$sha3-256$es384$kid-1$#{genesis}$#{block_hash}$")
-    end
-    assert_raises(ChainSeal::FormatError) do
-      ChainSeal.parse("$bc1$jcs-rfc8785$sha3-256$es384$kid-1$#{genesis}$#{block_hash}$abc=")
-    end
-    assert_raises(ChainSeal::FormatError) do
-      ChainSeal.parse("$bc1$jcs-rfc8785$sha3-256$es384$kid-1$#{genesis}$#{block_hash}$+++")
-    end
-    assert_raises(ChainSeal::FormatError) do
-      ChainSeal.parse("$x$jcs-rfc8785$sha3-256$es384$kid-1$#{genesis}$#{block_hash}$#{signature}")
-    end
-  end
-
-  test "verify rejects a compact seal whose signature is the wrong length" do
+  test "seal rejects unsupported algorithms kids and empty signatures" do
     seal = ChainSeal.seal(payload: @payload, kid: "kid-1", private_key: @private_key)
-    short_signature = Base64.urlsafe_encode64("short", padding: false)
-    compact = seal.compact.sub(seal.signature, short_signature)
 
-    assert_raises(ChainSeal::FormatError) do
-      ChainSeal.verify(compact: compact, payload: @payload, public_key: @private_key.public_key)
-    end
+    assert_raises(ChainSeal::FormatError) { ChainSeal.send(:validate_kid!, nil) }
+    assert_raises(ChainSeal::FormatError) { ChainSeal.send(:validate_kid!, "bad kid") }
+    assert_raises(ChainSeal::FormatError) { ChainSeal.send(:validate_hash_hex!, "zz", "block_hash") }
+    assert_raises(ChainSeal::FormatError) { ChainSeal.send(:decode_signature, "") }
+    assert_raises(ChainSeal::FormatError) { ChainSeal.send(:decode_signature, "abc=") }
+    assert_raises(ChainSeal::FormatError) { ChainSeal.send(:decode_signature, "+++") }
+    assert_raises(ChainSeal::FormatError) { ChainSeal.send(:raw_to_asn1_signature, "short") }
+    assert_not ChainSeal.send(:secure_compare, "ab", "a")
+    assert ChainSeal.send(:secure_compare, "ab", "ab")
+
+    mutated = seal.dup
+    mutated.define_singleton_method(:version) { "other" } if mutated.respond_to?(:version)
+    invalid = {
+      version: "x",
+      canonicalization: seal.canonicalization,
+      hash_alg: seal.hash_alg,
+      signature_alg: seal.signature_alg,
+      kid: seal.kid,
+      previous_hash: seal.previous_hash,
+      block_hash: seal.block_hash,
+      signature: seal.signature,
+    }
+    struct = Struct.new(*invalid.keys, keyword_init: true).new(**invalid)
+    assert_raises(ChainSeal::FormatError) { ChainSeal.send(:validate_seal!, struct) }
   end
 end

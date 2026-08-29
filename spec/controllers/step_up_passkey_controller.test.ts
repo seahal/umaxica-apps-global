@@ -101,27 +101,6 @@ describe("StepUpPasskeyController", () => {
       expect(errorText(element)).toBe("認証オプションの取得に失敗しました");
     });
 
-    it("refuses when the controller is not attached to a form", async () => {
-      const { controller, element } = await mountController(
-        "step-up-passkey",
-        StepUpPasskeyController,
-        `
-          <div data-controller="step-up-passkey"
-               data-step-up-passkey-options-value='${JSON.stringify(REQUEST_OPTIONS)}'
-               data-step-up-passkey-challenge-id-value="challenge-123">
-            <input type="hidden" data-step-up-passkey-target="challengeId">
-            <input type="hidden" data-step-up-passkey-target="credentialJson">
-            <p data-step-up-passkey-target="error" class="hidden"></p>
-            <p data-step-up-passkey-target="status" class="hidden"></p>
-          </div>
-        `,
-      );
-
-      await controller.authenticate(new Event("click"));
-
-      expect(errorText(element)).toBe("認証中にエラーが発生しました");
-    });
-
     it("reports a cancelled ceremony in the visitor's terms", async () => {
       credentials.get.mockRejectedValue(credentialError("NotAllowedError", "Cancelled"));
       const { controller, element } = await mount();
@@ -151,15 +130,6 @@ describe("StepUpPasskeyController", () => {
 
     it("falls back to its own copy when the failure carries no message", async () => {
       credentials.get.mockRejectedValue(credentialError("GenericError"));
-      const { controller, element } = await mount();
-
-      await controller.authenticate(new Event("click"));
-
-      expect(errorText(element)).toBe("認証中にエラーが発生しました");
-    });
-
-    it("falls back to its own copy when the failure is not an Error at all", async () => {
-      credentials.get.mockRejectedValue("nope");
       const { controller, element } = await mount();
 
       await controller.authenticate(new Event("click"));

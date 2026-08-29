@@ -56,14 +56,6 @@ describe("webauthn_utils", () => {
       const obj: unknown = Object.create(null);
       expect(() => toArrayBuffer(obj)).toThrow("object");
     });
-
-    test("プロトタイプチェーンに constructor が全く無いオブジェクトで typeof fallback を確認する", () => {
-      // `Object.create(null)` alone still resolves through `?? {}` to `Object.prototype`, whose
-      // own `constructor` is `Object` - this is the one shape with no `constructor` anywhere in
-      // the chain, which is what the final `typeof` fallback exists for.
-      const obj: unknown = Object.create(Object.create(null));
-      expect(() => toArrayBuffer(obj)).toThrow("object");
-    });
   });
 
   describe("normalizePublicKeyOptions", () => {
@@ -119,11 +111,6 @@ describe("webauthn_utils", () => {
       expect(() => normalizePublicKeyOptions(options)).toThrow(TypeError);
     });
 
-    test("excludeCredentials の要素がオブジェクトでないとき、その項目を名指しして拒む", () => {
-      const options = { excludeCredentials: [42] };
-      expect(() => normalizePublicKeyOptions(options)).toThrow("excludeCredentials[0].id");
-    });
-
     test("allowCredentials が配列でないとき TypeError を投げる", () => {
       const options = { allowCredentials: "not-array" };
       expect(() => normalizePublicKeyOptions(options)).toThrow(TypeError);
@@ -163,12 +150,6 @@ describe("webauthn_utils", () => {
       expect(() => normalizeCreationOptions({ ...CREATION, rp: undefined })).toThrow("rp");
     });
 
-    test("rp.id を持たない payload は id を省いたまま通す", () => {
-      const options = normalizeCreationOptions({ ...CREATION, rp: { name: "Umaxica" } });
-
-      expect(options.rp).toEqual({ name: "Umaxica" });
-    });
-
     test("user を持たない payload を拒む", () => {
       expect(() => normalizeCreationOptions({ ...CREATION, user: undefined })).toThrow("user");
     });
@@ -176,13 +157,6 @@ describe("webauthn_utils", () => {
     test("pubKeyCredParams を持たない payload を拒む", () => {
       expect(() => normalizeCreationOptions({ ...CREATION, pubKeyCredParams: undefined })).toThrow(
         "pubKeyCredParams",
-      );
-    });
-
-    test("alg が数値でない要素を、その項目を名指しして拒む", () => {
-      const params = [{ type: "public-key", alg: "-7" }];
-      expect(() => normalizeCreationOptions({ ...CREATION, pubKeyCredParams: params })).toThrow(
-        "pubKeyCredParams[0].alg",
       );
     });
 

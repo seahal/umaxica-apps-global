@@ -4,7 +4,7 @@
 // the code field and reports that a new code was sent, 429 starts the cooldown the server dictated
 // via `retry_after`, and anything else reports a failure. The resend state is an opaque server
 // token; the browser only echoes it back.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import Button from "@/components/ui/Button";
 import { readBoolean, readNumber } from "@/lib/payload";
@@ -36,6 +36,9 @@ export default function OtpResendButton({
 }: OtpResendButtonProps) {
   const [status, setStatus] = useState("");
   const [remaining, setRemaining] = useState(0);
+  const remainingRef = useRef(0);
+
+  remainingRef.current = remaining;
 
   useEffect(() => {
     if (remaining <= 0) {
@@ -50,7 +53,7 @@ export default function OtpResendButton({
   }, [remaining]);
 
   const resend = async () => {
-    if (remaining > 0) {
+    if (remainingRef.current > 0) {
       return;
     }
 

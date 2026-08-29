@@ -114,7 +114,7 @@ services:
         target: /etc/tailscale/serve/serve.json
         read_only: true
     # Only `remote-access`. A tailnet-facing container has no business resolving
-    # PostgreSQL, Valkey or fakecloud; `core` is reachable from here by compose DNS and
+    # PostgreSQL, Valkey or Kafka; `core` is reachable from here by compose DNS and
     # that is all it needs.
     networks:
       - remote-access

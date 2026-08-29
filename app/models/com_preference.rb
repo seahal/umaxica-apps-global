@@ -56,10 +56,7 @@ class ComPreference < ComSettingRecord
 
   self.belongs_to_required_by_default = false
 
-  # Retention and token expiry are the same event for a single-use preference token:
-  # SingleUseToken declares `expires_at_column: :discarded_at`, and issuance writes the TTL
-  # straight into `discarded_at`. The column is NOT NULL and defaults to the Retainable
-  # sentinel (Float::INFINITY), so callers must handle that value rather than nil.
+  alias_attribute :expires_at, :discarded_at
 
   DBSC_BINDING_METHOD_CLASS = ComPreferenceBindingMethod
   DBSC_STATUS_CLASS = ComPreferenceDbscStatus

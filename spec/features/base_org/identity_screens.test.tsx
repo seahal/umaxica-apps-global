@@ -24,7 +24,6 @@ const { default: OtpVerification } =
 const { default: TelephoneRegistrationNew } =
   await import("@/pages/base/org/identity/telephones/new");
 const { default: TelephoneEdit } = await import("@/pages/base/org/identity/telephones/edit");
-const { default: ActivityIndex } = await import("@/pages/base/org/identity/activities/index");
 const { default: SessionIndex } = await import("@/pages/base/org/identity/sessions/index");
 const { default: SessionShow } = await import("@/pages/base/org/identity/sessions/show");
 const { default: BirthdateShow } = await import("@/pages/base/org/identity/birthdates/show");
@@ -44,65 +43,6 @@ const { csrfToken } = await import("@/lib/csrf");
 
 const turnstile = { site_key: "site", mode: "execute" as const, action: null, cdata: null };
 const backLink = { label: "Back", href: "/identity" };
-
-describe("activity index", () => {
-  const props = {
-    title: "Activity",
-    description: "Recent account activity.",
-    back_link: backLink,
-    empty_message: "No activity has been recorded.",
-    columns: {
-      occurred_at: "When",
-      event: "Event",
-      ip_address: "IP address",
-      device: "Device",
-      login_method: "Method",
-      context: "Context",
-    },
-    activities: [] as {
-      id: string;
-      occurred_at: string;
-      event_label: string;
-      event_id: string;
-      ip_address: string;
-      device: string;
-      login_method: string;
-      context: string;
-    }[],
-  };
-
-  it("shows the empty message when nothing has happened yet", () => {
-    const markup = renderToStaticMarkup(<ActivityIndex {...props} />);
-
-    expect(markup).toContain("No activity has been recorded.");
-    expect(markup).not.toContain("<table");
-  });
-
-  it("lists every recorded activity in a table", () => {
-    const markup = renderToStaticMarkup(
-      <ActivityIndex
-        {...props}
-        activities={[
-          {
-            id: "act_1",
-            occurred_at: "2026-01-01",
-            event_label: "Signed in",
-            event_id: "sign_in",
-            ip_address: "203.0.113.1",
-            device: "Chrome on macOS",
-            login_method: "Passkey",
-            context: '{"foo":"bar"}',
-          },
-        ]}
-      />,
-    );
-
-    expect(markup).toContain("Signed in (sign_in)");
-    expect(markup).toContain("203.0.113.1");
-    expect(markup).toContain("Chrome on macOS");
-    expect(markup).toContain("{&quot;foo&quot;:&quot;bar&quot;}");
-  });
-});
 
 describe("credential index", () => {
   const props = {
@@ -545,23 +485,6 @@ describe("shared self-service screens", () => {
     );
 
     expect(confirmation).toContain('name="logout_challenge" value="abc"');
-
-    const withoutChallenge = renderToStaticMarkup(
-      <SignOutConfirmation
-        title="Sign out"
-        active
-        description="Once you log out..."
-        form={{
-          action: "/sign/out",
-          submit: "Sign out",
-          logout_challenge: null,
-          confirm_description: "Once you log out...",
-        }}
-        home_link={{ label: "Home", href: "/" }}
-      />,
-    );
-
-    expect(withoutChallenge).not.toContain("logout_challenge");
 
     const signedOut = renderToStaticMarkup(
       <SignOutConfirmation

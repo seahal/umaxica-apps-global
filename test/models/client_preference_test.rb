@@ -126,17 +126,18 @@ class ClientPreferenceTest < ActiveSupport::TestCase
     assert_equal user.id, user.user_preference.user_id
   end
 
-  test "explicit nil consent flags are rejected instead of silently defaulting" do
+  test "set_defaults fills nil booleans on new records" do
     pref = ClientPreference.new(user: clients(:sample_user))
     pref.consented = nil
     pref.functional = nil
     pref.performant = nil
     pref.targetable = nil
 
-    assert_not pref.valid?
-    assert_includes pref.errors.attribute_names, :consented
-    assert_includes pref.errors.attribute_names, :functional
-    assert_includes pref.errors.attribute_names, :performant
-    assert_includes pref.errors.attribute_names, :targetable
+    pref.send(:set_defaults)
+
+    assert_not pref.consented
+    assert_not pref.functional
+    assert_not pref.performant
+    assert_not pref.targetable
   end
 end

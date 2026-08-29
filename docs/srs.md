@@ -26,7 +26,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   - Network-only hosts (e.g., `asset-jp.umaxica.net`) are proxied but not powered by Rails.
 - Subsystems: top-level marketing pages, authentication (sign), help center/contact flows,
   documentation and news portals, BFF preference endpoints, public API endpoints for inquiry
-  validation, and supporting infrastructure (Valkey, OpenTelemetry, fakecloud, Fastly/Cloudflare
+  validation, and supporting infrastructure (Valkey, OpenTelemetry, opt-in RustFS, Fastly/Cloudflare
   integrations).
 
 ### 1.3 Intended Audience and Use
@@ -40,15 +40,15 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 
 ## 2. Stakeholders and Roles
 
-| Role                  | Responsibilities                                                                                                          | Tooling / Notes                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| Product Owner         | Defines feature scope, localization priorities, and compliance targets                                                    | Roadmap, Notion/Jira                                      |
-| Tech Lead / Architect | Owns multi-surface Rails architecture, multi-DB strategy, and integration points (Valkey, SMS, email)                     | Rails, Docker Compose                                     |
-| Front-End Engineer    | Builds Turbo/React views in `src`, owns theme and preference UX                                                           | pnpm, Vite Plus, Tailwind, Turbo                          |
-| Back-End Engineer     | Implements controller logic (e.g., `config/routes/*.rb` namespaces), models, encryption, OTP/passkey workflows            | Rails 8, PostgreSQL, Valkey                               |
-| Platform/DevOps       | Manages Compose stack (PostgreSQL shards, Valkey, fakecloud, Grafana/Loki/Tempo), CI (`integration.yml`), and deployments | Podman, Foreman, GitHub Actions                           |
-| QA Engineer           | Designs Minitest/spec + JS/TS tests (via pnpm), Rswag/OpenAPI verification, smoke/load tests                              | `bin/rails test`, `pnpm test` (when added), Playwright/k6 |
-| Security/Compliance   | Oversees JWT keys, Cloudflare Turnstile secrets, GDPR/ePrivacy consent storage                                            | Secrets management, monitoring                            |
+| Role                  | Responsibilities                                                                                                      | Tooling / Notes                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Product Owner         | Defines feature scope, localization priorities, and compliance targets                                                | Roadmap, Notion/Jira                                      |
+| Tech Lead / Architect | Owns multi-surface Rails architecture, multi-DB strategy, and integration points (Valkey, SMS, email)                 | Rails, Docker Compose                                     |
+| Front-End Engineer    | Builds Turbo/React views in `src`, owns theme and preference UX                                                       | pnpm, Vite Plus, Tailwind, Turbo                          |
+| Back-End Engineer     | Implements controller logic (e.g., `config/routes/*.rb` namespaces), models, encryption, OTP/passkey workflows        | Rails 8, PostgreSQL, Valkey                               |
+| Platform/DevOps       | Manages Compose stack (PostgreSQL shards, Valkey, optional RustFS, Grafana/Loki/Tempo), CI (`integration.yml`), and deployments | Podman, Foreman, GitHub Actions                           |
+| QA Engineer           | Designs Minitest/spec + JS/TS tests (via pnpm), Rswag/OpenAPI verification, smoke/load tests                          | `bin/rails test`, `pnpm test` (when added), Playwright/k6 |
+| Security/Compliance   | Oversees JWT keys, Cloudflare Turnstile secrets, GDPR/ePrivacy consent storage                                        | Secrets management, monitoring                            |
 
 ---
 
@@ -66,11 +66,9 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   HOTP/TOTP (ROTP), `Outbound::Sms`, and Cloudflare Turnstile for bot defense.
 - **Observability**: OpenTelemetry instrumentation exports to Tempo via OTLP; logs/metrics land in
   Loki/Grafana (docker/observability stack).
-- **Storage & CDN**: Shrine resolves storage per environment: memory in test, S3-compatible storage
-  in development when configured (otherwise `tmp/uploads`, never the public web root), and AWS S3 in
-  production. Buckets are resolved per storage boundary and are required only for boundaries that
-  declare an attachment; none do yet. The always-on fakecloud service supports explicit
-  S3-compatible integration checks. CDN and public delivery URLs remain deferred.
+- **Storage & CDN**: Shrine uses memory storage in test and filesystem storage otherwise. An
+  opt-in RustFS profile supports explicit S3-compatible integration checks; production object
+  storage remains deferred.
 - **Surface mapping** (driven by ENV such as `TOP_CORPORATE_URL`, `ID_SERVICE_URL`, etc.): | Surface
   | Host examples | Namespace | Responsibilites |
   |---------|---------------|-----------|-----------------| | Top (marketing / preferences) |
@@ -182,9 +180,9 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - **FR-24**: OpenTelemetry instrumentation (`config/initializers/opentelemetry.rb`) must be active
   in production and optionally in development (when OTLP collector is reachable) to push traces to
   Tempo; spans must include hostnames to differentiate surfaces.
-- **FR-25**: Compose stack (PostgreSQL primaries/replicas, Valkey, fakecloud, Grafana/Loki/Tempo)
-  must stay reproducible for local dev; `Procfile.dev` orchestrates Rails with pnpm handling JS
-  tooling.
+- **FR-25**: Compose stack (PostgreSQL primaries/replicas, Valkey, optional RustFS,
+  Grafana/Loki/Tempo) must stay reproducible for local dev; `Procfile.dev` orchestrates Rails with
+  pnpm handling JS tooling.
 - **FR-26**: GitHub Actions integration pipeline (`integration.yml`) plus Lefthook pre-commit must
   run `bundle exec rubocop`, `erb_lint`, `pnpm run lint`, `pnpm run check`, and `bin/rails test`.
 - **FR-27**: Health dashboards (Grafana) must visualize request rate, OTP/passkey errors, and
@@ -225,9 +223,9 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - Required ENV keys: host mappings (e.g., `TOP_CORPORATE_URL`, `ID_SERVICE_URL`, `API_STAFF_URL`),
   downstream edge hosts (`EDGE_*`), Redis URLs (`REDIS_RACK_ATTACK_URL`, `REDIS_SESSION_URL`),
   Cloudflare Turnstile secret, JWT private/public keys, SMS provider selector, storage credentials
-  (literal fake values against fakecloud), OTLP endpoint.
-- `compose.yaml` publishes the fakecloud AWS endpoint on loopback port 4566 by default; the port is
-  configurable through `FAKECLOUD_HOST_PORT` in `.env`.
+  (when the optional RustFS profile is used), OTLP endpoint.
+- The devcontainer Compose override publishes the optional RustFS API and console on loopback
+  ports 9000/9001 by default; both ports are configurable through `.env`.
 - Foreman/Procfile required for multi-process dev; CI uses GitHub Actions runners with
   PostgreSQL/Valkey services.
 

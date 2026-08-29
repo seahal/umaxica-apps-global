@@ -31,8 +31,8 @@ end
 # (preference_refresh_token_transport.rb:71-77) exactly like the access-JWT
 # bug did, but its *caller* gates the result through `valid_refresh_preference?`
 # (preference_refresh_token_transport.rb:21-24), which already checks
-# `discarded_at` (which carries the token TTL; see SingleUseToken
-# `expires_at_column: :discarded_at`) and `!replay?` (used_at present) and
+# `expires_at` (alias for discarded_at, app_preference.rb `alias_attribute
+# :expires_at, :discarded_at`) and `!replay?` (used_at present) and
 # `!revoked?` (preference_base.rb:870-876) before the record is ever
 # returned as usable. `PreferenceSignOutRotation#retire_preference_after_sign_out!`
 # sets exactly `used_at` and `discarded_at` to now, so a retired row fails

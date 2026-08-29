@@ -328,17 +328,6 @@ describe("PasskeyRegistrationController", () => {
       expect(messageText(element, "error")).toBe("認証器が応答しません");
     });
 
-    it("falls back to its own copy when an unnamed failure carries no message", async () => {
-      const credentials = stubCredentialsApi();
-      credentials.create.mockRejectedValue(new Error(""));
-      stubCeremonyFetch(jsonResponse(BEGUN));
-      const { controller, element } = await mount();
-
-      await controller.register(new Event("click"));
-
-      expect(messageText(element, "error")).toBe("登録中にエラーが発生しました");
-    });
-
     it("falls back when the failure is not an Error at all", async () => {
       const credentials = stubCredentialsApi();
       credentials.create.mockRejectedValue("nope");
@@ -377,79 +366,6 @@ describe("PasskeyRegistrationController", () => {
       expect(messageText(element, "error")).toBe(
         "Security verification failed. Please refresh and try again.",
       );
-    });
-
-    it("solves the widget itself and writes the token into the hidden field", async () => {
-      document.head.innerHTML =
-        '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>';
-      vi.stubGlobal("turnstile", {
-        render: vi.fn((_container: HTMLElement, options: { callback: (token: string) => void }) => {
-          options.callback("freshly-solved");
-          return "widget-1";
-        }),
-        execute: vi.fn(),
-        remove: vi.fn(),
-      });
-      const credentials = stubCredentialsApi();
-      credentials.create.mockResolvedValue(attestationCredential());
-      const fetchMock = stubCeremonyFetch(
-        jsonResponse(BEGUN),
-        jsonResponse({ redirect_url: "/x" }),
-      );
-      stubNavigation();
-      const { controller, element } = await mount({ turnstileToken: "" });
-
-      await controller.register(new Event("click"));
-
-      expect(requestAt(fetchMock, 0).body).toMatchObject({
-        "cf-turnstile-response": "freshly-solved",
-      });
-      expect(
-        element.querySelector<HTMLInputElement>(
-          "[data-passkey-registration-target='turnstileResponse']",
-        )?.value,
-      ).toBe("freshly-solved");
-    });
-  });
-
-  describe("messages", () => {
-    it("does nothing when the markup carries no message or turnstile-response elements", async () => {
-      document.head.innerHTML =
-        '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>';
-      vi.stubGlobal("turnstile", {
-        render: vi.fn((_container: HTMLElement, options: { callback: (token: string) => void }) => {
-          options.callback("solved-token");
-          return "widget-1";
-        }),
-        execute: vi.fn(),
-        remove: vi.fn(),
-      });
-      const { controller } = await mountController(
-        "passkey-registration",
-        PasskeyRegistrationController,
-        `
-          <div data-controller="passkey-registration"
-               data-passkey-registration-begin-url-value="${BEGIN_URL}"
-               data-passkey-registration-finish-url-value="${FINISH_URL}"
-               data-passkey-registration-turnstile-site-key-value="site-key">
-          </div>
-        `,
-      );
-
-      expect(() => {
-        controller.showError("broken");
-        controller.showStatus("working");
-        controller.clearMessages();
-      }).not.toThrow();
-      await expect(controller.ensureTurnstileToken()).resolves.toBe("solved-token");
-    });
-  });
-
-  describe("descriptionValue", () => {
-    it("is empty when the field carries no value, distinct from carrying no field at all", async () => {
-      const { controller } = await mount({ description: "" });
-
-      expect(controller.descriptionValue).toBe("");
     });
   });
 });

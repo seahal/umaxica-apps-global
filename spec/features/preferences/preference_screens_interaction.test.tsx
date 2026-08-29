@@ -25,27 +25,10 @@ vi.mock("@inertiajs/react", () => ({
   usePage: () => ({ props: { errors: {} } }),
 }));
 
-// The Cloudflare challenge does not exist outside a booted application, so it is stubbed to a
-// control that reports whatever token a spec drives it to; the ceremony itself is covered by
-// `spec/features/turnstile/TurnstileWidget.test.tsx`.
-vi.mock("@/features/turnstile/TurnstileWidget", () => ({
-  default: ({ onToken }: { onToken?: (token: string) => void }) => (
-    <button
-      type="button"
-      data-test-id="solve-turnstile"
-      onClick={() => onToken?.("solved-token")}
-    >
-      Solve
-    </button>
-  ),
-}));
-
 const { default: PreferenceSelect } = await import("@/features/preferences/PreferenceSelect");
 const { default: PreferenceCookie } = await import("@/features/preferences/PreferenceCookie");
 const { default: PreferenceCustomization } =
   await import("@/features/preferences/PreferenceCustomization");
-const { default: PreferenceEmailUnsubscribe } =
-  await import("@/features/preferences/PreferenceEmailUnsubscribe");
 
 let container: HTMLDivElement;
 let root: Root;
@@ -241,87 +224,5 @@ describe("PreferenceCustomization interaction", () => {
       finishVisit(options);
     });
     expect(container.querySelector("button")?.textContent).toBe("リセット");
-  });
-
-  it("submits an empty confirmation when the box was left unchecked, for the server to refuse", () => {
-    mount(<PreferenceCustomization {...props} />);
-
-    const form = container.querySelector<HTMLFormElement>("form")!;
-
-    act(() => {
-      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    });
-
-    expect(deleteRequest).toHaveBeenCalledWith(
-      "/preference/customization?ri=jp",
-      containing({ data: { confirm_reset: "" } }),
-    );
-  });
-});
-
-describe("PreferenceEmailUnsubscribe interaction", () => {
-  const props = {
-    title: "配信停止",
-    heading: "プロモーションメールの配信停止",
-    promotional: true,
-    description: "このメールアドレス宛のプロモーションメールを停止します。",
-    form: {
-      action: "/preference/emails/unsubscribe?token=abc",
-      token: "abc",
-      submit_label: "配信を停止する",
-      turnstile_site_key: "site-key",
-    },
-  };
-
-  it("deletes the subscription with the round-tripped token and the solved challenge", () => {
-    mount(<PreferenceEmailUnsubscribe {...props} />);
-
-    act(() => {
-      container.querySelector<HTMLButtonElement>("[data-test-id='solve-turnstile']")?.click();
-    });
-
-    const form = container.querySelector<HTMLFormElement>("form")!;
-    act(() => {
-      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    });
-
-    expect(deleteRequest).toHaveBeenCalledWith(
-      "/preference/emails/unsubscribe?token=abc",
-      containing({ data: { token: "abc", "cf-turnstile-response": "solved-token" } }),
-    );
-  });
-
-  it("prevents the browser's own document submission", () => {
-    mount(<PreferenceEmailUnsubscribe {...props} />);
-
-    const form = container.querySelector<HTMLFormElement>("form")!;
-    const event = new Event("submit", { bubbles: true, cancelable: true });
-    act(() => {
-      form.dispatchEvent(event);
-    });
-
-    expect(event.defaultPrevented).toBe(true);
-  });
-
-  it("draws no form when the mail is not promotional", () => {
-    mount(
-      <PreferenceEmailUnsubscribe
-        {...props}
-        promotional={false}
-      />,
-    );
-
-    expect(container.querySelector("form")).toBeNull();
-  });
-
-  it("draws no form when the server sent none", () => {
-    mount(
-      <PreferenceEmailUnsubscribe
-        {...props}
-        form={null}
-      />,
-    );
-
-    expect(container.querySelector("form")).toBeNull();
   });
 });

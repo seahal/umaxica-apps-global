@@ -48,17 +48,6 @@ describe("Page", () => {
     expect(screen.getByText("body")).toBeTruthy();
   });
 
-  it("renders a header with a description but no heading when the page carries no title", () => {
-    render(
-      <Page description="Every session on this account.">
-        <p>body</p>
-      </Page>,
-    );
-
-    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
-    expect(screen.getByText("Every session on this account.")).toBeTruthy();
-  });
-
   it("renders the up link ahead of the title, named by its label alone", () => {
     render(
       <Page

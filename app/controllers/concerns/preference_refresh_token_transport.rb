@@ -126,7 +126,7 @@ module PreferenceRefreshTokenTransport
           preference_connection_owner.transaction do
             ensure_preference_reference_defaults!
             @preferences = preference_class.create!(
-              discarded_at: expires_at,
+              expires_at: expires_at,
               jti: JitSecurityJwtJtiGenerator.generate,
               binding_method_id: preference_binding_method_class::LEGACY,
               dbsc_status_id: preference_dbsc_status_class::NOTHING,
@@ -165,7 +165,7 @@ module PreferenceRefreshTokenTransport
     raise PreferenceBase::ResolutionError, "new preference refresh token is missing" if generated_token.blank?
 
     @refresh_token_value = generated_token
-    set_refresh_token_cookie(generated_token, preference.discarded_at)
+    set_refresh_token_cookie(generated_token, preference.expires_at)
     set_preference_dbsc_cookie!(
       preference.dbsc_session_id,
       expires_at: preference_dbsc_cookie_expires_at(preference),
@@ -213,7 +213,7 @@ module PreferenceRefreshTokenTransport
     end
 
     new_token = rotated_preference.issued_refresh_token
-    new_expiry = rotated_preference.discarded_at
+    new_expiry = rotated_preference.expires_at
 
     @preferences = rotated_preference
     create_audit_log(
