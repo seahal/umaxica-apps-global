@@ -33,7 +33,6 @@ module Security
         app/services/group_management/create.rb
         app/services/group_management/update.rb
         app/services/webauthn/assertion_verifier.rb
-        app/services/webauthn/authenticator_name_resolver.rb
         app/services/webauthn/challenge_store.rb
         app/services/webauthn/registration_verifier.rb
       ).freeze

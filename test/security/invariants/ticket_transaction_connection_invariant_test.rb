@@ -25,7 +25,7 @@ module Security
       # transaction on ActiveRecord::Base.
       TICKET_TRANSACTION_SERVICES = %w(
         app/services/oidc_token_exchange_coordinator.rb
-        app/services/oidc_refresh_token_issuer.rb
+        app/operations/oidc_refresh_token_issuer.rb
       ).freeze
 
       test "ticket connections are distinct from the primary connection" do

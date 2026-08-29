@@ -55,6 +55,47 @@ class ObjectPlacementTest < Minitest::Test
                  "(see value-object-boundaries.mdc):\n#{offenders.join("\n")}"
   end
 
+  # Suffixes that name a state change. A Service orchestrates; an object that performs one write
+  # is not a service, and app/services held 50 of them.
+  WRITE_SIDE_SUFFIXES = %w(
+    issuer committer purger revoker recorder writer finalizer creator provisioner anonymizer
+    invalidator
+  ).freeze
+
+  # Token minters keep the Issuer name and live in app/lib: they build and sign a payload and
+  # persist nothing, so the suffix describes the domain act rather than a state change. Decided in
+  # memos/2026-08-29-object-placement-inventory.md after reading each Issuer individually.
+  TOKEN_MINTERS = %w(
+    app/lib/jump_rt_issuer.rb
+    app/lib/oidc_id_token_issuer.rb
+    app/lib/identity_step_up_ceremony_result_issuer.rb
+  ).freeze
+
+  # ChronicleRecorder carries the Recorder suffix and records nothing: its whole surface is
+  # sanitize, retention_policy_for, erasable_at_for, and log_payload, with no writes anywhere. It
+  # is a decision-and-transform helper that app/models/chronicle.rb legitimately calls, so moving
+  # it to the write-side root would invent a dependency that does not exist. #869 renames it.
+  WRITE_SIDE_EXEMPT = ["app/services/chronicle_recorder.rb"].freeze
+
+  def test_write_side_objects_are_not_in_app_services
+    offenders =
+      ruby_files_under("app/services").reject { |path| WRITE_SIDE_EXEMPT.include?(path) }.select do |path|
+        WRITE_SIDE_SUFFIXES.include?(File.basename(path, ".rb").split("_").last)
+      end
+
+    assert_empty offenders,
+                 "app/services holds objects that perform a state change " \
+                 "(see value-object-boundaries.mdc):\n#{offenders.join("\n")}"
+  end
+
+  def test_token_minters_stay_out_of_the_write_side_root
+    misplaced = TOKEN_MINTERS.reject { |path| File.exist?(File.join(REPOSITORY_ROOT, path)) }
+
+    assert_empty misplaced,
+                 "Token minters build and sign a payload and persist nothing, so they belong in " \
+                 "app/lib:\n#{misplaced.join("\n")}"
+  end
+
   # app/validators is the one root Rails itself gives a meaning: ActiveModel wires its contents
   # into `validates`. A protocol or request check filed here is not that, and would never be
   # invoked by the framework.
@@ -84,7 +125,10 @@ class ObjectPlacementTest < Minitest::Test
     "app/consumers" => %w(consumer),
     "app/forms" => %w(form),
     "app/notifiers" => %w(notifier),
-    "app/operations" => %w(operation),
+    "app/operations" => %w(
+      operation command issuer committer purger revoker recorder writer finalizer creator
+      provisioner anonymizer invalidator guard authority enforcer
+    ),
     "app/presenters" => %w(presenter),
     "app/queries" => %w(query inventory locator),
     "app/resolvers" => %w(resolver),
@@ -156,6 +200,29 @@ class ObjectPlacementTest < Minitest::Test
     assert_empty missing,
                  "PENDING names files that no longer exist, so this guard no longer checks " \
                  "them:\n#{missing.join("\n")}"
+  end
+
+  # Several security guards pin a boundary by reading a source file at a hardcoded path. A move
+  # that leaves one behind raises Errno::ENOENT from inside an unrelated test, which is a slow and
+  # confusing way to find out - it is how #868 discovered it had broken
+  # identity_authority_inversion_guard_test. Only paths that are actually read are checked;
+  # allowlists naming a path that must not exist are a different thing and are left alone.
+  def test_no_hardcoded_path_points_at_a_missing_file
+    sources = Dir.glob(File.join(REPOSITORY_ROOT, "{test,config,lib}/**/*.rb"))
+    offenders =
+      sources.flat_map do |source|
+        relative = source.delete_prefix("#{REPOSITORY_ROOT}/")
+        next [] if relative == "test/tooling/object_placement_test.rb"
+
+        File.read(source).lines.grep(/Rails\.root\.join|file_content\(/).flat_map do |line|
+          line.scan(%r{\bapp/[a-z_]+/[a-z_0-9/]+\.rb\b}).filter_map do |path|
+            "#{relative} reads #{path}, which does not exist" unless File.exist?(File.join(REPOSITORY_ROOT, path))
+          end
+        end
+      end
+
+    assert_empty offenders,
+                 "A hardcoded source path no longer resolves:\n#{offenders.join("\n")}"
   end
 
   private

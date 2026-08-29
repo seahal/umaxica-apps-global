@@ -47,7 +47,7 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
 
     assert_includes auth_base, "AcmeRefreshTokenIssuer.call(refresh_token: refresh_plain)"
 
-    sign_service = file_content("app/services/sign_refresh_token_issuer.rb")
+    sign_service = file_content("app/operations/sign_refresh_token_issuer.rb")
 
     # rubocop:disable I18n/RailsI18n/DecorateString
     assert_includes sign_service, "Compatibility namespace. Target-path refresh authority is acme/www."
