@@ -29,9 +29,9 @@ module Base
               start_authorization_ceremony!
             end
           end
-        rescue OidcAuthorizeRequestValidator::InvalidScope => e
+        rescue OidcAuthorizeRequestResolver::InvalidScope => e
           render json: { error: "invalid_scope", error_description: e.message }, status: :bad_request
-        # OidcAuthorizeRequestValidator raises ArgumentError with spec-level request
+        # OidcAuthorizeRequestResolver raises ArgumentError with spec-level request
         # descriptions ("scope must include openid", "state is required"), and the registry
         # errors are equally spec-defined. RFC 6749 section 4.1.2.1 expects these in
         # error_description and they disclose nothing about stored data.
@@ -54,7 +54,7 @@ module Base
         private
 
         def validate_authorization_request!(params_hash = authorize_params)
-          @validated_client = OidcAuthorizeRequestValidator.call(
+          @validated_client = OidcAuthorizeRequestResolver.call(
             params: params_hash, resource: current_visitor, resource_type: resource_type,
           )
         end

@@ -28,6 +28,7 @@ class ObjectPlacementTest < Minitest::Test
     "query" => "app/queries",
     "resolver" => "app/resolvers",
     "serializer" => "app/serializers",
+    "validator" => "app/validators",
   }.freeze
 
   # Files that still sit in the wrong root, each with the issue that moves it. Entries are removed
@@ -51,6 +52,20 @@ class ObjectPlacementTest < Minitest::Test
 
     assert_empty offenders,
                  "Filed under a root that does not own the role suffix " \
+                 "(see value-object-boundaries.mdc):\n#{offenders.join("\n")}"
+  end
+
+  # app/validators is the one root Rails itself gives a meaning: ActiveModel wires its contents
+  # into `validates`. A protocol or request check filed here is not that, and would never be
+  # invoked by the framework.
+  def test_validators_are_active_model_validators
+    offenders =
+      ruby_files_under("app/validators").reject do |path|
+        File.read(File.join(REPOSITORY_ROOT, path)).match?(/<\s*ActiveModel::(Each)?Validator\b/)
+      end
+
+    assert_empty offenders,
+                 "app/validators holds files that are not ActiveModel validators " \
                  "(see value-object-boundaries.mdc):\n#{offenders.join("\n")}"
   end
 

@@ -4,7 +4,7 @@
 require "test_helper"
 # require "helpers/global_test_support"
 
-class DbscProofValidatorTest < ActiveSupport::TestCase
+class DbscProofVerifierTest < ActiveSupport::TestCase
   # Builds a validator whose `proof` is signed by `key` with `algorithm`, so
   # verify_signature exercises the real JWT path against the matching key.
   def validator_for(key, algorithm)
@@ -13,7 +13,7 @@ class DbscProofValidatorTest < ActiveSupport::TestCase
       { "jti" => "c", "aud" => "https://test.host/x", "iat" => Time.current.to_i },
       key, algorithm, { typ: "dbsc+jwt", jwk: public_jwk },
     )
-    DbscProofValidator.new(
+    DbscProofVerifier.new(
       proof: proof, challenge: "c", challenge_issued_at: Time.current,
     )
   end
@@ -63,7 +63,7 @@ class DbscProofValidatorTest < ActiveSupport::TestCase
       { typ: "dbsc+jwt", jwk: public_jwk, alg: "eS256" },
     )
 
-    result = DbscProofValidator.call(proof: proof, challenge: "c", challenge_issued_at: Time.current)
+    result = DbscProofVerifier.call(proof: proof, challenge: "c", challenge_issued_at: Time.current)
 
     assert_not result.ok
     assert_equal "invalid_algorithm", result.error_code

@@ -35,17 +35,17 @@ the name. None of these directories is known to Rails itself: outside `app/model
 | Root | Tier | Allowed suffixes | Role |
 | --- | --- | --- | --- |
 | `app/services` | community | `Service`, `Coordinator` | orchestrates models and aggregates; last resort |
-| `app/operations` | gem (Trailblazer) | `Operation`, `Command`, `Issuer`, `Committer`, `Purger`, `Revoker`, `Recorder`, `Writer`, `Finalizer`, `Creator`, `Provisioner`, `Anonymizer`, `Invalidator` | write side: performs a state change |
-| `app/queries` | community | `Query`, `Inventory`, `Locator` | reads data, never writes |
+| `app/operations` | gem (Trailblazer) | `Operation`, `Command`, `Issuer`, `Committer`, `Purger`, `Revoker`, `Recorder`, `Writer`, `Finalizer`, `Creator`, `Provisioner`, `Anonymizer`, `Invalidator`, `Guard`, `Authority`, `Enforcer` | write side: performs a state change |
+| `app/queries` | community | `Query`, `Inventory` | reads data, never writes |
 | `app/resolvers` | repo | `Resolver` | derives a value from one or more sources |
-| `app/policies` | gem (Pundit) | `Policy`, `Guard`, `Authority` | returns a decision, no side effects |
+| `app/policies` | gem (Pundit) | `Policy` | returns a decision, no side effects |
 | `app/values` | community | `Value` (target), `Result`, grandfathered names | immutable domain value |
 | `app/serializers` | gem (AMS, jsonapi-serializer) | `Serializer` | shapes a wire payload |
 | `app/presenters` | community | `Presenter` | shapes values for a view |
 | `app/forms` | community | `Form` | input plus validation |
 | `app/validators` | community | `Validator` | `ActiveModel::EachValidator` subclasses only |
 | `app/adapters` | community | `Adapter`, `Client`, `Factory`, `Verifier` | boundary with an external system |
-| `app/lib` | repo | `Port`, `Codec`, `Encoder`, `Decoder`, `Digest` | framework-agnostic primitives and hexagonal ports |
+| `app/lib` | repo | `Port`, `Codec`, `Encoder`, `Decoder`, `Digest`, `Verifier` | framework-agnostic primitives and hexagonal ports |
 | `app/consumers` | gem (Karafka) | `Consumer` | consumes a message |
 | `app/subscribers` | community | `Subscriber` | subscribes to an `ActiveSupport::Notifications` event |
 | `app/notifiers` | gem (Noticed) | `Notifier` | delivers a notification to a person |
@@ -58,6 +58,23 @@ Anchoring examples that already comply:
 - `app/policies/avatar_permission_policy.rb`
 - `app/forms/sign/app/settings/withdrawal/deactivate_form.rb`
 - `app/subscribers/csp_violation_subscriber.rb`
+
+### Suffixes that were removed, and why
+
+`Guard`, `Authority`, and `Locator` were first written into this table under `app/policies` and
+`app/queries`, both of which are defined as having no side effects. The code contradicted that
+immediately: `BaseSelectorBootstrapAuthority` runs `create` and `find_or_create_by` inside a
+transaction, `SignUpEmailPendingGuard` takes a lock and saves, `DpopJtiReplayGuard.record!`
+persists a replay entry, `SignRiskEnforcer` exposes `revoke!` and `require_step_up!`, and both
+`*Locator` classes expose `issue!`, `rotate!`, and `clear!`.
+
+Rather than let the names describe the wrong thing, `Guard`, `Authority`, and `Enforcer` moved to
+`app/operations`, where what they do is what the root means. `Locator` was dropped entirely: a
+locator that writes is an operation, and a locator that does not is a query.
+
+`Validator` is reserved for `app/validators` because Rails owns that root - ActiveModel wires its
+contents into `validates`. Verification of a protocol payload or a request is a different job and
+carries `Verifier`.
 
 ### Flat and nested roots
 
@@ -308,7 +325,11 @@ re-litigated per file.
   known at boot.
 - **Verifiers** (`*_verifier.rb`) go to `app/adapters` when they verify an external party's payload
   — already true of `app/adapters/external_authentication/apple_notification_verifier.rb` — and to
-  `app/lib` when they are pure cryptography with no external party.
+  `app/lib` when they verify a credential presented by the caller.
+  `app/lib/dpop_proof_verifier.rb` is a deliberate exception to `app/lib` holding no writes: it
+  records the proof's `jti` through `DpopJtiReplayGuard` as part of verifying it. Replay protection
+  is only meaningful when the check and the record are one step; splitting them opens the window
+  the check exists to close.
 
 ## Patterns this repository does not use
 

@@ -4,7 +4,7 @@
 # DBSC registration/refresh paths and audiences are a device-binding contract, not
 # ordinary navigation URLs. The browser registers a session against the advertised
 # `path` and then every proof JWT's `aud` claim must match the endpoint exactly
-# (see DbscProofValidator#validate_claims, which rejects on `audience_mismatch`).
+# (see DbscProofVerifier#validate_claims, which rejects on `audience_mismatch`).
 #
 # PreferenceGlobal#default_url_options merges per-request context params
 # (ri/lx/tz/ct/cu/...) into every generated URL. Left unstripped, the DBSC `path`

@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-module OidcRedirectUriValidator
+module OidcRedirectUriPolicy
   module_function
 
   def valid_redirect_uri?(client, uri, resource_type: nil)

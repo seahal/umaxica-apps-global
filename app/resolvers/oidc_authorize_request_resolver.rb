@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class OidcAuthorizeRequestValidator < ApplicationService
+class OidcAuthorizeRequestResolver < ApplicationService
   class InvalidScope < ArgumentError; end
 
   ValidatedRequest = Data.define(:client, :scope)

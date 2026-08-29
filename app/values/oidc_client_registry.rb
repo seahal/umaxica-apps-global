@@ -86,12 +86,12 @@ module OidcClientRegistry
   def valid_redirect_uri?(client_id, uri, resource_type: nil)
     client = find(client_id)
 
-    OidcRedirectUriValidator.valid_redirect_uri?(client, uri, resource_type: resource_type)
+    OidcRedirectUriPolicy.valid_redirect_uri?(client, uri, resource_type: resource_type)
   end
 
   def valid_post_logout_redirect_uri?(client_id:, uri:, resource_type:)
     client = find(client_id)
-    return false unless OidcRedirectUriValidator.valid_post_logout_redirect_uri?(client, uri)
+    return false unless OidcRedirectUriPolicy.valid_post_logout_redirect_uri?(client, uri)
 
     # Registered post_logout URIs mix all three realms in one list; a logout on
     # one surface must not redirect to another surface's host.

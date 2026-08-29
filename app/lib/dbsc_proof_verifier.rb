@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # Validates the common DBSC JWT proof envelope before a service mutates state.
-class DbscProofValidator
+class DbscProofVerifier
   ALLOWED_ALGORITHMS = %w(ES256 RS256).freeze
   # W3C DBSC permits RSA, but a short RSA modulus is trivially factorable and
   # would silently weaken the device binding. Reject anything below the

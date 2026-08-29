@@ -152,7 +152,7 @@ class DbscRegistrationServiceTest < ActiveSupport::TestCase
   # secret, so whoever registered it could mint valid proofs from any device and
   # the session would no longer be device-bound.
   #
-  # Two independent checks reject this today: DbscProofValidator::ALLOWED_ALGORITHMS
+  # Two independent checks reject this today: DbscProofVerifier::ALLOWED_ALGORITHMS
   # excludes HMAC, and DbscRecordAdapter::ASYMMETRIC_KEY_TYPES excludes "oct".
   # The algorithm gate runs first, so that is the code asserted here; the
   # key-type contract is covered directly in the record adapter test. Both are

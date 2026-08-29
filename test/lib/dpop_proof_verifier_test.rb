@@ -5,7 +5,7 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 module Dpop
-  class ProofValidatorTest < ActiveSupport::TestCase
+  class ProofVerifierTest < ActiveSupport::TestCase
     setup do
       ClientDpopProofState.delete_all
     end
@@ -28,7 +28,7 @@ module Dpop
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api")
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -40,7 +40,7 @@ module Dpop
     end
 
     test "missing proof returns error" do
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: nil,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -51,7 +51,7 @@ module Dpop
     end
 
     test "malformed proof returns error" do
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: "not.a.jwt",
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -66,7 +66,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, private_key, "ES256", { "typ" => "jwt", "jwk" => jwk })
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -82,7 +82,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, rsa, "RS256", { "typ" => "dpop+jwt", "jwk" => jwk })
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -100,7 +100,7 @@ module Dpop
                   "jti" => SecureRandom.uuid, }
       proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk, "alg" => "eS256" })
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -115,7 +115,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt" })
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -131,7 +131,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -145,7 +145,7 @@ module Dpop
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "POST", uri: "http://example.com/api")
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -159,7 +159,7 @@ module Dpop
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/other")
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -173,7 +173,7 @@ module Dpop
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", iat: Time.current.to_i - 120)
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -188,7 +188,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -202,7 +202,7 @@ module Dpop
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", ath: "wrong_ath")
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -219,7 +219,7 @@ module Dpop
       ath = JitSecurityJwtThumbprintCalculator.ath(access_token)
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", ath: ath)
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -234,7 +234,7 @@ module Dpop
       nonce = DpopNonceService.generate
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", nonce: nonce)
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -248,7 +248,7 @@ module Dpop
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", nonce: "missing")
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -263,7 +263,7 @@ module Dpop
       jti = SecureRandom.uuid
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", jti: jti)
 
-      first = DpopProofValidator.new(
+      first = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -272,7 +272,7 @@ module Dpop
       assert_predicate first, :valid?
       assert_equal 1, ClientDpopProofState.where(jti: jti).count
 
-      replay = DpopProofValidator.new(
+      replay = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -288,7 +288,7 @@ module Dpop
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", jti: jti)
 
       assert_no_difference -> { ClientDpopProofState.count } do
-        first = DpopProofValidator.new(
+        first = DpopProofVerifier.new(
           proof_jwt: proof,
           request_method: "GET",
           request_uri: "http://example.com/api",
@@ -298,7 +298,7 @@ module Dpop
         assert_predicate first, :valid?
 
         # Same proof again still validates because uniqueness is not tracked.
-        second = DpopProofValidator.new(
+        second = DpopProofVerifier.new(
           proof_jwt: proof,
           request_method: "GET",
           request_uri: "http://example.com/api",
@@ -314,7 +314,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -331,7 +331,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, other_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
 
-      result = DpopProofValidator.new(
+      result = DpopProofVerifier.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",

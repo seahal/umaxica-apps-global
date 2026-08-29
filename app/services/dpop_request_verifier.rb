@@ -28,7 +28,7 @@ class DpopRequestVerifier
 
     # Per-request API access must consume the proof jti. cnf.jkt + ath bind the
     # proof to the token, but they do not stop replay of a stolen proof.
-    proof_result = DpopProofValidator.new(
+    proof_result = DpopProofVerifier.new(
       proof_jwt: @proof_jwt,
       request_method: @request_method,
       request_uri: @request_uri,

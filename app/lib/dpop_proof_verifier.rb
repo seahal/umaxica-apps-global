@@ -3,7 +3,7 @@
 
 require "jwt"
 
-class DpopProofValidator
+class DpopProofVerifier
   SUPPORTED_ALGORITHMS = %w(ES256 ES384).freeze
   IAT_LEEWAY_SECONDS = 60
 
