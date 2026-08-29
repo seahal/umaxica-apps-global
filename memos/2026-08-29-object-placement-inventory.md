@@ -87,12 +87,14 @@ disagree with this memo.
   `JumpRtIssuer`, `OidcIdTokenIssuer` and `IdentityStepUpCeremonyResultIssuer` only build and sign a
   payload and persist nothing. The latter are primitives, not operations, and belong in `app/lib`. A
   bulk move keyed on the `Issuer` suffix would have put them in the wrong root.
-- **"14 stores" (#867) is three different things.** Seven `*_replay_store` files pair
-  `.for(surface)` dispatch with `create_transaction!` / `find_transaction!`. Three
-  `*_candidate_store` files are genuine keyed stores with a `store! / fetch! / consume! / delete`
-  lifecycle. `dpop_proof_state_store.rb` is neither: its whole body is a `case` returning an
-  ActiveRecord class, which makes it a Resolver whose suffix is simply wrong.
-  `turnstile_replay_store.rb` is a single write (`consume!`), so it is an Operation.
+- **"14 stores" (#867) is four different things**, and the claim that all 14 wrap ActiveRecord is
+  itself wrong — see `memos/2026-08-29-ceremony-store-diagnosis.md`, which supersedes this entry.
+  Originally recorded as three: Seven `*_replay_store` files pair `.for(surface)` dispatch with
+  `create_transaction!` / `find_transaction!`. Three `*_candidate_store` files are genuine keyed
+  stores with a `store! / fetch! / consume! / delete` lifecycle. `dpop_proof_state_store.rb` is
+  neither: its whole body is a `case` returning an ActiveRecord class, which makes it a Resolver
+  whose suffix is simply wrong. `turnstile_replay_store.rb` is a single write (`consume!`), so it is
+  an Operation.
 - **"4 validators" was wrong; there are 3** — `dbsc_proof_validator.rb`, `dpop_proof_validator.rb`,
   `oidc_authorize_request_validator.rb`.
 
