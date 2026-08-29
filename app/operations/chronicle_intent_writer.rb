@@ -21,7 +21,7 @@ class ChronicleIntentWriter < ChronicleApplicationService
   end
 
   def call
-    policy = ChronicleRecorder.retention_policy_for(
+    policy = ChronicleRecordPolicy.retention_policy_for(
       action: action,
     )
 
@@ -35,7 +35,7 @@ class ChronicleIntentWriter < ChronicleApplicationService
         result: "intent",
         reason: reason,
         occurred_at: occurred_at,
-        erasable_at: ChronicleRecorder.erasable_at_for(policy: policy, occurred_at: occurred_at),
+        erasable_at: ChronicleRecordPolicy.erasable_at_for(policy: policy, occurred_at: occurred_at),
         request_id: request_id,
         ip_address: ip_address,
         user_agent: user_agent,

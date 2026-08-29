@@ -4,10 +4,10 @@
 require "test_helper"
 # require "helpers/global_test_support"
 
-class ChronicleRecorderTest < ActiveSupport::TestCase
+class ChronicleRecordPolicyTest < ActiveSupport::TestCase
   test "sanitize removes forbidden keys from hash" do
     input = { "token" => "secret", "browser" => "Chrome", "password" => "hunter2" }
-    result = ChronicleRecorder.sanitize(input)
+    result = ChronicleRecordPolicy.sanitize(input)
 
     assert_includes result, "browser"
     assert_not_includes result, "token"
@@ -16,70 +16,70 @@ class ChronicleRecorderTest < ActiveSupport::TestCase
 
   test "sanitize handles nested hashes" do
     input = { "nested" => { "token" => "secret", "ok" => "value" } }
-    result = ChronicleRecorder.sanitize(input)
+    result = ChronicleRecordPolicy.sanitize(input)
 
     assert_equal({ "ok" => "value" }, result["nested"])
   end
 
   test "sanitize filters arrays recursively" do
     input = [{ "token" => "secret" }, { "browser" => "Chrome" }]
-    result = ChronicleRecorder.sanitize(input)
+    result = ChronicleRecordPolicy.sanitize(input)
 
     assert_equal [{}, { "browser" => "Chrome" }], result
   end
 
   test "sanitize handles string values" do
     input = "Hello world"
-    result = ChronicleRecorder.sanitize(input)
+    result = ChronicleRecordPolicy.sanitize(input)
 
     assert_equal "Hello world", result
   end
 
   test "sanitize filters sensitive patterns in strings" do
     input = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJkYXRhIjoiMSJ9.xXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXX"
-    result = ChronicleRecorder.sanitize(input)
+    result = ChronicleRecordPolicy.sanitize(input)
 
     assert_includes result, "[FILTERED]"
   end
 
   test "sanitize_text returns nil for nil input" do
-    assert_nil ChronicleRecorder.sanitize_text(nil)
+    assert_nil ChronicleRecordPolicy.sanitize_text(nil)
   end
 
   test "sanitize_text sanitizes string" do
-    result = ChronicleRecorder.sanitize_text("Bearer token123")
+    result = ChronicleRecordPolicy.sanitize_text("Bearer token123")
 
     assert_includes result, "[FILTERED]"
   end
 
   test "retention_policy_code_for returns permanent for matching patterns" do
-    assert_equal "permanent", ChronicleRecorder.retention_policy_code_for("audit.export.2024")
-    assert_equal "permanent", ChronicleRecorder.retention_policy_code_for("record.deleted")
-    assert_equal "permanent", ChronicleRecorder.retention_policy_code_for("record.destroyed")
-    assert_equal "permanent", ChronicleRecorder.retention_policy_code_for("action.irreversible")
+    assert_equal "permanent", ChronicleRecordPolicy.retention_policy_code_for("audit.export.2024")
+    assert_equal "permanent", ChronicleRecordPolicy.retention_policy_code_for("record.deleted")
+    assert_equal "permanent", ChronicleRecordPolicy.retention_policy_code_for("record.destroyed")
+    assert_equal "permanent", ChronicleRecordPolicy.retention_policy_code_for("action.irreversible")
   end
 
   test "retention_policy_code_for returns security for rate_limit" do
-    assert_equal "security", ChronicleRecorder.retention_policy_code_for("rate_limit.exceeded")
-    assert_equal "security", ChronicleRecorder.retention_policy_code_for("csrf_detected")
+    assert_equal "security", ChronicleRecordPolicy.retention_policy_code_for("rate_limit.exceeded")
+    assert_equal "security", ChronicleRecordPolicy.retention_policy_code_for("csrf_detected")
   end
 
   test "retention_policy_code_for returns known action policies" do
-    assert_equal "ephemeral", ChronicleRecorder.retention_policy_code_for("auth.sign_in.succeeded")
-    assert_equal "ephemeral", ChronicleRecorder.retention_policy_code_for("auth.sign_out.succeeded")
-    assert_equal "security", ChronicleRecorder.retention_policy_code_for("auth.sign_in.failed")
-    assert_equal "compliance", ChronicleRecorder.retention_policy_code_for("auth.step_up.succeeded")
-    assert_equal "compliance", ChronicleRecorder.retention_policy_code_for("auth.aal.changed")
-    assert_equal "compliance", ChronicleRecorder.retention_policy_code_for("account.suspended")
-    assert_equal "compliance", ChronicleRecorder.retention_policy_code_for("chronicle.audit_incomplete")
+    assert_equal "ephemeral", ChronicleRecordPolicy.retention_policy_code_for("auth.sign_in.succeeded")
+    assert_equal "ephemeral", ChronicleRecordPolicy.retention_policy_code_for("auth.sign_out.succeeded")
+    assert_equal "security", ChronicleRecordPolicy.retention_policy_code_for("auth.sign_in.failed")
+    assert_equal "compliance", ChronicleRecordPolicy.retention_policy_code_for("auth.step_up.succeeded")
+    assert_equal "compliance", ChronicleRecordPolicy.retention_policy_code_for("auth.aal.changed")
+    assert_equal "compliance", ChronicleRecordPolicy.retention_policy_code_for("account.suspended")
+    assert_equal "compliance", ChronicleRecordPolicy.retention_policy_code_for("chronicle.audit_incomplete")
   end
 
   test "retention_policy_code_for defaults to security for unknown actions" do
-    assert_equal "security", ChronicleRecorder.retention_policy_code_for("unknown.action")
+    assert_equal "security", ChronicleRecordPolicy.retention_policy_code_for("unknown.action")
   end
 
   test "actor_payload returns nil values for blank actor" do
-    payload = ChronicleRecorder.actor_payload(nil)
+    payload = ChronicleRecordPolicy.actor_payload(nil)
 
     assert_nil payload[:actor_type]
     assert_nil payload[:actor_id]
@@ -87,7 +87,7 @@ class ChronicleRecorderTest < ActiveSupport::TestCase
 
   test "actor_payload extracts actor info" do
     client = clients(:one)
-    payload = ChronicleRecorder.actor_payload(client)
+    payload = ChronicleRecordPolicy.actor_payload(client)
 
     assert_equal "Client", payload[:actor_type]
     assert_predicate payload[:actor_id], :present?
@@ -95,7 +95,7 @@ class ChronicleRecorderTest < ActiveSupport::TestCase
 
   test "subject_payload extracts subject info" do
     visitor = visitors(:reserved_visitor)
-    payload = ChronicleRecorder.subject_payload(visitor)
+    payload = ChronicleRecordPolicy.subject_payload(visitor)
 
     assert_equal "Visitor", payload[:subject_type]
     assert_predicate payload[:subject_id], :present?
@@ -103,7 +103,7 @@ class ChronicleRecorderTest < ActiveSupport::TestCase
 
   test "log_payload builds complete payload" do
     client = clients(:one)
-    payload = ChronicleRecorder.log_payload(
+    payload = ChronicleRecordPolicy.log_payload(
       event: "test.event",
       event_uuid: "abc-123",
       request_id: "req-456",
@@ -124,7 +124,7 @@ class ChronicleRecorderTest < ActiveSupport::TestCase
   test "log_payload includes error info" do
     error = RuntimeError.new("Something broke")
     client = clients(:one)
-    payload = ChronicleRecorder.log_payload(
+    payload = ChronicleRecordPolicy.log_payload(
       event: "test.error",
       event_uuid: "abc-123",
       request_id: "req-456",
@@ -140,7 +140,7 @@ class ChronicleRecorderTest < ActiveSupport::TestCase
 
   test "sanitize preserves allowed digest keys" do
     input = { "session_id_digest" => "abc123", "token" => "secret" }
-    result = ChronicleRecorder.sanitize(input)
+    result = ChronicleRecordPolicy.sanitize(input)
 
     assert_includes result, "session_id_digest"
     assert_not_includes result, "token"
@@ -148,7 +148,7 @@ class ChronicleRecorderTest < ActiveSupport::TestCase
 
   test "sanitize filters reserved context keys" do
     input = { "request_id" => "123", "ip_address" => "127.0.0.1", "user_agent" => "Chrome", "custom" => "ok" }
-    result = ChronicleRecorder.sanitize(input)
+    result = ChronicleRecordPolicy.sanitize(input)
 
     assert_not_includes result, "request_id"
     assert_not_includes result, "ip_address"
@@ -169,37 +169,37 @@ class ChronicleRecorderTest < ActiveSupport::TestCase
       reason: "mfa_disabled",
     }
 
-    result = ChronicleRecorder.sanitize(input)
+    result = ChronicleRecordPolicy.sanitize(input)
 
     assert_equal({ "reason" => "mfa_disabled" }, result)
   end
 
   test "forbidden_key? detects sensitive keys" do
-    assert ChronicleRecorder.send(:forbidden_key?, "password")
-    assert ChronicleRecorder.send(:forbidden_key?, "PASSWORD")
-    assert ChronicleRecorder.send(:forbidden_key?, "token_value")
-    assert_not ChronicleRecorder.send(:forbidden_key?, "browser")
-    assert_not ChronicleRecorder.send(:forbidden_key?, "session_id_digest")
+    assert ChronicleRecordPolicy.send(:forbidden_key?, "password")
+    assert ChronicleRecordPolicy.send(:forbidden_key?, "PASSWORD")
+    assert ChronicleRecordPolicy.send(:forbidden_key?, "token_value")
+    assert_not ChronicleRecordPolicy.send(:forbidden_key?, "browser")
+    assert_not ChronicleRecordPolicy.send(:forbidden_key?, "session_id_digest")
   end
 
   test "sanitize_error_message truncates long messages" do
-    long = "." * (ChronicleRecorder::MAX_ERROR_MESSAGE_BYTES + 100)
-    result = ChronicleRecorder.send(:sanitize_error_message, long)
+    long = "." * (ChronicleRecordPolicy::MAX_ERROR_MESSAGE_BYTES + 100)
+    result = ChronicleRecordPolicy.send(:sanitize_error_message, long)
 
-    assert_operator result.bytesize, :<=, ChronicleRecorder::MAX_ERROR_MESSAGE_BYTES
-    assert_equal "." * ChronicleRecorder::MAX_ERROR_MESSAGE_BYTES, result
+    assert_operator result.bytesize, :<=, ChronicleRecordPolicy::MAX_ERROR_MESSAGE_BYTES
+    assert_equal "." * ChronicleRecordPolicy::MAX_ERROR_MESSAGE_BYTES, result
   end
 
   test "sanitize_error_message returns nil for blank" do
-    assert_nil ChronicleRecorder.send(:sanitize_error_message, "")
-    assert_nil ChronicleRecorder.send(:sanitize_error_message, nil)
+    assert_nil ChronicleRecordPolicy.send(:sanitize_error_message, "")
+    assert_nil ChronicleRecordPolicy.send(:sanitize_error_message, nil)
   end
 
   test "sanitize_string filters all sensitive patterns" do
     jwt_part = "eyJhbGciOiJIUzI1NiJ9.eyJkYXRhIjoiMSJ9." \
                "xXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXX"
     input = "Bearer #{jwt_part} and password=secret123"
-    result = ChronicleRecorder.send(:sanitize_string, input.dup)
+    result = ChronicleRecordPolicy.send(:sanitize_string, input.dup)
 
     assert_includes result, "[FILTERED]"
     assert_not_includes result, "password=secret123"

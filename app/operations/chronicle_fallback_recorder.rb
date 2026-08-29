@@ -24,7 +24,7 @@ class ChronicleFallbackRecorder < ChronicleApplicationService
   attr_reader :event, :event_uuid, :request_id, :action, :actor, :subject, :error, :manual_recovery_required
 
   def payload
-    ChronicleRecorder.log_payload(
+    ChronicleRecordPolicy.log_payload(
       event: event,
       event_uuid: event_uuid,
       request_id: request_id,

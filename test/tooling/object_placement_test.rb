@@ -71,15 +71,9 @@ class ObjectPlacementTest < Minitest::Test
     app/lib/identity_step_up_ceremony_result_issuer.rb
   ).freeze
 
-  # ChronicleRecorder carries the Recorder suffix and records nothing: its whole surface is
-  # sanitize, retention_policy_for, erasable_at_for, and log_payload, with no writes anywhere. It
-  # is a decision-and-transform helper that app/models/chronicle.rb legitimately calls, so moving
-  # it to the write-side root would invent a dependency that does not exist. #869 renames it.
-  WRITE_SIDE_EXEMPT = ["app/services/chronicle_recorder.rb"].freeze
-
   def test_write_side_objects_are_not_in_app_services
     offenders =
-      ruby_files_under("app/services").reject { |path| WRITE_SIDE_EXEMPT.include?(path) }.select do |path|
+      ruby_files_under("app/services").select do |path|
         WRITE_SIDE_SUFFIXES.include?(File.basename(path, ".rb").split("_").last)
       end
 
@@ -166,7 +160,7 @@ class ObjectPlacementTest < Minitest::Test
     "ChronicleResultWriter" => 869,
     "ChronicleInvalidator" => 869,
     "ChronicleFallbackRecorder" => 869,
-    "ChronicleRecorder" => 869,
+    "ChronicleRecordPolicy" => 869,
     # #869 - AdministrativeAccessLock.lock!/.unlock! called from a model concern
     "AdministrativeAccessLock" => 869,
   }.freeze

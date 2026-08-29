@@ -224,7 +224,7 @@ module Authentication
 
     # Regression for S-4: outbox payloads land in the chronicle DB and
     # must not embed secret_credentials. Context goes through
-    # ChronicleRecorder.sanitize, which filters forbidden keys.
+    # ChronicleRecordPolicy.sanitize, which filters forbidden keys.
     test "write sanitizes secret_credentials out of the outbox payload context" do
       invalid_event_id = "NONEXISTENT_SECRET_#{SecureRandom.hex(8).upcase}"
       ChronicleRecord.connected_to(role: :writing) do

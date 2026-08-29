@@ -20,6 +20,11 @@ is which**: `high` means the body was read during this audit, `med` means the si
 unambiguous and consistent, `low` means the file must be opened before it is moved. 30 rows are
 high, 165 med, 41 low.
 
+**Later corrections to this memo**, kept here rather than edited away:
+`memos/2026-08-29-ceremony-store-diagnosis.md` supersedes the store findings, and
+`memos/2026-08-29-chronicle-and-enforcement-write-dependencies.md` supersedes the dependency
+findings.
+
 The signal pass is a first cut, not a verdict. A `med` row is a hypothesis with evidence, and the
 issue that moves the file is responsible for confirming it.
 
@@ -208,11 +213,15 @@ policy with no writes at all.
 `VERIFIED_EMAIL_STATUSES` constant, not its behavior. The status lists are a value; extracting them
 removes the dependency without moving the guard at all.
 
-Four do not dissolve that way and are genuine violations. `ChronicleIntentWriter`,
-`ChronicleResultWriter`, and `ChronicleInvalidator` all write and are all called from
-`app/models/concerns/chronicle_capturable.rb`. `AdministrativeAccessLock.lock!` and `.unlock!` are
-called from `app/models/concerns/enforcement_case_applicable.rb:232` and `:264`, which is the same
-shape: a model concern invoking a write operation. #869 covers both.
+Four were recorded here as genuine violations of the same shape - a model concern invoking a write
+operation. **That was wrong on both counts**, and
+`memos/2026-08-29-chronicle-and-enforcement-write-dependencies.md` supersedes this paragraph.
+
+Neither site is a callback, which is how this memo and the issues described them. And they are not
+the same problem: the Chronicle writers write `Chronicle` rows, so the audit model is persisting its
+own records through extracted steps, while `AdministrativeAccessLock.lock!` is called from
+`EnforcementCase#apply!`, a use case implemented as a model method. Only the second is a layering
+problem, and the fix for it is to extract `apply!`, not to move a file.
 
 ## Full classification
 

@@ -108,11 +108,17 @@ and never back.
 When a model appears to need a service, the usual cause is that the object is not a service at all
 and is filed in the wrong root. Reclassify it before adding a dependency.
 
-**Known violation under migration:** `app/models/concerns/chronicle_capturable.rb` calls
-`ChronicleIntentWriter` from a model callback. This is a real inverted dependency, not a misfiling,
-and it is tracked separately because moving the firing point of audit writes must be reconciled with
-`adr/application-logging-boundary.md` and `docs/security/observability-boundary.md`. Do not copy
-this pattern.
+**Known deviations, both under review.** Neither is a callback, which is how they were first
+described; see `memos/2026-08-29-chronicle-and-enforcement-write-dependencies.md`.
+
+- `app/models/concerns/chronicle_capturable.rb` calls the Chronicle writers from an explicit
+  block-taking class method. Those operations write `Chronicle` rows, so this is the audit model
+  persisting its own records through extracted steps rather than a model pulling in a workflow.
+  Probably permitted; the open question is whether the API is still live at all.
+- `app/models/concerns/enforcement_case_applicable.rb` calls `AdministrativeAccessLock.lock!` from
+  `apply!`, which is a use case implemented as a model method: a state transition in a transaction
+  followed by side effects outside it. The dependency is a symptom; `apply!` itself belongs in
+  `app/operations`. Do not copy this pattern.
 
 ## Role definitions
 

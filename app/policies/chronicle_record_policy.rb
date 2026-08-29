@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class ChronicleRecorder < ChronicleApplicationService
+class ChronicleRecordPolicy
   FORBIDDEN_KEY_PATTERN =
     /
       password|passw|secret|secret_credential|raw_secret_credential|token|authorization|dpop|otp|totp|webauthn|recovery_code|
