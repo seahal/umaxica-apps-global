@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
+require "set"
 
 # Guards .agents/harnesses/rules/project/value-object-boundaries.mdc.
 #
@@ -70,6 +71,43 @@ class ObjectPlacementTest < Minitest::Test
     assert_empty offenders,
                  "Filed under a root that does not own the role suffix " \
                  "(see value-object-boundaries.mdc):\n#{offenders.join("\n")}"
+  end
+
+  # Constants defined under app/services that app/models still reaches for, each with the issue
+  # that resolves it. A Service orchestrates models, so this arrow must not exist.
+  MODEL_DEPENDENCIES_PENDING = {
+    # #869 - audit writes fired from a model callback, and the retention/sanitization helpers
+    # that sit in the same group
+    "ChronicleIntentWriter" => 869,
+    "ChronicleResultWriter" => 869,
+    "ChronicleInvalidator" => 869,
+    "ChronicleFallbackRecorder" => 869,
+    "ChronicleRecorder" => 869,
+    # #869 - AdministrativeAccessLock.lock!/.unlock! called from a model concern
+    "AdministrativeAccessLock" => 869,
+  }.freeze
+
+  def test_models_do_not_depend_on_app_services
+    defined_in_services =
+      ruby_files_under("app/services").to_set do |path|
+        path.delete_prefix("app/services/").delete_suffix(".rb").split(%r{[/_]}).map(&:capitalize).join
+      end
+
+    referenced =
+      ruby_files_under("app/models").flat_map do |path|
+        File.read(File.join(REPOSITORY_ROOT, path))
+          .gsub(/#.*/, "")
+          .scan(/\b[A-Z][A-Za-z0-9]+\b/)
+      end.to_set
+
+    offenders =
+      (defined_in_services & referenced)
+        .reject { |constant| MODEL_DEPENDENCIES_PENDING.key?(constant) }
+        .sort
+
+    assert_empty offenders,
+                 "app/models depends on constants defined under app/services " \
+                 "(see value-object-boundaries.mdc, Dependency direction):\n#{offenders.join("\n")}"
   end
 
   def test_pending_entries_still_exist

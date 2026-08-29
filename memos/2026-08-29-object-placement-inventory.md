@@ -167,18 +167,22 @@ all, so applying the suffix rule to them is a constant rename on top of a move.
 
 ## Dependency inversion
 
-16 constants defined under `app/services` are referenced from `app/models`:
+**Correction.** The counts first reported here were 16 and 12. Those greps matched comments as well
+as code. Stripping comment text gives **13 constants referenced from `app/models` and 10 from
+`app/models/concerns`**; `RetentionCrossDatabaseChildPurge`, `WithdrawalPersonalDataAnonymizer`, and
+`SignUpRequirementRegistry` appear only in prose and are not dependencies at all.
+
+The 13 code references from `app/models`:
 
 ```
 AdministrativeAccessLock AuthMethodGuard AuthenticationCredentialInventory
 ChronicleFallbackRecorder ChronicleIntentWriter ChronicleInvalidator ChronicleRecorder
 ChronicleResultWriter EnforcementIdentifierDigest IdentifierBlindIndex
 IdentityTelephoneCeremony OidcClientRegistry PromotionalEmailUnsubscribeToken
-RetentionCrossDatabaseChildPurge SignUpRequirementRegistry WithdrawalPersonalDataAnonymizer
 ```
 
-12 are referenced from `app/models/concerns` — the same list without `AuthMethodGuard`,
-`ChronicleRecorder`, `EnforcementIdentifierDigest`, and `RetentionCrossDatabaseChildPurge`.
+The 10 from `app/models/concerns` are the same list without `AuthMethodGuard`, `ChronicleRecorder`,
+and `EnforcementIdentifierDigest`.
 
 Reproduce with:
 
@@ -188,6 +192,9 @@ find app/services -name '*.rb' | sed 's#app/services/##;s#\.rb$##;s#/#_#g' \
 grep -rhoE '\b[A-Z][A-Za-z0-9]+\b' app/models --include='*.rb' | sort -u > /tmp/m.txt
 comm -12 /tmp/svc.txt /tmp/m.txt
 ```
+
+That reproduction still counts comments. Pipe each file through `sed 's/#.*//'` first for the
+code-only figures quoted above.
 
 Most of these are not services, so the inverted arrow is an artifact of placement and disappears
 when the object moves: `IdentifierBlindIndex` and `EnforcementIdentifierDigest` are HMAC primitives
@@ -199,9 +206,11 @@ policy with no writes at all.
 `VERIFIED_EMAIL_STATUSES` constant, not its behavior. The status lists are a value; extracting them
 removes the dependency without moving the guard at all.
 
-Three do not dissolve that way and are genuine violations: `ChronicleIntentWriter`,
-`ChronicleResultWriter`, and `ChronicleInvalidator` all write, and all are called from
-`app/models/concerns/chronicle_capturable.rb`. #869 covers them.
+Four do not dissolve that way and are genuine violations. `ChronicleIntentWriter`,
+`ChronicleResultWriter`, and `ChronicleInvalidator` all write and are all called from
+`app/models/concerns/chronicle_capturable.rb`. `AdministrativeAccessLock.lock!` and `.unlock!` are
+called from `app/models/concerns/enforcement_case_applicable.rb:232` and `:264`, which is the same
+shape: a model concern invoking a write operation. #869 covers both.
 
 ## Full classification
 

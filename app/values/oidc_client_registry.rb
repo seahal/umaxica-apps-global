@@ -220,7 +220,7 @@ module OidcClientRegistry
 
   # This method is metadata/diagnostic-only. It must not be used for token endpoint authentication
   # or authorization decisions.
-  def metadata_auth_method(client_id)
+  def metadata_auth_method(_client_id)
     "client_secret_post"
   end
 
