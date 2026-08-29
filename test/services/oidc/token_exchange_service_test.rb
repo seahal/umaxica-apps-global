@@ -30,6 +30,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -57,6 +58,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
 
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: @redirect_uri,
@@ -82,6 +84,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       )
 
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: @redirect_uri,
@@ -106,6 +109,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
 
       first_result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: first_code_record.code,
         redirect_uri: @redirect_uri,
@@ -116,6 +120,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
         token_endpoint_uri: token_url,
       )
       second_result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: second_code_record.code,
         redirect_uri: @redirect_uri,
@@ -137,6 +142,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     code_record = issue_code!(client_id: "docs_app", redirect_uri: docs_client.redirect_uris.first)
 
     result = OidcTokenExchangeCoordinator.call(
+      resource_type: "client",
       grant_type: "authorization_code",
       code: code_record.code,
       redirect_uri: docs_client.redirect_uris.first,
@@ -157,6 +163,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     OidcClientRegistry.stub(:find, client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: @redirect_uri,
@@ -176,6 +183,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     OidcClientRegistry.stub(:find, client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: @redirect_uri,
@@ -196,6 +204,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_authenticated_client do
       OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: @redirect_uri,
@@ -218,6 +227,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "implicit",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -237,6 +247,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_oidc_client_secret_credentials(OIDC_CLIENT_SECRETS_CORE_APP: @client_secret) do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -254,6 +265,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     code_record = issue_code!
 
     result = OidcTokenExchangeCoordinator.call(
+      resource_type: "client",
       grant_type: "authorization_code",
       code: code_record.code,
       redirect_uri: @redirect_uri,
@@ -271,6 +283,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_oidc_client_secret_credentials(OIDC_CLIENT_SECRETS_CORE_APP: "") do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -291,6 +304,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     code_record = issue_code!(client_id: "docs_app", redirect_uri: docs_client.redirect_uris.first)
 
     result = OidcTokenExchangeCoordinator.call(
+      resource_type: "client",
       grant_type: "authorization_code",
       code: code_record.code,
       redirect_uri: docs_client.redirect_uris.first,
@@ -313,6 +327,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     OidcClientRegistry.stub(:find, ->(client_id) { (client_id == "metadata_none_test") ? client : nil }) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: client.redirect_uris.first,
@@ -336,6 +351,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_public_client(public_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: public_client.redirect_uris.first,
@@ -356,6 +372,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_public_client(public_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: public_client.redirect_uris.first,
@@ -373,6 +390,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_public_client(public_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: nil,
         redirect_uri: public_client.redirect_uris.first,
@@ -391,6 +409,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_public_client(public_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: nil,
@@ -410,6 +429,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_public_client(public_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: public_client.redirect_uris.first,
@@ -429,6 +449,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_public_client(public_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: public_client.redirect_uris.first,
@@ -449,6 +470,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_public_client(public_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: public_client.redirect_uris.first,
@@ -468,6 +490,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_public_client(public_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: "https://client.example/other/callback",
@@ -487,6 +510,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_authenticated_client do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: org_redirect_uri,
@@ -510,6 +534,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     other_client = public_visitor_account(client_id: "other_public_test")
     with_public_clients(public_client, other_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: public_client.redirect_uris.first,
@@ -527,6 +552,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     code_record = issue_code!(client_id: "app-android-rp", redirect_uri: "com.umaxica.app:/oidc/callback")
 
     result = OidcTokenExchangeCoordinator.call(
+      resource_type: "client",
       grant_type: "authorization_code",
       code: code_record.code,
       redirect_uri: "com.umaxica.app:/oidc/callback",
@@ -546,6 +572,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -570,6 +597,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     travel ClientAuthorizationCode::CODE_TTL + 1.second do
       with_public_client(public_client) do
         result = OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: public_client.redirect_uris.first,
@@ -591,6 +619,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_public_client(public_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: public_client.redirect_uris.first,
@@ -610,6 +639,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_public_client(public_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: public_client.redirect_uris.first,
@@ -629,6 +659,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_public_client(public_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: public_client.redirect_uris.first,
@@ -648,6 +679,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     code_record = issue_code!
 
     result = OidcTokenExchangeCoordinator.call(
+      resource_type: "client",
       grant_type: "authorization_code",
       code: code_record.code,
       redirect_uri: @redirect_uri,
@@ -663,6 +695,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: "nonexistent_code",
           redirect_uri: @redirect_uri,
@@ -685,6 +718,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       result =
         with_authenticated_client do
           OidcTokenExchangeCoordinator.call(
+            resource_type: "client",
             grant_type: "authorization_code",
             code: code_record.code,
             redirect_uri: @redirect_uri,
@@ -708,6 +742,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -729,6 +764,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: "http://wrong.host/callback",
@@ -749,6 +785,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -770,6 +807,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -792,6 +830,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       assert_difference "ClientTokenUsage.count", 1 do
         with_authenticated_client do
           OidcTokenExchangeCoordinator.call(
+            resource_type: "client",
             grant_type: "authorization_code",
             code: code_record.code,
             redirect_uri: @redirect_uri,
@@ -811,6 +850,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_authenticated_client do
       OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: @redirect_uri,
@@ -845,6 +885,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_authenticated_client do
       OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: @redirect_uri,
@@ -869,6 +910,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -917,6 +959,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_org_client(staff_secret_credential) do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "operator",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: org_redirect_uri,
@@ -956,6 +999,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       assert_difference "OperatorTokenUsage.count", 1 do
         with_authenticated_org_client(staff_secret_credential) do
           OidcTokenExchangeCoordinator.call(
+            resource_type: "operator",
             grant_type: "authorization_code",
             code: code_record.code,
             redirect_uri: org_redirect_uri,
@@ -988,6 +1032,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_authenticated_org_client(staff_secret_credential) do
       OidcTokenExchangeCoordinator.call(
+        resource_type: "operator",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: org_client.redirect_uris_by_realm.fetch("operator").first,
@@ -1029,6 +1074,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_com_client(visitor_secret_credential) do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "visitor",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: com_redirect_uri,
@@ -1068,6 +1114,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       assert_difference "VisitorTokenUsage.count", 1 do
         with_authenticated_com_client(visitor_secret_credential) do
           OidcTokenExchangeCoordinator.call(
+            resource_type: "visitor",
             grant_type: "authorization_code",
             code: code_record.code,
             redirect_uri: com_redirect_uri,
@@ -1100,6 +1147,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_authenticated_com_client(visitor_secret_credential) do
       OidcTokenExchangeCoordinator.call(
+        resource_type: "visitor",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: com_client.redirect_uris_by_realm.fetch("visitor").first,
@@ -1131,6 +1179,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -1159,6 +1208,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -1184,6 +1234,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -1209,6 +1260,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -1232,6 +1284,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -1316,6 +1369,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
@@ -1349,6 +1403,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     with_public_client(public_client) do
       result = OidcTokenExchangeCoordinator.call(
+        resource_type: "client",
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: public_client.redirect_uris.first,
@@ -1391,6 +1446,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     result =
       with_authenticated_client do
         OidcTokenExchangeCoordinator.call(
+          resource_type: "client",
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,

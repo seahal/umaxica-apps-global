@@ -38,13 +38,13 @@ overrides:
   vitest: "catalog:"
   vite: "catalog:"
 catalog:
-  "@types/node": 26.2.0
-  vite: 8.2.1
+  "@types/node": 26.3.0
+  vite: 8.2.2
   vitest: 4.1.11
   "@vitest/coverage-v8": 4.1.11
   lefthook: 2.1.10
-  oxfmt: 0.64.0
-  oxlint: 1.79.0
+  oxfmt: 0.65.0
+  oxlint: 1.80.0
   oxlint-tsgolint: 7.0.2001
 peerDependencyRules:
   allowAny:

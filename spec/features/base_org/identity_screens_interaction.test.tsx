@@ -112,6 +112,10 @@ describe("destructive identity forms", () => {
     expect(document.querySelector("[role='dialog']")?.textContent).toContain("Sure?");
     answerConfirmation(false);
     expect(submitted).not.toHaveBeenCalled();
+
+    submitFirstForm();
+    answerConfirmation(true);
+    expect(submitted).toHaveBeenCalledTimes(1);
   });
 
   it("guards a secret credential deletion", () => {
@@ -146,6 +150,10 @@ describe("destructive identity forms", () => {
     expect(submitFirstForm().defaultPrevented).toBe(true);
     answerConfirmation(false);
     expect(submitted).not.toHaveBeenCalled();
+
+    submitFirstForm();
+    answerConfirmation(true);
+    expect(submitted).toHaveBeenCalledTimes(1);
   });
 
   it("guards an email address deletion without blocking the preference update", () => {

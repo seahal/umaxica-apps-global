@@ -16,6 +16,8 @@ vi.mock("@inertiajs/react", () => ({
 }));
 
 const { default: SignInMethodChoice } = await import("@/features/auth/signin/SignInMethodChoice");
+const { default: SocialProviderButton } =
+  await import("@/features/auth/signin/SocialProviderButton");
 const { default: EmailSignInForm } = await import("@/features/auth/signin/EmailSignInForm");
 const { default: EmailPassCodeForm } = await import("@/features/auth/signin/EmailPassCodeForm");
 const { default: SecretSignInForm } = await import("@/features/auth/signin/SecretSignInForm");
@@ -105,6 +107,29 @@ describe("sign-in method choice", () => {
     expect(markup).toContain('aria-label="Sign in with Google"');
     expect(markup).toContain("/images/social/google_sign_in_light.svg");
     expect(markup).toContain("/images/social/google_sign_in_dark.svg");
+  });
+
+  it("falls back to the provider's label when a whole-button provider names no accessible name", () => {
+    const markup = renderToStaticMarkup(
+      <SocialProviderButton
+        provider={{
+          key: "microsoft",
+          label: "Microsoftでログイン",
+          action: "/social/microsoft/session?ri=jp",
+          authenticity_token: "csrf-value",
+          aria_label: null,
+          artwork: {
+            light: "/images/social/microsoft_sign_in_light.svg",
+            dark: "/images/social/microsoft_sign_in_dark.svg",
+            width: 180,
+            height: 40,
+          },
+          logos: null,
+        }}
+      />,
+    );
+
+    expect(markup).toContain('aria-label="Microsoftでログイン"');
   });
 
   it("renders Apple's official logo pair beside a permitted call to action", () => {

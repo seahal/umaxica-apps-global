@@ -160,6 +160,22 @@ describe("DestructiveButton", () => {
     });
     expect(container.querySelector("button")?.disabled).toBe(false);
   });
+
+  it("carries an explicit payload when the caller gave it one", () => {
+    mount(
+      <DestructiveButton
+        action={action}
+        data={{ enforcement_case_id: "case_1" }}
+      />,
+    );
+    submitForm();
+    acceptConfirmation();
+
+    expect(destroy).toHaveBeenCalledWith(
+      "/identity/emails/e1",
+      expect.objectContaining({ data: { enforcement_case_id: "case_1" } }),
+    );
+  });
 });
 
 describe("SessionsIndex", () => {
@@ -356,6 +372,17 @@ describe("EmailEdit", () => {
       />,
     );
     click("[data-testid='solve-turnstile']");
+    submitForm();
+
+    expect(patch).toHaveBeenCalledWith(
+      "/identity/emails/e1",
+      {
+        visitor_email: { promotional: "0", notifiable: "1" },
+        "cf-turnstile-response": "turnstile-token",
+      },
+      expect.objectContaining({}),
+    );
+
     toggle("#visitor_email_promotional");
     toggle("#visitor_email_notifiable");
     submitForm();
@@ -368,7 +395,7 @@ describe("EmailEdit", () => {
       },
       expect.objectContaining({}),
     );
-    const [, , options] = present(patch.mock.calls[0], "the first router.patch call");
+    const [, , options] = present(patch.mock.calls[1], "the second router.patch call");
     act(() => {
       startVisit(options);
     });
@@ -400,6 +427,17 @@ describe("EmailRegistrationNew", () => {
     );
     click("[data-testid='solve-turnstile']");
     setInput("#visitor_email_address", "person@example.com");
+    submitForm();
+
+    expect(post).toHaveBeenCalledWith(
+      "/identity/emails/registration",
+      {
+        visitor_email: { address: "person@example.com", notifiable: "0" },
+        "cf-turnstile-response": "turnstile-token",
+      },
+      expect.objectContaining({}),
+    );
+
     toggle("#visitor_email_notifiable");
     submitForm();
 
@@ -411,7 +449,7 @@ describe("EmailRegistrationNew", () => {
       },
       expect.objectContaining({}),
     );
-    const [, , options] = present(post.mock.calls[0], "the first router.post call");
+    const [, , options] = present(post.mock.calls[1], "the second router.post call");
     act(() => {
       startVisit(options);
     });
@@ -581,6 +619,14 @@ describe("OtpReentryNew", () => {
       { pass_code: "654321" },
       expect.objectContaining({}),
     );
+
+    const [, , options] = present(post.mock.calls[0], "the second router.post call");
+    act(() => {
+      startVisit(options);
+    });
+    act(() => {
+      finishVisit(options);
+    });
   });
 });
 
@@ -774,6 +820,17 @@ describe("WithdrawalNew", () => {
     declineConfirmation();
 
     expect(patch).not.toHaveBeenCalled();
+  });
+
+  it("offers no deactivation section when the server sent none", () => {
+    mount(
+      <WithdrawalNew
+        {...props}
+        deactivate={null}
+      />,
+    );
+
+    expect(container.querySelectorAll("form")).toHaveLength(1);
   });
 });
 

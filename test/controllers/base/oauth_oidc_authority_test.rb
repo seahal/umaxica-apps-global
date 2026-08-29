@@ -102,6 +102,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :ok
+    assert_equal "client", captured[:resource_type]
     assert_equal "proof", captured[:dpop_proof]
     assert_equal "POST", captured[:request_method]
     assert_includes captured[:token_endpoint_uri], "/oauth/token"

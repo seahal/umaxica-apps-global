@@ -116,8 +116,8 @@ is no longer needed, or may have been exposed, tell the development lead so it c
 ## What `bin/setup-dev-secrets` does and does not do
 
 `bin/setup-dev-secrets` runs as part of the devcontainer `initializeCommand`. It generates dev-only
-service passwords (PostgreSQL roles, HMAC salts, RustFS keys, and similar) into `.secrets/` and
-registers them as Podman secrets.
+service passwords (PostgreSQL roles, HMAC salts, and similar) into `.secrets/` and registers them as
+Podman secrets.
 
 It does not write `.env`, and it does not supply Rails credential keys or any provider credential.
 Its own header comment scopes user credentials out. Running it will not resolve a decryption failure

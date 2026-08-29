@@ -11,7 +11,11 @@ vi.mock("@inertiajs/react", () => ({
     processing: false,
     patch,
     delete: deleteRequest,
-    transform: () => ({ patch, delete: deleteRequest, processing: false }),
+    // The real adapter calls the callback to compute the data a following `patch`/`post` sends;
+    // a mock that never calls it would leave that callback permanently unexercised.
+    transform: (callback: () => unknown) => {
+      callback();
+    },
   }),
 }));
 
@@ -153,6 +157,37 @@ describe("SessionLimitManager markup", () => {
     expect(markup).toContain("セッションを無効化しました。");
   });
 
+  it("omits the current-session badge from a restricted session that carries none", () => {
+    const markup = renderToStaticMarkup(
+      <SessionLimitManager
+        {...props}
+        restricted_sessions={{
+          heading: "保留中のセッション",
+          items: [
+            {
+              label: "保留中のセッション",
+              current: false,
+              current_label: null,
+              created_at_label: "作成日時",
+              created_at: "2026-01-03 09:05",
+              last_used_at_label: null,
+              last_used_at: null,
+              ref: null,
+            },
+          ],
+        }}
+      />,
+    );
+
+    // The active-session group above still carries its own badge; only the restricted group's
+    // own item is asserted on here.
+    const restrictedSection = present(
+      markup.split('<h2 class="text-lg font-semibold text-fg">保留中のセッション')[1],
+      "the restricted-sessions section markup",
+    );
+    expect(restrictedSection).not.toContain("ml-2 text-xs font-medium text-accent");
+  });
+
   it("renders neither group when the server sent none", () => {
     const markup = renderToStaticMarkup(
       <SessionLimitManager
@@ -176,6 +211,7 @@ describe("SessionLimitManager interaction", () => {
 
     act(() => {
       radio.click();
+      radio.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
     expect(radio.checked).toBe(true);

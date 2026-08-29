@@ -37,9 +37,9 @@ Containers CLI can invoke `podman compose`, and Podman otherwise prefers an inst
 2. Run **Dev Containers: Rebuild and Reopen in Container** from the Command Palette.
 3. After the first successful build, use **Dev Containers: Reopen in Container** for routine starts.
 
-VS Code reads `.devcontainer/devcontainer.json`, combines the two declared Compose files,
-provisions the configured features, runs the lifecycle commands, and opens `/home/global/workspace`
-as user `global`.
+VS Code reads `.devcontainer/devcontainer.json`, combines the two declared Compose files, provisions
+the configured features, runs the lifecycle commands, and opens `/home/global/workspace` as user
+`global`.
 
 ## CLI Equivalent
 
@@ -88,11 +88,12 @@ root.
 `devcontainer.json` runs `.devcontainer/write-host-ids.sh && bin/setup-dev-secrets` as
 `initializeCommand`. The first writes the real `UID` and `GID` into the gitignored repository-root
 `.env`, because `$UID` and `$GID` are bash builtins rather than exported variables and Compose
-cannot read them directly. The second registers the external Podman secrets — `dev_postgres_writer`,
-`dev_postgres_replication`, `dev_rustfs_access_key`, `dev_rustfs_secret_key`, and
-`dev_rustfs_rpc_secret` — before any service starts. Global and Edge do not share a host Podman
-network; the Edge Worker uses Cloudflare Workers VPC to reach this tunnel. `postCreateCommand` then
-runs `bundle install && pnpm install`.
+cannot read them directly. The second registers the external Podman secrets — `dev_postgres_writer`
+and `dev_postgres_replication` among them — before any service starts. Object-storage credentials
+are no longer registered here: fakecloud takes literal fake values (see
+`docs/operations/local-aws-fakecloud.md`). Global and Edge do not share a host Podman network; the
+Edge Worker uses Cloudflare Workers VPC to reach this tunnel. `postCreateCommand` then runs
+`bundle install && pnpm install`.
 
 The Podman-specific properties are Compose concerns and need no flags: `userns_mode: keep-id`,
 `user: !reset null`, the `bind.selinux: Z` labels on the workspace and on the read-only

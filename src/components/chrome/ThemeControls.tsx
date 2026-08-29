@@ -32,7 +32,14 @@ export default function ThemeControls({ controls }: { controls: ChromeThemeContr
   // in-flight read.
   const chosen = useRef(false);
   const themeRef = useRef(theme);
-  themeRef.current = theme;
+
+  // The system-theme listener below outlives every render, so it reads the choice through a ref
+  // rather than a captured value. Writing that ref during render would make the ref observable to
+  // the render pass itself; the listener only ever reads it from an event, so an effect is early
+  // enough.
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
 
   useEffect(() => {
     const stopWatching = watchSystemTheme(() => themeRef.current);

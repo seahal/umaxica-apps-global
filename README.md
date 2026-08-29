@@ -131,7 +131,7 @@ needed.
 
 The development container publishes ports `3000` and `3036` to `127.0.0.1` only, so these URLs work
 from the host and from nowhere else. Substituting the host's LAN or Tailscale address will not
-connect, by design; PostgreSQL, Valkey, and Kafka are not published to the host at all. See
+connect, by design; PostgreSQL and Valkey are not published to the host at all. See
 `docs/operations/development-host-port-exposure.md`.
 
 Local hosts follow the `<service>.<surface>.localhost` order, and every surface is served by the

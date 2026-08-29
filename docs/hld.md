@@ -21,7 +21,7 @@ host—marketing, authentication, docs/news, help/support, BFF, and API—consis
 - Turbo/React front-end with pnpm-managed tooling (`src/**`)
 - Multi-database Active Record setup (`app_principal`, `org_ticket`, `com_setting`, etc.)
 - Supporting infrastructure: PostgreSQL primary/replica pairs, Valkey, Grafana/Loki/Tempo, and an
-  opt-in RustFS object-storage profile
+  always-on fakecloud AWS emulator
 - CI/CD automation (GitHub Actions, Lefthook) and local workflows (Foreman + Podman Compose)
 
 ### 1.3 References
@@ -223,9 +223,9 @@ Sensitive columns leverage Active Record encryption.
 
 ### 6.1 Local development
 
-- `compose.yaml` launches the normal development dependencies. The `object-storage` profile adds
-  RustFS; its devcontainer override publishes the S3 API and console on loopback ports `9000` and
-  `9001` by default.
+- `compose.yaml` launches the normal development dependencies, including `fakecloud`, which
+  publishes its AWS endpoint on loopback port `4566` by default. The port is configurable through
+  `FAKECLOUD_HOST_PORT` in `.env`; see `docs/operations/local-aws-fakecloud.md`.
 - `bin/dev` is the unified local entrypoint; it wraps `foreman start -f Procfile.dev` to orchestrate
   Rails, Vite, and jobs. JavaScript tooling runs via Vite Plus when linting/formatting.
 
@@ -270,14 +270,14 @@ Sensitive columns leverage Active Record encryption.
 
 ## 8. External Interfaces
 
-| Interface      | Type          | Description                                                                                                                                 |
-| -------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| HTTP           | REST          | Host-scoped routes for top/sign/help/docs/news/api/bff, including `/health`, `/v1/health`, `/sign/...`, `/help/...`, `/api/v1/inquiry/...`. |
-| Mail           | SMTP / API    | `Email::App/Com/Org::{Otp,Alert,Promotional}Mailer` deliver surface-scoped mail. OTP job arguments carry encrypted OTP payloads.            |
-| SMS            | HTTPS         | `Outbound::Sms` sends OTP codes through the configured provider. SMS job arguments carry encrypted message bodies.                          |
-| Redis/Valkey   | RESP          | Sessions, rate limiting, Memorize store.                                                                                                    |
-| OTLP           | HTTP/gRPC     | OpenTelemetry exporter pushes spans to Tempo (`http://tempo:4318/v1/traces`).                                                               |
-| Object storage | S3-compatible | Opt-in RustFS smoke-test integration for local development; production storage is deferred.                                                 |
+| Interface      | Type       | Description                                                                                                                                 |
+| -------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP           | REST       | Host-scoped routes for top/sign/help/docs/news/api/bff, including `/health`, `/v1/health`, `/sign/...`, `/help/...`, `/api/v1/inquiry/...`. |
+| Mail           | SMTP / API | `Email::App/Com/Org::{Otp,Alert,Promotional}Mailer` deliver surface-scoped mail. OTP job arguments carry encrypted OTP payloads.            |
+| SMS            | HTTPS      | `Outbound::Sms` sends OTP codes through the configured provider. SMS job arguments carry encrypted message bodies.                          |
+| Redis/Valkey   | RESP       | Sessions, rate limiting, Memorize store.                                                                                                    |
+| OTLP           | HTTP/gRPC  | OpenTelemetry exporter pushes spans to Tempo (`http://tempo:4318/v1/traces`).                                                               |
+| Object storage | S3         | fakecloud serves S3 locally; AWS resources are declared under `terraform/`. Production storage is deferred.                                 |
 
 ---
 
@@ -315,8 +315,9 @@ Sensitive columns leverage Active Record encryption.
 ## 11. Appendices
 
 - Sequence diagrams and state flows live in `docs/uml/` (to be updated alongside DDS).
-- Environment variable catalog: RustFS/object-storage credentials are Podman secrets provisioned by
+- Environment variable catalog: object-storage credentials in development are literal fake values
+  (`test`), not secrets; the remaining service passwords are Podman secrets provisioned by
   `bin/setup-dev-secrets`; only the non-secret bucket and host-port settings live in the ignored
-  `.env` file (see `docs/operations/local-object-storage-rustfs.md`). There is no committed
-  `.env.example` template.
+  `.env` file (see `docs/operations/local-aws-fakecloud.md`). There is no committed `.env.example`
+  template.
 - Testing strategy captured in `docs/test.md`.

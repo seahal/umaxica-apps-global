@@ -1,7 +1,7 @@
 # Development Host Port Exposure
 
-Development containers do not publish services to the host's external network interfaces by
-default. Where host access is genuinely required, the publication is restricted to loopback.
+Development containers do not publish services to the host's external network interfaces by default.
+Where host access is genuinely required, the publication is restricted to loopback.
 
 This is the standing contract for every Compose file in this repository. It is not advice about a
 particular service, and a host firewall is not an acceptable substitute for it.
@@ -10,20 +10,20 @@ particular service, and a host firewall is not an acceptable substitute for it.
 
 1. **Prefer no publication at all.** If a service is only consumed by other containers, it gets no
    `ports:` entry. Containers reach it by Compose service name over the shared network
-   (`primary:5432`, `valkey:6379`, `kafka:29092`, `tempo:3200`, `rustfs:9000`).
-2. **If the host genuinely needs it, publish to loopback only.** Write the bind address
-   explicitly: `127.0.0.1:3000:3000`, never `3000:3000`. A `ports:` entry with no host address
-   makes Podman bind `0.0.0.0`, which places the service on every host interface — LAN, Wi-Fi,
-   Ethernet, and Tailscale included.
-3. **Never publish a datastore.** PostgreSQL (`primary`, `replica`), Valkey, and Kafka are
-   container-only. Convenience is not a reason to add `5432:5432`, `6379:6379`, or `9092:9092`; use
-   `podman compose exec` for a shell against them.
+   (`primary:5432`, `valkey:6379`, `tempo:3200`).
+2. **If the host genuinely needs it, publish to loopback only.** Write the bind address explicitly:
+   `127.0.0.1:3000:3000`, never `3000:3000`. A `ports:` entry with no host address makes Podman bind
+   `0.0.0.0`, which places the service on every host interface — LAN, Wi-Fi, Ethernet, and Tailscale
+   included.
+3. **Never publish a datastore.** PostgreSQL (`primary`, `replica`) and Valkey are container-only.
+   Convenience is not a reason to add `5432:5432` or `6379:6379`; use `podman compose exec` for a
+   shell against them.
 
 ## Container Bind and Host Publication Are Separate Decisions
 
-A process binding `0.0.0.0` *inside* its container is normal and usually required — it is how the
-container becomes reachable on the Podman network at all. It says nothing about host exposure,
-which is decided solely by `ports:`.
+A process binding `0.0.0.0` _inside_ its container is normal and usually required — it is how the
+container becomes reachable on the Podman network at all. It says nothing about host exposure, which
+is decided solely by `ports:`.
 
 ```text
 BINDING=0.0.0.0             ->  Rails listens on the core container's own interfaces.
@@ -31,23 +31,22 @@ ports: 127.0.0.1:3000:3000  ->  the host reaches it only from the host itself.
 ports: 3000:3000            ->  every machine on the LAN reaches it.  <- not allowed
 ```
 
-`compose.yaml` therefore keeps `BINDING: "0.0.0.0"`, `VITE_RUBY_HOST: "0.0.0.0"`, and
-`RUSTFS_ADDRESS: "0.0.0.0:9000"`. Do not "harden" those to `127.0.0.1`: that would break
-`cloudflare-tunnel`, `bin/tunnel-origin-check`, and every container-to-container call, while
-changing nothing about host exposure.
+`compose.yaml` therefore keeps `BINDING: "0.0.0.0"` and `VITE_RUBY_HOST: "0.0.0.0"`, and leaves
+fakecloud on its default `0.0.0.0:4566` container bind. Do not "harden" those to `127.0.0.1`: that
+would break `cloudflare-tunnel`, `bin/tunnel-origin-check`, and every container-to-container call,
+while changing nothing about host exposure.
 
 ## Current Publications
 
-| Service | Host publication | Why |
-| --- | --- | --- |
-| `core` (Rails, 3000) | `127.0.0.1:3000` | The browser opens the documented `http://<service>.<surface>.localhost:3000` origins, which resolve to `127.0.0.1`. |
-| `core` (Vite, 3036) | `127.0.0.1:3036` | `@vite/client` opens its HMR socket to the dev server from the browser. |
-| `rustfs` (9000, 9001) | `127.0.0.1` (profile `object-storage`) | S3 CLI and console use from the host during object-storage work. |
-| `primary`, `replica` | none | Reached as `primary:5432` / `replica:5432`. |
-| `valkey` | none | Reached as `valkey:6379`. |
-| `kafka` | none | The repository has no Kafka client at all; see below. |
-| `loki`, `tempo`, `grafana`, `prometheus`, `otel-collector` | none | The `observability` profile is entirely container-internal. |
-| `cloudflare-tunnel` | none, and none is possible | The connector is outbound-only. |
+| Service                                                    | Host publication           | Why                                                                                                                     |
+| ---------------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `core` (Rails, 3000)                                       | `127.0.0.1:3000`           | The browser opens the documented `http://<service>.<surface>.localhost:3000` origins, which resolve to `127.0.0.1`.     |
+| `core` (Vite, 3036)                                        | `127.0.0.1:3036`           | `@vite/client` opens its HMR socket to the dev server from the browser.                                                 |
+| `fakecloud` (4566)                                         | `127.0.0.1`                | OpenTofu and the AWS CLI run on the host against the local AWS emulator. Not a datastore. See `local-aws-fakecloud.md`. |
+| `primary`, `replica`                                       | none                       | Reached as `primary:5432` / `replica:5432`.                                                                             |
+| `valkey`                                                   | none                       | Reached as `valkey:6379`.                                                                                               |
+| `loki`, `tempo`, `grafana`, `prometheus`, `otel-collector` | none                       | The `observability` profile is entirely container-internal.                                                             |
+| `cloudflare-tunnel`                                        | none, and none is possible | The connector is outbound-only.                                                                                         |
 
 IPv6: rootless Podman publishes these as IPv4 only, so no `::`-bound listener is created. The
 loopback form pins the IPv4 side explicitly. If a future service needs IPv6 loopback, write
@@ -55,21 +54,19 @@ loopback form pins the IPv4 side explicitly. If a future service needs IPv6 loop
 
 ## Kafka
 
-The broker runs two listeners, both on the `backend` network:
+There is no Kafka broker in this stack. The standalone `cp-kafka` service was removed along with
+RustFS: nothing consumed it (no `rdkafka`, `racecar`, `ruby-kafka`, or `karafka` dependency exists,
+and the `opentelemetry-instrumentation-*` entries in `Gemfile.lock` instrument clients that are not
+installed). Amazon MSK is now modelled through `fakecloud`, which serves the MSK **control plane**
+only, because giving it a container runtime socket to spawn a real broker would grant it the
+invoking user's full container-management rights. See `local-aws-fakecloud.md`.
 
-```text
-CONTROLLER://kafka:29093    KRaft quorum
-INTERNAL://kafka:29092      clients and inter-broker traffic
-```
+## Container Runtime Sockets
 
-There is no `EXTERNAL` listener. The previous `EXTERNAL://0.0.0.0:9092`, advertised as
-`localhost:9092`, existed only to back the host publication of 9092. Nothing consumes it: no
-`rdkafka`, `racecar`, `ruby-kafka`, or `karafka` dependency exists, and the
-`opentelemetry-instrumentation-*` entries in `Gemfile.lock` instrument clients that are not
-installed. The healthcheck bootstraps from `kafka:29092`.
-
-Adding a Kafka client later means pointing it at `kafka:29092`. It does not mean restoring the host
-publication.
+No service mounts `/var/run/docker.sock` or a Podman socket, and none may. A socket mount is a
+larger grant than any port publication: it lets the container start arbitrary images and bind-mount
+arbitrary host paths as the invoking user, which no `ports:` entry can do.
+`test/tooling/compose_host_port_exposure_test.rb` enforces this.
 
 ## Cloudflare Tunnel
 
@@ -93,12 +90,13 @@ Run on the **host**, not inside a container:
 
 ```sh
 podman ps --format 'table {{.Names}}\t{{.Ports}}'
-sudo ss -lntup | grep -E ':(3000|3036|9092|5432|6379)\b'
+sudo ss -lntup | grep -E ':(3000|3036|4566|5432|6379)\b'
 ```
 
-Expected: `primary`, `replica`, `valkey`, and `kafka` show a bare container port with no `->`
-mapping. `core` shows `127.0.0.1:3000->3000/tcp` and `127.0.0.1:3036->3036/tcp`. No line anywhere
-contains `0.0.0.0:3000`, `0.0.0.0:3036`, `0.0.0.0:9092`, `*:3000`, `*:3036`, or `*:9092`.
+Expected: `primary`, `replica`, and `valkey` show a bare container port with no `->` mapping. `core`
+shows `127.0.0.1:3000->3000/tcp` and `127.0.0.1:3036->3036/tcp`, and `fakecloud` shows
+`127.0.0.1:4566->4566/tcp`. No line anywhere contains `0.0.0.0:3000`, `0.0.0.0:3036`,
+`0.0.0.0:4566`, `*:3000`, `*:3036`, or `*:4566`.
 
 From a second machine on the same LAN, both of these must fail to connect:
 
@@ -123,6 +121,6 @@ data — and the addresses are runner-local. This contract governs Compose files
 Reject a change that adds any of the following without an entry in the table above:
 
 - a `ports:` value with no explicit host address
-- any publication of 5432, 6379, or 9092
+- any publication of 5432 or 6379, or any container runtime socket mount
 - a `network_mode: host` service
 - a `--publish`/`-p` flag in a script that omits the bind address

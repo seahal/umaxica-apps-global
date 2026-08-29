@@ -53,6 +53,17 @@ describe("NavList", () => {
     expect(screen.getByText("Six digits.")).toBeTruthy();
   });
 
+  it("names the list for assistive technology when told to", () => {
+    render(
+      <NavList
+        items={[{ label: "Passkey", href: "/passkeys/new" }]}
+        label="Setup methods"
+      />,
+    );
+
+    expect(screen.getByRole("list", { name: "Setup methods" })).toBeTruthy();
+  });
+
   it("visits client-side only when told the destination is on this surface", () => {
     const { rerender } = render(<NavList items={[{ label: "Cookies", href: "/cookies" }]} />);
     expect(screen.getByRole("link", { name: "Cookies" }).dataset["inertia"]).toBeUndefined();

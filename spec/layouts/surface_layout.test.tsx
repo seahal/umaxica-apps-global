@@ -166,4 +166,11 @@ describe("SurfaceLayout", () => {
     const primary = screen.getByRole("navigation", { name: "Primary" });
     expect(within(primary).getAllByRole("listitem")).toHaveLength(2);
   });
+
+  test("renders neither the theme controls nor the cookie banner when the surface carries neither", () => {
+    render({ ...minimalChrome, theme_controls: null, cookie_controls: null });
+
+    expect(screen.queryByTestId("theme-controls")).toBeNull();
+    expect(screen.queryByTestId("cookie-banner")).toBeNull();
+  });
 });

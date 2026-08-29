@@ -51,9 +51,10 @@ class ComposeHostTimezoneBindTest < Minitest::Test
       File.join(REPOSITORY_ROOT, "compose.custom.yaml"),
       aliases: true,
     )
-    localtime_binds = Array(custom.fetch("services").fetch("core")["volumes"]).select do |mount|
-      mount.is_a?(Hash) && mount["source"] == "/etc/localtime" && mount["target"] == "/etc/localtime"
-    end
+    localtime_binds =
+      Array(custom.fetch("services").fetch("core")["volumes"]).select do |mount|
+        mount.is_a?(Hash) && mount["source"] == "/etc/localtime" && mount["target"] == "/etc/localtime"
+      end
 
     assert_equal 1, localtime_binds.size
   end

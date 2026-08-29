@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Generates tiny CSV/JSONL/Parquet fixture objects and uploads them to RustFS for
+# Generates tiny CSV/JSONL/Parquet fixture objects and uploads them to fakecloud S3 for
 # the disposable FDW PoC. Run from the host (or any shell with network access to
-# the RustFS host port). Not part of the Rails application; deleted at Gate 2c.
+# the fakecloud host port). Not part of the Rails application; deleted at Gate 2c.
 # See docs/experiments/postgres-s3-fdw-poc.md for the full runbook.
 #
 # Requires: bash, an S3-compatible `aws` CLI, and (optionally) the `duckdb` CLI to
 # generate the Parquet fixture.
 set -euo pipefail
 
-: "${OBJECT_STORAGE_ENDPOINT:?set to the RustFS endpoint reachable from this shell, e.g. http://127.0.0.1:9000}"
+: "${OBJECT_STORAGE_ENDPOINT:?set to the fakecloud S3 endpoint reachable from this shell, e.g. http://127.0.0.1:4566}"
 : "${OBJECT_STORAGE_ACCESS_KEY_ID:?must be set}"
 : "${OBJECT_STORAGE_SECRET_ACCESS_KEY:?must be set}"
 FDW_POC_BUCKET="${FDW_POC_BUCKET:-fdw-poc-bucket}"

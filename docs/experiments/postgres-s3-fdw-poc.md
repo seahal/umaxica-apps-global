@@ -12,7 +12,7 @@ section below is populated with actual command output.
 ## Question
 
 Can this PostgreSQL environment query structured objects (CSV, JSON Lines, Parquet) stored in the
-local RustFS S3-compatible service through a practical FDW implementation?
+local fakecloud S3 service through a practical FDW implementation?
 
 This is a feasibility question only. A successful `SELECT` does not prove production suitability.
 See "Explicitly out of scope" below.
@@ -25,7 +25,7 @@ Wrappers is a Rust framework for PostgreSQL foreign data wrappers, built on `pgr
 - Is **read-only** (no INSERT/UPDATE/DELETE/TRUNCATE).
 - Supports CSV (with or without header), JSON Lines, and Parquet, with gzip/bzip2/xz/zlib
   compression.
-- Accepts a custom `endpoint_url`, which is how it targets RustFS instead of AWS S3.
+- Accepts a custom `endpoint_url`, which is how it targets fakecloud instead of AWS S3.
 
 PostgreSQL 17 support was unconfirmed in Wrappers' documentation as of this PoC's authoring date, so
 the PoC image pins **PostgreSQL 16** — isolated from the permanent `psql-pub` image (17.7), so this
@@ -48,7 +48,7 @@ Per the approved plan, this PoC does not implement or validate:
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `podman/fdw-poc/Containerfile`                 | Disposable PostgreSQL 16 image with Wrappers' `s3_fdw` built via `cargo pgrx install`.                                                       |
 | `podman/fdw-poc/compose.fdw-poc.yml`           | Opt-in Compose overlay (`fdw-poc` profile), tmpfs-backed PGDATA, isolated from `compose.yaml`.                                               |
-| `podman/fdw-poc/fixtures/generate_fixtures.sh` | Generates tiny CSV/JSONL/Parquet fixtures and uploads them to RustFS.                                                                        |
+| `podman/fdw-poc/fixtures/generate_fixtures.sh` | Generates tiny CSV/JSONL/Parquet fixtures and uploads them to fakecloud S3.                                                                  |
 | `podman/fdw-poc/smoke/run_smoke_checks.sql`    | Read-only smoke checklist: SELECT, projection, filter, COUNT, missing-object, invalid-credential, and two schema-mismatch cases, per format. |
 
 ## Reproduction Steps
@@ -56,18 +56,18 @@ Per the approved plan, this PoC does not implement or validate:
 Run all of this on the host (or inside `core`, if it has `podman`, `aws` CLI, and `duckdb`
 available) — this environment does not.
 
-1. Ensure RustFS is running (see `docs/operations/local-object-storage-rustfs.md`):
+1. Ensure fakecloud is running (see `docs/operations/local-aws-fakecloud.md`):
 
    ```sh
    COMPOSE="podman compose -f compose.yaml"
-   $COMPOSE --profile object-storage up -d rustfs-permissions rustfs
+   $COMPOSE up -d fakecloud
    ```
 
 2. Generate and upload fixtures:
 
    ```sh
-   export OBJECT_STORAGE_ENDPOINT=http://127.0.0.1:9000   # host-reachable RustFS port
-   export OBJECT_STORAGE_ACCESS_KEY_ID=...                 # same value used to start RustFS
+   export OBJECT_STORAGE_ENDPOINT=http://127.0.0.1:4566   # host-reachable fakecloud port
+   export OBJECT_STORAGE_ACCESS_KEY_ID=test                # fakecloud accepts any well-formed key
    export OBJECT_STORAGE_SECRET_ACCESS_KEY=...
    ./podman/fdw-poc/fixtures/generate_fixtures.sh
    ```
@@ -77,8 +77,8 @@ available) — this environment does not.
    ```sh
    export FDW_POC_POSTGRES_PASSWORD=...   # any local-only value; never reuse a real credential
    $COMPOSE -f podman/fdw-poc/compose.fdw-poc.yml \
-     --profile object-storage --profile fdw-poc \
-     up -d --build rustfs-permissions rustfs fdw-poc
+     --profile fdw-poc \
+     up -d --build fakecloud fdw-poc
    ```
 
 4. Before running the checklist, edit `podman/fdw-poc/smoke/run_smoke_checks.sql`: replace
@@ -92,7 +92,7 @@ available) — this environment does not.
 
    ```sh
    $COMPOSE -f podman/fdw-poc/compose.fdw-poc.yml \
-     --profile object-storage --profile fdw-poc \
+     --profile fdw-poc \
      exec -T fdw-poc psql -U fdw_poc -d fdw_poc -v ON_ERROR_STOP=0 \
      -f /dev/stdin < podman/fdw-poc/smoke/run_smoke_checks.sql \
      | tee podman/fdw-poc/smoke-results.txt
@@ -141,15 +141,15 @@ data.)_
 
 ## AWS S3 Compatibility
 
-**Not verified.** RustFS implements an S3-compatible API, and the Wrappers S3 wrapper accepts a
+**Not verified.** fakecloud implements an S3-compatible API, and the Wrappers S3 wrapper accepts a
 custom `endpoint_url`, so AWS S3 compatibility is a plausible, unverified expectation only. No AWS
 S3 test was performed or is in scope for this PoC.
 
 ## Suitability Verdict
 
-_(Fill in after Results are recorded. Do not overstate: a successful local SELECT against RustFS is
-evidence of local feasibility only, not of production readiness, AWS S3 compatibility, or acceptable
-operational characteristics at scale.)_
+_(Fill in after Results are recorded. Do not overstate: a successful local SELECT against fakecloud
+is evidence of local feasibility only, not of production readiness, AWS S3 compatibility, or
+acceptable operational characteristics at scale.)_
 
 ## Cleanup Manifest (Gate 2c)
 
@@ -161,13 +161,13 @@ COMPOSE="podman compose -f compose.yaml"
 
 # 1. Stop and remove the PoC container (tmpfs PGDATA is discarded automatically).
 $COMPOSE -f podman/fdw-poc/compose.fdw-poc.yml \
-  --profile object-storage --profile fdw-poc down fdw-poc
+  --profile fdw-poc down fdw-poc
 
 # 2. Remove the built PoC image.
 podman image rm "$(podman images --format '{{.Repository}}:{{.Tag}}' \
   | grep -m1 fdw-poc)" || true
 
-# 3. Remove the fixture objects and bucket from RustFS (adjust endpoint/creds as
+# 3. Remove the fixture objects and bucket from fakecloud (adjust endpoint/creds as
 #    used in the reproduction steps).
 aws --endpoint-url "$OBJECT_STORAGE_ENDPOINT" s3 rm \
   "s3://${FDW_POC_BUCKET:-fdw-poc-bucket}" --recursive

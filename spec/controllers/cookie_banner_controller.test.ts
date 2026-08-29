@@ -142,6 +142,46 @@ describe("CookieBannerController", () => {
       expect(consentBox("performant")?.checked).toBe(true);
       expect(consentBox("targetable")?.checked).toBe(true);
     });
+
+    it("prevents the button's own default and records consent when clicked", async () => {
+      const fetchMock = vi.fn<typeof fetch>();
+      fetchMock.mockResolvedValueOnce(jsonResponse({ show_banner: true }));
+      fetchMock.mockResolvedValue(noContentResponse());
+      vi.stubGlobal("fetch", fetchMock);
+      const { controller } = await mount();
+      const click = new Event("click", { cancelable: true });
+
+      controller.accept(click);
+      await vi.waitFor(() => expect(bannerIsOnPage()).toBe(false));
+
+      expect(click.defaultPrevented).toBe(true);
+      expect(requestWithMethod(fetchMock, "PATCH")?.body).toMatchObject({
+        cookie: { consented: true },
+      });
+    });
+
+    it("reports a failure the server would not store", async () => {
+      vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({}, 500)));
+      const { controller, element } = await mount();
+      const errors = recordEvents(element, "cookie-banner:error");
+
+      controller.accept(new Event("click"));
+      await vi.waitFor(() => expect(errors.events).toHaveLength(1));
+
+      expect(bannerIsOnPage()).toBe(true);
+    });
+
+    it("does nothing to a page with no preference form to reflect the decision into", async () => {
+      const fetchMock = vi.fn<typeof fetch>();
+      fetchMock.mockResolvedValueOnce(jsonResponse({ show_banner: true }));
+      fetchMock.mockResolvedValue(noContentResponse());
+      vi.stubGlobal("fetch", fetchMock);
+      const { controller } = await mount(
+        MARKUP.replace(/<div data-controller="cookie-toggle">[\s\S]*<\/div>\s*$/u, ""),
+      );
+
+      await expect(controller.submitConsent(true)).resolves.toBeUndefined();
+    });
   });
 
   describe("reject", () => {
@@ -172,6 +212,34 @@ describe("CookieBannerController", () => {
 
       expect(errors.events[0]?.detail).toMatchObject({ message: "Cookie consent update failed" });
       expect(bannerIsOnPage()).toBe(true);
+    });
+  });
+
+  describe("syncCookieFormConsent", () => {
+    it("leaves a checkbox untouched when the decision carries no value for its field", async () => {
+      const { controller } = await mount();
+      const functional = consentBox("functional")!;
+      functional.checked = true;
+
+      controller.syncCookieFormConsent({ consented: true });
+
+      expect(consentBox("consented")?.checked).toBe(true);
+      expect(functional.checked).toBe(true);
+    });
+
+    it("skips a field the preference form carries no checkbox for", async () => {
+      const { controller } = await mount(
+        MARKUP.replace(
+          '<input type="checkbox" name="preference_cookie[targetable]">\n    </form>',
+          "</form>",
+        ),
+      );
+
+      expect(() =>
+        controller.syncCookieFormConsent({ consented: true, targetable: true }),
+      ).not.toThrow();
+      expect(consentBox("consented")?.checked).toBe(true);
+      expect(consentBox("targetable")).toBeNull();
     });
   });
 

@@ -237,10 +237,12 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
   end
 
   test "the sidecar image is pinned by digest, not only by tag" do
-    assert_match(%r{\Adocker\.io/tailscale/tailscale:v[\d.]+@sha256:\h{64}\z},
-                 remote_access_sidecar.fetch("image"),
-                 "a mutable tag would let a re-tagged upstream release change the one " \
-                 "container here that accepts inbound tailnet connections")
+    assert_match(
+      %r{\Adocker\.io/tailscale/tailscale:v[\d.]+@sha256:\h{64}\z},
+      remote_access_sidecar.fetch("image"),
+      "a mutable tag would let a re-tagged upstream release change the one " \
+      "container here that accepts inbound tailnet connections",
+    )
   end
 
   test "the sidecar exposes no unauthenticated health or metrics endpoint" do
@@ -254,7 +256,7 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     sidecar = remote_access_sidecar
 
     assert_equal ["remote-access"], sidecar.fetch("networks"),
-                 "a tailnet-facing container must not resolve PostgreSQL, Valkey, or Kafka; " \
+                 "a tailnet-facing container must not resolve PostgreSQL, Valkey, or fakecloud; " \
                  "a service-level networks: list in an overlay replaces rather than merges, " \
                  "so this single entry is the whole reachable set"
     assert_not sidecar.key?("extra_hosts")
@@ -348,15 +350,17 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
                     "Codex App and VS Code Remote SSH forward dev-server ports over the " \
                     "session; without this no Rails preview is reachable remotely"
     assert_includes sshd_config, "PermitOpen localhost:* 127.0.0.1:* [::1]:*",
-                    "an unrestricted forward would reach PostgreSQL, Valkey and Kafka on " \
+                    "an unrestricted forward would reach PostgreSQL, Valkey and fakecloud on " \
                     "core's own Podman networks, which is precisely what the sidecar's " \
                     "single-network attachment exists to prevent"
   end
 
   test "core's sshd keeps its private state off the workspace bind" do
-    assert_no_match(%r{^(?:HostKey|PidFile|AuthorizedKeysFile) .*/workspace/}, sshd_config,
-                    "the workspace is a bind mount owned by `global`; a host key or PID file " \
-                    "there is writable by anything holding a development shell")
+    assert_no_match(
+      %r{^(?:HostKey|PidFile|AuthorizedKeysFile) .*/workspace/}, sshd_config,
+      "the workspace is a bind mount owned by `global`; a host key or PID file " \
+      "there is writable by anything holding a development shell",
+    )
     assert_includes sshd_config, "HostKey /home/global/.local/state/remote-sshd/"
     assert_includes sshd_config, "PidFile /home/global/.local/state/remote-sshd/"
   end
@@ -389,10 +393,12 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
                     "database, host-table and OTEL variables compose.yaml sets -- and " \
                     "`bin/rails` fails over SSH while working under `podman exec`"
     assert_includes wrapper, "session-env.sh"
-    assert_match(/PREPEND/, wrapper,
-                 "Debian's stock ~/.bashrc returns early when non-interactive, so a line " \
-                 "appended to it is unreachable for `ssh host cmd` -- the shape every " \
-                 "Remote-SSH agent uses")
+    assert_match(
+      /PREPEND/, wrapper,
+      "Debian's stock ~/.bashrc returns early when non-interactive, so a line " \
+      "appended to it is unreachable for `ssh host cmd` -- the shape every " \
+      "Remote-SSH agent uses",
+    )
   end
 
   test "the docker and podman control-plane trees stay byte-identical" do
@@ -442,8 +448,10 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
                  "see the real process; the previous REMOTE_SSHD=1 fork left a server whose " \
                  "death was invisible until the next connection attempt"
 
-    assert_no_match(/REMOTE_SSHD/, REPOSITORY_ROOT.join("podman/core/entrypoint.sh").read,
-                    "the entrypoint no longer knows about remote access at all")
+    assert_no_match(
+      /REMOTE_SSHD/, REPOSITORY_ROOT.join("podman/core/entrypoint.sh").read,
+      "the entrypoint no longer knows about remote access at all",
+    )
   end
 
   test "the Codex public key is a read-only mount from the gitignored secrets directory" do
@@ -481,16 +489,45 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
                     "on every container recreation"
   end
 
-  test "RustFS credentials are mounted secrets rather than Compose interpolation" do
+  # The former RustFS service needed generated Podman secrets because its entrypoint rejected a
+  # weak or `/`-bearing access key. fakecloud validates only the shape of a SigV4 signature and
+  # never the key material, so that machinery bought nothing and was removed. The guard it
+  # enforced still matters, and is what this test keeps: the development keys must be visibly
+  # fake literals, so a real AWS access key pasted here is obvious on sight rather than hidden
+  # behind an interpolation or a generated /run/secrets file.
+  test "object-storage credentials are obviously fake literals, never interpolated secrets" do
     compose = REPOSITORY_ROOT.join("compose.yaml").read
+    environment = YAML.safe_load_file(REPOSITORY_ROOT.join("compose.yaml"), aliases: true)
+      .fetch("services").fetch("core").fetch("environment")
 
-    assert_includes compose, "OBJECT_STORAGE_ACCESS_KEY_ID_FILE: /run/secrets/dev_rustfs_access_key"
-    assert_includes compose, "OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE: /run/secrets/dev_rustfs_secret_key"
+    assert_equal "test", environment.fetch("OBJECT_STORAGE_ACCESS_KEY_ID")
+    assert_equal "test", environment.fetch("OBJECT_STORAGE_SECRET_ACCESS_KEY")
+
     assert_no_match(
-      /^\s*(?:OBJECT_STORAGE_(?:ACCESS_KEY_ID|SECRET_ACCESS_KEY)|RUSTFS_(?:ACCESS_KEY|SECRET_KEY|RPC_SECRET)):\s*["']?\$\{/,
+      /^\s*OBJECT_STORAGE_(?:ACCESS_KEY_ID|SECRET_ACCESS_KEY):\s*["']?\$\{/,
       compose,
       "object-storage credentials must not come from .env interpolation",
     )
+    assert_no_match(
+      /OBJECT_STORAGE_(?:ACCESS_KEY_ID|SECRET_ACCESS_KEY)_FILE|dev_rustfs_/,
+      compose,
+      "the RustFS-era secret files are gone; a dangling reference would fail `up` at mount time",
+    )
+  end
+
+  # Production must never take an S3 endpoint from the environment: lib/object_storage_shrine_
+  # configuration.rb raises when OBJECT_STORAGE_ENDPOINT is set there, and that guard only works
+  # because the application reads its own namespace. An AWS_ENDPOINT_URL* variable would instead
+  # be picked up implicitly by the AWS SDK, silently redirecting production S3 traffic.
+  test "the fakecloud endpoint stays in the application's own variable namespace" do
+    environment = YAML.safe_load_file(REPOSITORY_ROOT.join("compose.yaml"), aliases: true)
+      .fetch("services").fetch("core").fetch("environment")
+
+    assert_equal "http://fakecloud:4566", environment.fetch("OBJECT_STORAGE_ENDPOINT")
+    assert_empty environment.keys.grep(/\AAWS_ENDPOINT_URL/),
+                 "an AWS_ENDPOINT_URL* variable is consumed implicitly by the AWS SDK, which " \
+                 "would defeat the explicit production endpoint-override rejection in " \
+                 "lib/object_storage_shrine_configuration.rb"
   end
 
   private

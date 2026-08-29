@@ -7,10 +7,15 @@ class OidcTokenExchangeCoordinator < ApplicationService
       def success? = success
     end
 
-  def initialize(grant_type:, code:, redirect_uri:, client_id:, client_secret: nil, code_verifier:,
-                 client_assertion_type: nil, client_assertion: nil,
+  # `resource_type` is the OAuth resource type of the endpoint that received the request, and
+  # it is required. Authorization codes are looked up only in the matching surface's store, so a
+  # code issued on one surface cannot be redeemed through another surface's token endpoint. There
+  # is deliberately no default and no cross-surface fallback.
+  def initialize(resource_type:, grant_type:, code:, redirect_uri:, client_id:, client_secret: nil,
+                 code_verifier:, client_assertion_type: nil, client_assertion: nil,
                  dpop_proof: nil, token_endpoint_uri: nil, request_method: "POST")
     super()
+    @resource_type = resource_type
     @grant_type = grant_type
     @code = code
     @redirect_uri = redirect_uri
@@ -48,8 +53,8 @@ class OidcTokenExchangeCoordinator < ApplicationService
 
   private
 
-  attr_reader :grant_type, :code, :redirect_uri, :client_id, :client_secret, :client_assertion_type,
-              :client_assertion, :code_verifier,
+  attr_reader :resource_type, :grant_type, :code, :redirect_uri, :client_id, :client_secret,
+              :client_assertion_type, :client_assertion, :code_verifier,
               :dpop_proof, :token_endpoint_uri, :request_method
 
   def valid_grant_type?
@@ -98,13 +103,24 @@ class OidcTokenExchangeCoordinator < ApplicationService
     )
   end
 
+  # A code belonging to another surface is simply not found, so it takes the same
+  # `invalid_grant` / "Authorization code not found" path as an unknown code. The client learns
+  # nothing about whether the code exists elsewhere or which surface owns it, and nothing is
+  # written, so the code is left unconsumed.
   def find_code
-    OrgTicketRecord.connected_to(role: :writing) do
-      OperatorAuthorizationCode.lock.find_by(code: code)
-    end || ComTicketRecord.connected_to(role: :writing) do
-      VisitorAuthorizationCode.lock.find_by(code: code)
-    end || AppTicketRecord.connected_to(role: :writing) do
-      ClientAuthorizationCode.lock.find_by(code: code)
+    record_context, code_model = code_lookup_target
+
+    record_context.connected_to(role: :writing) do
+      code_model.lock.find_by(code: code)
+    end
+  end
+
+  def code_lookup_target
+    case resource_type
+    when "client" then [AppTicketRecord, ClientAuthorizationCode]
+    when "visitor" then [ComTicketRecord, VisitorAuthorizationCode]
+    when "operator" then [OrgTicketRecord, OperatorAuthorizationCode]
+    else raise ArgumentError, "unsupported resource_type: #{resource_type.inspect}"
     end
   end
 

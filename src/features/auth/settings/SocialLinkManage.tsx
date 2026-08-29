@@ -7,7 +7,7 @@
 // Connecting is a document POST rather than an Inertia visit, because the server answers it with a
 // 307 into the provider's OmniAuth request phase, which the browser must follow as a navigation.
 import { router } from "@inertiajs/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -41,13 +41,6 @@ export default function SocialLinkManage({
   turnstile,
 }: SocialLinkManageProps) {
   const [token, setToken] = useState("");
-  // The token is read after mount so the component renders the same markup on the server, where
-  // there is no document to read the meta tag from.
-  const [authenticityToken, setAuthenticityToken] = useState("");
-
-  useEffect(() => {
-    setAuthenticityToken(csrfToken());
-  }, []);
 
   const disconnect = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -106,7 +99,7 @@ export default function SocialLinkManage({
             <input
               type="hidden"
               name="authenticity_token"
-              value={authenticityToken}
+              value={csrfToken()}
             />
             <Button type="submit">{connect.label}</Button>
           </form>
