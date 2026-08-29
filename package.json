@@ -11,10 +11,10 @@
     "format:check": "oxfmt --check src spec e2e app/views/pwa *.ts *.json *.yaml *.yml",
     "typecheck": "tsc --build",
     "build": "NODE_ENV=production vite build --mode production",
-    "check": "pnpm -s format:check && pnpm -s lint && pnpm -s typecheck:verify && pnpm -s typecheck && pnpm -s deadcode && pnpm -s openapi:lint && pnpm -s openapi:verify",
-    "ci": "pnpm -s check && pnpm -s test:coverage && pnpm -s build",
-    "ci:js": "pnpm -s run ci",
-    "fix": "pnpm -s format && pnpm -s lint:fix",
+    "check": "pnpm --loglevel silent run format:check && pnpm --loglevel silent run lint && pnpm --loglevel silent run typecheck:verify && pnpm --loglevel silent run typecheck && pnpm --loglevel silent run deadcode && pnpm --loglevel silent run openapi:lint && pnpm --loglevel silent run openapi:verify",
+    "ci": "pnpm --loglevel silent run check && pnpm --loglevel silent run test:coverage && pnpm --loglevel silent run build",
+    "ci:js": "pnpm --loglevel silent run ci",
+    "fix": "pnpm --loglevel silent run format && pnpm --loglevel silent run lint:fix",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -23,7 +23,7 @@
     "typecheck:verify": "tsc -p tsconfig.app.json --noEmit --listFiles | grep -q '/src/' || (echo 'typecheck covered no source files' >&2 && exit 1)",
     "openapi:lint": "redocly lint",
     "openapi:bundle": "redocly bundle",
-    "openapi:verify": "pnpm -s openapi:bundle && git diff --exit-code -- public/openapi.app.yml public/openapi.com.yml public/openapi.org.yml"
+    "openapi:verify": "pnpm --loglevel silent run openapi:bundle && git diff --exit-code -- public/openapi.app.yml public/openapi.com.yml public/openapi.org.yml"
   },
   "dependencies": {
     "@hotwired/stimulus": "^3.2.2",
