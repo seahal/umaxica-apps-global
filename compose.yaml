@@ -30,9 +30,10 @@ services:
       args:
         COMMIT_HASH: abcdef
         # Host-shaped, but parameterized, so they stay project-common. `$UID`/`$GID`
-        # are bash builtins rather than exported variables, so Compose only sees real
-        # values after `.devcontainer/write-host-ids.sh` writes them into `.env`
-        # (the Dev Containers CLI runs it as `initializeCommand`).
+        # are bash builtins rather than exported variables, so Compose sees real
+        # values only when the gitignored repository-root `.env` carries `UID=`
+        # and `GID=` lines. Write them by hand once per machine; see
+        # docs/operations/development-credential-provisioning.md.
         DOCKER_UID: "${UID:-1000}"
         DOCKER_GID: "${GID:-1000}"
     # `keep-id` maps the host user directly to the workload UID/GID baked into the
@@ -52,6 +53,11 @@ services:
       - sleep
       - infinity
     environment:
+      # The datastores run on UTC; keep the app container consistent with them.
+      # A host `/etc/timezone` bind mount is not portable: the file is a Debian
+      # convention and does not exist on Fedora/RHEL hosts, where the missing
+      # source made the whole container fail to create.
+      TZ: UTC
       # --- Ruby / Bundler ---
       RUBY_PATH: /usr/local/bin/ruby
       BUNDLE_PATH: vendor/bundle
@@ -63,7 +69,7 @@ services:
       NODE_ENV: development
       # --- PostgreSQL credentials (injected from host .env with local defaults) ---
       POSTGRESQL_USER: "${POSTGRESQL_USER:-root}"
-      POSTGRESQL_PASSWORD_FILE: /run/secrets/dev_postgres_writer
+      POSTGRESQL_PASSWORD_FILE: /run/dev-credentials/postgres-writer
       POSTGRESQL_DATABASE: "${POSTGRESQL_DATABASE:-db}"
       # --- Identifier HMAC salts (dev-only fixed values; differ from production) ---
       EMAIL_ADDRESS_HMAC_SALT: "${EMAIL_ADDRESS_HMAC_SALT:-development_email_address_hmac_salt}"
@@ -140,18 +146,18 @@ services:
       # --- Mail ---
       AWS_SES_REGION: ap-northeast-1
       # --- Local object storage (optional profile) ---
-      # Credentials are read from the mounted Podman secrets below, matching the
-      # PostgreSQL `*_PASSWORD_FILE` convention. They are mounted unconditionally
-      # even though RustFS itself is profile-gated, so enabling the profile does
-      # not additionally require recreating this container.
+      # Credentials are read from the `dev-credentials` volume below, matching
+      # the PostgreSQL `*_PASSWORD_FILE` convention. They are mounted
+      # unconditionally even though RustFS itself is profile-gated, so enabling
+      # the profile does not additionally require recreating this container.
       OBJECT_STORAGE_ENDPOINT: "http://rustfs:9000"
       OBJECT_STORAGE_REGION: "us-east-1"
       # Fixed development bucket name, like the endpoint and region above. It is
       # not host-shaped and not a credential, so it belongs in the service
       # contract rather than in the repository-root .env.
       OBJECT_STORAGE_BUCKET: umaxica-local
-      OBJECT_STORAGE_ACCESS_KEY_ID_FILE: /run/secrets/dev_rustfs_access_key
-      OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE: /run/secrets/dev_rustfs_secret_key
+      OBJECT_STORAGE_ACCESS_KEY_ID_FILE: /run/dev-credentials/rustfs-access-key
+      OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE: /run/dev-credentials/rustfs-secret-key
       OBJECT_STORAGE_FORCE_PATH_STYLE: "true"
       # --- Public hosts (browser-visible) ---
       PUBLIC_AUTH_CORPORATE_URL: auth.umaxica.com
@@ -250,12 +256,8 @@ services:
       # The Dev Container string-form `readonly` mounts are writable with the
       # current rootless Podman provider. Keep host configuration and guarded
       # workspace paths in Compose long syntax so the effective mount flags stay
-      # inspectable. The host SSH directory is intentionally absent: inbound
-      # Remote Codex does not need host private keys.
-      - type: bind
-        source: "/etc/timezone"
-        target: "/etc/timezone"
-        read_only: true
+      # inspectable. The host SSH directory is intentionally absent: nothing in
+      # this container needs host private keys.
       - type: bind
         source: "./.github"
         target: "/home/global/workspace/.github"
@@ -297,10 +299,10 @@ services:
       - type: volume
         source: workspace-podman-storage
         target: "/home/global/.local/share/containers"
-    secrets:
-      - dev_postgres_writer
-      - dev_rustfs_access_key
-      - dev_rustfs_secret_key
+      - type: volume
+        source: dev-credentials
+        target: "/run/dev-credentials"
+        read_only: true
     # Loopback-only host publication. `BINDING: 0.0.0.0` above is the
     # *container-side* listener and must stay: cloudflare-tunnel and the probe
     # containers reach Rails over the `frontend` network, not through the host.
@@ -376,12 +378,49 @@ services:
         aliases:
           - global
     depends_on:
+      dev-credentials:
+        condition: service_completed_successfully
       primary:
         condition: service_healthy
       replica:
         condition: service_started
       valkey:
         condition: service_healthy
+  dev-credentials:
+    # Generates the dev-only service credentials that PostgreSQL, RustFS, and the
+    # Rails container read as `*_FILE` paths. This replaces the former host-side
+    # `bin/setup-dev-secrets` bootstrap: the stack now provisions itself on the
+    # first `up`, so a fresh clone needs no manual step and no Podman Secret
+    # registration. Every consumer mounts the volume read-only.
+    #
+    # Alpine rather than a purpose-built image: `head -c` on /dev/urandom and
+    # busybox `base64` are enough, and the tag is already pulled for `valkey`.
+    image: docker.io/valkey/valkey:8.0-alpine3.22
+    user: root
+    restart: "no"
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        # Each file is written once and then reused, because PostgreSQL bakes the
+        # password into `primary-data` at initdb time; regenerating it on every
+        # `up` would lock the stack out of its own existing volume. Delete the
+        # `dev-credentials` volume (and the data volumes) to rotate.
+        #
+        # `/` `+` `=` are stripped: a `/` inside the RustFS access key corrupts
+        # every SigV4 signature (see the `rustfs` command below), and dropping the
+        # other two keeps all five values shell- and URL-safe.
+        for name in postgres-writer postgres-replication rustfs-access-key rustfs-secret-key rustfs-rpc-secret; do
+          path="/credentials/$${name}"
+          test -s "$${path}" || head -c 48 /dev/urandom | base64 | tr -d '\n/+=' > "$${path}"
+          # World-readable on purpose: postgres (999), rustfs (10001), and the
+          # keep-id-mapped workload user all read the same volume, and these are
+          # locally generated development credentials that never leave the host.
+          chmod 0644 "$${path}"
+        done
+    volumes:
+      - dev-credentials:/credentials
   rustfs-permissions:
     image: docker.io/library/alpine:3.24.1
     profiles:
@@ -413,6 +452,8 @@ services:
       - "127.0.0.1:${RUSTFS_API_HOST_PORT:-9000}:9000"
       - "127.0.0.1:${RUSTFS_CONSOLE_HOST_PORT:-9001}:9001"
     depends_on:
+      dev-credentials:
+        condition: service_completed_successfully
       rustfs-permissions:
         condition: service_completed_successfully
     entrypoint:
@@ -420,23 +461,22 @@ services:
       - -ec
     command:
       - |
-        # Credentials arrive as Podman secrets rather than Compose
-        # interpolation, so they never sit in the repository-root .env next to
-        # non-secret settings. Command substitution drops the trailing newline
-        # that `openssl rand` writes into each secret file.
-        for secret in access_key secret_key rpc_secret; do
-          path="/run/secrets/dev_rustfs_$${secret}"
+        # Credentials arrive on the `dev-credentials` volume rather than through
+        # Compose interpolation, so they never sit in the repository-root .env
+        # next to non-secret settings.
+        for secret in access-key secret-key rpc-secret; do
+          path="/run/dev-credentials/rustfs-$${secret}"
           test -s "$${path}" || {
-            echo "missing or empty Podman secret: $${path}; run bin/setup-dev-secrets" >&2
+            echo "missing or empty credential: $${path}; the dev-credentials service did not run" >&2
             exit 1
           }
         done
-        RUSTFS_ACCESS_KEY="$$(cat /run/secrets/dev_rustfs_access_key)"
-        RUSTFS_SECRET_KEY="$$(cat /run/secrets/dev_rustfs_secret_key)"
-        RUSTFS_RPC_SECRET="$$(cat /run/secrets/dev_rustfs_rpc_secret)"
+        RUSTFS_ACCESS_KEY="$$(cat /run/dev-credentials/rustfs-access-key)"
+        RUSTFS_SECRET_KEY="$$(cat /run/dev-credentials/rustfs-secret-key)"
+        RUSTFS_RPC_SECRET="$$(cat /run/dev-credentials/rustfs-rpc-secret)"
         export RUSTFS_ACCESS_KEY RUSTFS_SECRET_KEY RUSTFS_RPC_SECRET
         if [ "$${RUSTFS_RPC_SECRET}" = "$${RUSTFS_SECRET_KEY}" ]; then
-          echo "dev_rustfs_rpc_secret must differ from dev_rustfs_secret_key" >&2
+          echo "rustfs-rpc-secret must differ from rustfs-secret-key" >&2
           exit 1
         fi
         # SigV4 builds the credential scope as
@@ -445,7 +485,7 @@ services:
         # of leaving the operator to debug opaque 403 responses.
         case "$${RUSTFS_ACCESS_KEY}" in
           */*)
-            echo "dev_rustfs_access_key must not contain '/'; regenerate it with bin/setup-dev-secrets" >&2
+            echo "rustfs-access-key must not contain '/'; delete the dev-credentials volume to regenerate it" >&2
             exit 1
             ;;
         esac
@@ -456,10 +496,6 @@ services:
       RUSTFS_CONSOLE_ADDRESS: "0.0.0.0:9001"
       RUSTFS_CONSOLE_ENABLE: "true"
       RUSTFS_REGION: "us-east-1"
-    secrets:
-      - dev_rustfs_access_key
-      - dev_rustfs_secret_key
-      - dev_rustfs_rpc_secret
     security_opt:
       - no-new-privileges:true
     restart: "no"
@@ -474,6 +510,7 @@ services:
       retries: 20
       start_period: 10s
     volumes:
+      - dev-credentials:/run/dev-credentials:ro
       - rustfs-data0:/data/rustfs0
       - rustfs-data1:/data/rustfs1
       - rustfs-data2:/data/rustfs2
@@ -498,15 +535,19 @@ services:
       - hba_file=/etc/postgresql/pg_hba.conf
     environment:
       POSTGRES_USER: "${POSTGRESQL_USER:-root}"
-      POSTGRES_PASSWORD_FILE: /run/secrets/dev_postgres_writer
+      POSTGRES_PASSWORD_FILE: /run/dev-credentials/postgres-writer
       POSTGRES_DB: "${POSTGRESQL_DATABASE:-db}"
       POSTGRES_REPLICATION_USER: "${POSTGRESQL_REPLICATION_USER:-replicator}"
-      POSTGRES_REPLICATION_PASSWORD_FILE: /run/secrets/dev_postgres_replication
+      POSTGRES_REPLICATION_PASSWORD_FILE: /run/dev-credentials/postgres-replication
       TZ: UTC
       POSTGRES_INITDB_WAL_LEVEL: replica
       POSTGRES_INITDB_MAX_WAL_SENDERS: 10
       POSTGRES_INITDB_MAX_REPLICATION_SLOTS: 10
+    depends_on:
+      dev-credentials:
+        condition: service_completed_successfully
     volumes:
+      - dev-credentials:/run/dev-credentials:ro
       - primary-data:/var/lib/postgresql/data
       # `:z` adds an SELinux shared label so Fedora/RHEL hosts permit container
       # reads. Harmless on non-SELinux hosts (Arch, Ubuntu).
@@ -515,9 +556,6 @@ services:
       - "./podman/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
     networks:
       - backend
-    secrets:
-      - dev_postgres_writer
-      - dev_postgres_replication
     # Bounded on purpose. Podman applies no backoff to `unless-stopped`, so a service that
     # exits immediately on a bad configuration is recreated several times a second until
     # the netns, veth, conmon, and journald churn saturates a CPU. Three attempts ride out
@@ -550,24 +588,24 @@ services:
     entrypoint: "/entrypoint.sh"
     environment:
       POSTGRES_USER: "${POSTGRESQL_USER:-root}"
-      POSTGRES_PASSWORD_FILE: /run/secrets/dev_postgres_writer
+      POSTGRES_PASSWORD_FILE: /run/dev-credentials/postgres-writer
       POSTGRES_DB: "${POSTGRESQL_DATABASE:-db}"
       POSTGRES_REPLICATION_USER: "${POSTGRESQL_REPLICATION_USER:-replicator}"
-      POSTGRES_REPLICATION_PASSWORD_FILE: /run/secrets/dev_postgres_replication
+      POSTGRES_REPLICATION_PASSWORD_FILE: /run/dev-credentials/postgres-replication
       TZ: UTC
     volumes:
+      - dev-credentials:/run/dev-credentials:ro
       - replica-data:/var/lib/postgresql/data
       - "./podman/psql-sub/entrypoint.sh:/entrypoint.sh:ro,z"
       - "./podman/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
       - "./podman/psql-sub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
     depends_on:
+      dev-credentials:
+        condition: service_completed_successfully
       primary:
         condition: service_healthy
     networks:
       - backend
-    secrets:
-      - dev_postgres_writer
-      - dev_postgres_replication
     # Bounded on purpose. Podman applies no backoff to `unless-stopped`, so a service that
     # exits immediately on a bad configuration is recreated several times a second until
     # the netns, veth, conmon, and journald churn saturates a CPU. Three attempts ride out
@@ -759,6 +797,7 @@ networks:
   # never create, start, or pull it. See
   # docs/operations/cloudflare-private-origin.md.
 volumes:
+  dev-credentials: {}
   primary-data: {}
   workspace-podman-storage: {}
   replica-data: {}
@@ -775,14 +814,3 @@ volumes:
   rustfs-data1: {}
   rustfs-data2: {}
   rustfs-data3: {}
-secrets:
-  dev_postgres_writer:
-    external: true
-  dev_postgres_replication:
-    external: true
-  dev_rustfs_access_key:
-    external: true
-  dev_rustfs_secret_key:
-    external: true
-  dev_rustfs_rpc_secret:
-    external: true

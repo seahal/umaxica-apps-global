@@ -2,13 +2,11 @@
 
 ## Compose provider for the Dev Container
 
-VS Code is the primary entry point. Complete the one-time Podman user settings
-in [VS Code Dev Containers on Rootless
-Podman](devcontainer-cli-podman-startup.md), then run **Dev Containers: Rebuild
-and Reopen in Container**.
+VS Code is the primary entry point. Complete the one-time Podman user settings in
+[VS Code Dev Containers on Rootless Podman](devcontainer-cli-podman-startup.md), then run **Dev
+Containers: Rebuild and Reopen in Container**.
 
-For diagnostics or automation, use the equivalent standard CLI command from
-the repository root:
+For diagnostics or automation, use the equivalent standard CLI command from the repository root:
 
 ```sh
 PODMAN_COMPOSE_PROVIDER=/usr/bin/podman-compose \
@@ -18,50 +16,40 @@ devcontainer up \
   --workspace-folder .
 ```
 
-`PODMAN_COMPOSE_PROVIDER` is not optional. Once `--docker-path` points at
-Podman, the Dev Containers CLI invokes the `podman compose` subcommand, and
-`podman compose` delegates to an external provider that prefers `docker-compose`
-when one is installed. Docker Compose reports `unsupported external secret` for
-this stack because it cannot attach external Podman secrets through the Podman
-API, and on a host with no running Docker daemon it fails earlier still, against
-a missing `podman.sock`. The variable is what pins the provider;
-`--docker-compose-path` alone does not, because the subcommand form does not
-consult it.
+`PODMAN_COMPOSE_PROVIDER` is not optional. Once `--docker-path` points at Podman, the Dev Containers
+CLI invokes the `podman compose` subcommand, and `podman compose` delegates to an external provider
+that prefers `docker-compose` when one is installed. Docker Compose reports
+`unsupported external secret` for this stack because it cannot attach external Podman secrets
+through the Podman API, and on a host with no running Docker daemon it fails earlier still, against
+a missing `podman.sock`. The variable is what pins the provider; `--docker-compose-path` alone does
+not, because the subcommand form does not consult it.
 
-This is a security requirement. Do not replace external Podman secrets with
-host credential bind mounts or Compose `file:` secrets. The Dev Container
-`initializeCommand` registers the internal service secrets through
-`bin/setup-dev-secrets` before the container starts. Global and Edge intentionally do not share a
-host Podman network; Edge reaches the Rails origin through Cloudflare Workers VPC.
+This is a security requirement. Do not bind host credential files into the containers. Internal
+service passwords are generated inside the stack by the `dev-credentials` service and reach their
+consumers through a read-only volume mount, so no credential is bound in from the host and none is
+interpolated into Compose. Global and Edge intentionally do not share a host Podman network; Edge
+reaches the Rails origin through Cloudflare Workers VPC.
 
-`--docker-path` is equally required. Without it the Dev Containers CLI runs
-lifecycle queries such as `docker ps` through its default Docker executable,
-which on a host that also has Docker installed silently drives the wrong engine.
-Neither the flags nor the variable have a `devcontainer.json` equivalent, so
-none of them can be moved into repository configuration.
+`--docker-path` is equally required. Without it the Dev Containers CLI runs lifecycle queries such
+as `docker ps` through its default Docker executable, which on a host that also has Docker installed
+silently drives the wrong engine. Neither the flags nor the variable have a `devcontainer.json`
+equivalent, so none of them can be moved into repository configuration.
 
-There is intentionally no repository launcher. VS Code invokes the standard
-Dev Containers CLI, keeping one lifecycle instead of adding a project-specific
-bootstrap interface. The remaining Podman-specific properties live in Compose
-configuration.
+There is intentionally no repository launcher. VS Code invokes the standard Dev Containers CLI,
+keeping one lifecycle instead of adding a project-specific bootstrap interface. The remaining
+Podman-specific properties live in Compose configuration.
 
-If an interrupted start leaves `global-devcontainer-core` in Created or Exited
-state, use **Dev Containers: Rebuild and Reopen in Container**. The CLI
-equivalent is the same `devcontainer up` command with
-`--remove-existing-container`.
+If an interrupted start leaves `global-devcontainer-core` in Created or Exited state, use **Dev
+Containers: Rebuild and Reopen in Container**. The CLI equivalent is the same `devcontainer up`
+command with `--remove-existing-container`.
 
-Compose networks are repository-managed rootless Podman networks. In
-particular, `outer.external` is a YAML boolean and is not environment-variable
-interpolated. Interpolation turns this field into a string; affected
-podman-compose releases then fail in network argument construction with
+Compose networks are repository-managed rootless Podman networks. In particular, `outer.external` is
+a YAML boolean and is not environment-variable interpolated. Interpolation turns this field into a
+string; affected podman-compose releases then fail in network argument construction with
 `AttributeError: 'str' object has no attribute 'get'`.
 
-`bin/setup-dev-secrets` reports secret names and state only; it never prints
-secret values.
-
-The compose stack at `compose.yaml` is exercised with rootless Podman. Some
-Compose-compatible tooling remains useful for static validation, but it is not
-the supported runtime provider when Podman-managed secrets are attached. This
+The compose stack at `compose.yaml` is exercised with rootless Podman. Some Compose-compatible
+tooling remains useful for static validation, but it is not the supported runtime provider. This
 document records the rootless Podman requirements that are easy to miss.
 
 ## Restart policies
@@ -98,16 +86,16 @@ under `keep-id` and break ownership.
 
 ## PostgreSQL storage
 
-Primary and replica data use named volumes. The no-tmpfs baseline is
-intentional: explicit tmpfs and `shm_size` settings are not part of the current
-stack. Reintroducing either requires workload and memory-pressure measurements.
+Primary and replica data use named volumes. The no-tmpfs baseline is intentional: explicit tmpfs and
+`shm_size` settings are not part of the current stack. Reintroducing either requires workload and
+memory-pressure measurements.
 
 ## SELinux
 
 On Fedora, RHEL, and other SELinux-enforcing hosts, bind-mounted host paths must be labeled before
 the container can read them. The compose file marks read-only config bind mounts with `:z` (shared
-label). The workspace bind is labeled `Z` (private) rather than shared, so SELinux does not relabel the
-host source tree for other containers.
+label). The workspace bind is labeled `Z` (private) rather than shared, so SELinux does not relabel
+the host source tree for other containers.
 
 If a service fails to read a mounted file with "permission denied" on an SELinux host even though
 POSIX permissions look correct, relabel manually:
@@ -122,8 +110,8 @@ chcon -Rt container_file_t podman/<service>/
 
 - `userns_mode: keep-id` for UID mapping.
 - no `user:` key on `core`, so the in-image UID wins instead of double-mapping.
-- no tmpfs mount for the workspace `tmp/` and `log/` paths, because rootless Podman has
-  historically been unreliable with them on tmpfs.
+- no tmpfs mount for the workspace `tmp/` and `log/` paths, because rootless Podman has historically
+  been unreliable with them on tmpfs.
 
 Run the stack with the developer overlay layered on the base compose file:
 

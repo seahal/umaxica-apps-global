@@ -8,12 +8,16 @@ each item belongs, and who issues it.
 
 ## What is not in git
 
-| Item | Location | Ignore rule in `.gitignore` |
-| :--- | :--- | :--- |
+| Item              | Location              | Ignore rule in `.gitignore` |
+| :---------------- | :-------------------- | :-------------------------- |
 | `development.key` | `config/credentials/` | `/config/credentials/*.key` |
-| `test.key` | `config/credentials/` | `/config/credentials/*.key` |
-| `.env` | repository root | `.env` |
-| `.secrets/` | repository root | `.secrets/` |
+| `test.key`        | `config/credentials/` | `/config/credentials/*.key` |
+| `.env`            | repository root       | `.env`                      |
+| `.secrets/`       | repository root       | `.secrets/`                 |
+
+`.secrets/` is no longer written by anything in this repository -- development service passwords are
+generated inside the stack, as described below. The ignore rules stay so that a directory created by
+hand, or left over from an earlier checkout, can never enter a commit or a build context.
 
 `config/credentials/development.yml.enc` and `config/credentials/test.yml.enc` are tracked, and are
 unreadable without the matching `.key` file. Committing a `.key` file defeats the encryption of the
@@ -61,15 +65,24 @@ CI does not use these files. GitHub Actions supplies the key through the `RAILS_
 
 Compose reads the repository-root `.env`. It currently carries three settings:
 
-| Key | Source |
-| :--- | :--- |
-| `UID` | written automatically by `.devcontainer/write-host-ids.sh` |
-| `GID` | written automatically by `.devcontainer/write-host-ids.sh` |
+| Key                 | Source                                        |
+| :------------------ | :-------------------------------------------- |
+| `UID`               | written by hand: your host `id -u`            |
+| `GID`               | written by hand: your host `id -g`            |
 | `CLOUDFLARED_TOKEN` | Cloudflare dashboard, or the development lead |
 
-`UID` and `GID` need no manual action: `.devcontainer/devcontainer.json` runs
-`.devcontainer/write-host-ids.sh` as its `initializeCommand`, and that script preserves any existing
-`CLOUDFLARED_TOKEN` line.
+`UID` and `GID` feed the `DOCKER_UID`/`DOCKER_GID` build args, which decide the workload UID baked
+into the `core` image. `$UID`/`$GID` are bash builtins rather than exported variables, so Compose
+never sees them from the environment; write them into `.env` once per machine:
+
+```bash
+printf 'UID=%s\nGID=%s\n' "$(id -u)" "$(id -g)" >> .env
+```
+
+Appending is safe as long as no earlier `UID=`/`GID=` line exists — Compose takes the last
+occurrence, but a duplicate is confusing to read. Leaving them out is not silent: Compose falls back
+to `1000`, and on a host whose user is not `1000:1000` every bind-mounted repository file appears
+with the wrong owner inside the container.
 
 `CLOUDFLARED_TOKEN` is tunnel-scoped. Retrieve it yourself from the Cloudflare dashboard following
 `docs/operations/cloudflare-private-origin.md`; **request it from the development lead when you do
@@ -106,14 +119,31 @@ encrypted credentials, or in the provider's own secret store. Never place it in 
 Compose file, a container image, a plan under `plans/`, or a note under `notes/`. When a credential
 is no longer needed, or may have been exposed, tell the development lead so it can be revoked.
 
-## What `bin/setup-dev-secrets` does and does not do
+## Development service passwords: the `dev-credentials` service
 
-`bin/setup-dev-secrets` runs as part of the devcontainer `initializeCommand`. It generates dev-only
-service passwords (PostgreSQL roles, HMAC salts, RustFS keys, and similar) into `.secrets/` and
-registers them as Podman secrets.
+PostgreSQL and RustFS passwords are generated inside the stack, not on the host. The
+`dev-credentials` Compose service runs to completion before `core`, `primary`, `replica`, and
+`rustfs` start, and writes five files into the `dev-credentials` named volume:
 
-It does not write `.env`, and it does not supply Rails credential keys or any provider credential.
-Its own header comment scopes user credentials out. Running it will not resolve a decryption failure
+| File                   | Read by                      |
+| :--------------------- | :--------------------------- |
+| `postgres-writer`      | `core`, `primary`, `replica` |
+| `postgres-replication` | `primary`, `replica`         |
+| `rustfs-access-key`    | `core`, `rustfs`             |
+| `rustfs-secret-key`    | `core`, `rustfs`             |
+| `rustfs-rpc-secret`    | `rustfs`                     |
+
+Every consumer mounts the volume read-only at `/run/dev-credentials` and reads the value through a
+`*_PASSWORD_FILE` / `*_FILE` environment variable. There is no host-side bootstrap command and no
+Podman Secret registration: a fresh clone only needs `.env` and the Rails credential keys.
+
+Each file is written once and then reused, because PostgreSQL bakes the superuser password into
+`primary-data` at initdb time. To rotate, remove the `dev-credentials`, `primary-data`, and
+`replica-data` volumes together — dropping only `dev-credentials` leaves the databases holding the
+previous password, and `primary` then refuses its own credential.
+
+This covers development service passwords only. It does not write `.env`, and it does not supply
+Rails credential keys or any provider credential. Running it will not resolve a decryption failure
 or a missing `CLOUDFLARED_TOKEN`.
 
 ## Related documents

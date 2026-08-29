@@ -22,13 +22,6 @@ then
 fi
 readonly WORKLOAD_GID
 
-# Remote SSH is no longer started from here. `compose.remote-access.yaml`
-# replaces `command:` with /usr/local/bin/remote-sshd-entrypoint, which this
-# entrypoint execs like any other command, so sshd runs in the foreground under
-# the same keep-id identity instead of being forked into the background from a
-# branch that had to police its own EUID. See
-# docs/operations/remote-codex-over-tailscale.md.
-
 if (( EUID == WORKLOAD_UID )); then
   # No root control plane in play: `userns_mode: keep-id` already maps this
   # process to the host-shaped workload user directly, so there is nothing

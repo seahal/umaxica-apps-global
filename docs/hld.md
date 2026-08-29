@@ -315,8 +315,8 @@ Sensitive columns leverage Active Record encryption.
 ## 11. Appendices
 
 - Sequence diagrams and state flows live in `docs/uml/` (to be updated alongside DDS).
-- Environment variable catalog: RustFS/object-storage credentials are Podman secrets provisioned by
-  `bin/setup-dev-secrets`; only the non-secret bucket and host-port settings live in the ignored
-  `.env` file (see `docs/operations/local-object-storage-rustfs.md`). There is no committed
-  `.env.example` template.
+- Environment variable catalog: RustFS/object-storage credentials are generated inside the stack by
+  the `dev-credentials` Compose service and read from the `dev-credentials` volume; only the
+  non-secret bucket and host-port settings live in the ignored `.env` file (see
+  `docs/operations/local-object-storage-rustfs.md`). There is no committed `.env.example` template.
 - Testing strategy captured in `docs/test.md`.
