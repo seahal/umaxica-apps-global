@@ -302,6 +302,28 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     assert system("git", "check-ignore", "--quiet", ".env")
   end
 
+  test "the entrypoint calls the real CLI, never the wrapper that shadows it" do
+    calls = entrypoint.scan(/\S*tailscale --socket=/)
+
+    assert_operator calls.length, :>=, 2, "the entrypoint must drive tailscaled itself"
+    calls.each do |call|
+      assert_equal "/usr/bin/tailscale --socket=", call,
+                   "a bare `tailscale` resolves to the wrapper at /usr/local/bin/tailscale, " \
+                   "which injects a --socket of its own -- the CLI then exits with `flag " \
+                   "provided multiple times`, prints its usage, and set -e takes the whole " \
+                   "entrypoint down. The container dies at startup with a page of help text " \
+                   "as its only log. This was a real defect in all three repositories."
+    end
+  end
+
+  test "an unenrolled node still gets an sshd rather than a container that exits" do
+    assert_match(/^if ! \/usr\/bin\/tailscale --socket=.*serve/, entrypoint,
+                 "`serve` refuses on a node that is not enrolled yet, and under set -e that " \
+                 "killed the container at startup -- no sshd, no shell, and therefore no way " \
+                 "to enrol from inside. It must warn and carry on, so that `tailscale up` in " \
+                 "a shell is a recovery path rather than a chicken-and-egg problem.")
+  end
+
   test "the preflight refuses to start once a spent auth key is left behind" do
     preflight = REPOSITORY_ROOT.join(".devcontainer/remote-access-preflight.sh")
 
