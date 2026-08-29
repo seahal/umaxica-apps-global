@@ -115,10 +115,11 @@ described; see `memos/2026-08-29-chronicle-and-enforcement-write-dependencies.md
   block-taking class method. Those operations write `Chronicle` rows, so this is the audit model
   persisting its own records through extracted steps rather than a model pulling in a workflow.
   Probably permitted; the open question is whether the API is still live at all.
-- `app/models/concerns/enforcement_case_applicable.rb` calls `AdministrativeAccessLock.lock!` from
-  `apply!`, which is a use case implemented as a model method: a state transition in a transaction
-  followed by side effects outside it. The dependency is a symptom; `apply!` itself belongs in
-  `app/operations`. Do not copy this pattern.
+- `app/models/concerns/enforcement_appeal.rb` calls `EnforcementCaseEndOperation` from `resolve!`,
+  which is a use case implemented as a model method. `EnforcementCaseApplicable` had the same shape
+  and was extracted into `EnforcementCaseApplyOperation` and `EnforcementCaseEndOperation`;
+  `resolve!` has not been. Note that it calls the end operation *inside* its own transaction, while
+  those operations deliberately run their side effects outside one. Do not copy this pattern.
 
 ## Role definitions
 

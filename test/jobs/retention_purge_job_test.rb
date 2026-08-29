@@ -186,7 +186,7 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
       principal_hard_delete_blocked: true,
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
     assert_no_difference -> { Client.count } do
       RetentionPurgeJob.perform_now
@@ -217,7 +217,7 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
       withdrawal_purge_blocked: true,
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
     assert_no_difference -> { Operator.count } do
       RetentionPurgeJob.perform_now

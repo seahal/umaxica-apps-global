@@ -660,7 +660,7 @@ module Auth::App::Up
       )
       digest = EnforcementIdentifierDigest.for_telephone(realm: "app", value: "+15551234567")
       the_case.identifier_effects.build(**digest, registration_blocked: true, effective_at: Time.current)
-      the_case.apply!
+      EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
       assert_no_enqueued_jobs only: Outbound::SmsDeliveryJob do
         assert_no_difference("ClientTelephone.count") do

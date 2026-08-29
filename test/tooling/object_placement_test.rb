@@ -151,24 +151,32 @@ class ObjectPlacementTest < Minitest::Test
                  "(see value-object-boundaries.mdc):\n#{offenders.join("\n")}"
   end
 
-  # Constants defined under app/services that app/models still reaches for, each with the issue
-  # that resolves it. A Service orchestrates models, so this arrow must not exist.
+  # Roots a model must not depend on. A Service orchestrates models and an Operation performs a
+  # write on their behalf, so either arrow pointing back at a model inverts the layering.
+  FORBIDDEN_MODEL_DEPENDENCY_ROOTS = %w(app/services app/operations).freeze
+
+  # Constants in those roots that app/models still reaches for, each with the issue that resolves
+  # it.
   MODEL_DEPENDENCIES_PENDING = {
-    # #869 - audit writes fired from a model callback, and the retention/sanitization helpers
-    # that sit in the same group
+    # Chronicle.capture writes Chronicle rows through these operations. The model here is the audit
+    # table itself, so this is a model persisting its own records through extracted steps, not a
+    # service orchestrating it - see
+    # memos/2026-08-29-chronicle-and-enforcement-write-dependencies.md. #869 also found that
+    # Chronicle.capture has no production caller, which is the question to settle first.
     "ChronicleIntentWriter" => 869,
     "ChronicleResultWriter" => 869,
     "ChronicleInvalidator" => 869,
     "ChronicleFallbackRecorder" => 869,
-    "ChronicleRecordPolicy" => 869,
-    # #869 - AdministrativeAccessLock.lock!/.unlock! called from a model concern
-    "AdministrativeAccessLock" => 869,
+    # EnforcementAppeal#resolve! ends the Case it belongs to. Same fat-model shape #871 removed one
+    # level up, and it calls the end operation inside its own transaction rather than outside it.
+    "EnforcementCaseEndOperation" => 872,
   }.freeze
 
-  def test_models_do_not_depend_on_app_services
-    defined_in_services =
-      ruby_files_under("app/services").to_set do |path|
-        path.delete_prefix("app/services/").delete_suffix(".rb").split(%r{[/_]}).map(&:capitalize).join
+  def test_models_do_not_depend_on_the_write_side
+    defined_in_forbidden_roots =
+      FORBIDDEN_MODEL_DEPENDENCY_ROOTS.flat_map { |root| ruby_files_under(root).map { |path| [root, path] } }
+        .to_set do |root, path|
+        path.delete_prefix("#{root}/").delete_suffix(".rb").split(%r{[/_]}).map(&:capitalize).join
       end
 
     referenced =
@@ -179,12 +187,12 @@ class ObjectPlacementTest < Minitest::Test
       end.to_set
 
     offenders =
-      (defined_in_services & referenced)
+      (defined_in_forbidden_roots & referenced)
         .reject { |constant| MODEL_DEPENDENCIES_PENDING.key?(constant) }
         .sort
 
     assert_empty offenders,
-                 "app/models depends on constants defined under app/services " \
+                 "app/models depends on constants defined under app/services or app/operations " \
                  "(see value-object-boundaries.mdc, Dependency direction):\n#{offenders.join("\n")}"
   end
 

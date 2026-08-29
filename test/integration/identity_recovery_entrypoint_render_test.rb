@@ -91,11 +91,12 @@ class IdentityRecoveryEntrypointRenderTest < ActionDispatch::IntegrationTest
   private
 
   def activate_recovery_case(case_class, subject)
-    case_class.create!(
+    enforcement_case = case_class.create!(
       kind: "security_lock", state: "draft", duration_mode: "indefinite", visibility: "visible",
       release_mode: "verification_required", effective_at: Time.current, reason_code: "security_incident",
       principal_public_id: subject.public_id, applied_by_operator_public_id: "recovery-test-operator",
-    ).apply!
+    )
+    EnforcementCaseApplyOperation.call(enforcement_case: enforcement_case)
   end
 
   def create_client

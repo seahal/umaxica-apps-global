@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-# adr/unified-enforcement.md, Reconciliation: EnforcementCase#apply! commits
+# adr/unified-enforcement.md, Reconciliation: EnforcementCaseApplyOperation commits
 # the security decision atomically, but session revocation and the audit
 # write happen after commit and can fail independently. This job finds every
 # active Case across all three realms whose convergent side effects have not

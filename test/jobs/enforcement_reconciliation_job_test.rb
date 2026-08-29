@@ -25,7 +25,7 @@ class EnforcementReconciliationJobTest < ActiveJob::TestCase
       effect: "unusable",
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
     # Simulate a prior partial failure: the state transition committed, but
     # the convergent side effects never ran.
@@ -56,7 +56,7 @@ class EnforcementReconciliationJobTest < ActiveJob::TestCase
       principal_public_id: client.public_id,
       applied_by_operator_public_id: operator.public_id,
     )
-    converged_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: converged_case)
 
     assert_includes AppEnforcementCase.where(id: converged_case.id).to_a, converged_case
     assert_not_includes AppEnforcementCase.pending_convergence.to_a, converged_case

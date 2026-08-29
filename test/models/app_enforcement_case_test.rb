@@ -44,7 +44,7 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
   test "end_case rejects an unknown reason" do
     the_case = AppEnforcementCase.new
 
-    assert_raises(ArgumentError) { the_case.end_case!(reason: "not-a-reason") }
+    assert_raises(ArgumentError) { EnforcementCaseEndOperation.call(enforcement_case: the_case, reason: "not-a-reason") }
   end
 
   test "cooldown requires expires_at and rejects a missing one at the database level" do
@@ -240,7 +240,7 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       access_blocking: true,
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
     client.reload
 
     assert_equal "active", the_case.state
@@ -272,7 +272,7 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       effect: "unusable",
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
     matching_token.reload
     other_token.reload
 
@@ -295,7 +295,7 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       applied_by_operator_public_id: operator.public_id,
     )
 
-    assert_raises(EnforcementCaseApplicable::ApprovalRequiredError) { the_case.apply! }
+    assert_raises(EnforcementCaseApplicable::ApprovalRequiredError) { EnforcementCaseApplyOperation.call(enforcement_case: the_case) }
     assert_predicate the_case, :new_record?
   end
 
@@ -314,9 +314,9 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       principal_public_id: client.public_id,
       applied_by_operator_public_id: operator.public_id,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
-    assert_raises(EnforcementCaseApplicable::InvalidStateTransitionError) { the_case.apply! }
+    assert_raises(EnforcementCaseApplicable::InvalidStateTransitionError) { EnforcementCaseApplyOperation.call(enforcement_case: the_case) }
   end
 
   test "applying a new open method effect closes the prior open row for the same slot" do
@@ -339,7 +339,7 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       effect: "mutation_locked",
       effective_at: Time.current,
     )
-    first_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: first_case)
     first_effect = first_case.authentication_method_effects.first
 
     second_case = AppEnforcementCase.new(
@@ -358,7 +358,7 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       effect: "unusable",
       effective_at: Time.current,
     )
-    second_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: second_case)
 
     first_effect.reload
 
@@ -385,9 +385,9 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       access_blocking: true,
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
-    the_case.end_case!(reason: "revoked", ended_by_operator_public_id: operator.public_id)
+    EnforcementCaseEndOperation.call(enforcement_case: the_case, reason: "revoked", ended_by_operator_public_id: operator.public_id)
     client.reload
 
     assert_predicate the_case.ended_at, :present?

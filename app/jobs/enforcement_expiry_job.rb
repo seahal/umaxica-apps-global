@@ -23,7 +23,7 @@ class EnforcementExpiryJob < ApplicationJob
   private
 
   def expire!(enforcement_case)
-    enforcement_case.end_case!(reason: "expired")
+    EnforcementCaseEndOperation.call(enforcement_case: enforcement_case, reason: "expired")
   rescue StandardError => e
     Rails.logger.error(
       JitLogEvent.format(
