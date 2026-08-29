@@ -68,9 +68,11 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
   test "the development container bakes one pinned Tailscale and no supervisor scripts" do
     containerfile = REPOSITORY_ROOT.join("Containerfile").read
 
-    assert_match(/tailscale=\d+\.\d+\.\d+/, containerfile,
-                 "`core` joins the tailnet itself now, so the client is an image dependency " \
-                 "and must be version-pinned the way the sidecar image's digest used to be")
+    assert_match(
+      /tailscale=\d+\.\d+\.\d+/, containerfile,
+      "`core` joins the tailnet itself now, so the client is an image dependency " \
+      "and must be version-pinned the way the sidecar image's digest used to be",
+    )
     assert_includes containerfile, "pkgs.tailscale.com/stable/debian/trixie.noarmor.gpg",
                     "the apt repository must be signed by Tailscale's own key, not trusted"
     assert_includes containerfile,
@@ -114,8 +116,10 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     assert_includes contents, "--tun=userspace-networking",
                     "kernel mode would need /dev/net/tun and NET_ADMIN, which is exactly the " \
                     "privilege the sidecar was built to avoid requesting"
-    assert_no_match(/\bsudo\b|\bsu -/, code,
-                    "there is no sudo in this image and no root to escalate to")
+    assert_no_match(
+      /\bsudo\b|\bsu -/, code,
+      "there is no sudo in this image and no root to escalate to",
+    )
     assert_includes contents, "exec /usr/bin/tailscale",
                     "beyond starting the daemon the wrapper must be a pass-through, or the " \
                     "CLI's own behaviour becomes this repository's to maintain"
@@ -230,23 +234,25 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
 
     generator = services.fetch("dev-credentials")
 
-    assert_equal [ "dev-credentials:/credentials" ], generator.fetch("volumes"),
+    assert_equal ["dev-credentials:/credentials"], generator.fetch("volumes"),
                  "the generator is the only writer, so it is the only service mounting the " \
                  "volume read-write"
 
-    readers = services.reject { |name, _| name == "dev-credentials" }.select do |_, service|
-      service.is_a?(Hash) && service.to_yaml.include?("/run/dev-credentials/")
-    end
+    readers =
+      services.reject { |name, _| name == "dev-credentials" }.select do |_, service|
+        service.is_a?(Hash) && service.to_yaml.include?("/run/dev-credentials/")
+      end
 
     assert_equal %w(core primary replica rustfs), readers.keys.sort
 
     readers.each do |name, service|
-      mount = Array(service["volumes"]).find do |entry|
-        case entry
-        when String then entry.start_with?("dev-credentials:")
-        when Hash then entry["source"] == "dev-credentials"
+      mount =
+        Array(service["volumes"]).find do |entry|
+          case entry
+          when String then entry.start_with?("dev-credentials:")
+          when Hash then entry["source"] == "dev-credentials"
+          end
         end
-      end
 
       assert mount, "#{name} reads /run/dev-credentials but mounts no credential volume"
 
