@@ -21,6 +21,20 @@ services:
     # label on Fedora/RHEL hosts; harmless on non-SELinux hosts (Arch, Ubuntu).
     # Relative paths in compose files resolve against the project directory
     # (the dir holding the first -f file), so `.` is the repo root.
+    # Pin the MCS level instead of letting SELinux allocate a fresh category
+    # pair per container. The grok-build feature's onCreateCommand runs
+    # `install -d` over its bind-mounted `~/.grok`, and coreutils `install`
+    # applies the default SELinux context, so each successful run stamped that
+    # container's categories onto the host directory — and the next container,
+    # allocated a different pair, could no longer read it:
+    #   install: cannot change permissions of '/var/lib/grok-build'
+    # A fixed level makes that stamp identical every time, so the mount keeps
+    # working across recreates. MCS confinement itself is unchanged; only the
+    # category allocation stops being random. `label=disable` would also fix it,
+    # but this file deliberately uses per-mount `:Z` rather than switching label
+    # enforcement off, so keep the weaker change.
+    security_opt:
+      - label=level:s0:c101,c202
     volumes:
       - type: bind
         source: "."
@@ -32,18 +46,6 @@ services:
       # workspace paths in Compose long syntax so Gate C can inspect the
       # effective mount flags. The host SSH directory is intentionally absent:
       # inbound Remote Codex does not need host private keys.
-      # Host timezone. /etc/timezone is a Debian/Ubuntu file and does not
-      # exist on Fedora/RHEL or Arch, where Podman refuses to start the
-      # container at all ("statfs /etc/timezone: no such file or directory")
-      # rather than inventing an empty source. /etc/localtime exists on every
-      # one of them, carries the same information, and needs no `selinux:`
-      # option because its label (locale_t) is already readable by container_t
-      # -- unlike the workspace mounts below, and unlike a relabel of a host
-      # /etc file, which must never be done.
-      - type: bind
-        source: "/etc/localtime"
-        target: "/etc/localtime"
-        read_only: true
       - type: bind
         source: "./.github"
         target: "/home/global/workspace/.github"
