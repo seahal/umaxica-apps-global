@@ -12,9 +12,16 @@ module ActorSupport
 
   private
 
+  # Time.zone is thread-local, so a zone set for one request would otherwise stay
+  # on the thread and be inherited by the next request, a job, or a mailer that
+  # never resolved a preference of its own. Restoring it here keeps every
+  # rendered date -- the copyright year included -- a function of the request's
+  # own preference rather than of whatever ran before it.
   def with_actor_lifecycle
+    previous_time_zone = Time.zone
     yield
   ensure
+    Time.zone = previous_time_zone
     Actor.clear
   end
 
