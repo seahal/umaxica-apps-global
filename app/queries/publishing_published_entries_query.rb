@@ -8,7 +8,11 @@
 # revision's assignments, so an entry is only findable by what it actually
 # published. An unknown or archived filter term yields no entries rather than
 # quietly falling back to the unfiltered list.
-class PublishingPublishedEntriesQuery < ApplicationService
+class PublishingPublishedEntriesQuery
+  def self.call(...)
+    new(...).call
+  end
+
   # adr/api-collection-contract.md: every collection endpoint is bounded, a client that omits
   # `limit` still gets a bounded response, and a `limit` above the maximum is clamped rather than
   # rejected so a tuning mistake cannot become an error.
@@ -24,7 +28,6 @@ class PublishingPublishedEntriesQuery < ApplicationService
   end
 
   def initialize(edition:, category: nil, tag: nil)
-    super()
     @edition = edition
     @category = category.presence
     @tag = tag.presence

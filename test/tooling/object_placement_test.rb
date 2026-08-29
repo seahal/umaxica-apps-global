@@ -32,23 +32,7 @@ class ObjectPlacementTest < Minitest::Test
 
   # Files that still sit in the wrong root, each with the issue that moves it. Entries are removed
   # by that issue, not to quiet a failure.
-  PENDING = {
-    # #864 - queries and resolvers
-    "app/services/publishing_published_entries_query.rb" => 864,
-    "app/services/host_context_resolver.rb" => 864,
-    "app/services/publishing_edition_resolver.rb" => 864,
-    "app/services/redirects_external_target_resolver.rb" => 864,
-    "app/services/redirects_navigation_target_resolver.rb" => 864,
-    "app/services/redirects_path_target_resolver.rb" => 864,
-    "app/services/redirects_priority_resolver.rb" => 864,
-    "app/services/sign_in_activation_candidate_resolver.rb" => 864,
-    "app/services/webauthn/authenticator_name_resolver.rb" => 864,
-    "app/policies/step_up_methods_resolver.rb" => 864,
-    "app/policies/step_up_resolver.rb" => 864,
-    "app/values/account_standing_resolver.rb" => 864,
-    "app/values/oidc_client_secret_resolver.rb" => 864,
-    "app/lib/external_sign_in/org_entra_resolver.rb" => 864,
-  }.freeze
+  PENDING = {}.freeze
 
   # Concerns live under a concerns root, which is already the classifier, so the suffix rule does
   # not reach them. See value-object-boundaries.mdc, "Exceptions to the suffix rule".
