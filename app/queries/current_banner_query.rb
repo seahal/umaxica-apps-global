@@ -11,7 +11,7 @@
 # Behaviour is deliberately unchanged from the helper it replaces, including the connection role and
 # the rescue: a banner is optional chrome, and an unreachable banner store must not turn every page
 # of the surface into a 500.
-module CurrentBanner
+module CurrentBannerQuery
   module_function
 
   ALLOWED_TLDS = %i(app org com).freeze

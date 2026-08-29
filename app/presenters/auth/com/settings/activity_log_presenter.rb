@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class Auth::Com::Settings::ActivityLog
+class Auth::Com::Settings::ActivityLogPresenter
   LOGIN_EVENT_IDS = [ClientChronicleEvent::LOGGED_IN, ClientChronicleEvent::LOGIN_SUCCESS].freeze
   EVENT_LABELS = {
     ClientChronicleEvent::LOGGED_IN => "logged_in",

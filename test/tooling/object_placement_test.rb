@@ -54,6 +54,50 @@ class ObjectPlacementTest < Minitest::Test
                  "(see value-object-boundaries.mdc):\n#{offenders.join("\n")}"
   end
 
+  # Roots whose contents must end in one of the root's allowed suffixes, so that a file names its
+  # own role the way xxx_controller.rb does. Only roots that are fully compliant are listed; the
+  # remainder are added as their migration issue makes them so.
+  #
+  # Not yet listed, with the reason:
+  #   app/services   - #868 has not run; the root is still mixed
+  #   app/policies   - three files need a rule decision (sign_up_step_gate, quota_limits,
+  #                    step_up_available_methods)
+  #   app/adapters   - MCP tools and provider/cache names need a rule decision
+  #   app/lib        - ports and primitives, suffix set not settled
+  #   app/values     - 96 files grandfathered until #870
+  ROOT_SUFFIXES = {
+    "app/consumers" => %w(consumer),
+    "app/forms" => %w(form),
+    "app/notifiers" => %w(notifier),
+    "app/operations" => %w(operation),
+    "app/presenters" => %w(presenter),
+    "app/queries" => %w(query inventory locator),
+    "app/resolvers" => %w(resolver),
+    "app/serializers" => %w(serializer),
+    "app/subscribers" => %w(subscriber),
+    "app/validators" => %w(validator),
+  }.freeze
+
+  # An error namespace holds Error classes rather than being one, so it cannot carry the suffix
+  # without the constant lying about what it is.
+  SUFFIX_EXEMPT = ["app/errors/identity_telephone_ceremony.rb"].freeze
+
+  def test_every_file_names_its_own_role
+    offenders =
+      ROOT_SUFFIXES.flat_map do |root, suffixes|
+        ruby_files_under(root).reject { |path| SUFFIX_EXEMPT.include?(path) }.filter_map do |path|
+          suffix = File.basename(path, ".rb").split("_").last
+          next if suffixes.include?(suffix)
+
+          "#{path} does not end in #{suffixes.join(", ")}"
+        end
+      end
+
+    assert_empty offenders,
+                 "Files in a role root do not name their role " \
+                 "(see value-object-boundaries.mdc):\n#{offenders.join("\n")}"
+  end
+
   # Constants defined under app/services that app/models still reaches for, each with the issue
   # that resolves it. A Service orchestrates models, so this arrow must not exist.
   MODEL_DEPENDENCIES_PENDING = {

@@ -4,7 +4,7 @@
 require "test_helper"
 # require "helpers/global_test_support"
 
-class SignComSettingsActivityLogTest < ActiveSupport::TestCase
+class SignComSettingsActivityLogPresenterTest < ActiveSupport::TestCase
   ActivityStub = Struct.new(:event_id, :occurred_at, :created_at, :ip_address, :context, keyword_init: true)
 
   def stub_activity(event_id: 1, ip: "192.168.1.1", context: {}, occurred_at: nil, created_at: Time.current)
@@ -15,7 +15,7 @@ class SignComSettingsActivityLogTest < ActiveSupport::TestCase
   end
 
   setup do
-    @log = Auth::Com::Settings::ActivityLog.new(visitors(:reserved_visitor))
+    @log = Auth::Com::Settings::ActivityLogPresenter.new(visitors(:reserved_visitor))
   end
 
   test "occurred_at returns occurred_at when present" do

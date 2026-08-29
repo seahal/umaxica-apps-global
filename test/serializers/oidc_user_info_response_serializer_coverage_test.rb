@@ -4,11 +4,11 @@
 require "test_helper"
 # require "helpers/global_test_support"
 
-class OidcUserInfoResponseCoverageTest < ActiveSupport::TestCase
+class OidcUserInfoResponseSerializerCoverageTest < ActiveSupport::TestCase
   test "build returns profile claims when the resource exposes them" do
     resource = Struct.new(:public_id, :name, :email).new("user-1", "Ada Lovelace", "ada@example.test")
 
-    claims = OidcUserInfoResponse.build(
+    claims = OidcUserInfoResponseSerializer.build(
       resource: resource,
       payload: { "act" => "client", "scp" => %w(openid profile email) },
     )
@@ -22,7 +22,7 @@ class OidcUserInfoResponseCoverageTest < ActiveSupport::TestCase
   test "build omits profile claims when the resource does not expose them" do
     resource = Struct.new(:public_id).new("visitor-1")
 
-    claims = OidcUserInfoResponse.build(
+    claims = OidcUserInfoResponseSerializer.build(
       resource: resource,
       payload: { "act" => "visitor",
                  "acr" => "acr",
@@ -39,13 +39,13 @@ class OidcUserInfoResponseCoverageTest < ActiveSupport::TestCase
   test "build scopes profile and email claims independently" do
     resource = Struct.new(:public_id, :name, :email).new("user-2", "Grace Hopper", "grace@example.test")
 
-    profile_claims = OidcUserInfoResponse.build(
+    profile_claims = OidcUserInfoResponseSerializer.build(
       resource: resource,
       payload: {
         "act" => "client", "scp" => %w(openid profile),
       },
     )
-    email_claims = OidcUserInfoResponse.build(
+    email_claims = OidcUserInfoResponseSerializer.build(
       resource: resource,
       payload: {
         "act" => "client", "scp" => %w(openid email),

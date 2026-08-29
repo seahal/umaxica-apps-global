@@ -15,9 +15,9 @@ module Publishing
   # live foreign keys, never by looking terms up again by snapshot slug or
   # name. A term that has since been archived is allowed into the draft --
   # otherwise old content could never be reopened -- and
-  # Publishing::PromoteRevision refuses to publish it until the
+  # Publishing::PromoteRevisionOperation refuses to publish it until the
   # author resolves it.
-  class RestoreVersion < ApplicationService
+  class RestoreVersionOperation < ApplicationService
     def initialize(version:, operator_public_id: nil)
       super()
       @version = version

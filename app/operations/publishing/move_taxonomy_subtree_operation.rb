@@ -9,7 +9,7 @@ module Publishing
   # PostgreSQL remains the final authority: a trigger rejects a cycle or an
   # inconsistent depth even when a caller bypasses this operation entirely.
   # The checks here exist to fail with a useful domain error first.
-  class MoveTaxonomySubtree < ApplicationService
+  class MoveTaxonomySubtreeOperation < ApplicationService
     class CycleError < StandardError; end
 
     class ScopeMismatchError < StandardError; end

@@ -20,7 +20,7 @@ class StepUpMethodsResolver
     supported = Array(supported_methods)
     Result.new(
       available: StepUpAvailableMethods.call(actor, ticket: ticket) & supported,
-      configured: StepUpConfiguredMethods.call(actor) & supported,
+      configured: StepUpConfiguredMethodsQuery.call(actor) & supported,
     )
   end
 

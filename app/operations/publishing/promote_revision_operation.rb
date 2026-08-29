@@ -13,7 +13,7 @@ module Publishing
   # publishing_entry_versions. A concurrent second attempt loses the insert,
   # then re-reads the winner and verifies it is a complete snapshot of the
   # same revision rather than returning whatever row it happens to find.
-  class PromoteRevision < ApplicationService
+  class PromoteRevisionOperation < ApplicationService
     class RevisionMismatchError < StandardError; end
 
     class IncompleteVersionError < StandardError; end
@@ -74,7 +74,7 @@ module Publishing
     # Locking the assigned vocabularies in a deterministic order stops a
     # concurrent rename or subtree move from changing a breadcrumb midway
     # through snapshot generation, and stops two promotions from deadlocking.
-    # MoveTaxonomySubtree takes the same vocabulary lock, exclusively.
+    # MoveTaxonomySubtreeOperation takes the same vocabulary lock, exclusively.
     def lock_taxonomy!
       vocabulary_ids =
         (revision.single_taxonomy_assignments.pluck(:vocabulary_id) +

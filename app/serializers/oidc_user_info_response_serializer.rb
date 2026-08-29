@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-module OidcUserInfoResponse
+module OidcUserInfoResponseSerializer
   module_function
 
   def build(resource:, payload:)

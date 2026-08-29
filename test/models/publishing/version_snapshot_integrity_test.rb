@@ -157,7 +157,7 @@ module Publishing
           taxonomy_term: term, locale: "ja", position:,
         )
       end
-      PromoteRevision.call(revision: entry.current_revision)
+      PromoteRevisionOperation.call(revision: entry.current_revision)
     end
   end
 end

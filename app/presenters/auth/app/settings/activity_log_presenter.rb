@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class Auth::App::Settings::ActivityLog
+class Auth::App::Settings::ActivityLogPresenter
   VISIBLE_EVENT_IDS = [
     ClientChronicleEvent::LOGGED_IN,
     ClientChronicleEvent::LOGIN_SUCCESS,

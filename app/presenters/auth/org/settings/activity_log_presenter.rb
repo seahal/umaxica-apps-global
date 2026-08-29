@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class Base::Org::Identity::ActivityLog
+class Auth::Org::Settings::ActivityLogPresenter
   VISIBLE_EVENT_IDS = [
     OperatorChronicleEvent::LOGGED_IN,
     OperatorChronicleEvent::LOGIN_SUCCESS,

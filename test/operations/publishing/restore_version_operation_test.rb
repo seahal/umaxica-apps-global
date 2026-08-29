@@ -3,7 +3,7 @@
 require "test_helper"
 
 module Publishing
-  class RestoreVersionTest < ActiveSupport::TestCase
+  class RestoreVersionOperationTest < ActiveSupport::TestCase
     setup do
       @edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
       @category = publishing_category_vocabulary(audience: "app", surface: "docs")
@@ -15,11 +15,11 @@ module Publishing
       @entry = publishing_draft(edition: @edition, slug: "restorable", title: "Restorable")
       assign_category(@entry.current_revision, @guide)
       assign_tags(@entry.current_revision, [@rails, @ruby])
-      @version = PromoteRevision.call(revision: @entry.current_revision)
+      @version = PromoteRevisionOperation.call(revision: @entry.current_revision)
     end
 
     test "creates a new draft revision recording where it was restored from" do
-      revision = RestoreVersion.call(version: @version)
+      revision = RestoreVersionOperation.call(version: @version)
 
       assert_equal @version.id, revision.restored_from_version_id
       assert_equal 2, revision.sequence
@@ -28,7 +28,7 @@ module Publishing
     end
 
     test "recreates draft assignments from live identifiers and preserves tag order" do
-      revision = RestoreVersion.call(version: @version)
+      revision = RestoreVersionOperation.call(version: @version)
 
       assert_equal @guide.id, revision.single_taxonomy_assignments.sole.taxonomy_term_id
       assert_equal(
@@ -39,8 +39,8 @@ module Publishing
     end
 
     test "restoring twice deliberately produces two distinct revisions" do
-      first = RestoreVersion.call(version: @version)
-      second = RestoreVersion.call(version: @version)
+      first = RestoreVersionOperation.call(version: @version)
+      second = RestoreVersionOperation.call(version: @version)
 
       assert_not_equal first.id, second.id
       assert_equal [2, 3], [first.sequence, second.sequence]
@@ -50,22 +50,22 @@ module Publishing
     test "a restored draft may hold an archived term, but cannot be promoted until it is resolved" do
       @guide.update!(archived_at: Time.current, archive_reason: "retired")
 
-      revision = RestoreVersion.call(version: @version)
+      revision = RestoreVersionOperation.call(version: @version)
 
       assert_equal @guide.id, revision.single_taxonomy_assignments.sole.taxonomy_term_id
-      assert_raises(ArchivedTaxonomyAssignmentError) { PromoteRevision.call(revision:) }
+      assert_raises(ArchivedTaxonomyAssignmentError) { PromoteRevisionOperation.call(revision:) }
 
       revision.single_taxonomy_assignments.destroy_all
 
-      assert_nothing_raised { PromoteRevision.call(revision: revision.reload) }
+      assert_nothing_raised { PromoteRevisionOperation.call(revision: revision.reload) }
     end
 
     test "restoration follows the historical term even after it was renamed or moved" do
       renamed = publishing_term(vocabulary: @category, locale: "ja", slug: "new-parent", name: "新しい親")
       @guide.update!(name: "改名", slug: "renamed")
-      MoveTaxonomySubtree.call(term: @guide, new_parent: renamed)
+      MoveTaxonomySubtreeOperation.call(term: @guide, new_parent: renamed)
 
-      revision = RestoreVersion.call(version: @version)
+      revision = RestoreVersionOperation.call(version: @version)
       assignment = revision.single_taxonomy_assignments.includes(:taxonomy_term).sole
 
       # The live foreign key still points at the same term row, which now
@@ -77,9 +77,9 @@ module Publishing
     end
 
     test "a restored draft can be promoted into a second immutable version" do
-      revision = RestoreVersion.call(version: @version)
+      revision = RestoreVersionOperation.call(version: @version)
 
-      promoted = PromoteRevision.call(revision:)
+      promoted = PromoteRevisionOperation.call(revision:)
 
       assert_not_equal @version.id, promoted.id
       assert_equal 2, promoted.sequence

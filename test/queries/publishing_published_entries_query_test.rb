@@ -36,7 +36,7 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
   test "excludes a cancelled publication" do
     edition = publishing_edition(audience: "app", surface: "info", locale: "ja")
     entry = publishing_draft(edition:, slug: "cancelled-one", title: "Cancelled")
-    version = Publishing::PromoteRevision.call(revision: entry.current_revision)
+    version = Publishing::PromoteRevisionOperation.call(revision: entry.current_revision)
     Publishing::Publication.create!(
       entry:, entry_version: version, effective_from: 1.hour.from_now,
       cancelled_at: Time.current, cancellation_reason: "pulled before going live",
@@ -48,7 +48,7 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
   test "a terminated publication stops being served once its window closes" do
     edition = publishing_edition(audience: "app", surface: "info", locale: "ja")
     entry = publishing_draft(edition:, slug: "terminated-one", title: "Terminated")
-    version = Publishing::PromoteRevision.call(revision: entry.current_revision)
+    version = Publishing::PromoteRevisionOperation.call(revision: entry.current_revision)
     terminated_at = 1.minute.ago
     Publishing::Publication.create!(
       entry:, entry_version: version, effective_from: 2.hours.ago, effective_until: terminated_at,

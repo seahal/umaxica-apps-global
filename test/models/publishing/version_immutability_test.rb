@@ -12,7 +12,7 @@ module Publishing
       @tag = publishing_tag_vocabulary(audience: "app", surface: "docs")
       entry = publishing_draft(edition: @edition, slug: "immutable-entry", title: "Immutable")
       assign_taxonomy(entry.current_revision)
-      @version = PromoteRevision.call(revision: entry.current_revision)
+      @version = PromoteRevisionOperation.call(revision: entry.current_revision)
     end
 
     test "active record refuses to update or destroy a version" do

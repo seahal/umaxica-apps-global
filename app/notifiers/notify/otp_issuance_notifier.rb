@@ -12,7 +12,7 @@ module Notify
   # The arguments are validated explicitly because Noticed::Ephemeral#deliver does
   # not call validate!, which would make a declared `required_params` a silent
   # no-op rather than an error.
-  module OtpIssuance
+  module OtpIssuanceNotifier
     def issue(record:, otp_code:, verification_token: nil, public_id: nil)
       raise ArgumentError, "record is required to issue an otp email" if record.nil?
 

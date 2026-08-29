@@ -3,7 +3,7 @@
 
 # Persistent credential state only. Transient cooldowns and ticket lockout
 # belong in StepUpAvailableMethods.
-module StepUpConfiguredMethods
+module StepUpConfiguredMethodsQuery
   module_function
 
   def call(subject)

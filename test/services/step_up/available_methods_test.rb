@@ -27,7 +27,7 @@ class StepUpAvailableMethodsTest < ActiveSupport::TestCase
       user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
-    assert_equal StepUpConfiguredMethods.call(@user), StepUpAvailableMethods.call(@user)
+    assert_equal StepUpConfiguredMethodsQuery.call(@user), StepUpAvailableMethods.call(@user)
   end
 
   test "cooldown stamp does not hide methods while cache-backed cooldowns are disabled" do

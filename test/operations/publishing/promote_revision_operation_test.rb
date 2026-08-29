@@ -3,7 +3,7 @@
 require "test_helper"
 
 module Publishing
-  class PromoteRevisionTest < ActiveSupport::TestCase
+  class PromoteRevisionOperationTest < ActiveSupport::TestCase
     setup do
       @edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
       @category = publishing_category_vocabulary(audience: "app", surface: "docs")
@@ -17,7 +17,7 @@ module Publishing
     test "promotes a revision that carries no taxonomy" do
       entry = publishing_draft(edition: @edition, slug: "plain", title: "Plain")
 
-      version = PromoteRevision.call(revision: entry.current_revision)
+      version = PromoteRevisionOperation.call(revision: entry.current_revision)
 
       assert_equal entry.current_revision, version.entry_revision
       assert_equal 1, version.sequence
@@ -30,7 +30,7 @@ module Publishing
       entry = publishing_draft(edition: @edition, slug: "with-category", title: "With Category")
       assign_category(entry.current_revision, @setup_term)
 
-      version = PromoteRevision.call(revision: entry.current_revision)
+      version = PromoteRevisionOperation.call(revision: entry.current_revision)
       snapshot = version.single_taxonomy_assignments.sole
 
       assert_equal "category", snapshot.vocabulary_key_snapshot
@@ -44,7 +44,7 @@ module Publishing
       entry = publishing_draft(edition: @edition, slug: "with-tags", title: "With Tags")
       assign_tags(entry.current_revision, [@rails, @ruby])
 
-      version = PromoteRevision.call(revision: entry.current_revision)
+      version = PromoteRevisionOperation.call(revision: entry.current_revision)
 
       assert_equal %w(rails ruby), version.multiple_taxonomy_assignments.map(&:term_slug_snapshot)
       assert_equal [0, 1], version.multiple_taxonomy_assignments.map(&:position_snapshot)
@@ -53,10 +53,10 @@ module Publishing
     test "renaming or moving a term afterwards does not change what the version published" do
       entry = publishing_draft(edition: @edition, slug: "frozen", title: "Frozen")
       assign_category(entry.current_revision, @setup_term)
-      version = PromoteRevision.call(revision: entry.current_revision)
+      version = PromoteRevisionOperation.call(revision: entry.current_revision)
 
       @setup_term.update!(name: "新しい名前", slug: "renamed")
-      MoveTaxonomySubtree.call(term: @setup_term, new_parent: nil)
+      MoveTaxonomySubtreeOperation.call(term: @setup_term, new_parent: nil)
 
       snapshot = version.reload.single_taxonomy_assignments.sole
 
@@ -70,7 +70,7 @@ module Publishing
       assign_category(entry.current_revision, @setup_term)
       @setup_term.update!(archived_at: Time.current, archive_reason: "retired")
 
-      error = assert_raises(ArchivedTaxonomyAssignmentError) { PromoteRevision.call(revision: entry.current_revision) }
+      error = assert_raises(ArchivedTaxonomyAssignmentError) { PromoteRevisionOperation.call(revision: entry.current_revision) }
       detail = error.details.sole
 
       assert_equal "category", detail.vocabulary_key
@@ -85,7 +85,7 @@ module Publishing
       assign_category(entry.current_revision, @setup_term)
       @category.update!(archived_at: Time.current, archive_reason: "retired")
 
-      assert_raises(ArchivedTaxonomyAssignmentError) { PromoteRevision.call(revision: entry.current_revision) }
+      assert_raises(ArchivedTaxonomyAssignmentError) { PromoteRevisionOperation.call(revision: entry.current_revision) }
     end
 
     test "promoting twice yields the same version with one complete snapshot set" do
@@ -93,8 +93,8 @@ module Publishing
       assign_category(entry.current_revision, @setup_term)
       assign_tags(entry.current_revision, [@ruby])
 
-      first = PromoteRevision.call(revision: entry.current_revision)
-      second = PromoteRevision.call(revision: entry.current_revision)
+      first = PromoteRevisionOperation.call(revision: entry.current_revision)
+      second = PromoteRevisionOperation.call(revision: entry.current_revision)
 
       assert_equal first.id, second.id
       assert_equal 1, EntryVersion.where(entry_revision_id: entry.current_revision.id).count
@@ -105,10 +105,10 @@ module Publishing
     test "a caller that loses the race is handed the winning version, not an arbitrary row" do
       entry = publishing_draft(edition: @edition, slug: "raced", title: "Raced")
       assign_tags(entry.current_revision, [@ruby])
-      winner = PromoteRevision.call(revision: entry.current_revision)
+      winner = PromoteRevisionOperation.call(revision: entry.current_revision)
 
       # Simulates the loser's path: its insert was rejected, so it re-reads.
-      loser = PromoteRevision.new(revision: entry.current_revision)
+      loser = PromoteRevisionOperation.new(revision: entry.current_revision)
 
       assert_equal winner.id, loser.send(:verify_complete!, winner).id
     end
@@ -117,7 +117,7 @@ module Publishing
       entry = publishing_draft(edition: @edition, slug: "frozen-revision", title: "Frozen Revision")
       assign_tags(entry.current_revision, [@ruby])
       revision = entry.current_revision
-      PromoteRevision.call(revision:)
+      PromoteRevisionOperation.call(revision:)
       connection = PublishingRecord.lease_connection
 
       # Without this, a revision could drift away from the version promoted from
@@ -173,7 +173,7 @@ module Publishing
       revision = entry.current_revision
 
       VersionSingleTaxonomyAssignment.stub(:new, ->(*) { raise(ActiveRecord::StatementInvalid, "boom") }) do
-        assert_raises(ActiveRecord::StatementInvalid) { PromoteRevision.call(revision:) }
+        assert_raises(ActiveRecord::StatementInvalid) { PromoteRevisionOperation.call(revision:) }
       end
 
       assert_nil EntryVersion.find_by(entry_revision_id: revision.id)
@@ -182,10 +182,10 @@ module Publishing
 
     test "sequences increment per entry" do
       entry = publishing_draft(edition: @edition, slug: "sequenced", title: "Sequenced")
-      first = PromoteRevision.call(revision: entry.current_revision)
+      first = PromoteRevisionOperation.call(revision: entry.current_revision)
       second_revision = publishing_revision(entry:, title: "Sequenced v2", sequence: 2)
 
-      second = PromoteRevision.call(revision: second_revision)
+      second = PromoteRevisionOperation.call(revision: second_revision)
 
       assert_equal 1, first.sequence
       assert_equal 2, second.sequence

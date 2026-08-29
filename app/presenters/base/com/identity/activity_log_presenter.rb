@@ -1,27 +1,22 @@
 # frozen_string_literal: true
 
-class Auth::Org::Settings::ActivityLog
-  VISIBLE_EVENT_IDS = [
-    OperatorChronicleEvent::LOGGED_IN,
-    OperatorChronicleEvent::LOGIN_SUCCESS,
-    OperatorChronicleEvent::SOCIAL_UNLINKED,
-  ].freeze
+class Base::Com::Identity::ActivityLogPresenter
+  LOGIN_EVENT_IDS = [ClientChronicleEvent::LOGGED_IN, ClientChronicleEvent::LOGIN_SUCCESS].freeze
   EVENT_LABELS = {
-    OperatorChronicleEvent::LOGGED_IN => "logged_in",
-    OperatorChronicleEvent::LOGIN_SUCCESS => "login_success",
-    OperatorChronicleEvent::SOCIAL_UNLINKED => "social_unlinked",
+    ClientChronicleEvent::LOGGED_IN => "logged_in",
+    ClientChronicleEvent::LOGIN_SUCCESS => "login_success",
   }.freeze
   SENSITIVE_CONTEXT_PATTERNS = %w(user_agent authorization token secret_credential code email telephone phone
                                   otp).freeze
 
-  def initialize(operator)
-    @operator = operator
+  def initialize(visitor)
+    @visitor = visitor
   end
 
   def activities
-    OperatorChronicle
-      .includes(:staff_chronicle_event, :staff_chronicle_level)
-      .where(subject_type: "Operator", subject_id: operator.id, event_id: VISIBLE_EVENT_IDS)
+    ClientChronicle
+      .includes(:user_chronicle_event)
+      .where(subject_type: "Visitor", subject_id: visitor.id, event_id: LOGIN_EVENT_IDS)
       .recent_activity_first
   end
 
@@ -29,9 +24,9 @@ class Auth::Org::Settings::ActivityLog
 
   def event_label(activity)
     key = EVENT_LABELS[activity.event_id]
-    return I18n.t("auth.org.settings.activity.events.unknown", event_id: activity.event_id) if key.blank?
+    return I18n.t("auth.com.settings.activity.events.unknown", event_id: activity.event_id) if key.blank?
 
-    translation_key = "auth.org.settings.activity.events.#{key}"
+    translation_key = "auth.com.settings.activity.events.#{key}"
     I18n.t(translation_key)
   end
 
@@ -68,7 +63,7 @@ class Auth::Org::Settings::ActivityLog
 
   private
 
-  attr_reader :operator
+  attr_reader :visitor
 
   def sensitive_context_key?(key)
     SENSITIVE_CONTEXT_PATTERNS.any? { |pattern| key.to_s.downcase.include?(pattern) }
