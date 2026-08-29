@@ -4,7 +4,7 @@ Codex App, VS Code Remote SSH, or a plain `ssh` from any device on the tailnet,
 landing in a shell **inside `core`** — the same container the dev container uses,
 with the same workspace bind and the same toolchain.
 
-    client ---- tailnet tcp/22 ----> tailscale sidecar ---- core:2222 ----> sshd
+    client ---- tailnet tcp/22 ----> tailscaled in core ---- 127.0.0.1:2222 ----> sshd
 
 Opt-in. Nothing loads `compose.remote-access.yaml` implicitly.
 
@@ -22,18 +22,40 @@ hostname and the toolchain differ. **Fix something here, fix it in all three.**
 | sshd wrapper | `/usr/local/bin/remote-sshd-entrypoint` (baked, 0555 root) |
 | authorized keys | `.secrets/codex_authorized_keys` → `/home/global/.config/umaxica/authorized_keys`, read-only |
 | sshd host key | volume `umaxica-apps-global-dc_sshd-host-keys` → `/home/global/.local/state/remote-sshd` |
-| Tailscale node state | volume `umaxica-apps-global-dc_tailscale-state` → `/var/lib/tailscale` |
+| Tailscale daemon | inside `core`, as `global`, userspace networking |
+| Tailscale CLI | `/usr/local/bin/tailscale` (baked wrapper, 0555 root) ahead of `/usr/bin/tailscale` |
+| Tailscale node state | volume `umaxica-apps-global-dc_tailscale-state` → `/home/global/.local/state/tailscale` |
 | tailnet hostname | `umaxica-global-core` |
 | tailnet tag | `tag:umaxica-devcontainer` |
 
-Tailscale runs in a **sidecar**, never inside `core`, and in **userspace
-networking** mode: no `/dev/net/tun`, no `CAP_NET_ADMIN`, no `privileged`, no
-`network_mode: host`, no Podman socket. The sidecar drops every capability and
-publishes no host port.
+Tailscale runs **inside `core`**, in **userspace networking** mode: no
+`/dev/net/tun`, no `CAP_NET_ADMIN`, no `privileged`, no `network_mode: host`, no
+Podman socket, and no root — `tailscaled` runs as `global`, the same account the
+workspace belongs to, and terminates the tailnet connection in its own netstack
+before dialling sshd over loopback. Nothing is published to the host.
 
-Tailscale SSH (`tailscale up --ssh`) is deliberately **not** used. It would put
-the session in the sidecar's filesystem, which is the one thing this arrangement
-exists to avoid.
+There used to be a sidecar, because `tailscaled` was believed to need a root
+PID 1 that `userns_mode: keep-id` rules out. Userspace mode needs neither, so the
+daemon moved in: one less container, no `remote-access` bridge, and no
+service-level `networks:` list in the overlay that had to restate every network
+`core` already had (getting that list wrong silently detached `core` from
+`frontend`, and with it every Cloudflare Tunnel ingress rule).
+
+Tailscale SSH (`tailscale up --ssh`) is deliberately **not** used. It would
+bypass sshd, and with it the read-only authorized-keys mount that decides who
+gets in.
+
+### `tailscale` in an ordinary development shell
+
+`tailscale up`, `tailscale status` and the rest work in any shell in `core`,
+with or without the remote-access overlay. `/usr/local/bin/tailscale` is a
+wrapper that PATH puts ahead of the real client: it points every invocation at
+the user-space daemon's socket under `~/.local/state/tailscale`, and starts that
+daemon on first use. The bare `/usr/bin/tailscale` would dial the system socket
+of a root `tailscaled` this container can never run.
+
+When the overlay is loaded, `remote-sshd-entrypoint` has already started the
+same daemon on the same socket, and the wrapper is only a pass-through.
 
 ## Before the first start: the tailnet policy
 
@@ -158,23 +180,17 @@ ssh umaxica-global-core hostname
 ```
 
 No auth key, same tailnet node, same SSH host key. `down -v` is the exception: it
-destroys both volumes, which deregisters the node and forces a fresh enrolment.
+destroys the volumes, which discards the node identity and forces a fresh
+enrolment with a fresh key.
 
 ## Known constraints
 
-- **`TCPForward` to a non-localhost address is undocumented.** The serve config
-  says `"TCPForward": "core:2222"`, but the supported CLI form is
-  `tailscale serve --tcp=22 tcp://localhost:22` — localhost only. The JSON path
-  accepts a sibling container name today and this is the standard sidecar
-  arrangement, but it is not in Tailscale's documentation, so a future
-  `tailscaled` could tighten it. That is why the image is pinned by digest.
-
-  If it ever breaks, the documented replacement is to put the sidecar in `core`'s
-  network namespace (`network_mode: "service:core"`, which podman-compose 1.6.0
-  supports, mapping to `--network=container:...`) and forward to
-  `127.0.0.1:2222`. It is not the default here because the sidecar would then see
-  every network `core` is attached to, which is a wider blast radius than a
-  dedicated bridge.
+- **The forward is the documented, localhost-only form.** The entrypoint runs
+  `tailscale serve --bg --tcp=22 tcp://127.0.0.1:2222`. The sidecar's
+  `TCPForward: core:2222` — a cross-container target that was never in
+  Tailscale's documentation and that a future `tailscaled` could tighten — is
+  gone with the sidecar. The client is version-pinned in the `Containerfile`;
+  bump it deliberately and keep it in step with the `tailscale` on the host.
 
 - **Rootless restart policies need the user unit.** `restart: on-failure:3` does
   nothing across a host reboot without
@@ -182,7 +198,8 @@ destroys both volumes, which deregisters the node and forces a fresh enrolment.
 
 - **`podman-compose` needs `default` declared.** Any overlay that gives a service
   an explicit `networks:` list must also declare `default` at the top level, or
-  podman-compose 1.6.0 fails with `missing networks: default`.
+  podman-compose 1.6.0 fails with `missing networks: default`. This overlay
+  declares no networks at all, which is the simplest way to stay clear of it.
 
 - **An SSH session builds its environment from scratch.** sshd inherits nothing
   from the container's main process, so two mechanisms put it back:

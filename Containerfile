@@ -287,6 +287,19 @@ COPY --from=node-toolchain /usr/local/lib/node_modules /usr/local/lib/node_modul
 RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
+# Tailscale is baked in rather than run as a sidecar: `core` itself joins the
+# tailnet, in userspace-networking mode, which needs no /dev/net/tun, no
+# NET_ADMIN and no root -- the same properties the sidecar relied on. The version
+# is pinned to what the sidecar ran; bump deliberately, and keep it in step with
+# the `tailscale` client on the host so the two behave the same. Started only by
+# remote-sshd-entrypoint, so a container without the remote-access overlay never
+# runs it; `tailscale-wrapper.sh` below is what makes a bare `tailscale up`
+# work in an ordinary development shell.
+RUN curl -fsSL https://pkgs.tailscale.com/stable/debian/trixie.noarmor.gpg \
+    -o /usr/share/keyrings/tailscale-archive-keyring.gpg \
+    && echo 'deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/debian trixie main' \
+    > /etc/apt/sources.list.d/tailscale.list
+
 # hadolint ignore=DL3008
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -315,6 +328,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     ripgrep \
     silversearcher-ag \
     socat \
+    tailscale=1.102.3 \
     tig \
     tree \
     util-linux \
@@ -392,9 +406,11 @@ RUN mkdir -p "${HOME}/workspace" \
     "${HOME}/.local/share" \
     "${HOME}/.local/state" \
     "${HOME}/.local/state/remote-sshd" \
+    "${HOME}/.local/state/tailscale" \
     "${HOME}/.config/umaxica" \
     && chown -R "${DOCKER_UID}:${DOCKER_GID}" "${HOME}" /usr/local/bundle \
     && chmod 0700 "${HOME}/.local/state/remote-sshd" \
+    && chmod 0700 "${HOME}/.local/state/tailscale" \
     && chmod 0755 "${HOME}/.config/umaxica"
 
 COPY --chown=0:0 podman/core/entrypoint.sh /usr/local/bin/core-entrypoint
@@ -409,10 +425,17 @@ COPY --chown=0:0 podman/core/dev-supervisor.sh /usr/local/bin/core-dev-superviso
 COPY --chown=0:0 .devcontainer/remote-sshd_config /etc/ssh/remote-sshd_config
 COPY --chown=0:0 .devcontainer/remote-sshd-entrypoint.sh /usr/local/bin/remote-sshd-entrypoint
 
+# Shadows /usr/bin/tailscale on PATH: the bare CLI dials the system socket of a
+# root tailscaled this container can never run (no systemd, no sudo). The
+# wrapper targets -- and on first use starts -- the user-space daemon instead,
+# so `tailscale up` works in any shell. Same file in umaxica-apps-edge and portal.
+COPY --chown=0:0 .devcontainer/tailscale-wrapper.sh /usr/local/bin/tailscale
+
 RUN chmod 0555 \
     /usr/local/bin/core-entrypoint \
     /usr/local/bin/core-dev-supervisor \
     /usr/local/bin/remote-sshd-entrypoint \
+    /usr/local/bin/tailscale \
     && chmod 0444 /etc/ssh/remote-sshd_config
 
 USER ${DOCKER_USER}

@@ -63,15 +63,53 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     assert_not_includes devcontainer, "ensure-shared-networks"
   end
 
-  test "the development container carries no Tailscale" do
-    devcontainer = REPOSITORY_ROOT.join(".devcontainer/devcontainer.json").read
+  test "the development container bakes one pinned Tailscale and no supervisor scripts" do
     containerfile = REPOSITORY_ROOT.join("Containerfile").read
 
-    assert_no_match(/tailscale/i, devcontainer)
-    assert_no_match(/tailscale/i, containerfile)
-    assert_not_predicate REPOSITORY_ROOT.join(".devcontainer/tailscale-core-supervisor.sh"), :exist?
-    assert_not_predicate REPOSITORY_ROOT.join(".devcontainer/tailscale-core-status.sh"), :exist?
-    assert_not_predicate REPOSITORY_ROOT.join(".devcontainer/tailscale-core-login-environment.sh"), :exist?
+    assert_match(/tailscale=\d+\.\d+\.\d+/, containerfile,
+                 "`core` joins the tailnet itself now, so the client is an image dependency " \
+                 "and must be version-pinned the way the sidecar image's digest used to be")
+    assert_includes containerfile, "pkgs.tailscale.com/stable/debian/trixie.noarmor.gpg",
+                    "the apt repository must be signed by Tailscale's own key, not trusted"
+    assert_includes containerfile,
+                    "COPY --chown=0:0 .devcontainer/tailscale-wrapper.sh /usr/local/bin/tailscale",
+                    "the bare CLI dials a root tailscaled this container cannot run; the " \
+                    "wrapper is what makes `tailscale up` work in a development shell"
+
+    assert_not_includes REPOSITORY_ROOT.join(".devcontainer/devcontainer.json").read, "tailscale",
+                        "joining the tailnet stays opt-in; devcontainer.json must not arrange it"
+
+    # The supervisor/status/login-environment trio was the earlier in-container
+    # attempt, which ran tailscaled from shell hooks nothing owned. Userspace mode
+    # under the sshd entrypoint replaced it; reintroducing any of them would mean
+    # two things start the same daemon on the same socket.
+    %w(
+      .devcontainer/tailscale-core-supervisor.sh
+      .devcontainer/tailscale-core-status.sh
+      .devcontainer/tailscale-core-login-environment.sh
+      .devcontainer/tailscale-serve.json
+    ).each do |path|
+      assert_not_predicate REPOSITORY_ROOT.join(path), :exist?
+    end
+  end
+
+  test "the Tailscale wrapper starts a user-space daemon and never asks for privilege" do
+    wrapper = REPOSITORY_ROOT.join(".devcontainer/tailscale-wrapper.sh")
+
+    assert_predicate wrapper, :executable?
+    contents = wrapper.read
+    # Comments are stripped: the file explains at length why root is unavailable
+    # here, and prose must not be able to satisfy -- or break -- an assertion.
+    code = contents.lines.reject { |line| line.lstrip.start_with?("#") }.join
+
+    assert_includes contents, "--tun=userspace-networking",
+                    "kernel mode would need /dev/net/tun and NET_ADMIN, which is exactly the " \
+                    "privilege the sidecar was built to avoid requesting"
+    assert_no_match(/\bsudo\b|\bsu -/, code,
+                    "there is no sudo in this image and no root to escalate to")
+    assert_includes contents, "exec /usr/bin/tailscale",
+                    "beyond starting the daemon the wrapper must be a pass-through, or the " \
+                    "CLI's own behaviour becomes this repository's to maintain"
   end
 
   test "compose network external flags are booleans rather than interpolated strings" do
@@ -186,77 +224,61 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     end
   end
 
-  # --- Remote access: Codex App -> tailnet TCP/22 -> tailscale sidecar -> core sshd ---
+  # --- Remote access: Codex App -> tailnet TCP/22 -> tailscaled in core -> core sshd ---
   #
-  # The sidecar exists because Tailscale inside `core` needed a root PID 1, which
-  # `userns_mode: keep-id` and the absent `user:` key rule out. These tests hold that
-  # boundary: the daemon stays in its own container, on its own network, with no
-  # privilege of any kind, and SSH terminates inside `core`.
+  # There is no sidecar. Tailscale ran in its own container while the belief held
+  # that tailscaled needs a root PID 1, which `userns_mode: keep-id` and the absent
+  # `user:` key rule out. Userspace networking needs neither, so the daemon moved
+  # into `core`: the same no-privilege posture, one less container, and no
+  # `remote-access` bridge whose service-level `networks:` list had to restate
+  # every network `core` already had.
   #
-  # The whole arrangement now lives in `compose.remote-access.yaml`, a file nothing
+  # The whole arrangement lives in `compose.remote-access.yaml`, a file nothing
   # loads implicitly, and is deliberately identical to the one in
-  # umaxica-apps-edge and portal apart from the account name, the tailnet hostname,
-  # and core's network list. An assertion that fails here almost certainly needs the
-  # same fix in the other two repositories.
+  # umaxica-apps-edge and portal apart from the account name and the tailnet
+  # hostname. An assertion that fails here almost certainly needs the same fix in
+  # the other two repositories.
 
   REMOTE_ACCESS_OVERLAY = "compose.remote-access.yaml"
   SSHD_CONFIG_PATH = ".devcontainer/remote-sshd_config"
 
-  test "the Tailscale sidecar needs no privilege, capability, or host access" do
-    sidecar = remote_access_sidecar
+  test "remote access asks for no privilege, capability, or host access" do
+    core = remote_access_core
 
-    assert_equal "true", sidecar.fetch("environment").fetch("TS_USERSPACE"),
-                 "userspace networking is what makes every entry below unnecessary; " \
-                 "kernel mode would require /dev/net/tun and NET_ADMIN"
+    assert_includes entrypoint, "--tun=userspace-networking",
+                    "userspace networking is what makes every entry below unnecessary; " \
+                    "kernel mode would require /dev/net/tun and NET_ADMIN"
 
-    %w(privileged cap_add devices network_mode pid userns_mode).each do |key|
-      assert_not sidecar.key?(key),
-                 "the sidecar declares #{key}; userspace Tailscale terminates the tailnet " \
-                 "connection in netstack and dials core as an ordinary socket, so it needs none"
+    %w(privileged cap_add devices network_mode pid ports).each do |key|
+      assert_not core.key?(key),
+                 "the overlay declares #{key}; userspace Tailscale terminates the tailnet " \
+                 "connection in netstack and dials sshd over loopback, so it needs none -- " \
+                 "and a host publication would violate the loopback-only contract in " \
+                 "docs/operations/development-host-port-exposure.md"
     end
-
-    assert_equal %w(ALL), sidecar.fetch("cap_drop"),
-                 "this is the only container on the host that listens to the tailnet, so it " \
-                 "must not be the most permissively configured one"
-    assert_includes sidecar.fetch("security_opt"), "no-new-privileges:true"
-
-    assert_not sidecar.key?("ports"),
-               "the tailnet is the ingress; a host publication would both defeat the point " \
-               "and violate the loopback-only contract in " \
-               "docs/operations/development-host-port-exposure.md"
   end
 
-  test "the sidecar image is pinned by digest, not only by tag" do
-    assert_match(%r{\Adocker\.io/tailscale/tailscale:v[\d.]+@sha256:\h{64}\z},
-                 remote_access_sidecar.fetch("image"),
-                 "a mutable tag would let a re-tagged upstream release change the one " \
-                 "container here that accepts inbound tailnet connections")
-  end
+  test "no Tailscale sidecar returns, under any compose file" do
+    (CONFIGURATION_FILES + [".devcontainer/compose.override.yml"]).each do |path|
+      file = REPOSITORY_ROOT.join(path)
+      next unless file.exist?
 
-  test "the sidecar exposes no unauthenticated health or metrics endpoint" do
-    assert_not remote_access_sidecar.fetch("environment").key?("TS_ENABLE_HEALTH_CHECK"),
-               "TS_ENABLE_HEALTH_CHECK opens an unauthenticated /healthz and a metrics " \
-               "listener on [::]:9002 reachable by anything on this network, and reports " \
-               "nothing `podman logs` does not already say"
-  end
-
-  test "the Tailscale sidecar reaches only core, never the data networks" do
-    sidecar = remote_access_sidecar
-
-    assert_equal ["remote-access"], sidecar.fetch("networks"),
-                 "a tailnet-facing container must not resolve PostgreSQL, Valkey, or Kafka; " \
-                 "a service-level networks: list in an overlay replaces rather than merges, " \
-                 "so this single entry is the whole reachable set"
-    assert_not sidecar.key?("extra_hosts")
-  end
-
-  test "the Tailscale sidecar is opt-in and cannot start from a plain compose up" do
-    %w(compose.yaml compose.custom.yaml).each do |path|
-      services = YAML.safe_load_file(REPOSITORY_ROOT.join(path), aliases: true).fetch("services")
+      services = YAML.safe_load_file(file, aliases: true).fetch("services", {})
 
       assert_not services.key?("tailscale"),
-                 "#{path} is loaded by a plain `podman compose up` and by devcontainer.json; " \
-                 "an inbound network listener must never start from either"
+                 "#{path} declares a `tailscale` service; the daemon belongs inside `core`, " \
+                 "and a second one would race it for the same node identity"
+    end
+  end
+
+  test "the tailnet listener is opt-in and cannot start from a plain compose up" do
+    %w(compose.yaml compose.custom.yaml).each do |path|
+      compose = REPOSITORY_ROOT.join(path).read
+
+      assert_no_match(/remote-sshd-entrypoint/, compose,
+                      "#{path} is loaded by a plain `podman compose up` and by " \
+                      "devcontainer.json; an inbound network listener must never start " \
+                      "from either")
     end
 
     assert_not_includes REPOSITORY_ROOT.join(".devcontainer/devcontainer.json").read,
@@ -264,27 +286,18 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
                         "the overlay is added with an explicit -f, never opened by default"
   end
 
-  test "the Tailscale sidecar caps what a crash loop can consume" do
-    sidecar = remote_access_sidecar
-
-    %w(cpus mem_limit pids_limit logging).each do |key|
-      assert sidecar.key?(key),
-             "the sidecar declares no #{key}, so a crash loop is bounded only by the host"
-    end
-    assert_equal "on-failure:3", sidecar.fetch("restart"),
-                 "Podman applies no backoff to unless-stopped, so a misconfiguration would " \
-                 "become a restart storm"
+  test "tailscaled is reaped rather than left as a zombie beside sshd" do
+    assert remote_access_core.fetch("init", false),
+           "the entrypoint backgrounds tailscaled and execs sshd, so without an init the " \
+           "daemon's death would be invisible until the next connection attempt"
   end
 
   test "the Tailscale auth key is a bootstrap-only interpolation, never a committed value" do
-    sidecar = remote_access_sidecar
-    environment = sidecar.fetch("environment")
-
-    assert_equal "${TS_AUTHKEY:-}", environment.fetch("TS_AUTHKEY"),
+    assert_equal "${TS_AUTHKEY:-}", remote_access_core.fetch("environment").fetch("TS_AUTHKEY"),
                  "the auth key is revoked after first registration, so it must be absent-able"
-    assert_equal "true", environment.fetch("TS_AUTH_ONCE"),
-                 "the image default is false, which re-runs `tailscale up` with the key on " \
-                 "every start and breaks restart-without-a-key"
+    assert_includes entrypoint, "if [[ -n ${TS_AUTHKEY:-} ]]",
+                    "`tailscale up` must run only while enrolling; re-running it with a spent " \
+                    "single-use key fails every start after the first"
     assert_no_match(/tskey-/, REPOSITORY_ROOT.join(REMOTE_ACCESS_OVERLAY).read)
     assert system("git", "check-ignore", "--quiet", ".env")
   end
@@ -304,17 +317,20 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
                     "rather than be a sentence in a document"
   end
 
-  test "the sidecar forwards only TCP, and only to core's unprivileged sshd" do
-    serve = JSON.parse(REPOSITORY_ROOT.join(".devcontainer/tailscale-serve.json").read)
-
-    assert_equal %w(TCP), serve.keys,
-                 "a Web or AllowFunnel section would publish this node beyond the tailnet"
-    assert_equal(
-      { "TCPForward" => "core:2222" }, serve.fetch("TCP").fetch("22"),
-      "tailnet 22 is the only exposed port, and TerminateTLS must stay absent " \
-      "because SSH clients cannot speak TLS-terminated TCP",
-    )
-    assert_equal 1, serve.fetch("TCP").size
+  test "the node forwards only TCP, and only to its own unprivileged sshd" do
+    assert_includes entrypoint, "serve --bg --tcp=22 tcp://127.0.0.1:2222",
+                    "tailnet 22 is the only exposed port, it reaches sshd over loopback, and " \
+                    "a Web or Funnel section would publish this node beyond the tailnet"
+    assert_no_match(/funnel/i, entrypoint,
+                    "Funnel would put a development container on the public internet")
+    assert_no_match(/tailscale.*\bup\b.*--ssh/, entrypoint,
+                    "Tailscale SSH would bypass sshd and the authorized-keys contract entirely")
+    assert_includes entrypoint, "--accept-dns=false",
+                    "accepting tailnet DNS would replace the container's resolver, and with " \
+                    "it every compose name core resolves PostgreSQL and Kafka by"
+    assert_includes entrypoint, "--advertise-tags=tag:umaxica-devcontainer",
+                    "one tag covers all three development containers with a single ACL grant, " \
+                    "and tagged nodes are exempt from user key expiry"
   end
 
   test "core's sshd accepts public keys only and never root" do
@@ -327,7 +343,7 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
       "AllowAgentForwarding no" => "no agent socket travels into the development container",
       "MaxAuthTries 3" => "the tailnet is not a single trusted host",
       "LoginGraceTime 20" => "an unauthenticated connection must not be able to linger",
-      "Port 2222" => "sshd runs unprivileged and cannot bind 22; the sidecar bridges the two",
+      "Port 2222" => "sshd runs unprivileged and cannot bind 22; tailscaled bridges the two",
     }.each do |directive, reason|
       assert_includes sshd_config, directive, reason
     end
@@ -339,8 +355,8 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
                     "session; without this no Rails preview is reachable remotely"
     assert_includes sshd_config, "PermitOpen localhost:* 127.0.0.1:* [::1]:*",
                     "an unrestricted forward would reach PostgreSQL, Valkey and Kafka on " \
-                    "core's own Podman networks, which is precisely what the sidecar's " \
-                    "single-network attachment exists to prevent"
+                    "core's own Podman networks, which is precisely what this " \
+                    "restriction exists to prevent"
   end
 
   test "core's sshd keeps its private state off the workspace bind" do
@@ -393,18 +409,17 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     end
   end
 
-  test "core keeps every base network when the overlay adds remote access" do
-    base = YAML.safe_load_file(REPOSITORY_ROOT.join("compose.yaml"), aliases: true)
-    overlay = YAML.safe_load_file(REPOSITORY_ROOT.join(REMOTE_ACCESS_OVERLAY))
-    overlay_networks = overlay.fetch("services").fetch("core").fetch("networks")
+  test "the overlay leaves core's networks alone" do
+    overlay_core = remote_access_core
 
-    base.fetch("services").fetch("core").fetch("networks").each_key do |name|
-      assert_includes overlay_networks, name,
-                      "a service-level networks: key in an overlay REPLACES the base list, so " \
-                      "dropping #{name} here would silently detach core from it -- and with " \
-                      "frontend, from every Cloudflare Tunnel ingress rule"
-    end
-    assert_includes overlay_networks, "remote-access"
+    assert_not overlay_core.key?("networks"),
+               "a service-level networks: key in an overlay REPLACES the base list rather " \
+               "than merging, so restating it is how core silently loses frontend -- and " \
+               "with it every Cloudflare Tunnel ingress rule. With tailscaled inside core " \
+               "there is nothing left for the key to add."
+    assert_not YAML.safe_load_file(REPOSITORY_ROOT.join(REMOTE_ACCESS_OVERLAY))
+      .key?("networks"),
+               "the `remote-access` bridge existed only to carry the sidecar to core"
   end
 
   test "core's sshd closes every forwarding channel it does not need" do
@@ -464,8 +479,17 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
     assert_includes volumes.keys, "tailscale-state",
                     "without persisted state every restart registers a NEW node and the " \
                     "tailnet name drifts to umaxica-global-core-1, -2, ..."
-    assert_equal "/var/lib/tailscale",
-                 remote_access_sidecar.fetch("environment").fetch("TS_STATE_DIR")
+
+    state_mount =
+      remote_access_core.fetch("volumes").find do |entry|
+        entry.is_a?(Hash) && entry.fetch("source", nil) == "tailscale-state"
+      end
+
+    assert state_mount, "the node identity has nowhere to persist"
+    assert_equal "/home/global/.local/state/tailscale", state_mount.fetch("target"),
+                 "the daemon runs as `global` and is pointed at this --statedir by the " \
+                 "entrypoint; a mismatch persists an empty directory and re-enrols silently"
+    assert_includes entrypoint, "ts_state=/home/global/.local/state/tailscale"
     assert_includes volumes.keys, "sshd-host-keys",
                     "a regenerated host key makes the client's known_hosts entry fail closed " \
                     "on every container recreation"
@@ -485,10 +509,14 @@ class DevelopmentContainerContractTest < ActiveSupport::TestCase
 
   private
 
-  def remote_access_sidecar
-    YAML.safe_load_file(REPOSITORY_ROOT.join(REMOTE_ACCESS_OVERLAY))
+  def remote_access_core
+    @remote_access_core ||= YAML.safe_load_file(REPOSITORY_ROOT.join(REMOTE_ACCESS_OVERLAY))
       .fetch("services")
-      .fetch("tailscale")
+      .fetch("core")
+  end
+
+  def entrypoint
+    @entrypoint ||= REPOSITORY_ROOT.join(".devcontainer/remote-sshd-entrypoint.sh").read
   end
 
   # Comments are stripped: the file explains at length why several directives are

@@ -1,12 +1,20 @@
 # Remote SSH into `core` over Tailscale, for Codex App and any other Remote-SSH
 # client.
 #
-#   client --- tailnet tcp/22 ---> tailscale sidecar --- core:2222 ---> sshd
+#   client --- tailnet tcp/22 ---> tailscaled in core --- 127.0.0.1:2222 ---> sshd
 #
-# The login target is `core`, so the shell, the workspace bind and the toolchain
-# are the real ones. The sidecar is a network entrance and nothing else: it never
-# runs `tailscale up --ssh`, because Tailscale SSH would put the session in the
-# sidecar's own filesystem instead of in the one Codex App needs.
+# Tailscale runs INSIDE `core` rather than as a sidecar: the Containerfile bakes
+# the pinned client, and remote-sshd-entrypoint starts tailscaled in
+# userspace-networking mode -- no /dev/net/tun, no NET_ADMIN, no root, so the
+# privilege posture the sidecar was built to preserve holds unchanged. It never
+# runs `tailscale up --ssh`: Tailscale SSH would bypass sshd and the
+# authorized-keys contract below.
+#
+# The sidecar existed because Tailscale in `core` was believed to need a root
+# PID 1, which `userns_mode: keep-id` and the absent `user:` key rule out.
+# Userspace mode needs neither, so the separate container, the `remote-access`
+# bridge and `tailscale-serve.json` are all gone -- and with them the service
+# whose `networks:` list had to restate every network `core` already had.
 #
 # Opt-in. Nothing loads this implicitly -- not `devcontainer.json`, not a bare
 # `podman compose up`. Run `.devcontainer/remote-access-preflight.sh` first, then
@@ -16,8 +24,8 @@
 # compose project and strand the volumes created without it.
 #
 # This file is kept identical across umaxica-apps-global, umaxica-apps-edge and
-# portal apart from the account name, the tailnet hostname, and `core`'s network
-# list. See plans/global-portal-edge-dreamy-spring.md for the shared contract.
+# portal apart from the account name and the tailnet hostname. See
+# plans/global-portal-edge-dreamy-spring.md for the shared contract.
 services:
   core:
     # Replaces the idle command. Both files below are baked into the image at
@@ -26,14 +34,16 @@ services:
     # which keys it accepts. `overrideCommand: false` in devcontainer.json is what
     # lets this survive `devcontainer up`.
     command: /usr/local/bin/remote-sshd-entrypoint
-    # An explicit `networks:` key REPLACES the inherited list rather than merging
-    # with it, so every network `core` already needs has to be named again here.
-    networks:
-      backend: {}
-      frontend: {}
-      observability: {}
-      outer: {}
-      remote-access: {}
+    # tailscaled is backgrounded while sshd stays the exec'd main process, so
+    # something has to reap it. Without an init, a crashed daemon would linger as
+    # a zombie and its restart would be invisible.
+    init: true
+    environment:
+      # Bootstrap only, and `:-` rather than `:?` on purpose: the key is single-use
+      # and revoked immediately after enrolment, so requiring it here would make
+      # every later start fail. `.devcontainer/remote-access-preflight.sh` is what
+      # enforces "present on the first start, absent on every one after".
+      TS_AUTHKEY: "${TS_AUTHKEY:-}"
     volumes:
       # sshd's host key and PID file. A volume, not the workspace: the private
       # host key must never be written into a bind-mounted git repository, and the
@@ -48,6 +58,13 @@ services:
       - type: volume
         source: sshd-run
         target: /run/sshd
+      # The tailnet node's identity. Surviving `podman compose down` is the entire
+      # point: without it every start registers a NEW node and the tailnet name
+      # drifts to umaxica-global-core-1, -2, ... `down -v` destroys it and forces
+      # a fresh enrolment with a fresh key.
+      - type: volume
+        source: tailscale-state
+        target: /home/global/.local/state/tailscale
       # The PUBLIC key Codex App connects with, and the single deliberate
       # exception to the no-host-credentials rule. A public key is not a
       # credential. Read-only, one file, and outside the workspace, so nothing
@@ -60,100 +77,6 @@ services:
         source: ./.secrets/codex_authorized_keys
         target: /home/global/.config/umaxica/authorized_keys
         read_only: true
-
-  tailscale:
-    # Pinned by digest as well as tag. The tag is what a human reads; the digest
-    # is what actually gets run, so a re-tagged upstream image cannot change the
-    # only container on this host that listens to the tailnet. Bump both together,
-    # and keep the tag in step with the `tailscale` client on the host so the two
-    # behave the same.
-    image: docker.io/tailscale/tailscale:v1.102.3@sha256:8c42c4574ab066384fcb72f69e086a2ff1dd3652eb6f56856cee34bcf0d2f680
-    environment:
-      # Userspace networking is what keeps this an ordinary container: no
-      # /dev/net/tun, no NET_ADMIN, no privileged mode, no host networking.
-      # tailscaled terminates the tailnet connection in its own netstack and dials
-      # `core` as a plain socket. It is the image default; stated so that losing it
-      # has to be a visible diff rather than a silent capability request.
-      # Tailscale's own Docker example pairs NET_ADMIN and NET_RAW with userspace
-      # mode -- that is over-provisioned, do not copy it.
-      TS_USERSPACE: "true"
-      # The default re-runs `tailscale up` with the auth key on EVERY start, which
-      # makes a one-off key fail on the second boot. `true` means the persisted
-      # state below is enough once the node has registered.
-      TS_AUTH_ONCE: "true"
-      TS_STATE_DIR: /var/lib/tailscale
-      TS_HOSTNAME: umaxica-global-core
-      # Must stay off. Accepting tailnet DNS would replace the container's
-      # resolver and the sidecar would stop resolving the sibling name `core`.
-      TS_ACCEPT_DNS: "false"
-      # One tag for all three dev containers, so a single ACL grant covers them.
-      # Tagged nodes are also exempt from user key expiry, which is what a
-      # long-lived development container needs. The tag is where reachability is
-      # decided -- see the remote-access document for the grant this expects.
-      TS_EXTRA_ARGS: "--advertise-tags=tag:umaxica-devcontainer"
-      TS_SERVE_CONFIG: /etc/tailscale/serve/serve.json
-      # Deliberately NOT set: TS_ENABLE_HEALTH_CHECK. It opens an unauthenticated
-      # /healthz and a metrics endpoint on [::]:9002, reachable by anything on
-      # this network, in exchange for nothing a `podman logs` does not already say.
-      #
-      # Bootstrap only, and `:-` rather than `:?` on purpose: the key is single-use
-      # and revoked immediately after enrolment, so requiring it here would make
-      # every later start fail. `.devcontainer/remote-access-preflight.sh` is what
-      # enforces "present on the first start, absent on every one after".
-      TS_AUTHKEY: "${TS_AUTHKEY:-}"
-    volumes:
-      # The node's identity. Surviving `podman compose down` is the entire point:
-      # without it every start registers a NEW node and the tailnet name drifts to
-      # umaxica-global-core-1, -2, ... `down -v` destroys it and forces a fresh
-      # enrolment with a fresh key.
-      - type: volume
-        source: tailscale-state
-        target: /var/lib/tailscale
-      - type: bind
-        source: ./.devcontainer/tailscale-serve.json
-        target: /etc/tailscale/serve/serve.json
-        read_only: true
-    # Only `remote-access`. A tailnet-facing container has no business resolving
-    # PostgreSQL, Valkey or Kafka; `core` is reachable from here by compose DNS and
-    # that is all it needs.
-    networks:
-      - remote-access
-    # No `ports:`. The tailnet is the ingress, by design; publishing anything to
-    # the host would defeat the point.
-    #
-    # No `depends_on` either: Podman turns it into `--requires`, which makes the
-    # depended-on container un-removable and breaks
-    # `devcontainer up --remove-existing-container`. Nothing here needs it --
-    # tailscaled dials `core:2222` per connection, not at startup, so starting out
-    # of order costs at most one retry.
-    #
-    # Bounded restarts: Podman applies no backoff to `unless-stopped`, so a
-    # misconfiguration would become a restart storm.
-    restart: on-failure:3
-    cpus: 0.5
-    mem_limit: 256m
-    pids_limit: 128
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-networks:
-  # Only `remote-access` is added. Unlike the sibling repositories, this project
-  # names every network explicitly in compose.yaml and never uses the implicit
-  # `default`, so declaring one here would create a bridge nothing attaches to.
-  #
-  # A plain bridge carrying tailnet tcp/22 to `core:2222` and nothing else.
-  # Deliberately not `internal: true`: this is the sidecar's only network, so its
-  # control-plane and DERP egress travel over it too, and making it internal would
-  # force the sidecar onto a shared network -- widening exposure rather than
-  # narrowing it.
-  remote-access: {}
 
 volumes:
   tailscale-state:

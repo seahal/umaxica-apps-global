@@ -130,6 +130,54 @@ fi
 # immediate, readable startup error.
 /usr/sbin/sshd -t -f "${config}"
 
+# Tailscale, in this container rather than a sidecar: tailscaled joins the
+# tailnet in userspace-networking mode, which runs as `global` with no
+# /dev/net/tun, no NET_ADMIN and no new privileges -- the same posture the
+# sidecar had. Its netstack terminates tailnet connections and dials sshd over
+# loopback, so sshd no longer needs to be reachable from any other container,
+# and the `remote-access` bridge the sidecar sat on is gone with it.
+#
+#   client --- tailnet tcp/22 ---> tailscaled (this container) --- 127.0.0.1:2222 ---> sshd
+#
+# State (the node identity) lives on the tailscale-state volume mounted here;
+# losing it forces a fresh enrolment and drifts the tailnet name. The daemon is
+# backgrounded and sshd stays the exec'd main process; `init: true` reaps it,
+# and its log goes to stderr where `podman logs` already looks.
+ts_state=/home/global/.local/state/tailscale
+ts_socket=${ts_state}/tailscaled.sock
+/usr/sbin/tailscaled \
+  --tun=userspace-networking \
+  --statedir="${ts_state}" \
+  --socket="${ts_socket}" &
+
+# The socket appears asynchronously; every `tailscale` call below needs it.
+for _ in $(seq 1 50); do
+  [[ -S ${ts_socket} ]] && break
+  sleep 0.2
+done
+[[ -S ${ts_socket} ]] || { echo 'remote-sshd: tailscaled did not come up.' >&2; exit 69; }
+
+# `up` only while enrolling. TS_AUTHKEY is single-use and present exactly once
+# (remote-access-preflight.sh enforces both directions); on every later start
+# the persisted state is enough and tailscaled reconnects by itself. The flags
+# mirror what the sidecar passed: the shared devcontainer tag (one ACL grant,
+# no user key expiry) and no tailnet DNS (accepting it would replace this
+# container's resolver, and with it the compose names core resolves).
+if [[ -n ${TS_AUTHKEY:-} ]]; then
+  echo 'remote-sshd: enrolling in the tailnet (first start only).' >&2
+  tailscale --socket="${ts_socket}" up \
+    --authkey="${TS_AUTHKEY}" \
+    --hostname=umaxica-global-core \
+    --advertise-tags=tag:umaxica-devcontainer \
+    --accept-dns=false
+fi
+
+# Tailnet tcp/22 -> sshd, replacing the sidecar's serve.json. Clients keep
+# connecting to port 22 while sshd keeps its unprivileged 2222. The config
+# persists in the state volume, and re-declaring the same forward is a no-op,
+# so running it every start keeps the daemon the source of truth.
+tailscale --socket="${ts_socket}" serve --bg --tcp=22 tcp://127.0.0.1:2222
+
 # The fingerprint clients must expect. Printed once at startup so setting up
 # known_hosts does not require a second command.
 ssh-keygen -lf "${host_key}.pub" >&2
