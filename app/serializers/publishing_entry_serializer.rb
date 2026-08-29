@@ -11,9 +11,12 @@
 # edition's audience and surface, keyed by vocabulary key and shaped by
 # structural kind. Adding a vocabulary row adds a key here; no branch in this
 # class knows the names "category" or "tag".
-class PublishingEntrySerializer < ApplicationService
+class PublishingEntrySerializer
+  def self.call(...)
+    new(...).call
+  end
+
   def initialize(entry:, namespace:, surface:, vocabularies: nil)
-    super()
     @entry = entry
     @namespace = namespace
     @surface = surface

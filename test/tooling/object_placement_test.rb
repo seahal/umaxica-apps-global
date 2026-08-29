@@ -48,9 +48,6 @@ class ObjectPlacementTest < Minitest::Test
     "app/values/account_standing_resolver.rb" => 864,
     "app/values/oidc_client_secret_resolver.rb" => 864,
     "app/lib/external_sign_in/org_entra_resolver.rb" => 864,
-    # #863 - serializers
-    "app/services/publishing_entry_serializer.rb" => 863,
-    "app/values/webauthn/options_serializer.rb" => 863,
   }.freeze
 
   # Concerns live under a concerns root, which is already the classifier, so the suffix rule does
