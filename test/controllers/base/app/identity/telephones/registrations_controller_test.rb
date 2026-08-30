@@ -116,13 +116,15 @@ class Base::App::Identity::Telephones::RegistrationsControllerTest < ActionDispa
   private
 
   def unique_number
-    "+8190#{format('%08d', SecureRandom.random_number(100_000_000))}"
+    "+8190#{format("%08d", SecureRandom.random_number(100_000_000))}"
   end
 
   def start_registration!
-    post base_app_identity_telephones_registration_url(ri: "jp", host: @host),
-         params: { user_telephone: { raw_number: unique_number } },
-         headers: step_up_headers
+    post(
+      base_app_identity_telephones_registration_url(ri: "jp", host: @host),
+      params: { user_telephone: { raw_number: unique_number } },
+      headers: step_up_headers,
+    )
 
     assert_redirected_to edit_base_app_identity_telephones_registration_path(ri: "jp")
     @client.client_telephones.reload.first

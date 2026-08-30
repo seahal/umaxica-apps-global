@@ -94,9 +94,11 @@ class Base::App::Identity::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   def start_registration!
-    post base_app_identity_emails_registration_url(ri: "jp", host: @host),
-         params: { user_email: { raw_address: unique_address } },
-         headers: auth_headers
+    post(
+      base_app_identity_emails_registration_url(ri: "jp", host: @host),
+      params: { user_email: { raw_address: unique_address } },
+      headers: auth_headers,
+    )
 
     assert_response :redirect
     @client.client_emails.reload.find_by(user_email_status_id: ClientEmailStatus::UNVERIFIED)

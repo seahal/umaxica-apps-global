@@ -132,15 +132,17 @@ class Base::Org::Identity::Telephones::RegistrationsControllerTest < ActionDispa
   private
 
   def unique_number
-    "+8190#{format('%08d', SecureRandom.random_number(100_000_000))}"
+    "+8190#{format("%08d", SecureRandom.random_number(100_000_000))}"
   end
 
   # Drives the real create action so the registration session and the OTP are produced the same way
   # the application produces them, rather than being assembled by the test.
   def start_registration!
-    post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
-         params: { staff_telephone: { raw_number: unique_number } },
-         headers: step_up_headers
+    post(
+      base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+      params: { staff_telephone: { raw_number: unique_number } },
+      headers: step_up_headers,
+    )
 
     assert_redirected_to edit_base_org_identity_telephones_registration_path(ri: "jp")
     @operator.staff_telephones.reload.first

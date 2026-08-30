@@ -101,7 +101,7 @@ class Base::App::Identity::TelephonesControllerTest < ActionDispatch::Integratio
   private
 
   def unique_number
-    "+8190#{format('%08d', SecureRandom.random_number(100_000_000))}"
+    "+8190#{format("%08d", SecureRandom.random_number(100_000_000))}"
   end
 
   def create_telephone(client: @client, status_id:)

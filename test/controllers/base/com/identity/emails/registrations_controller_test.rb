@@ -109,9 +109,11 @@ class Base::Com::Identity::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   def start_registration!
-    post base_com_identity_emails_registration_url(ri: "jp", host: @host),
-         params: { visitor_email: { raw_address: unique_address } },
-         headers: auth_headers
+    post(
+      base_com_identity_emails_registration_url(ri: "jp", host: @host),
+      params: { visitor_email: { raw_address: unique_address } },
+      headers: auth_headers,
+    )
 
     assert_response :redirect
     @visitor.visitor_emails.reload.find_by(visitor_email_status_id: VisitorEmailStatus::UNVERIFIED)

@@ -90,7 +90,7 @@ class Base::Com::Identity::RemovalsControllerTest < ActionDispatch::IntegrationT
     ensure_visitor_reference_records!
     visitor = Visitor.create!(status_id: VisitorStatus::NOTHING, visibility_id: VisitorVisibility::VISITOR)
     visitor.visitor_telephones.create!(
-      number: "+8190#{format('%08d', SecureRandom.random_number(100_000_000))}",
+      number: "+8190#{format("%08d", SecureRandom.random_number(100_000_000))}",
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
     visitor.reload

@@ -39,7 +39,7 @@ class Auth::Com::Sign::Up::Check::Telephone::CheckpointFlowTest < ActionDispatch
   end
 
   test "the passkey checkpoint issues a challenge and clears its requirement once registered" do
-    telephone = verify_telephone_via_otp!("+819022220001")
+    verify_telephone_via_otp!("+819022220001")
     cycle = current_sign_up_flow
 
     get auth_com_sign_up_check_telephone_passkey_url(ri: "jp"), headers: default_headers
@@ -119,13 +119,15 @@ class Auth::Com::Sign::Up::Check::Telephone::CheckpointFlowTest < ActionDispatch
   def verify_telephone_via_otp!(raw_number)
     telephone = start_telephone_signup!(raw_number)
 
-    patch auth_com_sign_up_check_telephone_otp_url(ri: "jp"),
-          params: { visitor_telephone: { pass_code: otp_code_for(telephone) } },
-          headers: default_headers
+    patch(
+      auth_com_sign_up_check_telephone_otp_url(ri: "jp"),
+      params: { visitor_telephone: { pass_code: otp_code_for(telephone) } },
+      headers: default_headers,
+    )
 
     assert_redirected_to auth_com_sign_up_guard_telephone_url(ri: "jp")
 
-    get auth_com_sign_up_guard_telephone_url(ri: "jp"), headers: default_headers
+    get(auth_com_sign_up_guard_telephone_url(ri: "jp"), headers: default_headers)
 
     telephone.reload
   end
@@ -133,7 +135,7 @@ class Auth::Com::Sign::Up::Check::Telephone::CheckpointFlowTest < ActionDispatch
   # The WebAuthn verifier and the credential object are the third-party seam here; everything the
   # controller and the sequence do around them stays real.
   def register_passkey!(cycle, webauthn_suffix)
-    post auth_com_sign_up_check_telephone_passkey_url(ri: "jp"), headers: default_headers
+    post(auth_com_sign_up_check_telephone_passkey_url(ri: "jp"), headers: default_headers)
 
     assert_response :ok
     challenge_id = response.parsed_body["challenge_id"]
@@ -145,9 +147,11 @@ class Auth::Com::Sign::Up::Check::Telephone::CheckpointFlowTest < ActionDispatch
     mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
     registration_context =
-      Struct.new(:webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state,
-                 :authenticator_attachment)
-            .new("#{webauthn_suffix}_webauthn_id", 1)
+      Struct.new(
+        :webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state,
+        :authenticator_attachment,
+      )
+        .new("#{webauthn_suffix}_webauthn_id", 1)
 
     Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
       WebAuthn::Credential.stub(:from_create, mock_credential) do

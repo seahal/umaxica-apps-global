@@ -29,8 +29,7 @@ class ComposeInitReapingTest < Minitest::Test
   # a 2048 pids limit. The Dev Container is deliberately long-lived, so the leak never resets.
   def test_services_parked_on_a_non_reaping_command_declare_an_init
     parked_services do |compose_file, service, definition|
-      assert_equal(
-        true,
+      assert(
         definition["init"],
         "#{compose_file}: #{service} parks PID 1 on #{Array(definition["command"]).join(" ").inspect}, " \
         "which never reaps orphans; declare `init: true` so a reaping init owns PID 1",

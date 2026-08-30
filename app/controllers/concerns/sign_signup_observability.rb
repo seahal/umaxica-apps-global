@@ -46,7 +46,6 @@ module SignSignupObservability
     }.compact
   end
 
-
   def sign_signup_request_id
     request.respond_to?(:request_id) ? request.request_id : nil
   end
