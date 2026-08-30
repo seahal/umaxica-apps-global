@@ -397,7 +397,10 @@ module PreferenceBase
   end
 
   def default_audit_ip
-    IPAddr.new((127 << 24) + 1).to_s
+    # `IPAddr.new(Integer)` requires an explicit address family; without it the
+    # current IPAddr raises IPAddr::AddressFamilyError instead of returning the
+    # IPv4 loopback address this fallback exists to produce.
+    IPAddr.new((127 << 24) + 1, Socket::AF_INET).to_s
   end
 
   def preference_theme_association

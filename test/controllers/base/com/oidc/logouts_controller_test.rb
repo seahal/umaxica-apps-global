@@ -106,6 +106,37 @@ class Base::Com::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "xyz"
   end
 
+  test "logout_challenge for an unknown transaction is rejected as not found" do
+    get base_com_oidc_logout_url(host: @host),
+        params: { logout_challenge: "does-not-exist", ri: "jp" },
+        headers: session_headers
+
+    assert_response :unprocessable_content
+  end
+
+  test "POST with a cross-origin challenge hands off to the sign surface for this realm" do
+    transaction =
+      AcmeLogoutTransactionCoordinator.issue!(
+        origin_surface: "core",
+        initiating_client_id: "sign-rp",
+        completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "core", ri: "jp", surface: "com"),
+        surface: "com",
+        ri: "jp",
+      ).transaction
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
+
+    post base_com_oidc_logout_url(host: @host, logout_challenge: transaction.logout_challenge, ri: "jp"),
+         headers: session_headers
+
+    assert_response :success
+    assert_equal "sign_cleared", transaction.reload.expected_step
+    sign_host = ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "auth.com.localhost")
+    handoff_uri = URI.parse(css_select("form#sign-out-handoff-form").first["action"])
+
+    assert_equal sign_host, handoff_uri.host
+    assert_equal "/sign/out", handoff_uri.path
+  end
+
   private
 
   def session_headers

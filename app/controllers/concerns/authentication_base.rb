@@ -1249,7 +1249,7 @@ module AuthenticationBase
         event_type: "refresh_reuse_detected",
         token_record: token_record || find_refresh_token_record(refresh_public_id),
         reason: "reuse",
-        binding_source: refresh_binding_source(token_record),
+        device_source: refresh_binding_source(token_record),
       )
     end
 

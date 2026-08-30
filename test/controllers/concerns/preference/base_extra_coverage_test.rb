@@ -374,6 +374,291 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
     assert_equal :unauthorized, @harness.rendered[:status]
   end
 
+  test "cookie_banner_endpoint_url skips a helper name the harness does not implement" do
+    @harness.define_singleton_method(:respond_to?) do |name, include_private = false|
+      next false if name == :base_app_web_v0_cookie_url
+
+      super(name, include_private)
+    end
+    @harness.define_singleton_method(:base_com_web_v0_cookie_url) { "http://com.localhost/cookie" }
+
+    with_env("PRIVATE_BASE_SERVICE_URL" => "id.app.localhost") do
+      assert_equal "http://com.localhost/cookie", @harness.send(:cookie_banner_endpoint_url)
+    end
+  end
+
+  test "cookie_banner_endpoint_url tries the next helper after a UrlGenerationError" do
+    @harness.define_singleton_method(:base_app_web_v0_cookie_url) do
+      raise ActionController::UrlGenerationError, "no route matches"
+    end
+    @harness.define_singleton_method(:base_com_web_v0_cookie_url) { "http://com.localhost/cookie" }
+
+    with_env("PRIVATE_BASE_SERVICE_URL" => "id.app.localhost") do
+      assert_equal "http://com.localhost/cookie", @harness.send(:cookie_banner_endpoint_url)
+    end
+  end
+
+  test "cookie_banner_endpoint_available_for_request? resolves the org private host" do
+    @harness.request.define_singleton_method(:host) { "id.org.localhost" }
+
+    with_env("PRIVATE_BASE_STAFF_URL" => "id.org.localhost") do
+      assert @harness.send(:cookie_banner_endpoint_available_for_request?)
+    end
+  end
+
+  test "cookie_banner_endpoint_available_for_request? returns false for a surface without a mapped private host" do
+    @harness.request.define_singleton_method(:host) { "id.dev.localhost" }
+
+    assert_not @harness.send(:cookie_banner_endpoint_available_for_request?)
+  end
+
+  test "extract_cookie_banner_consent returns nil when neither consent key is present" do
+    assert_nil @harness.send(:extract_cookie_banner_consent, { "preferences" => {} })
+  end
+
+  test "preference_record_theme returns nil when the theme association is missing" do
+    preference = Struct.new(:app_preference_theme).new(nil)
+    @harness.instance_variable_set(:@preferences, preference)
+    @harness.define_singleton_method(:preference_theme_association) { "app_preference_theme" }
+
+    assert_nil @harness.send(:preference_record_theme)
+  end
+
+  test "preference_option_classes maps every child record type to its option class" do
+    classes = @harness.send(:preference_option_classes, "App")
+
+    assert_equal AppPreferenceLanguageOption, classes[:language]
+    assert_equal AppPreferenceThemeOption, classes[:theme]
+    assert_equal PreferenceClassRegistry::CHILD_RECORD_TYPES, classes.keys
+  end
+
+  test "set_timezone_from_session sets Time.zone only when a session timezone is present" do
+    Time.use_zone(Time.zone) do
+      @harness.session[:timezone] = "Asia/Tokyo"
+
+      @harness.send(:set_timezone_from_session)
+
+      assert_equal "Asia/Tokyo", Time.zone.name
+    end
+  end
+
+  test "set_timezone_from_session leaves Time.zone untouched when the session has no timezone" do
+    Time.use_zone("Etc/UTC") do
+      @harness.session[:timezone] = nil
+
+      @harness.send(:set_timezone_from_session)
+
+      assert_equal "Etc/UTC", Time.zone.name
+    end
+  end
+
+  test "default_audit_ip returns the IPv4 loopback address" do
+    assert_equal "127.0.0.1", @harness.send(:default_audit_ip)
+  end
+
+  test "canonical_theme_option_id returns nil for a blank value" do
+    assert_nil @harness.send(:canonical_theme_option_id, nil)
+    assert_nil @harness.send(:canonical_theme_option_id, "")
+  end
+
+  test "preference_binding_method_class maps ClientToken and OperatorToken to their binding method classes" do
+    @harness.define_singleton_method(:preference_class) { ClientToken }
+
+    assert_equal ClientTokenBindingMethod, @harness.send(:preference_binding_method_class)
+
+    @harness.define_singleton_method(:preference_class) { OperatorToken }
+
+    assert_equal OperatorTokenBindingMethod, @harness.send(:preference_binding_method_class)
+  end
+
+  test "preference_dbsc_status_class maps ClientToken and OperatorToken to their dbsc status classes" do
+    @harness.define_singleton_method(:preference_class) { ClientToken }
+
+    assert_equal ClientTokenDbscStatus, @harness.send(:preference_dbsc_status_class)
+
+    @harness.define_singleton_method(:preference_class) { OperatorToken }
+
+    assert_equal OperatorTokenDbscStatus, @harness.send(:preference_dbsc_status_class)
+  end
+
+  test "update_preference_child_with_audit is a no-op when the child or attributes are blank" do
+    assert_nil @harness.send(:update_preference_child_with_audit, nil, { foo: 1 }, :some_event)
+    assert_nil @harness.send(:update_preference_child_with_audit, Object.new, {}, :some_event)
+  end
+
+  test "preference_payload_option_ids skips associations the preference does not implement" do
+    preference = Object.new
+    preference.define_singleton_method(:app_preference_theme) { Struct.new(:option_id).new(3) }
+
+    option_ids = @harness.send(:preference_payload_option_ids, preference, "app_preference")
+
+    assert_equal 3, option_ids[:theme]
+    assert_nil option_ids[:language]
+  end
+
+  test "preference_cookie_consent_state defaults to false when the preference lacks the cookie association" do
+    result = @harness.send(:preference_cookie_consent_state, Object.new, "app_preference")
+
+    assert_equal({ consented: false, functional: false, performant: false, targetable: false }, result)
+  end
+
+  test "preference_cookie_consent_state rescues a malformed cookie record and defaults to false" do
+    cookie = Object.new
+    cookie.define_singleton_method(:consented) { raise NoMethodError, "boom" }
+    preference = Object.new
+    preference.define_singleton_method(:app_preference_cookie) { cookie }
+
+    result = @harness.send(:preference_cookie_consent_state, preference, "app_preference")
+
+    assert_equal({ consented: false, functional: false, performant: false, targetable: false }, result)
+  end
+
+  test "dbsc_status_name reports failed and revoke states" do
+    failed = Struct.new(:dbsc_status) do
+      def dbsc_status_pending? = false
+
+      def dbsc_status_active? = false
+
+      def dbsc_status_failed? = true
+
+      def dbsc_status_revoke? = false
+    end.new(:failed)
+    revoke = Struct.new(:dbsc_status) do
+      def dbsc_status_pending? = false
+
+      def dbsc_status_active? = false
+
+      def dbsc_status_failed? = false
+
+      def dbsc_status_revoke? = true
+    end.new(:revoke)
+
+    assert_equal "failed", @harness.send(:dbsc_status_name, failed)
+    assert_equal "revoke", @harness.send(:dbsc_status_name, revoke)
+  end
+
+  test "preference_dbsc_cookie_expires_at also considers revoked_at when present" do
+    preference = Struct.new(:binding_method, :expires_at, :revoked_at) do
+      def binding_method_dbsc? = binding_method == :dbsc
+    end.new(:dbsc, 2.hours.from_now, 5.minutes.from_now)
+
+    result = @harness.send(:preference_dbsc_cookie_expires_at, preference)
+
+    assert_in_delta 5.minutes.from_now.to_i, result.to_i, 1
+  end
+
+  test "issue_preference_dbsc_registration_header_for is a no-op for a nil or already dbsc-bound preference" do
+    assert_nil @harness.send(:issue_preference_dbsc_registration_header_for, nil)
+
+    dbsc_preference = Struct.new(:binding_method) do
+      def binding_method_dbsc? = true
+    end.new(:dbsc)
+
+    assert_nil @harness.send(:issue_preference_dbsc_registration_header_for, dbsc_preference)
+    assert_empty @harness.response.headers
+  end
+
+  test "preference_dbsc_path canonicalizes the App, Org, and Com registration routes" do
+    @harness.define_singleton_method(:preference_class) { AppPreference }
+    @harness.define_singleton_method(:acme_app_edge_v0_dbsc_path) { "/app/dbsc?ri=jp" }
+
+    assert_equal "/app/dbsc", @harness.send(:preference_dbsc_path)
+
+    @harness.define_singleton_method(:preference_class) { OrgPreference }
+    @harness.define_singleton_method(:acme_org_edge_v0_dbsc_path) { "/org/dbsc?tz=Asia" }
+
+    assert_equal "/org/dbsc", @harness.send(:preference_dbsc_path)
+
+    @harness.define_singleton_method(:preference_class) { ComPreference }
+    @harness.define_singleton_method(:acme_com_edge_v0_dbsc_path) { "/com/dbsc?ct=dr" }
+
+    assert_equal "/com/dbsc", @harness.send(:preference_dbsc_path)
+  end
+
+  test "preference_dbsc_path returns nil for a preference class without a mapped registration route" do
+    @harness.define_singleton_method(:preference_class) { ClientToken }
+
+    assert_nil @harness.send(:preference_dbsc_path)
+  end
+
+  test "preference_cookie_surface returns nil for a preference class without a mapped surface" do
+    @harness.define_singleton_method(:preference_class) { ClientToken }
+
+    assert_nil @harness.send(:preference_cookie_surface)
+  end
+
+  test "preference_refresh_log_context omits format when the request format is unavailable" do
+    @harness.request.define_singleton_method(:format) { nil }
+
+    context = @harness.send(:preference_refresh_log_context, nil, "refresh-public")
+
+    assert_not context.key?(:format)
+  end
+
+  test "ensure_model_defaults! is a no-op for a blank class or one without ensure_defaults!" do
+    assert_nil @harness.send(:ensure_model_defaults!, nil)
+
+    klass_without_hook = Class.new
+
+    assert_nil @harness.send(:ensure_model_defaults!, klass_without_hook)
+  end
+
+  test "ensure_model_defaults! calls ensure_defaults! directly when the class owns no writing connection" do
+    klass =
+      Class.new do
+        class << self
+          attr_reader :ensure_defaults_called
+
+          def ensure_defaults!
+            @ensure_defaults_called = true
+          end
+        end
+      end
+
+    @harness.send(:ensure_model_defaults!, klass)
+
+    assert klass.ensure_defaults_called
+  end
+
+  test "load_or_create_preference_child creates the missing child and returns it" do
+    created = Object.new
+    calls = []
+    preference = Object.new
+    preference.define_singleton_method(:app_preference_widget) do
+      calls << :read
+      nil
+    end
+    preference.define_singleton_method(:create_app_preference_widget!) do |attrs|
+      calls << [:create, attrs]
+      created
+    end
+    @harness.instance_variable_set(:@preferences, preference)
+
+    result = @harness.send(:load_or_create_preference_child, :widget, { option_id: 1 })
+
+    assert_equal created, result
+    assert_includes calls, [:create, { option_id: 1 }]
+  end
+
+  test "load_or_create_preference_child reloads and re-reads on a unique constraint race" do
+    read_calls = 0
+    preference = Object.new
+    preference.define_singleton_method(:app_preference_widget) do
+      read_calls += 1
+      (read_calls == 1) ? nil : :reloaded_child
+    end
+    preference.define_singleton_method(:create_app_preference_widget!) do |_attrs|
+      raise ActiveRecord::RecordNotUnique, "duplicate key"
+    end
+    preference.define_singleton_method(:reload) { self }
+    @harness.instance_variable_set(:@preferences, preference)
+
+    result = @harness.send(:load_or_create_preference_child, :widget)
+
+    assert_equal :reloaded_child, result
+    assert_equal 2, read_calls
+  end
+
   private
 
   def with_env(vars)
