@@ -85,20 +85,38 @@ root.
 
 ## What the Configuration Already Does
 
-`devcontainer.json` declares no `initializeCommand`; the stack needs no host-side bootstrap. Service
-passwords are generated inside the stack by the `dev-credentials` service, which every consumer
-gates on with `service_completed_successfully`. The one manual prerequisite is the `UID` and `GID`
-lines in the gitignored repository-root `.env`, because `$UID` and `$GID` are bash builtins rather
-than exported variables and Compose cannot read them directly (see
-`docs/operations/development-credential-provisioning.md`). Global and Edge do not share a host
-Podman network; the Edge Worker uses Cloudflare Workers VPC to reach this tunnel.
-`postCreateCommand` then runs `bundle install && pnpm install`.
+`devcontainer.json` runs `.devcontainer/write-host-ids.sh && bin/setup-dev-secrets` as
+`initializeCommand`. The first writes the real `UID` and `GID` into the gitignored repository-root
+`.env`, because `$UID` and `$GID` are bash builtins rather than exported variables and Compose
+cannot read them directly. The second registers the external Podman secrets — `dev_postgres_writer`,
+`dev_postgres_replication`, `dev_rustfs_access_key`, `dev_rustfs_secret_key`, and
+`dev_rustfs_rpc_secret` — before any service starts. Global and Edge do not share a host Podman
+network; the Edge Worker uses Cloudflare Workers VPC to reach this tunnel. `postCreateCommand` then
+runs `bundle install && pnpm install`.
 
 The Podman-specific properties are Compose concerns and need no flags: `userns_mode: keep-id`,
 `user: !reset null`, the `bind.selinux: Z` labels on the workspace and on the read-only
 `/etc/timezone`, `./.github`, `./bin`, and `./.devcontainer` binds, the `DOCKER_UID`/`DOCKER_GID`
 build arguments, the stable `container_name` values including `global-devcontainer-core`, the
 `host.docker.internal:host-gateway` extra host, and the published ports.
+
+## Dev Container Features
+
+`devcontainer.json` provisions the GitHub CLI, `herdr`, Claude Code, Codex, and Tailscale features.
+A feature may be added only when it installs binaries. A feature that declares a `mounts` entry
+binding a host path — typically a credential or profile directory under `${localEnv:HOME}` — must
+not be used here, for two reasons:
+
+- It contradicts the credential boundary recorded at the end of `devcontainer.json`: no host
+  credential enters the `core` service. Tool authentication happens inside the running container and
+  is discarded when the container is recreated.
+- The bind source is not created by any hook the Dev Containers CLI runs, so on a host that has
+  never used the tool, `podman run` fails with `statfs <path>: no such file or directory` after a
+  successful image build. A vendor-namespaced key such as
+  `customizations.<vendor>.initializeCommand` does not fix this; neither VS Code nor the CLI
+  executes it, and creating the host directory would breach the boundary above anyway.
+
+`ghcr.io/sliekens/devcontainer-features/grok-build` was removed for exactly this reason.
 
 ## Safety Contract
 
