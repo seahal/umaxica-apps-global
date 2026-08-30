@@ -17,11 +17,7 @@ Non-English text is allowed only when the artifact requires the original text, s
 documentation, translation data or fixtures, customer-visible localized copy, a relevant quotation,
 or Unicode and locale test data. Explain an exception next to the affected text.
 
-Before finishing prose work, run:
+Before finishing prose work, review the files you touched for non-English prose.
 
-```bash
-bin/repository-language-check
-```
-
-Do not weaken the checker, add a broad exception, or relabel ordinary prose as localization to make
-a violation pass. Translate the prose or document the narrow, genuine exception.
+Do not relabel ordinary prose as localization to make it pass. Translate the prose or document the
+narrow, genuine exception.
