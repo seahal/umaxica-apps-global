@@ -17,7 +17,7 @@ class StepUpConfiguredMethodsTest < ActiveSupport::TestCase
       user_email_status_id: ClientEmailStatus::UNVERIFIED,
     )
 
-    assert_not_includes StepUpConfiguredMethods.call(@user), :email_otp
+    assert_not_includes StepUpConfiguredMethodsQuery.call(@user), :email_otp
   end
 
   test "includes email_otp for verified email" do
@@ -26,7 +26,7 @@ class StepUpConfiguredMethodsTest < ActiveSupport::TestCase
       user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
-    assert_includes StepUpConfiguredMethods.call(@user), :email_otp
+    assert_includes StepUpConfiguredMethodsQuery.call(@user), :email_otp
   end
 
   test "returns credential-backed visitor methods" do
@@ -49,7 +49,7 @@ class StepUpConfiguredMethodsTest < ActiveSupport::TestCase
     )
     passkey.save!(validate: false)
 
-    result = StepUpConfiguredMethods.call(visitor)
+    result = StepUpConfiguredMethodsQuery.call(visitor)
 
     assert_includes result, :passkey
     assert_includes result, :email_otp
@@ -74,7 +74,7 @@ class StepUpConfiguredMethodsTest < ActiveSupport::TestCase
     )
     passkey.save!(validate: false)
 
-    result = StepUpConfiguredMethods.call(staff)
+    result = StepUpConfiguredMethodsQuery.call(staff)
 
     assert_not_includes result, :email_otp
     assert_includes result, :passkey
@@ -89,7 +89,7 @@ class StepUpConfiguredMethodsTest < ActiveSupport::TestCase
       last_otp_at: Time.zone.at(0),
     )
 
-    assert_not_includes StepUpConfiguredMethods.call(user), :totp
+    assert_not_includes StepUpConfiguredMethodsQuery.call(user), :totp
   end
 
   test "does not include inactive passkey" do
@@ -105,7 +105,7 @@ class StepUpConfiguredMethodsTest < ActiveSupport::TestCase
       )
     passkey.save!(validate: false)
 
-    assert_not_includes StepUpConfiguredMethods.call(user), :passkey
+    assert_not_includes StepUpConfiguredMethodsQuery.call(user), :passkey
   end
 end
 

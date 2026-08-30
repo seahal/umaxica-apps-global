@@ -24,7 +24,7 @@ class ComEnforcementCaseTest < ActiveSupport::TestCase
       access_blocking: true,
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
     visitor.reload
 
     assert_equal "active", the_case.state

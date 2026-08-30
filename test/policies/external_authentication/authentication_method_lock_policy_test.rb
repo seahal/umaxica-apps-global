@@ -36,7 +36,7 @@ class ExternalAuthenticationAuthenticationMethodLockPolicyTest < ActiveSupport::
       effect: "unusable",
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
     assert policy.locked?(
       enforcement_case_class: AppEnforcementCase,
@@ -75,7 +75,7 @@ class ExternalAuthenticationAuthenticationMethodLockPolicyTest < ActiveSupport::
       effect: "permanently_frozen",
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
     assert policy.locked?(
       enforcement_case_class: OrgEnforcementCase,
@@ -105,7 +105,7 @@ class ExternalAuthenticationAuthenticationMethodLockPolicyTest < ActiveSupport::
       effect: "unusable",
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
     assert policy.locked?(
       enforcement_case_class: OrgEnforcementCase,
@@ -140,8 +140,8 @@ class ExternalAuthenticationAuthenticationMethodLockPolicyTest < ActiveSupport::
       effect: "unusable",
       effective_at: Time.current,
     )
-    the_case.apply!
-    the_case.end_case!(reason: "revoked", ended_by_operator_public_id: operator.public_id)
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
+    EnforcementCaseEndOperation.call(enforcement_case: the_case, reason: "revoked", ended_by_operator_public_id: operator.public_id)
 
     assert_not policy.locked?(
       enforcement_case_class: AppEnforcementCase,

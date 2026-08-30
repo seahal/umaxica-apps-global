@@ -24,7 +24,7 @@ module Base
           )
           return render json: { error: result.error }, status: :unauthorized unless result.success?
 
-          render json: ::OidcUserInfoResponse.build(resource: result.resource, payload: result.payload)
+          render json: ::OidcUserInfoResponseSerializer.build(resource: result.resource, payload: result.payload)
         end
       end
     end

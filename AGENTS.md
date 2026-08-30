@@ -8,8 +8,8 @@ within its area. Read the applicable rules before editing.
 ## Scope and Authorization
 
 - Answer / explain / review / diagnose / plan requests: inspect and report; change nothing.
-- Change / build / fix requests: make the in-scope local change and run non-destructive
-  verification without asking.
+- Change / build / fix requests: make the in-scope local change and run non-destructive verification
+  without asking.
 - Ask first before destructive or irreversible actions, external writes, purchases, material scope
   expansion, or anything needing information only the user can provide.
 - Preserve unrelated staged, unstaged, and untracked changes. Never reset or clean the worktree.
@@ -36,7 +36,8 @@ repository root. Load only the entries matching the task.
   `docs/architecture/controller-lifecycle.md`
 - JSON API endpoints, error responses, or API versioning: `docs/reference/api-design-standards.md`
 - Minitest or behavior changes: `generic/testing.mdc`, `generic/no-test-only-code.mdc`
-- Value objects, services, resolvers, policies, queries, or commands:
+- Adding any class outside `app/models` and `app/controllers` — values, results, services,
+  operations, resolvers, policies, queries, forms, presenters, serializers, or adapters:
   `project/value-object-boundaries.mdc`
 - Migrations: `generic/migrations.mdc`
 - Persistent data or API shape (JSON and database schemas): `generic/data-shape-design.mdc`
@@ -58,10 +59,10 @@ repository root. Load only the entries matching the task.
 - Non-trivial decisions, plan deviations, or handoff context: `generic/implementation-notes.mdc`,
   `project/repository-knowledge-tree.mdc`
 
-For non-trivial architecture, routing, authentication, authorization, database, preference,
-surface, or service-layer work, use `project/repository-knowledge-tree.mdc` to load and prioritize
-material under `memos/`, `notes/`, `adr/`, `plans/`, and `docs/`. Call out conflicts between
-current code and an accepted ADR before choosing an implementation path.
+For non-trivial architecture, routing, authentication, authorization, database, preference, surface,
+or service-layer work, use `project/repository-knowledge-tree.mdc` to load and prioritize material
+under `memos/`, `notes/`, `adr/`, `plans/`, and `docs/`. Call out conflicts between current code and
+an accepted ADR before choosing an implementation path.
 
 ## Non-Negotiable Boundaries
 
@@ -70,8 +71,8 @@ Do not:
 - mix the `app`, `org`, and `com` surfaces
 - skip or reorder authentication, authorization, verification, CSRF, or rate-limit protections
 - put business logic in controllers; use a service, query, policy, or value object
-- use `permit!`, `skip_before_action`, `skip_authorization`, `skip_forgery_protection`,
-  `html_safe`, `raw(...)`, `VERIFY_NONE`, `rescue nil`, or ignored rescues
+- use `permit!`, `skip_before_action`, `skip_authorization`, `skip_forgery_protection`, `html_safe`,
+  `raw(...)`, `VERIFY_NONE`, `rescue nil`, or ignored rescues
 - use Rails flash; render feedback inline in the response
 - log tokens, cookies, authorization headers, full request parameters, or secrets; log identifiers
   and outcomes instead
@@ -129,7 +130,7 @@ execution outweighs re-establishing context.
 
 - Claude Code reads this file via `CLAUDE.md` (`@AGENTS.md` import) — keep that file as the import
   shim only.
-- Codex and Grok read `AGENTS.md` natively; nested `AGENTS.md` files scope to their subtree and
-  the closest file wins on conflict, so add nested files only for genuinely divergent rules.
-- Keep this file concise: adherence drops as it grows (Anthropic recommends under 200 lines;
-  Codex caps combined instructions at 32 KiB by default).
+- Codex and Grok read `AGENTS.md` natively; nested `AGENTS.md` files scope to their subtree and the
+  closest file wins on conflict, so add nested files only for genuinely divergent rules.
+- Keep this file concise: adherence drops as it grows (Anthropic recommends under 200 lines; Codex
+  caps combined instructions at 32 KiB by default).

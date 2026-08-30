@@ -6,7 +6,7 @@ module Notify
     # Delivers an OTP to a visitor on the com surface.
     # See Notify::App::OtpNotifier for why each surface has its own notifier.
     class OtpNotifier < Notify::ApplicationNotifier
-      extend Notify::OtpIssuance
+      extend Notify::OtpIssuanceNotifier
 
       deliver_by :email do |config|
         config.mailer = "Email::Com::OtpMailer"

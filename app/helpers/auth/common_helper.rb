@@ -24,10 +24,6 @@ module Auth::CommonHelper
     APPLE_SIGN_IN_LOGOS
   end
 
-  def get_timezone
-    "asia/tokyo"
-  end
-
   def get_language
     I18n.locale.to_s.start_with?("en") ? "en" : "ja"
   end

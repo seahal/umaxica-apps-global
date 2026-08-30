@@ -27,7 +27,7 @@ module PublishingTaxonomySnapshot
   end
 
   # Copies the live vocabulary and term into frozen columns. Called only from
-  # Publishing::PromoteRevision, inside its transaction.
+  # Publishing::PromoteRevisionOperation, inside its transaction.
   def apply_snapshot(vocabulary:, term:)
     self.vocabulary_public_id_snapshot = vocabulary.public_id
     self.vocabulary_key_snapshot = vocabulary.key

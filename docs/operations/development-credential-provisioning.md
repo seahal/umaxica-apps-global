@@ -8,12 +8,16 @@ each item belongs, and who issues it.
 
 ## What is not in git
 
-| Item | Location | Ignore rule in `.gitignore` |
-| :--- | :--- | :--- |
+| Item              | Location              | Ignore rule in `.gitignore` |
+| :---------------- | :-------------------- | :-------------------------- |
 | `development.key` | `config/credentials/` | `/config/credentials/*.key` |
-| `test.key` | `config/credentials/` | `/config/credentials/*.key` |
-| `.env` | repository root | `.env` |
-| `.secrets/` | repository root | `.secrets/` |
+| `test.key`        | `config/credentials/` | `/config/credentials/*.key` |
+| `.env`            | repository root       | `.env`                      |
+| `.secrets/`       | repository root       | `.secrets/`                 |
+
+`.secrets/` is no longer written by anything in this repository -- development service passwords are
+generated inside the stack, as described below. The ignore rules stay so that a directory created by
+hand, or left over from an earlier checkout, can never enter a commit or a build context.
 
 `config/credentials/development.yml.enc` and `config/credentials/test.yml.enc` are tracked, and are
 unreadable without the matching `.key` file. Committing a `.key` file defeats the encryption of the
@@ -61,15 +65,24 @@ CI does not use these files. GitHub Actions supplies the key through the `RAILS_
 
 Compose reads the repository-root `.env`. It currently carries three settings:
 
-| Key | Source |
-| :--- | :--- |
-| `UID` | written automatically by `.devcontainer/write-host-ids.sh` |
-| `GID` | written automatically by `.devcontainer/write-host-ids.sh` |
+| Key                 | Source                                        |
+| :------------------ | :-------------------------------------------- |
+| `UID`               | written by hand: your host `id -u`            |
+| `GID`               | written by hand: your host `id -g`            |
 | `CLOUDFLARED_TOKEN` | Cloudflare dashboard, or the development lead |
 
-`UID` and `GID` need no manual action: `.devcontainer/devcontainer.json` runs
-`.devcontainer/write-host-ids.sh` as its `initializeCommand`, and that script preserves any existing
-`CLOUDFLARED_TOKEN` line.
+`UID` and `GID` feed the `DOCKER_UID`/`DOCKER_GID` build args, which decide the workload UID baked
+into the `core` image. `$UID`/`$GID` are bash builtins rather than exported variables, so Compose
+never sees them from the environment; write them into `.env` once per machine:
+
+```bash
+printf 'UID=%s\nGID=%s\n' "$(id -u)" "$(id -g)" >> .env
+```
+
+Appending is safe as long as no earlier `UID=`/`GID=` line exists — Compose takes the last
+occurrence, but a duplicate is confusing to read. Leaving them out is not silent: Compose falls back
+to `1000`, and on a host whose user is not `1000:1000` every bind-mounted repository file appears
+with the wrong owner inside the container.
 
 `CLOUDFLARED_TOKEN` is tunnel-scoped. Retrieve it yourself from the Cloudflare dashboard following
 `docs/operations/cloudflare-private-origin.md`; **request it from the development lead when you do
@@ -106,19 +119,124 @@ encrypted credentials, or in the provider's own secret store. Never place it in 
 Compose file, a container image, a plan under `plans/`, or a note under `notes/`. When a credential
 is no longer needed, or may have been exposed, tell the development lead so it can be revoked.
 
-## What `bin/setup-dev-secrets` does and does not do
+## Development service passwords: the `dev-credentials` service
 
-`bin/setup-dev-secrets` runs as part of the devcontainer `initializeCommand`. It generates dev-only
-service passwords (PostgreSQL roles, HMAC salts, RustFS keys, and similar) into `.secrets/` and
-registers them as Podman secrets.
+PostgreSQL and RustFS passwords are generated inside the stack, not on the host. The
+`dev-credentials` Compose service runs to completion before `core`, `primary`, `replica`, and
+`rustfs` start, and writes five files into the `dev-credentials` named volume:
 
-It does not write `.env`, and it does not supply Rails credential keys or any provider credential.
-Its own header comment scopes user credentials out. Running it will not resolve a decryption failure
+| File                   | Read by                      |
+| :--------------------- | :--------------------------- |
+| `postgres-writer`      | `core`, `primary`, `replica` |
+| `postgres-replication` | `primary`, `replica`         |
+| `rustfs-access-key`    | `core`, `rustfs`             |
+| `rustfs-secret-key`    | `core`, `rustfs`             |
+| `rustfs-rpc-secret`    | `rustfs`                     |
+
+Every consumer mounts the volume read-only at `/run/dev-credentials` and reads the value through a
+`*_PASSWORD_FILE` / `*_FILE` environment variable. There is no host-side bootstrap command and no
+Podman Secret registration: a fresh clone only needs `.env` and the Rails credential keys.
+
+Each file is written once and then reused, because PostgreSQL bakes the superuser password into
+`primary-data` at initdb time. To rotate, remove the `dev-credentials`, `primary-data`, and
+`replica-data` volumes together — dropping only `dev-credentials` leaves the databases holding the
+previous password, and `primary` then refuses its own credential.
+
+This covers development service passwords only. It does not write `.env`, and it does not supply
+Rails credential keys or any provider credential. Running it will not resolve a decryption failure
 or a missing `CLOUDFLARED_TOKEN`.
+
+## GitHub authentication inside the development container
+
+The container performs no GitHub login of its own. The host's existing authentication is forwarded
+into `core` by the `core` block in `compose.custom.yaml`, so `ssh -T git@github.com`, `git fetch`,
+and `gh` work in a freshly recreated container without `gh auth login`.
+
+Nothing secret is stored for this. No private key, no `~/.ssh` directory, and no token literal is
+written into a repository file, a Compose file, or the image. Two host-shaped values are read from
+the environment that launches Compose:
+
+| Variable         | Carries                                    | Reaches the container as                  |
+| :--------------- | :----------------------------------------- | :---------------------------------------- |
+| `SSH_AUTH_SOCK`  | the path of the host `ssh-agent` socket    | a bind mount at `/ssh-agent`              |
+| `GH_TOKEN`       | a GitHub API token                         | the `GH_TOKEN` environment variable       |
+
+`${HOME}/.ssh/known_hosts` is additionally bound read-only at `/home/global/.ssh/known_hosts`. It
+holds public host keys only, and ssh needs it to verify `github.com`.
+
+Signing stays in the host agent: the container sends a challenge over the socket and receives a
+signature, so the private key never crosses the boundary. `GH_TOKEN` also reaches git, because the
+container's `/home/global/.gitconfig` routes `https://github.com` through
+`gh auth git-credential` — the `origin` remote stays on HTTPS and is not rewritten.
+
+### Host setup
+
+Both variables must be exported in the shell or session that starts Podman or VS Code. Compose
+interpolates them from the process environment; the repository-root `.env` is not consulted for
+them, and a token must never be written there.
+
+```bash
+# A stable agent socket path. A per-login /tmp/ssh-XXXX/agent.N path changes on every
+# login, and the container would need recreating each time to follow it.
+systemctl --user enable --now ssh-agent.socket
+echo 'export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/ssh-agent.socket' >> ~/.bash_profile
+
+ssh-add ~/.ssh/id_ed25519
+ssh-add -l                     # must list the key
+ssh -T git@github.com          # must greet you by username
+
+export GH_TOKEN="$(gh auth token)"   # or a personal access token
+```
+
+Run `ssh -T git@github.com` on the host before the first `up`. Besides proving the agent works, it
+guarantees `~/.ssh/known_hosts` exists: Podman creates a missing bind source as a *directory*, and a
+directory at `~/.ssh/known_hosts` breaks ssh on the host as well.
+
+Both variables tolerate absence. With no `GH_TOKEN`, gh falls back to whatever
+`~/.config/gh/hosts.yml` holds inside the container, which is usually a stale token; with no
+`SSH_AUTH_SOCK`, the placeholder mount makes ssh report `Error connecting to agent` rather than
+failing Compose resolution. Neither degrades silently into a working-looking state.
+
+### Verification
+
+Recreate the container — mounts and `security_opt` are creation-time settings — then, inside it:
+
+```bash
+ssh-add -l                 # lists the host key, proving the socket forwarded
+ssh -T git@github.com      # authenticates as your GitHub user
+git fetch                  # HTTPS via GH_TOKEN and the gh credential helper
+gh auth status             # reports the token as coming from GH_TOKEN
+gh repo view
+```
+
+`gh auth status` naming `GH_TOKEN` is the point of the check: it confirms the environment token took
+precedence over any token left in the container's `hosts.yml`.
+
+### SELinux
+
+The host is expected to be SELinux-enforcing. Both new mounts carry `selinux: Z`, matching every
+other bind in this project, so Podman relabels them to `container_file_t` at the container's MCS
+level. `compose.custom.yaml` pins that level to `s0:c101,c202`, the same value
+`.devcontainer/compose.override.yml` pins, so the Dev Container path and the plain
+`podman compose -f compose.yaml -f compose.custom.yaml up -d core` path agree; without the pin each
+CLI run would allocate a fresh category pair and lock the other path out of the relabelled files.
+
+Relabelling `~/.ssh/known_hosts` is visible on the host. A normal RHEL login user runs as
+`unconfined_u` and keeps reading the file; a confined login user may not.
+
+If `ssh -T git@github.com` fails inside the container, read the actual denial on the host:
+
+```bash
+sudo ausearch -m AVC -ts recent
+```
+
+and apply only the fix that denial names. Do not reach for `label=disable`, `privileged`, a wider
+`:Z`, or a private-key mount — each defeats the boundary this arrangement exists to keep.
 
 ## Related documents
 
 - `docs/operations/cloudflare-private-origin.md` — obtaining and placing `CLOUDFLARED_TOKEN`.
 - `docs/operations/development-container-targets.md` — bringing up the development containers.
+- `docs/operations/container-engine-podman-notes.md` — rootless Podman and SELinux behaviour.
 - `docs/hld.md` — the environment-variable catalog and the `.env` boundary.
 - `docs/reference/repository-language-policy.md` — language rules for repository prose.

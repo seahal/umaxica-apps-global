@@ -54,4 +54,24 @@ class ClientExternalIdentityTest < ActiveSupport::TestCase
     assert_not_predicate duplicate, :valid?
     assert duplicate.errors.of_kind?(:provider, :taken)
   end
+
+  test "touch_authenticated! records the latest sign-in without touching the binding" do
+    client = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "e#{SecureRandom.hex(8)}")
+    identity = ClientExternalIdentity.create!(
+      client: client,
+      provider: "google",
+      issuer: "https://accounts.google.com",
+      subject: "google-subject-touch-#{SecureRandom.hex(4)}",
+      audience: "google-client-id",
+      verification_authority: "omniauth-google-oauth2/1.2.1",
+      verified_at: Time.utc(2026, 7, 24, 12, 0, 0),
+    )
+
+    assert_nil identity.last_authenticated_at
+
+    identity.touch_authenticated!
+
+    assert_not_nil identity.reload.last_authenticated_at
+    assert_equal Time.utc(2026, 7, 24, 12, 0, 0), identity.verified_at
+  end
 end

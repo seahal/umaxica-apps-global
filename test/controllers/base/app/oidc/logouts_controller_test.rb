@@ -101,6 +101,178 @@ class Base::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "xyz"
   end
 
+  test "logout_challenge for an unknown transaction is rejected as not found" do
+    get base_app_oidc_logout_url(host: @host),
+        params: { logout_challenge: "does-not-exist", ri: "jp" },
+        headers: session_headers
+
+    assert_response :unprocessable_content
+  end
+
+  test "expired logout_challenge transaction is rejected as expired" do
+    transaction =
+      AcmeLogoutTransactionCoordinator.issue!(
+        origin_surface: "sign",
+        initiating_client_id: "sign-rp",
+        completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "sign", ri: "jp", surface: "app"),
+        surface: "app",
+        ri: "jp",
+        expires_in: -1.second,
+      ).transaction
+
+    get base_app_oidc_logout_url(host: @host),
+        params: { logout_challenge: transaction.logout_challenge, ri: "jp" },
+        headers: session_headers
+
+    assert_response :unprocessable_content
+  end
+
+  test "GET request with a valid logout_challenge is rejected as retired legacy handoff" do
+    transaction =
+      AcmeLogoutTransactionCoordinator.issue!(
+        origin_surface: "sign",
+        initiating_client_id: "sign-rp",
+        completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "sign", ri: "jp", surface: "app"),
+        surface: "app",
+        ri: "jp",
+      ).transaction
+
+    get base_app_oidc_logout_url(host: @host),
+        params: { logout_challenge: transaction.logout_challenge, ri: "jp" },
+        headers: session_headers
+
+    assert_response :unprocessable_content
+    assert_not_predicate transaction.reload, :finalized?
+  end
+
+  test "POST with a sign-origin challenge cleans up this host and finalizes back to sign" do
+    transaction =
+      AcmeLogoutTransactionCoordinator.issue!(
+        origin_surface: "sign",
+        initiating_client_id: "sign-rp",
+        completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "sign", ri: "jp", surface: "app"),
+        surface: "app",
+        ri: "jp",
+      ).transaction
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
+
+    post base_app_oidc_logout_url(host: @host, logout_challenge: transaction.logout_challenge, ri: "jp"),
+         headers: session_headers.merge("Sec-Fetch-Site" => "same-origin")
+
+    assert_response :see_other
+    location = URI.parse(jump_rt_url_from_location(response.location))
+
+    assert_equal "/sign/out/complete", location.path
+    assert_predicate transaction.reload, :finalized?
+  end
+
+  test "POST with a challenge already ready to finalize redirects immediately without cleanup" do
+    transaction =
+      AcmeLogoutTransactionCoordinator.issue!(
+        origin_surface: "sign",
+        initiating_client_id: "sign-rp",
+        completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "sign", ri: "jp", surface: "app"),
+        surface: "app",
+        ri: "jp",
+      ).transaction
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "acme_cleared")
+
+    post base_app_oidc_logout_url(host: @host, logout_challenge: transaction.logout_challenge, ri: "jp"),
+         headers: session_headers.merge("Sec-Fetch-Site" => "same-origin")
+
+    assert_response :see_other
+    assert_predicate transaction.reload, :finalized?
+    # The direct-to-finalize path skips local cleanup entirely, so the still-current session
+    # token is left untouched (unlike the cleanup-then-finalize path exercised above).
+    assert_not_predicate @token.reload, :revoked?
+  end
+
+  test "POST with a palm-origin challenge ready to finalize preserves callback state in the redirect" do
+    transaction =
+      AcmeLogoutTransactionCoordinator.issue!(
+        origin_surface: "palm",
+        initiating_client_id: "sign-rp",
+        completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "palm", ri: "jp", surface: "app"),
+        callback_state: "cb-state-xyz",
+        surface: "app",
+        ri: "jp",
+      ).transaction
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "acme_cleared")
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "sign_cleared")
+
+    post base_app_oidc_logout_url(host: @host, logout_challenge: transaction.logout_challenge, ri: "jp"),
+         headers: session_headers.merge("Sec-Fetch-Site" => "same-origin")
+
+    assert_response :see_other
+    location = URI.parse(jump_rt_url_from_location(response.location))
+    query = Rack::Utils.parse_nested_query(location.query.to_s)
+
+    assert_equal "/sign/out", location.path
+    assert_equal transaction.logout_challenge, query["logout_challenge"]
+    assert_equal "cb-state-xyz", query["state"]
+  end
+
+  test "invalid end-session request returns a json error for json format" do
+    post base_app_oidc_logout_url(host: @host, format: :json),
+         params: {
+           id_token_hint: id_token,
+           post_logout_redirect_uri: "https://attacker.example/signed-out",
+           ri: "jp",
+         },
+         headers: session_headers
+
+    assert_response :bad_request
+    body = response.parsed_body
+
+    assert_equal "invalid_request", body["error"]
+  end
+
+  test "unresolvable logout completion returns a json failure for json format" do
+    post base_app_oidc_logout_url(host: @host, format: :json),
+         params: { id_token_hint: id_token, ri: "jp" },
+         headers: session_headers
+
+    assert_response :unprocessable_content
+    body = response.parsed_body
+
+    assert_equal "unprocessable_content", body["error"]
+  end
+
+  test "second GET after a request is staged renders confirmation without mutation" do
+    redirect_uri = @client.post_logout_redirect_uris.first
+
+    get base_app_oidc_logout_url(host: @host),
+        params: { id_token_hint: id_token, post_logout_redirect_uri: redirect_uri, state: "xyz", ri: "jp" },
+        headers: session_headers
+
+    assert_response :see_other
+
+    get base_app_oidc_logout_url(host: @host), params: { ri: "jp" }, headers: session_headers
+
+    assert_response :ok
+    assert_not_predicate @token.reload, :revoked?
+    assert_nil response.location
+  end
+
+  test "POST after the staged request expires fails gracefully instead of crashing" do
+    redirect_uri = @client.post_logout_redirect_uris.first
+
+    get base_app_oidc_logout_url(host: @host),
+        params: { id_token_hint: id_token, post_logout_redirect_uri: redirect_uri, state: "xyz", ri: "jp" },
+        headers: session_headers
+
+    assert_response :see_other
+
+    travel 6.minutes do
+      post base_app_oidc_logout_url(host: @host), headers: session_headers
+
+      assert_response :ok
+      assert_not_predicate @token.reload, :revoked?
+    end
+  end
+
   private
 
   def session_headers

@@ -313,7 +313,7 @@ class Auth::Org::Omniauth::OmniauthCallbacksControllerTest < ActionDispatch::Int
       effect: "unusable",
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
     post "/social/entra", params: {}
     authorize_query = Rack::Utils.parse_nested_query(URI.parse(response.location).query)

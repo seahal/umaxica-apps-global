@@ -98,7 +98,7 @@ module SurfaceChrome
   def chrome_banner(domain)
     return nil if domain.blank?
 
-    banner = CurrentBanner.call(
+    banner = CurrentBannerQuery.call(
       tld: chrome_configuration.fetch(:surface).to_sym,
       domain: domain,
       region: :global,

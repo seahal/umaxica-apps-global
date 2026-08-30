@@ -8,6 +8,11 @@ module Base
         include ::SurfaceInertiaPage
         include CloudflareTurnstile
         include VerificationClient
+        # `new` and `create` call start_secret_credential_ceremony! /
+        # reset_secret_credential_ceremony_session!, which live here. Without the include both
+        # actions raise NoMethodError. The com and org secret credential controllers already
+        # include it; this keeps the three surfaces on the same seam.
+        include ::SignSettingsSecretCredentialRegistration
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
@@ -93,6 +98,11 @@ module Base
         end
 
         private
+
+        # `step_up` above hands this to require_verification!, which calls to_sym on it. Without a
+        # scope `new` and `create` raise NoMethodError on nil. The com and org secret credential
+        # controllers name the same scope.
+        def verification_scope = "settings_secret_credential"
 
         def authorize_secret_credentials! = authorize!(ClientSecretCredential, to: :index?)
 

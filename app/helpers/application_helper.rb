@@ -74,7 +74,7 @@ module ApplicationHelper
   # Delegates to the query object so the layout partial and the Inertia shared props read the
   # banner through one implementation.
   def current_banner_for(tld:, region:, domain:)
-    CurrentBanner.call(tld: tld, region: region, domain: domain)
+    CurrentBannerQuery.call(tld: tld, region: region, domain: domain)
   end
 
   def edge_host

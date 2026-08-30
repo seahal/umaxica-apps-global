@@ -3,8 +3,11 @@
 
 # adr/unified-enforcement.md: shared behaviour for the three per-realm
 # Enforcement Case models. Deliberately thin per
-# .agents/harnesses/rules/generic/rails-concerns.mdc -- it supplies apply!,
-# close-before-apply effect superseding, and the in-force query helpers.
+# .agents/harnesses/rules/generic/rails-concerns.mdc -- it supplies the
+# validations, the in-force query helpers, close-before-apply effect
+# superseding, and the two convergence steps the reconciliation job re-runs.
+# Applying and ending a Case are use cases and live in
+# EnforcementCaseApplyOperation and EnforcementCaseEndOperation.
 # Each including class supplies its own has_one/has_many associations (the FK
 # column name differs per realm) and `principal_class` / `realm`.
 module EnforcementCaseApplicable
@@ -120,51 +123,6 @@ module EnforcementCaseApplicable
   # still nil for the reconciler to find (Failure recovery / Reconciliation)
   # -- it must never roll the Case back to `failed`, because the security
   # decision it already committed remains correct.
-  def apply!
-    unless %w(draft pending_approval).include?(state)
-      raise InvalidStateTransitionError, "Case #{public_id} is already #{state}"
-    end
-    if requires_approval? && approved_by_operator_public_id.blank?
-      raise ApprovalRequiredError, "Case #{public_id} requires approval before it can be applied"
-    end
-
-    self.class.transaction do
-      close_superseded_effects!
-      self.state = "active"
-      save!
-    end
-
-    perform_principal_access_effect!
-    revoke_method_sessions!
-    write_audit_event!("applied")
-
-    true
-  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
-    update_column(:state, "failed") if persisted? # rubocop:disable Rails/SkipsModelValidations
-    raise e
-  end
-
-  # D8: ending a Case closes all its own still-open Effects in the same
-  # transaction, and (Administrative Access Lock integration) unlocks the
-  # principal only if no other Case's Principal Effect is still in force for
-  # them.
-  def end_case!(reason:, ended_by_operator_public_id: nil)
-    raise ArgumentError, "reason must be one of #{END_REASONS}" unless END_REASONS.include?(reason.to_s)
-
-    now = Time.current
-    self.class.transaction do
-      update!(ended_at: now, end_reason: reason, ended_by_operator_public_id: ended_by_operator_public_id)
-      principal_effect&.update!(ended_at: now)
-      authentication_method_effects.where(ended_at: nil).update_all(ended_at: now) # rubocop:disable Rails/SkipsModelValidations
-      identifier_effects.where(ended_at: nil).update_all(ended_at: now) # rubocop:disable Rails/SkipsModelValidations
-    end
-
-    release_principal_access_effect!
-    write_audit_event!((reason == "expired") ? "expired" : "ended")
-
-    true
-  end
-
   def revoke_method_sessions!
     return unless persisted?
 
@@ -199,19 +157,20 @@ module EnforcementCaseApplicable
     update!(audited_at: Time.current)
   end
 
+  # D9: applying a new open effect for a slot another Case still holds open
+  # closes the prior row first, in the same transaction, so an expired row
+  # can never block a new one and escalation/de-escalation stays atomic with
+  # an append-only history. Public because EnforcementCaseApplyOperation owns
+  # the transaction this runs in.
+  def close_superseded_effects!
+    close_superseded!(authentication_method_effects, %i(principal_public_id authentication_method))
+    close_superseded!(identifier_effects, %i(identifier_kind lookup_digest))
+  end
+
   private
 
   def assign_public_id
     self.public_id ||= SecureRandom.urlsafe_base64(15)
-  end
-
-  # D9: applying a new open effect for a slot another Case still holds open
-  # closes the prior row first, in the same transaction, so an expired row
-  # can never block a new one and escalation/de-escalation stays atomic with
-  # an append-only history.
-  def close_superseded_effects!
-    close_superseded!(authentication_method_effects, %i(principal_public_id authentication_method))
-    close_superseded!(identifier_effects, %i(identifier_kind lookup_digest))
   end
 
   def close_superseded!(association, key_columns)
@@ -220,53 +179,5 @@ module EnforcementCaseApplicable
       key_columns.each { |column| scope = scope.where(column => effect.public_send(column)) }
       scope.update_all(ended_at: Time.current) # rubocop:disable Rails/SkipsModelValidations
     end
-  end
-
-  def perform_principal_access_effect!
-    effect = principal_effect
-    return unless effect&.access_blocking?
-
-    principal = self.class.principal_class.find_by!(public_id: principal_public_id)
-    operator = ::Operator.find_by!(public_id: applied_by_operator_public_id)
-
-    AdministrativeAccessLock.lock!(
-      account: principal,
-      operator: operator,
-      reason_code: reason_code,
-      reason_note: reason_note,
-      ticket_id: ticket_id,
-      metadata: { enforcement_case_public_id: public_id },
-    )
-  end
-
-  # Unlocks admin_locked only when no other Case's Principal Effect is still
-  # in force for this principal (adr/unified-enforcement.md, Administrative
-  # Access Lock integration -- the refcount rule).
-  def release_principal_access_effect!
-    effect = principal_effect
-    return unless effect&.access_blocking?
-
-    other_blocking_case_in_force =
-      self.class.in_force
-        .where(principal_public_id: principal_public_id)
-        .where.not(id: id)
-        .joins(:principal_effect)
-        .merge(principal_effect.class.where(access_blocking: true))
-        .exists?
-    return if other_blocking_case_in_force
-
-    principal = self.class.principal_class.find_by(public_id: principal_public_id)
-    return unless principal
-
-    operator = ::Operator.find_by(public_id: applied_by_operator_public_id)
-    return unless operator
-
-    AdministrativeAccessLock.unlock!(
-      account: principal,
-      operator: operator,
-      reason_code: reason_code,
-      ticket_id: ticket_id,
-      metadata: { enforcement_case_public_id: public_id },
-    )
   end
 end

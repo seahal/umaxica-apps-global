@@ -58,6 +58,7 @@ class HostAuthorizationContractTest < Minitest::Test
     stdout, stderr, status = Open3.capture3(
       {
         "RAILS_ENV" => "development",
+        "REDIS_SMOKE_TEST" => "0",
         "HOST_AUTHORIZATION_TEST_HOSTS" => JSON.generate(hosts),
         "PRIVATE_AUTH_CORPORATE_URL" => "http://configured-auth.com.localhost:3000",
         "PRIVATE_AUTH_STAFF_URL" => "http://configured-auth.org.localhost:3000",
@@ -105,6 +106,7 @@ class HostAuthorizationContractTest < Minitest::Test
     stdout, stderr, status = Open3.capture3(
       {
         "RAILS_ENV" => "development",
+        "REDIS_SMOKE_TEST" => "0",
         "HOST_AUTHORIZATION_TEST_HOSTS" =>
           JSON.generate(BROWSER_FACING_SITE_HOSTS + [unconfigured_site_host, "evil.example.com"]),
         "PUBLIC_AUTH_SERVICE_URL" => "https://auth.umaxica.app",

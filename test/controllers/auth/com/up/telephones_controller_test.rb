@@ -145,7 +145,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
     )
     digest = EnforcementIdentifierDigest.for_telephone(realm: "com", value: "+819099999999")
     the_case.identifier_effects.build(**digest, registration_blocked: true, effective_at: Time.current)
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
     assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
       assert_no_difference("VisitorTelephone.count") do

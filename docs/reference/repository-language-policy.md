@@ -46,22 +46,8 @@ When writing or updating repository prose:
 4. Before finishing documentation, ADR, plan, note, memo, harness, or comment work, scan touched
    files for non-English prose.
 
-Run the repository language checker before finishing:
+The review covers repository knowledge prose as well as source comments and test names. Localized
+string literals, locale payloads, and translation assertions are not repository prose.
 
-```bash
-bin/repository-language-check
-```
-
-The checker examines repository knowledge prose as well as source comments and test names. It does
-not treat localized string literals, locale payloads, or translation assertions as repository
-prose.
-
-For a necessary non-English example or quotation, place a narrow exception immediately before the
-affected line:
-
-```markdown
-<!-- repository-language: allow-next-line reason=localized-gloss -->
-```
-
-Longer necessary examples may use matching `allow-begin` and `allow-end` annotations. Every opening
-annotation requires a short reason. Unbalanced, nested, or unexplained annotations are errors.
+For a necessary non-English example or quotation, state the reason in the surrounding section or in
+a comment next to the affected line.

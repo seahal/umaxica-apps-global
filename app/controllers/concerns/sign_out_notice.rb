@@ -119,17 +119,6 @@ module SignOutNotice
     response.headers["Referrer-Policy"] = SIGN_OUT_HANDOFF_REFERRER_POLICY
   end
 
-  def render_sign_out_confirmation(template)
-    log_sign_out_event(
-      "auth.sign_out.confirmation.rendered",
-      user_confirmation_required: true,
-      auto_handoff: false,
-      cleanup_performed: false,
-      result: "rendered",
-    )
-    render template
-  end
-
   def render_sign_out_handoff(template)
     sign_out_handoff_cache_headers!
     log_sign_out_event(

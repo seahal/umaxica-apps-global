@@ -45,7 +45,7 @@ services:
       # current rootless Podman provider. Keep host configuration and guarded
       # workspace paths in Compose long syntax so Gate C can inspect the
       # effective mount flags. The host SSH directory is intentionally absent:
-      # inbound Remote Codex does not need host private keys.
+      # nothing in this container needs host private keys.
       - type: bind
         source: "./.github"
         target: "/home/global/workspace/.github"

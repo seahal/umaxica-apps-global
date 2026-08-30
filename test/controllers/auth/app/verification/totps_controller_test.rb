@@ -358,7 +358,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
   end
 
   test "POST redirects to setup when bootstrap and no usable step-up methods exist" do
-    StepUpConfiguredMethods.stub(:call, []) do
+    StepUpConfiguredMethodsQuery.stub(:call, []) do
       StepUpAvailableMethods.stub(:call, []) do
         with_prosopite_paused do
           post auth_app_verification_totp_url(ri: "jp"),

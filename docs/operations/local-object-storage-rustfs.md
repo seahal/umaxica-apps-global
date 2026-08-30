@@ -1,9 +1,8 @@
 # Local RustFS Object Storage
 
-RustFS is an opt-in local development dependency. It provides an S3-compatible endpoint for
-explicit integration tasks; normal Rails startup and the regular test suite do not require it.
-There is no object-storage data migration because the previous references were unused historical
-configuration.
+RustFS is an opt-in local development dependency. It provides an S3-compatible endpoint for explicit
+integration tasks; normal Rails startup and the regular test suite do not require it. There is no
+object-storage data migration because the previous references were unused historical configuration.
 
 ## Architecture
 
@@ -17,21 +16,20 @@ Four persistent Podman named volumes
 
 The `rustfs-permissions` helper uses the fixed `alpine:3.24.1` image to set ownership on the four
 volume roots. RustFS starts only after that idempotent helper succeeds. The volumes intentionally
-remain separate so a later erasure-coded bucket-versioning evaluation has the required disk
-layout.
+remain separate so a later erasure-coded bucket-versioning evaluation has the required disk layout.
 
 ## Configure
 
 Credentials and non-secret settings come from two different places.
 
-`bin/setup-dev-secrets` generates and registers the three credentials as Podman secrets, exactly as
+The `dev-credentials` Compose service generates the three credentials on the first `up`, exactly as
 it does for PostgreSQL. No manual step is required:
 
-| Podman secret            | Local source file            | Consumed by                                    |
-| ------------------------ | ---------------------------- | ---------------------------------------------- |
-| `dev_rustfs_access_key`  | `.secrets/rustfs-access-key` | `rustfs` entrypoint, `core` Rails tasks         |
-| `dev_rustfs_secret_key`  | `.secrets/rustfs-secret-key` | `rustfs` entrypoint, `core` Rails tasks         |
-| `dev_rustfs_rpc_secret`  | `.secrets/rustfs-rpc-secret` | `rustfs` entrypoint only                        |
+| File in the `dev-credentials` volume | Mounted at                               | Consumed by                             |
+| ------------------------------------ | ---------------------------------------- | --------------------------------------- |
+| `rustfs-access-key`                  | `/run/dev-credentials/rustfs-access-key` | `rustfs` entrypoint, `core` Rails tasks |
+| `rustfs-secret-key`                  | `/run/dev-credentials/rustfs-secret-key` | `rustfs` entrypoint, `core` Rails tasks |
+| `rustfs-rpc-secret`                  | `/run/dev-credentials/rustfs-rpc-secret` | `rustfs` entrypoint only                |
 
 Compose mounts them at `/run/secrets/<name>`. The `rustfs` entrypoint reads the files directly, and
 the `core` container receives `OBJECT_STORAGE_ACCESS_KEY_ID_FILE` and
@@ -46,9 +44,9 @@ startup so the failure names its cause instead of surfacing as an opaque 403.
 
 The non-secret settings need no local configuration at all. `OBJECT_STORAGE_BUCKET` is fixed to
 `umaxica-local` in the `core` service environment (`compose.yaml`), and the loopback host ports are
-fixed to `9000` (S3 API) and `9001` (console) in `compose.yaml`. The ignored
-repository-root `.env` carries only the Cloudflare Tunnel token and the host `UID`/`GID` that
-`.devcontainer/write-host-ids.sh` writes; it holds no object-storage settings.
+fixed to `9000` (S3 API) and `9001` (console) in `compose.yaml`. The ignored repository-root `.env`
+carries only the Cloudflare Tunnel token and the host `UID`/`GID`; it holds no object-storage
+settings.
 
 These values are only for local development; production must use its platform credential provider
 and must not set a RustFS endpoint override.
@@ -64,12 +62,12 @@ command stored in a variable, write the full `podman compose -f ...` prefix inst
 
 ## Linux Host Gate
 
-First confirm that the credentials are registered, since both `core` and `rustfs` now mount them
-and Compose refuses to start a service whose secret is missing:
+First confirm that the credentials exist, since both `core` and `rustfs` read them from the volume
+and `rustfs` refuses to start when a file is missing or empty:
 
 ```sh
-bin/setup-dev-secrets
-podman secret ls --format '{{.Name}}' | grep dev_rustfs_
+$COMPOSE up -d dev-credentials
+$COMPOSE run --rm --entrypoint /bin/sh dev-credentials -c 'ls -l /credentials'
 ```
 
 Then confirm that the object-storage configuration is self-contained in the Compose files. An
@@ -116,9 +114,9 @@ $COMPOSE --profile object-storage exec -T core bin/rails object_storage:prepare
 $COMPOSE --profile object-storage exec -T core bin/rails object_storage:smoke
 ```
 
-The prepare task treats an existing bucket as success. The smoke task writes a unique
-`smoke/<uuid>` object, checks its size and body, deletes it, and verifies that it no longer exists.
-Unexpected S3 errors are not suppressed and produce a non-zero command exit.
+The prepare task treats an existing bucket as success. The smoke task writes a unique `smoke/<uuid>`
+object, checks its size and body, deletes it, and verifies that it no longer exists. Unexpected S3
+errors are not suppressed and produce a non-zero command exit.
 
 ## Stop or Reset
 

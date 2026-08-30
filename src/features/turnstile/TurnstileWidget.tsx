@@ -92,7 +92,7 @@ export default function TurnstileWidget({
     };
     // The challenge is rendered once per mount; its configuration comes from the server and does
     // not change while the page is open.
-    // oxlint-disable-next-line exhaustive-deps
+    // oxlint-disable-next-line exhaustive-deps, react/exhaustive-effect-dependencies
   }, []);
 
   return (

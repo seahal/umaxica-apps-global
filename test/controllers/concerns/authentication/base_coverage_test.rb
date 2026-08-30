@@ -972,6 +972,98 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert_raises(ActiveRecord::RecordNotFound) { AuthenticationBase.instance_method(:token_kind_model).bind_call(@controller) }
   end
 
+  test "token reference contracts remain distinct for every actor type" do
+    {
+      "client" => {
+        prefix: "user",
+        kind_column: "user_token_kind_id",
+        kinds: {
+          "BROWSER_WEB" => ClientTokenKind::BROWSER_WEB,
+          "CLIENT_IOS" => ClientTokenKind::CLIENT_IOS,
+          "CLIENT_ANDROID" => ClientTokenKind::CLIENT_ANDROID,
+        },
+        status_key: :user_token_status_id,
+        active_status: ClientTokenStatus::ACTIVE,
+        reference_keys: %i(
+          user_token_binding_method_id
+          user_token_dbsc_status_id
+          user_token_kind_id
+          user_token_status_id
+        ),
+      },
+      "operator" => {
+        prefix: "staff",
+        kind_column: "staff_token_kind_id",
+        kinds: {
+          "BROWSER_WEB" => OperatorTokenKind::BROWSER_WEB,
+          "CLIENT_IOS" => OperatorTokenKind::CLIENT_IOS,
+          "CLIENT_ANDROID" => OperatorTokenKind::CLIENT_ANDROID,
+        },
+        status_key: :staff_token_status_id,
+        active_status: OperatorTokenStatus::ACTIVE,
+        reference_keys: %i(
+          staff_token_binding_method_id
+          staff_token_dbsc_status_id
+          staff_token_kind_id
+          staff_token_status_id
+        ),
+      },
+      "visitor" => {
+        prefix: "visitor",
+        kind_column: "visitor_token_kind_id",
+        kinds: {
+          "BROWSER_WEB" => VisitorTokenKind::BROWSER_WEB,
+          "CLIENT_IOS" => VisitorTokenKind::CLIENT_IOS,
+          "CLIENT_ANDROID" => VisitorTokenKind::CLIENT_ANDROID,
+        },
+        status_key: :visitor_token_status_id,
+        active_status: VisitorTokenStatus::ACTIVE,
+        reference_keys: %i(
+          visitor_token_binding_method_id
+          visitor_token_dbsc_status_id
+          visitor_token_kind_id
+          visitor_token_status_id
+        ),
+      },
+    }.each do |resource_type, contract|
+      token_class = Class.new
+      token_class.define_singleton_method(:columns_hash) do
+        { contract.fetch(:kind_column) => Struct.new(:type).new(:integer) }
+      end
+      kind_model =
+        Class.new do
+          define_singleton_method(:name) { "InlineTokenKind" }
+          define_singleton_method(:column_names) { [] }
+        end
+      @controller.define_singleton_method(:resource_type) { resource_type }
+      @controller.define_singleton_method(:token_class) { token_class }
+      @controller.define_singleton_method(:token_kind_model) { kind_model }
+
+      contract.fetch(:kinds).each do |code, expected_id|
+        assert_equal expected_id, @controller.resolve_token_kind_id(code), "#{resource_type}: #{code}"
+      end
+      assert_equal contract.fetch(:prefix),
+                   AuthenticationBase.instance_method(:token_resource_prefix).bind_call(@controller)
+      assert_equal contract.fetch(:active_status),
+                   AuthenticationBase.instance_method(:default_status_token_attributes)
+                     .bind_call(@controller).fetch(contract.fetch(:status_key))
+      assert_equal 99,
+                   AuthenticationBase.instance_method(:default_status_token_attributes)
+                     .bind_call(@controller, 99).fetch(contract.fetch(:status_key))
+      assert_equal contract.fetch(:reference_keys),
+                   AuthenticationBase.instance_method(:login_token_reference_models)
+                     .bind_call(@controller).keys
+    end
+
+    @controller.define_singleton_method(:resource_type) { "unknown" }
+
+    assert_empty @controller.default_dbsc_token_attributes
+    assert_empty AuthenticationBase.instance_method(:default_status_token_attributes).bind_call(@controller)
+    assert_empty AuthenticationBase.instance_method(:login_token_reference_models).bind_call(@controller)
+    assert_equal "unknown", AuthenticationBase.instance_method(:token_resource_prefix).bind_call(@controller)
+    assert_not @controller.dbsc_registration_eligible_kind?(1)
+  end
+
   test "ensure_token_kind_exists creates missing fixed id" do
     ClientToken.where(user_token_kind_id: ClientTokenKind::BROWSER_WEB).delete_all
     ClientTokenKind.where(id: ClientTokenKind::BROWSER_WEB).delete_all
@@ -1723,6 +1815,503 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     OccurrenceHmac.stub(:secret_credential, -> { raise OccurrenceHmac::MissingSecretError }) do
       assert_nil @controller.network_hmac_for_request
     end
+  end
+
+  test "refresh_access_token logs and delegates to handle_refresh_error when parsing the token raises" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    failing_token_class =
+      Class.new do
+        def self.parse_refresh_token(_plain)
+          raise StandardError, "boom"
+        end
+      end
+    @controller.define_singleton_method(:token_class) { failing_token_class }
+
+    result = @controller.refresh_access_token("whatever")
+
+    assert_nil result
+    assert_equal :unauthorized, @controller.refresh_failure_status
+    assert_equal "invalid_refresh_token", @controller.refresh_failure_code
+  end
+
+  test "authenticate! redirects through the oidc authorization url when the controller supports it" do
+    @controller.define_singleton_method(:logged_in?) { false }
+    @controller.request.set_header("HTTP_ACCEPT", "text/html")
+    @controller.define_singleton_method(:sign_in_url_with_pt) { |pt| "/in?pt=#{pt}" }
+    @controller.define_singleton_method(:encoded_pt) { |target| "encoded-#{target}" }
+    calls = []
+    @controller.define_singleton_method(:redirect_to_oidc_authorization_url) { |url, **opts| calls << [url, opts] }
+
+    @controller.authenticate!
+
+    assert_equal 1, calls.size
+    assert_equal "/in?pt=encoded-#{@request.fullpath}", calls.first.first
+    assert_nil @controller.session[AuthenticationBase::DEFAULT_PT_SESSION_KEY],
+               "store_authentication_return_target! must be skipped when the oidc redirect owns the return target"
+  end
+
+  test "skip_action_callback delegates to the framework implementation for unrelated filters" do
+    assert_raises(NoMethodError) do
+      AuthenticationBaseTestController.skip_action_callback(:process_action, :before, :noop_before_action)
+    end
+  end
+
+  test "revoke_inactive_refresh_token_family! updates a lone token record with no family id" do
+    token = ClientToken.create!(
+      user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, discarded_at: 1.day.from_now,
+    )
+
+    @controller.send(:revoke_inactive_refresh_token_family!, token)
+
+    assert_operator token.reload.discarded_at, :<=, Time.current
+  end
+
+  test "handle_invalid_refresh_token_reason records a refresh_reuse_detected occurrence when reuse is flagged" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:request_ip_address) { "127.0.0.1" }
+    @controller.request.request_id = "request-reuse"
+    token = ClientToken.create!(
+      user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, discarded_at: 1.day.from_now,
+    )
+
+    assert_difference("ClientOccurrence.count", 1) do
+      SignRiskEmitter.stub(:emit, nil) do
+        assert_nil @controller.send(:handle_invalid_refresh_token_reason, "refresh_token_reuse_detected", token.public_id, token)
+      end
+    end
+
+    occurrence = ClientOccurrence.order(created_at: :desc).first
+
+    assert_equal "refresh_reuse_detected", occurrence.event_type
+    assert_equal "reuse", occurrence.context["reason"]
+  end
+
+  test "handle_refresh_binding_denied records a dpop denial reason" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:request_ip_address) { "127.0.0.1" }
+    @controller.instance_variable_set(:@refresh_dpop_reason, "missing")
+    token = ClientToken.create!(
+      user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, discarded_at: 1.day.from_now,
+    )
+
+    assert_difference("ClientOccurrence.count", 1) do
+      SignRiskEmitter.stub(:emit, nil) do
+        @controller.send(:handle_refresh_binding_denied, token, token.public_id)
+      end
+    end
+
+    occurrence = ClientOccurrence.order(created_at: :desc).first
+
+    assert_equal "refresh_dpop_denied", occurrence.event_type
+  end
+
+  test "handle_refresh_binding_denied records a dbsc denial reason when the token is dbsc bound" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:request_ip_address) { "127.0.0.1" }
+    token = ClientToken.create!(
+      user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, discarded_at: 1.day.from_now,
+      user_token_binding_method_id: ClientTokenBindingMethod::DBSC,
+    )
+
+    assert_difference("ClientOccurrence.count", 1) do
+      SignRiskEmitter.stub(:emit, nil) do
+        @controller.send(:handle_refresh_binding_denied, token, token.public_id)
+      end
+    end
+
+    occurrence = ClientOccurrence.order(created_at: :desc).first
+
+    assert_equal "refresh_dbsc_denied", occurrence.event_type
+  end
+
+  test "revoke_refresh_session_after_dbsc_failure! revokes a standalone token without a device session" do
+    token = ClientToken.create!(
+      user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, discarded_at: 1.day.from_now,
+    )
+
+    @controller.revoke_refresh_session_after_dbsc_failure!(token)
+
+    assert_predicate token.reload, :revoked?
+  end
+
+  test "revoke_refresh_session_after_dbsc_failure! logs and swallows ActiveRecord errors" do
+    token = ClientToken.create!(
+      user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, discarded_at: 1.day.from_now,
+    )
+    token.define_singleton_method(:revoke!) { raise ActiveRecord::RecordInvalid, token }
+
+    assert_nothing_raised { @controller.revoke_refresh_session_after_dbsc_failure!(token) }
+  end
+
+  test "refresh_dbsc_source reports the response-only and no-header branches" do
+    assert_equal "none", @controller.refresh_dbsc_source
+
+    @request.headers[AuthIoKeys::Headers::DBSC_RESPONSE] = "proof"
+
+    assert_equal "response", @controller.refresh_dbsc_source
+  end
+
+  test "emit_actor_mismatch_event logs and emits a risk signal for the mismatch" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:request_ip_address) { "127.0.0.1" }
+    payload = { "act" => "operator", "sub" => "actor-42" }
+
+    emitted = []
+    SignRiskEmitter.stub(:emit, ->(name, **kwargs) { emitted << [name, kwargs] }) do
+      @controller.send(:emit_actor_mismatch_event, payload)
+    end
+
+    assert_equal 1, emitted.size
+    assert_equal "actor_mismatch", emitted.first[0]
+    assert_equal({ expected: "client", actual: "operator" }, emitted.first[1][:meta])
+  end
+
+  test "destroy_refresh_token_from_cookie logs when the session cannot be destroyed" do
+    @controller.send(:cookies)[AuthenticationBase::REFRESH_COOKIE_KEY] = "refresh-plain"
+    fake_token_class =
+      Class.new do
+        def self.parse_refresh_token(_plain)
+          ["public-id-1"]
+        end
+      end
+    @controller.define_singleton_method(:token_class) { fake_token_class }
+    @controller.define_singleton_method(:resource_type) { "client" }
+
+    AuthenticationLogoutCurrentSession.stub(:call, ->(**) { raise ActiveRecord::RecordNotDestroyed, "boom" }) do
+      assert_nothing_raised { @controller.send(:destroy_refresh_token_from_cookie) }
+    end
+  end
+
+  test "enforce_access_policy! dispatches the bare mode policy without side effects" do
+    controller_class = Class.new(AuthenticationBaseTestController)
+    controller_class.define_singleton_method(:name) { "AuthenticationBaseBarePolicyHarness" }
+    controller_class.declare_authentication_mode!(:bare, only: :index)
+    controller = controller_class.new
+    controller.request = @request
+    controller.response = ActionDispatch::TestResponse.new
+    controller.define_singleton_method(:session) { @session_hash }
+    controller.instance_variable_set(:@session_hash, @session_hash)
+    controller.define_singleton_method(:action_name) { "index" }
+    controller.define_singleton_method(:logged_in?) { false }
+    controller.define_singleton_method(:current_resource) { nil }
+    controller.define_singleton_method(:current_user) { nil }
+
+    assert controller.send(:enforce_access_policy!)
+  end
+
+  test "policy_for_authentication_mode raises InvalidPolicyError for unsupported modes" do
+    assert_raises(AuthenticationBase::InvalidPolicyError) do
+      @controller.send(:policy_for_authentication_mode, :bogus)
+    end
+  end
+
+  test "resolve_authentication_mode_rule_for skips only/except mismatches before returning the matching rule" do
+    controller_class = Class.new(AuthenticationBaseTestController)
+    controller_class.define_singleton_method(:name) { "AuthenticationBaseModeRuleSkipHarness" }
+    controller_class.declare_authentication_mode!(:guest)
+    controller_class.declare_authentication_mode!(:private, except: :edit)
+    controller_class.declare_authentication_mode!(:open, only: :show)
+
+    matched = controller_class.new.send(:resolve_authentication_mode_rule_for, "edit")
+
+    assert_equal :guest, matched[:mode]
+  end
+
+  test "resolve_access_policy_for skips only/except mismatches before returning the matching rule" do
+    klass = Class.new
+    klass.define_singleton_method(:access_policy_rules) do
+      [
+        { policy: :guest_only, only: nil, except: nil, options: { matched: true } },
+        { policy: :auth_required, only: nil, except: ["destroy"], options: {} },
+        { policy: :deny_all, only: ["show"], except: nil, options: {} },
+      ]
+    end
+    @controller.define_singleton_method(:class) { klass }
+
+    matched = @controller.resolve_access_policy_for("destroy")
+
+    assert_equal({ policy: :guest_only, only: nil, except: nil, options: { matched: true } }, matched)
+  end
+
+  test "access_policy_options_for falls back to access_policy_rules options when no mode rule matches" do
+    controller_class = Class.new(AuthenticationBaseTestController)
+    controller_class.define_singleton_method(:name) { "AuthenticationBaseOptionsFallbackHarness" }
+    controller_class.define_singleton_method(:access_policy_rules) do
+      [{ policy: :auth_required, only: ["edit"], except: nil, options: { custom: true } }]
+    end
+    instance = controller_class.new
+
+    assert_equal({ custom: true }, instance.send(:access_policy_options_for, "edit"))
+    assert_equal({}, instance.send(:access_policy_options_for, "unmatched"))
+  end
+
+  test "enforce_authentication_guest! renders json when json format is requested" do
+    @controller.define_singleton_method(:logged_in?) { true }
+    resource = Struct.new(:deactivated?).new(false)
+    @controller.define_singleton_method(:current_resource) { resource }
+    @controller.request.set_header("HTTP_ACCEPT", "application/json")
+    rendered = []
+    @controller.define_singleton_method(:render) { |**kwargs| rendered << kwargs }
+
+    @controller.enforce_authentication_guest!
+
+    assert_equal :forbidden, rendered.last[:status]
+    assert_equal({ error: "already_authenticated" }, rendered.last[:json])
+  end
+
+  test "resolve_token_kind_id resolves a coded kind through the reference model" do
+    @controller.define_singleton_method(:resource_type) { "operator" }
+    token_class = Class.new
+    token_class.define_singleton_method(:columns_hash) { { "staff_token_kind_id" => Struct.new(:type).new(:integer) } }
+    @controller.define_singleton_method(:token_class) { token_class }
+    kind_model =
+      Class.new do
+        define_singleton_method(:name) { "InlineCodedKind" }
+        define_singleton_method(:column_names) { %w(code) }
+        define_singleton_method(:find_by!) { |code:| Struct.new(:id).new(77) if code == "BROWSER_WEB" }
+      end
+    @controller.define_singleton_method(:token_kind_model) { kind_model }
+
+    assert_equal 77, @controller.resolve_token_kind_id("BROWSER_WEB")
+  end
+
+  test "resolve_token_kind_id logs and reraises when the coded kind is missing" do
+    @controller.define_singleton_method(:resource_type) { "operator" }
+    token_class = Class.new
+    token_class.define_singleton_method(:columns_hash) { { "staff_token_kind_id" => Struct.new(:type).new(:integer) } }
+    @controller.define_singleton_method(:token_class) { token_class }
+    kind_model =
+      Class.new do
+        define_singleton_method(:name) { "InlineCodedKind" }
+        define_singleton_method(:column_names) { %w(code) }
+        define_singleton_method(:find_by!) { |**| raise ActiveRecord::RecordNotFound, "not found" }
+      end
+    @controller.define_singleton_method(:token_kind_model) { kind_model }
+
+    error = assert_raises(ActiveRecord::RecordNotFound) { @controller.resolve_token_kind_id("MISSING") }
+
+    assert_match "InlineCodedKind", error.message
+  end
+
+  test "ensure_token_kind_exists! logs and reraises when the reference row cannot be created" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    kind_model =
+      Class.new do
+        define_singleton_method(:name) { "InlineFailingKind" }
+        define_singleton_method(:find_or_create_by!) { |**| raise ActiveRecord::RecordNotFound, "boom" }
+      end
+    @controller.define_singleton_method(:token_kind_model) { kind_model }
+
+    error =
+      assert_raises(ActiveRecord::RecordNotFound) do
+        @controller.send(:ensure_token_kind_exists!, ClientTokenKind::BROWSER_WEB)
+      end
+
+    assert_match "InlineFailingKind", error.message
+  end
+
+  test "finalize_mfa_login! returns a hard reject payload when the session limit is exceeded" do
+    @controller.session[:pending_mfa] = { "pt" => "/after", "auth_method" => "email" }
+    @controller.define_singleton_method(:pending_mfa_sign_in_flow_for) { |_user| nil }
+    @controller.define_singleton_method(:pending_sign_in_result_after_primary!) do |*, **|
+      { status: :session_limit_hard_reject, message: "too many sessions", http_status: :forbidden }
+    end
+
+    result = @controller.send(:finalize_mfa_login!, @user)
+
+    assert_equal(
+      { status: :session_limit_hard_reject, message: "too many sessions", http_status: :forbidden },
+      result,
+    )
+    assert_nil @controller.session[:pending_mfa]
+  end
+
+  test "finalize_mfa_login! returns the raw result for unrecognized statuses" do
+    @controller.session[:pending_mfa] = { "pt" => "/after", "auth_method" => "email" }
+    @controller.define_singleton_method(:pending_mfa_sign_in_flow_for) { |_user| nil }
+    @controller.define_singleton_method(:pending_sign_in_result_after_primary!) do |*, **|
+      { status: :login_forbidden }
+    end
+
+    result = @controller.send(:finalize_mfa_login!, @user)
+
+    assert_equal({ status: :login_forbidden }, result)
+  end
+
+  test "session_limit_gate_pt falls back to / when reading the request raises" do
+    @controller.define_singleton_method(:request) { raise StandardError, "boom" }
+
+    assert_equal "/", @controller.send(:session_limit_gate_pt)
+  end
+
+  test "count_active_sessions returns zero for unsupported resource types" do
+    @controller.define_singleton_method(:token_class) { ClientToken }
+
+    assert_equal 0, @controller.send(:count_active_sessions, Object.new)
+  end
+
+  test "find_restricted_sessions_scope resolves the visitor restricted-status scope" do
+    visitor = create_verified_visitor_with_email(email_address: "restricted-scope@example.com")
+    restricted_token = VisitorToken.create!(
+      visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+      visitor_token_status_id: VisitorTokenStatus::RESTRICTED, discarded_at: 1.day.from_now,
+    )
+    active_token = VisitorToken.create!(
+      visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE, discarded_at: 1.day.from_now,
+    )
+
+    scope = @controller.send(:find_restricted_sessions_scope, visitor)
+
+    assert_includes scope, restricted_token
+    assert_not_includes scope, active_token
+  end
+
+  test "token_class_for_resource falls back to token_class for unsupported resources" do
+    @controller.define_singleton_method(:token_class) { ClientToken }
+
+    assert_equal ClientToken, @controller.send(:token_class_for_resource, Object.new)
+  end
+
+  test "find_token_record_by_session_identifier matches by oidc_sid for uuid identifiers" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:token_class) { ClientToken }
+    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    sid = SecureRandom.uuid
+    token.update_columns(oidc_sid: sid)
+
+    found = @controller.send(:find_token_record_by_session_identifier, sid)
+
+    assert_equal token, found
+  end
+
+  test "best_effort_refresh_side_effect swallows errors and logs a warning" do
+    result = @controller.send(:best_effort_refresh_side_effect) { raise StandardError, "boom" }
+
+    assert_nil result
+  end
+
+  test "token_dbsc_url resolves an absolute url for the operator and visitor surfaces" do
+    @controller.define_singleton_method(:resource_type) { "operator" }
+
+    assert_match %r{\Ahttps?://}, @controller.send(:token_dbsc_url)
+
+    @controller.define_singleton_method(:resource_type) { "visitor" }
+
+    assert_match %r{\Ahttps?://}, @controller.send(:token_dbsc_url)
+  end
+
+  test "dbsc_route_helper raises when no route helper is available for the current surface" do
+    @controller.define_singleton_method(:resource_type) { "operator" }
+    @controller.define_singleton_method(:respond_to?) do |name, include_private = false|
+      next false if name.to_s.include?("edge_v0_token_dbsc")
+
+      super(name, include_private)
+    end
+
+    assert_raises(NoMethodError) { @controller.send(:token_dbsc_path) }
+  end
+
+  test "mfa_required_for? falls back to mfa_level_enabled? when mfa_level_required? is unavailable" do
+    resource = Client.new
+    resource.singleton_class.send(:undef_method, :mfa_level_required?)
+    resource.define_singleton_method(:mfa_level_enabled?) { true }
+
+    assert @controller.send(:mfa_required_for?, resource)
+  end
+
+  test "mfa_entry_path recovers to the literal path when the route helper raises" do
+    @controller.define_singleton_method(:sign_app_sign_in_challenge_path) do |**|
+      raise StandardError, "route boom"
+    end
+
+    assert_equal "/sign/in/challenge", @controller.mfa_entry_path(ri: "jp")
+  end
+
+  test "handle_auth_required_html falls back to main_app.sign_in_path when no sign_in_url_with_pt is defined" do
+    @controller.define_singleton_method(:respond_to?) do |name, include_private = false|
+      next false if name.to_sym == :sign_in_url_with_pt
+
+      super(name, include_private)
+    end
+    @controller.define_singleton_method(:main_app) { Struct.new(:sign_in_path).new("/main/sign_in") }
+    redirected = []
+    @controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirected << [args, kwargs] }
+
+    @controller.send(:handle_auth_required_html, {})
+
+    assert_equal "/main/sign_in", redirected.first.first.first
+  end
+
+  test "handle_auth_required_html falls back to the literal sign in path when nothing else resolves" do
+    @controller.define_singleton_method(:respond_to?) do |name, include_private = false|
+      next false if name.to_sym == :sign_in_url_with_pt
+
+      super(name, include_private)
+    end
+    @controller.define_singleton_method(:main_app) { Object.new }
+    redirected = []
+    @controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirected << [args, kwargs] }
+
+    @controller.send(:handle_auth_required_html, {})
+
+    assert_equal "/sign/in", redirected.first.first.first
+  end
+
+  test "handle_auth_required_html routes absolute sign-in urls through the jump gateway when oidc is unavailable" do
+    @controller.define_singleton_method(:sign_in_url_with_pt) { |_pt| "https://sign.example.com/in" }
+    jumps = []
+    @controller.define_singleton_method(:redirect_to_jump_url) { |path, **opts| jumps << [path, opts] }
+
+    @controller.send(:handle_auth_required_html, {})
+
+    assert_equal [["https://sign.example.com/in", { alert: I18n.t("errors.messages.login_required") }]], jumps
+  end
+
+  test "handle_guest_only_with_status_checks renders inline for non-GET unauthorized and bad_request statuses" do
+    @request.set_header("REQUEST_METHOD", "POST")
+    rendered = []
+    @controller.define_singleton_method(:render) { |**kwargs| rendered << kwargs }
+
+    @controller.handle_guest_only_with_status_checks(status: :unauthorized, message: "no dice")
+
+    assert_equal "no dice", rendered.last[:plain]
+    assert_equal :unauthorized, rendered.last[:status]
+
+    @controller.handle_guest_only_with_status_checks(status: :bad_request, message: "bad")
+
+    assert_equal "bad", rendered.last[:plain]
+    assert_equal :bad_request, rendered.last[:status]
+  end
+
+  test "handle_guest_only_html falls back to main_app.after_login_path when the surface helper is hidden" do
+    @controller.define_singleton_method(:respond_to?) do |name, include_private = false|
+      next false if name.to_sym == :after_login_path
+
+      super(name, include_private)
+    end
+    @controller.define_singleton_method(:main_app) { Struct.new(:after_login_path).new("/main/after") }
+    redirected = []
+    @controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirected << [args, kwargs] }
+
+    @controller.handle_guest_only_html({})
+
+    assert_equal "/main/after", redirected.first.first.first
+  end
+
+  test "handle_guest_only_html falls back to / when no after_login_path helper is available anywhere" do
+    @controller.define_singleton_method(:respond_to?) do |name, include_private = false|
+      next false if name.to_sym == :after_login_path
+
+      super(name, include_private)
+    end
+    @controller.define_singleton_method(:main_app) { Object.new }
+    redirected = []
+    @controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirected << [args, kwargs] }
+
+    @controller.handle_guest_only_html({})
+
+    assert_equal "/", redirected.first.first.first
   end
 end
 

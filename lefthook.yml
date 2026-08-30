@@ -35,4 +35,4 @@ pre-push:
   parallel: false
   jobs:
     - name: frontend-check
-      run: pnpm -s run ci
+      run: pnpm --loglevel silent run ci

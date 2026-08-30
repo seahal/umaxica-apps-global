@@ -22,7 +22,7 @@ module Base
 
         def authorize_activity_log! = authorize!(ClientChronicle, to: :index?)
 
-        def activity_log = @activity_log ||= ::Auth::App::Settings::ActivityLog.new(current_client)
+        def activity_log = @activity_log ||= ::Auth::App::Settings::ActivityLogPresenter.new(current_client)
 
         def activities_page_props(activities)
           {

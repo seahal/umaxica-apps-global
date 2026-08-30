@@ -7,7 +7,7 @@
 // Connecting is a document POST rather than an Inertia visit, because the server answers it with a
 // 307 into the provider's OmniAuth request phase, which the browser must follow as a navigation.
 import { router } from "@inertiajs/react";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -16,6 +16,9 @@ import TurnstileWidget from "@/features/turnstile/TurnstileWidget";
 import { csrfToken } from "@/lib/csrf";
 
 import type { SettingsLink, SettingsTurnstile } from "./links";
+
+const subscribeToNothing = () => () => {};
+const emptyToken = () => "";
 
 export type SocialLinkManageProps = {
   title: string;
@@ -41,13 +44,12 @@ export default function SocialLinkManage({
   turnstile,
 }: SocialLinkManageProps) {
   const [token, setToken] = useState("");
-  // The token is read after mount so the component renders the same markup on the server, where
-  // there is no document to read the meta tag from.
-  const [authenticityToken, setAuthenticityToken] = useState("");
-
-  useEffect(() => {
-    setAuthenticityToken(csrfToken());
-  }, []);
+  // The token is read on the client only, so the component renders the same markup on the server,
+  // where there is no document to read the meta tag from. useSyncExternalStore gives that split
+  // without a setState in an effect: the server snapshot is the empty string and the client
+  // snapshot is the meta tag. The meta tag does not change within a document, so there is nothing
+  // to subscribe to.
+  const authenticityToken = useSyncExternalStore(subscribeToNothing, csrfToken, emptyToken);
 
   const disconnect = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();

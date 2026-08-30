@@ -22,7 +22,7 @@ class OidcAuthorizeCoordinator < ApplicationService
     build_success_redirect(code_record)
   rescue OidcClientRegistry::ClientNotFound => e
     failure("unauthorized_client", e.message)
-  rescue OidcAuthorizeRequestValidator::InvalidScope => e
+  rescue OidcAuthorizeRequestResolver::InvalidScope => e
     failure("invalid_scope", e.message)
   rescue OidcClientRegistry::InvalidRedirectUri, ArgumentError => e
     failure("invalid_request", e.message)
@@ -35,7 +35,7 @@ class OidcAuthorizeCoordinator < ApplicationService
   attr_reader :params, :resource, :session_token, :auth_method, :acr
 
   def validate_request!
-    OidcAuthorizeRequestValidator.call(params: params, resource: resource)
+    OidcAuthorizeRequestResolver.call(params: params, resource: resource)
   end
 
   def issue_authorization_code!(client)

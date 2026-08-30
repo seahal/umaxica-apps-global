@@ -355,7 +355,7 @@ class OidcTokenExchangeCoordinator < ApplicationService
   def validate_dpop_proof(authorization_code)
     return nil if dpop_proof.blank?
 
-    result = DpopProofValidator.new(
+    result = DpopProofVerifier.new(
       proof_jwt: dpop_proof,
       request_method: request_method,
       request_uri: token_endpoint_uri.to_s,

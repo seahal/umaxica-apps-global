@@ -142,6 +142,12 @@ module Preference
 
       assert_equal AppPreferenceTimezoneOption::ASIA_TOKYO, result[:option_id]
     end
+
+    test "leaves a non-numeric option_id unchanged when no option_type is given" do
+      result = @controller.test_sanitize_option_id({ option_id: "some-label" }, option_type: nil)
+
+      assert_equal "some-label", result[:option_id]
+    end
   end
 
   class EnsureReferenceDefaultsTest < ActiveSupport::TestCase
@@ -241,6 +247,14 @@ module Preference
       assert_raises(ActiveRecord::ConnectionNotDefined) do
         @controller.send(:with_preference_connection, :writing) { :loaded }
       end
+    end
+
+    test "with_preference_connection yields directly when there is no connection owner" do
+      @controller.define_singleton_method(:preference_connection_owner) { nil }
+
+      result = @controller.send(:with_preference_connection, :writing) { :direct }
+
+      assert_equal :direct, result
     end
   end
 
@@ -668,6 +682,17 @@ module Preference
         assert_nil @controller.send(:normalized_locale, "invalid")
         assert_nil @controller.send(:normalized_locale, "")
       end
+    end
+
+    test "normalized_locale returns nil when a present value stringifies to a blank locale" do
+      value_blank_when_stringified =
+        Class.new do
+          def blank? = false
+
+          def to_s = ""
+        end.new
+
+      assert_nil @controller.send(:normalized_locale, value_blank_when_stringified)
     end
 
     test "locale_from_region returns mapped locale" do
@@ -1363,6 +1388,183 @@ module Preference
 
       assert_equal [created, true],
                    @controller.send(:load_preference_record_from_refresh_token!, create_if_missing: true)
+    end
+
+    test "normalize_preference_audit_event_id returns nil for a blank event id" do
+      assert_nil @controller.send(:normalize_preference_audit_event_id, nil)
+      assert_nil @controller.send(:normalize_preference_audit_event_id, "")
+    end
+
+    test "ensure_preferences_record returns the already loaded preference without further lookups" do
+      loaded = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now)
+      @controller.instance_variable_set(:@preferences, loaded)
+      @controller.define_singleton_method(:load_access_token_preference_record!) { nil }
+      @controller.define_singleton_method(:load_preference_record_from_refresh_token!) do |**|
+        raise RuntimeError, "should not be called"
+      end
+
+      assert_equal loaded, @controller.send(:ensure_preferences_record)
+    end
+
+    test "ensure_preferences_record adopts the preference resolved from the refresh token" do
+      resolved = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now)
+      @controller.instance_variable_set(:@preferences, nil)
+      @controller.define_singleton_method(:load_access_token_preference_record!) { nil }
+      @controller.define_singleton_method(:load_preference_record_from_refresh_token!) { |**| [resolved, false] }
+
+      assert_equal resolved, @controller.send(:ensure_preferences_record)
+      assert_equal resolved, @controller.instance_variable_get(:@preferences)
+    end
+
+    test "ensure_preferences_record creates a new preference when the refresh token yields none " \
+         "and no failure was recorded" do
+      created = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now)
+      @controller.instance_variable_set(:@preferences, nil)
+      @controller.instance_variable_set(:@preference_refresh_failed, false)
+      @controller.define_singleton_method(:load_access_token_preference_record!) { nil }
+      @controller.define_singleton_method(:load_preference_record_from_refresh_token!) { |**| [nil, false] }
+      @controller.define_singleton_method(:create_new_preference_record!) { created }
+
+      assert_equal created, @controller.send(:ensure_preferences_record)
+    end
+
+    test "ensure_preferences_record resets a stale refresh failure before creating a fresh preference" do
+      created = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now)
+      @controller.instance_variable_set(:@preferences, nil)
+      @controller.instance_variable_set(:@preference_refresh_failed, true)
+      @controller.instance_variable_set(:@refresh_token_value, "stale")
+      @controller.instance_variable_set(:@refresh_presented_digest, "stale-digest")
+      @controller.instance_variable_set(:@refresh_public_id, "stale-public")
+      @controller.define_singleton_method(:load_access_token_preference_record!) { nil }
+      @controller.define_singleton_method(:load_preference_record_from_refresh_token!) { |**| [nil, false] }
+      @controller.define_singleton_method(:create_new_preference_record!) { created }
+
+      assert_equal created, @controller.send(:ensure_preferences_record)
+      assert_not @controller.instance_variable_get(:@preference_refresh_failed)
+      assert_nil @controller.instance_variable_get(:@refresh_token_value)
+      assert_nil @controller.instance_variable_get(:@refresh_presented_digest)
+      assert_nil @controller.instance_variable_get(:@refresh_public_id)
+    end
+
+    test "create_audit_log skips creating an audit event row when no event id is given" do
+      preference = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now)
+      @controller.instance_variable_set(:@preferences, preference)
+      event_lookup_calls = 0
+      audit_event_class =
+        Class.new do
+          define_singleton_method(:find_or_create_by!) do |*_args|
+            event_lookup_calls += 1
+          end
+        end
+      created_attributes = nil
+      audit_class =
+        Class.new do
+          define_singleton_method(:create!) { |attrs| created_attributes = attrs }
+        end
+      @controller.define_singleton_method(:preference_audit_event_class) { audit_event_class }
+      @controller.define_singleton_method(:preference_audit_class) { audit_class }
+
+      @controller.send(:create_audit_log, event_id: nil, context: { foo: "bar" })
+
+      assert_equal 0, event_lookup_calls
+      assert_nil created_attributes[:event_id]
+    end
+
+    test "find_preference_by_presented_token returns nil without a presented digest" do
+      @controller.instance_variable_set(:@refresh_presented_digest, nil)
+
+      assert_nil @controller.send(:find_preference_by_presented_token)
+    end
+
+    test "find_preference_by_presented_token narrows by public id when one was presented" do
+      matching = AppPreference.create!(
+        status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now,
+        token_digest: "digest-shared-a", public_id: "public-a",
+      )
+      AppPreference.create!(
+        status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now,
+        token_digest: "digest-shared-a", public_id: "public-b",
+      )
+      @controller.instance_variable_set(:@refresh_presented_digest, "digest-shared-a")
+      @controller.instance_variable_set(:@refresh_public_id, "public-a")
+
+      assert_equal matching.id, @controller.send(:find_preference_by_presented_token).id
+    end
+
+    test "find_preference_by_presented_token returns the latest match when no public id is presented" do
+      AppPreference.create!(
+        status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now, token_digest: "digest-solo",
+      )
+      latest = AppPreference.create!(
+        status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now, token_digest: "digest-solo",
+      )
+      @controller.instance_variable_set(:@refresh_presented_digest, "digest-solo")
+      @controller.instance_variable_set(:@refresh_public_id, nil)
+
+      assert_equal latest.id, @controller.send(:find_preference_by_presented_token).id
+    end
+
+    test "handle_preference_refresh_replay! skips the redundant update when compromised_at is already set" do
+      preference = Struct.new(
+        :discarded_at, :compromised_at, :revoked_at, :replaced_by_id, :public_id, keyword_init: true,
+      ).new(
+        discarded_at: 1.day.from_now, compromised_at: 1.hour.ago, revoked_at: nil,
+        replaced_by_id: nil, public_id: "already-compromised",
+      )
+      update_calls = 0
+      preference.define_singleton_method(:update!) { |_attrs| update_calls += 1 }
+
+      result = @controller.send(:handle_preference_refresh_replay!, preference)
+
+      assert_equal :compromised, result
+      assert_equal 0, update_calls
+      assert @controller.send(:preference_refresh_failed?)
+    end
+
+    test "preference_refresh_grace_replacement returns nil for preferences that do not support grace rotation" do
+      assert_nil @controller.send(:preference_refresh_grace_replacement, Object.new)
+    end
+
+    test "preference_refresh_grace_replacement returns nil when the rotated replacement is no longer valid" do
+      invalid_replacement = AppPreference.create!(
+        status_id: AppPreferenceStatus::DELETED, discarded_at: 1.day.from_now,
+      )
+      preference =
+        Struct.new(:replaced_by_id) do
+          def rotated_within_grace? = true
+        end.new(invalid_replacement.id)
+
+      assert_nil @controller.send(:preference_refresh_grace_replacement, preference)
+    end
+
+    test "adopt_preference_refresh_grace! notifies the rotated resource when adoption is supported" do
+      replacement = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now)
+      preference = AppPreference.create!(
+        status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now, replaced_by_id: replacement.id,
+      )
+      resource = Object.new
+      adopt_calls = []
+      @controller.define_singleton_method(:current_resource) { resource }
+      @controller.define_singleton_method(:adopt_rotated_preference!) { |res, repl| adopt_calls << [res, repl] }
+
+      @controller.send(:adopt_preference_refresh_grace!, preference, replacement)
+
+      assert_equal [[resource, replacement]], adopt_calls
+      assert_equal replacement, @controller.instance_variable_get(:@preferences)
+    end
+
+    test "adopt_preference_refresh_grace! does not notify adoption when there is no current resource" do
+      replacement = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now)
+      preference = AppPreference.create!(
+        status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now, replaced_by_id: replacement.id,
+      )
+      adopt_calls = []
+      @controller.define_singleton_method(:current_resource) { nil }
+      @controller.define_singleton_method(:adopt_rotated_preference!) { |res, repl| adopt_calls << [res, repl] }
+
+      @controller.send(:adopt_preference_refresh_grace!, preference, replacement)
+
+      assert_empty adopt_calls
     end
   end
 

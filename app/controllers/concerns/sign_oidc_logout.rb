@@ -27,7 +27,12 @@ module SignOidcLogout
     return render_oidc_end_session_error(@oidc_end_session_request) if @oidc_end_session_request.error?
 
     if oidc_logout_pending_request_present?
-      return perform_oidc_end_session_logout(oidc_logout_pending_request) if request.post?
+      if request.post?
+        pending_request = oidc_logout_pending_request
+        return perform_oidc_end_session_logout(pending_request) if pending_request
+
+        return render_oidc_end_session_failure
+      end
 
       return render_oidc_end_session_confirmation
     end
@@ -150,7 +155,7 @@ module SignOidcLogout
     else
       render_cross_origin_sign_out_handoff(
         target_url: public_send(
-          "sign_#{sign_surface_name}_sign_out_url",
+          "auth_#{sign_surface_name}_sign_out_url",
           host: sign_service_host,
           protocol: "https",
         ),
@@ -260,14 +265,6 @@ module SignOidcLogout
     session[OIDC_LOGOUT_REQUEST_SESSION_KEY] = oidc_logout_request_payload(result)
   end
 
-  def consume_oidc_logout_request
-    result = oidc_logout_pending_request
-    return unless result
-
-    session.delete(OIDC_LOGOUT_REQUEST_SESSION_KEY)
-    result
-  end
-
   def oidc_logout_request_payload(result)
     {
       "client_id" => result.client_id,
@@ -342,12 +339,6 @@ module SignOidcLogout
 
     token_record.reload
     token_record.revoke! if token_record.respond_to?(:revoke!) && !token_record.revoked?
-  end
-
-  def oidc_logout_confirmation_params
-    return {} unless oidc_logout_pending_request_present?
-
-    { ri: params[:ri] }.compact
   end
 
   def sign_out_confirmation_form_path

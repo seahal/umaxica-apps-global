@@ -60,7 +60,7 @@ module Base
           }
         end
 
-        def activity_log = @activity_log ||= ::Base::Com::Identity::ActivityLog.new(current_visitor)
+        def activity_log = @activity_log ||= ::Base::Com::Identity::ActivityLogPresenter.new(current_visitor)
 
         def activity_occurred_at(activity) = activity_log.occurred_at(activity)
 

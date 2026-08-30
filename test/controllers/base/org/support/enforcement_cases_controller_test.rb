@@ -154,7 +154,7 @@ class Base::Org::Support::EnforcementCasesControllerTest < ActionDispatch::Integ
       applied_by_operator_public_id: @operator.public_id,
     )
     the_case.build_principal_effect(principal_public_id: client.public_id, access_blocking: true, effective_at: Time.current)
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
     mark_token_step_up_satisfied_for_test(@operator_token, scope: "enforcement_case_release")
 
     post(

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 SimpleCov.load_profile "rails"
+SimpleCov.command_name "Rails Tests"
+SimpleCov.merge_timeout 3600
 SimpleCov.cover "{app,lib}/**/*.rb"
 SimpleCov.source_in_json false
 

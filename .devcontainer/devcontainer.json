@@ -1,13 +1,17 @@
 {
   "name": "umaxica-apps-global-dc",
   "dockerComposeFile": ["../compose.yaml", "./compose.override.yml", "../compose.custom.yaml"],
-  "initializeCommand": ".devcontainer/write-host-ids.sh && bin/setup-dev-secrets",
   "service": "core",
   "remoteUser": "global",
   "containerUser": "global",
   "workspaceFolder": "/home/global/workspace",
   "overrideCommand": false,
-  "postCreateCommand": "bundle install && pnpm install",
+  // `db:prepare` is idempotent: it creates any missing database and applies
+  // pending migrations, so a fresh clone and a long-lived volume converge to the
+  // same state. It replaces the former `.devcontainer/setup-db.sh`, which was
+  // never wired into a lifecycle hook and still read a `POSTGRESQL_PASSWORD`
+  // environment variable this stack no longer sets.
+  "postCreateCommand": "bundle install && pnpm install && bin/rails db:prepare",
   "forwardPorts": [3000, 3036, 5050],
   "remoteEnv": {
     "EDITOR": "code --wait --reuse-window",
@@ -122,9 +126,9 @@
   //   codex login
   // Git remotes must be HTTPS: no SSH key exists here for git@github.com.
   //
-  // Podman Secrets under /run/secrets carry only locally generated, dev-only
-  // service passwords (Postgres, RustFS, Grafana, HMAC salts) created by
-  // bin/setup-dev-secrets. No user credential is registered there.
+  // Files under /run/dev-credentials carry only locally generated, dev-only
+  // service passwords (Postgres and RustFS), written by the `dev-credentials`
+  // service on the first `up`. No user credential is stored there.
   //
   // Read-only workspace write-guards are declared in compose.override.yml,
   // because the Dev Container string-form `readonly` option is not effective

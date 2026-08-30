@@ -48,7 +48,7 @@ module Security
           session_id_digest: "digest-is-allowed",
         }
 
-        sanitized = ChronicleRecorder.sanitize(payload)
+        sanitized = ChronicleRecordPolicy.sanitize(payload)
         serialized = sanitized.to_json
 
         RAW_SECRET_VALUES.each do |value|

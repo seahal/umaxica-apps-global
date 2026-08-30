@@ -248,7 +248,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
       effect: "unusable",
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
     request = ActionDispatch::TestRequest.create(
       "REQUEST_METHOD" => "GET",
@@ -828,7 +828,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
       effect: effect,
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
     controller.send(:handle_login_intent, user, provider_name, false, pt: "encoded-pt")
 
