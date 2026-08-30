@@ -45,6 +45,13 @@ services:
     userns_mode: keep-id
     tty: true
     stdin_open: true
+    # core-entrypoint `exec`s the command, so without this PID 1 is `sleep infinity`, which
+    # never calls wait(). Every process orphaned inside the container -- editor servers, agent
+    # processes, `git`, test runs killed mid-flight -- then stays a zombie for the life of the
+    # container, and this one is deliberately long-lived. Measured on 2026-08-30: 80 zombies
+    # after 22 hours of uptime, accumulating at ~3.7/hour against a 2048 pids limit. `init: true`
+    # puts a reaping init (catatonit under Podman) at PID 1 and leaves the entrypoint its child.
+    init: true
     entrypoint:
       - "/usr/local/bin/core-entrypoint"
     # The container stays up idle; start the Rails/Vite/jobs stack manually

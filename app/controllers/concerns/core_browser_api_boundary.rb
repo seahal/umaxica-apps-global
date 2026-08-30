@@ -64,12 +64,6 @@ module CoreBrowserApiBoundary
     true
   end
 
-  def require_scope!(scope)
-    return if Array(AuthorizationTokenClaims.scopes(current_token_payload)).include?(scope.to_s)
-
-    render_problem(:authorization_denied)
-  end
-
   def render_csrf_failure
     render_problem(:csrf_verification_failed)
   end

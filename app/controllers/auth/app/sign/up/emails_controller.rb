@@ -64,27 +64,6 @@ module Auth
             render_sign_up_email_new
           end
 
-          def edit
-            @user_email = current_registration_email
-
-            # Security: Verify email exists and belongs to current session
-            if @user_email.blank?
-              reset_email_flow!
-              redirect_to(
-                new_auth_app_sign_up_email_path,
-              )
-              return
-            end
-
-            # Security: Validate the email belongs to the current registration flow
-            return render_sign_up_email_edit if valid_email_session?
-
-            reset_email_flow!
-            redirect_params = build_notice_params(t("sign.app.registration.email.edit.session_expired"))
-            redirect_to(new_auth_app_sign_up_email_path(redirect_params))
-            nil
-          end
-
           def create
             log_sign_signup_event(
               "sign.signup.email.create.received",

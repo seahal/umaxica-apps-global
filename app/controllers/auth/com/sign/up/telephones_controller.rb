@@ -33,15 +33,6 @@ module Auth
             render_sign_up_telephone_new
           end
 
-          def edit
-            @visitor_telephone = current_registration_telephone
-            return render_sign_up_telephone_edit if valid_telephone_session?
-
-            redirect_to(
-              new_auth_com_sign_up_telephone_path,
-            )
-          end
-
           def create
             telephone_params = params.fetch(:visitor_telephone, {}).permit(
               :raw_number, :number, :confirm_policy, :confirm_using_mfa,

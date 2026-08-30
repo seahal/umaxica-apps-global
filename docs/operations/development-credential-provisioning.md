@@ -146,9 +146,97 @@ This covers development service passwords only. It does not write `.env`, and it
 Rails credential keys or any provider credential. Running it will not resolve a decryption failure
 or a missing `CLOUDFLARED_TOKEN`.
 
+## GitHub authentication inside the development container
+
+The container performs no GitHub login of its own. The host's existing authentication is forwarded
+into `core` by the `core` block in `compose.custom.yaml`, so `ssh -T git@github.com`, `git fetch`,
+and `gh` work in a freshly recreated container without `gh auth login`.
+
+Nothing secret is stored for this. No private key, no `~/.ssh` directory, and no token literal is
+written into a repository file, a Compose file, or the image. Two host-shaped values are read from
+the environment that launches Compose:
+
+| Variable         | Carries                                    | Reaches the container as                  |
+| :--------------- | :----------------------------------------- | :---------------------------------------- |
+| `SSH_AUTH_SOCK`  | the path of the host `ssh-agent` socket    | a bind mount at `/ssh-agent`              |
+| `GH_TOKEN`       | a GitHub API token                         | the `GH_TOKEN` environment variable       |
+
+`${HOME}/.ssh/known_hosts` is additionally bound read-only at `/home/global/.ssh/known_hosts`. It
+holds public host keys only, and ssh needs it to verify `github.com`.
+
+Signing stays in the host agent: the container sends a challenge over the socket and receives a
+signature, so the private key never crosses the boundary. `GH_TOKEN` also reaches git, because the
+container's `/home/global/.gitconfig` routes `https://github.com` through
+`gh auth git-credential` — the `origin` remote stays on HTTPS and is not rewritten.
+
+### Host setup
+
+Both variables must be exported in the shell or session that starts Podman or VS Code. Compose
+interpolates them from the process environment; the repository-root `.env` is not consulted for
+them, and a token must never be written there.
+
+```bash
+# A stable agent socket path. A per-login /tmp/ssh-XXXX/agent.N path changes on every
+# login, and the container would need recreating each time to follow it.
+systemctl --user enable --now ssh-agent.socket
+echo 'export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/ssh-agent.socket' >> ~/.bash_profile
+
+ssh-add ~/.ssh/id_ed25519
+ssh-add -l                     # must list the key
+ssh -T git@github.com          # must greet you by username
+
+export GH_TOKEN="$(gh auth token)"   # or a personal access token
+```
+
+Run `ssh -T git@github.com` on the host before the first `up`. Besides proving the agent works, it
+guarantees `~/.ssh/known_hosts` exists: Podman creates a missing bind source as a *directory*, and a
+directory at `~/.ssh/known_hosts` breaks ssh on the host as well.
+
+Both variables tolerate absence. With no `GH_TOKEN`, gh falls back to whatever
+`~/.config/gh/hosts.yml` holds inside the container, which is usually a stale token; with no
+`SSH_AUTH_SOCK`, the placeholder mount makes ssh report `Error connecting to agent` rather than
+failing Compose resolution. Neither degrades silently into a working-looking state.
+
+### Verification
+
+Recreate the container — mounts and `security_opt` are creation-time settings — then, inside it:
+
+```bash
+ssh-add -l                 # lists the host key, proving the socket forwarded
+ssh -T git@github.com      # authenticates as your GitHub user
+git fetch                  # HTTPS via GH_TOKEN and the gh credential helper
+gh auth status             # reports the token as coming from GH_TOKEN
+gh repo view
+```
+
+`gh auth status` naming `GH_TOKEN` is the point of the check: it confirms the environment token took
+precedence over any token left in the container's `hosts.yml`.
+
+### SELinux
+
+The host is expected to be SELinux-enforcing. Both new mounts carry `selinux: Z`, matching every
+other bind in this project, so Podman relabels them to `container_file_t` at the container's MCS
+level. `compose.custom.yaml` pins that level to `s0:c101,c202`, the same value
+`.devcontainer/compose.override.yml` pins, so the Dev Container path and the plain
+`podman compose -f compose.yaml -f compose.custom.yaml up -d core` path agree; without the pin each
+CLI run would allocate a fresh category pair and lock the other path out of the relabelled files.
+
+Relabelling `~/.ssh/known_hosts` is visible on the host. A normal RHEL login user runs as
+`unconfined_u` and keeps reading the file; a confined login user may not.
+
+If `ssh -T git@github.com` fails inside the container, read the actual denial on the host:
+
+```bash
+sudo ausearch -m AVC -ts recent
+```
+
+and apply only the fix that denial names. Do not reach for `label=disable`, `privileged`, a wider
+`:Z`, or a private-key mount — each defeats the boundary this arrangement exists to keep.
+
 ## Related documents
 
 - `docs/operations/cloudflare-private-origin.md` — obtaining and placing `CLOUDFLARED_TOKEN`.
 - `docs/operations/development-container-targets.md` — bringing up the development containers.
+- `docs/operations/container-engine-podman-notes.md` — rootless Podman and SELinux behaviour.
 - `docs/hld.md` — the environment-variable catalog and the `.env` boundary.
 - `docs/reference/repository-language-policy.md` — language rules for repository prose.

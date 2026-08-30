@@ -451,4 +451,45 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
       { "sub" => OidcSubject.for(resource, resource_type: "client") },
     )
   end
+
+  test "a token that cannot name an OIDC client never belongs to an audience" do
+    authenticator = build_authenticator
+    tokenless_client = Object.new
+
+    assert_not authenticator.send(:token_belongs_to_audience?, tokenless_client, { "aud" => ["anything"] })
+  end
+
+  test "a token naming an unregistered client never belongs to an audience" do
+    authenticator = build_authenticator
+    token = Struct.new(:oidc_client_id).new("client-that-is-not-registered")
+
+    assert_nil OidcClientRegistry.find(token.oidc_client_id)
+    assert_not authenticator.send(:token_belongs_to_audience?, token, { "aud" => ["anything"] })
+  end
+
+  test "a token without a recorded jti accepts any payload jti" do
+    authenticator = build_authenticator
+    token = Object.new
+
+    assert authenticator.send(:token_jti_matches?, token, { "jti" => "whatever" })
+  end
+
+  test "a jti of a different length is rejected before the constant time compare" do
+    authenticator = build_authenticator
+    token = Struct.new(:oidc_jti).new("jti-value")
+
+    assert_not authenticator.send(:token_jti_matches?, token, { "jti" => "jti-value-that-is-longer" })
+    assert_not authenticator.send(:token_jti_matches?, token, { "jti" => "short" })
+    assert authenticator.send(:token_jti_matches?, token, { "jti" => "jti-value" })
+  end
+
+  private
+
+  def build_authenticator
+    OidcAccessTokenAuthenticator.new(
+      access_token: "token",
+      resource_type: "client",
+      host: "app.example.test",
+    )
+  end
 end

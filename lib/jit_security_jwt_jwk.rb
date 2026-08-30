@@ -27,13 +27,6 @@ module JitSecurityJwtJwk
     jwk
   end
 
-  def valid_public?(entry)
-    normalize_public(entry)
-    true
-  rescue Error
-    false
-  end
-
   def validate_public!(jwk)
     missing = REQUIRED_PUBLIC_FIELDS.reject { |field| jwk[field].present? }
     raise Error, "public JWK is missing #{missing.join(", ")}" if missing.present?

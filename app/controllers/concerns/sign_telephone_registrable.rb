@@ -49,15 +49,7 @@ module SignTelephoneRegistrable
     true
   end
 
-  # Returns an existing ClientTelephone for the given number or nil.
   # complete_telephone_verification returns one of: :success, :session_expired, :invalid_code, :locked
-  def find_existing_user_telephone(user, number)
-    digest = IdentifierBlindIndex.bidx_for_telephone(number)
-    return nil if digest.blank?
-
-    user.client_telephones.find_by(number_digest: digest)
-  end
-
   def complete_telephone_verification(id, submitted_code)
     @user_telephone = ClientTelephone.find_by(id: id)
     if @user_telephone.blank? ||

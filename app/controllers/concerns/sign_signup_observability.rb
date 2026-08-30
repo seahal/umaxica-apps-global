@@ -46,14 +46,6 @@ module SignSignupObservability
     }.compact
   end
 
-  def sign_signup_safe_otp_state(record)
-    {
-      candidate_present: record.present?,
-      token_session_present: session[:user_telephone_registration].present? ||
-        session[:sign_up_email_flow_state].present?,
-      expired: record.respond_to?(:otp_expired?) ? record.otp_expired? : nil,
-    }.compact
-  end
 
   def sign_signup_request_id
     request.respond_to?(:request_id) ? request.request_id : nil

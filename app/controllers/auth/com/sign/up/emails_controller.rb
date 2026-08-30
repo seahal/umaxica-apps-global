@@ -69,22 +69,6 @@ module Auth
             render_sign_up_email_new
           end
 
-          def edit
-            @user_email = current_registration_email
-            if @user_email.blank?
-              reset_email_flow!
-              redirect_to(
-                new_auth_com_sign_up_email_path(ri: params[:ri]),
-              )
-              return
-            end
-
-            return render_sign_up_email_edit if valid_email_session?
-
-            reset_email_flow!
-            redirect_to(new_auth_com_sign_up_email_path(ri: params[:ri]))
-          end
-
           def create
             unless cloudflare_turnstile_validation["success"]
               @user_email = VisitorEmail.new
