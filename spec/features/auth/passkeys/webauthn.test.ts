@@ -48,7 +48,7 @@ describe("passkeysSupported", () => {
 
 describe("isAttestationCredential", () => {
   it("rejects a credential missing the parts an attestation is read from", () => {
-    expect(isAttestationCredential({ id: "c", type: "public-key" } as Credential)).toBe(false);
+    expect(isAttestationCredential({ id: "c", type: "public-key" })).toBe(false);
     expect(
       isAttestationCredential({ id: "c", type: "public-key", rawId: buffer([1]) } as Credential),
     ).toBe(false);
@@ -78,7 +78,7 @@ describe("isAttestationCredential", () => {
 describe("getAssertion", () => {
   it("serialises the assertion the server verifies", async () => {
     const { get } = stubCredentialsApi();
-    get.mockResolvedValue(assertionCredential() as unknown as Credential);
+    get.mockResolvedValue(assertionCredential());
 
     await expect(getAssertion(REQUEST_OPTIONS)).resolves.toEqual({
       id: "cred-id",
@@ -102,7 +102,7 @@ describe("getAssertion", () => {
         authenticatorAttachment: "platform",
         userHandle: buffer([16, 17]),
         clientExtensionResults: { appid: true },
-      }) as unknown as Credential,
+      }),
     );
 
     const assertion = await getAssertion(REQUEST_OPTIONS);
@@ -123,7 +123,7 @@ describe("getAssertion", () => {
 
   it("refuses a credential that is not a WebAuthn assertion", async () => {
     const { get } = stubCredentialsApi();
-    get.mockResolvedValue({ id: "c", type: "public-key" } as Credential);
+    get.mockResolvedValue({ id: "c", type: "public-key" });
 
     await expect(getAssertion(REQUEST_OPTIONS)).rejects.toThrow("not a WebAuthn assertion");
   });
@@ -132,9 +132,7 @@ describe("getAssertion", () => {
 describe("createCredential", () => {
   it("serialises the attestation, including the transports the server stores", async () => {
     const { create } = stubCredentialsApi();
-    create.mockResolvedValue(
-      attestationCredential({ transports: ["usb", "nfc"] }) as unknown as Credential,
-    );
+    create.mockResolvedValue(attestationCredential({ transports: ["usb", "nfc"] }));
 
     await expect(createCredential(CREATION_OPTIONS)).resolves.toEqual({
       id: "cred-id",
@@ -153,7 +151,7 @@ describe("createCredential", () => {
   it("sends an empty transports list when the authenticator reports none", async () => {
     const { create } = stubCredentialsApi();
     create.mockResolvedValue(
-      attestationCredential({ transports: null, authenticatorAttachment: "cross-platform" }) as unknown as Credential,
+      attestationCredential({ transports: null, authenticatorAttachment: "cross-platform" }),
     );
 
     const attestation = await createCredential(CREATION_OPTIONS);
@@ -173,7 +171,7 @@ describe("createCredential", () => {
 
   it("refuses a credential that is not a WebAuthn attestation", async () => {
     const { create } = stubCredentialsApi();
-    create.mockResolvedValue(assertionCredential() as unknown as Credential);
+    create.mockResolvedValue(assertionCredential());
 
     await expect(createCredential(CREATION_OPTIONS)).rejects.toThrow("not a WebAuthn attestation");
   });
