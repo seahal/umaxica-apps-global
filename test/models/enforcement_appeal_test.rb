@@ -104,4 +104,52 @@ class EnforcementAppealTest < ActiveSupport::TestCase
     assert_equal "rejected", appeal.resolution_code
     assert_not_nil appeal.reviewed_at
   end
+
+  test "submit! persists the appeal and writes one audit event on the Case" do
+    enforcement_case = AppEnforcementCase.create!(
+      kind: "security_lock", state: "draft", duration_mode: "indefinite", visibility: "visible",
+      release_mode: "verification_required", effective_at: Time.current, reason_code: "security_incident",
+      principal_public_id: "client-standing-submit", applied_by_operator_public_id: "operator-applying",
+    )
+    appeal = AppEnforcementAppeal.new(
+      enforcement_case: enforcement_case,
+      reason_code: "incorrect_decision",
+      statement: "The decision does not match what happened.",
+      submitted_at: Time.current,
+      state: "submitted",
+    )
+
+    appeal.submit!
+
+    assert_predicate appeal, :persisted?
+    assert_equal 1, EnforcementEvent.where(
+      case_public_id: enforcement_case.public_id, event_type: "appeal_submitted",
+    ).count
+    assert_not_nil enforcement_case.reload.audited_at
+  end
+
+  test "an appeal naming an operator who acted on the Case fails validation" do
+    enforcement_case = AppEnforcementCase.create!(
+      kind: "security_lock", state: "draft", duration_mode: "indefinite", visibility: "visible",
+      release_mode: "verification_required", effective_at: Time.current, reason_code: "security_incident",
+      principal_public_id: "client-standing-separation", applied_by_operator_public_id: "operator-applying",
+      approved_by_operator_public_id: "operator-approving",
+    )
+    appeal = AppEnforcementAppeal.new(
+      enforcement_case: enforcement_case,
+      reason_code: "incorrect_decision",
+      statement: "Please review the decision.",
+      submitted_at: Time.current,
+      state: "under_review",
+      reviewer_operator_public_id: "operator-approving",
+    )
+
+    assert_not_predicate appeal, :valid?
+    assert_includes appeal.errors[:reviewer_operator_public_id],
+                    "must differ from the applying and approving operators"
+
+    appeal.reviewer_operator_public_id = "operator-reviewing"
+
+    assert_predicate appeal, :valid?
+  end
 end

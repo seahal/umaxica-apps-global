@@ -201,17 +201,19 @@ class Oidc::AcmeServiceOriginTest < ActiveSupport::TestCase
   end
 
   test "refuses an origin whose default scheme is not http or https" do
-    error = assert_raises(ArgumentError) do
-      Oidc::AcmeServiceOrigin.from("www.umaxica.app", default_scheme: "ftp")
-    end
+    error =
+      assert_raises(ArgumentError) do
+        Oidc::AcmeServiceOrigin.from("www.umaxica.app", default_scheme: "ftp")
+      end
 
     assert_equal "invalid origin", error.message
   end
 
   test "refuses an origin that carries a scheme but no host" do
-    error = assert_raises(ArgumentError) do
-      Oidc::AcmeServiceOrigin.from("https://", default_scheme: "https")
-    end
+    error =
+      assert_raises(ArgumentError) do
+        Oidc::AcmeServiceOrigin.from("https://", default_scheme: "https")
+      end
 
     assert_equal "invalid origin", error.message
   end

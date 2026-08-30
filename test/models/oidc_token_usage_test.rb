@@ -125,5 +125,26 @@ class OidcTokenUsageTest < ActiveSupport::TestCase
       assert usage.authenticate_refresh_token(raw_refresh_token.split(".", 2).last)
       assert_not usage.authenticate_refresh_token("wrong-verifier")
     end
+    test "#{usage_case[:name]} usage detects a replay of the digest superseded by rotation" do
+      root = usage_case[:root_builder].call
+      usage = usage_case[:model].create!(
+        usage_case[:parent_label] => root,
+        :oidc_client_id => "core-next-rp",
+        :oidc_scope => "openid profile",
+        :refresh_token_expires_at => 1.hour.from_now,
+      )
+
+      superseded_verifier = usage.issue_refresh_token!.split(".", 2).last
+
+      # Nothing has been rotated away yet, so no verifier can be a replay.
+      assert_not usage.previous_refresh_token_digest_matches?(superseded_verifier)
+
+      current_verifier = usage.rotate_refresh_token!.split(".", 2).last
+
+      assert usage.previous_refresh_token_digest_matches?(superseded_verifier)
+      assert_not usage.previous_refresh_token_digest_matches?(current_verifier)
+      assert_not usage.authenticate_refresh_token(superseded_verifier)
+      assert usage.authenticate_refresh_token(current_verifier)
+    end
   end
 end

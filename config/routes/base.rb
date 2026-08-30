@@ -157,25 +157,10 @@ scope(module: :base, as: :base) do
           as: :failure,
         )
 
-        # Ceremony start pages. session = sign-in intent, registration =
-        # sign-up entry; the provider is carried by route defaults.
-        # These dispatch to the Auth surface controllers that own the
-        # OmniAuth handshake for the app realm.
-        scope :google, as: :google, defaults: { provider: "google", intent: "login" } do
-          resource :session, only: :new, controller: "/auth/app/social/sessions"
-          resource :registration,
-                   only: :new,
-                   controller: "/auth/app/social/registrations",
-                   defaults: { entry: "auth_up" }
-        end
-
-        scope :apple, as: :apple, defaults: { provider: "apple", intent: "login" } do
-          resource :session, only: :new, controller: "/auth/app/social/sessions"
-          resource :registration,
-                   only: :new,
-                   controller: "/auth/app/social/registrations",
-                   defaults: { entry: "auth_up" }
-        end
+        # There is no ceremony start route here. Base starts a social ceremony
+        # through the continuation endpoint above, which issues a grant and
+        # hands the browser to the Auth host's POST-only endpoint with a 307.
+        # A GET start page would be login CSRF (CVE-2015-9284).
       end
 
       # Step-up verification.
