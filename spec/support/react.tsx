@@ -25,6 +25,8 @@ export type Mounted = {
   text: (selector: string) => string | null;
   /** Lets the queued promises of an async handler settle. */
   flush: () => Promise<void>;
+  /** Unmounts the tree, for the specs that assert on effect cleanup. */
+  unmount: () => void;
 };
 
 let mounted: { root: Root; container: HTMLElement } | null = null;
@@ -83,6 +85,14 @@ export function mount(element: React.ReactElement): Mounted {
         await Promise.resolve();
         await Promise.resolve();
       });
+    },
+
+    unmount: () => {
+      mounted = null;
+      act(() => {
+        root.unmount();
+      });
+      container.remove();
     },
   };
 }
