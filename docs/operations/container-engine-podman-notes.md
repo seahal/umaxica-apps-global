@@ -54,17 +54,36 @@ document records the rootless Podman requirements that are easy to miss.
 
 ## Restart policies
 
-Several services use `restart: always` or `restart: unless-stopped`. Under rootless Podman, restart
-policies are honored only while the user session is alive unless the user-level restart service is
-enabled:
+No service uses `restart: always` or `restart: unless-stopped`. Podman applies no backoff to a
+restart policy, so a container that exits immediately on a bad configuration is recreated several
+times a second until netns, veth, conmon, and journald churn saturates a CPU — the failure mode
+recorded in `notes/implementation/2026-08-23-cloudflare-tunnel-restart-storm.md`. The attempt count
+is the only bound Compose can express, so every long-running service declares `on-failure:N`:
 
-```bash
-systemctl --user enable --now podman-restart.service
-```
+| Service                                                         | Policy         |
+| --------------------------------------------------------------- | -------------- |
+| `core`, `primary`, `replica`, `valkey`                          | `on-failure:5` |
+| `kafka`, `cloudflare-tunnel`                                    | `on-failure:3` |
+| `dev-credentials`, `rustfs*`, observability profile, `fdw-poc*` | `"no"`         |
 
-Without it, containers do not come back after logout, reboot, or session restart, even though
-`podman ps` shows the restart policy. Docker users on systemd hosts get this for free via the system
-Docker daemon.
+Two consequences of that choice:
+
+- **The stack does not come back on its own after a reboot, logout, or session restart.**
+  `podman-restart.service` starts only containers whose policy is `always` or `unless-stopped`, so
+  enabling it now has nothing to act on. Reopen the Dev Container, or run `podman compose up -d`.
+- **The attempt budget is spent per container, not per hour.** Once a container has used its
+  attempts it stays stopped, which is the intent: a real misconfiguration must be visible in
+  `podman ps` rather than hidden behind an endless loop. Bringing the stack back up resets it.
+
+A failing _healthcheck_ does not trigger a restart. Podman's `--health-on-failure` has no
+Compose-file equivalent, so a container that is alive but unhealthy — a replica that has stopped
+streaming, for instance — is reported by `podman ps` and repaired by hand.
+
+`core`, `primary`, `replica`, and `valkey` log through a size-capped `json-file` driver
+(`max-size: 10m`, `max-file: 3`) because journald enforces no per-container cap. Their output does
+not reach `journalctl`; use `podman logs`, which serves either driver.
+
+`test/tooling/compose_restart_policy_test.rb` holds these as assertions.
 
 ## Image UID / GID build args
 

@@ -58,6 +58,13 @@ services:
       # convention and does not exist on Fedora/RHEL hosts, where the missing
       # source made the whole container fail to create.
       TZ: UTC
+      # Pinned here as well as in the image (Containerfile, `development-base`), because
+      # anything that rebuilds the container environment rather than inheriting PID 1's
+      # -- a different build target, a base image change -- otherwise leaves Ruby at
+      # Encoding.default_external US-ASCII, where reading any non-ASCII source raises
+      # `invalid byte sequence in US-ASCII` from tests that only scan files.
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
       # --- Ruby / Bundler ---
       RUBY_PATH: /usr/local/bin/ruby
       BUNDLE_PATH: vendor/bundle
@@ -234,7 +241,24 @@ services:
       TMPDIR: /home/global/workspace/tmp
       DEVCONTAINER: "1"
       RUBY_DEBUG_OPEN: "false"
-    restart: always
+    # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
+    # exits immediately on a bad configuration is recreated several times a second until
+    # the netns, veth, conmon, and journald churn saturates a CPU; the attempt count is
+    # the only bound Compose can express. `core` ran unbounded `always` until the budget
+    # was made uniform. The trade-off: `on-failure` containers are not restored after a
+    # host reboot or logout, because podman-restart.service starts only containers whose
+    # policy is `always` or `unless-stopped`. Reopening the Dev Container brings the stack
+    # back, so what is lost is a convenience rather than a data path.
+    restart: on-failure:5
+    # journald enforces no per-container size cap, and a restart loop writes the same
+    # startup failure thousands of times, so a capped json-file driver is what actually
+    # bounds the disk cost of a bad configuration. Container output no longer reaches
+    # `journalctl`; read it with `podman logs`, which serves either driver.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     # Named volumes for high-write paths prevent rootless podman UID-mapping
     # from rewriting host file ownership on the bind-mounted workspace:
     #   - umaxica-home-cache  → pnpm / Vite / YJIT scratch
@@ -556,11 +580,20 @@ services:
       - "./podman/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
     networks:
       - backend
-    # Bounded on purpose. Podman applies no backoff to `unless-stopped`, so a service that
+    # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
     # exits immediately on a bad configuration is recreated several times a second until
-    # the netns, veth, conmon, and journald churn saturates a CPU. Three attempts ride out
+    # the netns, veth, conmon, and journald churn saturates a CPU. Five attempts ride out
     # a transient failure and leave a real misconfiguration stopped and visible.
-    restart: on-failure:3
+    restart: on-failure:5
+    # journald enforces no per-container size cap, and a restart loop writes the same
+    # startup failure thousands of times, so a capped json-file driver is what actually
+    # bounds the disk cost of a bad configuration. Container output no longer reaches
+    # `journalctl`; read it with `podman logs`, which serves either driver.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       # Also asserts the objects /entrypoint.sh provisions. `replica` gates its
       # pg_basebackup on this healthcheck, so without those two conditions it
@@ -606,11 +639,20 @@ services:
         condition: service_healthy
     networks:
       - backend
-    # Bounded on purpose. Podman applies no backoff to `unless-stopped`, so a service that
+    # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
     # exits immediately on a bad configuration is recreated several times a second until
-    # the netns, veth, conmon, and journald churn saturates a CPU. Three attempts ride out
+    # the netns, veth, conmon, and journald churn saturates a CPU. Five attempts ride out
     # a transient failure and leave a real misconfiguration stopped and visible.
-    restart: on-failure:3
+    restart: on-failure:5
+    # journald enforces no per-container size cap, and a restart loop writes the same
+    # startup failure thousands of times, so a capped json-file driver is what actually
+    # bounds the disk cost of a bad configuration. Container output no longer reaches
+    # `journalctl`; read it with `podman logs`, which serves either driver.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       # No backslash-escaped quotes: CMD-SHELL runs this under `sh -c`, where
       # `\"` is a literal quote rather than a nesting escape, and the whole
@@ -635,11 +677,20 @@ services:
       - backend
     volumes:
       - valkey-volume:/data
-    # Bounded on purpose. Podman applies no backoff to `unless-stopped`, so a service that
+    # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
     # exits immediately on a bad configuration is recreated several times a second until
-    # the netns, veth, conmon, and journald churn saturates a CPU. Three attempts ride out
+    # the netns, veth, conmon, and journald churn saturates a CPU. Five attempts ride out
     # a transient failure and leave a real misconfiguration stopped and visible.
-    restart: on-failure:3
+    restart: on-failure:5
+    # journald enforces no per-container size cap, and a restart loop writes the same
+    # startup failure thousands of times, so a capped json-file driver is what actually
+    # bounds the disk cost of a bad configuration. Container output no longer reaches
+    # `journalctl`; read it with `podman logs`, which serves either driver.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test:
         - CMD
