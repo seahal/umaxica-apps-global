@@ -626,7 +626,10 @@ module Auth::App::Up
       assert_predicate sent_at, :present?
       assert_redirected_to auth_app_sign_up_check_telephone_otp_url(ri: "jp")
 
-      travel 29.seconds do
+      # Anchored to when the code was actually sent, not to now. `travel` moves
+      # from the current moment, so on a slow run the setup requests alone can
+      # push the gap past the cooldown and the case silently inverts.
+      travel_to Time.zone.at(sent_at) + 29.seconds do
         assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
           post auth_app_sign_up_check_telephone_otp_url(ri: "jp")
         end
@@ -637,7 +640,7 @@ module Auth::App::Up
         assert_equal completed_requirements, cycle.reload.completed_requirements
       end
 
-      travel 31.seconds do
+      travel_to Time.zone.at(sent_at) + 31.seconds do
         assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
           post auth_app_sign_up_check_telephone_otp_url(ri: "jp")
         end
