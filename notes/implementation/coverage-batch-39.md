@@ -231,3 +231,46 @@ and is also live, because the concern is included by test doubles that a runtime
   to issue #846.
 - `ControllerInheritanceInvariantTest` failed after the deletions because two `KNOWN_VIOLATIONS`
   entries pointed at deleted files; the test says to remove them, and they were removed.
+
+## Resuming toward 98%
+
+Measured on the merged tree at 97.20% (52,254 / 53,758). 98% needs 429 more covered lines.
+
+What works, in order of observed yield:
+
+1. **Construct the real signed tokens and post the endpoint directly.** Issuing a grant and a
+   result through `IdentitySocialCeremonyGrantIssuer` / `IdentitySocialCeremonyResultIssuer` and
+   posting them to the completion endpoint reached the largest uncovered file in three tests, about
+   six lines each. Driving the same branch through the OmniAuth flow never reached it. The same
+   shape should work for the OIDC logout challenge (`AcmeLogoutTransactionCoordinator`) and the
+   step-up ceremony grants.
+2. **Error branches on paired surfaces.** Each refusal on a ceremony endpoint tends to be three or
+   four lines, and the app/com/org copies are near-identical, so one investigation pays three times.
+   The MFA passkey refusals went that way.
+3. **Concern harnesses for declared seams.** Cheap and safe, but the seams are one-liners, so the
+   yield is one to three lines per test. This is what the last few batches were, at roughly 1.2 to
+   1.5 lines per test.
+
+What does not work, checked and discarded:
+
+- The 63 routed-but-never-executed actions total only 93 lines; most are `render json: {}` stubs.
+- `Roots#index` on every surface is unreachable: `RegionalRootRedirect` has a configured URL for
+  both allowed regions, so the callback always redirects first.
+- Deleting the 23 still-unrouted controllers moves the figure by +0.06 (they are 207 covered lines
+  against 33 missed) and re-opens the merge disagreement.
+- Sweeping every surface controller for its declared seams added 3 lines: the seams were already
+  reached. It is still worth keeping as a contract, but not as coverage.
+
+The top forty files hold 467 of the remaining 1,504 lines; `/tmp` is not durable, so the ranked list
+is regenerated with:
+
+```
+ruby -rjson -e 'cov=JSON.parse(File.read("coverage/.resultset.json"))["Rails Tests"]["coverage"]
+root=Dir.pwd+"/"
+cov.select{|k,_| k.start_with?(root+"app/")||k.start_with?(root+"lib/")}
+   .map{|k,v| [v["lines"].count{|x| x==0}, k.sub(root,"")]}
+   .select{|r| r[0]>0}.sort_by{|r| -r[0]}.first(40).each{|n,f| puts "%4d  %s" % [n,f]}'
+```
+
+Note the resultset now holds two entries, `Unit Tests` (stale) and `Rails Tests` (current). Reading
+`.values.first` picks the stale one and gives numbers that do not match the report.
