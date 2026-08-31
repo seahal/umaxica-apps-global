@@ -79,6 +79,22 @@ class PreferenceCoreTest < ActiveSupport::TestCase
     end
   end
 
+  # The three user-facing strings the preference actions answer with. Each resolves a
+  # different key shape -- surface-scoped, acme-scoped, and a shared error -- so a
+  # missing translation in any one of them would only show up here.
+  test "the preference notice and alert helpers resolve their translation keys" do
+    harness = Harness.new
+    harness.define_singleton_method(:preference_translation_scope) { "acme.app.preference" }
+    harness.define_singleton_method(:preference_surface_key) { "app" }
+    harness.define_singleton_method(:t) { |key| "translated:#{key}" }
+
+    assert_equal "translated:acme.app.preference.update_success", harness.invoke(:preference_update_notice)
+    assert_equal "translated:acme.app.preference.resets.destroyed",
+                 harness.invoke(:preference_reset_destroyed_notice)
+    assert_equal I18n.t("errors.messages.preference_operation_failed"),
+                 harness.invoke(:preference_operation_failed_alert)
+  end
+
   test "resetting the mirror association picks the name that belongs to the surface" do
     {
       ClientPreference => :user_preference,

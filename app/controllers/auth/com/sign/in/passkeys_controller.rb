@@ -28,6 +28,19 @@ module Auth
 
           private
 
+          # IdentifierDetection is included here, so its client-surface defaults sit ahead
+          # of Auth::Com::ApplicationController in the lookup and would resolve a corporate
+          # identifier against ClientEmail/ClientTelephone. Only #new is routed here today,
+          # so nothing reaches the lookup, but the seam must name the corporate records for
+          # the same reason the sibling Passkey::OptionsController does.
+          def identity_email_model = VisitorEmail
+
+          def identity_telephone_model = VisitorTelephone
+
+          def identity_from_email_record(record) = record&.visitor
+
+          def identity_from_telephone_record(record) = record&.visitor
+
           def sign_in_passkey_new_props
             pt = signed_pt_param
             ri = current_region_identifier
