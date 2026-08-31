@@ -23,9 +23,7 @@ describe("authenticationErrorMessage", () => {
   });
 
   it("reports a security error under its own name", () => {
-    expect(authenticationErrorMessage(named("SecurityError"))).toBe(
-      PASSKEY_MESSAGES.securityError,
-    );
+    expect(authenticationErrorMessage(named("SecurityError"))).toBe(PASSKEY_MESSAGES.securityError);
   });
 
   it("passes through the message an error carries", () => {
@@ -59,7 +57,9 @@ describe("registrationErrorMessage", () => {
   });
 
   it("passes through the message an error carries", () => {
-    expect(registrationErrorMessage(new Error("登録は拒否されました"))).toBe("登録は拒否されました");
+    expect(registrationErrorMessage(new Error("登録は拒否されました"))).toBe(
+      "登録は拒否されました",
+    );
   });
 
   it("falls back to the generic message for an error with none", () => {

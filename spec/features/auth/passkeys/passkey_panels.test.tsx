@@ -6,7 +6,16 @@
 // the server verifies is covered by the same run.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { jsonResponse, requestBody, requestUrl, stubFetchQueue, textResponse } from "../../../support/http";
+import type { solveInvisibleTurnstile as realSolve } from "@/features/auth/passkeys/invisibleTurnstile";
+import type { StepUpPasskeyFormProps } from "@/features/auth/passkeys/StepUpPasskeyForm";
+
+import {
+  jsonResponse,
+  requestBody,
+  requestUrl,
+  stubFetchQueue,
+  textResponse,
+} from "../../../support/http";
 import { mount } from "../../../support/react";
 import {
   assertionCredential,
@@ -15,8 +24,6 @@ import {
   stubCredentialsApi,
 } from "../../../support/webauthn";
 
-import type { solveInvisibleTurnstile as realSolve } from "@/features/auth/passkeys/invisibleTurnstile";
-
 const solveInvisibleTurnstile = vi.fn<typeof realSolve>();
 
 vi.mock("@/features/auth/passkeys/invisibleTurnstile", () => ({
@@ -24,16 +31,13 @@ vi.mock("@/features/auth/passkeys/invisibleTurnstile", () => ({
     solveInvisibleTurnstile(...args),
 }));
 
-const { default: PasskeyAuthenticationPanel } = await import(
-  "@/features/auth/passkeys/PasskeyAuthenticationPanel"
-);
-const { default: PasskeyRegistrationPanel } = await import(
-  "@/features/auth/passkeys/PasskeyRegistrationPanel"
-);
+const { default: PasskeyAuthenticationPanel } =
+  await import("@/features/auth/passkeys/PasskeyAuthenticationPanel");
+const { default: PasskeyRegistrationPanel } =
+  await import("@/features/auth/passkeys/PasskeyRegistrationPanel");
 const { default: StepUpPasskeyForm } = await import("@/features/auth/passkeys/StepUpPasskeyForm");
-const { PASSKEY_MESSAGES, TURNSTILE_DEFAULT_ERROR } = await import(
-  "@/features/auth/passkeys/messages"
-);
+const { PASSKEY_MESSAGES, TURNSTILE_DEFAULT_ERROR } =
+  await import("@/features/auth/passkeys/messages");
 
 const CREATION_OPTIONS = {
   challenge: "Y2hhbGxlbmdl",
@@ -82,7 +86,10 @@ describe("PasskeyAuthenticationPanel", () => {
     submit_label: "パスキーでログイン",
   };
 
-  const start = async (overrides: Partial<typeof props> = {}, identifier = "someone@example.test") => {
+  const start = async (
+    overrides: Partial<typeof props> = {},
+    identifier = "someone@example.test",
+  ) => {
     const screen = mount(
       <PasskeyAuthenticationPanel
         {...props}
@@ -123,7 +130,7 @@ describe("PasskeyAuthenticationPanel", () => {
   });
 
   it("carries the token, identifier and assertion to the server, then follows its redirect", async () => {
-    credentials.get.mockResolvedValue(assertionCredential() as unknown as Credential);
+    credentials.get.mockResolvedValue(assertionCredential());
     const fetchMock = stubFetchQueue(
       jsonResponse({ challenge_id: "challenge-1", options: REQUEST_OPTIONS }),
       jsonResponse({ status: "ok", redirect_url: "/identity" }),
@@ -148,7 +155,7 @@ describe("PasskeyAuthenticationPanel", () => {
   });
 
   it("omits the region when the page carries none", async () => {
-    credentials.get.mockResolvedValue(assertionCredential() as unknown as Credential);
+    credentials.get.mockResolvedValue(assertionCredential());
     const fetchMock = stubFetchQueue(
       jsonResponse({ challenge_id: "challenge-1", options: REQUEST_OPTIONS }),
       jsonResponse({ status: "ok", redirect_url: "/identity" }),
@@ -162,7 +169,7 @@ describe("PasskeyAuthenticationPanel", () => {
 
   it("solves the challenge with the default message when the page supplied none", async () => {
     stubFetchQueue(jsonResponse({ challenge_id: "c", options: REQUEST_OPTIONS }));
-    credentials.get.mockResolvedValue(assertionCredential() as unknown as Credential);
+    credentials.get.mockResolvedValue(assertionCredential());
     stubLocation();
 
     await start({ turnstile_error_message: "" });
@@ -175,7 +182,7 @@ describe("PasskeyAuthenticationPanel", () => {
   });
 
   it("follows the second-factor redirect the server asks for", async () => {
-    credentials.get.mockResolvedValue(assertionCredential() as unknown as Credential);
+    credentials.get.mockResolvedValue(assertionCredential());
     stubFetchQueue(
       jsonResponse({ challenge_id: "c", options: REQUEST_OPTIONS }),
       jsonResponse({ status: "totp_required", redirect_url: "/challenge" }),
@@ -189,7 +196,7 @@ describe("PasskeyAuthenticationPanel", () => {
   });
 
   it("rejects an answer it does not recognise instead of assuming success", async () => {
-    credentials.get.mockResolvedValue(assertionCredential() as unknown as Credential);
+    credentials.get.mockResolvedValue(assertionCredential());
     stubFetchQueue(
       jsonResponse({ challenge_id: "c", options: REQUEST_OPTIONS }),
       jsonResponse({ status: "ok" }),
@@ -252,7 +259,7 @@ describe("PasskeyAuthenticationPanel", () => {
   });
 
   it("reports a refused verification with the ceremony message", async () => {
-    credentials.get.mockResolvedValue(assertionCredential() as unknown as Credential);
+    credentials.get.mockResolvedValue(assertionCredential());
     stubFetchQueue(
       jsonResponse({ challenge_id: "c", options: REQUEST_OPTIONS }),
       textResponse("<html></html>", 422),
@@ -264,7 +271,7 @@ describe("PasskeyAuthenticationPanel", () => {
   });
 
   it("reloads instead of continuing when the verification session is gone", async () => {
-    credentials.get.mockResolvedValue(assertionCredential() as unknown as Credential);
+    credentials.get.mockResolvedValue(assertionCredential());
     stubFetchQueue(
       jsonResponse({ challenge_id: "c", options: REQUEST_OPTIONS }),
       textResponse("<html></html>", 302),
@@ -328,9 +335,7 @@ describe("PasskeyRegistrationPanel", () => {
   });
 
   it("carries the token, attestation and description to the server, then follows its redirect", async () => {
-    credentials.create.mockResolvedValue(
-      attestationCredential({ transports: ["internal"] }) as unknown as Credential,
-    );
+    credentials.create.mockResolvedValue(attestationCredential({ transports: ["internal"] }));
     const fetchMock = stubFetchQueue(
       jsonResponse({ challenge_id: "challenge-1", options: CREATION_OPTIONS }),
       jsonResponse({ redirect_url: "/settings/passkeys" }),
@@ -360,9 +365,7 @@ describe("PasskeyRegistrationPanel", () => {
   });
 
   it("sends an empty transports list when the authenticator reports none", async () => {
-    credentials.create.mockResolvedValue(
-      attestationCredential({ transports: null }) as unknown as Credential,
-    );
+    credentials.create.mockResolvedValue(attestationCredential({ transports: null }));
     const fetchMock = stubFetchQueue(
       jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }),
       jsonResponse({ redirect_url: "/settings/passkeys" }),
@@ -377,7 +380,7 @@ describe("PasskeyRegistrationPanel", () => {
   });
 
   it("reloads when the server names no destination", async () => {
-    credentials.create.mockResolvedValue(attestationCredential() as unknown as Credential);
+    credentials.create.mockResolvedValue(attestationCredential());
     stubFetchQueue(
       jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }),
       jsonResponse({}),
@@ -391,7 +394,7 @@ describe("PasskeyRegistrationPanel", () => {
   });
 
   it("refuses an answer the authenticator did not shape as an attestation", async () => {
-    credentials.create.mockResolvedValue({ id: "c", type: "public-key" } as Credential);
+    credentials.create.mockResolvedValue({ id: "c", type: "public-key" });
     stubFetchQueue(jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }));
 
     const screen = await start();
@@ -459,7 +462,7 @@ describe("PasskeyRegistrationPanel", () => {
   });
 
   it("reports a refused verification with the registration message", async () => {
-    credentials.create.mockResolvedValue(attestationCredential() as unknown as Credential);
+    credentials.create.mockResolvedValue(attestationCredential());
     stubFetchQueue(
       jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }),
       textResponse("<html></html>", 422),
@@ -471,7 +474,7 @@ describe("PasskeyRegistrationPanel", () => {
   });
 
   it("reloads instead of continuing when the verification session is gone", async () => {
-    credentials.create.mockResolvedValue(attestationCredential() as unknown as Credential);
+    credentials.create.mockResolvedValue(attestationCredential());
     stubFetchQueue(
       jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }),
       textResponse("<html></html>", 302),
@@ -502,7 +505,7 @@ describe("PasskeyRegistrationPanel", () => {
 
   it("solves the challenge with the default message when the page supplied none", async () => {
     stubFetchQueue(jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }));
-    credentials.create.mockResolvedValue(attestationCredential() as unknown as Credential);
+    credentials.create.mockResolvedValue(attestationCredential());
     stubLocation();
 
     await start({ turnstile_error_message: "" });
@@ -530,7 +533,7 @@ describe("StepUpPasskeyForm", () => {
     submit_label: "認証する",
   };
 
-  const start = async (overrides: Partial<typeof props> = {}) => {
+  const start = async (overrides: Partial<StepUpPasskeyFormProps> = {}) => {
     const screen = mount(
       <StepUpPasskeyForm
         {...props}
@@ -551,9 +554,8 @@ describe("StepUpPasskeyForm", () => {
       screen.container.querySelector<HTMLInputElement>('input[name="authenticity_token"]')?.value,
     ).toBe("csrf-value");
     expect(
-      screen.container.querySelector<HTMLInputElement>(
-        'input[name="verification[challenge_id]"]',
-      )?.value,
+      screen.container.querySelector<HTMLInputElement>('input[name="verification[challenge_id]"]')
+        ?.value,
     ).toBe("challenge-1");
   });
 
@@ -577,7 +579,7 @@ describe("StepUpPasskeyForm", () => {
   });
 
   it("writes the assertion into the form before it submits", async () => {
-    credentials.get.mockResolvedValue(assertionCredential() as unknown as Credential);
+    credentials.get.mockResolvedValue(assertionCredential());
     // What the server receives is whatever the field holds at submit time, so the value is read
     // there rather than after the render that follows.
     let submitted: string | undefined;
@@ -590,8 +592,9 @@ describe("StepUpPasskeyForm", () => {
 
     const screen = await start();
 
-    expect(JSON.parse(submitted ?? "null")).toMatchObject({ id: "cred-id", rawId: "AQID" });
     expect(requestSubmit).toHaveBeenCalled();
+    expect(submitted).toEqual(expect.any(String));
+    expect(JSON.parse(String(submitted))).toMatchObject({ id: "cred-id", rawId: "AQID" });
     expect(screen.text("p.text-fg-muted")).toBe(PASSKEY_MESSAGES.verifying);
   });
 

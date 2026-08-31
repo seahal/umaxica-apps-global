@@ -6,14 +6,14 @@
 // would offer a ceremony the request phase refuses.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import OrgSignInEntry from "@/pages/auth/org/sign/ins/show";
-import OrgSignUpEntry from "@/pages/auth/org/sign/ups/show";
+import type { TurnstileApi } from "@/lib/turnstile";
 import OrgEntraSettingsEdit from "@/pages/auth/org/settings/entras/edit";
 import OrgEntraSettingsShow from "@/pages/auth/org/settings/entras/show";
+import OrgSignInEntry from "@/pages/auth/org/sign/ins/show";
+import OrgSignUpEntry from "@/pages/auth/org/sign/ups/show";
 import OrgEntraSessionEntry from "@/pages/auth/org/social/sessions/new";
-import OrgVerificationEntry from "@/pages/auth/org/verifications/show";
 import OrgVerificationSetup from "@/pages/auth/org/verification/setups/new";
-import type { TurnstileApi } from "@/lib/turnstile";
+import OrgVerificationEntry from "@/pages/auth/org/verifications/show";
 
 import { mount } from "../../../support/react";
 
@@ -99,9 +99,7 @@ describe("OrgSignInEntry", () => {
       screen.container.querySelector<HTMLInputElement>('input[name="authenticity_token"]')?.value,
     ).toBe("csrf-value");
     expect(
-      screen.container.querySelector<HTMLInputElement>(
-        ".social-provider-button--entra",
-      )?.value,
+      screen.container.querySelector<HTMLInputElement>(".social-provider-button--entra")?.value,
     ).toBe("Entra ID でログイン");
     expect(screen.container.querySelector('a[href="/org/secret"]')?.textContent).toContain(
       "パスワードでログイン",
