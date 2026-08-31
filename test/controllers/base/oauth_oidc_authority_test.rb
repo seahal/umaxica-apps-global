@@ -242,6 +242,35 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal "proof", captured[:dpop_proof]
   end
 
+  # Each surface serves userinfo for its own principal type, and the subject it
+  # answers with is derived from that type. A surface that serialised against the
+  # wrong type would hand one tenant's subject identifier to another.
+  {
+    "app" => [:base_app_oauth_userinfo_url, "PUBLIC_BASE_SERVICE_URL", "client"],
+    "com" => [:base_com_oauth_userinfo_url, "PUBLIC_BASE_CORPORATE_URL", "visitor"],
+    "org" => [:base_org_oauth_userinfo_url, "PUBLIC_BASE_STAFF_URL", "operator"],
+  }.each do |surface, (helper, host_env, resource_type)|
+    test "base #{surface} userinfo serialises the authenticated principal for its own type" do
+      host = ENV.fetch(host_env)
+      resource = Struct.new(:id, :public_id, :name, :email).new(1, "principal-1", "Sample Name", "sample@example.com")
+      payload = { "act" => resource_type, "scp" => %w(openid profile email), "acr" => "aal1", "auth_time" => 1_756_000_000 }
+      result = AuthResult.new(success: true, resource: resource, payload: payload)
+
+      OidcAccessTokenAuthenticator.stub(:call, ->(**) { result }) do
+        get public_send(helper, host: host), headers: { "Authorization" => "Bearer access" }
+      end
+
+      assert_response :ok
+      body = response.parsed_body
+
+      assert_equal OidcSubject.for(resource, resource_type: resource_type), body["sub"]
+      assert_equal "aal1", body["acr"]
+      assert_equal "Sample Name", body["name"]
+      assert_equal "sample@example.com", body["email"]
+      assert body["email_verified"]
+    end
+  end
+
   test "base userinfo returns bearer challenge headers on invalid token and insufficient scope" do
     invalid_result = AuthResult.new(success: false, error: "invalid_token")
     insufficient_result = AuthResult.new(success: false, error: "insufficient_scope")
