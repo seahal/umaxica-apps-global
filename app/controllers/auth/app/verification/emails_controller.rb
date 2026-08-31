@@ -10,7 +10,7 @@ class Auth::App::Verification::EmailsController < ::Auth::App::Verification::Bas
   EDIT_COMPONENT = "auth/app/verification/emails/edit"
 
   skip_before_action :enforce_step_up_prereqs!, only: %i(edit update)
-  before_action :set_verification_navigation_context, only: %i(edit update resend)
+  before_action :set_verification_navigation_context, only: %i(edit update)
 
   def new
     return unless require_step_up_session!
@@ -82,30 +82,6 @@ class Auth::App::Verification::EmailsController < ::Auth::App::Verification::Bas
     else
       record_failed_step_up_attempt!(:email_otp)
       render inertia: EDIT_COMPONENT, props: edit_page_props, status: :unprocessable_content
-    end
-  end
-
-  def resend
-    return unless require_step_up_session!
-    return if redirect_if_recent_verification_for_post!
-    return unless require_email_nonce!
-
-    if email_otp_resend_rate_limited?
-      redirect_to(
-        verification_email_edit_path,
-      )
-      return
-    end
-
-    if send_email_otp!
-      stamp_email_otp_resend!
-      redirect_to(
-        verification_email_edit_path,
-      )
-    else
-      redirect_to(
-        verification_email_edit_path,
-      )
     end
   end
 

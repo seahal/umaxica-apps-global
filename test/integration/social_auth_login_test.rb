@@ -273,6 +273,81 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal "social_callback", sign_up_cycle.reload.step
   end
 
+  test "Google sign up entry without an existing identity creates the client, identity and ceremony" do
+    new_uid = "new_google_signup_#{SecureRandom.hex(4)}"
+    setup_google_mock_auth(uid: new_uid)
+    user_count_before = Client.count
+
+    state = start_social_auth_flow(provider: "google", intent: "login", entry: "sign_up")
+
+    get auth_app_social_google_callback_url(ri: "jp"),
+        params: { state: state },
+        headers: browser_headers.merge(@callback_headers)
+    submit_social_completion_if_present!
+
+    follow_redirect! while response.redirect?
+    cycle = ClientSignUpFlow.order(:id).last
+    patch auth_app_sign_up_check_google_confirmation_url(ri: "jp"),
+          params: {
+            confirm_new_social_identity: "1",
+            checkpoint_version: cycle.checkpoint_version,
+            "cf-turnstile-response": "test_token",
+          }, headers: browser_headers.merge(@callback_headers)
+    follow_redirect! while response.redirect?
+    patch auth_app_sign_up_check_google_birthdate_url(ri: "jp"),
+          params: {
+            requirement: "birthdate",
+            birthdate: "2000-01-01",
+            checkpoint_version: cycle.reload.checkpoint_version,
+          }, headers: browser_headers.merge(@callback_headers)
+    follow_redirect! while response.redirect? && URI.parse(response.location).host == @host
+    submit_social_completion_if_present!
+
+    assert_equal user_count_before + 1, Client.count
+    identity = ClientGoogleIdentity.find_by!(uid: new_uid)
+    cycle = ClientSignUpFlow.order(:id).last
+
+    assert_equal "google", cycle.entry_method
+    assert_equal identity.user_id, cycle.principal_id
+  end
+
+  test "Apple sign up entry without an existing identity creates the client, identity and ceremony" do
+    new_uid = "new_apple_signup_#{SecureRandom.hex(4)}"
+    user_count_before = Client.count
+
+    state = start_social_auth_flow(provider: "apple", intent: "login", entry: "sign_up")
+    setup_apple_mock_auth(uid: new_uid)
+
+    get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: browser_headers.merge(@callback_headers)
+    follow_redirect! while response.redirect?
+    cycle = ClientSignUpFlow.order(:id).last
+
+    assert_equal "apple", cycle.entry_method
+
+    patch auth_app_sign_up_check_apple_confirmation_url(ri: "jp"),
+          params: {
+            confirm_new_social_identity: "1",
+            checkpoint_version: cycle.checkpoint_version,
+            "cf-turnstile-response": "test_token",
+          }, headers: browser_headers.merge(@callback_headers)
+    follow_redirect! while response.redirect?
+    patch auth_app_sign_up_check_apple_birthdate_url(ri: "jp"),
+          params: {
+            requirement: "birthdate",
+            birthdate: "2000-01-01",
+            checkpoint_version: cycle.reload.checkpoint_version,
+          }, headers: browser_headers.merge(@callback_headers)
+    follow_redirect! while response.redirect? && URI.parse(response.location).host == @host
+    submit_social_completion_if_present!
+
+    assert_equal user_count_before + 1, Client.count
+    identity = ClientAppleIdentity.find_by!(uid: new_uid)
+
+    assert_equal identity.user_id, cycle.reload.principal_id
+  end
+
   test "Apple login with existing identity does not create new user" do
     existing_uid = "existing_apple_user_#{SecureRandom.hex(4)}"
 

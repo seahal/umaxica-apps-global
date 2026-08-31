@@ -4,10 +4,8 @@
 module CoreBrowserCredentialContract
   ACCESS_COOKIE = AuthenticationCookieName.access
   REFRESH_COOKIE = AuthenticationCookieName.refresh
-  OIDC_COOKIE = "_umaxica_session"
   ACCESS_AUDIENCE = "core-browser"
   ACCESS_TTL = 10.minutes
-  REFRESH_PATH = "/"
   OIDC_PATH = "/"
 
   module_function
@@ -30,18 +28,6 @@ module CoreBrowserCredentialContract
       path: OIDC_PATH,
       expires: expires_at,
     )
-  end
-
-  def access_cookie_deletion_options
-    auth_cookie_service_options.except(:expires, :httponly)
-  end
-
-  def refresh_cookie_deletion_options
-    auth_cookie_service_options.except(:expires, :httponly)
-  end
-
-  def oidc_cookie_deletion_options
-    secure_http_only_options.merge(same_site: :lax, path: OIDC_PATH)
   end
 
   def encode_access_token(resource:, token_record:, host:, resource_type:, expires_at: ACCESS_TTL.from_now)

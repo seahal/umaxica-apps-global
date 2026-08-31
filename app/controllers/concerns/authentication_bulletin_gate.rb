@@ -17,12 +17,6 @@ module AuthenticationBulletinGate
     true
   end
 
-  def issue_checkpoint!(kind: "checkpoint", state: "new", payload: {})
-    return issue_bulletin! if kind.to_s == "checkpoint" && state.to_s == "new" && payload.blank?
-
-    issue_bulletin!(kind: kind, state: state, payload: payload)
-  end
-
   def bulletin_state
     raw = session[AuthenticationBase::BULLETIN_SESSION_KEY]
     return nil unless raw.is_a?(Hash)

@@ -28,11 +28,10 @@ module Auth
         # Step-up / Turnstile / WebAuthn-challenge guards remain in place for the registration ceremony.
         before_action :authorize_passkeys!, only: %i(index)
         before_action :authorize_passkey_create!, only: %i(create)
-        step_up only: %i(new create options verification), bootstrap: true
+        step_up only: %i(new create), bootstrap: true
         step_up only: :destroy
-        before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create options verification)
+        before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create)
         before_action :set_passkey, only: %i(show edit update destroy)
-        before_action :verify_settings_passkey_turnstile!, only: :options
 
         def index
           @passkeys = current_operator.staff_passkeys.order(created_at: :asc)
@@ -47,7 +46,7 @@ module Auth
         def new
           authorize!(OperatorPasskey, to: :new?)
           @passkey = current_operator.staff_passkeys.new
-          start_passkey_ceremony!(_surface: "org", _actor: current_operator, _session_ref: current_session_public_id)
+          start_passkey_ceremony!(surface: "org", actor: current_operator, session_ref: current_session_public_id)
           render inertia: true, props: passkey_new_props
         end
 
@@ -74,10 +73,6 @@ module Auth
             end
           end
         end
-
-        def options = (authorize!(OperatorPasskey, to: :create?); render_passkey_registration_options)
-
-        def verification = (authorize!(OperatorPasskey, to: :create?); verify_passkey_registration)
 
         def update
           authorize!(@passkey)
@@ -218,21 +213,6 @@ module Auth
 
         def authorize_passkey_create!
           authorize!(OperatorPasskey, to: :create?)
-        end
-
-        def verify_settings_passkey_turnstile!
-          return true if cloudflare_turnstile_stealth_validation["success"]
-
-          respond_to do |format|
-            format.html do
-              redirect_back_or_to(
-                auth_org_settings_passkeys_path(ri: params[:ri]),
-                status: :see_other,
-              )
-            end
-            format.json { render json: { error: t("turnstile_error") }, status: :unprocessable_content }
-          end
-          false
         end
 
         def set_passkey

@@ -51,12 +51,6 @@ module AuthenticationJwtTokens
     )
   end
 
-  def token_record_oidc_sid(token_record)
-    token_session_public_id(token_record).presence ||
-      token_record_attribute(token_record, :oidc_sid).presence ||
-      token_record&.public_id
-  end
-
   def token_record_oidc_jti(token_record)
     token_record_attribute(token_record, :oidc_jti).presence
   end

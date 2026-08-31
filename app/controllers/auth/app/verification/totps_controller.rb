@@ -4,15 +4,13 @@
 class Auth::App::Verification::TotpsController < ::Auth::App::Verification::BaseController
   include ::SurfaceInertiaPage
   include ::TurnstilePageProps
-  include SignVerificationTotpActions
 
   AUTHENTICATION_MODE = :private
 
   NEW_COMPONENT = "auth/app/verification/totps/new"
 
-  # The two actions repeat SignVerificationTotpActions guard for guard, Turnstile check included.
-  # Only the render differs: this surface answers with an Inertia page instead of the ERB template,
-  # and the code is still posted back as a document submission, so the failure path keeps its 422.
+  # The code is posted back as a document submission, so the failure path keeps its 422 and
+  # re-renders the same Inertia page.
   def new
     return unless require_step_up_session!
     return if redirect_if_recent_verification_for_get!

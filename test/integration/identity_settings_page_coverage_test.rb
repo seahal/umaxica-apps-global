@@ -270,6 +270,18 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
 
     assert_includes [302, 303, 422], response.status
 
+    # A failed challenge has to answer with the same 422 page the validation failure
+    # answers with. Both surfaces are Inertia-only, so the shared guard cannot render
+    # an ERB `:new` here -- doing so raised ActionView::MissingTemplate.
+    TurnstileVerifierStub.challenge_response = { "success" => false }
+    post base_com_identity_secrets_url(ri: "jp", host: host),
+         params: { visitor_secret_credential: { name: "Turnstile blocked secret", enabled: "1" } },
+         headers: headers
+
+    assert_response :unprocessable_content
+    assert_not VisitorSecretCredential.exists?(name: "Turnstile blocked secret")
+    TurnstileVerifierStub.challenge_response = { "success" => true }
+
     delete base_com_identity_secret_url(extra_secret.public_id, ri: "jp", host: host), headers: headers
 
     assert_response :redirect
@@ -447,6 +459,15 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
          headers: headers
 
     assert_includes [302, 303, 422], response.status
+
+    TurnstileVerifierStub.challenge_response = { "success" => false }
+    post base_org_identity_secrets_url(ri: "jp", host: host),
+         params: { staff_secret_credential: { name: "Turnstile blocked org secret", enabled: "1" } },
+         headers: headers
+
+    assert_response :unprocessable_content
+    assert_not OperatorSecretCredential.exists?(name: "Turnstile blocked org secret")
+    TurnstileVerifierStub.challenge_response = { "success" => true }
 
     patch base_org_identity_secret_url(secret.public_id, ri: "jp", host: host),
           params: { staff_secret_credential: { name: "Renamed org secret", enabled: "1" } },

@@ -81,16 +81,6 @@ module RedirectsSignedTargetSupport
     nil
   end
 
-  def signed_target_clean_string(value)
-    return nil unless value.is_a?(String)
-    return nil if value.blank?
-    return nil if value.match?(/[\x00-\x1F\x7F]/)
-    return nil if value.match?(/%(?:0[0-9a-f]|1[0-9a-f]|7f)/i)
-    return nil if value.include?("\\")
-
-    value
-  end
-
   def log_signed_target_rejection(event_name, reason, payload: nil)
     Rails.logger.info(
       JitLogEvent.format(

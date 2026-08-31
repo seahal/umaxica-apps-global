@@ -339,6 +339,36 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_redirected_to auth_org_settings_passkeys_path(ri: "jp")
   end
 
+  test "the registration ceremony refuses a challenge id it never issued" do
+    assert_no_difference("OperatorPasskey.count") do
+      post auth_org_settings_passkeys_verification_path(ri: "jp"), params: {
+        challenge_id: "never-issued",
+        credential: { id: "x", response: { clientDataJSON: "e30=", attestationObject: "e30=" } },
+      }, headers: @headers
+    end
+
+    assert_response :bad_request
+  end
+
+  test "a failed turnstile challenge refuses the registration options as JSON" do
+    TurnstileVerifierStub.challenge_response = { "success" => false }
+
+    post auth_org_settings_passkeys_options_path(ri: "jp"), headers: @headers, as: :json
+
+    assert_response :unprocessable_content
+    assert_equal I18n.t("turnstile_error"), response.parsed_body.fetch("error")
+    assert_nil response.parsed_body["challenge_id"]
+  end
+
+  test "a failed turnstile challenge sends a document request back to the passkey list" do
+    TurnstileVerifierStub.challenge_response = { "success" => false }
+
+    post auth_org_settings_passkeys_options_path(ri: "jp"), headers: @headers
+
+    assert_response :see_other
+    assert_redirected_to auth_org_settings_passkeys_path(ri: "jp")
+  end
+
   private
 
   def headers_for_operator_token(token, scope:, step_up_at: Time.current)

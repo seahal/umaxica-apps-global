@@ -210,34 +210,10 @@ class WithdrawalLifecycle
     }
   end
 
-  def revoke_sessions(except_public_id: nil)
-    scope = AuthenticationSessionRevoker.tokens_for(actor)
-    scope = exclude_session_identifier(scope, except_public_id) if except_public_id.present?
-    scope.find_each(&:revoke!)
-  end
-
-  def exclude_session_identifier(scope, identifier)
-    excluded = scope.where.not(public_id: identifier)
-    return excluded unless scope.klass.column_names.include?("oidc_sid") && uuid_identifier?(identifier)
-
-    excluded.where.not(oidc_sid: identifier)
-  end
-
-  def exclude_fresh_withdrawal_step_up_sessions(scope)
-    return scope unless scope.klass.column_names.include?("last_step_up_at")
-
-    scope.where.not(
-      id: scope.where(
-        last_step_up_scope: "withdrawal",
-        last_step_up_purpose: "step_up",
-      ).where(scope.klass.arel_table[:last_step_up_at].gt(VerificationBase::STEP_UP_TTL.ago)).select(:id),
-    )
-  end
-
-  def uuid_identifier?(value)
-    /\A[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/i.match?(
-      value.to_s,
-    )
+  # Suspension and termination end every session the actor has; neither keeps the
+  # requesting one alive, so there is no session to exclude here.
+  def revoke_sessions
+    AuthenticationSessionRevoker.tokens_for(actor).find_each(&:revoke!)
   end
 
   def finite_future_time?(value)

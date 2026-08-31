@@ -64,6 +64,43 @@ module Auth::App::Settings
       assert_match "scope=social_link", response.location
     end
 
+    test "edit renders the link page once the social-link step-up is fresh on the session" do
+      token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+      satisfy_user_verification(token, scope: SocialAuth::SOCIAL_LINK_SCOPE)
+      token.update!(
+        last_step_up_at: Time.current,
+        last_step_up_scope: SocialAuth::SOCIAL_LINK_SCOPE,
+        last_step_up_aal: "aal2",
+        last_step_up_method: "passkey",
+        last_step_up_session_public_id: token.public_id,
+        last_step_up_purpose: "step_up",
+        last_step_up_audience: "step_up:app",
+      )
+
+      get edit_auth_app_settings_google_url(ri: "jp"), headers: @headers
+
+      assert_response :success
+      assert_equal "auth/app/settings/googles/edit", inertia_component
+    end
+
+    test "create starts the google link ceremony once the step-up is fresh" do
+      token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+      satisfy_user_verification(token, scope: SocialAuth::SOCIAL_LINK_SCOPE)
+      token.update!(
+        last_step_up_at: Time.current,
+        last_step_up_scope: SocialAuth::SOCIAL_LINK_SCOPE,
+        last_step_up_aal: "aal2",
+        last_step_up_method: "passkey",
+        last_step_up_session_public_id: token.public_id,
+        last_step_up_purpose: "step_up",
+        last_step_up_audience: "step_up:app",
+      )
+
+      post auth_app_settings_google_url(ri: "jp"), headers: @headers
+
+      assert_response :redirect
+    end
+
     test "show treats revoked google identity as unlinked" do
       create_active_external_identity(
         client: @user,
@@ -83,6 +120,54 @@ module Auth::App::Settings
         I18n.t("views.sign.app.settings.googles.show.unlinked"),
         inertia_props.fetch("status"),
       )
+    end
+
+    # Arriving at the link ceremony from the sign-up page makes it a sign-up entry, which
+    # opens the pending sign-up ticket before handing off to the provider. Nothing exercised
+    # SignSocialAuthenticationEndpoint#issue_sign_up_flow! before this.
+    test "create started from the sign-up page opens a sign-up ticket before the handoff" do
+      token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+      satisfy_user_verification(token, scope: SocialAuth::SOCIAL_LINK_SCOPE)
+      token.update!(
+        last_step_up_at: Time.current,
+        last_step_up_scope: SocialAuth::SOCIAL_LINK_SCOPE,
+        last_step_up_aal: "aal2",
+        last_step_up_method: "passkey",
+        last_step_up_session_public_id: token.public_id,
+        last_step_up_purpose: "step_up",
+        last_step_up_audience: "step_up:app",
+      )
+
+      assert_difference -> { ClientSignUpFlow.count }, 1 do
+        post auth_app_settings_google_url(ri: "jp", entry: "auth_up"), headers: @headers
+      end
+
+      assert_response :redirect
+      cycle = ClientSignUpFlow.recent_first.first
+
+      assert_equal "google", cycle.social_provider
+      assert_nil cycle.principal_id
+    end
+
+    test "create tolerates a referer that is not a parsable URI" do
+      token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+      satisfy_user_verification(token, scope: SocialAuth::SOCIAL_LINK_SCOPE)
+      token.update!(
+        last_step_up_at: Time.current,
+        last_step_up_scope: SocialAuth::SOCIAL_LINK_SCOPE,
+        last_step_up_aal: "aal2",
+        last_step_up_method: "passkey",
+        last_step_up_session_public_id: token.public_id,
+        last_step_up_purpose: "step_up",
+        last_step_up_audience: "step_up:app",
+      )
+
+      assert_no_difference -> { ClientSignUpFlow.count } do
+        post auth_app_settings_google_url(ri: "jp"),
+             headers: @headers.merge("HTTP_REFERER" => "http://[not-a-uri")
+      end
+
+      assert_response :redirect
     end
 
     test "settings route uses create and destroy" do

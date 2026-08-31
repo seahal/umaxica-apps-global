@@ -13,7 +13,12 @@ module Auth
         AUTHENTICATION_MODE = :private
         before_action :authenticate_client!
 
+        # The endpoint only forwards to the canonical settings page, which authorizes the
+        # record itself. It is still a private action, so the owner check has to run here
+        # too: without it `verify_private_action_authorized!` raised
+        # ActionPolicy::UnauthorizedAction on every authenticated request.
         def create
+          authorize!(current_client, to: :show?)
           redirect_to_sign_authority!(canonical_resource_path, query: request.query_parameters)
         end
 

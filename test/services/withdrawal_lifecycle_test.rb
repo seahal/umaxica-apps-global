@@ -4,7 +4,7 @@
 require "test_helper"
 
 class WithdrawalLifecycleTest < ActiveSupport::TestCase
-  fixtures :clients, :visitors
+  fixtures :clients, :visitors, :operators, :operator_statuses
 
   setup do
     @request = ActionDispatch::Request.new({})
@@ -341,6 +341,23 @@ class WithdrawalLifecycleTest < ActiveSupport::TestCase
 
     assert_difference -> { client.client_withdrawal_flows.count }, 1 do
       WithdrawalLifecycle.start!(actor: client, current_session_public_id: @session_public_id, request: @request)
+    end
+  end
+
+  test "every actor-class dispatch refuses an unsupported actor by name" do
+    lifecycle = WithdrawalLifecycle.new(actor: operators(:one), request: @request)
+
+    %i(withdrawal_flow_class withdrawal_flow_association withdrawal_flow_actor_key privacy_requests).each do |dispatch|
+      error = assert_raises(Sign::InvalidWithdrawalStateError) { lifecycle.send(dispatch) }
+
+      assert_includes error.message, "Operator",
+                      "#{dispatch} must name the actor class it cannot serve instead of failing obscurely."
+    end
+  end
+
+  test "start! refuses an actor with no withdrawal flow of its own" do
+    assert_raises(Sign::InvalidWithdrawalStateError) do
+      WithdrawalLifecycle.start!(actor: operators(:one), request: @request)
     end
   end
 end

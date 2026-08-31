@@ -64,6 +64,25 @@ module Auth::App::Settings
       assert_match "scope=social_link", response.location
     end
 
+    test "edit renders the link page once the social-link step-up is fresh on the session" do
+      token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+      satisfy_user_verification(token, scope: SocialAuth::SOCIAL_LINK_SCOPE)
+      token.update!(
+        last_step_up_at: Time.current,
+        last_step_up_scope: SocialAuth::SOCIAL_LINK_SCOPE,
+        last_step_up_aal: "aal2",
+        last_step_up_method: "passkey",
+        last_step_up_session_public_id: token.public_id,
+        last_step_up_purpose: "step_up",
+        last_step_up_audience: "step_up:app",
+      )
+
+      get edit_auth_app_settings_apple_url(ri: "jp"), headers: @headers
+
+      assert_response :success
+      assert_equal "auth/app/settings/apples/edit", inertia_component
+    end
+
     test "show treats revoked apple identity as unlinked" do
       create_active_external_identity(
         client: @user,

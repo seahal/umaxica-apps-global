@@ -43,27 +43,6 @@ module Auth
 
             private
 
-            def identity_email_model
-              VisitorEmail
-            end
-
-            def identity_telephone_model
-              VisitorTelephone
-            end
-
-            def identity_from_email_record(record)
-              record&.visitor
-            end
-
-            def identity_from_telephone_record(record)
-              record&.visitor
-            end
-
-            def find_active_passkey_actor(identifier)
-              visitor = find_user_by_identifier(identifier)
-              visitor if visitor&.active?
-            end
-
             def allow_passkey_sign_in?(passkey)
               return true if passkey.visitor.has_verified_pii?
 

@@ -5,6 +5,8 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
+  fixtures :operators, :operator_statuses
+
   setup do
     @client = create_verified_user_with_email(email_address: "recovery-top-up-#{SecureRandom.hex(4)}@example.com")
     @client.client_secret_credentials.destroy_all
@@ -90,6 +92,26 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
     assert_equal 0, result.issued_count
     assert_empty result.raw_values
     assert_equal ClientSecretCredential::MAX_SECRETS_PER_USER, @client.client_secret_credentials.count
+  end
+
+  test "a credential class with no recovery kind tops up nothing" do
+    result = RecoveryPasscodeTopUp.call(actor: operators(:one), credential_class: OperatorSecretCredential)
+
+    assert_equal 0, result.issued_count
+    assert_empty result.raw_values
+    assert_empty result.new_credentials
+    assert_equal 0, result.active_usable_count_before
+    assert_equal 0, result.active_usable_count_after
+  end
+
+  test "an unknown credential class is refused by name rather than silently skipped" do
+    top_up = RecoveryPasscodeTopUp.new(
+      actor: @client, credential_class: ClientEmail, target_count: 1, now: Time.current,
+    )
+
+    error = assert_raises(ArgumentError) { top_up.send(:secret_credential_relation) }
+
+    assert_equal "unsupported recovery passcode credential class: ClientEmail", error.message
   end
 
   private

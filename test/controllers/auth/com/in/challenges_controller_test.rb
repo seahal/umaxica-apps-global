@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "base64"
 # require "helpers/global_test_support"
 
 class Auth::Com::Sign::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
@@ -48,6 +49,55 @@ end
 class Auth::Com::Sign::In::ChallengesControllerTest
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
+
+  test "show offers the passkey ceremony to a visitor holding an active passkey" do
+    VisitorPasskey.create!(
+      visitor: @visitor,
+      webauthn_id: Base64.urlsafe_encode64("com_challenge_passkey_id", padding: false),
+      external_id: SecureRandom.uuid,
+      public_key: "com_challenge_key",
+      description: "MFA Passkey",
+      status_id: VisitorPasskeyStatus::ACTIVE,
+    )
+
+    post auth_com_sign_in_secret_path(ri: "jp"), params: {
+      secret_credential_login_form: {
+        identifier: @visitor.visitor_emails.first.address,
+        secret_credential_value: @raw_secret_credential,
+      },
+      "cf-turnstile-response": "test_token",
+    }
+
+    assert_redirected_to auth_com_sign_in_challenge_path
+
+    follow_redirect!
+    follow_redirect!
+
+    assert_response :success
+    assert_equal "auth/com/sign/in/challenges/show", inertia_component
+    assert_includes inertia_props.fetch("methods").map { |method| method.fetch("key") }, "passkey"
+    assert_nil inertia_props.fetch("no_methods_notice")
+  end
+
+  test "show tells a visitor with no usable factor that no method is available" do
+    post auth_com_sign_in_secret_path(ri: "jp"), params: {
+      secret_credential_login_form: {
+        identifier: @visitor.visitor_emails.first.address,
+        secret_credential_value: @raw_secret_credential,
+      },
+      "cf-turnstile-response": "test_token",
+    }
+
+    assert_redirected_to auth_com_sign_in_challenge_path
+
+    follow_redirect!
+    follow_redirect!
+
+    assert_response :success
+    assert_empty inertia_props.fetch("methods")
+    assert_predicate inertia_props.fetch("no_methods_notice"), :present?
+    assert_predicate inertia_props.fetch("back_link"), :present?
+  end
 
   private
 

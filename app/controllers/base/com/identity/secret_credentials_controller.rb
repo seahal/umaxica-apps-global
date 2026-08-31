@@ -12,14 +12,13 @@ module Base
         include ::SignSettingsSecretCredentialTurnstileGuard
 
         include ::SignSettingsSecretCredentialCacheControl
-        include ::SignAuthorityRedirect
         include ::SignSettingsSecretCredentialRegistration
 
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_visitor!
         before_action :set_no_store_for_secret_credential_pages
-        before_action :set_secret_credential, only: %i(show edit update destroy regenerate)
+        before_action :set_secret_credential, only: %i(show edit update destroy)
         before_action :ensure_verified_recovery_identity_for_registration!, only: [:new]
         before_action :verify_secret_credential_turnstile!, only: :create
 
@@ -111,14 +110,6 @@ module Base
           @secret_credential.visitor_secret_credential_status_id = VisitorSecretCredential.status_id_for(:deleted)
           @secret_credential.save!
           redirect_to(base_com_identity_secrets_path(ri: params[:ri]), status: :see_other)
-        end
-
-        def regenerate
-          authorize!(@secret_credential)
-          redirect_to(
-            base_com_identity_secret_path(@secret_credential.public_id, ri: params[:ri]),
-            status: :see_other,
-          )
         end
 
         private
@@ -286,12 +277,12 @@ module Base
           @secret_credential.errors.add(:base, t("turnstile_error"))
         end
 
-        def secret_credential_turnstile_failure_redirect_path
-          base_com_identity_secrets_path(ri: params[:ri])
+        def render_secret_credential_turnstile_create_failure
+          render_new_failure
         end
 
         def verification_required_action?
-          %w(create regenerate).include?(action_name)
+          action_name == "create"
         end
 
         def verification_scope

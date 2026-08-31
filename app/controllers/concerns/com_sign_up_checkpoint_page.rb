@@ -36,7 +36,7 @@ module ComSignUpCheckpointPage
       passkey: missing.include?(:passkey) ? sign_up_checkpoint_passkey_props : nil,
       passcode: missing.include?(:passcode) ? sign_up_checkpoint_passcode_props : nil,
       complete_message: missing.empty? ? t("sign.com.registration.checkpoint.show.complete") : nil,
-      cancellation: sign_up_checkpoint_cancellation_props,
+      cancellation: sign_up_checkpoint_cancellation_props(missing.first),
     }
   end
 
@@ -86,13 +86,17 @@ module ComSignUpCheckpointPage
     }
   end
 
-  # The ERB cancelled to the contact step of the ticket's entry method, whatever requirement was
-  # still outstanding, so the endpoint is derived the same way here.
-  def sign_up_checkpoint_cancellation_props
+  # The cancellation endpoint is the one belonging to the step the visitor is standing on, which is
+  # the first missing requirement; with none missing there is nothing to cancel. There is no
+  # step-less `auth_com_sign_up_check_<entry_method>_path`, so the step has to be part of the helper
+  # name, exactly as AppSignUpCheckpointPage builds it.
+  def sign_up_checkpoint_cancellation_props(step)
+    return nil if step.blank?
+
     {
       label: t("actions.cancel"),
       action: public_send(
-        :"auth_com_sign_up_check_#{@sign_up_ticket.entry_method}_path",
+        :"auth_com_sign_up_check_#{@sign_up_ticket.entry_method}_#{step}_path",
         ri: params[:ri],
         pt: signed_pt_param,
       ),

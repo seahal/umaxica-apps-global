@@ -459,30 +459,6 @@ module AuthenticationSequenceGate
     )
   end
 
-  def complete_sign_in_flow_after_session_result!(cycle, resource, result)
-    return result unless cycle&.persisted?
-
-    if result[:status] == :session_limit_hard_reject
-      cycle.advance_sign_in_to_guardrail! if cycle.sign_in_primary_pending? || cycle.sign_in_mfa_pending?
-      sign_in_flow_locator_for(actor: resource).issue!(cycle)
-      return result
-    end
-
-    token = current_session
-    return result unless token
-
-    if result[:restricted] || result[:session_management_required]
-      cycle.advance_sign_in_to_session_limit! if cycle.sign_in_primary_pending? || cycle.sign_in_mfa_pending?
-      cycle.update!(token: token)
-      sign_in_flow_locator_for(actor: resource, token: token).issue!(cycle)
-      reset_current_db_sign_in_flow_for_sequence!
-      return result
-    end
-
-    advance_cycle_to_checkpoint_after_active_session!(cycle, resource, token)
-    result
-  end
-
   def advance_pending_sign_in_flow_after_primary!(cycle, resource, result)
     return result unless cycle&.persisted?
 
@@ -517,21 +493,6 @@ module AuthenticationSequenceGate
       changes[:session_issued_at] = Time.current if cycle.has_attribute?(:session_issued_at)
       cycle.reload.update!(changes)
     end
-  end
-
-  def advance_cycle_to_checkpoint_after_active_session!(cycle, resource, token)
-    cycle.advance_sign_in_to_guardrail! if cycle.sign_in_primary_pending? || cycle.sign_in_mfa_pending?
-
-    if cycle.sign_in_guardrail_pending?
-      guardrail = SignInGuardrailParticipant.new(cycle: cycle, actor: resource)
-      guardrail.advance_if_clear!
-    end
-
-    cycle.reload
-    cycle.update!(token: token) if cycle.token_id.blank?
-    cycle.advance_sign_in_to_checkpoint! if cycle.sign_in_session_issuance_pending?
-    sign_in_flow_locator_for(actor: resource, token: token).issue!(cycle.reload)
-    reset_current_db_sign_in_flow_for_sequence!
   end
 
   def promote_current_session_limit_cycle!(actor)
@@ -721,20 +682,6 @@ module AuthenticationSequenceGate
     return unless defined?(@current_db_sign_in_flow_for_sequence)
 
     remove_instance_variable(:@current_db_sign_in_flow_for_sequence)
-  end
-
-  def establish_sign_in_result!(resource, pt:, ri:, auth_method:, token_kind_id: "BROWSER_WEB",
-                                record_login_audit: true, audit_context: {})
-    result = establish_signed_in_session!(
-      resource,
-      pt: pt,
-      ri: ri,
-      auth_method: auth_method,
-      token_kind_id: token_kind_id,
-      record_login_audit: record_login_audit,
-      audit_context: audit_context,
-    )
-    sign_in_result_from_session_result(result, actor: resource)
   end
 
   def sign_in_result_from_session_result(result, actor: nil, sequence_id: nil)

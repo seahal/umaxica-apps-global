@@ -260,14 +260,6 @@ module SignOidcLogout
     session[OIDC_LOGOUT_REQUEST_SESSION_KEY] = oidc_logout_request_payload(result)
   end
 
-  def consume_oidc_logout_request
-    result = oidc_logout_pending_request
-    return unless result
-
-    session.delete(OIDC_LOGOUT_REQUEST_SESSION_KEY)
-    result
-  end
-
   def oidc_logout_request_payload(result)
     {
       "client_id" => result.client_id,
@@ -285,10 +277,6 @@ module SignOidcLogout
     Time.zone.iso8601(value.to_s)
   rescue ArgumentError, TypeError
     nil
-  end
-
-  def sign_out_confirmation_request?
-    current_resource.present? || current_session_public_id.present?
   end
 
   def logout_oidc_current_session!(result)
@@ -342,12 +330,6 @@ module SignOidcLogout
 
     token_record.reload
     token_record.revoke! if token_record.respond_to?(:revoke!) && !token_record.revoked?
-  end
-
-  def oidc_logout_confirmation_params
-    return {} unless oidc_logout_pending_request_present?
-
-    { ri: params[:ri] }.compact
   end
 
   def sign_out_confirmation_form_path

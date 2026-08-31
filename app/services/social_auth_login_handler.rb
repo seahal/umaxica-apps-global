@@ -203,14 +203,6 @@ class SocialAuthLoginHandler
     )
   end
 
-  def build_identity_for_user(user)
-    repository.build_for_user(
-      user: user,
-      principal: principal,
-      credential_candidate: credential_candidate,
-    )
-  end
-
   def create_social_signup_audit(user)
     event_id = social_signup_event_id
     return unless event_id

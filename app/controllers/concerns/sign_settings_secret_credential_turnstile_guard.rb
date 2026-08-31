@@ -8,27 +8,15 @@ module SignSettingsSecretCredentialTurnstileGuard
 
   private
 
+  # Both including controllers guard `create` only, and both answer with an Inertia
+  # page: there is no ERB template behind `render :new`, so the surface has to supply
+  # the re-render. Rendering it here raised ActionView::MissingTemplate instead of the
+  # 422 the failed challenge is supposed to produce.
   def verify_secret_credential_turnstile!
-    result = cloudflare_turnstile_stealth_validation
-    return true if result["success"]
+    return true if cloudflare_turnstile_stealth_validation["success"]
 
-    case action_name
-    when "create"
-      prepare_secret_credential_turnstile_create_failure
-      render :new, status: :unprocessable_content
-    when "update"
-      @secret_credential.errors.add(:base, t("turnstile_error")) if @secret_credential
-      render :edit, status: :unprocessable_content
-    when "destroy"
-      redirect_to(
-        secret_credential_turnstile_failure_redirect_path,
-        alert: t("turnstile_error"),
-        status: :see_other,
-      )
-    else
-      render plain: t("turnstile_error"), status: :unprocessable_content
-    end
-
+    prepare_secret_credential_turnstile_create_failure
+    render_secret_credential_turnstile_create_failure
     false
   end
 
@@ -36,7 +24,7 @@ module SignSettingsSecretCredentialTurnstileGuard
     raise NotImplementedError, "#{self.class.name} must implement #{__method__}"
   end
 
-  def secret_credential_turnstile_failure_redirect_path
+  def render_secret_credential_turnstile_create_failure
     raise NotImplementedError, "#{self.class.name} must implement #{__method__}"
   end
 end

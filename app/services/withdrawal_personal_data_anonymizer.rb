@@ -84,18 +84,6 @@ class WithdrawalPersonalDataAnonymizer
     end
   end
 
-  def anonymize_social(record, revoked_status:, before_anonymize: nil)
-    return unless record
-
-    before_anonymize&.call(record)
-    record.update!(
-      uid: "withdrawn-#{record.class.name.underscore.dasherize}-#{record.id}",
-      token: "withdrawn",
-      refresh_token: "",
-      status_id: revoked_status,
-    )
-  end
-
   def remove_common_social_identities
     actor.client_external_identities.find_each do |identity|
       identity.destroy!

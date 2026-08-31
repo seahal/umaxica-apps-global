@@ -204,6 +204,18 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
        :news_com_csp_violation_report_path,],
       [ENV["PRIVATE_NEWS_STAFF_URL"] || "news.org.localhost",
        :news_org_csp_violation_report_path,],
+      [configured_host(:side_service),
+       :side_app_csp_violation_report_path,],
+      [configured_host(:side_corporate),
+       :side_com_csp_violation_report_path,],
+      [configured_host(:side_staff),
+       :side_org_csp_violation_report_path,],
+      [ENV["PRIVATE_INFO_SERVICE_URL"] || "info.app.localhost",
+       :info_app_csp_violation_report_path,],
+      [ENV["PRIVATE_INFO_CORPORATE_URL"] || "info.com.localhost",
+       :info_com_csp_violation_report_path,],
+      [ENV["PRIVATE_INFO_STAFF_URL"] || "info.org.localhost",
+       :info_org_csp_violation_report_path,],
     ]
   end
 
@@ -733,6 +745,9 @@ class CspViolationReportsControllerTest
       core_corporate: "PUBLIC_CORE_CORPORATE_URL",
       core_staff: "PUBLIC_CORE_STAFF_URL",
       palm_service: "PUBLIC_PALM_SERVICE_URL",
+      side_service: "PUBLIC_SIDE_SERVICE_URL",
+      side_corporate: "PUBLIC_SIDE_CORPORATE_URL",
+      side_staff: "PUBLIC_SIDE_STAFF_URL",
     }.fetch(surface_name)
 
     ENV.fetch(public_env_key, Rails.configuration.x.boot_config.fetch(:hosts).public_send(surface_name).host)

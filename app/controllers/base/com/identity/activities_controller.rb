@@ -11,6 +11,7 @@ module Base
         declare_authentication_mode! :private
 
         before_action :authenticate_visitor!
+        before_action :authorize_activity_log!
 
         def index
           @activities = activity_log.activities.limit(100)
@@ -20,9 +21,11 @@ module Base
           render inertia: "base/com/identity/activities/index", props: index_page_props
         end
 
-        def show = index
-
         private
+
+        # ClientChronicle carries both Client and Visitor rows (ClientChroniclePolicy documents the
+        # split); the listing itself is already constrained to the current visitor's own rows.
+        def authorize_activity_log! = authorize!(ClientChronicle, to: :index?)
 
         def index_page_props
           {

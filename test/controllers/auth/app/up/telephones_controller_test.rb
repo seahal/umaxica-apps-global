@@ -678,6 +678,57 @@ module Auth::App::Up
       assert_response :unprocessable_content
     end
 
+    test "sign-up with an already verified telephone answers the otp page without creating records" do
+      owner = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
+      existing = owner.client_telephones.create!(
+        raw_number: "+819012388001",
+        confirm_policy: true,
+        confirm_using_mfa: true,
+        user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+      )
+
+      assert_no_difference("Client.count") do
+        assert_no_difference("ClientTelephone.count") do
+          post auth_app_sign_up_telephone_url(ri: "jp"), params: {
+            user_telephone: {
+              raw_number: existing.number, confirm_policy: "1", confirm_using_mfa: "1",
+            },
+            "cf-turnstile-response": "test",
+          }
+        end
+      end
+
+      assert_response :redirect
+
+      get auth_app_sign_up_check_telephone_otp_url(ri: "jp")
+
+      assert_response :success
+      assert_not_includes response.body, I18n.t("errors.messages.taken")
+    end
+
+    test "a code submitted against an already verified telephone never starts an account" do
+      owner = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
+      existing = owner.client_telephones.create!(
+        raw_number: "+819012388002",
+        confirm_policy: true,
+        confirm_using_mfa: true,
+        user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+      )
+      post auth_app_sign_up_telephone_url(ri: "jp"), params: {
+        user_telephone: { raw_number: existing.number, confirm_policy: "1", confirm_using_mfa: "1" },
+        "cf-turnstile-response": "test",
+      }
+      get auth_app_sign_up_check_telephone_otp_url(ri: "jp")
+
+      assert_no_difference("Client.count") do
+        patch auth_app_sign_up_check_telephone_otp_url(ri: "jp"),
+              params: { user_telephone: { pass_code: "123456" } }
+      end
+
+      assert_response :unprocessable_content
+      assert_equal ClientTelephoneStatus::VERIFIED, existing.reload.user_telephone_status_id
+    end
+
     private
 
     def regional_defaults

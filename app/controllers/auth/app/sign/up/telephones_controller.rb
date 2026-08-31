@@ -42,15 +42,6 @@ module Auth
             render_sign_up_telephone_new
           end
 
-          def edit
-            @user_telephone = current_registration_telephone
-            return render_sign_up_telephone_edit if valid_telephone_session?
-
-            redirect_to(
-              new_auth_app_sign_up_telephone_path,
-            )
-          end
-
           def create
             log_sign_signup_event(
               "sign.signup.telephone.create.received",
@@ -167,30 +158,6 @@ module Auth
               )
               render_sign_up_telephone_new(status: :unprocessable_content)
             end
-          end
-
-          def resend
-            registration_session = session[:user_telephone_registration]
-            @user_telephone = load_registration_telephone(registration_session)
-
-            if otp_resend_rate_limited?
-              return redirect_to(resend_redirect_path)
-            end
-
-            if @user_telephone
-              otp_code = generate_otp_for(@user_telephone)
-              OtpAdapter.for(surface: :app, channel: :telephone).deliver(
-                record: @user_telephone,
-                otp_code: otp_code,
-              )
-            else
-              perform_dummy_otp_generation
-            end
-
-            session[:user_telephone_otp_last_sent_at] = Time.current.to_i
-            redirect_to(
-              resend_redirect_path,
-            )
           end
 
           private
@@ -350,27 +317,12 @@ module Auth
               registration_session["expires_at"].to_i <= Time.current.to_i
           end
 
+          # Read by the check-step OTP controller, which inherits from this one.
           def otp_resend_rate_limited?
             last_sent_at = session[:user_telephone_otp_last_sent_at]
             return false if last_sent_at.blank?
 
             last_sent_at.to_i > CommonOtpPolicy::SEND_COOLDOWN.ago.to_i
-          end
-
-          def load_registration_telephone(registration_session)
-            return nil if dummy_existing_telephone_flow?(registration_session)
-            return nil if registration_session.blank?
-
-            public_id = registration_session[:public_id] || registration_session["public_id"]
-            ClientTelephone.find_by(public_id: public_id)
-          end
-
-          def resend_redirect_path
-            if @user_telephone || dummy_existing_telephone_flow?
-              auth_app_sign_up_check_telephone_otp_path(ri: params[:ri])
-            else
-              new_auth_app_sign_up_telephone_path(ri: params[:ri])
-            end
           end
 
           def cleanup_pending_telephone_signup!

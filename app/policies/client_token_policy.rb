@@ -12,6 +12,13 @@ class ClientTokenPolicy < ApplicationPolicy
     user.is_a?(Client)
   end
 
+  # The session-detail page calls authorize!(@session) with the implicit `show?`
+  # rule; without it the page raises instead of rendering. Viewing a session is
+  # bound to its owner, exactly like revoking it.
+  def show?
+    owner?
+  end
+
   def destroy?
     owner?
   end

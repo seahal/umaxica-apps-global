@@ -487,14 +487,6 @@ module PreferenceCore
     t([preference_translation_scope, "update_success"].join("."))
   end
 
-  def preference_reset_destroyed_notice
-    t(["acme", preference_surface_key, "preference.resets.destroyed"].join("."))
-  end
-
-  def preference_operation_failed_alert
-    I18n.t("errors.messages.preference_operation_failed")
-  end
-
   def preference_context_redirect_params
     PreferenceGlobal::PARAM_CONTEXT_KEYS.each_with_object({}) do |key, memo|
       memo[key] = params[key] if params[key].present?

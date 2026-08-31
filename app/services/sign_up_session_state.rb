@@ -25,7 +25,10 @@ class SignUpSessionState
     }.freeze,
     com: {
       cycle_locator: :com_sign_up_flow_locator,
-      sequence_id: :sign_com_up_sequence_id,
+      # Every corporate-surface controller reads and writes :auth_com_up_sequence_id
+      # (sign_up_sequence_session_key). The former :sign_com_up_sequence_id here was
+      # written by nothing, so clear_all! left the real sequence id in the session.
+      sequence_id: :auth_com_up_sequence_id,
       telephone_otp: :visitor_telephone_registration,
       existing_email: :sign_com_up_existing_visitor_email_id,
       existing_email_skip_otp: :sign_com_up_existing_visitor_email_skip_otp,

@@ -220,6 +220,159 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_includes response.body, "Step-up authentication required"
   end
 
+  test "show renders the details of a passkey the visitor owns" do
+    get auth_com_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+
+    assert_response :success
+    details = inertia_props.fetch("details").to_h { |detail| [detail.fetch("key"), detail.fetch("value")] }
+
+    assert_equal @passkey.description, details.fetch("description")
+    assert_equal @passkey.sign_count.to_s, details.fetch("sign_count")
+  end
+
+  test "new starts a registration ceremony and exposes the ceremony endpoints" do
+    get new_auth_com_settings_passkey_path(ri: "jp"), headers: @headers
+
+    assert_response :success
+    panel = inertia_props.fetch("panel")
+
+    assert_equal auth_com_settings_passkeys_options_path(ri: "jp"), panel.fetch("options_url")
+    assert_equal auth_com_settings_passkeys_verification_path(ri: "jp"), panel.fetch("verification_url")
+  end
+
+  test "edit renders the rename form for a passkey the visitor owns" do
+    get edit_auth_com_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+
+    assert_response :success
+    assert_equal auth_com_settings_passkey_path(@passkey.public_id, ri: "jp"), inertia_props.fetch("action")
+    assert_equal @passkey.description, inertia_props.fetch("description")
+  end
+
+  test "show answers not found for a passkey owned by another visitor" do
+    other_visitor = create_verified_visitor_with_email(email_address: "com_other_passkey_owner@example.com")
+    other_passkey = VisitorPasskey.create!(
+      visitor: other_visitor,
+      webauthn_id: Base64.urlsafe_encode64("com_other_credential", padding: false),
+      public_key: "public_key_#{SecureRandom.hex(4)}",
+      sign_count: 0,
+      description: "Someone else's passkey",
+      status_id: VisitorPasskeyStatus::ACTIVE,
+    )
+
+    get auth_com_settings_passkey_path(other_passkey.public_id, ri: "jp"), headers: @headers
+
+    assert_response :not_found
+  end
+
+  test "the registration ceremony issues a challenge and creates the passkey on a verified assertion" do
+    post auth_com_settings_passkeys_options_path(ri: "jp"), headers: @headers
+
+    assert_response :ok
+    challenge_id = response.parsed_body["challenge_id"]
+
+    assert_predicate challenge_id, :present?
+
+    credential = Object.new
+    credential.define_singleton_method(:id) { "com_settings_new_webauthn_id" }
+    credential.define_singleton_method(:public_key) { "com_settings_new_public_key" }
+    credential.define_singleton_method(:sign_count) { 1 }
+    credential.define_singleton_method(:verify) { |*_args| true }
+    registration_context = Struct.new(
+      :webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state,
+      :authenticator_attachment,
+    ).new("com_settings_new_webauthn_id", 1)
+
+    Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+      WebAuthn::Credential.stub(:from_create, credential) do
+        assert_difference("VisitorPasskey.count", 1) do
+          post auth_com_settings_passkeys_verification_path(ri: "jp"), params: {
+            challenge_id: challenge_id,
+            credential: {
+              id: "com_settings_new_webauthn_id",
+              response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+            },
+            description: "New Corporate Passkey",
+          }, headers: @headers
+        end
+      end
+    end
+
+    assert_response :created
+    assert_equal "ok", response.parsed_body["status"]
+    assert_predicate response.parsed_body["redirect_url"], :present?
+  end
+
+  test "the registration ceremony refuses an assertion with no challenge id" do
+    post auth_com_settings_passkeys_verification_path(ri: "jp"), params: {
+      credential: { id: "x", response: { clientDataJSON: "e30=", attestationObject: "e30=" } },
+    }, headers: @headers
+
+    assert_response :bad_request
+  end
+
+  test "the registration ceremony refuses a challenge id it never issued" do
+    assert_no_difference("VisitorPasskey.count") do
+      post auth_com_settings_passkeys_verification_path(ri: "jp"), params: {
+        challenge_id: "never-issued",
+        credential: { id: "x", response: { clientDataJSON: "e30=", attestationObject: "e30=" } },
+      }, headers: @headers
+    end
+
+    assert_response :bad_request
+  end
+
+  test "the registration ceremony rejects a webauthn id that is already registered" do
+    post auth_com_settings_passkeys_options_path(ri: "jp"), headers: @headers
+    challenge_id = response.parsed_body["challenge_id"]
+    credential = Object.new
+    credential.define_singleton_method(:id) { @passkey.webauthn_id }
+    credential.define_singleton_method(:public_key) { "duplicate_public_key" }
+    credential.define_singleton_method(:sign_count) { 1 }
+    credential.define_singleton_method(:verify) { |*_args| true }
+    registration_context = Struct.new(
+      :webauthn_id, :sign_count, :aaguid, :transports, :backup_eligible, :backup_state,
+      :authenticator_attachment,
+    ).new(@passkey.webauthn_id, 1)
+
+    Webauthn::RegistrationVerifier.stub(:verify!, registration_context) do
+      WebAuthn::Credential.stub(:from_create, credential) do
+        assert_no_difference("VisitorPasskey.count") do
+          post auth_com_settings_passkeys_verification_path(ri: "jp"), params: {
+            challenge_id: challenge_id,
+            credential: {
+              id: @passkey.webauthn_id,
+              response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+            },
+            description: "Duplicate",
+          }, headers: @headers
+        end
+      end
+    end
+
+    assert_response :unprocessable_content
+  end
+
+  test "a failed turnstile challenge refuses the registration options as JSON" do
+    TurnstileVerifierStub.challenge_response = { "success" => false }
+
+    post auth_com_settings_passkeys_options_path(ri: "jp"),
+         headers: @headers.merge(@origin_headers), as: :json
+
+    assert_response :unprocessable_content
+    assert_equal I18n.t("turnstile_error"), response.parsed_body.fetch("error")
+    assert_nil response.parsed_body["challenge_id"]
+  end
+
+  test "a failed turnstile challenge sends a document request back to the passkey list" do
+    TurnstileVerifierStub.challenge_response = { "success" => false }
+
+    post auth_com_settings_passkeys_options_path(ri: "jp"),
+         headers: @headers.merge(@origin_headers)
+
+    assert_response :see_other
+    assert_redirected_to auth_com_settings_passkeys_path(ri: "jp")
+  end
+
   private
 
   def headers_for_visitor_token(token, scope:, step_up_at: Time.current)

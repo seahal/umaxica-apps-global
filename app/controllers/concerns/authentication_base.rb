@@ -1912,18 +1912,6 @@ module AuthenticationBase
     nil
   end
 
-  def resolve_policy_rule
-    rule = resolve_access_policy_for(action_name)
-
-    if rule.nil?
-      Rails.logger.warn(JitLogEvent.format("auth.policy.missing", controller: self.class.name, action: action_name))
-      raise MissingPolicyError,
-            "Missing access_policy for #{self.class.name}##{action_name}. " \
-            "Declare one of: #{VALID_POLICIES.join(", ")}"
-    end
-    rule
-  end
-
   def resolve_access_policy_for(action)
     action = action.to_s
 

@@ -274,18 +274,6 @@ module SignEmailRegistrationFlow
     signed_pt_token(encoded_url)
   end
 
-  def finalize_registered_email!(user_email)
-    target_user = email_registration_target_user || user_email.user
-    user_email.user = target_user
-    user_email.save!
-
-    if target_user.status_id == ClientStatus::UNVERIFIED_WITH_SIGN_UP
-      target_user.update!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
-    end
-
-    on_email_registration_verified!(user_email:, target_user:)
-  end
-
   def on_email_registration_verified!(*)
     nil
   end
