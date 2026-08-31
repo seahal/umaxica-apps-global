@@ -169,6 +169,56 @@ class VerificationBaseRtIssuerTest < ActiveSupport::TestCase
     assert_nil h.send(:decode_pt_path, "")
   end
 
+  # The setup screen returns to where the person came from, except that it refuses to
+  # send them back into another settings page mid-ceremony: those collapse to the
+  # surface's settings root instead.
+  test "setup_pt_path collapses a settings destination to the settings root" do
+    h = Sign::App::RtHarness.new
+    h.session_token = TokenStub.new("nonce-1")
+
+    settings_pt = h.send(:encoded_relative_pt, "/settings/passkeys/9")
+
+    assert_equal "/settings", h.send(:setup_pt_path, settings_pt, root_path: "/settings")
+
+    other_pt = h.send(:encoded_relative_pt, "/identity/emails")
+
+    assert_equal "/identity/emails", h.send(:setup_pt_path, other_pt, root_path: "/settings")
+  end
+
+  test "setup_pt_path answers nil for a blank or unparsable destination" do
+    h = Sign::App::RtHarness.new
+    h.session_token = TokenStub.new("nonce-1")
+
+    assert_nil h.send(:setup_pt_path, nil, root_path: "/settings")
+
+    h.stub(:decode_pt_path, "http://[not-a-uri") do
+      assert_nil h.send(:setup_pt_path, "anything", root_path: "/settings")
+    end
+  end
+
+  # The concern defaults to the client verification record; the staff surface flips
+  # both the model and the foreign key by overriding actor_operator?.
+  test "verification model and token foreign key follow the actor kind" do
+    h = Sign::App::RtHarness.new
+
+    assert_equal ClientVerification, h.send(:verification_model)
+    assert_equal :user_token_id, h.send(:verification_token_foreign_key)
+    assert_equal %i(email_otp passkey totp), h.send(:step_up_supported_methods)
+
+    h.define_singleton_method(:actor_operator?) { true }
+
+    assert_equal OperatorVerification, h.send(:verification_model)
+    assert_equal :staff_token_id, h.send(:verification_token_foreign_key)
+    assert_equal [:passkey], h.send(:step_up_supported_methods)
+  end
+
+  test "current_step_up_ticket answers nil when the session cannot carry one" do
+    h = Sign::App::RtHarness.new
+    h.session_token = TokenStub.new("nonce-1")
+
+    assert_nil h.send(:current_step_up_ticket)
+  end
+
   test "unwrap_verification_pt_path unwraps nested signed pt" do
     h = Sign::App::RtHarness.new
     h.session_token = TokenStub.new("nonce-1")

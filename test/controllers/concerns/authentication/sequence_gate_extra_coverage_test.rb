@@ -752,6 +752,34 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     assert_predicate cycle.updates.first[:session_issued_at], :present?
   end
 
+  # The OIDC hand-off promotes a session-limited cycle only once every participant
+  # ahead of the hand-off has cleared. A blocking guardrail or checkpoint stops it,
+  # and the caller treats that as "do not hand off".
+  test "advance_oidc_session_promotion stops at a blocking guardrail" do
+    cycle = FakeCycle.new(states: { guardrail: true })
+    @harness.guardrail_result = Result.new(true)
+
+    SignInGuardrailParticipant.stub(:new, GuardrailParticipant.new(Result.new(true))) do
+      assert_not @harness.send(:advance_oidc_session_promotion!, cycle, Object.new)
+    end
+  end
+
+  test "advance_oidc_session_promotion stops at a blocking checkpoint" do
+    cycle = FakeCycle.new(states: { guardrail: false, checkpoint: true })
+    @harness.checkpoint_result = Result.new(true)
+
+    assert_not @harness.send(:advance_oidc_session_promotion!, cycle, Object.new)
+  end
+
+  test "advance_oidc_session_promotion clears when no participant blocks" do
+    cycle = FakeCycle.new(states: { guardrail: true, checkpoint: true })
+    @harness.checkpoint_result = Result.new(false)
+
+    SignInGuardrailParticipant.stub(:new, GuardrailParticipant.new(Result.new(false))) do
+      assert @harness.send(:advance_oidc_session_promotion!, cycle, Object.new)
+    end
+  end
+
   private
 
   def create_session_limit_cycle(cycle_class, actor)
