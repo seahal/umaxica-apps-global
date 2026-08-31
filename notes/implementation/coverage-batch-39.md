@@ -18,10 +18,10 @@ fragment" census counted those lines as if a test could reach them.
 ## Coverage
 
 - Starting Rails line coverage: 51,411 / 53,783 (95.5896%).
-- Ending Rails line coverage: 51,188 / 53,146 (96.31%). Delta +0.72 points.
-- Starting branch coverage: 12,094 / 15,885 (76.13%). Ending 12,141 / 15,703 (77.31%).
-- The requested target is 97%; this batch reached 96.31%. 1,958 lines remain uncovered and 97%
-  allows 1,594, so 364 more must be covered or removed.
+- Ending Rails line coverage: 51,219 / 53,134 (96.39%). Delta +0.80 points.
+- Starting branch coverage: 12,094 / 15,885 (76.13%). Ending 12,149 / 15,693 (77.41%).
+- The requested target is 97%; this batch reached 96.39%. 1,915 lines remain uncovered and 97%
+  allows 1,594, so 321 more must be covered or removed.
 - The gain comes from two sources in roughly equal measure: new tests for live-but-unreached code,
   and removal of code that is provably unreachable. Note that removing an unroutable controller
   moves the ratio far less than its file size suggests -- the class body and every `def` line are
@@ -205,22 +205,47 @@ Controller-level:
   Ruby files.
 - Not run: Vitest and the other frontend gates; this batch is Rails-only.
 
-## Where the remaining 2,137 lines are
+## Where the remaining 1,915 lines are
 
-Counting only methods whose body is _entirely_ unexecuted: **559 methods, 1,007 lines**. The other
-~1,130 lines are branch fragments inside methods the suite already walks. The largest live untested
-methods are concentrated in `AuthenticationSequenceGate` (the OIDC-handoff sign-in promotion path:
-`complete_sign_in_flow_after_session_result!`,
-`promote_current_session_limit_cycle_for_oidc_handoff!`, `advance_oidc_session_promotion!`,
-`bind_session_and_register_oidc!`, `advance_cycle_to_checkpoint_after_active_session!` -- 52 lines
-between them), `SignOidcLogout`, `SignSocialAuthenticationEndpoint`, and
-`Base::App::Social::Authentication::CompletionsController`.
+A census of the uncovered lines grouped into contiguous runs:
 
-The org session-revocation endpoints (`Base::Org::Identity::Revocations::{Alls,Others}Controller`)
-are live and untested, but `test/integration/identity_session_revocation_test.rb` already documents
-why: an org HTML request without an OIDC RP browser session is answered by the SSO initiator before
-the controller under test runs. Covering them needs an org RP browser session, not another request
-test.
+| run length |  runs | lines |
+| ---------: | ----: | ----: |
+|     1 line | 1,309 | 1,309 |
+|    2 lines |   209 |   418 |
+|    3 lines |    42 |   126 |
+|    4 lines |    16 |    64 |
+|   5+ lines |     4 |    27 |
+
+Two thirds of what is left is isolated single lines, and the whole codebase holds only twenty runs
+of four lines or more. Covering every multi-line run in the application -- roughly sixty scenarios
+-- yields about 200 lines and still leaves the target short; the balance has to come from the 1,309
+single lines at approximately one scenario each. Reaching 97% is therefore on the order of 200
+further test scenarios, which is a separate programme of work rather than a continuation of this
+one.
+
+Counting by method instead: 489 methods are entirely unexecuted, holding 718 lines, spread over 259
+files at an average of 2.8 lines per file. The largest single file holds 20.
+
+Two levers that would move the figure are not available in this sandbox. The seven
+credential-blocked tests cover the app settings-passkey registration ceremony and pass in CI, where
+`test.key` exists. The skipped test in `test/integration/oidc_rp_browser_flow_test.rb` is blocked on
+the Sign-side session issuance removal tracked in issue #846.
+
+Three probes during this batch cost effort and returned nothing, because the targets turned out to
+be unreachable rather than untested, and they are recorded here so they are not retried: the OIDC
+session-limit handoff branch in `AuthenticationSequenceGate` is bypassed by the current design;
+`Auth::*::RootsController#index` cannot run because `redirect_root_to_sign_in` and
+`PreferenceGlobal#set_region` both redirect first; and the social-completion sign-up path redirects
+to sign-in before reaching `complete_social_signup!`.
+
+A fourth lever was tried and reverted: the `respond_to?(:sign_app_..._path)` chains in
+`AuthenticationBase`, `AuthenticationRedirects` and `SocialAuth` look like dead per-surface
+dispatch, because the first branch is true on the controllers that were sampled. It is not dead --
+`respond_to?` differs per controller and the chain fires for the com sign-up checkpoint controllers.
+Simplifying it broke sixteen tests. `SocialAuth#social_auth_observability_surface` looks the same
+and is also live, because the concern is included by test doubles that a runtime scan over
+`ActionController::Base.descendants` does not see.
 
 ## Review Notes
 
