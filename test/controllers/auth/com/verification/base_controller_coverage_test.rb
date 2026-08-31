@@ -92,9 +92,7 @@ class AuthComVerificationBaseControllerCoverageTest < ActiveSupport::TestCase
     harness.restore_ok = false
     harness.token = Struct.new(:id, :step_up_session).new(11, nil)
 
-    original_handle = Auth::Com::Verification::BaseController.instance_method(:handle_invalid_step_up_session!).super_method
-
-    assert_equal false, original_handle.bind_call(harness)
+    assert_equal false, harness.send(:handle_invalid_step_up_session!)
     assert_nil harness.session[:email_otp]
     assert harness.redirect_args
 
@@ -105,7 +103,7 @@ class AuthComVerificationBaseControllerCoverageTest < ActiveSupport::TestCase
     harness.restore_ok = true
     harness.instance_variable_set(:@redirect_args, nil)
 
-    assert original_handle.bind_call(harness)
+    assert harness.send(:handle_invalid_step_up_session!)
     assert_nil harness.redirect_args
   end
 
@@ -133,11 +131,8 @@ class AuthComVerificationBaseControllerCoverageTest < ActiveSupport::TestCase
     assert harness.send(:passkey_actor_matches?, passkey)
     assert_equal "sign.app.verification.errors.no_passkey", harness.send(:verification_no_passkey_i18n_key)
     assert_equal %i(email_otp passkey), harness.send(:step_up_supported_methods)
-    original_unavailable = Auth::Com::Verification::BaseController.instance_method(:verification_unavailable_redirect_path).super_method
-    original_success = Auth::Com::Verification::BaseController.instance_method(:verification_success_fallback_path).super_method
-
-    assert_includes original_unavailable.bind_call(harness), "ri=tokyo"
-    assert_includes original_success.bind_call(harness), "ri=tokyo"
+    assert_includes harness.send(:verification_unavailable_redirect_path), "ri=tokyo"
+    assert_includes harness.send(:verification_success_fallback_path), "ri=tokyo"
   end
 
   test "send_email_otp! fails without a verified visitor email and delivers otherwise" do
@@ -157,6 +152,7 @@ class AuthComVerificationBaseControllerCoverageTest < ActiveSupport::TestCase
     delivered = []
     adapter = Object.new
     adapter.define_singleton_method(:deliver) { |**kwargs| delivered << kwargs }
+
     OtpAdapter.stub(:for, adapter) do
       assert harness.send(:send_email_otp!)
     end
