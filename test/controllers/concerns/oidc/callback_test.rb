@@ -480,6 +480,50 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "default provision_rp_account_from_id_token_payload! raises NotImplementedError" do
+    dummy_class =
+      Class.new(ApplicationController) do
+        def self.declare_authentication_mode!(*)
+        end
+
+        include OidcCallback
+      end
+
+    assert_raises(NotImplementedError) do
+      dummy_class.new.send(:provision_rp_account_from_id_token_payload!, {}, "aud")
+    end
+  end
+
+  # The legacy single-flow session keys are only cleared when the callback that
+  # arrived is the one they belong to; a callback for some other state must leave
+  # another tab's in-flight flow alone.
+  test "clear_legacy_oidc_flow_if_current! only clears the flow it matches" do
+    dummy_class =
+      Class.new(ApplicationController) do
+        def self.declare_authentication_mode!(*)
+        end
+
+        include OidcCallback
+
+        attr_writer :fake_session
+
+        def session = @fake_session
+      end
+
+    controller = dummy_class.new
+    controller.fake_session = {
+      oidc_state: "state-a", oidc_code_verifier: "verifier", oidc_nonce: "nonce", oidc_pt: "/after",
+    }
+
+    controller.send(:clear_legacy_oidc_flow_if_current!, "state-b")
+
+    assert_equal "state-a", controller.session[:oidc_state]
+
+    controller.send(:clear_legacy_oidc_flow_if_current!, "state-a")
+
+    assert_empty controller.session
+  end
+
   test "default oidc_client_id raises NotImplementedError" do
     # create a dummy controller without overriding
     dummy_class =

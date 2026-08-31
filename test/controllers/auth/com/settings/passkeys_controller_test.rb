@@ -118,6 +118,34 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_includes response.parsed_body["redirect_url"], "/identity"
   end
 
+  # The registration ceremony maps each failure class to its own answer, and none of
+  # them may leave a credential behind. Only the happy path and the unknown-challenge
+  # path were exercised before.
+  test "verification answers 422 when the assertion does not verify" do
+    post auth_com_settings_passkeys_options_path(ri: "jp"), headers: @headers.merge(@origin_headers)
+    challenge_id = response.parsed_body["challenge_id"]
+    cookie_header = response_set_cookie_lines.map { |line| line.split(";", 2).first }.join("; ")
+
+    verifier_failure =
+      lambda do |**|
+        raise Webauthn::RegistrationVerifier::VerificationError, "assertion did not verify"
+      end
+
+    Webauthn::RegistrationVerifier.stub(:verify!, verifier_failure) do
+      assert_no_difference("VisitorPasskey.count") do
+        post auth_com_settings_passkeys_verification_path(ri: "jp"),
+             params: {
+               challenge_id: challenge_id,
+               credential: { id: "x", response: { clientDataJSON: "e30=", attestationObject: "e30=" } },
+             },
+             headers: @headers.merge(@origin_headers).merge("Cookie" => cookie_header)
+      end
+    end
+
+    assert_response :unprocessable_content
+    assert_equal I18n.t("errors.webauthn.verification_failed"), response.parsed_body.fetch("error")
+  end
+
   test "verification succeeds without recovery passcodes on bootstrap and tops up to ten" do
     visitor = create_verified_visitor_with_email(email_address: "com-bootstrap-#{SecureRandom.hex(4)}@example.com")
     visitor.visitor_telephones.create!(
