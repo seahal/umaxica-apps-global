@@ -274,3 +274,26 @@ cov.select{|k,_| k.start_with?(root+"app/")||k.start_with?(root+"lib/")}
 
 Note the resultset now holds two entries, `Unit Tests` (stale) and `Rails Tests` (current). Reading
 `.values.first` picks the stale one and gives numbers that do not match the report.
+
+## Two rate-limit arms that cannot fire as declared
+
+Found while covering the limiter refusal handlers; both are shadowed by a rule declared before them
+that resolves to the same cache key with a lower limit. Neither is a coverage problem — they are
+rules that do not run.
+
+`app/controllers/auth/app/sign/in/secrets_controller.rb`, `secret_credential_create_identifier`
+(`to: 10`, keyed by `AuthenticationRateLimitKey.for(surface: :app, identifier:)`) sits after
+`secret_credential_create_account` (`to: 10`, keyed by `pending_mfa[:user_id]` or, absent one,
+`"unbound:#{request.remote_ip}"`). With no pending MFA both count every request and the account rule
+answers first; with a pending MFA the identifier rule is skipped by its own
+`unless: -> { pending_mfa_valid? }`. So the per-identifier bound never applies. The org copy of the
+same controller has no account rule, which is why its identifier rule does fire and is covered.
+
+`app/controllers/auth/app/sign/in/challenge/totps_controller.rb`, `mfa_totp_create_ip_sustained`
+(`to: 20`, keyed by remote IP) sits before `mfa_totp_create_account` (`to: 10`), which falls back to
+`"unbound:#{request.remote_ip}"` when no MFA is pending — the same key, at half the limit. The
+account rule therefore answers first and the sustained IP rule is unreachable for the unauthenticated
+case. It would still fire for requests carrying distinct pending-MFA actors from one source.
+
+Deciding what the intended bound is belongs to whoever owns the sign-in limiter policy; the tests
+pin current behaviour and do not assert the shadowed arms.
