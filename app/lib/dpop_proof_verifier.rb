@@ -30,42 +30,71 @@ class DpopProofVerifier
   end
 
   def call
-    return Result.new(valid: false, error: "missing_proof") if @proof_jwt.blank?
+    header, payload, jwk = decode_and_authenticate_header
+    return header if header.is_a?(Result)
 
-    header, payload = decode_unverified
-    return Result.new(valid: false, error: "malformed_proof") if header.nil? || payload.nil?
+    binding_error = verify_request_binding(payload)
+    return binding_error if binding_error
 
-    return Result.new(valid: false, error: "invalid_typ") unless header["typ"] == "dpop+jwt"
-    return Result.new(valid: false, error: "unsupported_alg") unless SUPPORTED_ALGORITHMS.include?(header["alg"])
-    return Result.new(valid: false, error: "missing_jwk") if header["jwk"].blank?
-
-    jwk = header["jwk"].to_h
-    return Result.new(valid: false, error: "private_key_in_jwk") if jwk["d"].present?
-
-    unless verify_signature(header, jwk)
-      return Result.new(valid: false, error: "invalid_signature")
-    end
-
-    return Result.new(valid: false, error: "missing_htm") if payload["htm"].blank?
-    return Result.new(valid: false, error: "htm_mismatch") unless payload["htm"].to_s.upcase == @request_method
-
-    return Result.new(valid: false, error: "missing_htu") if payload["htu"].blank?
-    return Result.new(valid: false, error: "htu_mismatch") unless htu_matches?(payload["htu"])
-
-    return Result.new(valid: false, error: "missing_iat") unless payload["iat"].is_a?(Integer)
-    return Result.new(valid: false, error: "iat_out_of_window") unless iat_within_window?(payload["iat"])
-
-    if @access_token.present?
-      expected_ath = JitSecurityJwtThumbprintCalculator.ath(@access_token)
-      return Result.new(valid: false, error: "missing_ath") if payload["ath"].blank?
-      return Result.new(valid: false, error: "ath_mismatch") unless payload["ath"] == expected_ath
-    end
+    ath_error = verify_access_token_hash(payload)
+    return ath_error if ath_error
 
     jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
+    replay_error = verify_jti_and_nonce(payload, jkt: jkt)
+    return replay_error if replay_error
 
+    Result.new(valid: true, error: nil, jwk: jwk, jkt: jkt)
+  rescue JWT::DecodeError, OpenSSL::PKey::PKeyError, ArgumentError, JSON::ParserError
+    invalid("proof_validation_error")
+  end
+
+  private
+
+  def invalid(error)
+    Result.new(valid: false, error: error)
+  end
+
+  def decode_and_authenticate_header
+    return invalid("missing_proof") if @proof_jwt.blank?
+
+    header, payload = decode_unverified
+    return invalid("malformed_proof") if header.nil? || payload.nil?
+    return invalid("invalid_typ") unless header["typ"] == "dpop+jwt"
+    return invalid("unsupported_alg") unless SUPPORTED_ALGORITHMS.include?(header["alg"])
+    return invalid("missing_jwk") if header["jwk"].blank?
+
+    jwk = header["jwk"].to_h
+    return invalid("private_key_in_jwk") if jwk["d"].present?
+    return invalid("invalid_signature") unless verify_signature(header, jwk)
+
+    [header, payload, jwk]
+  end
+
+  def verify_request_binding(payload)
+    return invalid("missing_htm") if payload["htm"].blank?
+    return invalid("htm_mismatch") unless payload["htm"].to_s.upcase == @request_method
+    return invalid("missing_htu") if payload["htu"].blank?
+    return invalid("htu_mismatch") unless htu_matches?(payload["htu"])
+    return invalid("missing_iat") unless payload["iat"].is_a?(Integer)
+    return invalid("iat_out_of_window") unless iat_within_window?(payload["iat"])
+
+    nil
+  end
+
+  def verify_access_token_hash(payload)
+    return nil if @access_token.blank?
+
+    expected_ath = JitSecurityJwtThumbprintCalculator.ath(@access_token)
+    return invalid("missing_ath") if payload["ath"].blank?
+    return invalid("ath_mismatch") unless payload["ath"] == expected_ath
+
+    nil
+  end
+
+  def verify_jti_and_nonce(payload, jkt:)
     # jti is REQUIRED on every proof, but its uniqueness is only persisted on
     # stateful paths (record_jti: true). Per-request validation stays stateless.
-    return Result.new(valid: false, error: "missing_jti") if payload["jti"].blank?
+    return invalid("missing_jti") if payload["jti"].blank?
 
     if @record_jti
       replay_result = record_jti(payload["jti"], jkt: jkt, payload: payload)
@@ -75,12 +104,8 @@ class DpopProofVerifier
     nonce_result = verify_nonce(payload["nonce"])
     return nonce_result unless nonce_result.valid?
 
-    Result.new(valid: true, error: nil, jwk: jwk, jkt: jkt)
-  rescue JWT::DecodeError, OpenSSL::PKey::PKeyError, ArgumentError, JSON::ParserError
-    Result.new(valid: false, error: "proof_validation_error")
+    nil
   end
-
-  private
 
   def record_jti(jti, jkt:, payload:)
     return Result.new(valid: false, error: "missing_jti") if jti.blank?

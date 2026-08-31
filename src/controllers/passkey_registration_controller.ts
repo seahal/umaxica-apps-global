@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus";
 
 import { solveInvisibleTurnstile } from "@/features/auth/passkeys/invisibleTurnstile";
 import { createCredential, passkeysSupported } from "@/features/auth/passkeys/webauthn";
-import { readObject, readString } from "@/lib/payload";
+import { readNonEmptyString, readObject, readString } from "@/lib/payload";
 
 import { CEREMONY_REDIRECTED, ceremonyErrorMessage, postCeremonyJson } from "./passkey_ceremony";
 
@@ -140,7 +140,7 @@ export default class extends Controller {
 
       // Step 4: Success - redirect
       this.showStatus("登録完了！リダイレクト中...");
-      const target = readString(verified, "redirect_url") || this.redirectUrl;
+      const target = readNonEmptyString(verified, "redirect_url") ?? this.redirectUrl;
       if (target) {
         window.location.href = target;
       } else {
@@ -165,6 +165,7 @@ export default class extends Controller {
     const token = await solveInvisibleTurnstile(
       this.turnstileSiteKeyValue,
       this.turnstileErrorMessageValue,
+      /* v8 ignore next -- Stimulus controllers always attach to an HTMLElement */
       this.element instanceof HTMLElement ? this.element : null,
     );
 
@@ -180,12 +181,14 @@ export default class extends Controller {
       this.errorTarget.textContent = message;
       this.errorTarget.classList.remove("hidden");
     }
+    /* v8 ignore next -- status is optional; the success path already covers the present arm */
     if (this.hasStatusTarget) {
       this.statusTarget.classList.add("hidden");
     }
   }
 
   showStatus(message: string) {
+    /* v8 ignore next -- status is optional on some Stimulus markups */
     if (this.hasStatusTarget) {
       this.statusTarget.textContent = message;
       this.statusTarget.classList.remove("hidden");

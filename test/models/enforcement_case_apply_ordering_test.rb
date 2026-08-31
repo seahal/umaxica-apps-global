@@ -40,12 +40,18 @@ class EnforcementCaseApplyOrderingTest < ActiveSupport::TestCase
 
     assert_predicate client.reload, :admin_locked?
 
-    EnforcementCaseEndOperation.call(enforcement_case: first, reason: "revoked", ended_by_operator_public_id: operator.public_id)
+    EnforcementCaseEndOperation.call(
+      enforcement_case: first, reason: "revoked",
+      ended_by_operator_public_id: operator.public_id,
+    )
 
     assert_predicate client.reload, :admin_locked?,
                      "the refcount rule: the second Case still holds the lock"
 
-    EnforcementCaseEndOperation.call(enforcement_case: second, reason: "revoked", ended_by_operator_public_id: operator.public_id)
+    EnforcementCaseEndOperation.call(
+      enforcement_case: second, reason: "revoked",
+      ended_by_operator_public_id: operator.public_id,
+    )
 
     assert_not_predicate client.reload, :admin_locked?
   end

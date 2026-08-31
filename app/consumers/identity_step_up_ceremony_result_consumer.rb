@@ -35,8 +35,14 @@ class IdentityStepUpCeremonyResultConsumer
     require_match!(result, "scope", transaction.required_scope)
     raise IdentityStepUpCeremonyContract::Error,
           "method is not allowed" unless transaction.allowed_methods_array.include?(result["method"].to_s)
-    raise IdentityStepUpCeremonyContract::Error,
-          "AAL is insufficient" unless aal_rank(result["aal"]) >= aal_rank(transaction.required_aal)
+    if transaction.required_aal != StepUpRequirement::NO_AAL &&
+        aal_rank(result["aal"]) < aal_rank(transaction.required_aal)
+      raise IdentityStepUpCeremonyContract::Error, "AAL is insufficient"
+    end
+    return unless transaction.phishing_resistant_required && !result.phishing_resistant?
+
+    raise IdentityStepUpCeremonyContract::Error, "phishing resistance is required"
+
   end
 
   def require_match!(result, key, expected)
@@ -54,6 +60,7 @@ class IdentityStepUpCeremonyResultConsumer
       result_jti: result["result_jti"],
       method: result["method"],
       aal: result["aal"],
+      phishing_resistant: result.phishing_resistant?,
       verified_at: Time.zone.at(Integer(result["verified_at"])),
       consumed_at: now,
     ) if transaction.respond_to?(:consume_result!)

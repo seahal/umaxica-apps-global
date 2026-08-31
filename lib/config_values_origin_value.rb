@@ -32,6 +32,14 @@ module ConfigValues
     raise ArgumentError, "invalid origin" if raw.match?(/[\x00-\x1F\x7F]/)
 
     uri = URI.parse(normalize_origin(raw))
+    validate_origin_uri!(uri, allow_localhost: allow_localhost)
+    sanitize_origin_uri!(uri)
+    OriginValue.new(uri.scheme, uri.host.downcase, uri.port, uri.path, uri.query, uri).freeze
+  rescue URI::InvalidURIError
+    raise ArgumentError, "invalid origin"
+  end
+
+  def validate_origin_uri!(uri, allow_localhost:)
     raise ArgumentError, "invalid origin" unless uri.is_a?(URI::HTTP)
     raise ArgumentError, "invalid origin" unless %w(http https).include?(uri.scheme)
     raise ArgumentError, "invalid origin" if uri.userinfo.present?
@@ -41,20 +49,18 @@ module ConfigValues
     raise ArgumentError, "invalid origin" if uri.path.present? && uri.path != "/"
     raise ArgumentError, "invalid origin" if uri.host.include?(":") && uri.port.blank?
 
-    if uri.scheme == "http"
-      localhost = uri.host == "localhost" || uri.host.end_with?(".localhost")
-      raise ArgumentError, "invalid origin" unless allow_localhost && localhost
-    end
+    return unless uri.scheme == "http"
 
+    localhost = uri.host == "localhost" || uri.host.end_with?(".localhost")
+    raise ArgumentError, "invalid origin" unless allow_localhost && localhost
+  end
+
+  def sanitize_origin_uri!(uri)
     uri.path = "/"
     uri.query = nil
     uri.fragment = nil
     uri.user = nil
     uri.password = nil
-
-    OriginValue.new(uri.scheme, uri.host.downcase, uri.port, uri.path, uri.query, uri).freeze
-  rescue URI::InvalidURIError
-    raise ArgumentError, "invalid origin"
   end
 
   def normalize_origin(raw)

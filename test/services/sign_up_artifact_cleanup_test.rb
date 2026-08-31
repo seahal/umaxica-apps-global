@@ -60,7 +60,10 @@ class SignUpArtifactCleanupTest < ActiveSupport::TestCase
 
     %w(google apple).each do |provider|
       user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-      identity = create_active_external_identity(client: user, provider: provider, subject: "cleanup-#{provider}-#{SecureRandom.hex(4)}")
+      identity = create_active_external_identity(
+        client: user, provider: provider,
+        subject: "cleanup-#{provider}-#{SecureRandom.hex(4)}",
+      )
       cycle = build_client_cycle(
         principal_id: user.id,
         status_id: ClientSignUpFlowStatus::CANCELLED,

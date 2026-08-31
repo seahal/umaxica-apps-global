@@ -109,7 +109,10 @@ module SocialCeremonyEntry
     # outside ProviderSurfacePolicy (a forged `intent`) fails the first check
     # and short-circuits before the adapter sees it.
     operation = social_ceremony_operation(intent)
-    unless external_authentication_allowed?(surface: social_ceremony_surface, provider: provider, operation: operation) &&
+    unless external_authentication_allowed?(
+      surface: social_ceremony_surface, provider: provider,
+      operation: operation,
+    ) &&
         external_authentication_start_available?(provider: provider, operation: operation, context: {})
       redirect_to(social_ceremony_abort_path, status: :see_other)
       return false

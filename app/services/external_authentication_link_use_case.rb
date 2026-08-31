@@ -33,7 +33,10 @@ class ExternalAuthenticationLinkUseCase
         )
       end
 
-    ExternalAuthentication::LinkResult.new(status: :linked, user: decision.fetch(:user), identity: decision.fetch(:identity))
+    ExternalAuthentication::LinkResult.new(
+      status: :linked, user: decision.fetch(:user),
+      identity: decision.fetch(:identity),
+    )
   end
 
   private

@@ -152,6 +152,7 @@ export default class extends Controller {
     const token = await solveInvisibleTurnstile(
       this.turnstileSiteKeyValue,
       this.turnstileErrorMessageValue,
+      /* v8 ignore next -- Stimulus controllers always attach to an HTMLElement */
       this.element instanceof HTMLElement ? this.element : null,
     );
 

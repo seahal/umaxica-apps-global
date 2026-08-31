@@ -39,13 +39,22 @@ module SignVerificationStepUpLifecycle
       transaction_id: transaction.transaction_id,
       grant_jti: transaction.grant_jti,
       scope: scope,
-      aal: "aal2",
+      aal: step_up_achieved_aal(method),
       method: method,
+      phishing_resistant: step_up_phishing_resistant?(method),
       challenge_id: rs.id,
       expires_at: [transaction.expires_at, rs.discarded_at].compact.min,
       attempt_count: rs.attempt_count,
       now: now,
     )
+  end
+
+  def step_up_achieved_aal(method)
+    (method.to_s == "email_otp") ? StepUpRequirement::NO_AAL : "aal1"
+  end
+
+  def step_up_phishing_resistant?(method)
+    method.to_s == "passkey"
   end
 
   # acme/www owns step-up freshness. sign/id only records the ceremony audit fact and returns a
@@ -120,7 +129,7 @@ module SignVerificationStepUpLifecycle
     # The transaction_id is an acme-issued UUID that is stable across rotations; it was written into
     # the session when the grant was validated and the actor_ref/scope guards below maintain the
     # same security invariants as the session_ref lookup.
-    stored_transaction_id = session[:acme_step_up_completion].to_h["transaction_id"].presence
+    stored_transaction_id = acme_step_up_completion_state["transaction_id"].presence
     if stored_transaction_id
       begin
         t = store.find_transaction!(stored_transaction_id)
@@ -174,11 +183,11 @@ module SignVerificationStepUpLifecycle
 
   def acme_step_up_completion_state?
     request_available_for_step_up_completion_state? &&
-      session[:acme_step_up_completion].to_h["transaction_id"].present?
+      acme_step_up_completion_state["transaction_id"].present?
   end
 
   def acme_step_up_completion_csrf_token
-    session[:acme_step_up_completion].to_h["csrf_token"].presence
+    acme_step_up_completion_state["csrf_token"].presence
   end
 
   def acme_step_up_completion_url_for(surface)

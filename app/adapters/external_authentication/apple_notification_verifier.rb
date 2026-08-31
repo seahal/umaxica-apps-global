@@ -25,7 +25,8 @@ module ExternalAuthentication
 
     def self.from_credentials(jws:)
       audience = Rails.app.creds.option(:OMNI_AUTH_APPLE_NOTIFICATION_AUDIENCE)
-      raise ConfigurationError, "Apple notification audience is required" unless audience.is_a?(String) && audience.present?
+      raise ConfigurationError,
+            "Apple notification audience is required" unless audience.is_a?(String) && audience.present?
 
       new(
         jws: jws,

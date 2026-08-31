@@ -125,7 +125,8 @@ module Auth
         end
 
         def consume_pt!
-          @consumed_pt = session.delete(::Auth::Org::Social::SessionsController::PT_SESSION_KEY) unless defined?(@consumed_pt)
+          @consumed_pt = session.delete(::Auth::Org::Social::SessionsController::PT_SESSION_KEY) \
+            unless defined?(@consumed_pt)
           @consumed_pt
         end
 

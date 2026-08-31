@@ -106,8 +106,10 @@ module Auth
         def passkey_index_props
           {
             title: t("sign.org.settings.passkeys.index.title"),
-            add_link: { label: t("sign.org.settings.passkeys.index.add"), href: new_auth_com_settings_passkey_path(ri: params[:ri]) },
-            back_link: { label: t("sign.org.settings.passkeys.index.back"), href: auth_com_settings_path(ri: params[:ri]) },
+            add_link: { label: t("sign.org.settings.passkeys.index.add"),
+                        href: new_auth_com_settings_passkey_path(ri: params[:ri]), },
+            back_link: { label: t("sign.org.settings.passkeys.index.back"),
+                         href: auth_com_settings_path(ri: params[:ri]), },
             columns: {
               description: t("activerecord.attributes.staff_passkey.description"),
               created_at: t("activerecord.attributes.staff_passkey.created_at"),
@@ -135,9 +137,12 @@ module Auth
         def passkey_show_props
           {
             title: t("sign.org.settings.passkeys.show.title"),
-            back_link: { label: t("sign.org.settings.passkeys.show.back"), href: auth_com_settings_passkeys_path(ri: params[:ri]) },
+            back_link: { label: t("sign.org.settings.passkeys.show.back"),
+                         href: auth_com_settings_passkeys_path(ri: params[:ri]), },
             details: [
-              { key: "description", label: t("activerecord.attributes.staff_passkey.description"), value: @passkey.description.to_s },
+              { key: "description",
+                label: t("activerecord.attributes.staff_passkey.description"),
+                value: @passkey.description.to_s, },
               {
                 key: "provider_name",
                 label: t("activerecord.attributes.staff_passkey.provider_name"),
@@ -148,7 +153,9 @@ module Auth
                 label: t("activerecord.attributes.staff_passkey.created_at"),
                 value: I18n.l(@passkey.created_at, format: :long),
               },
-              { key: "sign_count", label: t("activerecord.attributes.staff_passkey.sign_count"), value: @passkey.sign_count.to_s },
+              { key: "sign_count",
+                label: t("activerecord.attributes.staff_passkey.sign_count"),
+                value: @passkey.sign_count.to_s, },
             ],
             edit_link: {
               label: t("actions.edit"),

@@ -13,7 +13,10 @@ module EnforcementIdentifierGate
   GATES = %i(registration_blocked attachment_blocked recovery_blocked).freeze
 
   def enforcement_blocks_email_registration?(effect_class:, realm:, email:)
-    enforcement_blocks?(effect_class: effect_class, realm: realm, kind: :email, value: email, gate: :registration_blocked)
+    enforcement_blocks?(
+      effect_class: effect_class, realm: realm, kind: :email, value: email,
+      gate: :registration_blocked,
+    )
   end
 
   def enforcement_blocks_email_attachment?(effect_class:, realm:, email:)

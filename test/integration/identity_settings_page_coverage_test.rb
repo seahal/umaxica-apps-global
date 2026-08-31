@@ -415,7 +415,10 @@ class IdentitySettingsPageCoverageTest < ActionDispatch::IntegrationTest
 
     assert_includes [200, 302, 303], response.status
 
-    other_session = OperatorToken.where(staff: operator).where.not(id: token.id).where("discarded_at > ?", Time.current).first
+    other_session = OperatorToken.where(staff: operator).where.not(id: token.id).where(
+      "discarded_at > ?",
+      Time.current,
+    ).first
     if other_session
       get base_org_identity_session_url(other_session.public_id, ri: "jp", host: host), headers: headers
 

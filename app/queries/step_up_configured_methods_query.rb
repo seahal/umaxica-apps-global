@@ -9,7 +9,7 @@ module StepUpConfiguredMethodsQuery
   def call(subject)
     return [] unless subject
 
-    AuthenticationCredentialInventory.call(subject).aal2_methods
+    AuthenticationCredentialInventory.call(subject).step_up_methods
   end
 
   def configured_email?(subject)

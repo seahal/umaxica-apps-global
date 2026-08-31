@@ -110,13 +110,28 @@ module PasskeySignInFlow
 
     attrs = { sign_count: context.sign_count }
     attrs[:last_used_at] = context.verified_at if passkey.has_attribute?(:last_used_at)
+    attrs[:uv_verified_at] = context.verified_at if passkey.has_attribute?(:uv_verified_at)
     passkey.update!(attrs)
 
     handle_login_result(perform_passkey_sign_in(passkey))
   end
 
   def credential_params
-    params.fetch(:credential, {}).permit(
+    credential = params.fetch(:credential, {})
+    # `clientExtensionResults` is optional in WebAuthn, and a client that ran no extension
+    # may send it as null. `permit` declares it as a hash, and a null under a hash
+    # declaration counts as an unpermitted key - so an authenticator that reports "no
+    # extensions" would otherwise fail the ceremony. Drop the key when it carries no hash.
+    unless credential[:clientExtensionResults].respond_to?(:each_pair)
+      credential = credential.except(:clientExtensionResults)
+    end
+
+    # `slice` first: a malformed or padded credential payload should fail verification on
+    # its merits, not raise here for carrying a key this method never reads.
+    keys = %i(id rawId type authenticatorAttachment response clientExtensionResults)
+    credential = credential.slice(*keys)
+
+    credential.permit(
       :id,
       :rawId,
       :type,

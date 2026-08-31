@@ -42,7 +42,8 @@ module Security
 
       test "unauthenticated admin engines are not loaded outside development" do
         assert_not_predicate Rails.env, :development?,
-                             "This invariant is meaningful only outside development; the suite must not run in development."
+                             "This invariant is meaningful only outside development; the suite must not run in " \
+                             "development."
 
         UNAUTHENTICATED_ENGINE_CONSTANTS.each do |constant_name|
           assert_not Object.const_defined?(constant_name),

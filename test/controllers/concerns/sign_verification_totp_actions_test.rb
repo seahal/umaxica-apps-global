@@ -29,9 +29,7 @@ class SignVerificationTotpActionsTest < ActiveSupport::TestCase
       { "success" => true }
     end
 
-    def t(key)
-      I18n.t(key)
-    end
+    delegate :t, to: :I18n
 
     def verify_totp!
       true

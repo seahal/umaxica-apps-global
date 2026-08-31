@@ -74,6 +74,17 @@ afterEach(() => {
 });
 
 describe("SurfaceLayout", () => {
+  test("omits theme and cookie chrome when the server sent none", () => {
+    render({
+      ...minimalChrome,
+      theme_controls: null,
+      cookie_controls: null,
+    });
+
+    expect(screen.queryByTestId("theme-controls")).toBeNull();
+    expect(screen.queryByTestId("cookie-banner")).toBeNull();
+  });
+
   test("renders the page inside the main landmark", () => {
     render(minimalChrome);
 

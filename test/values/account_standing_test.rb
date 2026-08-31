@@ -26,7 +26,8 @@ class AccountStandingTest < ActiveSupport::TestCase
     standing = AccountStanding.from_cases(
       [
         FakeCase.new(
-          public_id: "case-notice", kind: "security_lock", reason_code: "security_incident", release_mode: "verification_required",
+          public_id: "case-notice", kind: "security_lock", reason_code: "security_incident",
+          release_mode: "verification_required",
           effective_at: Time.current, expires_at: nil, principal_effect: nil,
           authentication_method_effects: [], in_force: true, visibility: "visible",
         ),
@@ -41,7 +42,8 @@ class AccountStandingTest < ActiveSupport::TestCase
     standing = AccountStanding.from_cases(
       [
         FakeCase.new(
-          public_id: "case-limited", kind: "method_protection", reason_code: "security_incident", release_mode: "operator",
+          public_id: "case-limited", kind: "method_protection", reason_code: "security_incident",
+          release_mode: "operator",
           effective_at: Time.current, expires_at: nil, principal_effect: nil,
           authentication_method_effects: [FakeMethodEffect.new(effect: "unusable")], in_force: true,
           visibility: "visible",

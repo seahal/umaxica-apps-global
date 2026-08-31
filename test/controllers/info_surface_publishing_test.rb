@@ -16,16 +16,21 @@ class InfoSurfacePublishingTest < ActionDispatch::IntegrationTest
       audience = surface.fetch(:audience)
       entry = create_published_entry(audience:, slug: "#{audience}-info-smoke")
 
-      get "/api/v0/entries", headers: { "Host" => surface.fetch(:host_fallback), "Accept" => "application/json" }, as: :json
+      get "/api/v0/entries", headers: { "Host" => surface.fetch(:host_fallback), "Accept" => "application/json" },
+                             as: :json
 
       assert_response :success, audience
-      json_entry = response.parsed_body.fetch("data").find { |candidate| candidate.fetch("slug") == entry.slugs.first.slug }
+      json_entry =
+        response.parsed_body.fetch("data").find { |candidate|
+          candidate.fetch("slug") == entry.slugs.first.slug
+        }
 
       assert json_entry, "expected #{audience} index to include the published entry"
       assert_equal "info", json_entry.fetch("namespace")
       assert_equal audience, json_entry.fetch("surface")
 
-      get "/api/v0/entries/#{entry.slugs.first.slug}", headers: { "Host" => surface.fetch(:host_fallback), "Accept" => "application/json" }, as: :json
+      get "/api/v0/entries/#{entry.slugs.first.slug}",
+          headers: { "Host" => surface.fetch(:host_fallback), "Accept" => "application/json" }, as: :json
 
       assert_response :success, audience
       assert_equal entry.slugs.first.slug, response.parsed_body.fetch("slug")
@@ -45,7 +50,10 @@ class InfoSurfacePublishingTest < ActionDispatch::IntegrationTest
   def create_published_entry(audience:, slug:)
     edition = Publishing::Edition.find_or_create_by!(audience:, surface: "info", locale: "ja")
     entry = Publishing::Entry.create!(edition:, locale: "ja")
-    Publishing::EntrySlug.create!(entry:, edition:, locale: "ja", slug:, state: "canonical", canonicalized_at: Time.current)
+    Publishing::EntrySlug.create!(
+      entry:, edition:, locale: "ja", slug:, state: "canonical",
+      canonicalized_at: Time.current,
+    )
     digest = "f" * 64
     revision =
       Publishing::EntryRevision.create!(

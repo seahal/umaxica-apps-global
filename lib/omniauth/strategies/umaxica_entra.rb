@@ -158,7 +158,10 @@ module OmniAuth
       # provider-disable during an incident would only stop the callback,
       # not new ceremonies.
       def entra_start_available?
-        ExternalAuthentication::ProviderSurfacePolicy.new.allowed?(surface: "org", provider: "entra", operation: "login") &&
+        ExternalAuthentication::ProviderSurfacePolicy.new.allowed?(
+          surface: "org", provider: "entra",
+          operation: "login",
+        ) &&
           ExternalAuthentication::ProviderAvailabilityFactory.current
             .start_decision(provider: "entra", operation: "login", context: {}).state == :enabled
       rescue Redis::BaseError

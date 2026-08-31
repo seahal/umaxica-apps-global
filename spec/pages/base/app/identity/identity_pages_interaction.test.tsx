@@ -64,6 +64,18 @@ const submitForm = (index = 0) => {
   });
 };
 
+const fireVisitCallbacks = (mocked: { mock: { calls: unknown[][] } }) => {
+  const call = mocked.mock.calls.at(-1);
+  const options = call?.at(-1);
+  if (typeof options === "object" && options !== null) {
+    const visit = options as { onStart?: () => void; onFinish?: () => void };
+    act(() => {
+      visit.onStart?.();
+      visit.onFinish?.();
+    });
+  }
+};
+
 const clickButton = (label: string) => {
   const button = [...container.querySelectorAll("button")].find(
     (candidate) => candidate.textContent === label,
@@ -130,6 +142,17 @@ describe("email edit interaction", () => {
     error: null,
   };
 
+  it("keeps unchecked preferences as off", () => {
+    mount(<EmailEdit {...props} />);
+    submitForm();
+
+    expect(patch).toHaveBeenCalledWith(
+      "/identity/emails/eml_1",
+      { user_email: { promotional: "0", notifiable: "0" } },
+      expect.anything(),
+    );
+  });
+
   it("patches the subscription preferences", () => {
     mount(<EmailEdit {...props} />);
     toggleCheckbox("#user_email_promotional");
@@ -141,6 +164,8 @@ describe("email edit interaction", () => {
       { user_email: { promotional: "1", notifiable: "1" } },
       expect.anything(),
     );
+
+    fireVisitCallbacks(patch);
   });
 
   it("deletes only after confirmation", () => {
@@ -156,6 +181,34 @@ describe("email edit interaction", () => {
 });
 
 describe("email registration interaction", () => {
+  it("posts unchecked preferences as off", () => {
+    mount(
+      <EmailRegistrationNew
+        title="Add an email address"
+        back_link={backLink}
+        cancel_link={{ label: "Cancel", href: "/preference" }}
+        form={{
+          action: "/identity/emails/registration",
+          address_label: "Address",
+          address: "",
+          submit_label: "Submit",
+          promotional: { checked: false, label: "Promotional", description: "Offers." },
+          notifiable: { checked: false, label: "Notifiable", description: "Notices." },
+        }}
+        errors={[]}
+      />,
+    );
+    submitForm();
+
+    expect(post).toHaveBeenCalledWith(
+      "/identity/emails/registration",
+      {
+        user_email: { address: "", promotional: "0", notifiable: "0" },
+      },
+      expect.anything(),
+    );
+  });
+
   it("posts the address and the preferences", () => {
     mount(
       <EmailRegistrationNew
@@ -184,6 +237,8 @@ describe("email registration interaction", () => {
       },
       expect.anything(),
     );
+
+    fireVisitCallbacks(post);
   });
 
   const editProps = {
@@ -241,6 +296,7 @@ describe("email registration interaction", () => {
 
     clickButton("Resend");
     expect(post).toHaveBeenCalledWith("/identity/emails/registration/redelivery");
+    fireVisitCallbacks(patch);
   });
 });
 
@@ -264,6 +320,7 @@ describe("privacy erasure interaction", () => {
       { jurisdiction: "unknown" },
       expect.anything(),
     );
+    fireVisitCallbacks(post);
   });
 });
 
@@ -282,7 +339,10 @@ describe("recovery interaction", () => {
             appeal: {
               url: "/identity/recovery/appeals",
               reason_label: "Appeal reason",
-              reason_codes: [{ label: "other", value: "other" }],
+              reason_codes: [
+                { label: "other", value: "other" },
+                { label: "mistake", value: "mistake" },
+              ],
               statement_label: "Appeal statement",
               statement_max_length: 4000,
               submit_label: "Submit appeal",
@@ -302,6 +362,66 @@ describe("recovery interaction", () => {
       "/identity/recovery/appeals",
       {
         appeal: { enforcement_case_id: "case_1", reason_code: "other", statement: "" },
+      },
+      expect.anything(),
+    );
+
+    fireVisitCallbacks(post);
+  });
+
+  it("restores a case that has no appeal form", () => {
+    mount(
+      <RecoveryShow
+        title="Account recovery"
+        description="Complete verification."
+        appeal_error={null}
+        enforcement_cases={[
+          {
+            public_id: "case_2",
+            kind_label: "Security lock",
+            restore: { url: "/identity/recovery/completion", submit_label: "Restore access" },
+            appeal: null,
+          },
+        ]}
+      />,
+    );
+
+    expect(container.querySelectorAll("form")).toHaveLength(1);
+    submitForm(0);
+    expect(post).toHaveBeenCalledWith("/identity/recovery/completion", {
+      data: { enforcement_case_id: "case_2" },
+    });
+  });
+
+  it("appeals with an empty reason when the server sent no codes", () => {
+    mount(
+      <RecoveryShow
+        title="Account recovery"
+        description="Complete verification."
+        appeal_error={null}
+        enforcement_cases={[
+          {
+            public_id: "case_3",
+            kind_label: "Security lock",
+            restore: { url: "/identity/recovery/completion", submit_label: "Restore access" },
+            appeal: {
+              url: "/identity/recovery/appeals",
+              reason_label: "Appeal reason",
+              reason_codes: [],
+              statement_label: "Appeal statement",
+              statement_max_length: 4000,
+              submit_label: "Submit appeal",
+            },
+          },
+        ]}
+      />,
+    );
+
+    submitForm(1);
+    expect(post).toHaveBeenCalledWith(
+      "/identity/recovery/appeals",
+      {
+        appeal: { enforcement_case_id: "case_3", reason_code: "", statement: "" },
       },
       expect.anything(),
     );
@@ -400,6 +520,13 @@ describe("secret interaction", () => {
     );
 
     setInput("#user_secret_credential_name", "deploy");
+    submitForm();
+    expect(post).toHaveBeenCalledWith(
+      "/identity/secrets",
+      { user_secret_credential: { name: "deploy", enabled: "0" } },
+      expect.anything(),
+    );
+    post.mockClear();
     toggleCheckbox("#user_secret_credential_enabled");
     submitForm();
 
@@ -408,6 +535,8 @@ describe("secret interaction", () => {
       { user_secret_credential: { name: "deploy", enabled: "1" } },
       expect.anything(),
     );
+
+    fireVisitCallbacks(post);
   });
 
   it("patches an existing secret", () => {
@@ -429,6 +558,13 @@ describe("secret interaction", () => {
       />,
     );
 
+    submitForm();
+    expect(patch).toHaveBeenCalledWith(
+      "/identity/secrets/sec_1",
+      { user_secret_credential: { name: "deploy", enabled: "1" } },
+      expect.anything(),
+    );
+    patch.mockClear();
     toggleCheckbox("#user_secret_credential_enabled");
     submitForm();
 
@@ -437,6 +573,8 @@ describe("secret interaction", () => {
       { user_secret_credential: { name: "deploy", enabled: "0" } },
       expect.anything(),
     );
+
+    fireVisitCallbacks(patch);
   });
 });
 
@@ -526,6 +664,7 @@ describe("telephone interaction", () => {
       { user_telephone: { raw_number: "+819012345678" } },
       expect.anything(),
     );
+    fireVisitCallbacks(post);
   });
 
   it("posts the number from the registration form", () => {
@@ -543,6 +682,7 @@ describe("telephone interaction", () => {
       { user_telephone: { raw_number: "+819012345678" } },
       expect.anything(),
     );
+    fireVisitCallbacks(post);
   });
 
   it("patches the verification code", () => {
@@ -566,6 +706,7 @@ describe("telephone interaction", () => {
       { user_telephone: { pass_code: "123456" } },
       expect.anything(),
     );
+    fireVisitCallbacks(patch);
   });
 
   it("deletes a telephone only after confirmation", () => {
@@ -647,6 +788,10 @@ describe("withdrawal interaction", () => {
       />,
     );
 
+    submitForm(0);
+    expect(get).toHaveBeenCalledWith("/identity/withdrawal", { ack_schedule_purge: "0" });
+    get.mockClear();
+
     toggleCheckbox("#ack_schedule_purge");
     submitForm(0);
     expect(get).toHaveBeenCalledWith("/identity/withdrawal", { ack_schedule_purge: "1" });
@@ -655,6 +800,12 @@ describe("withdrawal interaction", () => {
     answerConfirmation(false);
     expect(patch).not.toHaveBeenCalled();
 
+    submitForm(1);
+    answerConfirmation(true);
+    expect(patch).toHaveBeenCalledWith("/identity/withdrawal", {
+      data: { ack_deactivate_today: "0" },
+    });
+    patch.mockClear();
     toggleCheckbox("#ack_deactivate_today");
     submitForm(1);
     answerConfirmation(true);
@@ -723,5 +874,38 @@ describe("withdrawal interaction", () => {
 
     clickButton("Sign out");
     expect(destroy).toHaveBeenCalledWith("/identity/withdrawal/session");
+  });
+
+  it("recovers without a confirmation when the server sent none", () => {
+    mount(
+      <WithdrawalEdit
+        title="Withdrawal status"
+        terminated={false}
+        unavailable_message="Recovery is unavailable."
+        deadline_message={null}
+        recovery={{
+          available_message: null,
+          submit_label: "Recover",
+          confirm: null,
+          action: "/identity/withdrawal",
+          unavailable_message: "Not now.",
+        }}
+        termination={{
+          submit_label: "Terminate now",
+          confirm: null,
+          action: "/identity/withdrawal",
+          available_at_message: "Available later.",
+        }}
+        erasure_link={{ label: "Request early erasure", href: "/identity/privacy/erasure/new" }}
+        sign_out={{ label: "Sign out", url: "/identity/withdrawal/session" }}
+      />,
+    );
+
+    expect(container.textContent).toContain("Not now.");
+    expect(container.textContent).toContain("Available later.");
+    clickButton("Recover");
+    expect(post).toHaveBeenCalledWith("/identity/withdrawal");
+    clickButton("Terminate now");
+    expect(destroy).toHaveBeenCalledWith("/identity/withdrawal");
   });
 });

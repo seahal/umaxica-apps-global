@@ -9,7 +9,7 @@ class IdentityStepUpCeremonyResult
     typ iss aud purpose surface actor_ref session_ref transaction_id grant_jti result_jti scope aal method
     verified_at challenge_id expires_at iat exp
   ).freeze
-  OPTIONAL_CLAIMS = %w(attempt_count).freeze
+  OPTIONAL_CLAIMS = %w(attempt_count phishing_resistant).freeze
   ALLOWED_CLAIMS = (REQUIRED_CLAIMS + OPTIONAL_CLAIMS).freeze
 
   attr_reader :payload, :kid
@@ -41,6 +41,13 @@ class IdentityStepUpCeremonyResult
 
   def [](key) = payload[key.to_s]
 
+  def achieved_aal
+    value = self[:aal].to_s
+    (value == StepUpRequirement::NO_AAL) ? nil : value.to_sym
+  end
+
+  def phishing_resistant? = self[:phishing_resistant] == true
+
   def validate!(now: Time.current)
     IdentityStepUpCeremonyContract.validate_common_payload!(
       payload,
@@ -52,6 +59,10 @@ class IdentityStepUpCeremonyResult
       now: now,
     )
     IdentityStepUpCeremonyContract.validate_inclusion!(payload, "method", IdentityStepUpCeremonyContract::METHODS)
+    IdentityStepUpCeremonyContract.validate_boolean!(
+      payload,
+      "phishing_resistant",
+    ) if payload.key?("phishing_resistant")
   end
 
   def self.default_claims(attributes, now:)

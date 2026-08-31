@@ -44,7 +44,9 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
   test "end_case rejects an unknown reason" do
     the_case = AppEnforcementCase.new
 
-    assert_raises(ArgumentError) { EnforcementCaseEndOperation.call(enforcement_case: the_case, reason: "not-a-reason") }
+    assert_raises(ArgumentError) {
+      EnforcementCaseEndOperation.call(enforcement_case: the_case, reason: "not-a-reason")
+    }
   end
 
   test "cooldown requires expires_at and rejects a missing one at the database level" do
@@ -220,7 +222,8 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
     assert_predicate the_case.public_id, :present?
   end
 
-  test "apply! transitions a temporary_freeze with an access-blocking Principal Effect to active and locks the account" do
+  test "apply! transitions a temporary_freeze with an access-blocking Principal Effect to active and locks the " \
+       "account" do
     client = clients(:one)
     operator = operators(:one)
 
@@ -387,7 +390,10 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
     )
     EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
-    EnforcementCaseEndOperation.call(enforcement_case: the_case, reason: "revoked", ended_by_operator_public_id: operator.public_id)
+    EnforcementCaseEndOperation.call(
+      enforcement_case: the_case, reason: "revoked",
+      ended_by_operator_public_id: operator.public_id,
+    )
     client.reload
 
     assert_predicate the_case.ended_at, :present?

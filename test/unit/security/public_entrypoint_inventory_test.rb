@@ -165,6 +165,10 @@ module Security
     def documented_public_category(entry)
       return false unless PUBLIC_MODES.include?(entry.mode)
 
+      documented_public_content?(entry) || documented_public_auth?(entry) || documented_public_api?(entry)
+    end
+
+    def documented_public_content?(entry)
       public_root?(entry) ||
         public_health?(entry) ||
         public_revision?(entry) ||
@@ -173,16 +177,22 @@ module Security
         public_robots_or_sitemap?(entry) ||
         public_content_read_api?(entry) ||
         public_preference?(entry) ||
-        public_web_or_edge?(entry) ||
-        public_oauth_oidc_or_sso?(entry) ||
+        public_web_or_edge?(entry)
+    end
+
+    def documented_public_auth?(entry)
+      public_oauth_oidc_or_sso?(entry) ||
         public_sign_in_or_up?(entry) ||
         public_sign_out?(entry) ||
         public_withdrawal?(entry) ||
         public_identity_recovery?(entry) ||
         public_social?(entry) ||
         public_auth_app_redirect?(entry) ||
-        public_auth_app_settings_compat?(entry) ||
-        public_core_api?(entry) ||
+        public_auth_app_settings_compat?(entry)
+    end
+
+    def documented_public_api?(entry)
+      public_core_api?(entry) ||
         public_palm_api?(entry) ||
         public_auth_org_redirect?(entry) ||
         public_side_settings?(entry) ||

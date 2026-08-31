@@ -8,6 +8,7 @@ class AuthOrgSignInPasskeyCoverageTest < ActiveSupport::TestCase
     attr_accessor :rendered, :established, :issued_gate
 
     def initialize
+      super
       @params_hash = { identifier: "op_public_id" }
     end
 
@@ -66,6 +67,7 @@ class AuthOrgSignInPasskeyCoverageTest < ActiveSupport::TestCase
     include Shared
 
     def initialize
+      super
       @params_hash = { identifier: "op_public_id" }
     end
   end
@@ -74,6 +76,7 @@ class AuthOrgSignInPasskeyCoverageTest < ActiveSupport::TestCase
     include Shared
 
     def initialize
+      super
       @params_hash = { identifier: "op_public_id" }
     end
   end
@@ -94,6 +97,7 @@ class AuthOrgSignInPasskeyCoverageTest < ActiveSupport::TestCase
           assert_equal staff, harness.send(:find_active_passkey_actor, "abc")
         end
       end
+
       Operator.stub(:normalize_public_id, "") do
         assert_nil harness.send(:find_active_passkey_actor, " ")
       end
@@ -107,7 +111,7 @@ class AuthOrgSignInPasskeyCoverageTest < ActiveSupport::TestCase
       )
       assert harness.send(:handle_domain_specific_login_status, { status: :session_limit_exceeded })
       assert harness.issued_gate
-      assert_equal false, harness.send(:handle_domain_specific_login_status, { status: :ok })
+      assert_not harness.send(:handle_domain_specific_login_status, { status: :ok })
 
       harness.send(:render_passkey_restricted_success, {})
 

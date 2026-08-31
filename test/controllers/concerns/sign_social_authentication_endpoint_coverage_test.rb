@@ -120,7 +120,7 @@ class SignSocialAuthenticationEndpointCoverageTest < ActiveSupport::TestCase
 
     result = harness.send(:require_social_link_step_up!)
 
-    assert_equal false, result
+    assert_not result
     assert_equal I18n.t("auth.step_up.required"), harness.flash_hash[:alert]
     assert_equal :see_other, harness.redirect_args.last[:status]
   end

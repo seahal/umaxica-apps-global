@@ -52,8 +52,8 @@ module StepUpCeremonyTransactionable
     end
 
     def create_transaction!(surface: ceremony_surface, actor_ref:, session_ref:, required_scope:, required_aal:,
-                            allowed_methods:, resource_ref: nil, return_to: nil, transaction_id: nil,
-                            grant_jti: nil, expires_at: nil, now: Time.current)
+                            allowed_methods:, phishing_resistant_required: false, resource_ref: nil, return_to: nil,
+                            transaction_id: nil, grant_jti: nil, expires_at: nil, now: Time.current)
       connection_owner.connected_to(role: :writing) do
         create!(
           transaction_id: transaction_id.presence || SecureRandom.uuid,
@@ -62,6 +62,7 @@ module StepUpCeremonyTransactionable
           session_ref: session_ref,
           required_scope: required_scope.to_s,
           required_aal: required_aal.to_s,
+          phishing_resistant_required: phishing_resistant_required,
           allowed_methods: serialize_allowed_methods(allowed_methods),
           resource_ref: resource_ref,
           return_to: return_to,
@@ -109,6 +110,7 @@ module StepUpCeremonyTransactionable
       "jti" => grant_jti,
       "required_scope" => required_scope,
       "required_aal" => required_aal,
+      "phishing_resistant_required" => phishing_resistant_required,
       "allowed_methods" => allowed_methods_array,
       "resource_ref" => resource_ref,
       "return_to" => return_to,
@@ -141,7 +143,7 @@ module StepUpCeremonyTransactionable
     end
   end
 
-  def consume_result!(result_jti:, method:, aal:, verified_at:, consumed_at: Time.current)
+  def consume_result!(result_jti:, method:, aal:, phishing_resistant: false, verified_at:, consumed_at: Time.current)
     self.class.connection_owner.connected_to(role: :writing) do
       self.class.transaction do
         locked = self.class.lock.find(id)
@@ -153,6 +155,7 @@ module StepUpCeremonyTransactionable
           result_jti: result_jti,
           method: method,
           aal: aal,
+          phishing_resistant: phishing_resistant,
           verified_at: verified_at,
           consumed_at: consumed_at,
           status: STATUS_CONSUMED,

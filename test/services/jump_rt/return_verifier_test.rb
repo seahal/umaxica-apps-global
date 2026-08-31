@@ -256,7 +256,8 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
     assert_includes %w(invalid_claim invalid_signature), verify(sign_return_token(dst: "external")).error
     assert_includes %w(invalid_claim invalid_signature), verify(sign_return_token(jti: "")).error
     assert_includes %w(invalid_claim invalid_signature), verify(sign_return_token(src: "")).error
-    assert_includes %w(invalid_claim invalid_signature), verify(sign_return_token(nbf: @now.to_i + 90, exp: @now.to_i + 60)).error
+    assert_includes %w(invalid_claim invalid_signature),
+                    verify(sign_return_token(nbf: @now.to_i + 90, exp: @now.to_i + 60)).error
   end
 
   test "rejects claimed urls that include userinfo or fragments" do

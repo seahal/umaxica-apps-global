@@ -85,7 +85,25 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
   def with_boot_config(sign_service_host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
                        sign_corporate_host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost"),
                        sign_staff_host: ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost"))
-    hosts = OpenStruct.new(
+    hosts = sign_route_boot_hosts(sign_service_host, sign_corporate_host, sign_staff_host)
+
+    Rails.configuration.x.stub(:boot_config, BootConfig.new(hosts)) do
+      Rails.application.reload_routes!
+      yield
+    end
+  ensure
+    Rails.application.reload_routes!
+  end
+
+  def sign_route_boot_hosts(sign_service_host, sign_corporate_host, sign_staff_host)
+    OpenStruct.new(
+      **sign_route_identity_hosts(sign_service_host, sign_corporate_host, sign_staff_host),
+      **sign_route_product_hosts,
+    )
+  end
+
+  def sign_route_identity_hosts(sign_service_host, sign_corporate_host, sign_staff_host)
+    {
       auth_service: OpenStruct.new(host: sign_service_host),
       auth_corporate: OpenStruct.new(host: sign_corporate_host),
       auth_staff: OpenStruct.new(host: sign_staff_host),
@@ -95,6 +113,11 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
       sign_service: OpenStruct.new(host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")),
       sign_corporate: OpenStruct.new(host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost")),
       sign_staff: OpenStruct.new(host: ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost")),
+    }
+  end
+
+  def sign_route_product_hosts
+    {
       side_service: OpenStruct.new(host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "side.app.localhost")),
       side_corporate: OpenStruct.new(host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "side.com.localhost")),
       side_staff: OpenStruct.new(host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "side.org.localhost")),
@@ -113,15 +136,6 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
       info_service: OpenStruct.new(host: ENV.fetch("PRIVATE_INFO_SERVICE_URL", "info.app.localhost")),
       info_corporate: OpenStruct.new(host: ENV.fetch("PRIVATE_INFO_CORPORATE_URL", "info.com.localhost")),
       info_staff: OpenStruct.new(host: ENV.fetch("PRIVATE_INFO_STAFF_URL", "info.org.localhost")),
-    )
-
-    Rails.configuration.x.stub(:boot_config, BootConfig.new(hosts)) do
-      Rails.application.reload_routes!
-      yield
-    end
-  ensure
-    # Redraw AFTER the stub is removed. Reloading inside the stub block would leave the
-    # process holding a route table drawn from the fake boot_config.
-    Rails.application.reload_routes!
+    }
   end
 end

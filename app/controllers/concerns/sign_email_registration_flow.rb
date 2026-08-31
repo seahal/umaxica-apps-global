@@ -148,9 +148,10 @@ module SignEmailRegistrationFlow
 
   def email_registration_params(*permitted_keys)
     raw_params = params[:user_email].presence || params[:client_email].presence || {}
-    return raw_params.permit(*permitted_keys) if raw_params.respond_to?(:permit)
-
-    ActionController::Parameters.new(raw_params).permit(*permitted_keys)
+    raw_params = ActionController::Parameters.new(raw_params) unless raw_params.respond_to?(:permit)
+    # `slice` first: the caller names the keys it wants and everything else in the payload
+    # is deliberately ignored, so narrowing keeps those extras from reading as unpermitted.
+    raw_params.slice(*permitted_keys).permit(*permitted_keys)
   end
 
   def email_registration_verification_token

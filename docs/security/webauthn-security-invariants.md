@@ -14,10 +14,11 @@ previously shipped as defects, so static tests reject their reintroduction.
   `ordinary_step_up` can be relaxed by a future explicit decision. Such a change must update this
   document and `adr/passkey-uv-policy.md`.
 - Enforce UV on the server as well as in client options. In addition to
-  `credential.verify(..., user_verification: true)`, verifiers explicitly recheck
-  `user_verified?` and `user_present?` in `RegistrationVerifier` and `AssertionVerifier`.
-- Never accept a response with UV=false or record an authentication event without UV as
-  AAL2-equivalent.
+  `credential.verify(..., user_verification: true)`, verifiers explicitly recheck `user_verified?`
+  and `user_present?` in `RegistrationVerifier` and `AssertionVerifier`.
+- Never accept a response with UV=false for a purpose whose registry policy requires UV. Record
+  achieved assurance separately from UV, freshness, phishing resistance, and step-up completion; UV
+  alone does not imply AAL2.
 
 ## Duplicate Registration by Credential ID
 
@@ -31,8 +32,8 @@ previously shipped as defects, so static tests reject their reintroduction.
 - Continue rejecting the credential ID of a revoked or disabled row until that row is purged. No
   reactivation flow is provided.
 - An AAGUID identifies an authenticator product line, not an instance. **Never use an AAGUID,
-  provider name, or product name for duplicate detection.** Multiple credentials with one AAGUID
-  are valid, including two physical keys of the same product or multiple passkeys from one provider.
+  provider name, or product name for duplicate detection.** Multiple credentials with one AAGUID are
+  valid, including two physical keys of the same product or multiple passkeys from one provider.
 - WebAuthn cannot reliably determine whether one physical authenticator generated a new credential
   ID, especially with `attestation: "none"`. This is an accepted protocol limitation.
 - RP IDs differ across app/com/org, so one authenticator creates separate credentials for each
@@ -60,9 +61,9 @@ previously shipped as defects, so static tests reject their reintroduction.
 
 ## RP Configuration
 
-- RP ID and origin come only from an explicit surface declaration such as
-  `webauthn_surface :app` and the matching `WEBAUTHN_<APP|COM|ORG>_*` configuration. Prohibit
-  `request.host` fallback, shared environment keys, class-name regex surface inference, and mutation
-  of global `WebAuthn.configure` state.
+- RP ID and origin come only from an explicit surface declaration such as `webauthn_surface :app`
+  and the matching `WEBAUTHN_<APP|COM|ORG>_*` configuration. Prohibit `request.host` fallback,
+  shared environment keys, class-name regex surface inference, and mutation of global
+  `WebAuthn.configure` state.
 - `from_get` and `from_create` always receive an explicit `relying_party:` argument.
 - Origin comparison requires an exact scheme, host, and effective port match.

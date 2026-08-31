@@ -10,7 +10,10 @@ module Publishing
       @category = publishing_category_vocabulary(audience: "app", surface: "news")
       @root = publishing_term(vocabulary: @category, locale: "ja", slug: "root", name: "Root")
       @child = publishing_term(vocabulary: @category, locale: "ja", slug: "child", name: "Child", parent: @root)
-      @grandchild = publishing_term(vocabulary: @category, locale: "ja", slug: "grandchild", name: "Grandchild", parent: @child)
+      @grandchild = publishing_term(
+        vocabulary: @category, locale: "ja", slug: "grandchild", name: "Grandchild",
+        parent: @child,
+      )
       @sibling = publishing_term(vocabulary: @category, locale: "ja", slug: "sibling", name: "Sibling")
     end
 

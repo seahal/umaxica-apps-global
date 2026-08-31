@@ -158,11 +158,14 @@ module BaseSettingsWithdrawalFlow
   end
 
   def schedule_params
-    params.permit(:ack_schedule_purge)
+    # `slice` first: this reads a fixed set of keys and ignores everything else the
+    # request carries (`ri`, the Turnstile token). Permitting without narrowing would
+    # report those as unpermitted, which they are not - they are simply not ours.
+    params.slice(:ack_schedule_purge).permit(:ack_schedule_purge)
   end
 
   def deactivate_params
-    params.permit(:ack_deactivate_today)
+    params.slice(:ack_deactivate_today).permit(:ack_deactivate_today)
   end
 
   def render_update_validation_error

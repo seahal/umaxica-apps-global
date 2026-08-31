@@ -56,6 +56,7 @@ export default function RadioGroup<Value extends string = string>({
     ? (value: string) => {
         const option = options.find((candidate) => candidate.value === value);
 
+        /* v8 ignore next -- React Aria only reports values it rendered from `options` */
         if (!option) {
           throw new Error(`RadioGroup ${label} selected ${value}, which is not one of its options`);
         }

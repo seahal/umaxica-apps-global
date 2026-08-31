@@ -63,8 +63,11 @@ vi.mock("@/features/auth/turnstile/invisibleToken", () => ({
     solveInvisibleTurnstile(...args),
 }));
 
+const { default: SignInEmailEdit } = await import("@/features/auth/SignInEmailEdit");
 const { default: EmailSignInForm } = await import("@/features/auth/signin/EmailSignInForm");
 const { default: EmailPassCodeForm } = await import("@/features/auth/signin/EmailPassCodeForm");
+const { default: SecretSignInForm } = await import("@/features/auth/signin/SecretSignInForm");
+const { default: TotpChallengeForm } = await import("@/features/auth/signin/TotpChallengeForm");
 const { default: OtpResendButton } = await import("@/features/auth/signin/OtpResendButton");
 const { default: PasskeySignInPanel } = await import("@/features/auth/signin/PasskeySignInPanel");
 const { default: StepUpPasskeyScreen } = await import("@/features/auth/signin/StepUpPasskeyScreen");
@@ -137,7 +140,16 @@ const turnstile = { site_key: "site-key", mode: "render" as const, action: null,
 const backLink = { label: "もどる", href: "/sign/in?ri=jp" };
 
 beforeEach(() => {
-  document.head.innerHTML = '<meta name="csrf-token" content="csrf-value">';
+  document.head.innerHTML =
+    '<meta name="csrf-token" content="csrf-value"><script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>';
+  window.turnstile = {
+    render: vi.fn((_container: HTMLElement, options: { callback?: (token: string) => void }) => {
+      options.callback?.("turnstile-token");
+      return "widget-1";
+    }),
+    execute: vi.fn(),
+    remove: vi.fn(),
+  };
 });
 
 afterEach(() => {
@@ -146,6 +158,7 @@ afterEach(() => {
   });
   container.remove();
   document.head.innerHTML = "";
+  delete window.turnstile;
   vi.clearAllMocks();
   vi.useRealTimers();
 });
@@ -421,6 +434,114 @@ describe("passkey sign-in panel", () => {
 
     expect(container.querySelector("[role=alert]")?.textContent).toBe(
       PASSKEY_MESSAGES.identifierRequired,
+    );
+  });
+
+  it("uses the default challenge copy when the page supplied none", async () => {
+    solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
+    getAssertion.mockResolvedValue(SERIALIZED_ASSERTION);
+    const fetchMock = stubFetchQueue(
+      httpJsonResponse({ challenge_id: "challenge-1", options: { a: 1 } }),
+      httpJsonResponse({ status: "ok", redirect_url: "/identity" }),
+    );
+    vi.stubGlobal("location", { href: "", reload: vi.fn() });
+
+    mount(
+      <PasskeySignInPanel
+        {...props}
+        turnstile_error_message=""
+      />,
+    );
+    typeIdentifier("someone@example.com");
+    click("button");
+    await flush();
+
+    expect(solveInvisibleTurnstile).toHaveBeenCalledWith(
+      "stealth-key",
+      expect.stringMatching(/./u),
+      expect.anything(),
+    );
+    expect(requestBody(fetchMock, 0)).toMatchObject({ identifier: "someone@example.com" });
+  });
+
+  it("falls back when a failed options response carries no content type", async () => {
+    solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        headers: new Headers(),
+        json: async () => ({}),
+      }),
+    );
+
+    mount(<PasskeySignInPanel {...props} />);
+    typeIdentifier("someone@example.com");
+    click("button");
+    await flush();
+
+    expect(container.querySelector("[role=alert]")?.textContent).toBe(
+      PASSKEY_MESSAGES.optionsFailed,
+    );
+  });
+
+  it("omits the region when the page carries none", async () => {
+    solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
+    getAssertion.mockResolvedValue(SERIALIZED_ASSERTION);
+    const fetchMock = stubFetchQueue(
+      httpJsonResponse({ challenge_id: "challenge-1", options: { a: 1 } }),
+      httpJsonResponse({ status: "ok", redirect_url: "/identity" }),
+    );
+    vi.stubGlobal("location", { href: "", reload: vi.fn() });
+
+    mount(
+      <PasskeySignInPanel
+        {...props}
+        region=""
+      />,
+    );
+    typeIdentifier("someone@example.com");
+    click("button");
+    await flush();
+
+    expect(requestBody(fetchMock, 0)).not.toHaveProperty("ri");
+    expect(window.location.href).toBe("/identity");
+  });
+
+  it("uses the ceremony fallback when the options response names no error", async () => {
+    solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 422,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({}),
+      }),
+    );
+
+    mount(<PasskeySignInPanel {...props} />);
+    typeIdentifier("someone@example.com");
+    click("button");
+    await flush();
+
+    expect(container.querySelector("[role=alert]")?.textContent).toBe(
+      PASSKEY_MESSAGES.optionsFailed,
+    );
+  });
+
+  it("refuses options that name no challenge", async () => {
+    solveInvisibleTurnstile.mockResolvedValue("turnstile-token");
+    stubFetchQueue(httpJsonResponse({ options: { a: 1 } }));
+
+    mount(<PasskeySignInPanel {...props} />);
+    typeIdentifier("someone@example.com");
+    click("button");
+    await flush();
+
+    expect(container.querySelector("[role=alert]")?.textContent).toBe(
+      PASSKEY_MESSAGES.optionsFailed,
     );
   });
 
@@ -715,5 +836,137 @@ describe("step-up passkey screen", () => {
     await flush();
 
     expect(container.querySelector("[role=alert]")?.textContent).toBe(PASSKEY_MESSAGES.cancelled);
+  });
+});
+
+describe("secret sign-in form interaction", () => {
+  const props = {
+    title: "パスワードでログイン",
+    form: {
+      action: "/sign/in/secret",
+      method: "post",
+      pt: null,
+      ri: "jp",
+      identifier_field: {
+        scope: "secret_credential_login_form",
+        field: "identifier",
+        name: "secret_credential_login_form[identifier]",
+        label: "メールアドレス",
+        placeholder: "name@example.com",
+      },
+      secret_field: {
+        scope: "secret_credential_login_form",
+        field: "secret_credential_value",
+        name: "secret_credential_login_form[secret_credential_value]",
+        label: "パスワード",
+        placeholder: "••••••••••••••••",
+      },
+      submit_label: "送信する",
+    },
+    hints: null,
+    error_heading: "入力を確認してください",
+    form_errors: [] as string[],
+    turnstile,
+    back_link: backLink,
+  };
+
+  it("posts the identifier and secret under the Rails wrapper", async () => {
+    mount(<SecretSignInForm {...props} />);
+    await flush();
+
+    type('input[name="secret_credential_login_form[identifier]"]', "someone@example.test");
+    type('input[name="secret_credential_login_form[secret_credential_value]"]', "s3cret");
+
+    act(() => {
+      container
+        .querySelector("form")
+        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(setData).toHaveBeenCalled();
+    expect(post).toHaveBeenCalledWith("/sign/in/secret");
+  });
+});
+
+describe("totp challenge form interaction", () => {
+  const props = {
+    title: "二段階認証",
+    description: "認証アプリのコード",
+    form: {
+      action: "/sign/in/challenge/totp",
+      method: "post",
+      token_field: {
+        scope: "totp_challenge_form",
+        field: "token",
+        name: "totp_challenge_form[token]",
+        label: "コード",
+        placeholder: "6桁",
+        max_length: 6,
+        inputmode: "numeric" as const,
+        help: "認証アプリを開いてください",
+      },
+      submit_label: "確認する",
+    },
+    error_heading: "入力を確認してください",
+    form_errors: [] as string[],
+    turnstile,
+    back_link: backLink,
+  };
+
+  it("posts the one-time code", async () => {
+    mount(<TotpChallengeForm {...props} />);
+    await flush();
+
+    type('input[name="totp_challenge_form[token]"]', "123456");
+
+    act(() => {
+      container
+        .querySelector("form")
+        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(setData).toHaveBeenCalledWith("totp_challenge_form", { token: "123456" });
+    expect(post).toHaveBeenCalledWith("/sign/in/challenge/totp");
+  });
+});
+
+describe("email one-time code edit interaction", () => {
+  const props = {
+    title: "コードの入力",
+    description: "説明",
+    action: "/sign/in/email",
+    pt: "token",
+    field_label: "コード",
+    field_placeholder: "000000",
+    submit_label: "確認",
+    delivery_help: "届かない場合",
+    return_link: { label: "もどる", href: "/sign/in/email/new" },
+    resend: {
+      endpoint: "/web/v0/in/email/otp",
+      state: "resend-state",
+      messages: {
+        button_label: "再送信",
+        sent_message: "送信しました",
+        too_soon_message: "しばらく待ってください",
+        failed_message: "失敗しました",
+      },
+    },
+    turnstile,
+  };
+
+  it("patches the one-time code", async () => {
+    mount(<SignInEmailEdit {...props} />);
+    await flush();
+
+    type('input[name="user_email[pass_code]"]', "654321");
+
+    act(() => {
+      container
+        .querySelector("form")
+        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(setData).toHaveBeenCalled();
+    expect(patch).toHaveBeenCalledWith("/sign/in/email");
   });
 });

@@ -1,11 +1,16 @@
 # ADR: Authentication Assurance Level Boundaries
 
-**Status:** Accepted (2026-05-18)
+**Status:** Partially superseded (2026-08-31)
 
-> **Partial supersession (2026-06-02):** The vocabulary and security properties in this ADR remain
-> useful, but authority ownership is superseded by `adr/identity-authority-boundary.md`. `acme/www`
-> owns session, token, account, preference, authorization, downstream-token trust, and step-up
-> freshness. `sign/id` owns only credential inventory and short-lived credential ceremony state.
+> **Partial supersession (2026-08-31):** Email OTP is never achieved NIST AAL; TOTP alone and
+> current UV passkey ceremonies are recorded as AAL1; fresh Umaxica step-up, achieved AAL, phishing
+> resistance, method policy, and freshness are independent.
+>
+> **Earlier partial supersession (2026-06-02):** The vocabulary and security properties in this ADR
+> remain useful, but authority ownership is superseded by `adr/identity-authority-boundary.md`.
+> `acme/www` owns session, token, account, preference, authorization, downstream-token trust, and
+> step-up freshness. `sign/id` owns only credential inventory and short-lived credential ceremony
+> state.
 
 ## Context
 

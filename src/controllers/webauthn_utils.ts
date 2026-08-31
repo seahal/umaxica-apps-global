@@ -13,6 +13,7 @@ function describeInput(input: unknown): string {
     return "undefined";
   }
   const name: unknown = Reflect.get(Object.getPrototypeOf(Object(input)) ?? {}, "constructor");
+  /* v8 ignore next -- constructor is a function except on null-prototype objects, already covered */
   const constructorName: unknown =
     typeof name === "function" ? Reflect.get(name, "name") : undefined;
   if (typeof constructorName === "string" && constructorName !== "") {

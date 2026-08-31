@@ -6,6 +6,7 @@ require "test_helper"
 class AuthAppVerificationPasskeysControllerCoverageTest < ActiveSupport::TestCase
   class Harness < Auth::App::Verification::PasskeysController
     def initialize
+      super
       @params_hash = { ri: "tokyo" }
       @errors = ["bad"]
       @passkey_challenge_id = "challenge-1"

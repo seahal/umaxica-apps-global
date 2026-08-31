@@ -74,7 +74,9 @@ class PreferenceSignInReconciliationContractTest < ActiveSupport::TestCase
       browser_pref.reload
 
       resource_option_id = resource_pref.public_send(cfg[:resource_language_assoc]).reload.option_id
-      browser_option_id = browser_pref.public_send(PreferenceLifecycleSurfaces.language_association(browser_pref)).option_id
+      browser_option_id = browser_pref.public_send(
+        PreferenceLifecycleSurfaces.language_association(browser_pref),
+      ).option_id
 
       assert_equal browser_option_id, resource_option_id, "#{surface}: both sides must converge to the same value"
       assert_equal browser_pref.explicit_field?(:language), resource_pref.explicit_field?(:language),
@@ -117,7 +119,9 @@ class PreferenceSignInReconciliationContractTest < ActiveSupport::TestCase
     ctx = Object.new
     ctx.extend(PreferenceAdoption)
     ctx.define_singleton_method(:preference_class) { cfg[:preference_class].call }
-    ctx.define_singleton_method(:preference_prefix) { |_p = nil| cfg[:preference_class].call.name.gsub("Preference", "") }
+    ctx.define_singleton_method(:preference_prefix) { |_p = nil|
+      cfg[:preference_class].call.name.gsub("Preference", "")
+    }
     ctx.define_singleton_method(:issue_access_token_from) { |_pref| nil }
     ctx.instance_variable_set(:@preferences, browser_pref)
     ctx.send(:sync_preferences!, resource_pref)

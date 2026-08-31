@@ -105,6 +105,19 @@ Rails.application.configure do
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
 
+  # CSRF verification is mandatory here. Pinned explicitly so a Rails defaults change cannot
+  # silently relax it, and so the contrast with the test environment is visible in the file.
+  # adr/csrf-protection-disabled-in-test-environment.md
+  config.action_controller.allow_forgery_protection = true
+
+  # A parameter the permit list does not cover is a Strong Parameters gap, not a note to
+  # read later. The default :log lets the gap ship; raise so it stops the request here.
+  config.action_controller.action_on_unpermitted_parameters = :raise
+
+  # On by default since load_defaults 7.0 - pinned so a defaults bump cannot silently
+  # turn redirect-to-user-input back into a warning.
+  config.action_controller.action_on_open_redirect = :raise
+
   # config/application.rb silences Rails' own CSRF warning so production keeps a single
   # redacted record per event. In development the raw reason is what makes a blocked
   # request diagnosable - which Origin failed to match which base_url - and the log holds

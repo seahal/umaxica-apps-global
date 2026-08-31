@@ -66,7 +66,10 @@ class IdentityEmailCeremonyContractTest < ActiveSupport::TestCase
       IdentityEmailCeremonyResult.new(valid_result_claims.merge("proof_method" => "sms_otp"), now: @now)
     end
     assert_email_ceremony_error("expires_at is expired") do
-      IdentityEmailCeremonyResult.new(valid_result_claims.merge("expires_at" => (@now - 1.second).to_i), now: @now)
+      IdentityEmailCeremonyResult.new(
+        valid_result_claims.merge("expires_at" => (@now - 1.second).to_i),
+        now: @now,
+      )
     end
     assert_email_ceremony_error("unknown claims") do
       IdentityEmailCeremonyResult.new(valid_result_claims.merge("return_to" => "/settings/emails"), now: @now)

@@ -15,7 +15,10 @@ module Publishing
       @category = publishing_category_vocabulary(audience: "app", surface: "docs")
       @tag = publishing_tag_vocabulary(audience: "app", surface: "docs")
       @guide = publishing_term(vocabulary: @category, locale: "ja", slug: "concurrency-guide", name: "Guide")
-      @leaf = publishing_term(vocabulary: @category, locale: "ja", slug: "concurrency-leaf", name: "Leaf", parent: @guide)
+      @leaf = publishing_term(
+        vocabulary: @category, locale: "ja", slug: "concurrency-leaf", name: "Leaf",
+        parent: @guide,
+      )
       @ruby = publishing_term(vocabulary: @tag, locale: "ja", slug: "concurrency-ruby", name: "Ruby")
       @entry = publishing_draft(edition: @edition, slug: "concurrency-entry", title: "Concurrency")
       RevisionSingleTaxonomyAssignment.create!(
@@ -55,7 +58,10 @@ module Publishing
           if index.zero?
             PromoteRevisionOperation.call(revision: EntryRevision.find(revision.id))
           else
-            MoveTaxonomySubtreeOperation.call(term: TaxonomyTerm.find(@guide.id), new_parent: TaxonomyTerm.find(other_root.id))
+            MoveTaxonomySubtreeOperation.call(
+              term: TaxonomyTerm.find(@guide.id),
+              new_parent: TaxonomyTerm.find(other_root.id),
+            )
           end
         end
 

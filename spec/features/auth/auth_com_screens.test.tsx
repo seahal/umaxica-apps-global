@@ -11,7 +11,10 @@ vi.mock("@inertiajs/react", () => ({
   router: { patch: vi.fn(), post: vi.fn(), delete: vi.fn() },
   usePage: () => ({ props: { errors: { base: "資格情報が正しくありません" } } }),
   useForm: (initial: Record<string, unknown>) => {
-    const errors: Record<string, string> = {};
+    const errors: Record<string, string> = {
+      pass_code: "コードが正しくありません",
+      address: "メールアドレスを入力してください",
+    };
 
     return {
       data: initial,
@@ -201,6 +204,7 @@ describe("sign-in credential screens", () => {
     );
 
     expect(markup).toContain('name="user_email[address]"');
+    expect(markup).toContain("メールアドレスを入力してください");
     expect(markup).toContain('data-turnstile-site-key="site-key"');
     expect(markup).toContain('href="/sign/in"');
   });
@@ -234,6 +238,36 @@ describe("sign-in credential screens", () => {
     expect(markup).toContain('name="user_email[pass_code]"');
     expect(markup).toContain("再送信");
     expect(markup).toContain("届かない場合");
+  });
+
+  it("SignInEmailEdit shows the code error and omits a pending-token field", () => {
+    const markup = renderToStaticMarkup(
+      <SignInEmailEdit
+        title="コードの入力"
+        description="説明"
+        action="/sign/in/email"
+        pt={null}
+        field_label="コード"
+        field_placeholder="000000"
+        submit_label="確認"
+        delivery_help="届かない場合"
+        return_link={{ label: "もどる", href: "/sign/in/email/new" }}
+        resend={{
+          endpoint: "/web/v0/in/email/otp",
+          state: "resend-state",
+          messages: {
+            button_label: "再送信",
+            sent_message: "送信しました",
+            too_soon_message: "しばらく待ってください",
+            failed_message: "失敗しました",
+          },
+        }}
+        turnstile={turnstile}
+      />,
+    );
+
+    expect(markup).not.toContain('name="pt"');
+    expect(markup).toContain("コードが正しくありません");
   });
 
   it("SignInSecretNew reports the rejection message the server sent", () => {

@@ -33,7 +33,7 @@ class WithdrawalFlowTest < ActiveSupport::TestCase
     assert_equal ClientWithdrawalFlowStatus::NOTHING, event.from_status_id
     assert_equal ClientWithdrawalFlowStatus::REQUESTED, event.to_status_id
     assert_equal cycle.client_id, event.client_id
-    assert_in_delta cycle.began_at.to_f, event.occurred_at.to_f, 0.001
+    assert_in_delta Float(cycle.began_at), Float(event.occurred_at), 0.001
   end
 
   test "withdrawal cycle methods progress through closing and discarded states with events" do

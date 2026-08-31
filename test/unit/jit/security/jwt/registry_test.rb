@@ -286,6 +286,16 @@ module Jit
         end
 
         def with_registry_inputs(extra_env = {})
+          env = registry_input_env(extra_env)
+          creds = registry_input_creds(env)
+          with_env(env) do
+            Rails.app.creds.stub(:option, ->(key, default: nil) { creds.fetch(key, default) }) do
+              yield
+            end
+          end
+        end
+
+        def registry_input_env(extra_env)
           legacy_jwk = JitSecurityJwtRegistry.export_public_jwk(
             OpenSSL::PKey::EC.generate("secp384r1"),
             kid: "legacy-kid",
@@ -298,6 +308,21 @@ module Jit
             "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-kid",
             "JWT_SIGN_APP_PUBLIC_KEYSET" => JSON.generate([legacy_jwk]),
           }.merge(extra_env)
+          clear_unused_registry_namespace_env(env)
+          env["AUTH_JWT_PRIVATE_KEYSET"] =
+            JSON.generate((env["AUTH_JWT_ACTIVE_KID"] || "auth-kid") => base64_der(@auth_key))
+          env["AUTH_JWT_PUBLIC_KEYSET"] =
+            JSON.generate(keys: [JitSecurityJwtRegistry.export_public_jwk(@auth_legacy_key, kid: "auth-legacy-kid")])
+          env["PREFERENCE_JWT_PRIVATE_KEYSET"] =
+            JSON.generate((env["PREFERENCE_JWT_ACTIVE_KID"] || "pref-kid") => base64_der(@preference_key))
+          env["PREFERENCE_JWT_PUBLIC_KEYSET"] =
+            JSON.generate(
+              keys: [JitSecurityJwtRegistry.export_public_jwk(@preference_legacy_key, kid: "pref-legacy-kid")],
+            )
+          env
+        end
+
+        def clear_unused_registry_namespace_env(env)
           JitSecurityJwtRegistry::SURFACE_NAMESPACES.each do |namespace|
             next if namespace == "SIGN_APP"
 
@@ -312,47 +337,24 @@ module Jit
             env["OIDC_CLIENT_#{namespace}_PUBLIC_KEYSET"] = nil
             env["OIDC_CLIENT_#{namespace}_REVOKED_KIDS"] = nil
           end
-          env["AUTH_JWT_PRIVATE_KEYSET"] =
-            JSON.generate((env["AUTH_JWT_ACTIVE_KID"] || "auth-kid") => base64_der(@auth_key))
-          env["AUTH_JWT_PUBLIC_KEYSET"] =
-            JSON.generate(keys: [JitSecurityJwtRegistry.export_public_jwk(@auth_legacy_key, kid: "auth-legacy-kid")])
-          env["PREFERENCE_JWT_PRIVATE_KEYSET"] =
-            JSON.generate((env["PREFERENCE_JWT_ACTIVE_KID"] || "pref-kid") => base64_der(@preference_key))
-          env["PREFERENCE_JWT_PUBLIC_KEYSET"] =
-            JSON.generate(
-              keys: [JitSecurityJwtRegistry.export_public_jwk(
-                @preference_legacy_key,
-                kid: "pref-legacy-kid",
-              )],
-            )
+        end
 
-          creds = {
+        def registry_input_creds(env)
+          {
             :AUTH_JWT_PRIVATE_KEYSET => JSON.generate(
               (env["AUTH_JWT_ACTIVE_KID"] || "auth-kid") => base64_der(@auth_key),
             ),
             :AUTH_JWT_PUBLIC_KEYSET => JSON.generate(
-              keys: [JitSecurityJwtRegistry.export_public_jwk(
-                @auth_legacy_key,
-                kid: "auth-legacy-kid",
-              )],
+              keys: [JitSecurityJwtRegistry.export_public_jwk(@auth_legacy_key, kid: "auth-legacy-kid")],
             ),
             :PREFERENCE_JWT_PRIVATE_KEYSET => JSON.generate(
               (env["PREFERENCE_JWT_ACTIVE_KID"] || "pref-kid") => base64_der(@preference_key),
             ),
             :PREFERENCE_JWT_PUBLIC_KEYSET => JSON.generate(
-              keys: [JitSecurityJwtRegistry.export_public_jwk(
-                @preference_legacy_key,
-                kid: "pref-legacy-kid",
-              )],
+              keys: [JitSecurityJwtRegistry.export_public_jwk(@preference_legacy_key, kid: "pref-legacy-kid")],
             ),
             "JWT_SIGN_APP_PRIVATE_KEY" => base64_der(@surface_key),
           }
-
-          with_env(env) do
-            Rails.app.creds.stub(:option, ->(key, default: nil) { creds.fetch(key, default) }) do
-              yield
-            end
-          end
         end
 
         def with_env(values)

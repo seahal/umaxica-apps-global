@@ -11,7 +11,7 @@ module Webauthn
   # - RP ID hash, clientData type, and origin match the surface config (gem)
   # - under a required UV policy the assertion is user-present AND
   #   user-verified - UV=false is rejected, so a successful verification
-  #   always supports the AAL2-aligned claim
+  #   captures user-verification evidence without assigning an AAL
   # - a sign-count regression (cloned-authenticator signal) is rejected by the
   #   gem via WebAuthn::SignCountVerificationError
   class AssertionVerifier

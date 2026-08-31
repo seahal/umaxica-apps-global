@@ -80,7 +80,7 @@ module Auth
               return
             end
 
-            email_params = params.permit(
+            email_params = params.slice(:visitor_email).permit(
               visitor_email: %i(raw_address address confirm_policy
                                 notifiable),
             )[:visitor_email]

@@ -17,7 +17,8 @@ module ExternalIdentityTestHelper
     "google" => "google-test-client-id",
   }.freeze
 
-  def create_active_external_identity(client:, provider:, subject: "#{provider}-subject-#{SecureRandom.hex(8)}", state: "active")
+  def create_active_external_identity(client:, provider:, subject: "#{provider}-subject-#{SecureRandom.hex(8)}",
+                                      state: "active")
     ClientExternalIdentity.create!(
       client: client,
       provider: provider,

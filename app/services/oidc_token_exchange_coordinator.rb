@@ -191,60 +191,14 @@ class OidcTokenExchangeCoordinator < ApplicationService
 
         refresh_plain = issue_or_rotate_usage_refresh_token!(usage)
         authorization_code.consume!
-
-        now = Time.current.utc
-        access_expires_at = now + AuthenticationBase::ACCESS_TOKEN_TTL
-        resource_type = resource_type_for(authorization_code)
-        client = client_for_resource_type(client, resource_type)
-        issuer = OidcIssuer.for_resource_type(resource_type)
-        subject = OidcSubject.for(resource, resource_type: resource_type)
-        oidc_jti = token_usage_oidc_jti(usage)
-        access_token = AuthenticationTokenService.encode(
-          resource,
-          host: OidcIssuer.host_for_resource_type(resource_type),
-          session_public_id: root_token.public_id,
-          oidc_sid: usage.public_id,
-          oidc_jti: oidc_jti,
-          resource_type: resource_type,
-          expires_at: access_expires_at,
-          scopes: authorization_code.scope.to_s.split,
-          acr: authorization_code.acr,
-          amr: Array(authorization_code.auth_method),
-          dpop_jkt: dpop_jkt,
-          jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
-          issuer: issuer,
-          audiences: [client.aud],
-          subject: subject,
-          auth_time: authorization_code.created_at || now,
-          client_id: client.client_id,
-        )
-        id_token = OidcIdTokenIssuer.call(
+        issue_exchanged_token_result(
+          authorization_code: authorization_code,
           resource: resource,
           client: client,
-          nonce: authorization_code.nonce,
-          issued_at: now,
-          acr: authorization_code.acr,
-          amr: Array(authorization_code.auth_method),
-          jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
-          issuer: issuer,
-          subject: subject,
-          sid: usage.public_id,
-          auth_time: authorization_code.created_at || now,
-        )
-
-        token_type = dpop_jkt.present? ? "DPoP" : "Bearer"
-
-        Result.new(
-          success: true,
-          token_response: {
-            access_token: access_token,
-            token_type: token_type,
-            expires_in: Integer(AuthenticationBase::ACCESS_TOKEN_TTL.to_s, 10),
-            refresh_token: refresh_plain,
-            id_token: id_token,
-          },
-          error: nil,
-          error_description: nil,
+          root_token: root_token,
+          usage: usage,
+          refresh_plain: refresh_plain,
+          dpop_jkt: dpop_jkt,
         )
       end
     end
@@ -291,6 +245,73 @@ class OidcTokenExchangeCoordinator < ApplicationService
 
   def token_usage_oidc_jti(usage)
     usage.oidc_jti.presence || raise(ArgumentError, "OIDC token usage is missing oidc_jti")
+  end
+
+  def issue_exchanged_token_result(authorization_code:, resource:, client:, root_token:, usage:, refresh_plain:,
+                                   dpop_jkt:)
+    now = Time.current.utc
+    resource_type = resource_type_for(authorization_code)
+    client = client_for_resource_type(client, resource_type)
+    issuer = OidcIssuer.for_resource_type(resource_type)
+    subject = OidcSubject.for(resource, resource_type: resource_type)
+    Result.new(
+      success: true,
+      token_response: {
+        access_token: encode_exchanged_access_token(
+          authorization_code: authorization_code, resource: resource, client: client, root_token: root_token,
+          usage: usage, dpop_jkt: dpop_jkt, now: now, resource_type: resource_type, issuer: issuer, subject: subject,
+        ),
+        token_type: dpop_jkt.present? ? "DPoP" : "Bearer",
+        expires_in: Integer(AuthenticationBase::ACCESS_TOKEN_TTL.to_s, 10),
+        refresh_token: refresh_plain,
+        id_token: encode_exchanged_id_token(
+          authorization_code: authorization_code, resource: resource, client: client, usage: usage,
+          now: now, resource_type: resource_type, issuer: issuer, subject: subject,
+        ),
+      },
+      error: nil,
+      error_description: nil,
+    )
+  end
+
+  def encode_exchanged_access_token(authorization_code:, resource:, client:, root_token:, usage:, dpop_jkt:, now:,
+                                    resource_type:, issuer:, subject:)
+    AuthenticationTokenService.encode(
+      resource,
+      host: OidcIssuer.host_for_resource_type(resource_type),
+      session_public_id: root_token.public_id,
+      oidc_sid: usage.public_id,
+      oidc_jti: token_usage_oidc_jti(usage),
+      resource_type: resource_type,
+      expires_at: now + AuthenticationBase::ACCESS_TOKEN_TTL,
+      scopes: authorization_code.scope.to_s.split,
+      acr: authorization_code.acr,
+      amr: Array(authorization_code.auth_method),
+      dpop_jkt: dpop_jkt,
+      jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
+      issuer: issuer,
+      audiences: [client.aud],
+      subject: subject,
+      auth_time: authorization_code.created_at || now,
+      client_id: client.client_id,
+    )
+  end
+
+  def encode_exchanged_id_token(authorization_code:, resource:, client:, usage:, now:, resource_type:, issuer:,
+                                subject:)
+    OidcIdTokenIssuer.call(
+      resource: resource,
+      client: client,
+      nonce: authorization_code.nonce,
+      issued_at: now,
+      acr: authorization_code.acr,
+      amr: Array(authorization_code.auth_method),
+      jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
+      issuer: issuer,
+      subject: subject,
+      sid: usage.public_id,
+      auth_time: authorization_code.created_at || now,
+    )
   end
 
   def usage_class_for_root_token(root_token)

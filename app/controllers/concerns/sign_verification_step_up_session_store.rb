@@ -125,19 +125,26 @@ module SignVerificationStepUpSessionStore
     return unless request_available_for_step_up_completion_state?
 
     session.delete(acme_step_up_completion_session_key)
+    session.delete(acme_step_up_completion_session_key.to_s)
   end
 
   def store_acme_step_up_completion_state!(transaction_id:, surface:)
     return unless request_available_for_step_up_completion_state?
 
-    session[acme_step_up_completion_session_key] = {
+    session[acme_step_up_completion_session_key.to_s] = {
       "transaction_id" => transaction_id,
       "surface" => surface,
       "csrf_token" => params[:step_up_completion_csrf].presence,
     }
   end
 
+  def acme_step_up_completion_state
+    session[acme_step_up_completion_session_key.to_s].to_h.presence ||
+      session[acme_step_up_completion_session_key].to_h
+  end
+
   def request_available_for_step_up_completion_state?
-    defined?(@_request) && @_request.present?
+    (defined?(@request) && @request.present?) ||
+      (defined?(@_request) && @_request.present?)
   end
 end

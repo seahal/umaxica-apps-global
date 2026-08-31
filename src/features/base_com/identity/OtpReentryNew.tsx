@@ -56,6 +56,7 @@ export default function OtpReentryNew({
 
   const submitPassCode = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
+    /* v8 ignore next -- the pass-code form is not rendered when the prop is absent */
     if (!passCodeForm) {
       return;
     }

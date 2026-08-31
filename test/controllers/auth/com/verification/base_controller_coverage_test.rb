@@ -6,6 +6,7 @@ require "test_helper"
 class AuthComVerificationBaseControllerCoverageTest < ActiveSupport::TestCase
   class Harness < Auth::Com::Verification::BaseController
     def initialize
+      super
       @session_hash = {}
       @params_hash = { ri: "tokyo" }
       @redirect_args = nil
@@ -94,7 +95,7 @@ class AuthComVerificationBaseControllerCoverageTest < ActiveSupport::TestCase
 
     original_handle = Auth::Com::Verification::BaseController.instance_method(:handle_invalid_step_up_session!).super_method
 
-    assert_equal false, original_handle.bind_call(harness)
+    assert_not original_handle.bind_call(harness)
     assert_nil harness.session[:email_otp]
     assert harness.redirect_args
 
@@ -149,14 +150,16 @@ class AuthComVerificationBaseControllerCoverageTest < ActiveSupport::TestCase
     emails.define_singleton_method(:first) { nil }
     harness.visitor = visitor
 
-    assert_equal false, harness.send(:send_email_otp!)
-    assert_equal [I18n.t("sign.app.verification.errors.email_not_verified")], harness.instance_variable_get(:@verification_errors)
+    assert_not harness.send(:send_email_otp!)
+    assert_equal [I18n.t("sign.app.verification.errors.email_not_verified")],
+                 harness.instance_variable_get(:@verification_errors)
 
     record = Object.new
     emails.define_singleton_method(:first) { record }
     delivered = []
     adapter = Object.new
     adapter.define_singleton_method(:deliver) { |**kwargs| delivered << kwargs }
+
     OtpAdapter.stub(:for, adapter) do
       assert harness.send(:send_email_otp!)
     end

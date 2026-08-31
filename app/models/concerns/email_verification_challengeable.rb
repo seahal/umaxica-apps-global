@@ -160,41 +160,53 @@ module EmailVerificationChallengeable
   end
 
   def evp_challenge_metadata_is_consistent
-    if evp_outcome.nil?
-      if OPTIONAL_METADATA_ATTRIBUTES.any? { |attribute| public_send(attribute).present? } ||
-          evp_attempt_count.to_i.positive?
-        errors.add(:evp_outcome, :blank)
-      end
-      return
-    end
+    return evp_validate_blank_outcome if evp_outcome.nil?
 
     errors.add(:evp_nonce_digest, "must be present") if evp_nonce_digest.blank?
-
-    if evp_outcome == OUTCOME_PENDING
-      errors.add(:evp_consumed_at, "must be blank") if evp_consumed_at.present?
-      return
-    end
+    return evp_validate_pending_outcome if evp_outcome == OUTCOME_PENDING
 
     errors.add(:evp_consumed_at, "must be present") if evp_consumed_at.blank?
+    evp_validate_terminal_outcome
+  end
 
+  def evp_validate_blank_outcome
+    if OPTIONAL_METADATA_ATTRIBUTES.any? { |attribute| public_send(attribute).present? } ||
+        evp_attempt_count.to_i.positive?
+      errors.add(:evp_outcome, :blank)
+    end
+  end
+
+  def evp_validate_pending_outcome
+    errors.add(:evp_consumed_at, "must be blank") if evp_consumed_at.present?
+  end
+
+  def evp_validate_terminal_outcome
     case evp_outcome
     when OUTCOME_VERIFIED
-      errors.add(:evp_token_digest, "must be present") if evp_token_digest.blank?
-      errors.add(:evp_issuer, "must be present") if evp_issuer.blank?
-      errors.add(:evp_issued_at, "must be present") if evp_issued_at.blank?
-      errors.add(:evp_verified_at, "must be present") if evp_verified_at.blank?
-      if evp_issued_at.present? && evp_verified_at.present? && evp_issued_at > evp_verified_at
-        errors.add(:evp_issued_at, "must not be after verification")
-      end
-      errors.add(:evp_failure_reason, "must be blank") if evp_failure_reason.present?
+      evp_validate_verified_outcome
     when OUTCOME_FALLBACK, OUTCOME_REJECTED
-      errors.add(:evp_failure_reason, "must be present") if evp_failure_reason.blank?
-      errors.add(:evp_token_digest, "must be present") if evp_outcome == OUTCOME_REJECTED && evp_token_digest.blank?
-      errors.add(:evp_issuer, "must be blank") if evp_issuer.present?
-      errors.add(:evp_issued_at, "must be blank") if evp_issued_at.present?
-      errors.add(:evp_verified_at, "must be blank") if evp_verified_at.present?
+      evp_validate_failed_outcome
     else
       errors.add(:evp_outcome, "is unsupported")
     end
+  end
+
+  def evp_validate_verified_outcome
+    errors.add(:evp_token_digest, "must be present") if evp_token_digest.blank?
+    errors.add(:evp_issuer, "must be present") if evp_issuer.blank?
+    errors.add(:evp_issued_at, "must be present") if evp_issued_at.blank?
+    errors.add(:evp_verified_at, "must be present") if evp_verified_at.blank?
+    if evp_issued_at.present? && evp_verified_at.present? && evp_issued_at > evp_verified_at
+      errors.add(:evp_issued_at, "must not be after verification")
+    end
+    errors.add(:evp_failure_reason, "must be blank") if evp_failure_reason.present?
+  end
+
+  def evp_validate_failed_outcome
+    errors.add(:evp_failure_reason, "must be present") if evp_failure_reason.blank?
+    errors.add(:evp_token_digest, "must be present") if evp_outcome == OUTCOME_REJECTED && evp_token_digest.blank?
+    errors.add(:evp_issuer, "must be blank") if evp_issuer.present?
+    errors.add(:evp_issued_at, "must be blank") if evp_issued_at.present?
+    errors.add(:evp_verified_at, "must be blank") if evp_verified_at.present?
   end
 end

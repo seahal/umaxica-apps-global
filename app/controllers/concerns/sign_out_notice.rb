@@ -60,7 +60,10 @@ module SignOutNotice
   end
 
   def sign_out_route_params
-    params.permit(:ri, :logout_challenge).to_h.symbolize_keys
+    # These two are the only params that belong in a sign-out route. `permit` alone would
+    # report every other param on the request as unpermitted - and the request legitimately
+    # carries others (client_id, logout_request) - so narrow the set first, then permit.
+    params.slice(:ri, :logout_challenge).permit(:ri, :logout_challenge).to_h.symbolize_keys
   end
 
   def sign_out_new_path(**options)

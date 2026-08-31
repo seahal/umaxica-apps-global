@@ -129,7 +129,8 @@ module AuthenticationHarness
   end
 
   def authentication_harness_session_token(resource, session_public_id:)
-    token = authentication_harness_token_model(resource).find_by(public_id: session_public_id) if session_public_id.present?
+    token = authentication_harness_token_model(resource).find_by(public_id: session_public_id) \
+      if session_public_id.present?
     token || authentication_harness_latest_token(resource) || authentication_harness_create_token(resource)
   end
 

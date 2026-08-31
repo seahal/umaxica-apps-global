@@ -14,6 +14,9 @@ class EnforcementRecoveryCeremonyTest < ActiveSupport::TestCase
 
     ceremony.consume!
 
-    assert_nil ClientEnforcementRecoveryCeremony.authenticate(public_id: ceremony.public_id, token: ceremony.plaintext_token)
+    assert_nil ClientEnforcementRecoveryCeremony.authenticate(
+      public_id: ceremony.public_id,
+      token: ceremony.plaintext_token,
+    )
   end
 end

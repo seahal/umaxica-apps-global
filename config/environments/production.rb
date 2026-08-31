@@ -255,6 +255,11 @@ Rails.application.configure do
   # Raise on missing callback actions (same as dev/test)
   config.action_controller.raise_on_missing_callback_actions = true
 
+  # CSRF verification is mandatory here. Pinned explicitly so a Rails defaults change cannot
+  # silently relax it, and so the contrast with the test environment is visible in the file.
+  # adr/csrf-protection-disabled-in-test-environment.md
+  config.action_controller.allow_forgery_protection = true
+
   # Raise on email delivery errors (immediate detection of SES failures)
   config.action_mailer.raise_delivery_errors = true
 

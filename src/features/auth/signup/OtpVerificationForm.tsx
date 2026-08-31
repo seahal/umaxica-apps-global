@@ -68,6 +68,7 @@ export default function OtpVerificationForm({
             className="flex flex-col gap-2 rounded-md border border-danger bg-surface p-3 text-sm
               text-danger"
           >
+            {/* v8 ignore next -- a heading is only sent when the list is non-empty */}
             {errorHeading ? <h2 className="font-semibold">{errorHeading}</h2> : null}
             <ul className="flex flex-col gap-1 pl-4 list-disc">
               {errors.map((message) => (

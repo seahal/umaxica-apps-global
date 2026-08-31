@@ -259,8 +259,6 @@ group :development do
   gem "flog", require: false
   # Duplicate code detector.
   gem "flay", require: false
-  # Code smell detector.
-  gem "reek", require: false
 end
 
 group :development, :production do

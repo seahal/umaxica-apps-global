@@ -95,6 +95,47 @@ describe("WelcomeShow credential warning", () => {
   });
 });
 
+describe("SignOutConfirmation", () => {
+  it("posts the logout challenge the server issued", () => {
+    const markup = renderToStaticMarkup(
+      <SignOutConfirmation
+        title="Sign out"
+        active
+        description="You will need to sign in again."
+        form={{
+          action: "/sign/out",
+          submit: "Sign out",
+          logout_challenge: "challenge-value",
+          confirm_description: "Ends this session.",
+        }}
+        home_link={{ label: "Home", href: "/" }}
+      />,
+    );
+
+    expect(markup).toContain('name="logout_challenge"');
+    expect(markup).toContain("challenge-value");
+  });
+
+  it("omits the challenge field when the server sent none", () => {
+    const markup = renderToStaticMarkup(
+      <SignOutConfirmation
+        title="Sign out"
+        active
+        description="You will need to sign in again."
+        form={{
+          action: "/sign/out",
+          submit: "Sign out",
+          logout_challenge: null,
+          confirm_description: "Ends this session.",
+        }}
+        home_link={{ label: "Home", href: "/" }}
+      />,
+    );
+
+    expect(markup).not.toContain("logout_challenge");
+  });
+});
+
 describe("base/app and base/com page modules", () => {
   it("re-export the shared components for their own surface", () => {
     expect(AppDashboardShow).toBe(SurfaceDashboard);

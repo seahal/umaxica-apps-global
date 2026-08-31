@@ -56,7 +56,7 @@ class HostAuthorizationContractTest < Minitest::Test
     RUBY
     hosts = PRIVATE_ORIGIN_HOSTS + ["evil.example.com"]
     stdout, stderr, status = Open3.capture3(
-      {
+      cleared_object_storage_env.merge(
         "RAILS_ENV" => "development",
         "REDIS_SMOKE_TEST" => "0",
         "HOST_AUTHORIZATION_TEST_HOSTS" => JSON.generate(hosts),
@@ -64,7 +64,7 @@ class HostAuthorizationContractTest < Minitest::Test
         "PRIVATE_AUTH_STAFF_URL" => "http://configured-auth.org.localhost:3000",
         "PRIVATE_BASE_NETWORK_URL" => "http://configured-base.net.localhost:3000",
         "PRIVATE_BASE_DEVELOPER_URL" => "http://configured-base.dev.localhost:3000",
-      },
+      ),
       "bin/rails",
       "runner",
       runner,
@@ -104,25 +104,7 @@ class HostAuthorizationContractTest < Minitest::Test
     # not degrade into admitting the whole umaxica.* domain.
     unconfigured_site_host = "core-jp.umaxica.app"
     stdout, stderr, status = Open3.capture3(
-      {
-        "RAILS_ENV" => "development",
-        "REDIS_SMOKE_TEST" => "0",
-        "HOST_AUTHORIZATION_TEST_HOSTS" =>
-          JSON.generate(BROWSER_FACING_SITE_HOSTS + [unconfigured_site_host, "evil.example.com"]),
-        "PUBLIC_AUTH_SERVICE_URL" => "https://auth.umaxica.app",
-        "PUBLIC_AUTH_CORPORATE_URL" => "https://auth.umaxica.com",
-        "PUBLIC_AUTH_STAFF_URL" => "https://auth.umaxica.org",
-        "PUBLIC_BASE_SERVICE_URL" => "https://www.umaxica.app",
-        "PUBLIC_BASE_CORPORATE_URL" => "https://www.umaxica.com",
-        "PUBLIC_BASE_STAFF_URL" => "https://www.umaxica.org",
-        # Canonical Core family (adr/core-canonical-public-host.md).
-        "PUBLIC_CORE_SERVICE_URL" => "https://jp.umaxica.app",
-        "PUBLIC_CORE_STAFF_URL" => "https://jp.umaxica.org",
-        "PUBLIC_CORE_CORPORATE_URL" => "https://jp.umaxica.com",
-        "PUBLIC_SIDE_SERVICE_URL" => "https://side-jp.umaxica.app",
-        "PUBLIC_INFO_SERVICE_URL" => "https://info.umaxica.app",
-        "PUBLIC_PALM_SERVICE_URL" => "https://palm-jp.umaxica.app",
-      },
+      development_published_host_env(unconfigured_site_host),
       "bin/rails",
       "runner",
       runner,
@@ -175,5 +157,41 @@ class HostAuthorizationContractTest < Minitest::Test
     refute_match(/config\.hosts\s*<<\s*\/.+\//, development_config)
     refute_match(/config\.hosts\s*<<\s*\/.+\//, production_config)
     # rubocop:enable Rails/RefuteMethods
+  end
+
+  # Open3 hands the child our own environment, so whatever object-storage variables happen
+  # to be set in this process - by the shell, by a .env, or by another test mid-flight -
+  # decide whether the child boots. A partially configured set makes
+  # `ObjectStorage::Environment.configured?` refuse to boot, by design. Clear the whole set
+  # (nil unsets) so this test measures Host Authorization and nothing else.
+  OBJECT_STORAGE_ENV_NAMES = %w(
+    OBJECT_STORAGE_ENDPOINT OBJECT_STORAGE_REGION OBJECT_STORAGE_ACCESS_KEY_ID
+    OBJECT_STORAGE_SECRET_ACCESS_KEY OBJECT_STORAGE_FORCE_PATH_STYLE
+    OBJECT_STORAGE_ACCESS_KEY_ID_FILE OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE
+  ).freeze
+
+  def cleared_object_storage_env
+    OBJECT_STORAGE_ENV_NAMES.index_with(nil)
+  end
+
+  def development_published_host_env(unconfigured_site_host)
+    cleared_object_storage_env.merge(
+      "RAILS_ENV" => "development",
+      "REDIS_SMOKE_TEST" => "0",
+      "HOST_AUTHORIZATION_TEST_HOSTS" =>
+        JSON.generate(BROWSER_FACING_SITE_HOSTS + [unconfigured_site_host, "evil.example.com"]),
+      "PUBLIC_AUTH_SERVICE_URL" => "https://auth.umaxica.app",
+      "PUBLIC_AUTH_CORPORATE_URL" => "https://auth.umaxica.com",
+      "PUBLIC_AUTH_STAFF_URL" => "https://auth.umaxica.org",
+      "PUBLIC_BASE_SERVICE_URL" => "https://www.umaxica.app",
+      "PUBLIC_BASE_CORPORATE_URL" => "https://www.umaxica.com",
+      "PUBLIC_BASE_STAFF_URL" => "https://www.umaxica.org",
+      "PUBLIC_CORE_SERVICE_URL" => "https://jp.umaxica.app",
+      "PUBLIC_CORE_STAFF_URL" => "https://jp.umaxica.org",
+      "PUBLIC_CORE_CORPORATE_URL" => "https://jp.umaxica.com",
+      "PUBLIC_SIDE_SERVICE_URL" => "https://side-jp.umaxica.app",
+      "PUBLIC_INFO_SERVICE_URL" => "https://info.umaxica.app",
+      "PUBLIC_PALM_SERVICE_URL" => "https://palm-jp.umaxica.app",
+    )
   end
 end

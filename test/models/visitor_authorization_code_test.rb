@@ -178,7 +178,8 @@ class VisitorAuthorizationCodeTest < ActiveSupport::TestCase
     challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
     code = VisitorAuthorizationCode.issue!(**@valid_params.merge(code_challenge: challenge))
 
-    assert_not code.verify_pkce(verifier), "a 42-character verifier must be rejected even when the SHA256 digest matches"
+    assert_not code.verify_pkce(verifier),
+               "a 42-character verifier must be rejected even when the SHA256 digest matches"
   end
 
   test "verify_pkce rejects a code_verifier longer than the RFC 7636 128 character maximum" do
@@ -186,7 +187,8 @@ class VisitorAuthorizationCodeTest < ActiveSupport::TestCase
     challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
     code = VisitorAuthorizationCode.issue!(**@valid_params.merge(code_challenge: challenge))
 
-    assert_not code.verify_pkce(verifier), "a 129-character verifier must be rejected even when the SHA256 digest matches"
+    assert_not code.verify_pkce(verifier),
+               "a 129-character verifier must be rejected even when the SHA256 digest matches"
   end
 
   test "verify_pkce rejects a code_verifier containing characters outside the RFC 7636 unreserved set" do

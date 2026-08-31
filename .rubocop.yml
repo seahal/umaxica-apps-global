@@ -446,22 +446,16 @@ Style/SwapValues:
 # ---------- Metrics（コード複雑度・サイズ制限） ----------
 Metrics/AbcSize:
   Enabled: true
-  Include:
-    - app/controllers/**/*.rb
   Max: 50
   Exclude:
     - "app/controllers/sign/app/auth/omniauth_callbacks_controller.rb"
 
 Metrics/CyclomaticComplexity:
   Enabled: true
-  Include:
-    - app/controllers/**/*.rb
   Max: 18
 
 Metrics/MethodLength:
   Enabled: true
-  Include:
-    - app/controllers/**/*.rb
   Max: 45
   Exclude:
     - "app/controllers/concerns/preference/base.rb"
@@ -469,8 +463,6 @@ Metrics/MethodLength:
 
 Metrics/PerceivedComplexity:
   Enabled: true
-  Include:
-    - app/controllers/**/*.rb
   Max: 18
 
 Metrics/CollectionLiteralLength:
@@ -499,7 +491,7 @@ Lint/DuplicateBranch:
   Enabled: true
 
 Lint/DuplicateMethods:
-  Enabled: false
+  Enabled: true
 
 Lint/DuplicateRegexpCharacterClassElement:
   Enabled: true
@@ -544,9 +536,6 @@ Lint/UnusedMethodArgument:
   Enabled: true
   AllowUnusedKeywordArguments: false
   IgnoreEmptyMethods: true
-  Exclude:
-    - "app/services/**/*"
-    - "test/support/**/*"
 
 Lint/IncompatibleIoSelectWithFiberScheduler:
   Enabled: true
@@ -1375,7 +1364,10 @@ Security/IoMethods:
 
 # ---------- Lint: 安全でない暗黙変換の検出 ----------
 
-# to_i / to_f は無効な入力で 0 を返す — Integer() / Float() を強制
+# to_i / to_f は無効な入力で 0 を返すため Integer() / Float() の方が厳密だが、このコップの
+# 対象の大半は Time / Duration / Numeric レシーバで、そこでは to_i が正しい。unsafe な
+# 自動修正を当てると Integer(Time, 10) が生成されて ArgumentError で落ちる。
+# 文字列パースを厳密化したい箇所は個別に Integer() を書く。
 Lint/NumberConversion:
   Enabled: false
 
@@ -1481,9 +1473,16 @@ Style/ConstantVisibility:
     - "db/**/*_migrate/**/*.rb"
 
 Layout/LineLength:
-  Enabled: false
+  Enabled: true
   Max: 120
-  AllowedPatterns: ['\A#']
+  # A comment is prose, and rewrapping it to fit is churn. `\A#` only matched a comment in
+  # column 0, so every indented comment was still measured - allow leading whitespace.
+  AllowedPatterns: ['\A\s*#']
+  # Never let the autocorrect break a long literal across lines. It rewrites the literal as
+  # interpolated fragments, which silently corrupts any regex or escape-bearing string -
+  # `\b` inside the generated double-quoted fragment stops being a word boundary. A long
+  # literal is reworded by a person or left alone.
+  SplitStrings: false
   Exclude:
     - "db/**/*_migrate/**/*.rb"
     - "db/initial_schemas/**/*.rb"

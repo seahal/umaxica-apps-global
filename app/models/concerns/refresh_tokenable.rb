@@ -55,51 +55,7 @@ module RefreshTokenable
     private
 
     def create_rotated_token_record!(previous_token)
-      actor_key = actor_foreign_key_from(previous_token)
-      token_status_key = token_status_key_from(previous_token)
-      token_kind_key = token_kind_key_from(previous_token)
-
-      attrs = {
-        refresh_token_family_id: previous_token.refresh_token_family_id.presence || SecureRandom.uuid,
-        refresh_token_generation: Integer(previous_token.refresh_token_generation.to_s, 10) + 1,
-        discarded_at: previous_token.discarded_at,
-        dbsc_session_id: previous_token.dbsc_session_id,
-        dbsc_public_key: previous_token.dbsc_public_key,
-        dbsc_challenge: previous_token.dbsc_challenge,
-        dbsc_challenge_issued_at: previous_token.dbsc_challenge_issued_at,
-      }
-      attrs[:device_session_id] = previous_token.device_session_id if previous_token.has_attribute?(:device_session_id)
-      attrs[:dpop_jkt] = previous_token.dpop_jkt if previous_token.has_attribute?(:dpop_jkt)
-      attrs[:purged_at] = previous_token.purged_at if previous_token.has_attribute?(:purged_at)
-      if previous_token.has_attribute?(:oidc_connection_id)
-        attrs[:oidc_connection_id] = previous_token.oidc_connection_id
-      end
-      attrs[:oidc_client_id] = previous_token.oidc_client_id if previous_token.has_attribute?(:oidc_client_id)
-      attrs[:oidc_scope] = previous_token.oidc_scope if previous_token.has_attribute?(:oidc_scope)
-      attrs[:oidc_sid] = previous_token.oidc_sid if previous_token.has_attribute?(:oidc_sid)
-
-      operation =
-        lambda do
-          attrs[actor_key] = previous_token.public_send(actor_key) if actor_key
-          attrs[token_status_key] = previous_token.public_send(token_status_key) if token_status_key
-          attrs[token_kind_key] = previous_token.public_send(token_kind_key) if token_kind_key
-        end
-      defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
-      attrs[:user_token_binding_method_id] =
-        previous_token.user_token_binding_method_id if previous_token.has_attribute?(:user_token_binding_method_id)
-      attrs[:staff_token_binding_method_id] =
-        previous_token.staff_token_binding_method_id if previous_token.has_attribute?(:staff_token_binding_method_id)
-      attrs[:visitor_token_binding_method_id] =
-        previous_token.visitor_token_binding_method_id if previous_token.has_attribute?(
-          :visitor_token_binding_method_id,
-        )
-      attrs[:user_token_dbsc_status_id] =
-        previous_token.user_token_dbsc_status_id if previous_token.has_attribute?(:user_token_dbsc_status_id)
-      attrs[:staff_token_dbsc_status_id] =
-        previous_token.staff_token_dbsc_status_id if previous_token.has_attribute?(:staff_token_dbsc_status_id)
-      attrs[:visitor_token_dbsc_status_id] =
-        previous_token.visitor_token_dbsc_status_id if previous_token.has_attribute?(:visitor_token_dbsc_status_id)
-
+      attrs = rotated_token_attributes(previous_token)
       release_unique_dbsc_session_id!(previous_token) if attrs[:dbsc_session_id].present?
       replacement = new(attrs)
       replacement.skip_session_limit_check = true if replacement.respond_to?(:skip_session_limit_check=)
@@ -109,6 +65,59 @@ module RefreshTokenable
       replacement.update!(refresh_token_digest: digest_refresh_token(verifier))
       update_device_session_after_rotation!(previous_token, replacement)
       [replacement, raw_refresh_token]
+    end
+
+    def rotated_token_attributes(previous_token)
+      attrs = rotated_token_core_attributes(previous_token)
+      copy_rotated_token_optional_attributes(attrs, previous_token)
+      copy_rotated_token_binding_attributes(attrs, previous_token)
+      attrs
+    end
+
+    def rotated_token_core_attributes(previous_token)
+      {
+        refresh_token_family_id: previous_token.refresh_token_family_id.presence || SecureRandom.uuid,
+        refresh_token_generation: Integer(previous_token.refresh_token_generation.to_s, 10) + 1,
+        discarded_at: previous_token.discarded_at,
+        dbsc_session_id: previous_token.dbsc_session_id,
+        dbsc_public_key: previous_token.dbsc_public_key,
+        dbsc_challenge: previous_token.dbsc_challenge,
+        dbsc_challenge_issued_at: previous_token.dbsc_challenge_issued_at,
+      }
+    end
+
+    def copy_rotated_token_optional_attributes(attrs, previous_token)
+      copy_attribute_if_present(attrs, previous_token, :device_session_id)
+      copy_attribute_if_present(attrs, previous_token, :dpop_jkt)
+      copy_attribute_if_present(attrs, previous_token, :purged_at)
+      copy_attribute_if_present(attrs, previous_token, :oidc_connection_id)
+      copy_attribute_if_present(attrs, previous_token, :oidc_client_id)
+      copy_attribute_if_present(attrs, previous_token, :oidc_scope)
+      copy_attribute_if_present(attrs, previous_token, :oidc_sid)
+
+      actor_key = actor_foreign_key_from(previous_token)
+      token_status_key = token_status_key_from(previous_token)
+      token_kind_key = token_kind_key_from(previous_token)
+      operation =
+        lambda do
+          attrs[actor_key] = previous_token.public_send(actor_key) if actor_key
+          attrs[token_status_key] = previous_token.public_send(token_status_key) if token_status_key
+          attrs[token_kind_key] = previous_token.public_send(token_kind_key) if token_kind_key
+        end
+      defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
+    end
+
+    def copy_rotated_token_binding_attributes(attrs, previous_token)
+      copy_attribute_if_present(attrs, previous_token, :user_token_binding_method_id)
+      copy_attribute_if_present(attrs, previous_token, :staff_token_binding_method_id)
+      copy_attribute_if_present(attrs, previous_token, :visitor_token_binding_method_id)
+      copy_attribute_if_present(attrs, previous_token, :user_token_dbsc_status_id)
+      copy_attribute_if_present(attrs, previous_token, :staff_token_dbsc_status_id)
+      copy_attribute_if_present(attrs, previous_token, :visitor_token_dbsc_status_id)
+    end
+
+    def copy_attribute_if_present(attrs, previous_token, name)
+      attrs[name] = previous_token.public_send(name) if previous_token.has_attribute?(name)
     end
 
     def update_device_session_after_rotation!(previous_token, replacement)

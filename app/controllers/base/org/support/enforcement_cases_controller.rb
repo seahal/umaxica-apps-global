@@ -20,7 +20,9 @@ module Base
         before_action :set_enforcement_case, only: :show
 
         def index
-          cases = enforcement_case_class.where(principal_public_id: params[:principal_public_id]).order(created_at: :desc)
+          cases = enforcement_case_class
+            .where(principal_public_id: params[:principal_public_id])
+            .order(created_at: :desc)
           render json: { enforcement_cases: cases.map { |c| enforcement_case_json(c) } }
         end
 
@@ -104,8 +106,14 @@ module Base
         end
 
         def identifier_effect_params(attrs)
-          digest = EnforcementIdentifierDigest.for_email(realm: params[:realm], value: attrs[:email]) if attrs[:email].present?
-          digest ||= EnforcementIdentifierDigest.for_telephone(realm: params[:realm], value: attrs[:telephone]) if attrs[:telephone].present?
+          digest = EnforcementIdentifierDigest.for_email(
+            realm: params[:realm],
+            value: attrs[:email],
+          ) if attrs[:email].present?
+          digest ||= EnforcementIdentifierDigest.for_telephone(
+            realm: params[:realm],
+            value: attrs[:telephone],
+          ) if attrs[:telephone].present?
           raise ArgumentError, "identifier_effect requires email or telephone" unless digest
 
           digest.merge(

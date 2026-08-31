@@ -206,7 +206,9 @@ class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
     flash = Object.new
     now_store = {}
     flash.define_singleton_method(:now) { now_store }
-    flash.define_singleton_method(:[]=) { |key, value| instance_variable_set(:@store, (instance_variable_get(:@store) || {}).merge(key => value)) }
+    flash.define_singleton_method(:[]=) { |key, value|
+      instance_variable_set(:@store, (instance_variable_get(:@store) || {}).merge(key => value))
+    }
     flash.define_singleton_method(:[]) { |key| (instance_variable_get(:@store) || {})[key] }
     harness.flash_hash = flash
     pending = ClientEmail.new
@@ -239,7 +241,9 @@ class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
     pending.define_singleton_method(:otp_cooldown_active?) { true }
     pending.user_email_status_id = ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP
     harness.define_singleton_method(:current_registration_email) { pending }
-    harness.define_singleton_method(:after_email_registration_started_path) { |params = {}| "/emails/edit?#{params.to_query}" }
+    harness.define_singleton_method(:after_email_registration_started_path) { |params = {}|
+      "/emails/edit?#{params.to_query}"
+    }
     harness.define_singleton_method(:build_redirect_params) { |key, message, _session_key| { key => message } }
 
     harness.resend
@@ -260,7 +264,9 @@ class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
     sent = []
     harness.define_singleton_method(:generate_otp_for) { |email| generated << email; "654321" }
     harness.define_singleton_method(:send_verification_email) { |code| sent << code }
-    harness.define_singleton_method(:after_email_registration_started_path) { |params = {}| "/emails/edit?#{params.to_query}" }
+    harness.define_singleton_method(:after_email_registration_started_path) { |params = {}|
+      "/emails/edit?#{params.to_query}"
+    }
     harness.define_singleton_method(:build_redirect_params) { |key, message, _session_key| { key => message } }
 
     harness.resend
@@ -277,7 +283,7 @@ class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
 
     result = harness.send(:complete_registration_verification!, "000000")
 
-    assert_equal false, result
+    assert_not result
     assert_predicate harness, :reset_called
     assert_equal I18n.t("sign.app.registration.email.update.attempts_exceeded"), harness.flash_hash[:alert]
     assert_equal ["/emails/new?"], harness.redirect_args
@@ -290,7 +296,7 @@ class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
 
     result = harness.send(:complete_registration_verification!, "000000")
 
-    assert_equal false, result
+    assert_not result
     assert_equal [:edit, { status: :unprocessable_content }], harness.render_args
   end
 

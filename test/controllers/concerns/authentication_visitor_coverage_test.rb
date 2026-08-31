@@ -66,7 +66,7 @@ class AuthenticationVisitorCoverageTest < ActiveSupport::TestCase
     assert_nil harness.send(:record_audit, nil, resource: visitor)
 
     ChronicleRecord.stub(:connected_to, ->(*) { raise StandardError, "write failed" }) do
-      assert_equal false, harness.send(:record_audit, "TOKEN_REFRESHED", resource: visitor)
+      assert_not harness.send(:record_audit, "TOKEN_REFRESHED", resource: visitor)
     end
   end
 

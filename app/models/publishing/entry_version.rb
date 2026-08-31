@@ -53,13 +53,16 @@ module Publishing
     belongs_to :entry, class_name: "Publishing::Entry", inverse_of: :versions
     belongs_to :entry_revision, class_name: "Publishing::EntryRevision"
 
-    has_many :publications, class_name: "Publishing::Publication", inverse_of: :entry_version, dependent: :restrict_with_exception
-    has_many :media_usages, class_name: "Publishing::MediaUsage", inverse_of: :entry_version, dependent: :restrict_with_exception
+    has_many :publications, class_name: "Publishing::Publication", inverse_of: :entry_version,
+                            dependent: :restrict_with_exception
+    has_many :media_usages, class_name: "Publishing::MediaUsage", inverse_of: :entry_version,
+                            dependent: :restrict_with_exception
     # restrict_with_exception, not destroy: a published version's taxonomy
     # history is frozen, and PostgreSQL rejects the delete regardless.
     has_many :single_taxonomy_assignments, class_name: "Publishing::VersionSingleTaxonomyAssignment",
                                            inverse_of: :entry_version, dependent: :restrict_with_exception
     has_many :multiple_taxonomy_assignments, -> { ordered }, class_name: "Publishing::VersionMultipleTaxonomyAssignment",
-                                                             inverse_of: :entry_version, dependent: :restrict_with_exception
+                                                             inverse_of: :entry_version,
+                                                             dependent: :restrict_with_exception
   end
 end

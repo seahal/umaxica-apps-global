@@ -165,7 +165,11 @@ module OmniAuth
         )
 
         with_configured_tenant do
-          strategy.stub(:access_token, -> { raise OmniAuth::Strategies::UmaxicaEntra::Error, :pkce_verifier_missing }) do
+          strategy.stub(
+            :access_token, -> {
+                             raise OmniAuth::Strategies::UmaxicaEntra::Error, :pkce_verifier_missing
+                           },
+          ) do
             strategy.callback_phase
           end
         end

@@ -221,7 +221,8 @@ class PreferenceTokenTest < ActiveSupport::TestCase
                 decoded = PreferenceToken.decode(token, host: host)
 
                 assert_not_nil decoded,
-                               "self-verification must pass for #{host} — audience_matches? would fail if host is missing from audiences"
+                               "self-verification must pass for #{host} — audience_matches? would fail if host " \
+                               "is missing from audiences"
               end
             end
           end

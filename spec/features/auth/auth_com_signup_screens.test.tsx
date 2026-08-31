@@ -50,7 +50,14 @@ describe("auth/com sign-up entry screens", () => {
       type: "email" as const,
       autocomplete: "email",
     },
-    checkboxes: [{ name: "confirm_policy", label: "規約に同意する", description: null }],
+    checkboxes: [
+      { name: "confirm_policy", label: "規約に同意する", description: null },
+      {
+        name: "confirm_age",
+        label: "年齢を確認した",
+        description: "利用規約とプライバシーポリシー",
+      },
+    ],
     error_heading: null,
     errors: [],
     turnstile,
@@ -131,6 +138,7 @@ describe("auth/com sign-up OTP screens", () => {
         {...otpProps}
         scope="visitor_telephone"
         action="/sign/up/check/telephone/otp?ri=jp"
+        error_heading="入力を確認してください"
         errors={["認証コードが正しくありません"]}
       />,
     );
@@ -166,6 +174,59 @@ describe("auth/com sign-up checkpoint screens", () => {
     expect(markup).toContain('name="_method" value="delete"');
   });
 
+  it("draws the birthdate form, remaining requirements, and completion copy", () => {
+    const markup = renderToStaticMarkup(
+      <ComCheckpointShow
+        title="登録の確認"
+        birthdate={{
+          title: "生年月日",
+          description: "年齢を確認します",
+          label: "生年月日",
+          action: "/sign/up/check/email",
+          submit_label: "送信する",
+          checkpoint_version: 1,
+          fields: {
+            format: "ymd",
+            separator: "/",
+            parts: [
+              {
+                part: "year",
+                label: "年",
+                placeholder: "1990",
+                value: "",
+                min: 1900,
+                max: 2026,
+              },
+              {
+                part: "month",
+                label: "月",
+                placeholder: "1",
+                value: "3",
+                min: 1,
+                max: 12,
+              },
+            ],
+          },
+        }}
+        passkey={null}
+        passcode={{
+          title: "パスコード",
+          description: "パスコードを登録します",
+          label: "登録する",
+          href: "/sign/up/check/email/passcode",
+        }}
+        complete_message="残りの手続きはありません"
+        cancellation={null}
+      />,
+    );
+
+    expect(markup).toContain('name="birthdate_year"');
+    expect(markup).toContain("/");
+    expect(markup).toContain('href="/sign/up/check/email/passcode"');
+    expect(markup).toContain("残りの手続きはありません");
+    expect(markup).not.toContain('name="_method" value="delete"');
+  });
+
   it("keeps the age-restricted restart a GET, as the button_to was", () => {
     const markup = renderToStaticMarkup(
       <ComCheckpointAgeRestricted
@@ -199,6 +260,29 @@ describe("auth/com sign-up checkpoint screens", () => {
     );
 
     expect(markup).toContain("one-time-secret");
+    expect(markup).not.toContain('role="alert"');
+  });
+
+  it("lists passcode setup errors when the previous attempt failed", () => {
+    const markup = renderToStaticMarkup(
+      <ComCheckpointPasscodeNew
+        title="パスコード"
+        description="パスコードを保存してください"
+        action="/sign/up/check/telephone/passcode?ri=jp"
+        scope="visitor_secret_credential"
+        checkpoint_version={3}
+        errors={["名前を入力してください"]}
+        name_label="名前"
+        secret_heading="Secret"
+        secret="one-time-secret"
+        one_time_notice="一度だけ表示されます"
+        save_label="保存"
+        cancel_label="キャンセル"
+      />,
+    );
+
+    expect(markup).toContain("名前を入力してください");
+    expect(markup).toContain("名前を入力してください");
     expect(markup).toContain('name="checkpoint_version" value="3"');
     expect(markup).toContain('name="visitor_secret_credential[name]"');
     expect(markup).toContain('name="_method" value="delete"');

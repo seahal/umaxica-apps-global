@@ -202,7 +202,7 @@ describe("passkey settings interaction", () => {
       action: "/settings/passkeys/pk_1?ri=jp",
       scope: "client_passkey",
       description_label: "名前",
-      description: "MacBook",
+      description: null,
       submit_label: "保存",
     },
     cancel_link: { label: "キャンセル", href: "/settings/passkeys" },
@@ -304,7 +304,7 @@ describe("totp settings interaction", () => {
       title_label: "名前",
       title_placeholder: "iPhone",
       title_hint: "わかりやすい名前",
-      title: "iPhone",
+      title: null,
       submit_label: "保存",
     },
     cancel_link: { label: "キャンセル", href: "/settings/totps?ri=jp" },
@@ -313,8 +313,8 @@ describe("totp settings interaction", () => {
       submit_label: "削除",
       confirm_message: "削除しますか",
     },
-    error_header: null,
-    error_messages: [],
+    error_header: "1件のエラー",
+    error_messages: ["名前を入力してください"],
   };
 
   it("renames with a PATCH", () => {

@@ -173,7 +173,9 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
   test "serializing a published index uses a fixed number of queries" do
     edition = publishing_edition(audience: "app", surface: "info", locale: "ja")
 
-    3.times { |index| publishing_publish(entry: publishing_draft(edition:, slug: "query-count-#{index}", title: "Title #{index}")) }
+    3.times { |index|
+      publishing_publish(entry: publishing_draft(edition:, slug: "query-count-#{index}", title: "Title #{index}"))
+    }
 
     queries = []
     subscriber =

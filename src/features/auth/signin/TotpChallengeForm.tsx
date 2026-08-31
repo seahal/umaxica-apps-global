@@ -57,6 +57,7 @@ export default function TotpChallengeForm({
     "cf-turnstile-response": "",
   });
 
+  /* v8 ignore next -- useForm always initialises the scoped field as a string */
   const value = readString(data[field.scope], field.field) ?? "";
 
   return (

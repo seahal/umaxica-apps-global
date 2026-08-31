@@ -112,6 +112,16 @@ describe("surface page resolver", () => {
     expect(() => resolve("groups/index")).toThrow(/does not belong to the "auth\/org" surface/u);
   });
 
+  test("rejects a globbed file that is not a page module", () => {
+    expect(() =>
+      surfacePageResolver(
+        { "../../pages/base/app/groups/index.tsx": { named: true } },
+        "base/app",
+        LAYOUT,
+      ),
+    ).toThrow(/has no default export/u);
+  });
+
   test("fails loudly when the surface has no component for a page the controller rendered", () => {
     const resolve = surfacePageResolver(
       pageModules("base/app", ["groups/index"]),
@@ -158,6 +168,10 @@ describe("document theme across visits", () => {
     // Without the root element the boot rejection is reported rather than thrown, which is what
     // this test wants: the theme wiring runs before `createInertiaApp` is ever called.
     document.body.innerHTML = "";
+    const nonceMeta = document.createElement("meta");
+    nonceMeta.setAttribute("property", "csp-nonce");
+    nonceMeta.nonce = "test-nonce";
+    document.head.append(nonceMeta);
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     document.cookie = "ct=dr; path=/";
 
@@ -218,6 +232,10 @@ describe.each([
   ["side/app", "../../src/entrypoints/inertia/side_app.tsx"],
   ["side/com", "../../src/entrypoints/inertia/side_com.tsx"],
   ["side/org", "../../src/entrypoints/inertia/side_org.tsx"],
+  ["core/app", "../../src/entrypoints/inertia/core_app.tsx"],
+  ["core/com", "../../src/entrypoints/inertia/core_com.tsx"],
+  ["core/dev", "../../src/entrypoints/inertia/core_dev.tsx"],
+  ["core/org", "../../src/entrypoints/inertia/core_org.tsx"],
 ])("%s inertia entrypoint", (surface, modulePath) => {
   beforeEach(() => {
     vi.resetModules();

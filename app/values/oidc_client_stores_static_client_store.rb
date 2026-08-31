@@ -8,190 +8,183 @@ module OidcClientStoresStaticClientStore
   module_function
 
   def clients
+    sign_and_browser_rp_clients.merge(native_and_content_rp_clients).freeze
+  end
+
+  def sign_and_browser_rp_clients
     {
-      # Sign credential gateway as RP. This is an RP client-auth key only; Sign remains non-OP.
-      #
-      # Each realm registers both its public (browser-visible) and private (pod-internal) auth host.
-      # OidcSsoInitiator#oidc_callback_url matches a registered redirect URI against request.host,
-      # and the Auth surfaces are routed on both variants, so registering only one variant makes the
-      # other host fail with "OIDC redirect URI is not registered for this host".
-      "sign-rp" => {
-        redirect_uris_by_realm: {
-          "client" => build_redirect_uris("PUBLIC_AUTH_SERVICE_URL") +
-            build_redirect_uris("PRIVATE_AUTH_SERVICE_URL"),
-          "operator" => build_redirect_uris("PUBLIC_AUTH_STAFF_URL") +
-            build_redirect_uris("PRIVATE_AUTH_STAFF_URL"),
-          "visitor" => build_redirect_uris("PUBLIC_AUTH_CORPORATE_URL") +
-            build_redirect_uris("PRIVATE_AUTH_CORPORATE_URL"),
-        },
-        post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_AUTH_SERVICE_URL") +
-          build_post_logout_redirect_uris("PRIVATE_AUTH_SERVICE_URL") +
-          build_post_logout_redirect_uris("PUBLIC_AUTH_STAFF_URL") +
-          build_post_logout_redirect_uris("PRIVATE_AUTH_STAFF_URL") +
-          build_post_logout_redirect_uris("PUBLIC_AUTH_CORPORATE_URL") +
-          build_post_logout_redirect_uris("PRIVATE_AUTH_CORPORATE_URL"),
-        backchannel_logout_uris: build_logout_uris("PUBLIC_AUTH_SERVICE_URL", "backchannel/logout") +
-          build_logout_uris("PRIVATE_AUTH_SERVICE_URL", "backchannel/logout") +
-          build_logout_uris("PUBLIC_AUTH_STAFF_URL", "backchannel/logout") +
-          build_logout_uris("PRIVATE_AUTH_STAFF_URL", "backchannel/logout") +
-          build_logout_uris("PUBLIC_AUTH_CORPORATE_URL", "backchannel/logout") +
-          build_logout_uris("PRIVATE_AUTH_CORPORATE_URL", "backchannel/logout"),
-        backchannel_logout_session_required: true,
-        aud: "sign-rp",
-        resource_type: "client",
-        name: "Sign RP",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "SIGN_APP",
+      "sign-rp" => sign_rp_client,
+      "base-rails-rp" => base_rails_rp_client,
+      "side-rails-rp" => side_rails_rp_client,
+      "core-next-rp" => core_next_rp_client,
+    }
+  end
+
+  def native_and_content_rp_clients
+    {
+      "app-ios-rp" => native_rp_client(["umaxica://oidc/callback"], "App iOS RP"),
+      "app-android-rp" => native_rp_client(["com.umaxica.app:/oidc/callback"], "App Android RP"),
+    }.merge(content_surface_rp_clients)
+  end
+
+  def sign_rp_client
+    {
+      redirect_uris_by_realm: {
+        "client" => build_redirect_uris("PUBLIC_AUTH_SERVICE_URL") + build_redirect_uris("PRIVATE_AUTH_SERVICE_URL"),
+        "operator" => build_redirect_uris("PUBLIC_AUTH_STAFF_URL") + build_redirect_uris("PRIVATE_AUTH_STAFF_URL"),
+        "visitor" => build_redirect_uris("PUBLIC_AUTH_CORPORATE_URL") +
+          build_redirect_uris("PRIVATE_AUTH_CORPORATE_URL"),
       },
-      # Shared browser RP client for Base's local browser flow and launcher flows.
-      "base-rails-rp" => {
-        redirect_uris_by_realm: {
-          "client" => build_redirect_uris("BASE_SERVICE_URL", "www.app.localhost") +
-            build_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost"),
-          "operator" => build_redirect_uris("BASE_STAFF_URL", "www.org.localhost") +
-            build_redirect_uris("SIDE_STAFF_URL", "side.org.localhost"),
-          "visitor" => build_redirect_uris("BASE_CORPORATE_URL", "www.com.localhost") +
-            build_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
-        },
-        post_logout_redirect_uris: build_post_logout_redirect_uris("BASE_SERVICE_URL", "www.app.localhost") +
-          build_post_logout_redirect_uris("BASE_STAFF_URL", "www.org.localhost") +
-          build_post_logout_redirect_uris("BASE_CORPORATE_URL", "www.com.localhost") +
-          build_post_logout_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
-          build_post_logout_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
-          build_post_logout_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
-        aud: "base-rails-rp",
-        resource_type: "client",
-        name: "Base Rails RP",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "BASE_APP",
+      post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_AUTH_SERVICE_URL") +
+        build_post_logout_redirect_uris("PRIVATE_AUTH_SERVICE_URL") +
+        build_post_logout_redirect_uris("PUBLIC_AUTH_STAFF_URL") +
+        build_post_logout_redirect_uris("PRIVATE_AUTH_STAFF_URL") +
+        build_post_logout_redirect_uris("PUBLIC_AUTH_CORPORATE_URL") +
+        build_post_logout_redirect_uris("PRIVATE_AUTH_CORPORATE_URL"),
+      backchannel_logout_uris: build_logout_uris("PUBLIC_AUTH_SERVICE_URL", "backchannel/logout") +
+        build_logout_uris("PRIVATE_AUTH_SERVICE_URL", "backchannel/logout") +
+        build_logout_uris("PUBLIC_AUTH_STAFF_URL", "backchannel/logout") +
+        build_logout_uris("PRIVATE_AUTH_STAFF_URL", "backchannel/logout") +
+        build_logout_uris("PUBLIC_AUTH_CORPORATE_URL", "backchannel/logout") +
+        build_logout_uris("PRIVATE_AUTH_CORPORATE_URL", "backchannel/logout"),
+      backchannel_logout_session_required: true,
+      aud: "sign-rp",
+      resource_type: "client",
+      name: "Sign RP",
+      allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      token_endpoint_auth_method: "private_key_jwt",
+      jwt_namespace: "SIGN_APP",
+    }
+  end
+
+  def base_rails_rp_client
+    {
+      redirect_uris_by_realm: {
+        "client" => build_redirect_uris("BASE_SERVICE_URL", "www.app.localhost") +
+          build_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost"),
+        "operator" => build_redirect_uris("BASE_STAFF_URL", "www.org.localhost") +
+          build_redirect_uris("SIDE_STAFF_URL", "side.org.localhost"),
+        "visitor" => build_redirect_uris("BASE_CORPORATE_URL", "www.com.localhost") +
+          build_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
       },
-      # Side browser RP.
-      "side-rails-rp" => {
-        redirect_uris_by_realm: {
-          "client" => build_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost"),
-          "operator" => build_redirect_uris("SIDE_STAFF_URL", "side.org.localhost"),
-          "visitor" => build_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
-        },
-        post_logout_redirect_uris: build_post_logout_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
-          build_post_logout_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
-          build_post_logout_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
-        backchannel_logout_uris: build_logout_uris("SIDE_SERVICE_URL", "backchannel/logout", "side.app.localhost") +
-          build_logout_uris("SIDE_STAFF_URL", "backchannel/logout", "side.org.localhost") +
-          build_logout_uris("SIDE_CORPORATE_URL", "backchannel/logout", "side.com.localhost"),
-        backchannel_logout_session_required: true,
-        aud: "side-rails-rp",
-        resource_type: "client",
-        name: "Side Rails RP",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "BASE_APP",
+      post_logout_redirect_uris: build_post_logout_redirect_uris("BASE_SERVICE_URL", "www.app.localhost") +
+        build_post_logout_redirect_uris("BASE_STAFF_URL", "www.org.localhost") +
+        build_post_logout_redirect_uris("BASE_CORPORATE_URL", "www.com.localhost") +
+        build_post_logout_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
+        build_post_logout_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
+        build_post_logout_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
+      aud: "base-rails-rp",
+      resource_type: "client",
+      name: "Base Rails RP",
+      allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      token_endpoint_auth_method: "private_key_jwt",
+      jwt_namespace: "BASE_APP",
+    }
+  end
+
+  def side_rails_rp_client
+    {
+      redirect_uris_by_realm: {
+        "client" => build_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost"),
+        "operator" => build_redirect_uris("SIDE_STAFF_URL", "side.org.localhost"),
+        "visitor" => build_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
       },
-      # Core browser RP.
-      "core-next-rp" => {
-        redirect_uris_by_realm: {
-          "client" => build_redirect_uris("PUBLIC_CORE_SERVICE_URL"),
-          "operator" => build_redirect_uris("PUBLIC_CORE_STAFF_URL"),
-          "visitor" => build_redirect_uris("PUBLIC_CORE_CORPORATE_URL"),
-        },
-        post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_CORE_SERVICE_URL") +
-          build_post_logout_redirect_uris("PUBLIC_CORE_STAFF_URL") +
-          build_post_logout_redirect_uris("PUBLIC_CORE_CORPORATE_URL"),
-        backchannel_logout_uris: build_logout_uris("PUBLIC_CORE_SERVICE_URL", "backchannel/logout") +
-          build_logout_uris("PUBLIC_CORE_STAFF_URL", "backchannel/logout") +
-          build_logout_uris("PUBLIC_CORE_CORPORATE_URL", "backchannel/logout"),
-        backchannel_logout_session_required: true,
-        aud: "core-next-rp",
-        resource_type: "client",
-        name: "Core Next RP",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "CORE_APP",
+      post_logout_redirect_uris: build_post_logout_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
+        build_post_logout_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
+        build_post_logout_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
+      backchannel_logout_uris: build_logout_uris("SIDE_SERVICE_URL", "backchannel/logout", "side.app.localhost") +
+        build_logout_uris("SIDE_STAFF_URL", "backchannel/logout", "side.org.localhost") +
+        build_logout_uris("SIDE_CORPORATE_URL", "backchannel/logout", "side.com.localhost"),
+      backchannel_logout_session_required: true,
+      aud: "side-rails-rp",
+      resource_type: "client",
+      name: "Side Rails RP",
+      allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      token_endpoint_auth_method: "private_key_jwt",
+      jwt_namespace: "BASE_APP",
+    }
+  end
+
+  def core_next_rp_client
+    {
+      redirect_uris_by_realm: {
+        "client" => build_redirect_uris("PUBLIC_CORE_SERVICE_URL"),
+        "operator" => build_redirect_uris("PUBLIC_CORE_STAFF_URL"),
+        "visitor" => build_redirect_uris("PUBLIC_CORE_CORPORATE_URL"),
       },
-      "app-ios-rp" => {
-        redirect_uris: ["umaxica://oidc/callback"],
-        aud: "palm-api",
-        resource_type: "client",
-        name: "App iOS RP",
-        allowed_scopes: OidcClientRegistry::PALM_ALLOWED_SCOPES,
-        token_endpoint_auth_method: "none",
-      },
-      "app-android-rp" => {
-        redirect_uris: ["com.umaxica.app:/oidc/callback"],
-        aud: "palm-api",
-        resource_type: "client",
-        name: "App Android RP",
-        allowed_scopes: OidcClientRegistry::PALM_ALLOWED_SCOPES,
-        token_endpoint_auth_method: "none",
-      },
-      # Docs
-      "docs_app" => {
-        redirect_uris: build_redirect_uris("DOCS_SERVICE_URL", "docs.app.localhost"),
-        aud: "umaxica-docs-app",
-        resource_type: "client",
-        name: "Docs App",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-      },
-      "docs_org" => {
-        redirect_uris: build_redirect_uris("DOCS_STAFF_URL", "docs.org.localhost"),
-        aud: "umaxica-docs-org",
-        resource_type: "operator",
-        name: "Docs Org",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-      },
-      "docs_com" => {
-        redirect_uris: build_redirect_uris("DOCS_CORPORATE_URL", "docs.com.localhost"),
-        aud: "umaxica-docs-com",
-        resource_type: "visitor",
-        name: "Docs Com",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-      },
-      # News
-      "news_app" => {
-        redirect_uris: build_redirect_uris("NEWS_SERVICE_URL", "news.app.localhost"),
-        aud: "umaxica-news-app",
-        resource_type: "client",
-        name: "News App",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-      },
-      "news_org" => {
-        redirect_uris: build_redirect_uris("NEWS_STAFF_URL", "news.org.localhost"),
-        aud: "umaxica-news-org",
-        resource_type: "operator",
-        name: "News Org",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-      },
-      "news_com" => {
-        redirect_uris: build_redirect_uris("NEWS_CORPORATE_URL", "news.com.localhost"),
-        aud: "umaxica-news-com",
-        resource_type: "visitor",
-        name: "News Com",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-      },
-      # Help
-      "help_app" => {
-        redirect_uris: build_redirect_uris("HELP_SERVICE_URL", "help.app.localhost"),
-        aud: "umaxica-help-app",
-        resource_type: "client",
-        name: "Help App",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-      },
-      "help_org" => {
-        redirect_uris: build_redirect_uris("HELP_STAFF_URL", "help.org.localhost"),
-        aud: "umaxica-help-org",
-        resource_type: "operator",
-        name: "Help Org",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-      },
-      "help_com" => {
-        redirect_uris: build_redirect_uris("HELP_CORPORATE_URL", "help.com.localhost"),
-        aud: "umaxica-help-com",
-        resource_type: "visitor",
-        name: "Help Com",
-        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
-      },
-    }.freeze
+      post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_CORE_SERVICE_URL") +
+        build_post_logout_redirect_uris("PUBLIC_CORE_STAFF_URL") +
+        build_post_logout_redirect_uris("PUBLIC_CORE_CORPORATE_URL"),
+      backchannel_logout_uris: build_logout_uris("PUBLIC_CORE_SERVICE_URL", "backchannel/logout") +
+        build_logout_uris("PUBLIC_CORE_STAFF_URL", "backchannel/logout") +
+        build_logout_uris("PUBLIC_CORE_CORPORATE_URL", "backchannel/logout"),
+      backchannel_logout_session_required: true,
+      aud: "core-next-rp",
+      resource_type: "client",
+      name: "Core Next RP",
+      allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      token_endpoint_auth_method: "private_key_jwt",
+      jwt_namespace: "CORE_APP",
+    }
+  end
+
+  def native_rp_client(redirect_uris, name)
+    {
+      redirect_uris: redirect_uris,
+      aud: "palm-api",
+      resource_type: "client",
+      name: name,
+      allowed_scopes: OidcClientRegistry::PALM_ALLOWED_SCOPES,
+      token_endpoint_auth_method: "none",
+    }
+  end
+
+  def content_surface_rp_clients
+    {
+      "docs_app" => content_rp_client(
+        "DOCS_SERVICE_URL", "docs.app.localhost", "umaxica-docs-app", "client",
+        "Docs App",
+      ),
+      "docs_org" => content_rp_client(
+        "DOCS_STAFF_URL", "docs.org.localhost", "umaxica-docs-org", "operator",
+        "Docs Org",
+      ),
+      "docs_com" => content_rp_client(
+        "DOCS_CORPORATE_URL", "docs.com.localhost", "umaxica-docs-com", "visitor", "Docs Com",
+      ),
+      "news_app" => content_rp_client(
+        "NEWS_SERVICE_URL", "news.app.localhost", "umaxica-news-app", "client",
+        "News App",
+      ),
+      "news_org" => content_rp_client(
+        "NEWS_STAFF_URL", "news.org.localhost", "umaxica-news-org", "operator",
+        "News Org",
+      ),
+      "news_com" => content_rp_client(
+        "NEWS_CORPORATE_URL", "news.com.localhost", "umaxica-news-com", "visitor", "News Com",
+      ),
+      "help_app" => content_rp_client(
+        "HELP_SERVICE_URL", "help.app.localhost", "umaxica-help-app", "client",
+        "Help App",
+      ),
+      "help_org" => content_rp_client(
+        "HELP_STAFF_URL", "help.org.localhost", "umaxica-help-org", "operator",
+        "Help Org",
+      ),
+      "help_com" => content_rp_client(
+        "HELP_CORPORATE_URL", "help.com.localhost", "umaxica-help-com", "visitor", "Help Com",
+      ),
+    }
+  end
+
+  def content_rp_client(env_key, default_host, aud, resource_type, name)
+    {
+      redirect_uris: build_redirect_uris(env_key, default_host),
+      aud: aud,
+      resource_type: resource_type,
+      name: name,
+      allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+    }
   end
 
   # default_host is only consulted for env keys boot_host_for does not map; keys it maps resolve

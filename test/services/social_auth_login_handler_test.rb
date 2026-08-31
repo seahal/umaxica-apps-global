@@ -264,7 +264,10 @@ class SocialAuthLoginHandlerTest < ActiveSupport::TestCase
     )
 
     ClientStatus.stub(:find_or_create_by!, ->(*) { raise ActiveRecord::StatementInvalid.new("boom") }) do
-      assert_nil handler.send(:ensure_user_status_record, ClientStatus::UNVERIFIED_WITH_SIGN_UP, "UNVERIFIED_WITH_SIGN_UP")
+      assert_nil handler.send(
+        :ensure_user_status_record, ClientStatus::UNVERIFIED_WITH_SIGN_UP,
+        "UNVERIFIED_WITH_SIGN_UP",
+      )
     end
   end
 

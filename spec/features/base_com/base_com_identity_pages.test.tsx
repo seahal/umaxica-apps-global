@@ -785,6 +785,22 @@ describe("WithdrawalNew", () => {
     expect(html).not.toContain("ack_schedule_purge");
   });
 
+  it("schedules without a deactivation step while that gate is closed", () => {
+    const html = renderToStaticMarkup(
+      <WithdrawalNew
+        title="Withdrawal"
+        already_deactivated={false}
+        already_deactivated_message="Already deactivated."
+        recovery_link={{ label: "Recover", href: "/identity/withdrawal/edit" }}
+        schedule={schedule}
+        deactivate={null}
+      />,
+    );
+
+    expect(html).toContain("ack_schedule_purge");
+    expect(html).not.toContain("ack_deactivate_today");
+  });
+
   it("adds the deactivation step once the schedule is acknowledged", () => {
     const html = renderToStaticMarkup(
       <WithdrawalNew

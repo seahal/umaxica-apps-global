@@ -163,50 +163,6 @@ module Base
             }
           end
 
-          def render_registration_new(status: :ok)
-            render inertia: "base/app/identity/telephones/registrations/new",
-                   props: registration_new_props,
-                   status: status
-          end
-
-          def render_registration_edit(status: :ok)
-            render inertia: "base/app/identity/telephones/registrations/edit",
-                   props: registration_edit_props,
-                   status: status
-          end
-
-          def registration_new_props
-            {
-              title: t("sign.app.settings.telephone.new.title"),
-              description: t("views.sign.app.settings.telephones.registrations.new.description"),
-              help_text: t("views.sign.app.settings.telephones.registrations.new.help_text"),
-              number_label: "Number",
-              number_placeholder: "+819012345678",
-              form: {
-                action: base_app_identity_telephones_registration_path,
-                submit_label: "Submit",
-              },
-              cancel_link: { label: "Cancel", href: base_app_identity_telephones_path(ri: params[:ri]) },
-              errors: Array(@user_telephone&.errors&.full_messages),
-            }
-          end
-
-          def registration_edit_props
-            {
-              title: "Verify your telephone number",
-              description: t("sign.app.registration.telephone.create.verification_code_sent"),
-              code_label: "Verification code",
-              code_placeholder: "123456",
-              delivery_help: t("base.app.identity.telephones.registrations.edit.delivery_help"),
-              form: {
-                action: base_app_identity_telephones_registration_path,
-                submit_label: "Verify",
-              },
-              cancel_link: { label: "Cancel", href: base_app_identity_telephones_path(ri: params[:ri]) },
-              errors: Array(@user_telephone&.errors&.full_messages),
-            }
-          end
-
           def preferred_base_service_host
             ENV.fetch("PUBLIC_BASE_SERVICE_URL")
           end

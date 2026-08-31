@@ -29,12 +29,12 @@ class AuthMethodGuard
 
   def self.can_remove_passkey?(actor, passkey)
     inventory = AuthenticationCredentialInventory.call(actor, excluding: passkey, reload: true)
-    inventory.retains_aal1? && inventory.retains_aal2?
+    inventory.retains_aal1? && inventory.retains_uv_step_up?
   end
 
   def self.can_remove_email?(actor, email)
     inventory = AuthenticationCredentialInventory.call(actor, excluding: email, reload: true)
-    inventory.retains_contactability? && inventory.retains_aal1? && inventory.retains_aal2?
+    inventory.retains_contactability? && inventory.retains_aal1? && inventory.retains_uv_step_up?
   end
 
   def self.can_remove_telephone?(actor, telephone)
@@ -42,7 +42,7 @@ class AuthMethodGuard
   end
 
   def self.can_remove_totp?(actor, totp)
-    AuthenticationCredentialInventory.call(actor, excluding: totp, reload: true).retains_aal2?
+    AuthenticationCredentialInventory.call(actor, excluding: totp, reload: true).retains_uv_step_up?
   end
 
   def self.can_remove_secret_credential?(actor, secret_credential)

@@ -59,7 +59,10 @@ class AppEnforcementIdentifierEffectTest < ActiveSupport::TestCase
     enforcement_case = ban_case
     open_effect = create_effect(enforcement_case, "in-force-app@example.test", effective_at: 1.hour.ago)
     future = create_effect(enforcement_case, "future-app@example.test", effective_at: 1.hour.from_now)
-    expired = create_effect(enforcement_case, "expired-app@example.test", effective_at: 2.hours.ago, expires_at: 1.hour.ago)
+    expired = create_effect(
+      enforcement_case, "expired-app@example.test", effective_at: 2.hours.ago,
+                                                    expires_at: 1.hour.ago,
+    )
     ended = create_effect(enforcement_case, "ended-app@example.test", effective_at: 2.hours.ago, ended_at: 1.hour.ago)
 
     in_force = AppEnforcementIdentifierEffect.in_force

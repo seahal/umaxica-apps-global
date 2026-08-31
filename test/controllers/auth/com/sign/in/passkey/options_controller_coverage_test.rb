@@ -6,6 +6,7 @@ require "test_helper"
 class AuthComSignInPasskeyOptionsControllerCoverageTest < ActiveSupport::TestCase
   class Harness < Auth::Com::Sign::In::Passkey::OptionsController
     def initialize
+      super
       @rendered = nil
     end
 
@@ -77,7 +78,7 @@ class AuthComSignInPasskeyOptionsControllerCoverageTest < ActiveSupport::TestCas
     active.define_singleton_method(:active?) { true }
     inactive = Object.new
     inactive.define_singleton_method(:active?) { false }
-    harness.define_singleton_method(:find_user_by_identifier) { |identifier| identifier == "ok" ? active : inactive }
+    harness.define_singleton_method(:find_user_by_identifier) { |identifier| (identifier == "ok") ? active : inactive }
 
     assert_equal active, harness.send(:find_active_passkey_actor, "ok")
     assert_nil harness.send(:find_active_passkey_actor, "no")
@@ -93,7 +94,7 @@ class AuthComSignInPasskeyOptionsControllerCoverageTest < ActiveSupport::TestCas
 
     visitor.define_singleton_method(:has_verified_pii?) { false }
 
-    assert_equal false, harness.send(:allow_passkey_sign_in?, passkey)
+    assert_not harness.send(:allow_passkey_sign_in?, passkey)
     assert_equal ["errors.webauthn.credential_not_found", :unauthorized], harness.rendered
   end
 
@@ -116,7 +117,7 @@ class AuthComSignInPasskeyOptionsControllerCoverageTest < ActiveSupport::TestCas
       :handle_domain_specific_login_status,
       { status: :session_limit_hard_reject, message: "limit", http_status: 403 },
     )
-    assert_equal false, harness.send(:handle_domain_specific_login_status, { status: :ok })
+    assert_not harness.send(:handle_domain_specific_login_status, { status: :ok })
   end
 
   test "restricted success and redirect helpers use the com identity host" do

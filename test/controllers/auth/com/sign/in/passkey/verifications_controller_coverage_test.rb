@@ -6,6 +6,7 @@ require "test_helper"
 class AuthComSignInPasskeyVerificationsControllerCoverageTest < ActiveSupport::TestCase
   class Harness < Auth::Com::Sign::In::Passkey::VerificationsController
     def initialize
+      super
       @rendered = nil
     end
 
@@ -83,7 +84,7 @@ class AuthComSignInPasskeyVerificationsControllerCoverageTest < ActiveSupport::T
     visitor.define_singleton_method(:has_verified_pii?) { false }
     passkey = Struct.new(:visitor, :visitor_id).new(visitor, 1)
 
-    assert_equal false, harness.send(:allow_passkey_sign_in?, passkey)
+    assert_not harness.send(:allow_passkey_sign_in?, passkey)
     harness.send(:perform_passkey_sign_in, passkey)
 
     assert_equal visitor, harness.established
@@ -97,7 +98,7 @@ class AuthComSignInPasskeyVerificationsControllerCoverageTest < ActiveSupport::T
       :handle_domain_specific_login_status,
       { status: :session_limit_hard_reject, message: "limit", http_status: 403 },
     )
-    assert_equal false, harness.send(:handle_domain_specific_login_status, { status: :ok })
+    assert_not harness.send(:handle_domain_specific_login_status, { status: :ok })
     harness.send(:render_passkey_restricted_success, {})
 
     assert_equal "session_restricted", harness.rendered.first[:status]

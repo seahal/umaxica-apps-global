@@ -331,7 +331,7 @@ scope(module: :auth, as: :auth) do
 
         # Sign-in ceremony.
         namespace :in do
-          resource :email, only: %i(new create edit)
+          resource :email, only: %i(new create edit update)
 
           resource :passkey, only: :new
           namespace :passkey do

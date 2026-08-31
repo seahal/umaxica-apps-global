@@ -65,7 +65,9 @@ module WithdrawalCeremonyReentry
   def verify_withdrawal_reentry_otp
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     state = withdrawal_reentry_state
-    return render_withdrawal_reentry_invalid_code(start_time) if state.blank? || state["expires_at"].to_i <= Time.current.to_i
+    if state.blank? || state["expires_at"].to_i <= Time.current.to_i
+      return render_withdrawal_reentry_invalid_code(start_time)
+    end
     return render_withdrawal_reentry_invalid_code(start_time) if state["dummy"]
 
     email = identity_email_model.find_by(public_id: state["email_public_id"].to_s)

@@ -398,7 +398,8 @@ class SignOrgVerificationBaseDirectCoverageTest < ActiveSupport::TestCase
     assert_equal({ error: VerificationBase::STEP_UP_REQUIRED_MESSAGE }, rendered[:json])
   end
 
-  test "enforce_step_up_prereqs! allows a GET request to the verification entry page when methods are configured but unavailable" do
+  test "enforce_step_up_prereqs! allows a GET request to the verification entry page when methods are " \
+       "configured but unavailable" do
     harness = build_verification_base_harness
     harness.define_singleton_method(:available_step_up_methods) { [] }
     harness.define_singleton_method(:configured_step_up_methods) { [:passkey] }
@@ -420,7 +421,8 @@ class SignOrgVerificationBaseDirectCoverageTest < ActiveSupport::TestCase
     assert_equal :unprocessable_content, rendered[:status]
   end
 
-  test "enforce_step_up_prereqs! redirects to the verification path for a non-GET html request when step-up is configured" do
+  test "enforce_step_up_prereqs! redirects to the verification path for a non-GET html request when step-up is " \
+       "configured" do
     harness = build_verification_base_harness
     harness.define_singleton_method(:available_step_up_methods) { [] }
     harness.define_singleton_method(:step_up_bootstrap_unconfigured?) { false }

@@ -310,7 +310,9 @@ module PreferenceAdoption
   def apply_consent_snapshot!(target, snapshot)
     if target.respond_to?(:consented)
       connection_class = preference_connection_class(target)
-      connection_class ? connection_class.connected_to(role: :writing) { target.update!(snapshot) } : target.update!(snapshot)
+      connection_class ? connection_class.connected_to(role: :writing) {
+        target.update!(snapshot)
+      } : target.update!(snapshot)
       return
     end
 
@@ -320,7 +322,9 @@ module PreferenceAdoption
     cookie = with_preference_writing_connection(target) { target.public_send(assoc_name) } ||
       with_preference_writing_connection(target) { target.public_send("create_#{assoc_name}!") }
     connection_class = preference_connection_class(target)
-    connection_class ? connection_class.connected_to(role: :writing) { cookie.update!(snapshot) } : cookie.update!(snapshot)
+    connection_class ? connection_class.connected_to(role: :writing) {
+      cookie.update!(snapshot)
+    } : cookie.update!(snapshot)
   end
 
   # Copy child record option_ids and cookie consent from source to target.

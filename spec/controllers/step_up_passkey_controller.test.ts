@@ -93,6 +93,23 @@ describe("StepUpPasskeyController", () => {
       expect(credentials.get).not.toHaveBeenCalled();
     });
 
+    it("refuses when the controller is not inside a form", async () => {
+      const { controller, element } = await mount(`
+        <div data-controller="step-up-passkey"
+             data-step-up-passkey-options-value='${JSON.stringify(REQUEST_OPTIONS)}'
+             data-step-up-passkey-challenge-id-value="challenge-123">
+          <input type="hidden" data-step-up-passkey-target="challengeId">
+          <input type="hidden" data-step-up-passkey-target="credentialJson">
+          <p data-step-up-passkey-target="error" class="hidden"></p>
+          <p data-step-up-passkey-target="status" class="hidden"></p>
+        </div>
+      `);
+
+      await controller.authenticate(new Event("click"));
+
+      expect(errorText(element)).toBe("認証中にエラーが発生しました");
+    });
+
     it("refuses when the server sent no options", async () => {
       const { controller, element } = await mount(markup(REQUEST_OPTIONS, ""));
 

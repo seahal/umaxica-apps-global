@@ -49,7 +49,8 @@ namespace :entra_identity do
     identities.each do |identity|
       state = OperatorEntraIdentityActivation::STATES.key(identity.status_id) || "inactive"
       last = identity.last_authenticated_at&.iso8601 || "never"
-      puts "identity=#{identity.public_id} operator_id=#{identity.operator_id} state=#{state} last_authenticated_at=#{last}"
+      puts "identity=#{identity.public_id} operator_id=#{identity.operator_id} state=#{state} " \
+           "last_authenticated_at=#{last}"
     end
   end
 

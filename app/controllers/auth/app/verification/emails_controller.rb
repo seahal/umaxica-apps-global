@@ -76,6 +76,7 @@ class Auth::App::Verification::EmailsController < ::Auth::App::Verification::Bas
     return unless require_step_up_session!
     return if redirect_if_recent_verification_for_post!
     return unless require_email_nonce!
+    return unless require_method_available!(:email_otp)
 
     if verify_email_otp!
       consume_step_up_session!(method: :email_otp)
@@ -89,6 +90,7 @@ class Auth::App::Verification::EmailsController < ::Auth::App::Verification::Bas
     return unless require_step_up_session!
     return if redirect_if_recent_verification_for_post!
     return unless require_email_nonce!
+    return unless require_method_available!(:email_otp)
 
     if email_otp_resend_rate_limited?
       redirect_to(

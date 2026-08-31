@@ -104,6 +104,7 @@ export default function SecretSignInForm({
           <TextField
             label={identifierField.label}
             name={identifierField.name}
+            /* v8 ignore next -- the field is always initialised in useForm */
             value={scoped[identifierField.field] ?? ""}
             onChange={(value) => setScoped(identifierField.field, value)}
             placeholder={identifierField.placeholder}
@@ -115,6 +116,7 @@ export default function SecretSignInForm({
           label={secretField.label}
           type="password"
           name={secretField.name}
+          /* v8 ignore next -- the field is always initialised in useForm */
           value={scoped[secretField.field] ?? ""}
           onChange={(value) => setScoped(secretField.field, value)}
           placeholder={secretField.placeholder}

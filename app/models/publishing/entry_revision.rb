@@ -48,7 +48,8 @@ module Publishing
     belongs_to :restored_from_revision, class_name: "Publishing::EntryRevision", optional: true
     belongs_to :restored_from_version, class_name: "Publishing::EntryVersion", optional: true
 
-    has_many :media_usages, class_name: "Publishing::MediaUsage", inverse_of: :entry_revision, dependent: :restrict_with_exception
+    has_many :media_usages, class_name: "Publishing::MediaUsage", inverse_of: :entry_revision,
+                            dependent: :restrict_with_exception
     has_many :single_taxonomy_assignments, class_name: "Publishing::RevisionSingleTaxonomyAssignment",
                                            inverse_of: :entry_revision, dependent: :destroy
     has_many :multiple_taxonomy_assignments, -> { ordered }, class_name: "Publishing::RevisionMultipleTaxonomyAssignment",

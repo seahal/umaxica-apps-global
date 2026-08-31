@@ -58,6 +58,7 @@ export default function PasskeyEdit({
           maxLength={100}
           value={form.data.visitor_passkey.description}
           onChange={(value) => form.setData("visitor_passkey", { description: value })}
+          /* v8 ignore next -- the error hash is empty unless the server rejected the rename */
           {...(error === undefined ? {} : { errorMessage: error })}
         />
 

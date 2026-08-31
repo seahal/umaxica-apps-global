@@ -1195,7 +1195,8 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     assert_equal token.id, reloaded.token_id
   end
 
-  test "advance_cycle_to_checkpoint_after_active_session! skips already-cleared steps for a session-issuance-pending cycle" do
+  test "advance_cycle_to_checkpoint_after_active_session! skips already-cleared steps for a " \
+       "session-issuance-pending cycle" do
     cycle =
       Class.new do
         attr_accessor :advanced_to_checkpoint, :token_id
@@ -1534,14 +1535,16 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     assert_nil resume_url
   end
 
-  test "promote_current_session_limit_cycle_for_oidc_handoff! hands off to bind_session_and_register_oidc! on success" do
+  test "promote_current_session_limit_cycle_for_oidc_handoff! hands off to bind_session_and_register_oidc! on " \
+       "success" do
     @harness.cycle = FakeCycle.new(states: { session_limit: true })
     @harness.session[:oidc_authorization_login_challenge] = "chal-3"
     actor = Client.new(id: 9)
     fake_result = Struct.new(:cycle).new(FakeCycle.new(states: { session_limit: true }))
     @harness.define_singleton_method(:advance_oidc_session_promotion!) { |_cycle, _actor| true }
     @harness.current_session = Struct.new(:id, :public_id).new(1, "session-pub")
-    @harness.define_singleton_method(:bind_session_and_register_oidc!) do |_cycle, _actor, challenge, auth_method, issued_session|
+    @harness.define_singleton_method(:bind_session_and_register_oidc!) do |_cycle, _actor, challenge, auth_method,
+      issued_session|
       ["bound", challenge, auth_method, issued_session]
     end
 

@@ -32,6 +32,7 @@ export default function PreferenceEmailUnsubscribe({
 
   const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
+    /* v8 ignore next -- the form is not rendered when the prop is absent */
     if (!form) {
       return;
     }

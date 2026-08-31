@@ -577,7 +577,7 @@ class AuthenticationLogoutCurrentSessionTest < ActiveSupport::TestCase
 
     cycle = ClientSignOutFlow.recent_first.find_by!(token: token)
 
-    assert_in_delta expected_discarded_at.to_f, cycle.refresh_expires_at.to_f, 1.0
+    assert_in_delta Float(expected_discarded_at), Float(cycle.refresh_expires_at), 1.0
   end
 
   test "sign-out cycle refresh expiry falls back to the current time when discarded_at is not in the future" do
@@ -617,7 +617,7 @@ class AuthenticationLogoutCurrentSessionTest < ActiveSupport::TestCase
 
     cycle = ClientSignOutFlow.recent_first.find_by!(token_id: token.id)
 
-    assert_in_delta 100.years.from_now.to_f, cycle.refresh_expires_at.to_f, 5.0
+    assert_in_delta 100.years.from_now.to_f, Float(cycle.refresh_expires_at), 5.0
   end
 
   # Targets else@287: the token record does not expose discarded_at via

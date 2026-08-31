@@ -43,6 +43,13 @@ class IdentityTotpCeremonyResultIssuer
   def validate_grant!
     raise IdentityTotpCeremonyContract::Error, "candidate is required" if candidate.blank?
     raise IdentityTotpCeremonyContract::Error, "TOTP ceremony grant is required" if grant_token.blank?
+
+    validate_grant_claims!
+    validate_transaction_state!
+    validate_candidate_claims!
+  end
+
+  def validate_grant_claims!
     raise IdentityTotpCeremonyContract::Error,
           "grant surface does not match ceremony" unless grant["surface"].to_s == surface
     raise IdentityTotpCeremonyContract::Error,
@@ -53,8 +60,14 @@ class IdentityTotpCeremonyResultIssuer
           "grant operation does not match ceremony" unless grant["operation"].to_s == operation
     raise IdentityTotpCeremonyContract::Error,
           "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
+  end
+
+  def validate_transaction_state!
     raise IdentityTotpCeremonyContract::Error, "transaction is expired" if transaction.expired?(now: now)
     raise IdentityTotpCeremonyContract::Error, "transaction is already consumed" if transaction.consumed?
+  end
+
+  def validate_candidate_claims!
     raise IdentityTotpCeremonyContract::Error,
           "candidate surface does not match ceremony" unless candidate.surface.to_s == surface
     raise IdentityTotpCeremonyContract::Error,

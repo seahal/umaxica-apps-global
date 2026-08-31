@@ -4,26 +4,28 @@
 class IdentityStepUpCeremonyFreshnessCommitter
   Commit = Data.define(:result, :token)
 
-  def self.call!(result_token:, token:, expected_scope:, expected_aal:, expected_method:, audience:,
-                 now: Time.current)
+  def self.call!(result_token:, token:, expected_scope:, expected_aal:, expected_method:,
+                 expected_phishing_resistant: false, audience:, now: Time.current)
     new(
       result_token: result_token,
       token: token,
       expected_scope: expected_scope,
       expected_aal: expected_aal,
       expected_method: expected_method,
+      expected_phishing_resistant: expected_phishing_resistant,
       audience: audience,
       now: now,
     ).call!
   end
 
-  def initialize(result_token:, token:, expected_scope:, expected_aal:, expected_method:, audience:,
-                 now: Time.current)
+  def initialize(result_token:, token:, expected_scope:, expected_aal:, expected_method:,
+                 expected_phishing_resistant: false, audience:, now: Time.current)
     @result_token = result_token
     @token = token
     @expected_scope = expected_scope.to_s
     @expected_aal = expected_aal.to_s
     @expected_method = expected_method.to_s
+    @expected_phishing_resistant = !!expected_phishing_resistant
     @audience = audience.to_s
     @now = now
   end
@@ -36,7 +38,8 @@ class IdentityStepUpCeremonyFreshnessCommitter
 
   private
 
-  attr_reader :result_token, :token, :expected_scope, :expected_aal, :expected_method, :audience, :now
+  attr_reader :result_token, :token, :expected_scope, :expected_aal, :expected_method, :expected_phishing_resistant,
+              :audience, :now
 
   def validate!
     raise IdentityStepUpCeremonyContract::Error, "token is required" if token.blank?
@@ -63,6 +66,8 @@ class IdentityStepUpCeremonyFreshnessCommitter
     }
     attributes[:last_step_up_aal] = result["aal"] if token_has_attribute?(:last_step_up_aal)
     attributes[:last_step_up_method] = result["method"] if token_has_attribute?(:last_step_up_method)
+    attributes[:last_step_up_phishing_resistant] =
+      result.phishing_resistant? if token_has_attribute?(:last_step_up_phishing_resistant)
     attributes[:last_step_up_purpose] = "step_up" if token_has_attribute?(:last_step_up_purpose)
     attributes[:last_step_up_audience] = audience if token_has_attribute?(:last_step_up_audience)
     if token_has_attribute?(:last_step_up_session_public_id)

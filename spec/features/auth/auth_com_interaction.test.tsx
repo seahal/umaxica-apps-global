@@ -277,6 +277,7 @@ describe("credential forms", () => {
       />,
     );
 
+    type(container.querySelector<HTMLInputElement>("input[type='text']")!, "op-1");
     type(container.querySelector<HTMLInputElement>("input[type='password']")!, "secret");
     submit();
 

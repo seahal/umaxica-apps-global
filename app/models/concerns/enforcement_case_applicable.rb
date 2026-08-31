@@ -18,7 +18,8 @@ module EnforcementCaseApplicable
   DURATION_MODES = %w(timed indefinite permanent).freeze
   VISIBILITIES = %w(visible hidden).freeze
   RELEASE_MODES = %w(automatic operator verification_required break_glass_only).freeze
-  END_REASONS = %w(expired revoked superseded corrected appeal_approved break_glass_released verification_completed).freeze
+  END_REASONS = %w(expired revoked superseded corrected appeal_approved break_glass_released
+                   verification_completed).freeze
   ACCESS_BLOCKING_KINDS = %w(temporary_freeze permanent_ban).freeze
   METHOD_REVOKING_EFFECTS = %w(unusable permanently_frozen).freeze
 

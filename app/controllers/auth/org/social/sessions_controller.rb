@@ -77,7 +77,8 @@ module Auth
                                 else
                                   t("sign.org.authentication.entra.errors.provider_unavailable")
                                 end,
-            form: (@provider_available ? { action: "/social/entra", submit_label: t("sign.org.authentication.entra.new.submit") } : nil),
+            form: (@provider_available ? { action: "/social/entra",
+                                           submit_label: t("sign.org.authentication.entra.new.submit"), } : nil),
           }
         end
 

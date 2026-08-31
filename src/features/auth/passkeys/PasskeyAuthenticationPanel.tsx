@@ -9,7 +9,7 @@ import { useRef, useState } from "react";
 
 import Button from "@/components/ui/Button";
 import { csrfToken } from "@/lib/csrf";
-import { readObject, readString } from "@/lib/payload";
+import { readNonEmptyString, readObject, readString } from "@/lib/payload";
 
 import { solveInvisibleTurnstile } from "./invisibleTurnstile";
 import { PASSKEY_MESSAGES, TURNSTILE_DEFAULT_ERROR, authenticationErrorMessage } from "./messages";
@@ -49,10 +49,11 @@ async function postJson(url: string, body: unknown): Promise<Response> {
 
 /** Reproduces the controller's failure branches, including the reload on 401/302. */
 async function readFailure(response: Response, fallback: string): Promise<Error | null> {
+  /* v8 ignore next -- fetch always supplies a Headers object */
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
     const data: unknown = await response.json();
-    return new Error(readString(data, "error") || fallback);
+    return new Error(readNonEmptyString(data, "error") ?? fallback);
   }
   if (response.status === 401 || response.status === 302) {
     window.location.reload();

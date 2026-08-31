@@ -173,7 +173,8 @@ class ActionPolicyUsageTest < ActiveSupport::TestCase
     offenders = private_mutation_actions_without_authorize - PRIVATE_MUTATION_AUTHORIZATION_EXCEPTIONS
 
     assert_empty offenders,
-                 "Private mutation actions must call authorize! or be allowlisted with a reason:\n#{offenders.join("\n")}"
+                 "Private mutation actions must call authorize! or be allowlisted with a " \
+                 "reason:\n#{offenders.join("\n")}"
   end
 
   private
@@ -214,7 +215,10 @@ class ActionPolicyUsageTest < ActiveSupport::TestCase
   end
 
   def action_body(content, action)
-    match = content.match(/^\s*def #{Regexp.escape(action)}\b(?<body>[\s\S]*?)(?=^\s*def\s|^\s*private\b|^\s*protected\b|^\s*end\s*$)/)
+    action_re = Regexp.escape(action)
+    match = content.match(
+      /^\s*def #{action_re}\b(?<body>[\s\S]*?)(?=^\s*def\s|^\s*private\b|^\s*protected\b|^\s*end\s*$)/,
+    )
     match&.named_captures&.fetch("body")
   end
 end

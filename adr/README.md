@@ -262,6 +262,13 @@ Current outbound delivery decisions:
   reservation and the call-site entry point; its payload shape, result object, and job-argument
   encryption rule remain in force.
 
+Current CSRF decision:
+
+- `adr/csrf-protection-disabled-in-test-environment.md` — settled decision that
+  `bin/rails test` keeps `allow_forgery_protection` off while development and production must
+  keep it on. Read this before proposing to enable CSRF suite-wide; it records why that change
+  buys appearance rather than coverage, and the one condition that would reopen it.
+
 Current retention / deletion decisions:
 
 - `adr/retainable-concern-and-retention-purge.md`

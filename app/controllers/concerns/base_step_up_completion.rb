@@ -28,6 +28,7 @@ module BaseStepUpCompletion
       expected_scope: consumption.transaction.required_scope,
       expected_aal: consumption.transaction.required_aal,
       expected_method: consumption.transaction.method,
+      expected_phishing_resistant: consumption.transaction.phishing_resistant_required,
       audience: step_up_audience,
       now: now,
     )

@@ -151,59 +151,46 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def csp_report_cases
+    csp_report_product_cases + csp_report_content_cases
+  end
+
+  def csp_report_product_cases
     [
-      [configured_host(:base_service),
-       :base_app_csp_violation_report_path,],
-      [configured_host(:base_corporate),
-       :base_com_csp_violation_report_path,],
-      [configured_host(:base_staff),
-       :base_org_csp_violation_report_path,],
+      [configured_host(:base_service), :base_app_csp_violation_report_path],
+      [configured_host(:base_corporate), :base_com_csp_violation_report_path],
+      [configured_host(:base_staff), :base_org_csp_violation_report_path],
       [ENV["PRIVATE_BASE_NETWORK_URL"] || ENV.fetch("PRIVATE_BASE_NETWORK_URL", "base.net.localhost"),
        :base_network_csp_violation_report_path,],
       [ENV["PRIVATE_BASE_DEVELOPER_URL"] || ENV.fetch("PRIVATE_BASE_DEVELOPER_URL", "base.dev.localhost"),
        :base_developer_csp_violation_report_path,],
-      [configured_host(:auth_service),
-       :auth_app_csp_violation_report_path,],
-      [configured_host(:auth_corporate),
-       :auth_com_csp_violation_report_path,],
-      [configured_host(:auth_staff),
-       :auth_org_csp_violation_report_path,],
-      [configured_host(:core_service),
-       :core_app_csp_violation_report_path,],
-      [configured_host(:core_corporate),
-       :core_com_csp_violation_report_path,],
-      [configured_host(:core_staff),
-       :core_org_csp_violation_report_path,],
+      [configured_host(:auth_service), :auth_app_csp_violation_report_path],
+      [configured_host(:auth_corporate), :auth_com_csp_violation_report_path],
+      [configured_host(:auth_staff), :auth_org_csp_violation_report_path],
+      [configured_host(:core_service), :core_app_csp_violation_report_path],
+      [configured_host(:core_corporate), :core_com_csp_violation_report_path],
+      [configured_host(:core_staff), :core_org_csp_violation_report_path],
       [ENV["PRIVATE_CORE_NETWORK_URL"] || ENV.fetch("PRIVATE_CORE_NETWORK_URL", "core.net.localhost"),
        :core_network_csp_violation_report_path,],
       [ENV["PRIVATE_CORE_DEVELOPER_URL"] || ENV.fetch("PRIVATE_CORE_DEVELOPER_URL", "core.dev.localhost"),
        :core_developer_csp_violation_report_path,],
-      [configured_host(:base_service),
-       :base_app_csp_violation_report_path,],
-      [configured_host(:base_corporate),
-       :base_com_csp_violation_report_path,],
-      [configured_host(:base_staff),
-       :base_org_csp_violation_report_path,],
-      [configured_host(:palm_service),
-       :palm_app_csp_violation_report_path,],
-      [ENV["PRIVATE_DOCS_SERVICE_URL"] || "docs.app.localhost",
-       :docs_app_csp_violation_report_path,],
-      [ENV["PRIVATE_DOCS_CORPORATE_URL"] || "docs.com.localhost",
-       :docs_com_csp_violation_report_path,],
-      [ENV["PRIVATE_DOCS_STAFF_URL"] || "docs.org.localhost",
-       :docs_org_csp_violation_report_path,],
-      [ENV["PRIVATE_HELP_SERVICE_URL"] || "help.app.localhost",
-       :help_app_csp_violation_report_path,],
-      [ENV["PRIVATE_HELP_CORPORATE_URL"] || "help.com.localhost",
-       :help_com_csp_violation_report_path,],
-      [ENV["PRIVATE_HELP_STAFF_URL"] || "help.org.localhost",
-       :help_org_csp_violation_report_path,],
-      [ENV["PRIVATE_NEWS_SERVICE_URL"] || "news.app.localhost",
-       :news_app_csp_violation_report_path,],
-      [ENV["PRIVATE_NEWS_CORPORATE_URL"] || "news.com.localhost",
-       :news_com_csp_violation_report_path,],
-      [ENV["PRIVATE_NEWS_STAFF_URL"] || "news.org.localhost",
-       :news_org_csp_violation_report_path,],
+      [configured_host(:base_service), :base_app_csp_violation_report_path],
+      [configured_host(:base_corporate), :base_com_csp_violation_report_path],
+      [configured_host(:base_staff), :base_org_csp_violation_report_path],
+      [configured_host(:palm_service), :palm_app_csp_violation_report_path],
+    ]
+  end
+
+  def csp_report_content_cases
+    [
+      [ENV["PRIVATE_DOCS_SERVICE_URL"] || "docs.app.localhost", :docs_app_csp_violation_report_path],
+      [ENV["PRIVATE_DOCS_CORPORATE_URL"] || "docs.com.localhost", :docs_com_csp_violation_report_path],
+      [ENV["PRIVATE_DOCS_STAFF_URL"] || "docs.org.localhost", :docs_org_csp_violation_report_path],
+      [ENV["PRIVATE_HELP_SERVICE_URL"] || "help.app.localhost", :help_app_csp_violation_report_path],
+      [ENV["PRIVATE_HELP_CORPORATE_URL"] || "help.com.localhost", :help_com_csp_violation_report_path],
+      [ENV["PRIVATE_HELP_STAFF_URL"] || "help.org.localhost", :help_org_csp_violation_report_path],
+      [ENV["PRIVATE_NEWS_SERVICE_URL"] || "news.app.localhost", :news_app_csp_violation_report_path],
+      [ENV["PRIVATE_NEWS_CORPORATE_URL"] || "news.com.localhost", :news_com_csp_violation_report_path],
+      [ENV["PRIVATE_NEWS_STAFF_URL"] || "news.org.localhost", :news_org_csp_violation_report_path],
     ]
   end
 
@@ -229,96 +216,12 @@ end
 
 # DAMP local helper copy for former shared test support.
 class CspViolationReportsControllerTest
-  TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  TEST_BROWSER_USER_AGENT =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
 
   private
-
-  def configured_host(surface_name)
-    Rails.configuration.x.boot_config.fetch(:hosts).public_send(surface_name).host
-  end
-
-  def host_headers(host = nil)
-    host_value = host || (respond_to?(:request, true) ? request&.host : nil) || ENV["DEFAULT_URL_HOST"]
-    headers = { "Client-Agent" => TEST_BROWSER_USER_AGENT }
-    headers["Host"] = host_value if host_value.present?
-    headers
-  end
-
-  def browser_headers
-    csrf_token = csrf_token_value
-    headers = {
-      "Client-Agent" => TEST_BROWSER_USER_AGENT,
-      "Accept" => "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "X-CSRF-Token" => csrf_token,
-    }
-    if respond_to?(:cookies, true)
-      cookies["csrf_token"] = csrf_token
-    else
-      headers["Cookie"] = "csrf_token=#{csrf_token}"
-    end
-    headers
-  end
-
-  def as_user_headers(user, host: nil, headers: {}, session_public_id: nil)
-    base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-USER" => user.id.to_s)
-    return base unless user.respond_to?(:persisted?) && user.persisted? && user.class.name == "Client"
-
-    ensure_user_token_reference_records!
-    token = session_public_id.present? ? ClientToken.find_by(public_id: session_public_id) : nil
-    token ||= ClientToken.where(user_id: user.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
-    token ||= ClientToken.create!(
-      user_id: user.id,
-      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
-      user_token_status_id: ClientTokenStatus::ACTIVE,
-      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
-      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
-    )
-    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
-  end
-
-  def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
-    base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-STAFF" => staff.id.to_s)
-    return base unless staff.respond_to?(:persisted?) && staff.persisted? && staff.class.name == "Operator"
-
-    ensure_staff_token_reference_records!
-    token = session_public_id.present? ? OperatorToken.find_by(public_id: session_public_id) : nil
-    token ||= OperatorToken.where(staff_id: staff.id).where(
-      "discarded_at > ?",
-      Time.current,
-    ).order(created_at: :desc).first
-    token ||= OperatorToken.create!(
-      staff_id: staff.id,
-      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-      staff_token_status_id: OperatorTokenStatus::ACTIVE,
-      staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY,
-      staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
-    )
-    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
-  end
-
-  def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
-    base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-RESOURCE" => visitor.id.to_s)
-    return base unless visitor.respond_to?(:persisted?) && visitor.persisted? && visitor.class.name == "Visitor"
-
-    ensure_visitor_token_reference_records!
-    token = session_public_id.present? ? VisitorToken.find_by(public_id: session_public_id) : nil
-    token ||= VisitorToken.where(visitor_id: visitor.id).where(
-      "discarded_at > ?",
-      Time.current,
-    ).order(created_at: :desc).first
-    token ||= VisitorToken.create!(
-      visitor_id: visitor.id,
-      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
-      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
-      visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY,
-      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
-    )
-    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
-  end
 
   def bearer_headers(token, host: nil, headers: {})
     host_headers(host).merge(headers).merge("Authorization" => "Bearer #{token}")
@@ -376,29 +279,6 @@ class CspViolationReportsControllerTest
     ClientPasskeyStatus.find_or_create_by!(id: ClientPasskeyStatus::ACTIVE)
   end
 
-  def ensure_visitor_reference_records!
-    VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)
-    VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
-    VisitorMfaLevel.find_or_create_by!(id: VisitorMfaLevel::NOTHING)
-    VisitorMfaStatus.find_or_create_by!(id: VisitorMfaStatus::UNCONFIGURED)
-    VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
-    VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
-    VisitorPasskeyStatus.find_or_create_by!(id: VisitorPasskeyStatus::ACTIVE)
-    if defined?(VisitorSecretCredentialStatus)
-      [VisitorSecretCredentialStatus::ACTIVE, VisitorSecretCredentialStatus::EXPIRED, VisitorSecretCredentialStatus::REVOKED,
-       VisitorSecretCredentialStatus::USED, VisitorSecretCredentialStatus::DELETED, VisitorSecretCredentialStatus::NOTHING,].each do |id|
-        VisitorSecretCredentialStatus.find_or_create_by!(id: id)
-      end
-    end
-    return unless defined?(VisitorSecretCredentialKind)
-
-    [VisitorSecretCredentialKind::LOGIN, VisitorSecretCredentialKind::RECOVERY,
-     VisitorSecretCredentialKind::API,].each do |id|
-      VisitorSecretCredentialKind.find_or_create_by!(id: id)
-    end
-
-  end
-
   def ensure_user_token_reference_records!
     ClientTokenKind.find_or_create_by!(id: ClientTokenKind::BROWSER_WEB)
     ClientTokenStatus.find_or_create_by!(id: ClientTokenStatus::ACTIVE)
@@ -425,14 +305,6 @@ class CspViolationReportsControllerTest
     user = Client.create!(status_id: ClientStatus::NOTHING, visibility_id: ClientVisibility::USER)
     insert_verified_user_email!(user_id: user.id, address: email_address)
     user.reload
-  end
-
-  def create_verified_visitor_with_email(email_address: "visitor-#{SecureRandom.hex(4)}@example.com")
-    ensure_visitor_reference_records!
-    visitor = Visitor.create!(status_id: VisitorStatus::NOTHING, visibility_id: VisitorVisibility::VISITOR)
-    insert_verified_visitor_email!(visitor_id: visitor.id, address: email_address)
-    visitor.refresh_mfa_status! if visitor.respond_to?(:refresh_mfa_status!)
-    visitor.reload
   end
 
   def insert_verified_user_email!(user_id:, address:)
@@ -488,22 +360,6 @@ class CspViolationReportsControllerTest
     true
   end
 
-  def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
-    return unless token.respond_to?(:update_columns)
-
-    attrs = {
-      last_step_up_at: at,
-      last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
-      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
-      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
-      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
-      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
-      updated_at: Time.current,
-    }.compact
-    token.update_columns(attrs)
-  end
-
   def step_up_test_audience_for_token(token)
     case token.class.name
     when "OperatorToken" then "step_up:org"
@@ -544,42 +400,6 @@ class CspViolationReportsControllerTest
       return_to: return_to,
       expires_at: 15.minutes.from_now,
     ).grant
-  end
-
-  def load_jump_rt_env!
-    @jump_rt_env_originals ||= {}
-    jump_rt_key = Base64.strict_encode64(OpenSSL::PKey::EC.generate("secp384r1").to_der)
-    {
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
-      "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-test",
-      "JWT_SIGN_APP_PRIVATE_KEY" => jump_rt_key,
-      "JWT_SIGN_ORG_ACTIVE_KID" => "sign-org-test",
-      "JWT_SIGN_ORG_PRIVATE_KEY" => jump_rt_key,
-      "JWT_SIGN_COM_ACTIVE_KID" => "sign-com-test",
-      "JWT_SIGN_COM_PRIVATE_KEY" => jump_rt_key,
-      "JWT_ACME_APP_ACTIVE_KID" => "acme-app-test",
-      "JWT_ACME_APP_PRIVATE_KEY" => jump_rt_key,
-      "JWT_ACME_ORG_ACTIVE_KID" => "acme-org-test",
-      "JWT_ACME_ORG_PRIVATE_KEY" => jump_rt_key,
-      "JWT_ACME_COM_ACTIVE_KID" => "acme-com-test",
-      "JWT_ACME_COM_PRIVATE_KEY" => jump_rt_key,
-      "JWT_CORE_APP_ACTIVE_KID" => "core-app-test",
-      "JWT_CORE_APP_PRIVATE_KEY" => jump_rt_key,
-      "JWT_CORE_ORG_ACTIVE_KID" => "core-org-test",
-      "JWT_CORE_ORG_PRIVATE_KEY" => jump_rt_key,
-      "JWT_CORE_COM_ACTIVE_KID" => "core-com-test",
-      "JWT_CORE_COM_PRIVATE_KEY" => jump_rt_key,
-      "JWT_BASE_APP_ACTIVE_KID" => "base-app-test",
-      "JWT_BASE_APP_PRIVATE_KEY" => jump_rt_key,
-      "JWT_BASE_ORG_ACTIVE_KID" => "base-org-test",
-      "JWT_BASE_ORG_PRIVATE_KEY" => jump_rt_key,
-      "JWT_BASE_COM_ACTIVE_KID" => "base-com-test",
-      "JWT_BASE_COM_PRIVATE_KEY" => jump_rt_key,
-    }.each do |key, value|
-      @jump_rt_env_originals[key] = ENV[key] unless @jump_rt_env_originals.key?(key)
-      ENV[key] = value
-    end
-    JitSecurityJwtRegistry.reload! if defined?(JitSecurityJwtRegistry)
   end
 
   def with_forgery_protection
@@ -656,17 +476,6 @@ class CspViolationReportsControllerTest
     social_auth_state_from_response
   end
 
-  def response_set_cookie_lines
-    raw = response.headers["Set-Cookie"] || response.headers["set-cookie"]
-    lines =
-      case raw
-      when Array then raw
-      when String then raw.split("\n")
-      else []
-      end
-    lines.flat_map { |line| line.to_s.split("\n") }.compact_blank
-  end
-
   def assert_oidc_authorize_redirect(location, host:, client_id: "base-rails-rp")
     uri = URI.parse(location)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
@@ -714,9 +523,11 @@ end
 
 # DAMP local helper copy on the test class.
 class CspViolationReportsControllerTest
-  TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
-    :TEST_BROWSER_USER_AGENT, false,
-  )
+  TEST_BROWSER_USER_AGENT =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
+      :TEST_BROWSER_USER_AGENT, false,
+    )
   PREFERENCE_JWT_KEY = OpenSSL::PKey::EC.generate("secp384r1") unless const_defined?(:PREFERENCE_JWT_KEY, false)
 
   private
@@ -799,7 +610,9 @@ class CspViolationReportsControllerTest
     token ||= ClientToken.where(user_id: user.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
     token ||= ClientToken.create!(
       user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB,
-      user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -817,7 +630,9 @@ class CspViolationReportsControllerTest
     ).order(created_at: :desc).first
     token ||= OperatorToken.create!(
       staff_id: staff.id, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-      staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
+      staff_token_status_id: OperatorTokenStatus::ACTIVE,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -835,26 +650,12 @@ class CspViolationReportsControllerTest
     ).order(created_at: :desc).first
     token ||= VisitorToken.create!(
       visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
-      visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY,
+      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
-  end
-
-  def bearer_headers(token, host: nil, headers: {})
-    host_headers(host).merge(headers).merge("Authorization" => "Bearer #{token}")
-  end
-
-  def ensure_user_reference_records!
-    ClientStatus.find_or_create_by!(id: ClientStatus::NOTHING)
-    ClientVisibility.find_or_create_by!(id: ClientVisibility::USER)
-    ClientMfaLevel.find_or_create_by!(id: ClientMfaLevel::NOTHING)
-    ClientMfaStatus.find_or_create_by!(id: ClientMfaStatus::NOTHING)
-    ClientMfaStatus.find_or_create_by!(id: ClientMfaStatus::ACTIVE)
-    ClientMfaStatus.find_or_create_by!(id: ClientMfaStatus::UNCONFIGURED)
-    ClientEmailStatus.find_or_create_by!(id: ClientEmailStatus::VERIFIED)
-    ClientTelephoneStatus.find_or_create_by!(id: ClientTelephoneStatus::VERIFIED)
-    ClientPasskeyStatus.find_or_create_by!(id: ClientPasskeyStatus::ACTIVE)
   end
 
   def ensure_visitor_reference_records!
@@ -867,56 +668,19 @@ class CspViolationReportsControllerTest
     VisitorPasskeyStatus.find_or_create_by!(id: VisitorPasskeyStatus::ACTIVE)
   end
 
-  def ensure_user_token_reference_records!
-    ClientTokenKind.find_or_create_by!(id: ClientTokenKind::BROWSER_WEB)
-    ClientTokenStatus.find_or_create_by!(id: ClientTokenStatus::ACTIVE)
-    ClientTokenBindingMethod.find_or_create_by!(id: ClientTokenBindingMethod::LEGACY)
-    ClientTokenDbscStatus.find_or_create_by!(id: ClientTokenDbscStatus::NOTHING)
-  end
-
-  def ensure_staff_token_reference_records!
-    OperatorTokenKind.find_or_create_by!(id: OperatorTokenKind::BROWSER_WEB)
-    OperatorTokenStatus.find_or_create_by!(id: OperatorTokenStatus::ACTIVE)
-    OperatorTokenBindingMethod.find_or_create_by!(id: OperatorTokenBindingMethod::LEGACY)
-    OperatorTokenDbscStatus.find_or_create_by!(id: OperatorTokenDbscStatus::NOTHING)
-  end
-
-  def ensure_visitor_token_reference_records!
-    VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
-    VisitorTokenStatus.find_or_create_by!(id: VisitorTokenStatus::ACTIVE)
-    VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::LEGACY)
-    VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
-  end
-
   def create_verified_visitor_with_email(email_address: "visitor-#{SecureRandom.hex(4)}@example.com")
     ensure_visitor_reference_records!
     visitor = Visitor.create!(status_id: VisitorStatus::NOTHING, visibility_id: VisitorVisibility::VISITOR)
     VisitorEmail.create!(
       visitor_id: visitor.id, address: email_address,
-      address_digest: IdentifierBlindIndex.bidx_for_email(email_address), visitor_email_status_id: VisitorEmailStatus::VERIFIED, otp_private_key: SecureRandom.base64(24), otp_counter: "", otp_attempts_count: 0, public_id: SecureRandom.alphanumeric(21),
+      address_digest: IdentifierBlindIndex.bidx_for_email(email_address),
+      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
+      otp_private_key: SecureRandom.base64(24),
+      otp_counter: "",
+      otp_attempts_count: 0,
+      public_id: SecureRandom.alphanumeric(21),
     )
     visitor.reload
-  end
-
-  def satisfy_user_verification(token, scope: nil)
-    _verification, raw_token = ClientVerification.issue_for_token!(token: token)
-    cookies[ClientVerification.cookie_name] = raw_token
-    mark_token_step_up_satisfied_for_test(token, scope: scope)
-    true
-  end
-
-  def satisfy_staff_verification(token, scope: nil)
-    _verification, raw_token = OperatorVerification.issue_for_token!(token: token)
-    cookies[OperatorVerification.cookie_name] = raw_token
-    mark_token_step_up_satisfied_for_test(token, scope: scope)
-    true
-  end
-
-  def satisfy_visitor_verification(token, scope: nil)
-    _verification, raw_token = VisitorVerification.issue_for_token!(token: token)
-    cookies[VisitorVerification.cookie_name] = raw_token
-    mark_token_step_up_satisfied_for_test(token, scope: scope)
-    true
   end
 
   def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
@@ -939,21 +703,6 @@ class CspViolationReportsControllerTest
     end
     ENV["JUMP_GATEWAY_URL"] = "https://jump.umaxica.net"
     JitSecurityJwtRegistry.reload! if defined?(JitSecurityJwtRegistry)
-  end
-
-  def with_forgery_protection
-    ActionController::Base.allow_forgery_protection = true
-    yield
-  ensure
-    # Restore the environment default, not the value observed on entry: if the flag was
-    # already leaked as true, restoring the observation would pin the leak for the rest
-    # of the process and every later test expecting protection off would fail.
-    ActionController::Base.allow_forgery_protection =
-      Rails.configuration.action_controller.allow_forgery_protection
-  end
-
-  def csrf_token_value
-    "test-csrf-token"
   end
 
   def response_set_cookie_lines

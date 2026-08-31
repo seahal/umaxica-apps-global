@@ -50,7 +50,10 @@ module EnforcementAppeal
         state: resolution_code,
         reviewed_at: Time.current,
       )
-      EnforcementCaseEndOperation.call(enforcement_case: enforcement_case, reason: "appeal_approved", ended_by_operator_public_id: reviewer_operator_public_id) if resolution_code == "approved"
+      EnforcementCaseEndOperation.call(
+        enforcement_case: enforcement_case, reason: "appeal_approved",
+        ended_by_operator_public_id: reviewer_operator_public_id,
+      ) if resolution_code == "approved"
       enforcement_case.write_audit_event!("appeal_#{resolution_code}")
     end
   end

@@ -21,7 +21,8 @@ module Publishing
 
     test "a vocabulary cannot be physically deleted even when it has no terms" do
       empty = Vocabulary.create!(
-        audience: "org", surface: "help", key: "empty", kind: TaxonomyKind::MULTIPLE_ORDERED_FLAT, internal_name: "Empty",
+        audience: "org", surface: "help", key: "empty", kind: TaxonomyKind::MULTIPLE_ORDERED_FLAT,
+        internal_name: "Empty",
       )
 
       assert_database_rejects { @connection.execute("DELETE FROM publishing_vocabularies WHERE id = #{empty.id}") }
@@ -41,7 +42,8 @@ module Publishing
 
     test "an empty vocabulary may still be corrected" do
       draft = Vocabulary.create!(
-        audience: "com", surface: "help", key: "wrong_kind", kind: TaxonomyKind::SINGLE_HIERARCHICAL, internal_name: "Draft",
+        audience: "com", surface: "help", key: "wrong_kind", kind: TaxonomyKind::SINGLE_HIERARCHICAL,
+        internal_name: "Draft",
       )
 
       draft.update!(kind: TaxonomyKind::MULTIPLE_ORDERED_FLAT)

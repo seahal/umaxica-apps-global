@@ -39,7 +39,10 @@ class WithdrawalLifecycleTest < ActiveSupport::TestCase
 
   test "start! returns existing requested flow without creating another" do
     client = clients(:one)
-    flow = client.client_withdrawal_flows.create!(status_id: ClientWithdrawalFlowStatus::REQUESTED, began_at: Time.current)
+    flow = client.client_withdrawal_flows.create!(
+      status_id: ClientWithdrawalFlowStatus::REQUESTED,
+      began_at: Time.current,
+    )
 
     assert_no_difference -> { client.client_withdrawal_flows.count } do
       WithdrawalLifecycle.start!(actor: client, current_session_public_id: @session_public_id, request: @request)
@@ -50,7 +53,10 @@ class WithdrawalLifecycleTest < ActiveSupport::TestCase
 
   test "start! returns existing closing flow" do
     client = clients(:one)
-    flow = client.client_withdrawal_flows.create!(status_id: ClientWithdrawalFlowStatus::CLOSING, began_at: Time.current)
+    flow = client.client_withdrawal_flows.create!(
+      status_id: ClientWithdrawalFlowStatus::CLOSING,
+      began_at: Time.current,
+    )
 
     assert_no_difference -> { client.client_withdrawal_flows.count } do
       WithdrawalLifecycle.start!(actor: client, current_session_public_id: @session_public_id, request: @request)
@@ -127,7 +133,7 @@ class WithdrawalLifecycleTest < ActiveSupport::TestCase
       WithdrawalLifecycle.suspend!(actor: client, current_session_public_id: @session_public_id, request: @request)
     end
 
-    assert_in_delta future_purged_at.to_f, client.reload.purged_at.to_f, 1
+    assert_in_delta Float(future_purged_at), Float(client.reload.purged_at), 1
   end
 
   test "suspend! computes purged_at from deactivated_at when existing purged_at is infinite" do
@@ -141,8 +147,8 @@ class WithdrawalLifecycleTest < ActiveSupport::TestCase
 
     client.reload
 
-    assert_in_delta deactivated_at.to_f, client.deactivated_at.to_f, 1
-    assert_in_delta (deactivated_at + WithdrawalLifecycle::RECOVERY_PERIOD).to_f, client.purged_at.to_f, 1
+    assert_in_delta Float(deactivated_at), Float(client.deactivated_at), 1
+    assert_in_delta Float((deactivated_at + WithdrawalLifecycle::RECOVERY_PERIOD)), Float(client.purged_at), 1
   end
 
   test "recover! raises when recovery is not available" do

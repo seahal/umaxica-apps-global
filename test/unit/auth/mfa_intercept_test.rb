@@ -139,69 +139,36 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
 
   # Build a minimal controller-like object that includes AuthenticationBase for testing
   def build_test_controller
-    controller_class =
-      Class.new do
-        include CommonRedirect
-        include AuthenticationBase
+    mfa_intercept_controller_class.new
+  end
 
-        attr_accessor :session
+  def mfa_intercept_controller_class
+    Class.new do
+      include CommonRedirect
+      include AuthenticationBase
 
-        define_method(:initialize) do
-          @session = {}
-        end
+      attr_accessor :session
 
-        define_method(:resource_class) do
-          ::Client
-        end
+      define_method(:initialize) { @session = {} }
+      define_method(:resource_class) { ::Client }
+      define_method(:token_class) { ClientToken }
+      define_method(:audit_class) { ::ClientChronicle }
+      define_method(:resource_type) { "user" }
+      define_method(:resource_foreign_key) { :user_id }
+      define_method(:test_header_key) { "X-TEST-CURRENT-USER" }
+      define_method(:sign_in_url_with_pt) { |_rt| "/sign/in" }
+      define_method(:am_i_user?) { true }
+      define_method(:am_i_staff?) { false }
+      define_method(:am_i_owner?) { false }
+      define_method(:respond_to?) do |name, include_private = false|
+        return true if name == :sign_app_sign_in_mfa_path
 
-        define_method(:token_class) do
-          ClientToken
-        end
-
-        define_method(:audit_class) do
-          ::ClientChronicle
-        end
-
-        define_method(:resource_type) do
-          "user"
-        end
-
-        define_method(:resource_foreign_key) do
-          :user_id
-        end
-
-        define_method(:test_header_key) do
-          "X-TEST-CURRENT-USER"
-        end
-
-        define_method(:sign_in_url_with_pt) do |_rt|
-          "/sign/in"
-        end
-
-        define_method(:am_i_user?) do
-          true
-        end
-
-        define_method(:am_i_staff?) do
-          false
-        end
-
-        define_method(:am_i_owner?) do
-          false
-        end
-
-        define_method(:respond_to?) do |name, include_private = false|
-          return true if name == :sign_app_sign_in_mfa_path
-
-          super(name, include_private)
-        end
-
-        define_method(:sign_app_sign_in_mfa_path) do |ri: nil|
-          ri ? "/sign/in/mfa?ri=#{ri}" : "/sign/in/mfa"
-        end
+        super(name, include_private)
       end
-
-    controller_class.new
+      define_method(:sign_app_sign_in_mfa_path) do |ri: nil|
+        ri ? "/sign/in/mfa?ri=#{ri}" : "/sign/in/mfa"
+      end
+    end
   end
 end
 

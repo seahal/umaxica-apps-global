@@ -55,6 +55,8 @@ class StepUpResolver
   attr_reader :token, :requirement, :now
 
   def satisfied?
+    return true unless requirement.step_up_required?
+
     usable_token? &&
       requirement.aal_supported? &&
       satisfied_at.present? &&
@@ -86,8 +88,10 @@ class StepUpResolver
   end
 
   def aal_matches?
+    return true unless requirement.aal_required?
+
     token_value = token_attribute(:last_step_up_aal)
-    return requirement.required_aal == :aal2 if token_value.blank?
+    return !requirement.aal_required? if token_value.blank?
 
     token_value.to_s == requirement.required_aal.to_s
   end

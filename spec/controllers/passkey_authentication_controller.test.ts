@@ -7,6 +7,14 @@
 import { Controller } from "@hotwired/stimulus";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const solveInvisibleTurnstile = vi.fn(async (): Promise<string> => {
+  throw new Error("Security verification failed. Please refresh and try again.");
+});
+
+vi.mock("@/features/auth/passkeys/invisibleTurnstile", () => ({
+  solveInvisibleTurnstile: () => solveInvisibleTurnstile(),
+}));
+
 import PasskeyAuthenticationController from "@/controllers/passkey_authentication_controller";
 
 import { jsonResponse, requestAt, stubCeremonyFetch, textResponse } from "../support/ceremony";
@@ -92,6 +100,10 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  solveInvisibleTurnstile.mockReset();
+  solveInvisibleTurnstile.mockImplementation(async () => {
+    throw new Error("Security verification failed. Please refresh and try again.");
+  });
 });
 
 describe("PasskeyAuthenticationController", () => {
@@ -338,6 +350,24 @@ describe("PasskeyAuthenticationController", () => {
       });
     });
 
+    it("solves an empty field and writes the token back", async () => {
+      solveInvisibleTurnstile.mockResolvedValueOnce("fresh-token");
+      const credentials = stubCredentialsApi();
+      credentials.get.mockResolvedValue(assertionCredential());
+      const fetchMock = stubCeremonyFetch(
+        jsonResponse(BEGUN),
+        jsonResponse({ status: "ok", redirect_url: "/home" }),
+      );
+      stubNavigation();
+      const { controller } = await mount({ turnstileToken: "" });
+
+      await controller.authenticate(new Event("click"));
+
+      expect(requestAt(fetchMock, 0).body).toMatchObject({
+        "cf-turnstile-response": "fresh-token",
+      });
+    });
+
     it("reports the failure when no widget can be solved", async () => {
       const { controller, element } = await mount({ turnstileToken: "" });
 
@@ -346,6 +376,128 @@ describe("PasskeyAuthenticationController", () => {
       expect(messageText(element, "error")).toBe(
         "Security verification failed. Please refresh and try again.",
       );
+    });
+  });
+
+  describe("missing optional targets", () => {
+    it("refuses to start when the identifier field is absent", async () => {
+      const { controller, element } = await mountController(
+        "passkey-authentication",
+        PasskeyAuthenticationController,
+        `
+          <div data-controller="passkey-authentication"
+               data-passkey-authentication-options-url-value="${OPTIONS_URL}"
+               data-passkey-authentication-verification-url-value="${VERIFICATION_URL}"
+               data-passkey-authentication-turnstile-site-key-value="site-key">
+            <input type="hidden" value="solved-token" data-passkey-authentication-target="turnstileResponse">
+            <p data-passkey-authentication-target="error" class="hidden"></p>
+            <p data-passkey-authentication-target="status" class="hidden"></p>
+          </div>
+        `,
+      );
+
+      await controller.authenticate(new Event("click"));
+
+      expect(messageText(element, "error")).toBe("メールアドレスまたはIDを入力してください");
+    });
+
+    it("solves Turnstile when the page omitted the hidden field", async () => {
+      solveInvisibleTurnstile.mockResolvedValueOnce("fresh-token");
+      const credentials = stubCredentialsApi();
+      credentials.get.mockResolvedValue(assertionCredential());
+      const fetchMock = stubCeremonyFetch(
+        jsonResponse(BEGUN),
+        jsonResponse({ status: "ok", redirect_url: "/home" }),
+      );
+      stubNavigation();
+      const { controller } = await mountController(
+        "passkey-authentication",
+        PasskeyAuthenticationController,
+        `
+          <div data-controller="passkey-authentication"
+               data-passkey-authentication-options-url-value="${OPTIONS_URL}"
+               data-passkey-authentication-verification-url-value="${VERIFICATION_URL}"
+               data-passkey-authentication-turnstile-site-key-value="site-key">
+            <input type="text" value="someone@example.test" data-passkey-authentication-target="identifier">
+            <p data-passkey-authentication-target="error" class="hidden"></p>
+            <p data-passkey-authentication-target="status" class="hidden"></p>
+          </div>
+        `,
+      );
+
+      await controller.authenticate(new Event("click"));
+
+      expect(requestAt(fetchMock, 0).body).toMatchObject({
+        "cf-turnstile-response": "fresh-token",
+      });
+    });
+
+    it("reports a refusal when only the status element is present", async () => {
+      vi.stubGlobal("PublicKeyCredential", undefined);
+      const { controller, element } = await mountController(
+        "passkey-authentication",
+        PasskeyAuthenticationController,
+        `
+          <div data-controller="passkey-authentication"
+               data-passkey-authentication-options-url-value="${OPTIONS_URL}"
+               data-passkey-authentication-verification-url-value="${VERIFICATION_URL}"
+               data-passkey-authentication-turnstile-site-key-value="site-key">
+            <input type="text" value="someone@example.test" data-passkey-authentication-target="identifier">
+            <input type="hidden" value="solved-token" data-passkey-authentication-target="turnstileResponse">
+            <p data-passkey-authentication-target="status" class="hidden">working</p>
+          </div>
+        `,
+      );
+
+      await controller.authenticate(new Event("click"));
+
+      expect(element.querySelector("[data-passkey-authentication-target='error']")).toBeNull();
+    });
+
+    it("reports a refusal when only the error element is present", async () => {
+      vi.stubGlobal("PublicKeyCredential", undefined);
+      const { controller, element } = await mountController(
+        "passkey-authentication",
+        PasskeyAuthenticationController,
+        `
+          <div data-controller="passkey-authentication"
+               data-passkey-authentication-options-url-value="${OPTIONS_URL}"
+               data-passkey-authentication-verification-url-value="${VERIFICATION_URL}"
+               data-passkey-authentication-turnstile-site-key-value="site-key">
+            <input type="text" value="someone@example.test" data-passkey-authentication-target="identifier">
+            <input type="hidden" value="solved-token" data-passkey-authentication-target="turnstileResponse">
+            <p data-passkey-authentication-target="error" class="hidden"></p>
+          </div>
+        `,
+      );
+
+      await controller.authenticate(new Event("click"));
+
+      expect(messageText(element, "error")).toBe("このブラウザはPasskeyに対応していません");
+    });
+
+    it("still authenticates when the page omitted the message elements", async () => {
+      const credentials = stubCredentialsApi();
+      credentials.get.mockResolvedValue(assertionCredential());
+      stubCeremonyFetch(jsonResponse(BEGUN), jsonResponse({ status: "ok", redirect_url: "/home" }));
+      const navigation = stubNavigation();
+      const { controller } = await mountController(
+        "passkey-authentication",
+        PasskeyAuthenticationController,
+        `
+          <div data-controller="passkey-authentication"
+               data-passkey-authentication-options-url-value="${OPTIONS_URL}"
+               data-passkey-authentication-verification-url-value="${VERIFICATION_URL}"
+               data-passkey-authentication-turnstile-site-key-value="site-key">
+            <input type="text" value="someone@example.test" data-passkey-authentication-target="identifier">
+            <input type="hidden" value="solved-token" data-passkey-authentication-target="turnstileResponse">
+          </div>
+        `,
+      );
+
+      await controller.authenticate(new Event("click"));
+
+      expect(navigation.href()).toBe("/home");
     });
   });
 });

@@ -176,6 +176,7 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
       sign_count: 0,
       description: "auth guard passkey",
       status_id: ClientPasskeyStatus::ACTIVE,
+      uv_verified_at: Time.current,
     )
     passkey.save!(validate: false)
 
@@ -207,6 +208,7 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
       sign_count: 0,
       description: "auth guard totp passkey",
       status_id: ClientPasskeyStatus::ACTIVE,
+      uv_verified_at: Time.current,
     )
     passkey.save!(validate: false)
 

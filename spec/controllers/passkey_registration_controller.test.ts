@@ -7,6 +7,14 @@
 import { Controller } from "@hotwired/stimulus";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const solveInvisibleTurnstile = vi.fn(async (): Promise<string> => {
+  throw new Error("Security verification failed. Please refresh and try again.");
+});
+
+vi.mock("@/features/auth/passkeys/invisibleTurnstile", () => ({
+  solveInvisibleTurnstile: () => solveInvisibleTurnstile(),
+}));
+
 import PasskeyRegistrationController from "@/controllers/passkey_registration_controller";
 
 import { jsonResponse, requestAt, stubCeremonyFetch, textResponse } from "../support/ceremony";
@@ -100,6 +108,10 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  solveInvisibleTurnstile.mockReset();
+  solveInvisibleTurnstile.mockImplementation(async () => {
+    throw new Error("Security verification failed. Please refresh and try again.");
+  });
 });
 
 describe("PasskeyRegistrationController", () => {
@@ -215,6 +227,87 @@ describe("PasskeyRegistrationController", () => {
       await controller.register(new Event("click"));
 
       expect(messageText(element, "error")).toBe("このブラウザはPasskeyに対応していません");
+    });
+
+    it("solves Turnstile when the page omitted the hidden field", async () => {
+      solveInvisibleTurnstile.mockResolvedValueOnce("fresh-token");
+      const credentials = stubCredentialsApi();
+      credentials.create.mockResolvedValue(attestationCredential());
+      const fetchMock = stubCeremonyFetch(
+        jsonResponse(BEGUN),
+        jsonResponse({ redirect_url: "/settings/passkeys" }),
+      );
+      stubNavigation();
+      const { controller } = await mountController(
+        "passkey-registration",
+        PasskeyRegistrationController,
+        `
+          <div data-controller="passkey-registration"
+               data-passkey-registration-begin-url-value="${BEGIN_URL}"
+               data-passkey-registration-finish-url-value="${FINISH_URL}"
+               data-passkey-registration-turnstile-site-key-value="site-key">
+            <input type="text" value="iPhone" data-passkey-registration-target="description">
+            <p data-passkey-registration-target="error" class="hidden"></p>
+            <p data-passkey-registration-target="status" class="hidden"></p>
+          </div>
+        `,
+      );
+
+      await controller.register(new Event("click"));
+
+      expect(requestAt(fetchMock, 0).body).toMatchObject({
+        "cf-turnstile-response": "fresh-token",
+      });
+    });
+
+    it("reports a refusal when the page omitted the message elements", async () => {
+      vi.stubGlobal("PublicKeyCredential", undefined);
+      const { controller } = await mountController(
+        "passkey-registration",
+        PasskeyRegistrationController,
+        `
+          <div data-controller="passkey-registration"
+               data-passkey-registration-begin-url-value="${BEGIN_URL}"
+               data-passkey-registration-finish-url-value="${FINISH_URL}"
+               data-passkey-registration-turnstile-site-key-value="site-key">
+            <input type="hidden" value="solved-token" data-passkey-registration-target="turnstileResponse">
+          </div>
+        `,
+      );
+
+      await controller.register(new Event("click"));
+
+      expect(controller).toBeDefined();
+    });
+
+    it("sends an empty description when the field is blank", async () => {
+      const credentials = stubCredentialsApi();
+      credentials.create.mockResolvedValue(attestationCredential());
+      const fetchMock = stubCeremonyFetch(
+        jsonResponse(BEGUN),
+        jsonResponse({ redirect_url: "/settings/passkeys" }),
+      );
+      stubNavigation();
+      const { controller } = await mount({ description: "" });
+
+      await controller.register(new Event("click"));
+
+      expect(requestAt(fetchMock, 1).body).toMatchObject({ description: "" });
+    });
+
+    it("sends an empty description when the field is absent", async () => {
+      const credentials = stubCredentialsApi();
+      credentials.create.mockResolvedValue(attestationCredential());
+      const fetchMock = stubCeremonyFetch(
+        jsonResponse(BEGUN),
+        jsonResponse({ redirect_url: "/settings/passkeys" }),
+      );
+      stubNavigation();
+      const { controller } = await mount({ description: null });
+
+      await controller.register(new Event("click"));
+
+      expect(requestAt(fetchMock, 1).body).toMatchObject({ description: "" });
     });
 
     it("prevents the click from submitting the surrounding form", async () => {
@@ -355,6 +448,24 @@ describe("PasskeyRegistrationController", () => {
 
       expect(requestAt(fetchMock, 0).body).toMatchObject({
         "cf-turnstile-response": "already-solved",
+      });
+    });
+
+    it("solves an empty field and writes the token back", async () => {
+      solveInvisibleTurnstile.mockResolvedValueOnce("fresh-token");
+      const credentials = stubCredentialsApi();
+      credentials.create.mockResolvedValue(attestationCredential());
+      const fetchMock = stubCeremonyFetch(
+        jsonResponse(BEGUN),
+        jsonResponse({ redirect_url: "/x" }),
+      );
+      stubNavigation();
+      const { controller } = await mount({ turnstileToken: "" });
+
+      await controller.register(new Event("click"));
+
+      expect(requestAt(fetchMock, 0).body).toMatchObject({
+        "cf-turnstile-response": "fresh-token",
       });
     });
 

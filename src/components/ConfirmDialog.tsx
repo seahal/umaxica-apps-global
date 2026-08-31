@@ -43,6 +43,7 @@ function ConfirmDialog({
       title={pending?.message ?? ""}
       isOpen={pending !== null}
       onOpenChange={(isOpen) => {
+        /* v8 ignore next -- opening is driven by `pending`; this only handles dismiss */
         if (!isOpen) {
           onDismiss();
         }

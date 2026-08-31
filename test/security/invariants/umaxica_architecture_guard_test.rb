@@ -48,7 +48,9 @@ module Security
       ).freeze
 
       CROSS_DB_INTEGER_REFERENCE_PATTERN =
+        # rubocop:disable Layout/LineLength -- splitting this regex corrupts it
         /\bt\.(?:bigint|integer|references)\(?\s*:?(?:avatar|account|organization|unit|identity|persona|agent|individual|member)_(?:id|identity_id)\b/
+      # rubocop:enable Layout/LineLength
 
       KNOWN_CROSS_DB_INTEGER_REFERENCES = [
         "db/app_zenith_migrate/20260520120000_create_persona_enterprise_model_layer.rb:10",
@@ -97,7 +99,9 @@ module Security
             relative_path = path.relative_path_from(Rails.root).to_s
             File.readlines(path, chomp: true).each_with_index.filter_map do |line, index|
               next unless line.match?(
+                # rubocop:disable Layout/LineLength -- splitting this regex corrupts it
                 /\bclient_id:\s*(?:(?:current_client|principal|actor|user|client|@user|@client)\.id|legacy_compatibility_client_id)\b/,
+                # rubocop:enable Layout/LineLength
               )
               next if [AVATAR_PROVISIONING_CREATE_PATH,
                        AVATAR_BACKFILL_LEGACY_CLIENT_BINDINGS_PATH,].include?(relative_path)

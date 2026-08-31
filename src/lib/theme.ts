@@ -29,7 +29,10 @@ const CODE_BY_THEME: Record<Theme, string> = {
 };
 
 export function themeFromCode(value: string | null | undefined): Theme {
-  return (value && THEME_BY_CODE[value.toLowerCase()]) || "system";
+  if (value === undefined || value === null || value.length === 0) {
+    return "system";
+  }
+  return THEME_BY_CODE[value.toLowerCase()] ?? "system";
 }
 
 export function codeFromTheme(theme: Theme): string {

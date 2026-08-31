@@ -46,44 +46,44 @@ module JumpRtReturnPolicy
 
   def env_allowed_sources
     hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+    env_base_and_core_sources(hosts).merge(env_sign_sources(hosts)).compact
+  end
+
+  def env_base_and_core_sources(hosts)
     {
       normalize_origin(hosts.base_service.to_s) => env_sources(
-        destination_host: hosts.base_service.to_s,
-        issuer_host: hosts.sign_service.to_s,
+        destination_host: hosts.base_service.to_s, issuer_host: hosts.sign_service.to_s,
       ),
       normalize_origin(hosts.base_corporate.to_s) => env_sources(
-        destination_host: hosts.base_corporate.to_s,
-        issuer_host: hosts.sign_corporate.to_s,
+        destination_host: hosts.base_corporate.to_s, issuer_host: hosts.sign_corporate.to_s,
       ),
       normalize_origin(hosts.base_staff.to_s) => env_sources(
-        destination_host: hosts.base_staff.to_s,
-        issuer_host: hosts.sign_staff.to_s,
+        destination_host: hosts.base_staff.to_s, issuer_host: hosts.sign_staff.to_s,
       ),
       normalize_origin(hosts.core_service.to_s) => env_sources(
-        destination_host: hosts.core_service.to_s,
-        issuer_host: hosts.sign_service.to_s,
+        destination_host: hosts.core_service.to_s, issuer_host: hosts.sign_service.to_s,
       ),
       normalize_origin(hosts.core_corporate.to_s) => env_sources(
-        destination_host: hosts.core_corporate.to_s,
-        issuer_host: hosts.sign_corporate.to_s,
+        destination_host: hosts.core_corporate.to_s, issuer_host: hosts.sign_corporate.to_s,
       ),
       normalize_origin(hosts.core_staff.to_s) => env_sources(
-        destination_host: hosts.core_staff.to_s,
-        issuer_host: hosts.sign_staff.to_s,
+        destination_host: hosts.core_staff.to_s, issuer_host: hosts.sign_staff.to_s,
       ),
+    }
+  end
+
+  def env_sign_sources(hosts)
+    {
       normalize_origin(hosts.sign_service.to_s) => env_sources(
-        destination_host: hosts.sign_service.host,
-        issuer_host: hosts.base_service.host,
+        destination_host: hosts.sign_service.host, issuer_host: hosts.base_service.host,
       ),
       normalize_origin(hosts.sign_corporate.to_s) => env_sources(
-        destination_host: hosts.sign_corporate.host,
-        issuer_host: hosts.base_corporate.host,
+        destination_host: hosts.sign_corporate.host, issuer_host: hosts.base_corporate.host,
       ),
       normalize_origin(hosts.sign_staff.to_s) => env_sources(
-        destination_host: hosts.sign_staff.host,
-        issuer_host: hosts.base_staff.host,
+        destination_host: hosts.sign_staff.host, issuer_host: hosts.base_staff.host,
       ),
-    }.compact
+    }
   end
 
   def env_sources(destination_host:, issuer_host:)

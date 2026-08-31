@@ -74,7 +74,10 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   end
 
   test "content api show rejects unpublished entries and old rails article routes are unavailable" do
-    published = create_publishing_entry(audience: "app", surface: "docs", slug: "visible-entry", title: "Visible Entry", locale: "test-show")
+    published = create_publishing_entry(
+      audience: "app", surface: "docs", slug: "visible-entry",
+      title: "Visible Entry", locale: "test-show",
+    )
     create_publishing_entry(
       audience: "app", surface: "docs", slug: "future-entry", title: "Future Entry", locale: "test-show",
       published_at: 1.day.from_now,
@@ -100,7 +103,10 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   end
 
   test "content api show resolves locale from ri and rejects draft or archived entries" do
-    published = create_publishing_entry(audience: "app", surface: "docs", slug: "locale-visible-entry", title: "Locale Visible Entry", locale: "ja")
+    published = create_publishing_entry(
+      audience: "app", surface: "docs", slug: "locale-visible-entry",
+      title: "Locale Visible Entry", locale: "ja",
+    )
     create_publishing_entry(
       audience: "app", surface: "docs", slug: "locale-draft-entry", title: "Locale Draft Entry", locale: "ja",
       status: "draft",
@@ -155,8 +161,14 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
         published_at: 2.hours.ago,
       )
       newer =
-        create_publishing_entry(audience:, surface:, slug: "#{audience}-newer-entry", title: "Newer Entry", locale: "test-api")
-      create_publishing_entry(audience:, surface:, slug: "#{audience}-other-locale", title: "Other Locale", locale: "jp")
+        create_publishing_entry(
+          audience:, surface:, slug: "#{audience}-newer-entry", title: "Newer Entry",
+          locale: "test-api",
+        )
+      create_publishing_entry(
+        audience:, surface:, slug: "#{audience}-other-locale", title: "Other Locale",
+        locale: "jp",
+      )
 
       host = ENV.fetch(env_key, fallback)
       host! host
@@ -199,7 +211,8 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   # "archived" publishes the entry and then archives it, so the case genuinely
   # exercises the archived-entry exclusion rather than merely skipping
   # publication the way a draft does.
-  def create_publishing_entry(audience:, surface:, slug:, title:, locale: "jp", status: "published", published_at: 1.hour.ago)
+  def create_publishing_entry(audience:, surface:, slug:, title:, locale: "jp", status: "published",
+                              published_at: 1.hour.ago)
     edition = publishing_edition(audience:, surface:, locale:)
     entry = publishing_draft(edition:, slug:, title:, locale:)
     return entry if status == "draft"

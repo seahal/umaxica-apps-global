@@ -56,7 +56,9 @@ module Auth
 
           [
             { key: "email", label: page_t("#{scope}.links.email"), href: new_auth_app_sign_in_email_path(pt: pt) },
-            { key: "passkey", label: page_t("#{scope}.links.passkey"), href: new_auth_app_sign_in_passkey_path(pt: pt) },
+            { key: "passkey",
+              label: page_t("#{scope}.links.passkey"),
+              href: new_auth_app_sign_in_passkey_path(pt: pt), },
             {
               key: "secret_credential",
               label: page_t("#{scope}.links.secret_credential"),

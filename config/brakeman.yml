@@ -1,0 +1,18 @@
+---
+# Brakeman is the security gate for this application; it runs with no suppressions.
+# Keep this file free of `ignore_*` entries — a finding is fixed, not silenced.
+
+# Run the checks Brakeman leaves off by default (CheckForceSSL, CheckHeaderDoS,
+# CheckSymbolDoSCVE, and the other optional checks).
+run_all_checks: true
+
+# Report every confidence level, including Weak.
+confidence_level: 3
+
+# Do not assume model output or `protected` attributes are safe.
+ignore_model_output: false
+ignore_protected: false
+
+# Any warning or scan error fails the run.
+exit_on_warn: true
+exit_on_error: true

@@ -9,7 +9,7 @@ module AuthenticationAal2CredentialOwner
   end
 
   def step_up_methods(excluding: nil, reload: false)
-    aal2_methods(excluding: excluding, reload: reload)
+    authentication_credential_inventory(excluding: excluding, reload: reload).step_up_methods
   end
 
   def aal2_method_count(excluding: nil, reload: false)
@@ -21,7 +21,7 @@ module AuthenticationAal2CredentialOwner
   end
 
   def step_up_available?(excluding: nil, reload: false)
-    aal2_available?(excluding: excluding, reload: reload)
+    authentication_credential_inventory(excluding: excluding, reload: reload).step_up_available?
   end
 
   def retains_aal2_after?(excluding:, reload: false)
@@ -29,6 +29,6 @@ module AuthenticationAal2CredentialOwner
   end
 
   def retains_step_up_after?(excluding:, reload: false)
-    retains_aal2_after?(excluding: excluding, reload: reload)
+    step_up_available?(excluding: excluding, reload: reload)
   end
 end
