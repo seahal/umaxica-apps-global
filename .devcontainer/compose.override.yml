@@ -73,10 +73,6 @@ services:
       - TMPDIR=/home/global/workspace/tmp
       - DEVCONTAINER=1
       - RUBY_DEBUG_OPEN=false
-  rustfs:
-    ports:
-      - "127.0.0.1:${RUSTFS_API_HOST_PORT:-9000}:9000"
-      - "127.0.0.1:${RUSTFS_CONSOLE_HOST_PORT:-9001}:9001"
   primary:
     container_name: global-devcontainer-primary
   replica:

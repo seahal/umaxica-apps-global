@@ -19,11 +19,7 @@ default: &default
   port: 5432
   timeout: 30000
   username: <%= ENV.fetch("POSTGRESQL_USER", "postgres") %>
-  password: <%= if ENV["POSTGRESQL_PASSWORD_FILE"].present?
-    File.read(ENV.fetch("POSTGRESQL_PASSWORD_FILE")).strip
-  else
-    ENV["POSTGRESQL_PASSWORD"].presence || Rails.application.credentials.dig(:DATABASE, :PASSWORD)
-  end %>
+  password: <%= ENV["POSTGRESQL_PASSWORD"].presence || Rails.application.credentials.dig(:DATABASE, :PASSWORD) %>
   lock_timeout: 2s
   # Raised from 2s so background jobs (e.g. RetentionPurgeJob batch deletes) are not
   # killed mid-statement. Web requests are additionally bounded by rack-timeout (10s).

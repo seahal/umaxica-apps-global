@@ -126,9 +126,9 @@
   //   codex login
   // Git remotes must be HTTPS: no SSH key exists here for git@github.com.
   //
-  // Files under /run/dev-credentials carry only locally generated, dev-only
-  // service passwords (Postgres and RustFS), written by the `dev-credentials`
-  // service on the first `up`. No user credential is stored there.
+  // The Postgres password is a fixed, dev-only literal declared inline in
+  // `compose.yaml`. It guards nothing reachable off this host and no user
+  // credential is stored there.
   //
   // Read-only workspace write-guards are declared in compose.override.yml,
   // because the Dev Container string-form `readonly` option is not effective

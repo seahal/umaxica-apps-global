@@ -86,8 +86,8 @@ root.
 ## What the Configuration Already Does
 
 `devcontainer.json` declares no `initializeCommand`; the stack needs no host-side bootstrap. Service
-passwords are generated inside the stack by the `dev-credentials` service, which every consumer
-gates on with `service_completed_successfully`. The one manual prerequisite is the `UID` and `GID`
+passwords are fixed development-only literals declared inline in `compose.yaml`, so nothing has to
+be provisioned before the first `up`. The one manual prerequisite is the `UID` and `GID`
 lines in the gitignored repository-root `.env`, because `$UID` and `$GID` are bash builtins rather
 than exported variables and Compose cannot read them directly (see
 `docs/operations/development-credential-provisioning.md`). Global and Edge do not share a host

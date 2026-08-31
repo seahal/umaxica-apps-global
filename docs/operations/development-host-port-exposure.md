@@ -10,7 +10,7 @@ particular service, and a host firewall is not an acceptable substitute for it.
 
 1. **Prefer no publication at all.** If a service is only consumed by other containers, it gets no
    `ports:` entry. Containers reach it by Compose service name over the shared network
-   (`primary:5432`, `valkey:6379`, `kafka:29092`, `tempo:3200`, `rustfs:9000`).
+   (`primary:5432`, `valkey:6379`, `kafka:29092`, `tempo:3200`).
 2. **If the host genuinely needs it, publish to loopback only.** Write the bind address
    explicitly: `127.0.0.1:3000:3000`, never `3000:3000`. A `ports:` entry with no host address
    makes Podman bind `0.0.0.0`, which places the service on every host interface — LAN, Wi-Fi,
@@ -31,8 +31,8 @@ ports: 127.0.0.1:3000:3000  ->  the host reaches it only from the host itself.
 ports: 3000:3000            ->  every machine on the LAN reaches it.  <- not allowed
 ```
 
-`compose.yaml` therefore keeps `BINDING: "0.0.0.0"`, `VITE_RUBY_HOST: "0.0.0.0"`, and
-`RUSTFS_ADDRESS: "0.0.0.0:9000"`. Do not "harden" those to `127.0.0.1`: that would break
+`compose.yaml` therefore keeps `BINDING: "0.0.0.0"` and `VITE_RUBY_HOST: "0.0.0.0"`. Do not
+"harden" those to `127.0.0.1`: that would break
 `cloudflare-tunnel`, `bin/tunnel-origin-check`, and every container-to-container call, while
 changing nothing about host exposure.
 
@@ -42,7 +42,6 @@ changing nothing about host exposure.
 | --- | --- | --- |
 | `core` (Rails, 3000) | `127.0.0.1:3000` | The browser opens the documented `http://<service>.<surface>.localhost:3000` origins, which resolve to `127.0.0.1`. |
 | `core` (Vite, 3036) | `127.0.0.1:3036` | `@vite/client` opens its HMR socket to the dev server from the browser. |
-| `rustfs` (9000, 9001) | `127.0.0.1` (profile `object-storage`) | S3 CLI and console use from the host during object-storage work. |
 | `primary`, `replica` | none | Reached as `primary:5432` / `replica:5432`. |
 | `valkey` | none | Reached as `valkey:6379`. |
 | `kafka` | none | The repository has no Kafka client at all; see below. |

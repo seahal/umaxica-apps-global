@@ -119,32 +119,32 @@ encrypted credentials, or in the provider's own secret store. Never place it in 
 Compose file, a container image, a plan under `plans/`, or a note under `notes/`. When a credential
 is no longer needed, or may have been exposed, tell the development lead so it can be revoked.
 
-## Development service passwords: the `dev-credentials` service
+## Development service passwords: fixed literals
 
-PostgreSQL and RustFS passwords are generated inside the stack, not on the host. The
-`dev-credentials` Compose service runs to completion before `core`, `primary`, `replica`, and
-`rustfs` start, and writes five files into the `dev-credentials` named volume:
+The development PostgreSQL passwords are fixed literals declared inline in `compose.yaml`. They are
+not generated, not rotated, and not secret:
 
-| File                   | Read by                      |
-| :--------------------- | :--------------------------- |
-| `postgres-writer`      | `core`, `primary`, `replica` |
-| `postgres-replication` | `primary`, `replica`         |
-| `rustfs-access-key`    | `core`, `rustfs`             |
-| `rustfs-secret-key`    | `core`, `rustfs`             |
-| `rustfs-rpc-secret`    | `rustfs`                     |
+| Variable                        | Value         | Set on                       |
+| :------------------------------ | :------------ | :--------------------------- |
+| `POSTGRESQL_PASSWORD`           | `development` | `core`                       |
+| `POSTGRES_PASSWORD`             | `development` | `primary`, `replica`         |
+| `POSTGRES_REPLICATION_PASSWORD` | `replication` | `primary`, `replica`         |
 
-Every consumer mounts the volume read-only at `/run/dev-credentials` and reads the value through a
-`*_PASSWORD_FILE` / `*_FILE` environment variable. There is no host-side bootstrap command and no
-Podman Secret registration: a fresh clone only needs `.env` and the Rails credential keys.
+This is deliberate. The stack is development-only, every database it serves is disposable, no port
+is published for `primary` or `replica`, and the values guard nothing reachable off the host. A
+value the whole team can read in the file it is written in is worth more here than a random one
+nobody can look up. Production credentials are unaffected and continue to come from Rails encrypted
+credentials and the provider's own secret store, as described above.
 
-Each file is written once and then reused, because PostgreSQL bakes the superuser password into
-`primary-data` at initdb time. To rotate, remove the `dev-credentials`, `primary-data`, and
-`replica-data` volumes together — dropping only `dev-credentials` leaves the databases holding the
-previous password, and `primary` then refuses its own credential.
+Keep the three `core` values identical to the `primary` and `replica` values. PostgreSQL bakes the
+password into `primary-data` at initdb time, so changing a literal without also removing the
+`primary-data` and `replica-data` volumes locks the stack out of its own database. Recreate both
+volumes together after any change.
 
-This covers development service passwords only. It does not write `.env`, and it does not supply
-Rails credential keys or any provider credential. Running it will not resolve a decryption failure
-or a missing `CLOUDFLARED_TOKEN`.
+There is no host-side bootstrap command, no Podman Secret registration, and no credential volume: a
+fresh clone only needs `.env` (for `UID` and `GID`) and the Rails credential keys. This covers
+development service passwords only; it does not supply Rails credential keys or any provider
+credential, so it will not resolve a decryption failure or a missing `CLOUDFLARED_TOKEN`.
 
 ## GitHub authentication inside the development container
 

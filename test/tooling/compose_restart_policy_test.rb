@@ -17,8 +17,8 @@ class ComposeRestartPolicyTest < Minitest::Test
   ].freeze
 
   # The services a developer runs every session, and the only ones expected to
-  # recover on their own. One-shot services (`dev-credentials`) and the
-  # observability profile deliberately stay on `restart: "no"`.
+  # recover on their own. One-shot services and the observability profile
+  # deliberately stay on `restart: "no"`.
   RECOVERING_SERVICES = %w(core primary replica valkey).freeze
 
   # Podman applies no backoff, so an unbounded policy turns a bad configuration into
