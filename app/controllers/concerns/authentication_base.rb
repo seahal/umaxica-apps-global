@@ -465,7 +465,7 @@ module AuthenticationBase
     dpop_proof = request.headers["DPoP"]
     return { status: :success, jkt: nil } if dpop_proof.blank?
 
-    proof_result = DpopProofValidator.new(
+    proof_result = DpopProofVerifier.new(
       proof_jwt: dpop_proof,
       request_method: request.request_method,
       request_uri: request.original_url,
@@ -1249,7 +1249,7 @@ module AuthenticationBase
         event_type: "refresh_reuse_detected",
         token_record: token_record || find_refresh_token_record(refresh_public_id),
         reason: "reuse",
-        binding_source: refresh_binding_source(token_record),
+        device_source: refresh_binding_source(token_record),
       )
     end
 
@@ -1414,7 +1414,7 @@ module AuthenticationBase
       return false
     end
 
-    result = DpopProofValidator.new(
+    result = DpopProofVerifier.new(
       proof_jwt: proof,
       request_method: request.request_method,
       request_uri: request.original_url,

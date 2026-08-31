@@ -41,6 +41,34 @@ module Auth
 
             private
 
+            def before_passkey_options_request!
+              verify_turnstile_stealth!
+            end
+
+            def passkey_identifier_required_error_key
+              "errors.webauthn.identifier_required"
+            end
+
+            def normalized_passkey_identifier
+              Operator.normalize_public_id(params[:identifier])
+            end
+
+            def valid_passkey_identifier?(identifier)
+              Operator::PUBLIC_ID_FORMAT.match?(identifier)
+            end
+
+            def passkey_identifier_invalid_error_key
+              "errors.webauthn.identifier_invalid"
+            end
+
+            def find_active_passkey_actor(identifier)
+              normalized_identifier = Operator.normalize_public_id(identifier)
+              return if normalized_identifier.blank?
+
+              staff = Operator.find_by(public_id: normalized_identifier)
+              staff if staff&.login_allowed?
+            end
+
             def perform_passkey_sign_in(passkey)
               establish_signed_in_session!(
                 passkey.staff, pt: retrieve_pt_for_checkpoint, ri: current_region_identifier, auth_method: "passkey",

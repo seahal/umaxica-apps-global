@@ -22,7 +22,7 @@ module Base
           def create
             authorize!(@enforcement_case, with: EnforcementCasePolicy, to: :release?)
 
-            @enforcement_case.end_case!(reason: release_reason, ended_by_operator_public_id: current_operator.public_id)
+            EnforcementCaseEndOperation.call(enforcement_case: @enforcement_case, reason: release_reason, ended_by_operator_public_id: current_operator.public_id)
             render json: { public_id: @enforcement_case.public_id, state: @enforcement_case.state }, status: :ok
           rescue ActiveRecord::RecordInvalid, ArgumentError => e
             render json: { error: e.message }, status: :unprocessable_content

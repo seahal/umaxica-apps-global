@@ -54,7 +54,7 @@ class EnforcementTriggersTest < ActiveSupport::TestCase
       effect: "permanently_frozen",
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
     error =
       assert_raises(ActiveRecord::StatementInvalid) do
@@ -99,7 +99,7 @@ class EnforcementTriggersTest < ActiveSupport::TestCase
       principal_hard_delete_blocked: true,
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
     error =
       assert_raises(ActiveRecord::StatementInvalid) do

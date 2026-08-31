@@ -106,4 +106,24 @@ module AuthenticationVisitor
     )
     false
   end
+
+  def sign_in_url_with_pt(return_to)
+    _ = return_to
+    auth_com_sign_in_url(
+      host: auth_com_redirect_host,
+      protocol: "https",
+    )
+  end
+
+  def auth_com_redirect_host
+    configured_hosts =
+      %w(PRIVATE_AUTH_CORPORATE_URL).filter_map do |key|
+        CommonRedirect.normalize_host(ENV.fetch(key))
+      end
+
+    request_host = CommonRedirect.normalize_host(request.host_with_port)
+    return request_host if configured_hosts.include?(request_host)
+
+    configured_hosts.first || "id.com.localhost"
+  end
 end

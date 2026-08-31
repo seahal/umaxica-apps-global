@@ -38,7 +38,11 @@ export default function OtpResendButton({
   const [remaining, setRemaining] = useState(0);
   const remainingRef = useRef(0);
 
-  remainingRef.current = remaining;
+  // Kept in sync after commit rather than during render. resend reads it from a click handler, so
+  // it never needs a value the current render has not committed yet.
+  useEffect(() => {
+    remainingRef.current = remaining;
+  }, [remaining]);
 
   useEffect(() => {
     if (remaining <= 0) {

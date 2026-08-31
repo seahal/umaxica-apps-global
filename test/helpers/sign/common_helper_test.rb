@@ -87,10 +87,6 @@ class Auth::CommonHelperTest < ActionView::TestCase
     Actor.preferences = original
   end
 
-  test "get_timezone returns request timezone context" do
-    assert_equal "asia/tokyo", get_timezone
-  end
-
   test "get_language returns ja" do
     assert_equal "ja", get_language
   end

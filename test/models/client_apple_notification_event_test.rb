@@ -50,4 +50,29 @@ class ClientAppleNotificationEventTest < ActiveSupport::TestCase
     assert_nil event.reload.client_external_identity_id
     assert_equal client.id, event.client_id
   end
+
+  test "complete! closes the event and terminal? reports the settled statuses" do
+    event = ClientAppleNotificationEvent.create!(
+      jti: "notification-#{SecureRandom.hex(8)}",
+      event_type: "email-disabled",
+      received_at: Time.utc(2026, 7, 24, 12, 0, 0),
+      occurred_at: Time.utc(2026, 7, 24, 12, 0, 0),
+    )
+
+    assert_not_predicate event, :terminal?
+
+    event.retry_or_dead_letter!(code: "processing_failure", now: event.received_at)
+
+    assert_equal "retrying", event.status
+    assert_not_predicate event, :terminal?
+
+    processed_at = event.received_at + 5.minutes
+    event.complete!(now: processed_at)
+
+    assert_equal "completed", event.status
+    assert_equal processed_at, event.processed_at
+    assert_nil event.next_retry_at
+    assert_equal "", event.failure_code
+    assert_predicate event, :terminal?
+  end
 end

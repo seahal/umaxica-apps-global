@@ -137,6 +137,21 @@ module Publishing
       end
     end
 
+    test "as_public_json renders the frozen term identity and no database identifiers" do
+      version = promote(category: @leaf, tags: [@ruby])
+      single = version.single_taxonomy_assignments.sole
+      multiple = version.multiple_taxonomy_assignments.sole
+
+      assert_equal(
+        { "public_id" => @leaf.public_id, "slug" => "leaf", "name" => "Leaf" },
+        single.as_public_json,
+      )
+      assert_equal(
+        { "public_id" => @ruby.public_id, "slug" => "ruby", "name" => "Ruby" },
+        multiple.as_public_json,
+      )
+    end
+
     private
 
     def valid_path?(json)
@@ -157,7 +172,7 @@ module Publishing
           taxonomy_term: term, locale: "ja", position:,
         )
       end
-      PromoteRevision.call(revision: entry.current_revision)
+      PromoteRevisionOperation.call(revision: entry.current_revision)
     end
   end
 end

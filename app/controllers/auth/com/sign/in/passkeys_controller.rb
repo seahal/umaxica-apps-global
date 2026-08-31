@@ -5,17 +5,22 @@ module Auth
   module Com
     module Sign
       module In
-        # Renders the passkey sign-in entry page for the corporate surface.
-        #
-        # The ceremony itself is not served here. Auth::Com::Sign::In::Passkey::OptionsController
-        # issues the bound challenge and Auth::Com::Sign::In::Passkey::VerificationsController
-        # consumes the assertion and commits the login; only #new is routed to this
-        # controller, so it carries no credential work and no response-time budget.
         class PasskeysController < ::Auth::Com::ApplicationController
+          include EmailValidation
+
+          include IdentifierDetection
+
+          include MinimumResponseBudget
+
+          include SessionLimitGate
+
+          include CloudflareTurnstile
           include ::SurfaceInertiaPage
           include ::TurnstilePageProps
 
           AUTHENTICATION_MODE = :guest
+          before_action :start_minimum_response_budget
+          after_action :enforce_minimum_response_budget
 
           def new
             render inertia: true, props: sign_in_passkey_new_props
@@ -51,6 +56,10 @@ module Auth
                 href: auth_com_sign_in_path(pt: pt, ri: ri),
               },
             }
+          end
+
+          def minimum_response_budget_enabled?
+            action_name == "options"
           end
         end
       end

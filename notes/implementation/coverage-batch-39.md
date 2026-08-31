@@ -17,89 +17,58 @@ fragment" census counted those lines as if a test could reach them.
 
 ## Coverage
 
+Measured before merging origin/main, on this branch alone:
+
 - Starting Rails line coverage: 51,411 / 53,783 (95.5896%).
-- Ending Rails line coverage: 51,219 / 53,134 (96.39%). Delta +0.80 points.
-- Starting branch coverage: 12,094 / 15,885 (76.13%). Ending 12,149 / 15,693 (77.41%).
-- The requested target is 97%; this batch reached 96.39%. 1,915 lines remain uncovered and 97%
-  allows 1,594, so 321 more must be covered or removed.
-- The gain comes from two sources in roughly equal measure: new tests for live-but-unreached code,
-  and removal of code that is provably unreachable. Note that removing an unroutable controller
-  moves the ratio far less than its file size suggests -- the class body and every `def` line are
-  _covered_ at load time, so a 30-line dead controller typically contributes only three or four
-  uncovered lines.
+- Ending Rails line coverage: 51,267 / 53,134 (96.48%).
+- Starting branch coverage: 12,094 / 15,885 (76.13%). Ending 12,191 / 15,693 (77.68%).
 
-## What made the difference: three scans
+Those figures are no longer the branch's figures. Roughly 1,100 deleted lines were restored during
+the merge (see below), and the merge also brought in upstream's own coverage work, so the number has
+to be re-measured on the merged tree before it means anything. The requested target was 97%; this
+branch did not reach it on its own, and the census below of what stands between the two is the part
+worth keeping.
 
-Each scan is a small script run against the fresh `coverage/.resultset.json` plus a Rails runtime.
-They are worth keeping; they found in one afternoon what a week of test-writing did not.
+## What this batch kept, after merging origin/main
 
-1. **Shadowed definitions.** For every fully-uncovered `def` in `app/`, compare the file it lives in
-   against `klass.instance_method(name).source_location`. A mismatch means something else wins the
-   method lookup and this copy can never run. This found `Auth::Com::Verification::BaseController`,
-   which `prepend`s `SignComVerificationBase::Overrides` and then redefines the same twenty private
-   methods underneath it. The prepended copies had diverged (wider verified-email status set, a
-   `SolidQueue` writing-role wrapper, an alert the controller copy lacked), so the dead copies were
-   also stale.
+This branch was written before PR #857 landed. That PR contains an independent coverage effort over
+the same files, and merging the two produced eighteen conflicts. The reconciliation rule was: where
+upstream had built tests around code, upstream wins.
 
-2. **Universally shadowed concern methods.** Same idea from the other side: for a concern method,
-   check whether _every_ including controller resolves that name to some other owner. Excluding
-   abstract `NotImplementedError` hooks, 18 such methods remain (65 lines); they are listed in "Not
-   done" because each is three to seven lines and several are deliberate template-method defaults.
+That reversed most of this batch's original programme. Three scans (comparing each uncovered `def`
+against the method the lookup actually resolves; subtracting every `controller#action` the router
+can produce; listing definitions whose name appears nowhere else) had identified a large amount of
+code as unreachable, and roughly 1,100 lines were deleted on that basis. Upstream had since written
+tests for much of it -- the `SignAuthorityRedirect` host table, `SignSocialAuthenticationEndpoint`'s
+provider guard and link step-up, `SignVerificationTotpActions`,
+`AuthenticationVisitor#sign_in_url_with_pt`, `Auth::Com::Verification::BaseController`'s private
+block, `advance_cycle_to_checkpoint_after_active_session!` -- so 45 files were restored to the
+upstream version and the deletions dropped.
 
-3. **Unroutable controllers and actions.** Build the set of `controller#action` pairs the router can
-   produce, then subtract. A public controller method that no route reaches, on a class no routed
-   subclass inherits, is dead by construction. This was by far the highest-yield scan: 23
-   controllers with no route at all, and a further set of leftover actions on controllers that are
-   otherwise live.
+Two of those reversals were not merely deferential. `WithdrawalLifecycle`'s
+`revoke_sessions(except_public_id:)` and `exclude_fresh_withdrawal_step_up_sessions` are described
+by `plans/umaxica-grill-vivid-squirrel.md` as the current design for keeping the requesting session
+alive through withdrawal; deleting them as unreferenced would have removed a capability an accepted
+plan depends on. Worth noting separately: the plan describes that behaviour as present, but the code
+calls `revoke_sessions` with no argument, so the plan and the code disagree today.
 
-## Dead code removed
+The scans themselves were still worth running -- they are what surfaced the defects below -- but "no
+caller in the tree" turned out to be a weak signal in a repository with parallel work in flight, and
+the shadowing scan in particular missed includers that are test doubles rather than controllers.
 
-Superseded by a split that left the original behind:
+## What survived
 
-- `#resend` on `Auth::App::Verification::EmailsController`,
-  `Auth::Com::Verification::EmailsController` and `Auth::App::Sign::Up::TelephonesController`. The
-  redelivery endpoints moved to dedicated `RedeliveriesController`s (their own file comments say
-  so); the original actions kept their `before_action` entries but lost their routes.
-  `load_registration_telephone` went with them. `otp_resend_rate_limited?` did not: the check-step
-  OTP controller inherits from the sign-up telephones controller and still calls it, which the grep
-  missed and the test suite caught.
-- `#options` and `#verification` plus the `verify_settings_passkey_turnstile!` guard on all three
-  `Auth::*::Settings::PasskeysController`s. Routes point at `settings/passkeys/options#create` and
-  `settings/passkeys/verifications#create`, which are independent controllers with their own copies
-  of the guard. The live copies are now tested (see below).
-- 20 controllers with no route at all: the `Checkpoint::BirthdatesController`s superseded by
-  `sign/up/check/<method>/birthdates`, the `Base::{Com,Org}::Oauth::UserInfoController`s superseded
-  by `userinfos_controller.rb`, `Base::Com::Identity::SecretsController` and
-  `Base::App::Identity::RecoverySecretsController` superseded by the `secret_credentials` resources,
-  the `sign/up/check/*/cancellations` and `sign/in/check/cancellations` controllers, the two
-  `support/*/sessions/emergency_revocations` controllers, and the three
-  `Core::*::AccountsController`s superseded by `base/*/accounts`.
-
-Never wired up at all:
-
-- `SessionLimitPendingGuard` -- no includer anywhere, and it used Rails flash, which `AGENTS.md`
-  forbids outright.
-- `SignVerificationTotpActions` -- `Auth::App::Verification::TotpsController` is its only includer
-  and defines `new`/`create` itself, so the concern's copies never ran.
-  `action_policy_usage_test.rb` already recorded that the Inertia migration moved those actions into
-  the controller.
-- `UserWithdrawalFinalizeJob` -- never enqueued, never scheduled, and its body calls
-  `User.finalize_scheduled_withdrawals!` on a `User` class this application does not have. It would
-  have raised `NameError` if anything had ever run it.
-- `ExternalAuthentication::AppleCredentialRevocationPort` -- a `NotImplementedError` port with no
-  implementation, no includer and no caller.
-
-Unreferenced members of live classes:
-
-- `WithdrawalLifecycle`: the `except_public_id:` parameter of `revoke_sessions` (never passed),
-  `exclude_session_identifier`, `uuid_identifier?` and `exclude_fresh_withdrawal_step_up_sessions`
-  (never called).
-- `SignInStateMachine`: `TERMINAL_RESULT_STATUSES` with its only two readers, `terminal_status?` and
-  `http_status_for`.
-- `CoreBrowserCredentialContract`: `OIDC_COOKIE`, `REFRESH_PATH`, and the three
-  `*_cookie_deletion_options` methods.
-- `SocialAuthLoginHandler#build_identity_for_user`, `JitSecurityJwtJwksService#public_keys_for`.
-- The `Auth::Com::Verification::BaseController` private block described under scan 1.
+- The four defects below, none of which upstream had fixed.
+- The three enforcement-case migrations and the locale additions.
+- `show?` on the three token policies.
+- The new tests: the concern-harness unit tests (AuthenticationBase's per-surface tables, the OIDC
+  promotion gate, verification pt/model helpers, the cookie-backed verification record,
+  PreferenceCore/PreferenceAdoption/PreferenceBase mappings), the OIDC refresh and revocation
+  surface tests, the com verification setup redirect, the removal-endpoint compatibility tests, and
+  the nine per-surface identity test files, which carry more cases than their upstream counterparts.
+- A narrower set of removals that upstream had not built tests around: the `#resend` actions left
+  behind by the redelivery split, and `#options`/`#verification` on the settings passkey
+  controllers, both superseded by their own RESTful resources.
 
 ## Defects fixed
 
@@ -198,12 +167,16 @@ Controller-level:
 
 ## Verification
 
-- `COVERAGE=true bin/rails test test/`: 10,666 runs, 59,815 assertions, 6 failures, 1 error, 1 skip.
-  All seven failures/errors are the credential-blocked file described below.
-- `bin/rails test test/` (parallel) run after each deletion group;
-  `bin/rails test test/controllers test/services` run mid-batch. RuboCop clean over all 84 changed
-  Ruby files.
-- Not run: Vitest and the other frontend gates; this batch is Rails-only.
+On the merged tree (`git merge origin/main`, eighteen conflicts resolved):
+
+- `bin/rails test test/`: 11,095 runs, 60,984 assertions, 6 failures, 1 error, 1 skip.
+- All seven failures/errors are the credential-blocked file described below. Restoring
+  `WEBAUTHN_APP_RP_ID` / `WEBAUTHN_APP_ORIGIN` makes all 27 tests in that file pass, which is how
+  they were confirmed environmental rather than a code defect.
+- The one skip is pre-existing and tracked in issue #846.
+- Two of this batch's own test files needed updating for upstream's refactor: PR #857 moved
+  `EnforcementCase#apply!` into `EnforcementCaseApplyOperation`, and the standing and recovery page
+  tests called the old method.
 
 ## Where the remaining 1,915 lines are
 

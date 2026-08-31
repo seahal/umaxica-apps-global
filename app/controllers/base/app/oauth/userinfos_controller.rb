@@ -38,7 +38,7 @@ module Base
           )
           return render_oauth_bearer_error(result.error) unless result.success?
 
-          render json: ::OidcUserInfoResponse.build(resource: result.resource, payload: result.payload)
+          render json: ::OidcUserInfoResponseSerializer.build(resource: result.resource, payload: result.payload)
         end
       end
     end

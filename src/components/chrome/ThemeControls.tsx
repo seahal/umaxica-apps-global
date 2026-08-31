@@ -32,7 +32,12 @@ export default function ThemeControls({ controls }: { controls: ChromeThemeContr
   // in-flight read.
   const chosen = useRef(false);
   const themeRef = useRef(theme);
-  themeRef.current = theme;
+
+  // Kept in sync after commit rather than during render. watchSystemTheme reads this only from an
+  // asynchronous media-query callback, so the committed value is always the one it needs.
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
 
   useEffect(() => {
     const stopWatching = watchSystemTheme(() => themeRef.current);

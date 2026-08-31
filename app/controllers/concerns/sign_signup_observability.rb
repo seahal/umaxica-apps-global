@@ -20,12 +20,16 @@ module SignSignupObservability
     }.compact
   end
 
-  # Every controller that includes this concern defines `sign_in_surface`. The fallback
-  # chain that used to stand here matched `Sign::Com::` / `Sign::Org::`, namespaces that
-  # were renamed to `Auth::`, so it could only ever have reported `:app` -- the wrong
-  # surface -- had any includer stopped defining the method.
   def sign_signup_observability_surface
-    sign_in_surface
+    if respond_to?(:sign_in_surface, true)
+      sign_in_surface
+    elsif self.class.name.start_with?("Sign::Com::")
+      :com
+    elsif self.class.name.start_with?("Sign::Org::")
+      :org
+    else
+      :app
+    end
   end
 
   def sign_signup_request_flags

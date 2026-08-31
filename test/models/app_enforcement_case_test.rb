@@ -44,7 +44,7 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
   test "end_case rejects an unknown reason" do
     the_case = AppEnforcementCase.new
 
-    assert_raises(ArgumentError) { the_case.end_case!(reason: "not-a-reason") }
+    assert_raises(ArgumentError) { EnforcementCaseEndOperation.call(enforcement_case: the_case, reason: "not-a-reason") }
   end
 
   test "cooldown requires expires_at and rejects a missing one at the database level" do
@@ -240,7 +240,7 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       access_blocking: true,
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
     client.reload
 
     assert_equal "active", the_case.state
@@ -272,7 +272,7 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       effect: "unusable",
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
     matching_token.reload
     other_token.reload
 
@@ -295,7 +295,7 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       applied_by_operator_public_id: operator.public_id,
     )
 
-    assert_raises(EnforcementCaseApplicable::ApprovalRequiredError) { the_case.apply! }
+    assert_raises(EnforcementCaseApplicable::ApprovalRequiredError) { EnforcementCaseApplyOperation.call(enforcement_case: the_case) }
     assert_predicate the_case, :new_record?
   end
 
@@ -314,9 +314,9 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       principal_public_id: client.public_id,
       applied_by_operator_public_id: operator.public_id,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
-    assert_raises(EnforcementCaseApplicable::InvalidStateTransitionError) { the_case.apply! }
+    assert_raises(EnforcementCaseApplicable::InvalidStateTransitionError) { EnforcementCaseApplyOperation.call(enforcement_case: the_case) }
   end
 
   test "applying a new open method effect closes the prior open row for the same slot" do
@@ -339,7 +339,7 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       effect: "mutation_locked",
       effective_at: Time.current,
     )
-    first_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: first_case)
     first_effect = first_case.authentication_method_effects.first
 
     second_case = AppEnforcementCase.new(
@@ -358,7 +358,7 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       effect: "unusable",
       effective_at: Time.current,
     )
-    second_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: second_case)
 
     first_effect.reload
 
@@ -385,9 +385,9 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
       access_blocking: true,
       effective_at: Time.current,
     )
-    the_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
 
-    the_case.end_case!(reason: "revoked", ended_by_operator_public_id: operator.public_id)
+    EnforcementCaseEndOperation.call(enforcement_case: the_case, reason: "revoked", ended_by_operator_public_id: operator.public_id)
     client.reload
 
     assert_predicate the_case.ended_at, :present?
@@ -410,5 +410,119 @@ class AppEnforcementCaseTest < ActiveSupport::TestCase
     )
 
     assert_not_predicate the_case, :requires_approval?
+  end
+
+  test "open? tracks whether the case still has no end timestamp" do
+    the_case = AppEnforcementCase.new
+
+    assert_predicate the_case, :open?
+
+    the_case.ended_at = Time.current
+
+    assert_not_predicate the_case, :open?
+  end
+
+  test "pending_convergence finds active cases whose session revocation or audit write never landed" do
+    client = clients(:one)
+    operator = operators(:one)
+
+    converged = AppEnforcementCase.new(
+      kind: "cooldown",
+      duration_mode: "timed",
+      visibility: "visible",
+      release_mode: "automatic",
+      effective_at: Time.current,
+      expires_at: 1.day.from_now,
+      reason_code: "abuse",
+      principal_public_id: client.public_id,
+      applied_by_operator_public_id: operator.public_id,
+    )
+    EnforcementCaseApplyOperation.call(enforcement_case: converged)
+
+    stalled = AppEnforcementCase.create!(
+      kind: "cooldown",
+      duration_mode: "timed",
+      visibility: "visible",
+      release_mode: "automatic",
+      effective_at: Time.current,
+      expires_at: 1.day.from_now,
+      reason_code: "abuse",
+      principal_public_id: client.public_id,
+      applied_by_operator_public_id: operator.public_id,
+      state: "active",
+    )
+
+    pending = AppEnforcementCase.pending_convergence
+
+    assert_includes pending, stalled
+    assert_not_includes pending, converged
+  end
+
+  test "principal_effect_blocking? answers only for an in-force case carrying the flag" do
+    client = clients(:one)
+    operator = operators(:one)
+
+    the_case = AppEnforcementCase.new(
+      kind: "permanent_ban",
+      duration_mode: "permanent",
+      visibility: "visible",
+      release_mode: "break_glass_only",
+      effective_at: Time.current,
+      reason_code: "abuse",
+      principal_public_id: client.public_id,
+      applied_by_operator_public_id: operator.public_id,
+    )
+    the_case.build_principal_effect(
+      principal_public_id: client.public_id,
+      access_blocking: true,
+      withdrawal_purge_blocked: true,
+      effective_at: Time.current,
+    )
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
+
+    assert AppEnforcementCase.principal_effect_blocking?(client.public_id, :withdrawal_purge_blocked)
+    assert_not AppEnforcementCase.principal_effect_blocking?(client.public_id, :recovery_blocked)
+    assert_not AppEnforcementCase.principal_effect_blocking?("client-standing-unknown", :withdrawal_purge_blocked)
+
+    EnforcementCaseEndOperation.call(
+      enforcement_case: the_case,
+      reason: "revoked",
+      ended_by_operator_public_id: operator.public_id,
+    )
+
+    assert_not AppEnforcementCase.principal_effect_blocking?(client.public_id, :withdrawal_purge_blocked)
+  end
+
+  test "authentication_method_effect_blocking? sees a revoking effect but not a mutation lock" do
+    client = clients(:one)
+    operator = operators(:one)
+
+    the_case = AppEnforcementCase.new(
+      kind: "method_protection",
+      duration_mode: "indefinite",
+      visibility: "visible",
+      release_mode: "operator",
+      effective_at: Time.current,
+      reason_code: "security_incident",
+      principal_public_id: client.public_id,
+      applied_by_operator_public_id: operator.public_id,
+    )
+    the_case.authentication_method_effects.build(
+      principal_public_id: client.public_id,
+      authentication_method: "passkey",
+      effect: "unusable",
+      effective_at: Time.current,
+    )
+    the_case.authentication_method_effects.build(
+      principal_public_id: client.public_id,
+      authentication_method: "totp",
+      effect: "mutation_locked",
+      effective_at: Time.current,
+    )
+    EnforcementCaseApplyOperation.call(enforcement_case: the_case)
+
+    assert AppEnforcementCase.authentication_method_effect_blocking?(client.public_id, "passkey")
+    assert_not AppEnforcementCase.authentication_method_effect_blocking?(client.public_id, "totp")
+    assert_not AppEnforcementCase.authentication_method_effect_blocking?(client.public_id, "email")
   end
 end

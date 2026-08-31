@@ -59,4 +59,24 @@ module AuthenticationOperator
   def resource_foreign_key
     :staff_id
   end
+
+  def sign_in_url_with_pt(return_to)
+    _ = return_to
+    auth_org_sign_in_url(
+      host: sign_org_redirect_host,
+      protocol: "https",
+    )
+  end
+
+  def sign_org_redirect_host
+    configured_hosts =
+      %w(PRIVATE_AUTH_STAFF_URL).filter_map do |key|
+        CommonRedirect.normalize_host(ENV.fetch(key))
+      end
+
+    request_host = CommonRedirect.normalize_host(request.host_with_port)
+    return request_host if configured_hosts.include?(request_host)
+
+    configured_hosts.first || "id.org.localhost"
+  end
 end

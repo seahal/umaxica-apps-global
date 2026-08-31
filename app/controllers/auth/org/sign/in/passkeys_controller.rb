@@ -5,19 +5,34 @@ module Auth
   module Org
     module Sign
       module In
-        # Renders the passkey sign-in entry page for the staff surface.
+        # PasskeysController handles Passkey-based operator authentication.
         #
-        # The ceremony itself is not served here. Auth::Org::Sign::In::Passkey::OptionsController
-        # issues the bound challenge and Auth::Org::Sign::In::Passkey::VerificationsController
-        # consumes the assertion and commits the login; only #new is routed to this
-        # controller, so it carries no credential work and no response-time budget.
+        # Flow:
+        # 1. Operator visits /in/passkeys/new and enters their operator public_id
+        # 2. POST /in/passkeys/options with identifier to get WebAuthn challenge
+        # 3. Browser performs navigator.credentials.get()
+        # 4. POST /in/passkeys/verification with credential + challenge_id
+        # 5. Server verifies and establishes session via AuthenticationBase#log_in
+        #
+        # Note: Discoverable credentials (passwordless without identifier) are
+        # planned for a future phase. Currently, identifier is required to look up
+        # the operator's registered passkeys.
         class PasskeysController < ::Auth::Org::ApplicationController
+          include MinimumResponseBudget
+
+          include SessionLimitGate
+
+          include CloudflareTurnstile
+
           include ::TurnstilePageProps
           include ::SurfaceInertiaPage
 
           AUTHENTICATION_MODE = :guest
+          before_action :start_minimum_response_budget
+          after_action :enforce_minimum_response_budget
 
           # GET /in/passkeys/new
+          # Render login page with identifier input and passkey button
           def new
             render inertia: true, props: passkey_sign_in_props
           end
@@ -52,6 +67,10 @@ module Auth
                 href: auth_org_sign_in_path(pt: pt, ri: region),
               },
             }
+          end
+
+          def minimum_response_budget_enabled?
+            action_name == "options"
           end
         end
       end

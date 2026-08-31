@@ -77,6 +77,7 @@ module Base
       before_action :set_current_actor
       before_action :apply_localization_preferences
       before_action :set_locale
+      before_action :set_timezone
       before_action :set_color_theme
       before_action :enforce_restricted_session_guard!
       before_action :enforce_verification_if_required

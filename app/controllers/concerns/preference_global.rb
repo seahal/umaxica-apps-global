@@ -195,10 +195,6 @@ module PreferenceGlobal
     RequestContextContract.normalize_region(params[:ri])
   end
 
-  def get_timezone
-    "ASIA/Tokyo"
-  end
-
   def set_region
     return if request_format_json?
 
@@ -252,23 +248,16 @@ module PreferenceGlobal
     write_preference_cookie(PreferenceBase::LANGUAGE_COOKIE_KEY, I18n.locale.to_s.downcase)
   end
 
+  # The only request-time writer of Time.zone. It always resolves to a concrete
+  # zone rather than inheriting whatever the thread was last left with, so the
+  # rendered date -- the copyright year included -- depends on the preference and
+  # not on the request that happened to run before this one.
   def set_timezone
     timezone = effective_context[:tz]
     timezone = Actor.preferences.timezone if timezone.blank? && defined?(Actor)
-    timezone_value = normalize_timezone_value(timezone.presence || Time.zone&.name)
-    Time.zone = timezone_value if timezone_value.present?
-    session[:timezone] = timezone_value if timezone_value.present?
-    write_preference_cookie(PreferenceBase::TIMEZONE_COOKIE_KEY, timezone_value) if timezone_value.present?
-  end
-
-  def normalize_timezone_value(value)
-    case value.to_s.downcase
-    when "jst", "asia/tokyo"
-      "Asia/Tokyo"
-    when "utc", "etc/utc"
-      "Etc/UTC"
-    else
-      value.presence
-    end
+    timezone_value = TimezoneIdentifier.resolve(timezone)
+    Time.zone = timezone_value
+    session[:timezone] = timezone_value
+    write_preference_cookie(PreferenceBase::TIMEZONE_COOKIE_KEY, timezone_value)
   end
 end

@@ -339,7 +339,7 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
     @harness.request.request_method = "POST"
     @harness.request.original_url = "http://localhost/test"
 
-    DpopProofValidator.stub(:new, ->(**) { validator }) do
+    DpopProofVerifier.stub(:new, ->(**) { validator }) do
       assert_equal({ status: :dpop_proof_invalid, error: "bad-proof" }, @harness.send(:validate_login_dpop_proof))
     end
   end

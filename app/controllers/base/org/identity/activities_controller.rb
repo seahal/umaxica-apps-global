@@ -61,7 +61,7 @@ module Base
           }
         end
 
-        def activity_log = @activity_log ||= ::Base::Org::Identity::ActivityLog.new(current_operator)
+        def activity_log = @activity_log ||= ::Base::Org::Identity::ActivityLogPresenter.new(current_operator)
       end
     end
   end

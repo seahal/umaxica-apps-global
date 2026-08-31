@@ -6,7 +6,7 @@ module Publishing
   # with a composite foreign key.
   #
   # parent_id and depth are structural columns owned by
-  # Publishing::MoveTaxonomySubtree. Ordinary code must not assign
+  # Publishing::MoveTaxonomySubtreeOperation. Ordinary code must not assign
   # them directly; PostgreSQL rejects an inconsistent depth or a cycle.
   class TaxonomyTerm < PublishingRecord
     self.table_name = "publishing_taxonomy_terms"
@@ -24,7 +24,7 @@ module Publishing
     validates :slug, format: { with: /\A[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\z/ }
     validates :name, presence: true
     # depth and position are deliberately left to PostgreSQL: they are
-    # structural columns owned by MoveTaxonomySubtree, and a model validation
+    # structural columns owned by MoveTaxonomySubtreeOperation, and a model validation
     # here would only mask the constraint that actually governs them.
 
     scope :available, -> { where(archived_at: nil) }

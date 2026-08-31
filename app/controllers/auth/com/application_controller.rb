@@ -72,6 +72,7 @@ module Auth
       before_action :set_current_actor
       before_action :apply_localization_preferences
       before_action :set_locale
+      before_action :set_timezone
       before_action :set_color_theme
       before_action :enforce_withdrawal_gate!
       before_action :enforce_restricted_session_guard!
@@ -95,6 +96,10 @@ module Auth
       end
 
       private
+
+      def actor_staff?
+        false
+      end
 
       def current_verification_actor
         current_visitor

@@ -76,9 +76,9 @@ class Chronicle < ChronicleRecord
   private
 
   def sanitize_json_payloads
-    self.metadata = ChronicleRecorder.sanitize(metadata || {})
-    self.changeset = ChronicleRecorder.sanitize(changeset || {})
-    self.reason = ChronicleRecorder.sanitize_text(reason)
+    self.metadata = ChronicleRecordPolicy.sanitize(metadata || {})
+    self.changeset = ChronicleRecordPolicy.sanitize(changeset || {})
+    self.reason = ChronicleRecordPolicy.sanitize_text(reason)
   end
 
   def erasable_at_matches_retention_policy

@@ -207,7 +207,7 @@ class BaseIdentityReadOnlyPagesTest < ActionDispatch::IntegrationTest
       reason_code: "abuse", principal_public_id: client.public_id,
       applied_by_operator_public_id: "standing-test-operator",
     )
-    enforcement_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: enforcement_case)
     token = ClientToken.create!(
       user: client, user_token_kind_id: ClientTokenKind::BROWSER_WEB,
       user_token_status_id: ClientTokenStatus::ACTIVE, discarded_at: 1.day.from_now,
@@ -247,7 +247,7 @@ class BaseIdentityReadOnlyPagesTest < ActionDispatch::IntegrationTest
       reason_code: "abuse", principal_public_id: visitor.public_id,
       applied_by_operator_public_id: "standing-test-operator",
     )
-    enforcement_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: enforcement_case)
     token = VisitorToken.create!(
       visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, discarded_at: 1.day.from_now,
@@ -282,7 +282,7 @@ class BaseIdentityReadOnlyPagesTest < ActionDispatch::IntegrationTest
       reason_code: "abuse", principal_public_id: operator.public_id,
       applied_by_operator_public_id: "standing-test-operator",
     )
-    enforcement_case.apply!
+    EnforcementCaseApplyOperation.call(enforcement_case: enforcement_case)
     token = OperatorToken.create!(
       staff: operator, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       staff_token_status_id: OperatorTokenStatus::ACTIVE, discarded_at: 1.day.from_now,

@@ -200,6 +200,105 @@ class Oidc::AcmeServiceOriginTest < ActiveSupport::TestCase
     )
   end
 
+  test "refuses an origin whose default scheme is not http or https" do
+    error =
+      assert_raises(ArgumentError) do
+        Oidc::AcmeServiceOrigin.from("www.umaxica.app", default_scheme: "ftp")
+      end
+
+    assert_equal "invalid origin", error.message
+  end
+
+  test "refuses an origin that carries a scheme but no host" do
+    error =
+      assert_raises(ArgumentError) do
+        Oidc::AcmeServiceOrigin.from("https://", default_scheme: "https")
+      end
+
+    assert_equal "invalid origin", error.message
+  end
+
+  test "host_from returns nil rather than raising for an unusable origin" do
+    assert_nil Oidc::AcmeServiceOrigin.host_from("https://")
+    assert_nil Oidc::AcmeServiceOrigin.host_from("  ")
+    assert_equal "www.umaxica.app", Oidc::AcmeServiceOrigin.host_from("https://WWW.Umaxica.App")
+  end
+
+  test "a rejected decision reports no target attributes at all" do
+    origin = build_origin("www.umaxica.app", default_scheme: "https")
+    request = test_request(host: "log.umaxica.app", scheme: "https")
+
+    decision = origin.decision_for_authorize_url("oauth/authorize", request: request)
+
+    assert_predicate decision, :rejected?
+    assert_equal "invalid_url", decision.reason_code
+    assert_not decision.same_site
+    assert_nil decision.target_scheme
+    assert_nil decision.target_host
+    assert_nil decision.target_port
+    assert_nil decision.target_path
+    assert_equal "log.umaxica.app", decision.request_host
+    assert_equal "www.umaxica.app", decision.acme_host
+  end
+
+  test "a scheme mismatch jumps and keeps the target scheme it saw" do
+    origin = build_origin("www.umaxica.app", default_scheme: "https")
+    request = test_request(host: "log.umaxica.app", scheme: "https")
+
+    decision = origin.decision_for_authorize_url(
+      "http://www.umaxica.app/oauth/authorize?client_id=base-rails-rp",
+      request: request,
+    )
+
+    assert_predicate decision, :jump?
+    assert_equal "scheme_mismatch", decision.reason_code
+    assert_equal "http", decision.target_scheme
+    assert decision.same_site
+  end
+
+  test "a non-default target port is reported verbatim on a port mismatch" do
+    origin = build_origin("www.umaxica.app", default_scheme: "https")
+    request = test_request(host: "log.umaxica.app", scheme: "https")
+
+    decision = origin.decision_for_authorize_url(
+      "https://www.umaxica.app:8443/oauth/authorize?client_id=base-rails-rp",
+      request: request,
+    )
+
+    assert_predicate decision, :jump?
+    assert_equal "port_mismatch", decision.reason_code
+    assert_equal 8443, decision.target_port
+    assert_equal "www.umaxica.app", decision.target_host
+  end
+
+  test "a cross-site request to the acme origin jumps instead of going direct" do
+    origin = build_origin("www.umaxica.app", default_scheme: "https")
+    request = test_request(host: "log.example.com", scheme: "https")
+
+    decision = origin.decision_for_authorize_url(
+      "https://www.umaxica.app/oauth/authorize?client_id=base-rails-rp",
+      request: request,
+    )
+
+    assert_predicate decision, :jump?
+    assert_equal "site_mismatch", decision.reason_code
+    assert_not decision.same_site
+  end
+
+  test "single label hosts compare as their own site" do
+    origin = build_origin("http://localhost:3000", default_scheme: "http")
+    request = test_request(host: "localhost", scheme: "http")
+
+    decision = origin.decision_for_authorize_url(
+      "http://localhost:3000/oauth/authorize?client_id=base-rails-rp",
+      request: request,
+    )
+
+    assert_predicate decision, :direct?
+    assert decision.same_site
+    assert_equal 3000, decision.target_port
+  end
+
   private
 
   def build_origin(value, default_scheme:)

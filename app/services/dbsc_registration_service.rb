@@ -55,7 +55,7 @@ class DbscRegistrationService < ApplicationService
   end
 
   def proof_validator
-    @proof_validator ||= DbscProofValidator.new(
+    @proof_validator ||= DbscProofVerifier.new(
       proof: proof,
       challenge: record.dbsc_challenge,
       challenge_issued_at: record.dbsc_challenge_issued_at,

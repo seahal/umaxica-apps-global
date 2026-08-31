@@ -358,7 +358,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       assert_equal :ja, I18n.locale
     end
 
-    test "#{domain[:name]} domain applies timezone setting to Time.zone" do
+    test "#{domain[:name]} domain applies the stored timezone setting to the request" do
       host!(domain[:host])
 
       assert_preference_created(domain)
@@ -368,22 +368,23 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       patch public_send("base_#{domain[:name]}_preference_timezone_url", state),
             params: { preference_timezone: { option_id: "Etc/UTC" } }
 
-      # Visit a page to verify DB preference is applied to Time.zone
+      # Revisit the screen to verify the DB preference is applied to the request.
+      # Time.zone is restored when the request ends, so the zone the request ran
+      # in is read back from the cookie it wrote rather than from this process.
       get public_send("edit_base_#{domain[:name]}_preference_timezone_url", default_state)
 
       assert_response :success
-      assert_equal "Etc/UTC", Time.zone.name
+      assert_equal "Etc/UTC", TimezoneIdentifier.normalize(cookies[PreferenceIoKeys::Cookies::TIMEZONE])
 
       # Update timezone to Asia/Tokyo
       state = default_state.merge(tz: "asia/tokyo")
       patch public_send("base_#{domain[:name]}_preference_timezone_url", state),
             params: { preference_timezone: { option_id: "Asia/Tokyo" } }
 
-      # Visit a page to verify DB preference is applied to Time.zone
       get public_send("edit_base_#{domain[:name]}_preference_timezone_url", default_state)
 
       assert_response :success
-      assert_equal "Asia/Tokyo", Time.zone.name
+      assert_equal "Asia/Tokyo", TimezoneIdentifier.normalize(cookies[PreferenceIoKeys::Cookies::TIMEZONE])
     end
 
     test "#{domain[:name]} domain redirects timezone edit with updated tz when request omits tz" do

@@ -278,4 +278,139 @@ class EmailVerificationChallengeableTest < ActiveSupport::TestCase
     assert_empty VisitorEmailCeremonyTransaction.column_names & forbidden_columns
     assert_empty OperatorEmailCeremonyTransaction.column_names & forbidden_columns
   end
+
+  test "recording a verified outcome requires a token an issuer and an issue time" do
+    transaction = issue_challenge("argument-guard")
+
+    assert_raises(ArgumentError, "blank token must be refused") do
+      transaction.record_evp_verified!(token: "", issuer: "accounts.example.com", issued_at: Time.current)
+    end
+    assert_raises(ArgumentError, "blank issuer must be refused") do
+      transaction.record_evp_verified!(token: "evt-token", issuer: "", issued_at: Time.current)
+    end
+    assert_raises(ArgumentError, "blank issued_at must be refused") do
+      transaction.record_evp_verified!(token: "evt-token", issuer: "accounts.example.com", issued_at: nil)
+    end
+    assert_equal "pending", transaction.reload.evp_outcome
+  end
+
+  test "recording a rejected outcome requires the token that was rejected" do
+    transaction = issue_challenge("rejected-guard")
+
+    assert_raises(ArgumentError) do
+      transaction.record_evp_rejected!(token: nil, failure_reason: "malformed_token")
+    end
+    assert_equal "pending", transaction.reload.evp_outcome
+  end
+
+  test "an outcome without a nonce digest is inconsistent" do
+    transaction = issue_challenge("nonce-digest")
+    transaction.evp_nonce_digest = nil
+
+    assert_not_predicate transaction, :valid?
+    assert_includes transaction.errors[:evp_nonce_digest], "must be present"
+  end
+
+  test "a pending challenge must not carry a consumption time" do
+    transaction = issue_challenge("pending-consumed")
+    transaction.evp_consumed_at = Time.current
+
+    assert_not_predicate transaction, :valid?
+    assert_includes transaction.errors[:evp_consumed_at], "must be blank"
+  end
+
+  test "a terminal outcome must carry a consumption time" do
+    transaction = issue_challenge("terminal-consumed")
+    transaction.assign_attributes(
+      evp_outcome: EmailVerificationChallengeable::OUTCOME_VERIFIED,
+      evp_consumed_at: nil,
+      evp_token_digest: "digest",
+      evp_issuer: "accounts.example.com",
+      evp_issued_at: Time.current,
+      evp_verified_at: Time.current,
+    )
+
+    assert_not_predicate transaction, :valid?
+    assert_includes transaction.errors[:evp_consumed_at], "must be present"
+  end
+
+  test "a verified outcome requires the full issuance record" do
+    transaction = issue_challenge("verified-incomplete")
+    transaction.assign_attributes(
+      evp_outcome: EmailVerificationChallengeable::OUTCOME_VERIFIED,
+      evp_consumed_at: Time.current,
+      evp_token_digest: nil,
+      evp_issuer: nil,
+      evp_issued_at: nil,
+      evp_verified_at: nil,
+    )
+
+    assert_not_predicate transaction, :valid?
+    assert_includes transaction.errors[:evp_token_digest], "must be present"
+    assert_includes transaction.errors[:evp_issuer], "must be present"
+    assert_includes transaction.errors[:evp_issued_at], "must be present"
+    assert_includes transaction.errors[:evp_verified_at], "must be present"
+  end
+
+  test "a verified outcome must not carry a failure reason" do
+    now = Time.current
+    transaction = issue_challenge("verified-failure-reason")
+    transaction.assign_attributes(
+      evp_outcome: EmailVerificationChallengeable::OUTCOME_VERIFIED,
+      evp_consumed_at: now,
+      evp_token_digest: "digest",
+      evp_issuer: "accounts.example.com",
+      evp_issued_at: now,
+      evp_verified_at: now,
+      evp_failure_reason: "malformed_token",
+    )
+
+    assert_not_predicate transaction, :valid?
+    assert_includes transaction.errors[:evp_failure_reason], "must be blank"
+  end
+
+  test "a fallback outcome requires a failure reason and no issuance record" do
+    now = Time.current
+    transaction = issue_challenge("fallback-inconsistent")
+    transaction.assign_attributes(
+      evp_outcome: EmailVerificationChallengeable::OUTCOME_FALLBACK,
+      evp_consumed_at: now,
+      evp_failure_reason: nil,
+      evp_issuer: "accounts.example.com",
+      evp_issued_at: now,
+      evp_verified_at: now,
+    )
+
+    assert_not_predicate transaction, :valid?
+    assert_includes transaction.errors[:evp_failure_reason], "must be present"
+    assert_includes transaction.errors[:evp_issuer], "must be blank"
+    assert_includes transaction.errors[:evp_issued_at], "must be blank"
+    assert_includes transaction.errors[:evp_verified_at], "must be blank"
+  end
+
+  test "a rejected outcome must record the digest of the token it rejected" do
+    transaction = issue_challenge("rejected-digest")
+    transaction.assign_attributes(
+      evp_outcome: EmailVerificationChallengeable::OUTCOME_REJECTED,
+      evp_consumed_at: Time.current,
+      evp_failure_reason: "malformed_token",
+      evp_token_digest: nil,
+    )
+
+    assert_not_predicate transaction, :valid?
+    assert_includes transaction.errors[:evp_token_digest], "must be present"
+  end
+
+  private
+
+  def issue_challenge(reference, now: Time.current)
+    ClientEmailCeremonyTransaction.issue_evp_challenge!(
+      actor_ref: "client-#{reference}",
+      session_ref: "session-#{reference}",
+      operation: "registration",
+      email_candidate_ref: "email-#{reference}",
+      normalized_email_digest: "email-digest-#{reference}",
+      now: now,
+    ).transaction
+  end
 end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Builds publishing fixtures through the real lifecycle: a draft revision
-# promoted by Publishing::PromoteRevision, then published. Tests
+# promoted by Publishing::PromoteRevisionOperation, then published. Tests
 # that need a partially built entry stop earlier by passing a different status.
 module PublishingContentHelper
   REGIONAL_SURFACES = %w(docs news help).freeze
@@ -67,7 +67,7 @@ module PublishingContentHelper
   end
 
   def publishing_publish(entry:, published_at: 1.hour.ago, effective_until: nil)
-    version = Publishing::PromoteRevision.call(revision: entry.current_revision)
+    version = Publishing::PromoteRevisionOperation.call(revision: entry.current_revision)
     Publishing::Publication.create!(entry:, entry_version: version, effective_from: published_at, effective_until:)
     entry
   end

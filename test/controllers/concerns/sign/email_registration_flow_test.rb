@@ -193,5 +193,124 @@ class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
     assert_raises(NotImplementedError) {
       SignEmailRegistrationFlow.instance_method(:after_email_registration_verified_path).bind_call(harness)
     }
+    assert_raises(NotImplementedError) {
+      SignEmailRegistrationFlow.instance_method(:email_registration_target_user).bind_call(harness)
+    }
+    assert_raises(NotImplementedError) {
+      SignEmailRegistrationFlow.instance_method(:new_email_registration_path).bind_call(harness)
+    }
+  end
+
+  test "update renders the edit screen when turnstile stealth validation fails" do
+    harness = Harness.new
+    flash = Object.new
+    now_store = {}
+    flash.define_singleton_method(:now) { now_store }
+    flash.define_singleton_method(:[]=) { |key, value| instance_variable_set(:@store, (instance_variable_get(:@store) || {}).merge(key => value)) }
+    flash.define_singleton_method(:[]) { |key| (instance_variable_get(:@store) || {})[key] }
+    harness.flash_hash = flash
+    pending = ClientEmail.new
+    pending.define_singleton_method(:otp_expired?) { false }
+    pending.user_email_status_id = ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP
+    harness.define_singleton_method(:current_registration_email) { pending }
+    harness.define_singleton_method(:valid_registration_email_session?) { true }
+    harness.define_singleton_method(:cloudflare_turnstile_stealth_validation) { { "success" => false } }
+
+    harness.update
+
+    assert_equal [:edit, { status: :unprocessable_content }], harness.render_args
+    assert_equal I18n.t("turnstile_error"), now_store[:alert]
+  end
+
+  test "resend redirects away unless the registration email is resendable" do
+    harness = Harness.new
+
+    harness.resend
+
+    assert_predicate harness, :reset_called
+    assert_equal ["/emails/new?pt=signed%3A%2Fsettings%2Femails"], harness.redirect_args
+  end
+
+  test "resend redirects with a too-soon notice while the otp cooldown is active" do
+    harness = Harness.new
+    pending = ClientEmail.new
+    pending.define_singleton_method(:otp_expired?) { false }
+    pending.define_singleton_method(:locked?) { false }
+    pending.define_singleton_method(:otp_cooldown_active?) { true }
+    pending.user_email_status_id = ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP
+    harness.define_singleton_method(:current_registration_email) { pending }
+    harness.define_singleton_method(:after_email_registration_started_path) { |params = {}| "/emails/edit?#{params.to_query}" }
+    harness.define_singleton_method(:build_redirect_params) { |key, message, _session_key| { key => message } }
+
+    harness.resend
+
+    assert_match %r{\A/emails/edit\?}, harness.redirect_args.first
+    assert_equal I18n.t("otp.resend.too_soon"), harness.flash_hash[:alert]
+  end
+
+  test "resend generates an otp and redirects with a sent notice" do
+    harness = Harness.new
+    pending = ClientEmail.new
+    pending.define_singleton_method(:otp_expired?) { false }
+    pending.define_singleton_method(:locked?) { false }
+    pending.define_singleton_method(:otp_cooldown_active?) { false }
+    pending.user_email_status_id = ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP
+    harness.define_singleton_method(:current_registration_email) { pending }
+    generated = []
+    sent = []
+    harness.define_singleton_method(:generate_otp_for) { |email| generated << email; "654321" }
+    harness.define_singleton_method(:send_verification_email) { |code| sent << code }
+    harness.define_singleton_method(:after_email_registration_started_path) { |params = {}| "/emails/edit?#{params.to_query}" }
+    harness.define_singleton_method(:build_redirect_params) { |key, message, _session_key| { key => message } }
+
+    harness.resend
+
+    assert_equal [pending], generated
+    assert_equal ["654321"], sent
+    assert_equal I18n.t("otp.resend.sent"), harness.flash_hash[:notice]
+  end
+
+  test "complete_registration_verification! resets the flow when the email is locked" do
+    harness = Harness.new
+    harness.instance_variable_set(:@user_email, ClientEmail.new(public_id: "email-public-id"))
+    harness.define_singleton_method(:complete_email_verification!) { |*| :locked }
+
+    result = harness.send(:complete_registration_verification!, "000000")
+
+    assert_equal false, result
+    assert_predicate harness, :reset_called
+    assert_equal I18n.t("sign.app.registration.email.update.attempts_exceeded"), harness.flash_hash[:alert]
+    assert_equal ["/emails/new?"], harness.redirect_args
+  end
+
+  test "complete_registration_verification! re-renders edit when verification fails" do
+    harness = Harness.new
+    harness.instance_variable_set(:@user_email, ClientEmail.new(public_id: "email-public-id"))
+    harness.define_singleton_method(:complete_email_verification!) { |*| false }
+
+    result = harness.send(:complete_registration_verification!, "000000")
+
+    assert_equal false, result
+    assert_equal [:edit, { status: :unprocessable_content }], harness.render_args
+  end
+
+  test "email_registration_params permits a plain hash payload" do
+    harness = Harness.new
+    harness.params_hash = { client_email: { address: "plain@example.com", extra: "drop" } }
+
+    permitted = harness.send(:email_registration_params, :address)
+
+    assert_equal "plain@example.com", permitted[:address]
+    assert_not permitted.key?(:extra)
+  end
+
+  test "email_registration_return_path uses the signed pt token when present" do
+    harness = Harness.new
+    harness.define_singleton_method(:retrieve_pt) { |_key| "signed:/settings/emails" }
+
+    assert_equal "/settings/emails", harness.send(:email_registration_return_path, "/fallback")
+    harness.define_singleton_method(:retrieve_pt) { |_key| nil }
+
+    assert_equal "/fallback", harness.send(:email_registration_return_path, "/fallback")
   end
 end

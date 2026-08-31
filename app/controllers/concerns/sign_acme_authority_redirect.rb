@@ -44,6 +44,10 @@ module SignAcmeAuthorityRedirect
     redirect_to_base_authority!(path, query: query)
   end
 
+  def acme_authority_query(query_params = nil)
+    base_authority_query(query_params)
+  end
+
   def acme_authority_host
     base_authority_host
   end

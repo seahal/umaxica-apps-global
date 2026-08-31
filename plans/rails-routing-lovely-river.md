@@ -54,6 +54,13 @@ resourceful 度は高い(9 割は resource/resources)が、social 連携と Entr
 
 #### Suggested rewrite(抜粋)
 
+> **Status — item 1 is superseded. Do not apply it.** The app-surface social ceremony start is
+> POST-only (`resource :session, only: :create`), because a GET entry can be triggered by a link and
+> is login CSRF (CVE-2015-9284). Base reaches it through `POST /social/authentication/continuation`,
+> which issues a grant and 307s to the Auth host. The stale `only: :new` copies of these routes on
+> the Base host pointed at actions that no longer exist and have been deleted from
+> `config/routes/base.rb`. The rest of this section still stands.
+
 ```ruby
 # 1. social 開始点: verb 'continue' → 名詞 resource。provider は namespace で切る
 namespace :social do

@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-# require "helpers/global_test_support"
 
 class PreferenceLocalizationTest < ActiveSupport::TestCase
   class Harness
@@ -19,36 +18,40 @@ class PreferenceLocalizationTest < ActiveSupport::TestCase
     Time.zone = @original_timezone # rubocop:disable Rails/TimeZoneAssignment
   end
 
-  test "apply_localization_preferences uses actor language and timezone" do
+  test "apply_localization_preferences uses actor language" do
     harness = Harness.new
-    preferences = Struct.new(:language, :timezone).new(:en, "Asia/Tokyo")
+    preferences = Struct.new(:language).new(:en)
 
     Actor.stub(:preferences, preferences) do
       harness.send(:apply_localization_preferences)
 
       assert_equal :en, I18n.locale
-      assert_equal "Asia/Tokyo", Time.zone.name
     end
   end
 
-  test "apply_localization_preferences falls back when timezone is invalid" do
+  test "apply_localization_preferences falls back to the default locale when language is blank" do
     harness = Harness.new
-    preferences = Struct.new(:language, :timezone).new(:en, "not_a_zone")
+    preferences = Struct.new(:language).new(nil)
 
     Actor.stub(:preferences, preferences) do
       harness.send(:apply_localization_preferences)
 
       assert_equal I18n.default_locale, I18n.locale
-      assert_equal "Etc/UTC", Time.zone.name
     end
   end
 
-  test "localization_timezone preserves unknown but valid timezone names" do
+  # The request time zone belongs to PreferenceGlobal#set_timezone, which also
+  # sees the ?tz overlay and the preference cookie. Assigning it here as well
+  # would let the actor record override the narrower, more specific source.
+  test "apply_localization_preferences leaves the time zone alone" do
     harness = Harness.new
-    preferences = Struct.new(:timezone).new("America/New_York")
+    preferences = Struct.new(:language, :timezone).new(:en, "America/New_York")
+    Time.zone = "Etc/UTC" # rubocop:disable Rails/TimeZoneAssignment
 
     Actor.stub(:preferences, preferences) do
-      assert_equal "America/New_York", harness.send(:localization_timezone)
+      harness.send(:apply_localization_preferences)
+
+      assert_equal "Etc/UTC", Time.zone.name
     end
   end
 end

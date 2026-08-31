@@ -134,7 +134,7 @@ class AuthenticationAuditWriter
       actor_type: actor&.class&.name,
       actor_id: public_or_hmac_identifier(actor),
       ip_address: ip_address,
-      context: ChronicleRecorder.sanitize(context_hash(context)),
+      context: ChronicleRecordPolicy.sanitize(context_hash(context)),
       error_class: error.class.name,
     }
 
@@ -183,7 +183,7 @@ class AuthenticationAuditWriter
       actor_type: actor&.class&.name,
       actor_id: public_or_hmac_identifier(actor),
       ip_address_digest: hmac_identifier("ip_address", ip_address),
-      context: ChronicleRecorder.sanitize(context_hash(context)),
+      context: ChronicleRecordPolicy.sanitize(context_hash(context)),
       error_class: error.class.name,
     }.compact
   end

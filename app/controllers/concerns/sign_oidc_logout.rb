@@ -27,7 +27,12 @@ module SignOidcLogout
     return render_oidc_end_session_error(@oidc_end_session_request) if @oidc_end_session_request.error?
 
     if oidc_logout_pending_request_present?
-      return perform_oidc_end_session_logout(oidc_logout_pending_request) if request.post?
+      if request.post?
+        pending_request = oidc_logout_pending_request
+        return perform_oidc_end_session_logout(pending_request) if pending_request
+
+        return render_oidc_end_session_failure
+      end
 
       return render_oidc_end_session_confirmation
     end
@@ -150,7 +155,7 @@ module SignOidcLogout
     else
       render_cross_origin_sign_out_handoff(
         target_url: public_send(
-          "sign_#{sign_surface_name}_sign_out_url",
+          "auth_#{sign_surface_name}_sign_out_url",
           host: sign_service_host,
           protocol: "https",
         ),
@@ -277,6 +282,10 @@ module SignOidcLogout
     Time.zone.iso8601(value.to_s)
   rescue ArgumentError, TypeError
     nil
+  end
+
+  def sign_out_confirmation_request?
+    current_resource.present? || current_session_public_id.present?
   end
 
   def logout_oidc_current_session!(result)

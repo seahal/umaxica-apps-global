@@ -34,7 +34,7 @@ module Publishing
 
     test "two concurrent promotions produce one complete version and both callers see it" do
       revision = @entry.current_revision
-      results = concurrently(2) { PromoteRevision.call(revision: EntryRevision.find(revision.id)) }
+      results = concurrently(2) { PromoteRevisionOperation.call(revision: EntryRevision.find(revision.id)) }
 
       assert_equal 1, EntryVersion.where(entry_revision_id: revision.id).count
       assert_equal 1, results.map(&:id).uniq.size
@@ -53,9 +53,9 @@ module Publishing
       results =
         concurrently(2) do |index|
           if index.zero?
-            PromoteRevision.call(revision: EntryRevision.find(revision.id))
+            PromoteRevisionOperation.call(revision: EntryRevision.find(revision.id))
           else
-            MoveTaxonomySubtree.call(term: TaxonomyTerm.find(@guide.id), new_parent: TaxonomyTerm.find(other_root.id))
+            MoveTaxonomySubtreeOperation.call(term: TaxonomyTerm.find(@guide.id), new_parent: TaxonomyTerm.find(other_root.id))
           end
         end
 

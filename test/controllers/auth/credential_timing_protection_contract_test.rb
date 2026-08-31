@@ -3,22 +3,17 @@
 
 require "test_helper"
 
-# The list below names the controllers that answer a credential probe and must
-# therefore spend a fixed minimum time regardless of the answer. The three
-# Auth::*::Sign::In::PasskeysController entry pages are deliberately absent:
-# they route only #new, a static page that performs no identifier lookup and no
-# assertion verification, so there is nothing for a timing oracle to read. The
-# controllers that do the credential work -- the Passkey::Options and
-# Passkey::Verifications pairs, and the secret-credential controllers -- are all
-# still required to carry the budget.
 class AuthCredentialTimingProtectionContractTest < ActiveSupport::TestCase
   MINIMUM_RESPONSE_BUDGET_CONTROLLERS = [
+    Auth::App::Sign::In::PasskeysController,
     Auth::App::Sign::In::Passkey::OptionsController,
     Auth::App::Sign::In::Passkey::VerificationsController,
     Auth::App::Sign::In::SecretsController,
+    Auth::Com::Sign::In::PasskeysController,
     Auth::Com::Sign::In::Passkey::OptionsController,
     Auth::Com::Sign::In::Passkey::VerificationsController,
     Auth::Com::Sign::In::SecretsController,
+    Auth::Org::Sign::In::PasskeysController,
     Auth::Org::Sign::In::Passkey::OptionsController,
     Auth::Org::Sign::In::Passkey::VerificationsController,
     Auth::Org::Sign::In::SecretsController,
@@ -41,12 +36,15 @@ class AuthCredentialTimingProtectionContractTest < ActiveSupport::TestCase
     protected_controllers = MINIMUM_RESPONSE_BUDGET_CONTROLLERS + DUMMY_WORK_CONTROLLERS
     expected = [
       Auth::App::Sign::In::EmailsController,
+      Auth::App::Sign::In::PasskeysController,
       Auth::App::Sign::In::Passkey::OptionsController,
       Auth::App::Sign::In::Passkey::VerificationsController,
       Auth::App::Sign::In::SecretsController,
+      Auth::Com::Sign::In::PasskeysController,
       Auth::Com::Sign::In::Passkey::OptionsController,
       Auth::Com::Sign::In::Passkey::VerificationsController,
       Auth::Com::Sign::In::SecretsController,
+      Auth::Org::Sign::In::PasskeysController,
       Auth::Org::Sign::In::Passkey::OptionsController,
       Auth::Org::Sign::In::Passkey::VerificationsController,
       Auth::Org::Sign::In::SecretsController,

@@ -49,7 +49,6 @@ module SignTelephoneRegistrable
     true
   end
 
-  # Returns an existing ClientTelephone for the given number or nil.
   # complete_telephone_verification returns one of: :success, :session_expired, :invalid_code, :locked
   def complete_telephone_verification(id, submitted_code)
     @user_telephone = ClientTelephone.find_by(id: id)

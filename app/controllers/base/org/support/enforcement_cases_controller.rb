@@ -41,7 +41,7 @@ module Base
           end
 
           attach_requested_effects!(enforcement_case)
-          enforcement_case.apply!
+          EnforcementCaseApplyOperation.call(enforcement_case: enforcement_case)
           render json: enforcement_case_json(enforcement_case), status: :created
         rescue ActiveRecord::RecordInvalid, ArgumentError => e
           render json: { error: e.message }, status: :unprocessable_content

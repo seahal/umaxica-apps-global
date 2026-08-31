@@ -11,7 +11,7 @@ module Notify
     # instead of a load-time constant error. OtpAdapter.for spells out every
     # surface for the same reason.
     class OtpNotifier < Notify::ApplicationNotifier
-      extend Notify::OtpIssuance
+      extend Notify::OtpIssuanceNotifier
 
       # `enqueue` is deliberately left unset so the mail is delivered inside this
       # Noticed job rather than enqueuing a second ActionMailer job.

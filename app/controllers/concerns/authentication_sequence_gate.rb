@@ -495,6 +495,21 @@ module AuthenticationSequenceGate
     end
   end
 
+  def advance_cycle_to_checkpoint_after_active_session!(cycle, resource, token)
+    cycle.advance_sign_in_to_guardrail! if cycle.sign_in_primary_pending? || cycle.sign_in_mfa_pending?
+
+    if cycle.sign_in_guardrail_pending?
+      guardrail = SignInGuardrailParticipant.new(cycle: cycle, actor: resource)
+      guardrail.advance_if_clear!
+    end
+
+    cycle.reload
+    cycle.update!(token: token) if cycle.token_id.blank?
+    cycle.advance_sign_in_to_checkpoint! if cycle.sign_in_session_issuance_pending?
+    sign_in_flow_locator_for(actor: resource, token: token).issue!(cycle.reload)
+    reset_current_db_sign_in_flow_for_sequence!
+  end
+
   def promote_current_session_limit_cycle!(actor)
     cycle = current_db_sign_in_flow_for_sequence
     return false unless cycle&.sign_in_session_limit_pending?

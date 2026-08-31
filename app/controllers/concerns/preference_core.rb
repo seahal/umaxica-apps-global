@@ -232,13 +232,7 @@ module PreferenceCore
   end
 
   def normalize_known_timezone(value)
-    candidate = value.to_s.strip
-    return nil if candidate.blank?
-
-    zone = ActiveSupport::TimeZone[candidate]
-    return nil if zone.nil?
-
-    zone.tzinfo&.name || zone.name
+    TimezoneIdentifier.normalize(value)
   end
 
   def load_or_refresh_preference_child(child_type, default_attributes = {})
@@ -485,6 +479,14 @@ module PreferenceCore
 
   def preference_update_notice
     t([preference_translation_scope, "update_success"].join("."))
+  end
+
+  def preference_reset_destroyed_notice
+    t(["acme", preference_surface_key, "preference.resets.destroyed"].join("."))
+  end
+
+  def preference_operation_failed_alert
+    I18n.t("errors.messages.preference_operation_failed")
   end
 
   def preference_context_redirect_params

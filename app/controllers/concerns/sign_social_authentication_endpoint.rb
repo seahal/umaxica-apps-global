@@ -10,17 +10,23 @@ module SignSocialAuthenticationEndpoint
 
   private
 
-  # Both callers are per-provider settings controllers that pass their own constant
-  # `social_provider`, so `provider` is always one of SUPPORTED_PROVIDERS here.
   def continue_social_authentication(provider:, intent: nil)
     intent = intent || params[:intent] || "login"
+
+    unless SUPPORTED_PROVIDERS.include?(provider)
+      return redirect_to(
+        auth_app_sign_in_path,
+        alert: I18n.t("sign.app.social.sessions.invalid_provider"),
+      )
+    end
+
     operation = (social_auth_entry == "auth_up") ? "signup" : intent.to_s
     unless external_authentication_allowed?(surface: "app", provider: provider, operation: operation) &&
         external_authentication_start_available?(provider: provider, operation: operation, context: {})
       return redirect_to(auth_app_sign_in_path, status: :see_other)
     end
 
-    prepare_social_auth_intent!(
+    state = prepare_social_auth_intent!(
       intent,
       provider: provider,
       pt: nil,
@@ -28,9 +34,20 @@ module SignSocialAuthenticationEndpoint
       ri: params[:ri].presence,
     )
     issue_sign_up_flow!(provider) if social_auth_entry == "auth_up"
-    # Only the settings link ceremony reaches this method, and it always arrives with a
-    # grant already issued; the login-intent issuance lives in AppSocialCeremonyEntry.
-    store_social_ceremony_grant!(params[:social_ceremony_grant]) if params[:social_ceremony_grant].present?
+    if params[:social_ceremony_grant].present?
+      store_social_ceremony_grant!(params[:social_ceremony_grant])
+    elsif intent.to_s == "login"
+      issuance = IdentitySocialCeremonyGrantIssuer.issue!(
+        surface: "app",
+        actor_ref: social_login_actor_ref,
+        session_ref: state,
+        operation: "login",
+        provider: provider,
+        resource_ref: social_auth_entry,
+        return_to: path_from_signed_pt(signed_pt_token(resolved_path_or_navigation_target)),
+      )
+      store_social_ceremony_grant!(issuance.grant)
+    end
 
     # The settings link button is already a token-protected POST, so the
     # ceremony hands the same POST to the OmniAuth request phase with a 307
@@ -60,6 +77,24 @@ module SignSocialAuthenticationEndpoint
     )
   rescue SocialAuth::BaseError => e
     render plain: I18n.t(e.message), status: e.status_code
+  end
+
+  def require_social_link_step_up!
+    return true unless params[:intent].to_s == "link"
+    return true unless SUPPORTED_PROVIDERS.include?(params[:provider].to_s)
+    return true unless logged_in? && current_resource.present?
+    return true if step_up_satisfied?(scope: SOCIAL_LINK_SCOPE)
+
+    flash[:alert] = I18n.t("auth.step_up.required")
+    redirect_to(
+      actor_verification_path(
+        scope: SOCIAL_LINK_SCOPE,
+        pt: encoded_relative_pt(social_link_settings_path(params[:provider])),
+        ri: params[:ri],
+      ),
+      status: :see_other,
+    )
+    false
   end
 
   def authorize_social_unlink!

@@ -8,8 +8,10 @@ module Base
         include ::SurfaceInertiaPage
         include CloudflareTurnstile
         include VerificationClient
-        # #new and #create call the enrollment-ceremony seam; com and org already
-        # include it, and without it those actions raise NoMethodError.
+        # `new` and `create` call start_secret_credential_ceremony! /
+        # reset_secret_credential_ceremony_session!, which live here. Without the include both
+        # actions raise NoMethodError. The com and org secret credential controllers already
+        # include it; this keeps the three surfaces on the same seam.
         include ::SignSettingsSecretCredentialRegistration
 
         AUTHENTICATION_MODE = :private
@@ -17,10 +19,7 @@ module Base
 
         before_action :authenticate_client!
         before_action :authorize_secret_credentials!, only: %i(index show new edit create update destroy)
-        # The scope has to be named: `step_up` without one falls back to
-        # `verification_scope`, whose default is the not-yet-set requirement, and
-        # `require_verification!(nil)` then raises. com and org name the same scope.
-        step_up only: %i(new create), scope: "settings_secret_credential", bootstrap: true
+        step_up only: %i(new create), bootstrap: true
         def index
           secret_credentials = current_client.client_secret_credentials.order(created_at: :asc)
           render inertia: true, props: secrets_index_props(secret_credentials)
@@ -99,6 +98,11 @@ module Base
         end
 
         private
+
+        # `step_up` above hands this to require_verification!, which calls to_sym on it. Without a
+        # scope `new` and `create` raise NoMethodError on nil. The com and org secret credential
+        # controllers name the same scope.
+        def verification_scope = "settings_secret_credential"
 
         def authorize_secret_credentials! = authorize!(ClientSecretCredential, to: :index?)
 

@@ -5,19 +5,37 @@ module Auth
   module App
     module Sign
       module In
-        # Renders the passkey sign-in entry page: an identifier field and the
-        # button that starts the ceremony in the browser.
+        # PasskeysController handles Passkey-based user authentication.
         #
-        # The ceremony itself is not served here. Auth::App::Sign::In::Passkey::OptionsController
-        # issues the bound challenge and Auth::App::Sign::In::Passkey::VerificationsController
-        # consumes the assertion and commits the login; only #new is routed to this
-        # controller, so it carries no credential work and no response-time budget.
+        # Flow:
+        # 1. User visits /in/passkeys/new and enters their email
+        # 2. POST /in/passkeys/options with email to get WebAuthn challenge
+        # 3. Browser performs navigator.credentials.get()
+        # 4. POST /in/passkeys/verification with credential + challenge_id
+        # 5. Server verifies and establishes session via AuthenticationBase#log_in
+        #
+        # Note: Discoverable credentials (passwordless without identifier) are
+        # planned for a future phase. Currently, email is required to look up
+        # the user's registered passkeys.
         class PasskeysController < ::Auth::App::ApplicationController
           include ::SurfaceInertiaPage
 
+          include EmailValidation
+
+          include IdentifierDetection
+
+          include MinimumResponseBudget
+
+          include SessionLimitGate
+
+          include CloudflareTurnstile
+
           AUTHENTICATION_MODE = :guest
+          before_action :start_minimum_response_budget
+          after_action :enforce_minimum_response_budget
 
           # GET /in/passkeys/new
+          # Render login page with email input and passkey button
           def new
             render inertia: true, props: passkey_new_props
           end
@@ -52,6 +70,10 @@ module Auth
                 href: auth_app_sign_in_path(pt: pt, ri: ri),
               },
             }
+          end
+
+          def minimum_response_budget_enabled?
+            action_name == "options"
           end
         end
       end

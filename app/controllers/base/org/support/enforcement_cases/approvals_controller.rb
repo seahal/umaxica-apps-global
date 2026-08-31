@@ -24,7 +24,7 @@ module Base
 
             @enforcement_case.approved_by_operator_public_id = current_operator.public_id
             attach_requested_effects!(@enforcement_case)
-            @enforcement_case.apply!
+            EnforcementCaseApplyOperation.call(enforcement_case: @enforcement_case)
             render json: { public_id: @enforcement_case.public_id, state: @enforcement_case.state }, status: :ok
           rescue ActiveRecord::RecordInvalid, ArgumentError, EnforcementCaseApplicable::ApprovalRequiredError => e
             render json: { error: e.message }, status: :unprocessable_content

@@ -40,4 +40,42 @@ class ComEnforcementIdentifierEffectTest < ActiveSupport::TestCase
     assert_not effect.valid?
     assert_includes effect.errors[:base], "Identifier Effect is only legal on permanent_ban or cooldown Cases"
   end
+
+  test "in_force selects only open, currently effective, unexpired identifier effects" do
+    enforcement_case = ban_case
+    open_effect = create_effect(enforcement_case, "in-force-com@example.test", effective_at: 1.hour.ago)
+    future = create_effect(enforcement_case, "future-com@example.test", effective_at: 1.hour.from_now)
+    expired = create_effect(enforcement_case, "expired-com@example.test", effective_at: 2.hours.ago, expires_at: 1.hour.ago)
+    ended = create_effect(enforcement_case, "ended-com@example.test", effective_at: 2.hours.ago, ended_at: 1.hour.ago)
+
+    in_force = ComEnforcementIdentifierEffect.in_force
+
+    assert_includes in_force, open_effect
+    assert_not_includes in_force, future
+    assert_not_includes in_force, expired
+    assert_not_includes in_force, ended
+  end
+
+  private
+
+  def ban_case
+    ComEnforcementCase.create!(
+      kind: "permanent_ban",
+      duration_mode: "permanent",
+      visibility: "visible",
+      release_mode: "break_glass_only",
+      effective_at: Time.current,
+      reason_code: "abuse",
+      principal_public_id: visitors(:reserved_visitor).public_id,
+      applied_by_operator_public_id: operators(:one).public_id,
+    )
+  end
+
+  def create_effect(enforcement_case, value, **attrs)
+    ComEnforcementIdentifierEffect.build_for_email(
+      value: value,
+      enforcement_case: enforcement_case,
+      **attrs,
+    ).tap(&:save!)
+  end
 end
