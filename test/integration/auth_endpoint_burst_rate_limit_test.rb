@@ -209,6 +209,46 @@ class AuthEndpointBurstRateLimitTest < ActionDispatch::IntegrationTest
     assert_response :too_many_requests
   end
 
+  # The secret-credential and email sign-in endpoints declare a sustained limiter
+  # alongside the burst one, with a longer retry hint. Only the burst arm was
+  # exercised, so a sustained limiter that stopped firing would have gone unnoticed.
+  {
+    "app secret credential sign-in" => [
+      :auth_app_sign_in_secret_url, "PUBLIC_AUTH_SERVICE_URL",
+      { client_secret_credential: { identifier: "sustained@example.com", secret_credential_value: "x" } },
+    ],
+    "com secret credential sign-in" => [
+      :auth_com_sign_in_secret_url, "PUBLIC_AUTH_CORPORATE_URL",
+      { visitor_secret_credential: { identifier: "sustained@example.com", secret_credential_value: "x" } },
+    ],
+    "app email sign-in" => [
+      :auth_app_sign_in_email_url, "PUBLIC_AUTH_SERVICE_URL",
+      { client_email: { address: "sustained@example.com" } },
+    ],
+    "com email sign-in" => [
+      :auth_com_sign_in_email_url, "PUBLIC_AUTH_CORPORATE_URL",
+      { visitor_email: { address: "sustained@example.com" } },
+    ],
+  }.each do |label, (helper, host_env, request_params)|
+    test "#{label} answers 429 with the sustained retry hint once the 15-minute allowance is spent" do
+      host = ENV.fetch(host_env)
+      host! host
+
+      (SUSTAINED_ALLOWANCE / BURST_ALLOWANCE).times do |burst|
+        travel((burst * 61).seconds) do
+          BURST_ALLOWANCE.times { post public_send(helper, ri: "jp", host: host), params: request_params }
+        end
+      end
+
+      travel((SUSTAINED_ALLOWANCE / BURST_ALLOWANCE * 61).seconds) do
+        post public_send(helper, ri: "jp", host: host), params: request_params
+      end
+
+      assert_response :too_many_requests
+      assert_equal "900", response.headers["Retry-After"]
+    end
+  end
+
   test "app passkey options answers 429 with the sustained retry hint once the 15-minute allowance is spent" do
     host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL")
     host! host

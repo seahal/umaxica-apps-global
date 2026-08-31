@@ -54,6 +54,78 @@ class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     assert_redirected_to auth_com_sign_in_path(ri: "jp")
   end
 
+  # Every refusal on the MFA passkey challenge sends the person back to the challenge
+  # chooser rather than leaving them on a dead page, and none of them completes the
+  # sign-in. These four arms had no test.
+  test "new sends the visitor back to the chooser when no passkey is registered" do
+    @passkey.destroy!
+    establish_pending_mfa!
+
+    get new_auth_com_sign_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
+
+    assert_response :see_other
+    assert_redirected_to auth_com_sign_in_challenge_path(ri: "jp")
+  end
+
+  test "new sends the visitor back to the chooser when the relying party is not configured" do
+    establish_pending_mfa!
+    missing_config =
+      lambda do |*|
+        raise Webauthn::RelyingPartyConfigResolver::MissingConfigurationError, "rp_id missing"
+      end
+
+    Webauthn::RelyingPartyConfigResolver.stub(:resolve, missing_config) do
+      get new_auth_com_sign_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
+    end
+
+    assert_response :see_other
+    assert_redirected_to auth_com_sign_in_challenge_path(ri: "jp")
+  end
+
+  test "create refuses a failed stealth challenge without consuming the passkey challenge" do
+    establish_pending_mfa!
+    get new_auth_com_sign_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
+    challenge_id = session[:passkey_challenges].keys.first
+    TurnstileVerifierStub.challenge_response = { "success" => false }
+
+    post auth_com_sign_in_challenge_passkey_path(ri: "jp"),
+         params: { mfa_passkey_form: { challenge_id: challenge_id } },
+         headers: @origin_headers
+
+    assert_response :see_other
+    assert_redirected_to new_auth_com_sign_in_challenge_passkey_path(ri: "jp")
+    assert_includes session[:passkey_challenges].keys, challenge_id,
+                    "a refused challenge must still be there for the retry"
+  end
+
+  test "create sends the visitor back to the chooser when the assertion does not verify" do
+    establish_pending_mfa!
+    get new_auth_com_sign_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
+    challenge_id = session[:passkey_challenges].keys.first
+    failure = ->(**) { raise Webauthn::AssertionVerifier::VerificationError, "bad assertion" }
+
+    Webauthn::AssertionVerifier.stub(:verify!, failure) do
+      post auth_com_sign_in_challenge_passkey_path(ri: "jp"),
+           params: {
+             mfa_passkey_form: {
+               challenge_id: challenge_id,
+               credential_json: {
+                 id: @passkey.webauthn_id,
+                 type: "public-key",
+                 response: { clientDataJSON: "d",
+                             authenticatorData: "d",
+                             signature: "d",
+                             userHandle: @visitor.public_id, },
+               }.to_json,
+             },
+           },
+           headers: @origin_headers
+    end
+
+    assert_response :see_other
+    assert_redirected_to auth_com_sign_in_challenge_path(ri: "jp")
+  end
+
   test "create verifies passkey and redirects on success" do
     establish_pending_mfa!
 
