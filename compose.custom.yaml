@@ -57,59 +57,15 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-  # Host GitHub authentication, forwarded rather than copied. No private key, no
-  # ~/.ssh directory, and no token literal enters this file or the image: the two
-  # mounts below carry a socket and a public host-key database, and GH_TOKEN is
-  # read from the environment that launches Compose.
+  # This overlay deliberately adds nothing to `core`. It used to forward host
+  # GitHub authentication -- the ssh-agent socket, ~/.ssh/known_hosts, and
+  # GH_TOKEN -- and all three were removed.
   #
-  # This is the developer-owned overlay, so both values are host-shaped by
-  # definition and cannot live in compose.yaml.
-  core:
-    # Pinned here as well as in .devcontainer/compose.override.yml. The `:Z` mounts
-    # below relabel two host paths to container_file_t at this container's MCS
-    # level. The devcontainer path loads the override and pins s0:c101,c202; the
-    # documented CLI path (`podman compose -f compose.yaml -f compose.custom.yaml
-    # up -d core`) does not, so without this line each CLI run would allocate a
-    # fresh category pair, restamp the host's known_hosts and agent socket, and
-    # lock the other path out of them.
-    security_opt:
-      - label=level:s0:c101,c202
-    environment:
-      # A container-internal path naming the bind mount below, not a host path.
-      SSH_AUTH_SOCK: /ssh-agent
-      # gh prefers a non-empty GH_TOKEN over ~/.config/gh/hosts.yml, so a stale
-      # token left in the container's gh config cannot win and `gh auth login` is
-      # never needed. Empty when the host exports none, which gh reads as unset.
-      # It also reaches git: /home/global/.gitconfig already routes
-      # https://github.com through `gh auth git-credential`.
-      GH_TOKEN: "${GH_TOKEN:-}"
-    volumes:
-      # The host agent's socket. Signing happens in the host ssh-agent; the key
-      # itself never crosses the boundary. Prefer a stable socket path on the host
-      # (`systemctl --user enable --now ssh-agent.socket`): a per-login
-      # /tmp/ssh-XXXX/agent.N path changes every login and forces a recreate.
-      #
-      # The placeholder default keeps `up` working on a host with no agent -- Podman
-      # creates that path as an empty directory and ssh then reports a plain
-      # "Error connecting to agent" instead of failing Compose resolution on an
-      # empty bind source.
-      - type: bind
-        source: "${SSH_AUTH_SOCK:-/tmp/ssh-agent-not-forwarded}"
-        target: /ssh-agent
-        bind:
-          selinux: Z
-      # Read-only, and only this one file -- never the ~/.ssh directory, which holds
-      # the private keys. Without it ssh cannot verify github.com's host key and
-      # refuses the connection.
-      #
-      # `:Z` relabels the host's known_hosts to container_file_t; a normal RHEL
-      # login user is unconfined_u and keeps reading it. The file must already exist
-      # on the host: Podman creates a missing bind source as a *directory*, which
-      # would break host ssh. `ssh -T git@github.com` on the host before the first
-      # `up` both proves the agent works and guarantees the file is there.
-      - type: bind
-        source: "${HOME}/.ssh/known_hosts"
-        target: /home/global/.ssh/known_hosts
-        read_only: true
-        bind:
-          selinux: Z
+  # The agent socket is a signing oracle: forwarding it lets anything in the
+  # container sign with every key the agent holds, with no per-use prompt and no
+  # host-side record. GH_TOKEN went with it because `gh auth login` run inside
+  # the container works, so there was nothing left for a host token to buy.
+  #
+  # Authenticate in-container instead, per .devcontainer/devcontainer.json:
+  #   gh auth login --web --git-protocol https && gh auth setup-git
+  # Remotes must be HTTPS; `git@github.com` does not work here, by design.

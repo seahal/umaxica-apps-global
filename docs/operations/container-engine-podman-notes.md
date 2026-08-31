@@ -26,8 +26,8 @@ not, because the subcommand form does not consult it.
 
 This is a security requirement. Do not bind host credential files into the containers. The internal
 PostgreSQL passwords are fixed development-only literals declared inline in `compose.yaml`, so no
-credential is bound in from the host. Global and Edge intentionally do not share a host Podman network; Edge
-reaches the Rails origin through Cloudflare Workers VPC.
+credential is bound in from the host. Global and Edge intentionally do not share a host Podman
+network; Edge reaches the Rails origin through Cloudflare Workers VPC.
 
 `--docker-path` is equally required. Without it the Dev Containers CLI runs lifecycle queries such
 as `docker ps` through its default Docker executable, which on a host that also has Docker installed
@@ -59,11 +59,11 @@ times a second until netns, veth, conmon, and journald churn saturates a CPU —
 recorded in `notes/implementation/2026-08-23-cloudflare-tunnel-restart-storm.md`. The attempt count
 is the only bound Compose can express, so every long-running service declares `on-failure:N`:
 
-| Service                                                         | Policy         |
-| --------------------------------------------------------------- | -------------- |
-| `core`, `primary`, `replica`, `valkey`                          | `on-failure:5` |
-| `kafka`, `cloudflare-tunnel`                                    | `on-failure:3` |
-| observability profile, `fdw-poc*` | `"no"`         |
+| Service                                                                                   | Policy         |
+| ----------------------------------------------------------------------------------------- | -------------- |
+| `core`, `primary`, `replica`, `valkey`, `alloy`, `loki`, `tempo`, `prometheus`, `grafana` | `on-failure:5` |
+| `fakecloud`, `cloudflare-tunnel`                                                          | `on-failure:3` |
+| `fdw-poc*`                                                                                | `"no"`         |
 
 Two consequences of that choice:
 

@@ -79,8 +79,8 @@ services:
     container_name: global-devcontainer-replica
   valkey:
     container_name: global-devcontainer-valkey
-  # kafka needs no devcontainer override: it publishes no host port and its
-  # container name is not referenced by tooling.
+  # fakecloud needs no devcontainer override: compose.yaml already binds its
+  # published port to loopback and its container name is not referenced by tooling.
   loki:
     container_name: global-devcontainer-loki
   tempo:

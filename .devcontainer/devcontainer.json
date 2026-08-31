@@ -40,9 +40,6 @@
         "ms-vscode.remote-explorer",
         "rubocop.vscode-rubocop",
         "openai.chatgpt",
-        "anthropic.claude-code",
-        "anthropic.claude-code",
-        "-sorbet.sorbet-vscode-extension",
         "-dbaeumer.vscode-eslint",
         "-esbenp.prettier-vscode",
         "-eamodio.gitlens",
@@ -110,31 +107,16 @@
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/herdr:1": { "VERSION": "v0.8.0" },
-    "ghcr.io/srzstephen/devcontainer-features/claude-code:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
     "ghcr.io/nolanjx/devcontainer-features/codex:1": {},
+    "ghcr.io/devcontainers-extra/features/opencode:1": {},
+    // Terraform for the `terraform/` HCL. tflint and terragrunt default to
+    // "latest" in this Feature and are installed unless pinned; neither is used
+    // here, so both are switched off rather than carried as unused binaries.
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "tflint": "none",
+      "terragrunt": "none"
+    },
     "ghcr.io/sliekens/devcontainer-features/grok-build:1": {}
   }
-  // No host credential enters the `core` service. The Cloudflare tunnel token from
-  // the repository-local `.env` is scoped to the separate `cloudflare-tunnel` sidecar and
-  // is not present in `core`. There are no `mounts`, no
-  // host bind of ~/.ssh, ~/.config/gh, ~/.gitconfig, ~/.claude, or ~/.codex,
-  // and no persistent volume holding tool auth state. Credentials are obtained
-  // inside the running container through browser logins and are discarded when
-  // the container is recreated:
-  //   gh auth login --web --git-protocol https && gh auth setup-git
-  //   claude   # then /login
-  //   codex login
-  // Git remotes must be HTTPS: no SSH key exists here for git@github.com.
-  //
-  // The Postgres password is a fixed, dev-only literal declared inline in
-  // `compose.yaml`. It guards nothing reachable off this host and no user
-  // credential is stored there.
-  //
-  // Read-only workspace write-guards are declared in compose.override.yml,
-  // because the Dev Container string-form `readonly` option is not effective
-  // with the current rootless Podman provider. Heavy-write cache directories
-  // route through named volumes under /home/global so they never churn host
-  // ownership. Dependency manifests and lockfiles inherit the writable
-  // workspace mount because Bundler and pnpm replace them during explicit
-  // update commands; CI protects reproducibility with frozen install modes.
 }

@@ -28,8 +28,11 @@ Three boundaries already shape this design:
 ### Single observability agent
 
 Alloy is the only observability agent in this repository. The `otel-collector` service is retired.
-All Rails OTLP traffic is sent to `alloy` on the `observability` docker network. The Rails
-container's `depends_on` points at `alloy`, not `otel-collector`.
+All Rails OTLP traffic is sent to `alloy` on the `observability` docker network.
+
+This decision originally also required the Rails container's `depends_on` to point at `alloy` rather
+than `otel-collector`. That requirement is withdrawn; see "Amendment: `core` declares no dependency
+on the agent" below. `core` declares no `depends_on` entry for any observability service.
 
 ### Routing
 
@@ -97,9 +100,10 @@ configuration; divergence is treated as a defect.
 
 ### Process and compose layout
 
-- The observability service group (`alloy`, `tempo`, `prometheus`, `grafana`, and later `loki`) is
-  gated behind a docker compose profile so that contributors not working on observability can run
-  the application stack without it.
+- The observability service group (`alloy`, `tempo`, `prometheus`, `grafana`, `loki`) runs on a
+  plain `up`. It was originally gated behind a compose profile; that gating was removed on
+  2026-08-31 so that every developer gets the same telemetry without opting in, which is also what
+  makes a trace reproducible from one machine to another. See the amendment below.
 - Tempo, Prometheus, and (later) Loki must have explicit retention configured. Unbounded retention
   on local volumes is treated as a misconfiguration.
 - The Tempo container's host port publication exists only for direct inspection during bring-up.
@@ -122,8 +126,8 @@ future Loki migration limited to agent configuration.
 
 ## Consequences
 
-- The `otel-collector` service is removed from `compose.yaml`. The `core` service's `depends_on` is
-  rewired to `alloy`.
+- The `otel-collector` service is removed from `compose.yaml`. `core` gains no `depends_on` entry in
+  its place, per the amendment below.
 - A development-only initializer is introduced that configures the SDK, the OTLP exporter, the
   in-process PII redaction SpanProcessor, and an explicit instrumentation allow-list. `test`
   short-circuits this initializer.
@@ -137,6 +141,43 @@ future Loki migration limited to agent configuration.
   after the trace path is stable.
 - A production rollout requires a new ADR. This decision does not authorize enabling the SDK outside
   development.
+
+## Amendment: `core` declares no dependency on the agent
+
+Amended: 2026-08-31
+
+The original decision required two things that cannot both hold in Compose:
+
+1. "The Rails container's `depends_on` points at `alloy`."
+2. "The observability service group is gated behind a docker compose profile so that contributors
+   not working on observability can run the application stack without it."
+
+`core` carried no profile and started on a plain `up`, while `alloy` did not. A `depends_on` entry
+naming a service that no active profile selects is a resolution error, not a silently ignored edge:
+the dependency has no container to wait for. Honouring (1) therefore meant either pulling the whole
+observability group into every developer's default `up`, which is what (2) existed to prevent, or
+leaving `core` unstartable without `--profile observability`.
+
+**(2) won, and then (2) itself was withdrawn.** The profile gating was removed on 2026-08-31; the
+observability group now starts on a plain `up` alongside `core`. The `depends_on` requirement is
+still not reinstated, for a different reason: it buys nothing.
+
+`depends_on` orders container startup; it does not make the OTLP exporter's first export succeed.
+The Ruby exporter is asynchronous and retries, so a `core` that starts before `alloy` loses at most
+the spans buffered during the gap. There is no readiness relationship worth encoding, and adding one
+would only slow every boot.
+
+`OPEN_TELEMETRY` is `"true"` on `core` in `compose.yaml`, because `alloy` is now always there to
+receive. The initializer still gates on it and still defaults to off, because `core` also runs
+outside Compose -- a host `bin/rails`, a CI job, a one-off `podman run` -- where no agent exists and
+an unresolvable `alloy` would otherwise produce a steady trickle of exporter retry warnings.
+
+Before this, `OPEN_TELEMETRY` was declared in `compose.yaml` but read nowhere, so the SDK
+initialised on every development boot regardless. The initializer now honours the variable.
+
+This narrows the "development: OpenTelemetry SDK enabled" line in "Phased environment scope" above:
+the SDK is available in development and off until asked for, because the agent it exports to is
+itself opt-in. Turning both on is one command.
 
 ## Related
 

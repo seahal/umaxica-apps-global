@@ -1,7 +1,7 @@
 # Development Host Port Exposure
 
-Development containers do not publish services to the host's external network interfaces by
-default. Where host access is genuinely required, the publication is restricted to loopback.
+Development containers do not publish services to the host's external network interfaces by default.
+Where host access is genuinely required, the publication is restricted to loopback.
 
 This is the standing contract for every Compose file in this repository. It is not advice about a
 particular service, and a host firewall is not an acceptable substitute for it.
@@ -11,19 +11,19 @@ particular service, and a host firewall is not an acceptable substitute for it.
 1. **Prefer no publication at all.** If a service is only consumed by other containers, it gets no
    `ports:` entry. Containers reach it by Compose service name over the shared network
    (`primary:5432`, `valkey:6379`, `kafka:29092`, `tempo:3200`).
-2. **If the host genuinely needs it, publish to loopback only.** Write the bind address
-   explicitly: `127.0.0.1:3000:3000`, never `3000:3000`. A `ports:` entry with no host address
-   makes Podman bind `0.0.0.0`, which places the service on every host interface — LAN, Wi-Fi,
-   Ethernet, and Tailscale included.
+2. **If the host genuinely needs it, publish to loopback only.** Write the bind address explicitly:
+   `127.0.0.1:3000:3000`, never `3000:3000`. A `ports:` entry with no host address makes Podman bind
+   `0.0.0.0`, which places the service on every host interface — LAN, Wi-Fi, Ethernet, and Tailscale
+   included.
 3. **Never publish a datastore.** PostgreSQL (`primary`, `replica`), Valkey, and Kafka are
    container-only. Convenience is not a reason to add `5432:5432`, `6379:6379`, or `9092:9092`; use
    `podman compose exec` for a shell against them.
 
 ## Container Bind and Host Publication Are Separate Decisions
 
-A process binding `0.0.0.0` *inside* its container is normal and usually required — it is how the
-container becomes reachable on the Podman network at all. It says nothing about host exposure,
-which is decided solely by `ports:`.
+A process binding `0.0.0.0` _inside_ its container is normal and usually required — it is how the
+container becomes reachable on the Podman network at all. It says nothing about host exposure, which
+is decided solely by `ports:`.
 
 ```text
 BINDING=0.0.0.0             ->  Rails listens on the core container's own interfaces.
@@ -31,22 +31,29 @@ ports: 127.0.0.1:3000:3000  ->  the host reaches it only from the host itself.
 ports: 3000:3000            ->  every machine on the LAN reaches it.  <- not allowed
 ```
 
-`compose.yaml` therefore keeps `BINDING: "0.0.0.0"` and `VITE_RUBY_HOST: "0.0.0.0"`. Do not
-"harden" those to `127.0.0.1`: that would break
-`cloudflare-tunnel`, `bin/tunnel-origin-check`, and every container-to-container call, while
-changing nothing about host exposure.
+`compose.yaml` therefore keeps `BINDING: "0.0.0.0"` and `VITE_RUBY_HOST: "0.0.0.0"`. Do not "harden"
+those to `127.0.0.1`: that would break `cloudflare-tunnel`, `bin/tunnel-origin-check`, and every
+container-to-container call, while changing nothing about host exposure.
 
 ## Current Publications
 
-| Service | Host publication | Why |
-| --- | --- | --- |
-| `core` (Rails, 3000) | `127.0.0.1:3000` | The browser opens the documented `http://<service>.<surface>.localhost:3000` origins, which resolve to `127.0.0.1`. |
-| `core` (Vite, 3036) | `127.0.0.1:3036` | `@vite/client` opens its HMR socket to the dev server from the browser. |
-| `primary`, `replica` | none | Reached as `primary:5432` / `replica:5432`. |
-| `valkey` | none | Reached as `valkey:6379`. |
-| `kafka` | none | The repository has no Kafka client at all; see below. |
-| `loki`, `tempo`, `grafana`, `prometheus`, `otel-collector` | none | The `observability` profile is entirely container-internal. |
-| `cloudflare-tunnel` | none, and none is possible | The connector is outbound-only. |
+| Service                                | Host publication           | Why                                                                                                                 |
+| -------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `core` (Rails, 3000)                   | `127.0.0.1:3000`           | The browser opens the documented `http://<service>.<surface>.localhost:3000` origins, which resolve to `127.0.0.1`. |
+| `core` (Vite, 3036)                    | `127.0.0.1:3036`           | `@vite/client` opens its HMR socket to the dev server from the browser.                                             |
+| `primary`, `replica`                   | none                       | Reached as `primary:5432` / `replica:5432`.                                                                         |
+| `valkey`                               | none                       | Reached as `valkey:6379`.                                                                                           |
+| `loki`, `tempo`, `prometheus`, `alloy` | none                       | Reached only by each other and by Grafana on the `observability` network.                                           |
+| `grafana`                              | none                       | See "Grafana has no host publication" below.                                                                        |
+| `cloudflare-tunnel`                    | none, and none is possible | The connector is outbound-only.                                                                                     |
+
+### Grafana has no host publication
+
+The observability group runs on every `up` since 2026-08-31, but Grafana still publishes no host
+port, so `http://localhost:3000` does not reach it -- that port belongs to Rails. Reach the UI
+through the container instead, or add a loopback publication if it is wanted day to day. Grafana is
+not a datastore, so a `127.0.0.1`-bound publication would not violate the never-publish rule above;
+it simply has not been added.
 
 IPv6: rootless Podman publishes these as IPv4 only, so no `::`-bound listener is created. The
 loopback form pins the IPv4 side explicitly. If a future service needs IPv6 loopback, write

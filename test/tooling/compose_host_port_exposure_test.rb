@@ -22,7 +22,7 @@ class ComposeHostPortExposureTest < Minitest::Test
 
   # Services that must never be reachable from the host, at any bind address. Each is consumed
   # only over a Compose network, by service name.
-  NEVER_PUBLISHED_SERVICES = %w(primary replica valkey kafka).freeze
+  NEVER_PUBLISHED_SERVICES = %w(primary replica valkey).freeze
 
   # An IPv4 or IPv6 loopback host address is the only accepted publication target.
   LOOPBACK_HOST_ADDRESSES = ["127.0.0.1", "::1"].freeze
@@ -43,8 +43,8 @@ class ComposeHostPortExposureTest < Minitest::Test
       end
 
     assert_empty offenders.map { |entry| describe(entry) },
-                 "PostgreSQL, Valkey, and Kafka are container-only. Reach them as " \
-                 "primary:5432, replica:5432, valkey:6379, and kafka:29092."
+                 "PostgreSQL and Valkey are container-only. Reach them as " \
+                 "primary:5432, replica:5432, and valkey:6379."
   end
 
   def test_no_service_uses_host_networking
@@ -58,23 +58,23 @@ class ComposeHostPortExposureTest < Minitest::Test
                  "listener on the host's interfaces."
   end
 
-  # The EXTERNAL listener existed only to back a host publication of 9092, and nothing in this
-  # repository is a Kafka client. Advertising `localhost:9092` likewise only makes sense for a
-  # host-published broker.
-  def test_kafka_declares_no_host_facing_listener
-    kafka = load_compose("compose.yaml").fetch("services").fetch("kafka").fetch("environment")
+  # fakecloud is the one AWS-facing service that is published, and only to loopback so OpenTofu
+  # and the AWS CLI can run from the host. It must never gain a container socket mount: that
+  # would hand it full container-management rights under the invoking user, which is a far
+  # larger grant than any port publication. See docs/operations/local-aws-fakecloud.md.
+  def test_fakecloud_mounts_no_container_socket
     offenders =
-      {
-        "KAFKA_LISTENERS" => "0.0.0.0",
-        "KAFKA_ADVERTISED_LISTENERS" => "localhost",
-      }.filter_map do |variable, forbidden|
-        value = kafka.fetch(variable)
-        "#{variable} contains #{forbidden.inspect}: #{value}" if value.include?(forbidden)
+      each_service.flat_map do |file, service, definition|
+        Array(definition["volumes"]).filter_map do |mount|
+          source = mount.is_a?(Hash) ? mount["source"].to_s : mount.to_s
+          "#{file} #{service}: #{source}" if source.include?("docker.sock") || source.include?("podman.sock")
+        end
       end
 
     assert_empty offenders,
-                 "Kafka listeners must stay on the `backend` network as CONTROLLER://kafka:29093 " \
-                 "and INTERNAL://kafka:29092."
+                 "No Compose service may mount a container runtime socket. fakecloud serves the " \
+                 "MSK control plane without one; handing it a socket to gain a real Kafka broker " \
+                 "would grant it the invoking user's full container-management rights."
   end
 
   private

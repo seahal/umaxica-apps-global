@@ -82,7 +82,7 @@ Do not:
 - introduce test-only behavior into application code; change the test instead
 - use silent configuration, workflow, or migration fallbacks; fail loudly and name what is missing
 - publish a container port to the host without an explicit loopback bind address, or publish a
-  datastore port (PostgreSQL, Valkey, Kafka) to the host at all
+  datastore port (PostgreSQL, Valkey) to the host at all
 - perform destructive database operations without explicit approval of the risk and migration plan
 
 Required Ruby environment variables must use one-argument `ENV.fetch("NAME")` in application and
