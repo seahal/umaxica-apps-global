@@ -47,6 +47,25 @@ class Auth::Com::Verification::SetupsControllerTest < ActionDispatch::Integratio
     assert_not_equal auth_com_settings_path(ri: "jp"), props.dig("back_link", "href")
     assert_predicate props.fetch("methods"), :present?
   end
+
+  # Nothing is left to set up once the visitor already has both step-up methods, so the
+  # setup page hands straight back to the verification entry rather than offering an
+  # empty method list.
+  test "new redirects to verification when every step-up method is already configured" do
+    VisitorPasskey.create!(
+      visitor: @visitor,
+      webauthn_id: Base64.urlsafe_encode64("com_setup_configured_#{SecureRandom.hex(4)}", padding: false),
+      public_key: "public_key_#{SecureRandom.hex(4)}",
+      sign_count: 0,
+      description: "Configured passkey",
+      status_id: VisitorPasskeyStatus::ACTIVE,
+    )
+
+    get new_auth_com_verification_setup_url(ri: "jp"), headers: @headers
+
+    assert_response :found
+    assert_equal "/verification", URI.parse(response.location).path
+  end
 end
 
 # DAMP local helper copy for former shared test support.
