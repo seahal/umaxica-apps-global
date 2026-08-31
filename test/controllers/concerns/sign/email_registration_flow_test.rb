@@ -277,7 +277,7 @@ class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
 
     result = harness.send(:complete_registration_verification!, "000000")
 
-    assert_not result
+    assert_equal false, result
     assert_predicate harness, :reset_called
     assert_equal I18n.t("sign.app.registration.email.update.attempts_exceeded"), harness.flash_hash[:alert]
     assert_equal ["/emails/new?"], harness.redirect_args
@@ -290,7 +290,7 @@ class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
 
     result = harness.send(:complete_registration_verification!, "000000")
 
-    assert_not result
+    assert_equal false, result
     assert_equal [:edit, { status: :unprocessable_content }], harness.render_args
   end
 

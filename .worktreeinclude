@@ -1,0 +1,17 @@
+# Ignored/untracked files to copy into new git worktrees.
+# gitignore-style patterns; keep this to small config/secret files
+# (build output and node_modules should be regenerated instead).
+
+.env
+.env.*
+**/.env
+**/.env.*
+
+.dev.vars
+**/.dev.vars
+
+.secrets/
+**/.secrets/
+
+.claude/settings.local.json
+**/.claude/settings.local.json

@@ -1,13 +1,129 @@
-# Value Objects, Services, Resolvers, Policies, Queries, and Commands
+---
+name: value-object-boundaries
+description: Which app/ root every non-model object belongs in, the suffix it must carry, and which direction dependencies may point.
+---
+
+# Object Placement: Roots, Suffixes, and Dependency Direction
 
 ## Purpose
 
 This project intentionally avoids the common "everything is a Service Object" pattern.
 
-Before introducing a new class, determine its architectural role and place it in the correct layer.
-Prefer explicit domain concepts over generic service classes.
+Before introducing a class, determine its architectural role, place it in the root that owns that
+role, and name it with a suffix that root allows. Prefer explicit domain concepts over generic
+service classes.
 
-## Value Objects
+Two questions must both be answered, and they are answered by different sections below:
+
+1. **What role is this?** — the role definitions and the decision guide.
+2. **Where does it go and what is it called?** — the root and suffix table.
+
+## Root and suffix table
+
+The root supplies the category; the suffix names the role within it. A file must live in the root
+its role maps to and end in one of that root's allowed suffixes. Nested paths are included: a file
+in a subdirectory carries the same obligation as one at the top level.
+
+The tier column is stated honestly so a reader knows which rows are industry convention and which
+are this repository's own choice. `gem` means a widely used gem established the directory name;
+`community` means common practice with no gem behind it — including roots such as `app/validators`
+whose *base class* is Rails but whose *directory* is convention; `repo` means this repository chose
+the name. None of these directories is known to Rails itself: outside `app/models`,
+`app/controllers`, `app/views`, `app/helpers`, `app/jobs`, `app/mailers`, and `app/channels`, every
+`app/*` root is simply autoloaded by the default glob.
+
+| Root | Tier | Allowed suffixes | Role |
+| --- | --- | --- | --- |
+| `app/services` | community | `Service`, `Coordinator` | orchestrates models and aggregates; last resort |
+| `app/operations` | gem (Trailblazer) | `Operation`, `Command`, `Issuer`, `Committer`, `Purger`, `Revoker`, `Recorder`, `Writer`, `Finalizer`, `Creator`, `Provisioner`, `Anonymizer`, `Invalidator`, `Guard`, `Authority`, `Enforcer` | write side: performs a state change |
+| `app/queries` | community | `Query`, `Inventory` | reads data, never writes |
+| `app/resolvers` | repo | `Resolver` | derives a value from one or more sources |
+| `app/policies` | gem (Pundit) | `Policy` | returns a decision, no side effects |
+| `app/values` | community | `Value` (target), `Result`, grandfathered names | immutable domain value |
+| `app/serializers` | gem (AMS, jsonapi-serializer) | `Serializer` | shapes a wire payload |
+| `app/presenters` | community | `Presenter` | shapes values for a view |
+| `app/forms` | community | `Form` | input plus validation |
+| `app/validators` | community | `Validator` | `ActiveModel::EachValidator` subclasses only |
+| `app/adapters` | community | `Adapter`, `Client`, `Factory`, `Verifier` | boundary with an external system |
+| `app/lib` | repo | `Port`, `Codec`, `Encoder`, `Decoder`, `Digest`, `Verifier` | framework-agnostic primitives and hexagonal ports |
+| `app/consumers` | gem (Karafka) | `Consumer` | consumes a message |
+| `app/subscribers` | community | `Subscriber` | subscribes to an `ActiveSupport::Notifications` event |
+| `app/notifiers` | gem (Noticed) | `Notifier` | delivers a notification to a person |
+| `app/errors` | repo | `Error` | exception classes |
+
+Anchoring examples that already comply:
+
+- `app/adapters/external_authentication/google_provider_adapter.rb`
+- `app/lib/external_authentication/apple_notification_verifier_port.rb`
+- `app/policies/avatar_permission_policy.rb`
+- `app/forms/sign/app/settings/withdrawal/deactivate_form.rb`
+- `app/subscribers/csp_violation_subscriber.rb`
+
+### Suffixes that were removed, and why
+
+`Guard`, `Authority`, and `Locator` were first written into this table under `app/policies` and
+`app/queries`, both of which are defined as having no side effects. The code contradicted that
+immediately: `BaseSelectorBootstrapAuthority` runs `create` and `find_or_create_by` inside a
+transaction, `SignUpEmailPendingGuard` takes a lock and saves, `DpopJtiReplayGuard.record!`
+persists a replay entry, `SignRiskEnforcer` exposes `revoke!` and `require_step_up!`, and both
+`*Locator` classes expose `issue!`, `rotate!`, and `clear!`.
+
+Rather than let the names describe the wrong thing, `Guard`, `Authority`, and `Enforcer` moved to
+`app/operations`, where what they do is what the root means. `Locator` was dropped entirely: a
+locator that writes is an operation, and a locator that does not is a query.
+
+`Validator` is reserved for `app/validators` because Rails owns that root - ActiveModel wires its
+contents into `validates`. Verification of a protocol payload or a request is a different job and
+carries `Verifier`.
+
+### Flat and nested roots
+
+`app/services`, the two `concerns` roots, and application Ruby under `lib` are flat: the former
+directory segments are encoded in the file name and the Zeitwerk constant. See
+`docs/architecture/flat-ruby-source-layout.md`, which also states the naming principle this table
+extends: "Do not append `Service` blindly. Use role suffixes when they describe the object."
+
+Every other root in the table is nested. When moving a file between a flat root and a nested one,
+the Zeitwerk constant changes and every reference must move with it; treat that as its own step.
+
+### Exceptions to the suffix rule
+
+- **Models.** `app/models` names domain concepts, not roles.
+- **Concerns.** A concern lives under a `concerns` root, which is already the classifier; it does
+  not repeat `Concern` in its name.
+- **Grandfathered values.** The existing files under `app/values` predate the `XxxValue` target and
+  are renamed gradually, not in bulk. New files under `app/values` follow the target.
+
+## Dependency direction
+
+A Service orchestrates models. The arrow therefore points from the service side to the model side,
+and never back.
+
+- A **Model** may depend on `app/values`, `app/lib`, `app/queries`, and `app/policies`.
+- A **Model** must **not** depend on `app/services`, `app/operations`, `app/adapters`,
+  `app/serializers`, or `app/presenters`.
+- A **Value** must not depend on any write-side root.
+- A **Policy** must not perform writes, so it must not depend on `app/operations`.
+
+When a model appears to need a service, the usual cause is that the object is not a service at all
+and is filed in the wrong root. Reclassify it before adding a dependency.
+
+**Known deviations, both under review.** Neither is a callback, which is how they were first
+described; see `memos/2026-08-29-chronicle-and-enforcement-write-dependencies.md`.
+
+- `app/models/concerns/chronicle_capturable.rb` calls the Chronicle writers from an explicit
+  block-taking class method. Those operations write `Chronicle` rows, so this is the audit model
+  persisting its own records through extracted steps rather than a model pulling in a workflow.
+  Probably permitted; the open question is whether the API is still live at all.
+- `app/models/concerns/enforcement_appeal.rb` calls `EnforcementCaseEndOperation` from `resolve!`,
+  which is a use case implemented as a model method. `EnforcementCaseApplicable` had the same shape
+  and was extracted into `EnforcementCaseApplyOperation` and `EnforcementCaseEndOperation`;
+  `resolve!` has not been. Note that it calls the end operation *inside* its own transaction, while
+  those operations deliberately run their side effects outside one. Do not copy this pattern.
+
+## Role definitions
+
+### Value Objects
 
 A Value Object represents a domain value and its behavior.
 
@@ -43,15 +159,19 @@ BuildRedirectService
 SessionStateService
 ```
 
-Good:
+### Result Objects
 
-```ruby
-ActorContext
-RedirectDestination
-AuthenticationState
-```
+A Result is a Value Object that carries the outcome of an operation. `app/values/*_result.rb` is
+already the convention.
 
-## Resolvers
+Use a Result for **expected domain failures** — "already published", "credential not eligible" —
+where the caller must branch on the outcome.
+
+Do **not** use a Result to absorb a missing configuration value, an unreachable dependency, or a
+bug. Those raise. A Result that swallows a missing `ENV` entry is precisely the silent fallback
+`no-silent-fallback` forbids.
+
+### Resolvers
 
 A Resolver assembles or derives a Value Object.
 
@@ -69,7 +189,7 @@ ActorContextResolver.call(request)
 # => ActorContext
 ```
 
-## Policies
+### Policies
 
 A Policy answers authorization or decision questions.
 
@@ -87,7 +207,17 @@ ActorPermissionPolicy.allowed?(actor, resource)
 # => true/false
 ```
 
-## Queries
+**"Policy" has two senses in this repository, and only one owns `app/policies`.**
+
+- **Authorization policies** — `ApplicationPolicy` subclasses under `app/policies`, the sense this
+  root owns.
+- **Configuration policies** — settings catalogs such as `app/values/common_otp_policy.rb` and
+  `app/values/webauthn/uv_policy.rb`. These are values, not decisions about an actor.
+
+Do not add new configuration policies named `*Policy`. Name them for what they hold — a `Registry`,
+a `Contract`, or a `Value` — so the collision stops growing.
+
+### Queries
 
 A Query retrieves information.
 
@@ -98,17 +228,36 @@ A Query:
 - May join multiple models
 - May return Value Objects or DTOs
 
-## Commands
+### Operations
 
-A Command performs a single write operation.
+An Operation performs a state change. This root covers both the single write the decision guide
+below calls a Command and the multi-step use case sometimes called an Interactor.
 
-A Command:
+An Operation:
 
-- Mutates state
-- Has a clear write intent
-- Does not coordinate large workflows
+- Has a clear write intent named by its suffix
+- Owns its transaction boundary when more than one record must commit together
+- Is called by a controller, a job, or a service — never by a model
 
-## Services
+`app/operations/publishing/promote_revision.rb` is the reference example, including its own comment
+explaining why promotion is deliberately not a model callback.
+
+`app/commands` does not exist and must not be created. It is a CQRS name with weak Rails consensus,
+and a second write-side root would produce a permanent single-write-versus-multi-step argument with
+no way to settle it. The suffix carries that distinction instead.
+
+### Serializers and Presenters
+
+Both shape an object for output; they differ in the destination.
+
+- A **Serializer** shapes a wire payload — JSON returned by an API endpoint. See
+  `docs/reference/api-design-standards.md` for the shape itself.
+- A **Presenter** shapes values for a view — labels, formatted dates, display state.
+
+A Serializer is not a Service. If a class exists to produce JSON, it belongs in `app/serializers`
+even when it reads several models to do so.
+
+### Services
 
 A Service coordinates workflows. Services are intentionally rare.
 
@@ -138,22 +287,22 @@ These should usually be Value Objects or Resolvers.
 Before creating a Service Object, ask:
 
 1. Is this primarily a value?
-   - Create a Value Object.
+   - Create a Value Object in `app/values`.
 
 2. Does it derive or assemble a value?
-   - Create a Resolver.
+   - Create a Resolver in `app/resolvers`.
 
 3. Does it answer a rule or permission question?
-   - Create a Policy.
+   - Create a Policy in `app/policies`.
 
 4. Is it a read operation?
-   - Create a Query.
+   - Create a Query in `app/queries`.
 
-5. Is it a single write operation?
-   - Create a Command.
+5. Does it change state?
+   - Create an Operation in `app/operations`.
 
 6. Is it coordinating multiple models, aggregates, or external systems?
-   - Create a Service.
+   - Create a Service in `app/services`.
 
 If the answer is not #6, a Service Object is probably the wrong abstraction.
 
@@ -164,7 +313,47 @@ Value Object
 -> Resolver
 -> Policy
 -> Query
--> Command
+-> Operation
 ```
 
 Service Objects are the last resort, not the default abstraction.
+
+## Placement calls with no industry consensus
+
+These have no settled answer outside this repository. They are decided here so they are not
+re-litigated per file.
+
+- **Codecs and digests** (`*_codec.rb`, `*_digest.rb`, `*_encoder.rb`) go to `app/lib`. They are
+  framework-agnostic primitives with no domain identity, and `app/lib` already holds the hexagonal
+  `*_port.rb` files. A separate `app/codecs` root would add a name the wider community does not
+  use.
+- **Registries** (`*_registry.rb`) go to `app/values` when they are a static catalog, and to
+  `app/queries` when they read the database. The deciding question is whether the contents are
+  known at boot.
+- **Verifiers** (`*_verifier.rb`) go to `app/adapters` when they verify an external party's payload
+  — already true of `app/adapters/external_authentication/apple_notification_verifier.rb` — and to
+  `app/lib` when they verify a credential presented by the caller.
+  `app/lib/dpop_proof_verifier.rb` is a deliberate exception to `app/lib` holding no writes: it
+  records the proof's `jti` through `DpopJtiReplayGuard` as part of verifying it. Replay protection
+  is only meaningful when the check and the record are one step; splitting them opens the window
+  the check exists to close.
+
+## Patterns this repository does not use
+
+Common Rails patterns that are deliberately rejected, so they are not proposed again.
+
+- **Rails `flash`.** Forbidden by `no-flash-messages`; render feedback inline in the response.
+- **`SimpleDelegator`-based Decorators.** Implicit delegation hides the object's real surface and
+  makes a reader guess which methods exist. Use an explicit Presenter that publishes the values the
+  view needs.
+- **Null Object for the authenticated actor.** A `GuestUser` standing in for an absent
+  `current_user` lets an unauthenticated request proceed as if it were authorized — exactly the
+  failure `no-silent-fallback` and `surfaces` exist to prevent. Absence of an actor is a branch the
+  caller must take, not a default to paper over.
+- **`app/commands` and `app/repositories`.** See the Operations section, and note that the existing
+  `*_store.rb` classes wrap ActiveRecord rather than an external store; a repository layer over
+  ActiveRecord is not adopted here.
+- **The `interactor` gem and `context.fail!`.** Use an Operation returning a Result.
+
+The following are simply not present rather than rejected: ViewComponent, and dedicated Strategy or
+State roots. Introduce them only with a recorded decision.
