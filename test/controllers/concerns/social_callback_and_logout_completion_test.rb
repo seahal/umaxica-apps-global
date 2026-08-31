@@ -19,7 +19,7 @@ class SocialCallbackAndLogoutCompletionTest < ActiveSupport::TestCase
   class CallbackHarness < ActionController::Base # rubocop:disable Rails/ApplicationController
     include ::SocialOmniauthCallbackFlow
 
-    attr_accessor :params, :cleared, :handled, :redirects, :writing_role
+    attr_accessor :params, :cleared, :handled, :redirects
 
     def initialize
       super
@@ -38,8 +38,6 @@ class SocialCallbackAndLogoutCompletionTest < ActiveSupport::TestCase
     def social_auth_failure_redirect_path = "/sign/in"
 
     def redirect_to(*args, **kwargs) = redirects << [args, kwargs]
-
-    def social_omniauth_callback_requires_writing_role? = writing_role
   end
 
   class LogoutHarness < ActionController::Base # rubocop:disable Rails/ApplicationController
