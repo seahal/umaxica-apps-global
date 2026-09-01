@@ -41,9 +41,10 @@ class SignEmailOtpVerificationSupportTest < ActiveSupport::TestCase
   end
 
   test "a request the step-up store refuses restores nothing rather than raising" do
-    subject = harness(scope: "settings_email", pt: "signed-pt") do
-      def start_step_up_session!(**) = raise(ActionController::BadRequest, "invalid pt")
-    end
+    subject =
+      harness(scope: "settings_email", pt: "signed-pt") do
+        def start_step_up_session!(**) = raise(ActionController::BadRequest, "invalid pt")
+      end
 
     assert_not subject.invoke(:restore_step_up_session_from_params!)
   end
@@ -98,5 +99,93 @@ class SignEmailOtpVerificationSupportTest < ActiveSupport::TestCase
 
   test "a code that matches the stored digest inside the window is accepted" do
     assert verifier(code: "123456").invoke(:verify_email_otp!)
+  end
+
+  # The scope and path target are read from the nested `verification` form when
+  # the page posts, and from the top-level query string when the page is merely
+  # reloaded. Both carriers have to answer, because the reload is how a session
+  # survives a token rotation.
+  def reader(params)
+    Class.new do
+      include SignEmailOtpVerificationSupport
+
+      define_method(:params) { ActionController::Parameters.new(params) }
+
+      def invoke(name, ...) = send(name, ...)
+    end.new
+  end
+
+  test "the scope and path target are read from a posted verification form" do
+    subject = reader(ri: "jp", verification: { scope: "settings_email", pt: "form-pt" })
+
+    assert_equal "settings_email", subject.invoke(:incoming_scope)
+    assert_equal "form-pt", subject.invoke(:incoming_pt)
+  end
+
+  test "the scope and path target fall back to the top-level query string on a reload" do
+    subject = reader(ri: "jp", scope: "settings_telephone", pt: "query-pt")
+
+    assert_equal "settings_telephone", subject.invoke(:incoming_scope)
+    assert_equal "query-pt", subject.invoke(:incoming_pt)
+  end
+
+  test "a request naming neither carrier reports no scope and no path target" do
+    subject = reader(ri: "jp")
+
+    assert_nil subject.invoke(:incoming_scope)
+    assert_nil subject.invoke(:incoming_pt)
+  end
+
+  # Recovering from a failed code has to land back on the same ceremony, so the
+  # redirect carries the scope and path target forward -- but only when they were
+  # supplied, so a bare recovery link stays bare rather than growing empty keys.
+  test "the recovery redirect carries the scope and path target forward" do
+    subject = reader(ri: "jp", verification: { scope: "settings_email", pt: "form-pt" })
+
+    assert_equal(
+      { ri: "jp", scope: "settings_email", pt: "form-pt" },
+      subject.invoke(:verification_recovery_redirect_params),
+    )
+  end
+
+  test "the recovery redirect carries only the region when nothing else was supplied" do
+    assert_equal({ ri: "jp" }, reader(ri: "jp").invoke(:verification_recovery_redirect_params))
+  end
+
+  # The stored digest is bound to the step-up session id, so a code that is right
+  # for one ceremony is wrong for another. A ceremony that stored no digest at all
+  # matches nothing rather than comparing against an empty string.
+  def matcher(session_id: "step-up-1")
+    Class.new do
+      include SignEmailOtpVerificationSupport
+
+      define_method(:current_step_up_session) { Struct.new(:id).new(session_id) }
+
+      def invoke(name, ...) = send(name, ...)
+    end.new
+  end
+
+  test "a code matching the digest stored for this ceremony is accepted" do
+    subject = matcher
+    digest = subject.invoke(:email_otp_digest, "123456")
+
+    assert subject.invoke(:secure_email_otp_match?, digest, "123456")
+  end
+
+  test "a code that does not produce the stored digest is refused" do
+    subject = matcher
+    digest = subject.invoke(:email_otp_digest, "123456")
+
+    assert_not subject.invoke(:secure_email_otp_match?, digest, "654321")
+  end
+
+  test "a digest issued for a different ceremony is refused for this one" do
+    other_ceremony_digest = matcher(session_id: "step-up-2").invoke(:email_otp_digest, "123456")
+
+    assert_not matcher(session_id: "step-up-1").invoke(:secure_email_otp_match?, other_ceremony_digest, "123456")
+  end
+
+  test "a ceremony that stored no digest matches nothing" do
+    assert_not matcher.invoke(:secure_email_otp_match?, "", "123456")
   end
 end
