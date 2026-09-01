@@ -372,15 +372,22 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
-      token = ROTP::TOTP.new(secret_credential).now
       step_up_before = Time.current
 
-      assert_difference("ClientTotpCredential.count", 1) do
-        assert_difference(-> { @user.reload.client_secret_credentials.count }, 10) do
-          with_prosopite_paused do
-            post auth_app_settings_totps_url(ri: "jp"),
-                 params: { user_totp_credential: { first_token: token } },
-                 headers: @headers
+      # TOTP codes are only valid for a 30-second window, so the generation and the
+      # verifying request are pinned to the same instant -- otherwise the assertion
+      # under a slow run (e.g. line-coverage instrumentation) can straddle a window
+      # boundary and turn a valid code invalid before the request reaches it.
+      travel_to(step_up_before) do
+        token = ROTP::TOTP.new(secret_credential).now
+
+        assert_difference("ClientTotpCredential.count", 1) do
+          assert_difference(-> { @user.reload.client_secret_credentials.count }, 10) do
+            with_prosopite_paused do
+              post auth_app_settings_totps_url(ri: "jp"),
+                   params: { user_totp_credential: { first_token: token } },
+                   headers: @headers
+            end
           end
         end
       end
