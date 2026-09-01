@@ -5,4 +5,4 @@ Contact: https://github.com/seahal/umaxica-app-jit/security/advisories/new
 Policy: https://github.com/seahal/umaxica-app-jit/blob/main/SECURITY.md
 Preferred-Languages: ja, en
 Canonical: https://umaxica.com/.well-known/security.txt
-Expires: 2027-03-29T00:00:00.000Z
+Expires: 2027-09-01T00:00:00.000Z
