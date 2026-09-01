@@ -128,6 +128,51 @@ class Auth::Com::Sign::In::SecretsControllerTest
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
 
+  test "create rejects an unknown identifier without disclosing whether it exists" do
+    post auth_com_sign_in_secret_url(ri: "jp"),
+         params: {
+           secret_credential_login_form: {
+             identifier: "no-such-visitor@example.com",
+             secret_credential_value: @raw_secret_credential,
+           },
+           "cf-turnstile-response": "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :unprocessable_content
+    assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY].presence
+  end
+
+  test "create rejects a wrong secret credential and leaves it unused" do
+    post auth_com_sign_in_secret_url(ri: "jp"),
+         params: {
+           secret_credential_login_form: {
+             identifier: @visitor.visitor_emails.first.address,
+             secret_credential_value: "not-the-right-secret",
+           },
+           "cf-turnstile-response": "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :unprocessable_content
+    assert_nil @secret_credential.reload.last_used_at
+  end
+
+  test "create signs in with a verified telephone number as the identifier" do
+    post auth_com_sign_in_secret_url(ri: "jp"),
+         params: {
+           secret_credential_login_form: {
+             identifier: @visitor.visitor_telephones.first.number,
+             secret_credential_value: @raw_secret_credential,
+           },
+           "cf-turnstile-response": "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :redirect
+    assert_predicate @secret_credential.reload.last_used_at, :present?
+  end
+
   private
 
   def configured_host(surface_name)

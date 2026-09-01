@@ -6,7 +6,10 @@ module SignSettingsPasskeyRegistration
 
   private
 
-  def start_passkey_ceremony!(_surface:, _actor:, _session_ref:, _operation: "registration")
+  # Keyword names are part of this seam's contract, so they match
+  # #finish_passkey_ceremony! rather than carrying underscore prefixes: a caller
+  # that spells them without the prefix must not raise ArgumentError.
+  def start_passkey_ceremony!(surface:, actor:, session_ref:, operation: "registration") # rubocop:disable Lint/UnusedMethodArgument
     nil
   end
 

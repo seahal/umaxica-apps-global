@@ -173,9 +173,6 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
        :core_network_csp_violation_report_path,],
       [ENV["PRIVATE_CORE_DEVELOPER_URL"] || ENV.fetch("PRIVATE_CORE_DEVELOPER_URL", "core.dev.localhost"),
        :core_developer_csp_violation_report_path,],
-      [configured_host(:base_service), :base_app_csp_violation_report_path],
-      [configured_host(:base_corporate), :base_com_csp_violation_report_path],
-      [configured_host(:base_staff), :base_org_csp_violation_report_path],
       [configured_host(:palm_service), :palm_app_csp_violation_report_path],
     ]
   end
@@ -191,6 +188,12 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
       [ENV["PRIVATE_NEWS_SERVICE_URL"] || "news.app.localhost", :news_app_csp_violation_report_path],
       [ENV["PRIVATE_NEWS_CORPORATE_URL"] || "news.com.localhost", :news_com_csp_violation_report_path],
       [ENV["PRIVATE_NEWS_STAFF_URL"] || "news.org.localhost", :news_org_csp_violation_report_path],
+      [configured_host(:side_service), :side_app_csp_violation_report_path],
+      [configured_host(:side_corporate), :side_com_csp_violation_report_path],
+      [configured_host(:side_staff), :side_org_csp_violation_report_path],
+      [ENV["PRIVATE_INFO_SERVICE_URL"] || "info.app.localhost", :info_app_csp_violation_report_path],
+      [ENV["PRIVATE_INFO_CORPORATE_URL"] || "info.com.localhost", :info_com_csp_violation_report_path],
+      [ENV["PRIVATE_INFO_STAFF_URL"] || "info.org.localhost", :info_org_csp_violation_report_path],
     ]
   end
 
@@ -544,6 +547,9 @@ class CspViolationReportsControllerTest
       core_corporate: "PUBLIC_CORE_CORPORATE_URL",
       core_staff: "PUBLIC_CORE_STAFF_URL",
       palm_service: "PUBLIC_PALM_SERVICE_URL",
+      side_service: "PUBLIC_SIDE_SERVICE_URL",
+      side_corporate: "PUBLIC_SIDE_CORPORATE_URL",
+      side_staff: "PUBLIC_SIDE_STAFF_URL",
     }.fetch(surface_name)
 
     ENV.fetch(public_env_key, Rails.configuration.x.boot_config.fetch(:hosts).public_send(surface_name).host)

@@ -626,7 +626,10 @@ module Auth::App::Up
       assert_predicate sent_at, :present?
       assert_redirected_to auth_app_sign_up_check_telephone_otp_url(ri: "jp")
 
-      travel 29.seconds do
+      # Anchored to when the code was actually sent, not to now. `travel` moves
+      # from the current moment, so on a slow run the setup requests alone can
+      # push the gap past the cooldown and the case silently inverts.
+      travel_to Time.zone.at(sent_at) + 29.seconds do
         assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
           post auth_app_sign_up_check_telephone_otp_url(ri: "jp")
         end
@@ -637,7 +640,7 @@ module Auth::App::Up
         assert_equal completed_requirements, cycle.reload.completed_requirements
       end
 
-      travel 31.seconds do
+      travel_to Time.zone.at(sent_at) + 31.seconds do
         assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
           post auth_app_sign_up_check_telephone_otp_url(ri: "jp")
         end
@@ -677,6 +680,57 @@ module Auth::App::Up
       end
 
       assert_response :unprocessable_content
+    end
+
+    test "sign-up with an already verified telephone answers the otp page without creating records" do
+      owner = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
+      existing = owner.client_telephones.create!(
+        raw_number: "+819012388001",
+        confirm_policy: true,
+        confirm_using_mfa: true,
+        user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+      )
+
+      assert_no_difference("Client.count") do
+        assert_no_difference("ClientTelephone.count") do
+          post auth_app_sign_up_telephone_url(ri: "jp"), params: {
+            user_telephone: {
+              raw_number: existing.number, confirm_policy: "1", confirm_using_mfa: "1",
+            },
+            "cf-turnstile-response": "test",
+          }
+        end
+      end
+
+      assert_response :redirect
+
+      get auth_app_sign_up_check_telephone_otp_url(ri: "jp")
+
+      assert_response :success
+      assert_not_includes response.body, I18n.t("errors.messages.taken")
+    end
+
+    test "a code submitted against an already verified telephone never starts an account" do
+      owner = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
+      existing = owner.client_telephones.create!(
+        raw_number: "+819012388002",
+        confirm_policy: true,
+        confirm_using_mfa: true,
+        user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+      )
+      post auth_app_sign_up_telephone_url(ri: "jp"), params: {
+        user_telephone: { raw_number: existing.number, confirm_policy: "1", confirm_using_mfa: "1" },
+        "cf-turnstile-response": "test",
+      }
+      get auth_app_sign_up_check_telephone_otp_url(ri: "jp")
+
+      assert_no_difference("Client.count") do
+        patch auth_app_sign_up_check_telephone_otp_url(ri: "jp"),
+              params: { user_telephone: { pass_code: "123456" } }
+      end
+
+      assert_response :unprocessable_content
+      assert_equal ClientTelephoneStatus::VERIFIED, existing.reload.user_telephone_status_id
     end
 
     private

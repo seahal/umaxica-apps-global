@@ -21,6 +21,9 @@ class AuthenticationBaseTestController < ApplicationController
     current_account transparent_refresh_access_token authenticate! bulletin_association_for_resource
     withdrawal_gate_redirect_path handle_missing_refresh_token handle_inactive_resource
     handle_administrative_access_locked_refresh handle_refresh_error resolve_token_kind_id enforce_authentication_open!
+    policy_for_authentication_mode find_restricted_sessions_scope dbsc_route_helper
+    default_status_token_attributes login_token_reference_models
+    count_active_sessions best_effort_refresh_side_effect token_class_for_resource
     enforce_authentication_private! enforce_authentication_guest! resolve_access_policy_for
     refresh_dbsc_allowed? refresh_dbsc_source refresh_binding_source
     token_kind_model set_pending_mfa! pending_mfa pending_mfa_valid? clear_pending_mfa!
@@ -803,6 +806,135 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.define_singleton_method(:token_class) { token_class }
 
     assert_equal "BROWSER_WEB", @controller.resolve_token_kind_id("BROWSER_WEB")
+  end
+
+  # Native app sign-ins arrive with a string token kind and an integer kind column.
+  # The mapping falls through to a per-surface table when the kind model carries no
+  # `code` column; only the browser rows of that table were reached before.
+  test "resolve_token_kind_id maps native client kinds on every surface" do
+    codeless_kind_model =
+      Class.new do
+        def self.column_names = []
+
+        def self.name = "CodelessTokenKind"
+      end
+
+    [
+      ["operator", "staff", OperatorTokenKind::CLIENT_IOS, OperatorTokenKind::CLIENT_ANDROID],
+      ["client", "user", ClientTokenKind::CLIENT_IOS, ClientTokenKind::CLIENT_ANDROID],
+      ["visitor", "visitor", VisitorTokenKind::CLIENT_IOS, VisitorTokenKind::CLIENT_ANDROID],
+    ].each do |surface, prefix, ios_kind, android_kind|
+      token_class = Class.new
+      token_class.define_singleton_method(:columns_hash) do
+        { "#{prefix}_token_kind_id" => Struct.new(:type).new(:integer) }
+      end
+      @controller.define_singleton_method(:resource_type) { surface }
+      @controller.define_singleton_method(:token_class) { token_class }
+      @controller.define_singleton_method(:token_kind_model) { codeless_kind_model }
+
+      assert_equal ios_kind, @controller.resolve_token_kind_id("CLIENT_IOS"), surface
+      assert_equal android_kind, @controller.resolve_token_kind_id("CLIENT_ANDROID"), surface
+    end
+  end
+
+  test "resolve_token_kind_id refuses a kind the surface table does not name" do
+    codeless_kind_model =
+      Class.new do
+        def self.column_names = []
+
+        def self.name = "CodelessTokenKind"
+      end
+    token_class = Class.new
+    token_class.define_singleton_method(:columns_hash) do
+      { "user_token_kind_id" => Struct.new(:type).new(:integer) }
+    end
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:token_class) { token_class }
+    @controller.define_singleton_method(:token_kind_model) { codeless_kind_model }
+
+    error =
+      assert_raises(ActiveRecord::RecordNotFound) do
+        @controller.resolve_token_kind_id("CLIENT_TOASTER")
+      end
+
+    assert_match(/CLIENT_TOASTER/, error.message)
+  end
+
+  test "refresh_dbsc_source names which DBSC header arrived" do
+    assert_equal "none", @controller.refresh_dbsc_source
+
+    @request.headers[AuthIoKeys::Headers::DBSC_RESPONSE] = "proof"
+
+    assert_equal "response", @controller.refresh_dbsc_source
+
+    @request.headers[AuthIoKeys::Headers::DBSC_SESSION_ID] = "session-id"
+
+    assert_equal "both", @controller.refresh_dbsc_source
+  end
+
+  test "policy_for_authentication_mode refuses a mode the policy table does not name" do
+    error =
+      assert_raises(AuthenticationBase::InvalidPolicyError) do
+        @controller.policy_for_authentication_mode(:nonsense)
+      end
+
+    assert_match(/nonsense/, error.message)
+  end
+
+  test "resolve_access_policy_for honours an except list" do
+    klass = Class.new
+    klass.define_singleton_method(:access_policy_rules) do
+      [{ policy: :public, except: ["destroy"] }]
+    end
+    @controller.define_singleton_method(:class) { klass }
+
+    assert_equal :public, @controller.resolve_access_policy_for("index")&.fetch(:policy)
+    assert_nil @controller.resolve_access_policy_for("destroy")
+  end
+
+  test "find_restricted_sessions_scope picks the token table that belongs to the actor" do
+    assert_nil @controller.find_restricted_sessions_scope(Object.new)
+
+    visitor = Visitor.new
+    visitor.id = 4_242
+    scope = @controller.find_restricted_sessions_scope(visitor)
+
+    assert_equal VisitorToken, scope.klass
+    assert_equal 4_242, scope.where_values_hash["visitor_id"]
+  end
+
+  test "dbsc_route_helper says which surface has no route helper" do
+    @controller.define_singleton_method(:resource_type) { "visitor" }
+
+    error =
+      assert_raises(NoMethodError) do
+        @controller.dbsc_route_helper(:no_such_primary_url, :no_such_compatibility_url)
+      end
+
+    assert_match(/visitor/, error.message)
+  end
+
+  # Every per-surface attribute table has an `else` arm. Nothing reached them, so a
+  # resource type outside the three surfaces would have gone unnoticed until it
+  # produced an empty attribute set somewhere far away from here.
+  test "the per-surface token attribute tables fall back to empty for an unknown surface" do
+    @controller.define_singleton_method(:resource_type) { "martian" }
+
+    assert_empty @controller.default_dbsc_token_attributes(nil)
+    assert_empty @controller.default_status_token_attributes(nil)
+    assert_empty @controller.login_token_reference_models
+    assert_not @controller.dbsc_registration_eligible_kind?(ClientTokenKind::BROWSER_WEB)
+  end
+
+  test "best_effort_refresh_side_effect swallows a failing side effect and answers nil" do
+    assert_equal :done, @controller.best_effort_refresh_side_effect { :done }
+    assert_nil(@controller.best_effort_refresh_side_effect { raise StandardError, "boom" })
+  end
+
+  test "session_limit_gate_pt falls back to a root path when the request cannot answer" do
+    @controller.define_singleton_method(:request) { raise StandardError, "no request" }
+
+    assert_equal "/", @controller.session_limit_gate_pt
   end
 
   test "refresh dbsc allowed helper covers missing mismatch and success" do

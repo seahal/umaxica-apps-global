@@ -34,6 +34,14 @@ module SignSettingsEmailRegistration
     email
   end
 
+  # Extension point for surfaces that react to a verified settings-email
+  # registration. Base::App overrides it to run CredentialSecurityTransition;
+  # com and org have never run one at this point, so the shared default stays a
+  # no-op instead of extending app-surface session revocation to them silently.
+  def on_email_registration_verified!(*)
+    nil
+  end
+
   def settings_email_registration_config(surface)
     {
       "app" => {

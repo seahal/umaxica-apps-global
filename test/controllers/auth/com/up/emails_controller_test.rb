@@ -367,6 +367,52 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   def default_headers
     { "Host" => host, "HTTPS" => "on", "X-CSRF-Token" => csrf_token_value }
   end
+  test "the otp page for an existing verified email is indistinguishable from a new registration" do
+    visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
+    existing_email = VisitorEmail.create!(
+      visitor: visitor,
+      address: "com-existing-otp-page@example.com",
+      confirm_policy: "1",
+      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
+    )
+    post auth_com_sign_up_email_url(ri: "jp"),
+         params: {
+           visitor_email: { raw_address: existing_email.address, confirm_policy: "1" },
+           "cf-turnstile-response": "test",
+         }, headers: default_headers
+
+    assert_response :redirect
+
+    get auth_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
+
+    assert_response :success
+    assert_not_includes response.body, I18n.t("errors.messages.taken")
+  end
+
+  test "a code submitted against an existing verified email never verifies it" do
+    visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
+    existing_email = VisitorEmail.create!(
+      visitor: visitor,
+      address: "com-existing-otp-submit@example.com",
+      confirm_policy: "1",
+      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
+    )
+    post auth_com_sign_up_email_url(ri: "jp"),
+         params: {
+           visitor_email: { raw_address: existing_email.address, confirm_policy: "1" },
+           "cf-turnstile-response": "test",
+         }, headers: default_headers
+    get auth_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
+
+    assert_no_difference("Visitor.count") do
+      patch auth_com_sign_up_check_email_otp_url(ri: "jp"),
+            params: { visitor_email: { pass_code: "123456" } }, headers: default_headers
+    end
+
+    assert_response :unprocessable_content
+    assert_equal VisitorEmailStatus::VERIFIED, existing_email.reload.visitor_email_status_id
+  end
+
   private
 end
 

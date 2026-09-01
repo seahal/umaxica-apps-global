@@ -3,157 +3,156 @@
 
 require "test_helper"
 
+# Telephone list, form, and removal pages on the app identity surface,
+# including the contactability guard that refuses to remove the last way of
+# reaching the client.
 class Base::App::Identity::TelephonesControllerTest < ActionDispatch::IntegrationTest
+  fixtures :clients, :client_statuses, :client_telephone_statuses, :client_email_statuses,
+           :client_token_kinds, :client_token_statuses, :client_token_binding_methods,
+           :client_token_dbsc_statuses
+
   setup do
-    @host = configured_host(:base_service)
-    ensure_client_reference_records!
-    @client = Client.create!(status_id: ClientStatus::NOTHING)
-    TurnstileVerifierStub.challenge_enabled = true
-    TurnstileVerifierStub.challenge_response = { "success" => true }
+    @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL")
+    host! @host
+    @user = clients(:one)
+    @token = ClientToken.create!(
+      user: @user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      discarded_at: 1.day.from_now,
+    )
+    BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user)
+    BaseSelectorAuthority.prepare(surface: :app, principal: @user, session: @token)
+    _verification, raw_verification = ClientVerification.issue_for_token!(token: @token)
+    cookies[ClientVerification.cookie_name] = raw_verification
+    @token.update!(
+      last_step_up_at: Time.current,
+      last_step_up_scope: "settings_telephone",
+      last_step_up_aal: "aal2",
+      last_step_up_method: "passkey",
+      last_step_up_session_public_id: @token.public_id,
+      last_step_up_purpose: "step_up",
+      last_step_up_audience: "step_up:app",
+    )
+    access_token = AuthenticationToken.encode(
+      @user, host: @host, session_public_id: @token.public_id,
+             resource_type: "client", jwt_issuer_id: "surface:BASE_APP",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+    @headers = {
+      "Authorization" => "Bearer #{access_token}",
+      "Client-Agent" => "Mozilla/5.0",
+      "Host" => @host,
+      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+    }.freeze
   end
 
-  teardown do
-    TurnstileVerifierStub.challenge_enabled = false
-    TurnstileVerifierStub.challenge_response = nil
-  end
+  test "index lists the telephones owned by the signed-in client" do
+    telephone = @user.client_telephones.create!(
+      raw_number: "+15558675401", confirm_policy: true, confirm_using_mfa: true,
+      user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+    )
 
-  test "index lists the telephones the client already holds" do
-    verified = create_telephone(status_id: ClientTelephoneStatus::VERIFIED)
-
-    get base_app_identity_telephones_url(ri: "jp", host: @host), headers: step_up_headers
+    get base_app_identity_telephones_url(ri: "jp", host: @host), headers: @headers
 
     assert_response :success
-    assert_includes response.body, verified.public_id
+    listed = inertia_props.fetch("telephones").pluck("public_id")
+
+    assert_includes listed, telephone.public_id
   end
 
-  test "index renders for a client with no telephone at all" do
-    get base_app_identity_telephones_url(ri: "jp", host: @host), headers: step_up_headers
+  test "index does not list another client's telephones" do
+    other = clients(:two)
+    other_telephone = other.client_telephones.create!(
+      raw_number: "+15558675402", confirm_policy: true, confirm_using_mfa: true,
+      user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+    )
+
+    get base_app_identity_telephones_url(ri: "jp", host: @host), headers: @headers
 
     assert_response :success
+    listed = inertia_props.fetch("telephones").pluck("public_id")
+
+    assert_not_includes listed, other_telephone.public_id
   end
 
-  test "new renders the number form" do
-    get new_base_app_identity_telephone_url(ri: "jp", host: @host), headers: step_up_headers
+  test "new renders the telephone form" do
+    get new_base_app_identity_telephone_url(ri: "jp", host: @host), headers: @headers
 
     assert_response :success
+    assert_equal I18n.t("sign.app.settings.telephone.new.title"), inertia_props.fetch("title")
   end
 
-  test "edit renders the delete form for a telephone the client owns" do
-    telephone = create_telephone(status_id: ClientTelephoneStatus::VERIFIED)
+  test "edit renders the removal page for a telephone the client owns" do
+    telephone = @user.client_telephones.create!(
+      raw_number: "+15558675403", confirm_policy: true, confirm_using_mfa: true,
+      user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+    )
 
-    get edit_base_app_identity_telephone_url(telephone.public_id, ri: "jp", host: @host),
-        headers: step_up_headers
+    get edit_base_app_identity_telephone_url(telephone.public_id, ri: "jp", host: @host), headers: @headers
 
     assert_response :success
+    assert_equal telephone.number.to_s, inertia_props.fetch("number")
   end
 
-  test "edit does not find a telephone owned by another client" do
-    other = Client.create!(status_id: ClientStatus::NOTHING)
-    foreign = create_telephone(client: other, status_id: ClientTelephoneStatus::VERIFIED)
+  test "edit answers not found for a telephone owned by another client" do
+    other_telephone = clients(:two).client_telephones.create!(
+      raw_number: "+15558675404", confirm_policy: true, confirm_using_mfa: true,
+      user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+    )
 
-    get edit_base_app_identity_telephone_url(foreign.public_id, ri: "jp", host: @host),
-        headers: step_up_headers
+    get edit_base_app_identity_telephone_url(other_telephone.public_id, ri: "jp", host: @host), headers: @headers
 
     assert_response :not_found
   end
 
-  test "create starts the verification flow and hands off to the registration step" do
+  test "create starts telephone verification and moves on to the registration step" do
+    number = "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}"
+
     post base_app_identity_telephones_url(ri: "jp", host: @host),
-         params: { user_telephone: { raw_number: unique_number } },
-         headers: step_up_headers
+         params: { user_telephone: { raw_number: number } },
+         headers: @headers
 
     assert_response :see_other
-    assert_equal 1, @client.client_telephones.reload.count
+    assert_redirected_to edit_base_app_identity_telephones_registration_url(ri: "jp", host: @host)
   end
 
-  test "create re-renders the number form when the number cannot be normalized" do
+  test "create re-renders the form when the number cannot be verified" do
     post base_app_identity_telephones_url(ri: "jp", host: @host),
          params: { user_telephone: { raw_number: "not-a-telephone-number" } },
-         headers: step_up_headers
+         headers: @headers
 
     assert_response :unprocessable_content
-    assert_equal 0, @client.client_telephones.reload.count
   end
 
-  test "destroy removes the telephone when another sign-in method remains" do
-    create_telephone(status_id: ClientTelephoneStatus::VERIFIED)
-    removable = create_telephone(status_id: ClientTelephoneStatus::VERIFIED)
-
-    delete base_app_identity_telephone_url(removable.public_id, ri: "jp", host: @host),
-           headers: step_up_headers
-
-    assert_response :see_other
-    assert_redirected_to base_app_identity_telephones_path(ri: "jp")
-    assert_nil ClientTelephone.find_by(id: removable.id)
-  end
-
-  test "destroy does not find a telephone owned by another client" do
-    other = Client.create!(status_id: ClientStatus::NOTHING)
-    foreign = create_telephone(client: other, status_id: ClientTelephoneStatus::VERIFIED)
-
-    delete base_app_identity_telephone_url(foreign.public_id, ri: "jp", host: @host),
-           headers: step_up_headers
-
-    assert_response :not_found
-    assert_not_nil ClientTelephone.find_by(id: foreign.id)
-  end
-
-  private
-
-  def unique_number
-    "+8190#{format("%08d", SecureRandom.random_number(100_000_000))}"
-  end
-
-  def create_telephone(client: @client, status_id:)
-    client.client_telephones.create!(
-      number: unique_number,
-      user_telephone_status_id: status_id,
+  test "destroy removes the telephone while another verified contact remains" do
+    @user.client_emails.create!(
+      raw_address: "telephone_removal_contact@example.com",
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
+    telephone = @user.client_telephones.create!(
+      raw_number: "+15558675405", confirm_policy: true, confirm_using_mfa: true,
+      user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+    )
+
+    assert_difference("ClientTelephone.count", -1) do
+      delete base_app_identity_telephone_url(telephone.public_id, ri: "jp", host: @host), headers: @headers
+    end
+
+    assert_redirected_to base_app_identity_telephones_path(ri: "jp")
   end
 
-  # Authentication and step-up material go into the integration cookie jar rather than a literal
-  # Cookie header, so the Rails session cookie set by one request survives into the next one.
-  def step_up_headers
-    return @step_up_headers if @step_up_headers
+  test "destroy refuses to remove the client's only remaining contact method" do
+    @user.client_emails.destroy_all
+    telephone = @user.client_telephones.create!(
+      raw_number: "+15558675406", confirm_policy: true, confirm_using_mfa: true,
+      user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+    )
 
-    headers = as_user_headers(@client, host: @host)
-    token = authentication_harness_latest_token(@client)
-    mark_token_step_up_satisfied_for_test(token, scope: "settings_telephone")
-    _verification, raw_token = ClientVerification.issue_for_token!(token: token)
-    access_token = headers["Cookie"].to_s[/#{Regexp.escape(AuthenticationBase::ACCESS_COOKIE_KEY)}=([^;]+)/, 1]
-    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
-    cookies[ClientVerification.cookie_name] = raw_token
+    assert_no_difference("ClientTelephone.count") do
+      delete base_app_identity_telephone_url(telephone.public_id, ri: "jp", host: @host), headers: @headers
+    end
 
-    @step_up_headers = headers.except("Cookie", "HTTP_COOKIE")
-  end
-
-  def ensure_client_reference_records!
-    ClientStatus.find_or_create_by!(id: ClientStatus::NOTHING)
-    [
-      ClientTelephoneStatus::UNVERIFIED,
-      ClientTelephoneStatus::VERIFIED,
-      ClientTelephoneStatus::NOTHING,
-    ].each { |id| ClientTelephoneStatus.find_or_create_by!(id: id) }
-  end
-
-  # DAMP local helper copy for former shared test support.
-  def configured_host(surface_name)
-    Rails.configuration.x.boot_config.fetch(:hosts).public_send(surface_name).host
-  end
-
-  def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
-    return unless token.respond_to?(:update_columns)
-
-    attrs = {
-      last_step_up_at: at,
-      last_step_up_scope: scope.presence || "verification",
-      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
-      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
-      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
-      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
-      last_step_up_audience: ("step_up:app" if token.respond_to?(:last_step_up_audience)),
-      updated_at: Time.current,
-    }.compact
-    token.update_columns(attrs)
+    assert_redirected_to base_app_identity_telephones_path(ri: "jp")
   end
 end

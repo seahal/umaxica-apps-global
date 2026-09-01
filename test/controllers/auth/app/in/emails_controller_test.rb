@@ -413,7 +413,10 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "otp resend still rejected after 29 seconds" do
     test_email = test_setup_cooldown_test_email
 
-    travel 29.seconds do
+    # Anchored to when the code was actually sent, not to now. `travel` moves
+    # from the current moment, so on a slow run the setup alone can push the gap
+    # past the cooldown and the case silently inverts into its opposite.
+    travel_to test_email.otp_last_sent_at + 29.seconds do
       assert_no_difference -> { ActionMailer::Base.deliveries.count } do
         post auth_app_sign_in_email_url(ri: "jp"),
              params: {

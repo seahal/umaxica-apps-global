@@ -13,7 +13,10 @@ module Auth
         AUTHENTICATION_MODE = :private
         before_action :authenticate_visitor!
 
+        # See Auth::App::Settings::RemovalsController#create: a private action has to
+        # authorize even when it only forwards to the page that authorizes the record.
         def create
+          authorize!(current_visitor, to: :show?)
           redirect_to_sign_authority!(canonical_resource_path, query: request.query_parameters)
         end
 

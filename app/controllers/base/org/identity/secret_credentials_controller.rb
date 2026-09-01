@@ -252,8 +252,10 @@ module Base
           @secret_credential.errors.add(:base, t("turnstile_error"))
         end
 
-        def secret_credential_turnstile_failure_redirect_path
-          base_org_identity_secrets_path(ri: params[:ri])
+        def render_secret_credential_turnstile_create_failure
+          render inertia: "base/org/identity/secret_credentials/new",
+                 props: new_page_props,
+                 status: :unprocessable_content
         end
 
         def verification_required_action?

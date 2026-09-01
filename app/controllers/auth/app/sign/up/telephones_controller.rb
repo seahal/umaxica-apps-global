@@ -317,6 +317,7 @@ module Auth
               registration_session["expires_at"].to_i <= Time.current.to_i
           end
 
+          # Read by the check-step OTP controller, which inherits from this one.
           def otp_resend_rate_limited?
             last_sent_at = session[:user_telephone_otp_last_sent_at]
             return false if last_sent_at.blank?

@@ -69,6 +69,31 @@ class Base::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "xyz", query["state"]
   end
 
+  test "an unknown logout challenge is rejected rather than acted on" do
+    post base_app_oidc_logout_url(host: @host),
+         params: { logout_challenge: "no-such-logout-challenge", ri: "jp" },
+         headers: session_headers
+
+    assert_response :unprocessable_content
+    assert_not_predicate @token.reload, :revoked?
+  end
+
+  test "a GET carrying a logout challenge is refused because the handoff is retired" do
+    get base_app_oidc_logout_url(host: @host),
+        params: { logout_challenge: "no-such-logout-challenge", ri: "jp" },
+        headers: session_headers
+
+    assert_response :unprocessable_content
+    assert_not_predicate @token.reload, :revoked?
+  end
+
+  test "a POST with neither a redirect target nor a staged request answers the failure page" do
+    post base_app_oidc_logout_url(host: @host), params: { ri: "jp" }, headers: session_headers
+
+    assert_response :success
+    assert_not_predicate @token.reload, :revoked?
+  end
+
   test "invalid post_logout_redirect_uri never redirects externally" do
     post base_app_oidc_logout_url(host: @host),
          params: {

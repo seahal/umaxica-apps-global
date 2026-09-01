@@ -40,9 +40,9 @@ When writing or updating repository prose:
 2. If touched material contains Japanese or another non-English language, translate that touched
    material to English unless it falls under an exception.
 3. Keep user conversation language separate from repository language. Chat replies may follow the
-   user's language; committed repository content must remain English.
-   A request for a non-English report does not override this rule unless the user explicitly asks
-   to change the repository language policy itself.
+   user's language; committed repository content must remain English. A request for a non-English
+   report does not override this rule unless the user explicitly asks to change the repository
+   language policy itself.
 4. Before finishing documentation, ADR, plan, note, memo, harness, or comment work, scan touched
    files for non-English prose.
 

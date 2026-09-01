@@ -58,6 +58,59 @@ class PreferenceCoreTest < ActiveSupport::TestCase
     def clear_explicit_fields! = self.explicit_fields_cleared = true
   end
 
+  # Resets the mirror association so the next read reloads it. The three surfaces name
+  # their association differently and only the client one was ever exercised.
+  class AssociationSpyResource
+    ASSOCIATIONS = %i(user_preference staff_preference visitor_preference).freeze
+
+    attr_reader :reset_associations
+
+    def initialize
+      @reset_associations = []
+    end
+
+    def respond_to?(name, include_private = false)
+      ASSOCIATIONS.include?(name.to_sym) || super
+    end
+
+    def association(name)
+      recorder = @reset_associations
+      Object.new.tap { |proxy| proxy.define_singleton_method(:reset) { recorder << name } }
+    end
+  end
+
+  # The three user-facing strings the preference actions answer with. Each resolves a
+  # different key shape -- surface-scoped, acme-scoped, and a shared error -- so a
+  # missing translation in any one of them would only show up here.
+  test "the preference notice and alert helpers resolve their translation keys" do
+    harness = Harness.new
+    harness.define_singleton_method(:preference_translation_scope) { "acme.app.preference" }
+    harness.define_singleton_method(:preference_surface_key) { "app" }
+    harness.define_singleton_method(:t) { |key| "translated:#{key}" }
+
+    assert_equal "translated:acme.app.preference.update_success", harness.invoke(:preference_update_notice)
+    assert_equal "translated:acme.app.preference.resets.destroyed",
+                 harness.invoke(:preference_reset_destroyed_notice)
+    assert_equal I18n.t("errors.messages.preference_operation_failed"),
+                 harness.invoke(:preference_operation_failed_alert)
+  end
+
+  test "resetting the mirror association picks the name that belongs to the surface" do
+    {
+      ClientPreference => :user_preference,
+      OperatorPreference => :staff_preference,
+      VisitorPreference => :visitor_preference,
+    }.each do |preference_class, expected_association|
+      resource = AssociationSpyResource.new
+      harness = Harness.new
+      harness.resource = resource
+
+      harness.invoke(:reset_current_resource_preference_association, preference_class.new)
+
+      assert_equal [expected_association], resource.reset_associations, preference_class.name
+    end
+  end
+
   test "reset helper restores child cookie and explicit defaults" do
     preference = ResetPreference.new
     option_class = Class.new

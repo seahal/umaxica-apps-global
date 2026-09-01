@@ -15,11 +15,11 @@ SimpleCov.group "Validators", "app/validators"
 SimpleCov.group "Errors", "app/errors"
 
 SimpleCov.coverage :line do
-  minimum 94
+  minimum 95
 end
 
 SimpleCov.coverage :branch do
-  minimum 74
+  minimum 75
 end
 
 # The minimums above are suite-wide averages, so a file with no test at all can hide

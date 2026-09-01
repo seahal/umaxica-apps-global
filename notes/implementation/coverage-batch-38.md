@@ -5,9 +5,9 @@
 
 ## Context
 
-A `COVERAGE=true bin/rails test` invocation that passed extra non-path arguments aborted in
-Minitest option parsing and reported 0.29% line coverage. A clean `COVERAGE=true bin/rails test test/`
-run completed with 10,772 runs, 0 failures, 0 errors, 1 skip, and 51,336 / 53,803 (95.41%) line
+A `COVERAGE=true bin/rails test` invocation that passed extra non-path arguments aborted in Minitest
+option parsing and reported 0.29% line coverage. A clean `COVERAGE=true bin/rails test test/` run
+completed with 10,772 runs, 0 failures, 0 errors, 1 skip, and 51,336 / 53,803 (95.41%) line
 coverage. SimpleCov also dropped stale `Integration Tests` results because `merge_timeout` defaults
 to 600 seconds and a full coverage run lasts longer than that.
 
@@ -16,9 +16,10 @@ to 600 seconds and a full coverage run lasts longer than that.
 - Keep adding observable harness tests for remaining controller private methods rather than deleting
   live authentication branches.
 - Set `SimpleCov.command_name` to a single name and `merge_timeout` to 3600 so a full-suite coverage
-  run does not discard in-run results. Do not merge stale `.resultset.json` entries from older trees.
-- Leave the `.simplecov` line minimum at 94 until a clean full-suite report is at or above 99%. Raising
-  the gate first would fail CI without the coverage.
+  run does not discard in-run results. Do not merge stale `.resultset.json` entries from older
+  trees.
+- Leave the `.simplecov` line minimum at 94 until a clean full-suite report is at or above 99%.
+  Raising the gate first would fail CI without the coverage.
 
 ## Tests added
 

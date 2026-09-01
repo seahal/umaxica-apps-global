@@ -3,16 +3,49 @@
 
 require "test_helper"
 
+# Registration ceremony for attaching a telephone number to an operator on the
+# staff surface: the two-step OTP flow plus the Turnstile, missing-code,
+# wrong-code, lock-out, and expired-session branches guarding it.
 class Base::Org::Identity::Telephones::RegistrationsControllerTest < ActionDispatch::IntegrationTest
+  fixtures :operators, :operator_statuses, :operator_telephone_statuses,
+           :operator_token_kinds, :operator_token_statuses, :operator_token_binding_methods,
+           :operator_token_dbsc_statuses
+
   setup do
-    @host = configured_host(:base_staff)
-    ensure_operator_reference_records!
-    @operator = Operator.create!(status_id: OperatorStatus::ACTIVE)
+    @host = ENV.fetch("PUBLIC_BASE_STAFF_URL")
+    host! @host
+    @operator = operators(:one)
     @token = OperatorToken.create!(
       staff: @operator,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       staff_token_status_id: OperatorTokenStatus::ACTIVE,
       discarded_at: 1.day.from_now,
     )
+    BaseSelectorBootstrapAuthority.call(surface: :org, principal: @operator)
+    BaseSelectorAuthority.prepare(surface: :org, principal: @operator, session: @token)
+    _verification, raw_verification = OperatorVerification.issue_for_token!(token: @token)
+    cookies[OperatorVerification.cookie_name] = raw_verification
+    @token.update!(
+      last_step_up_at: Time.current,
+      last_step_up_scope: "settings_telephone",
+      last_step_up_aal: "aal2",
+      last_step_up_method: "passkey",
+      last_step_up_session_public_id: @token.public_id,
+      last_step_up_purpose: "step_up",
+      last_step_up_audience: "step_up:org",
+    )
+    access_token = AuthenticationToken.encode(
+      @operator, host: @host, session_public_id: @token.public_id,
+                 resource_type: "operator", jwt_issuer_id: "surface:BASE_ORG",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+    @headers = {
+      "Authorization" => "Bearer #{access_token}",
+      "Client-Agent" => "Mozilla/5.0",
+      "Host" => @host,
+      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+    }.freeze
+
     TurnstileVerifierStub.challenge_enabled = true
     TurnstileVerifierStub.challenge_response = { "success" => true }
   end
@@ -22,181 +55,149 @@ class Base::Org::Identity::Telephones::RegistrationsControllerTest < ActionDispa
     TurnstileVerifierStub.challenge_response = nil
   end
 
-  test "new renders the registration form and clears any earlier registration session" do
-    get new_base_org_identity_telephones_registration_url(ri: "jp", host: @host), headers: step_up_headers
+  test "new renders the registration form and leaves no pending registration in the session" do
+    get new_base_org_identity_telephones_registration_url(ri: "jp", host: @host), headers: @headers
 
     assert_response :success
+    assert_nil session[:staff_telephone_registration_id]
   end
 
-  test "create sends a code and moves the operator to the edit step" do
-    post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
-         params: { staff_telephone: { raw_number: unique_number } },
-         headers: step_up_headers
-
-    assert_redirected_to edit_base_org_identity_telephones_registration_path(ri: "jp")
-    assert_equal 1, @operator.staff_telephones.count
-    assert_equal OperatorTelephoneStatus::UNVERIFIED,
-                 @operator.staff_telephones.first.staff_telephone_status_id
-  end
-
-  test "create refuses the request when the turnstile challenge fails" do
-    TurnstileVerifierStub.challenge_response = { "success" => false }
-
-    post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
-         params: { staff_telephone: { raw_number: unique_number } },
-         headers: step_up_headers
-
-    assert_response :unprocessable_content
-    assert_equal 0, @operator.staff_telephones.count
-  end
-
-  test "create re-renders the form when the number cannot be normalized" do
-    post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
-         params: { staff_telephone: { raw_number: "not-a-telephone-number" } },
-         headers: step_up_headers
-
-    assert_response :unprocessable_content
-    assert_equal 0, @operator.staff_telephones.count
-  end
-
-  test "edit renders the code form while the registration session is live" do
-    start_registration!
-
-    get edit_base_org_identity_telephones_registration_url(ri: "jp", host: @host), headers: step_up_headers
-
-    assert_response :success
-  end
-
-  test "edit returns to the first step when no registration is in flight" do
-    get edit_base_org_identity_telephones_registration_url(ri: "jp", host: @host), headers: step_up_headers
+  test "edit redirects back to new when no registration is in progress" do
+    get edit_base_org_identity_telephones_registration_url(ri: "jp", host: @host), headers: @headers
 
     assert_redirected_to new_base_org_identity_telephones_registration_path(ri: "jp")
   end
 
-  test "update verifies the submitted code and finishes the registration" do
-    telephone = start_registration!
-
-    patch base_org_identity_telephones_registration_url(ri: "jp", host: @host),
-          params: { staff_telephone: { pass_code: current_otp_for(telephone) } },
-          headers: step_up_headers
-
-    # sign/id only verifies the code here; the final account commit happens on acme/www, so the
-    # contract this action owns is the hand-off redirect back to the telephone list.
-    assert_redirected_to base_org_identity_telephones_url(
-      ri: "jp",
-      host: ENV.fetch("PUBLIC_BASE_STAFF_URL"),
-    )
-    assert_nil telephone.reload.get_otp&.fetch(:otp_private_key, nil)
-  end
-
-  test "update re-renders the code form when the code is missing" do
-    start_registration!
-
-    patch base_org_identity_telephones_registration_url(ri: "jp", host: @host),
-          params: { staff_telephone: { pass_code: "" } },
-          headers: step_up_headers
-
-    assert_response :unprocessable_content
-  end
-
-  test "update re-renders the code form when the code does not match" do
-    telephone = start_registration!
-
-    patch base_org_identity_telephones_registration_url(ri: "jp", host: @host),
-          params: { staff_telephone: { pass_code: "000000" } },
-          headers: step_up_headers
-
-    assert_response :unprocessable_content
-    assert_equal OperatorTelephoneStatus::UNVERIFIED, telephone.reload.staff_telephone_status_id
-  end
-
-  test "update refuses the request when the turnstile challenge fails" do
-    start_registration!
+  test "create rejects the submission when the stealth Turnstile check fails" do
     TurnstileVerifierStub.challenge_response = { "success" => false }
 
-    patch base_org_identity_telephones_registration_url(ri: "jp", host: @host),
-          params: { staff_telephone: { pass_code: "000000" } },
-          headers: step_up_headers
+    assert_no_difference("OperatorTelephone.count") do
+      post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+           params: { staff_telephone: { raw_number: "+15558675321" } }, headers: @headers
+    end
 
     assert_response :unprocessable_content
+    assert_nil session[:staff_telephone_registration_id]
   end
 
-  test "update returns to the first step when no registration is in flight" do
+  test "create rejects a number that cannot be normalized to E.164" do
+    assert_no_difference("OperatorTelephone.count") do
+      post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+           params: { staff_telephone: { raw_number: "not-a-number" } }, headers: @headers
+    end
+
+    assert_response :unprocessable_content
+    assert_nil session[:staff_telephone_registration_id]
+  end
+
+  test "create stores the pending registration and moves the ceremony to the verification step" do
+    assert_difference("OperatorTelephone.count", 1) do
+      post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+           params: { staff_telephone: { raw_number: "+15558675322" } }, headers: @headers
+    end
+
+    assert_redirected_to edit_base_org_identity_telephones_registration_path(ri: "jp")
+    registered = OperatorTelephone.find(session[:staff_telephone_registration_id])
+
+    assert_equal @operator.id, registered.staff_id
+    assert_equal OperatorTelephoneStatus::UNVERIFIED, registered.staff_telephone_status_id
+  end
+
+  test "edit renders the verification step while the registration session is valid" do
+    post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+         params: { staff_telephone: { raw_number: "+15558675323" } }, headers: @headers
+
+    get edit_base_org_identity_telephones_registration_url(ri: "jp", host: @host), headers: @headers
+
+    assert_response :success
+  end
+
+  test "update redirects back to new when the session holds no pending registration" do
     patch base_org_identity_telephones_registration_url(ri: "jp", host: @host),
-          params: { staff_telephone: { pass_code: "000000" } },
-          headers: step_up_headers
+          params: { staff_telephone: { pass_code: "123456" } }, headers: @headers
 
     assert_redirected_to new_base_org_identity_telephones_registration_path(ri: "jp")
   end
 
-  private
+  test "update rejects the verification when the stealth Turnstile check fails" do
+    post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+         params: { staff_telephone: { raw_number: "+15558675324" } }, headers: @headers
+    pending = OperatorTelephone.find(session[:staff_telephone_registration_id])
+    TurnstileVerifierStub.challenge_response = { "success" => false }
 
-  def unique_number
-    "+8190#{format("%08d", SecureRandom.random_number(100_000_000))}"
+    patch base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+          params: { staff_telephone: { pass_code: "123456" } }, headers: @headers
+
+    assert_response :unprocessable_content
+    assert_equal OperatorTelephoneStatus::UNVERIFIED, pending.reload.staff_telephone_status_id
   end
 
-  # Drives the real create action so the registration session and the OTP are produced the same way
-  # the application produces them, rather than being assembled by the test.
-  def start_registration!
-    post(
-      base_org_identity_telephones_registration_url(ri: "jp", host: @host),
-      params: { staff_telephone: { raw_number: unique_number } },
-      headers: step_up_headers,
-    )
+  test "update rejects a blank verification code before consuming an OTP attempt" do
+    post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+         params: { staff_telephone: { raw_number: "+15558675325" } }, headers: @headers
+    pending = OperatorTelephone.find(session[:staff_telephone_registration_id])
+    attempts_before = pending.otp_attempts_count
 
-    assert_redirected_to edit_base_org_identity_telephones_registration_path(ri: "jp")
-    @operator.staff_telephones.reload.first
+    patch base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+          params: { staff_telephone: { pass_code: "" } }, headers: @headers
+
+    assert_response :unprocessable_content
+    assert_equal attempts_before, pending.reload.otp_attempts_count
   end
 
-  def current_otp_for(record)
-    otp = record.reload.get_otp
+  test "update re-renders the verification step when the submitted code is wrong" do
+    post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+         params: { staff_telephone: { raw_number: "+15558675326" } }, headers: @headers
+    pending = OperatorTelephone.find(session[:staff_telephone_registration_id])
+    otp = pending.get_otp
+    wrong_code = ROTP::HOTP.new(otp[:otp_private_key]).at(otp[:otp_counter] + 1).to_s
 
-    ROTP::HOTP.new(otp[:otp_private_key]).at(otp[:otp_counter]).to_s
+    patch base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+          params: { staff_telephone: { pass_code: wrong_code } }, headers: @headers
+
+    assert_response :unprocessable_content
+    assert_equal OperatorTelephoneStatus::UNVERIFIED, pending.reload.staff_telephone_status_id
   end
 
-  # Authentication and step-up material go into the integration cookie jar rather than a literal
-  # Cookie header, so the Rails session cookie set by one request survives into the next one.
-  def step_up_headers
-    return @step_up_headers if @step_up_headers
+  test "update discards the pending registration once the attempt limit locks it" do
+    post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+         params: { staff_telephone: { raw_number: "+15558675327" } }, headers: @headers
+    pending_id = session[:staff_telephone_registration_id]
+    pending = OperatorTelephone.find(pending_id)
+    otp = pending.get_otp
+    wrong_code = ROTP::HOTP.new(otp[:otp_private_key]).at(otp[:otp_counter] + 1).to_s
 
-    mark_token_step_up_satisfied_for_test(@token, scope: "settings_telephone")
-    _verification, raw_token = OperatorVerification.issue_for_token!(token: @token)
-    headers = as_staff_headers(@operator, host: @host, session_public_id: @token.public_id)
-    access_token = headers["Cookie"].to_s[/#{Regexp.escape(AuthenticationBase::ACCESS_COOKIE_KEY)}=([^;]+)/, 1]
-    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
-    cookies[OperatorVerification.cookie_name] = raw_token
+    OtpLockable::MAX_OTP_ATTEMPTS.times do
+      patch base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+            params: { staff_telephone: { pass_code: wrong_code } }, headers: @headers
+    end
 
-    @step_up_headers = headers.except("Cookie", "HTTP_COOKIE")
+    assert_redirected_to new_base_org_identity_telephones_registration_path(ri: "jp")
+    assert_nil OperatorTelephone.find_by(id: pending_id)
   end
 
-  def ensure_operator_reference_records!
-    OperatorStatus.find_or_create_by!(id: OperatorStatus::ACTIVE)
-    OperatorTokenStatus.find_or_create_by!(id: OperatorTokenStatus::ACTIVE)
-    [
-      OperatorTelephoneStatus::UNVERIFIED,
-      OperatorTelephoneStatus::VERIFIED,
-      OperatorTelephoneStatus::ACTIVE,
-    ].each { |id| OperatorTelephoneStatus.find_or_create_by!(id: id) }
+  test "update verifies the telephone number and returns to the identity page on the correct code" do
+    post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+         params: { staff_telephone: { raw_number: "+15558675328" } }, headers: @headers
+    pending = OperatorTelephone.find(session[:staff_telephone_registration_id])
+    otp = pending.get_otp
+    code = ROTP::HOTP.new(otp[:otp_private_key]).at(otp[:otp_counter]).to_s
+
+    patch base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+          params: { staff_telephone: { pass_code: code } }, headers: @headers
+
+    assert_redirected_to base_org_identity_telephones_url(ri: "jp", host: @host)
+    assert_nil session[:staff_telephone_registration_id]
   end
 
-  # DAMP local helper copy for former shared test support.
-  def configured_host(surface_name)
-    Rails.configuration.x.boot_config.fetch(:hosts).public_send(surface_name).host
-  end
+  test "update treats an expired one-time passcode as an expired registration session" do
+    post base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+         params: { staff_telephone: { raw_number: "+15558675329" } }, headers: @headers
+    OperatorTelephone.find(session[:staff_telephone_registration_id]).update!(otp_expires_at: 1.minute.ago)
 
-  def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
-    return unless token.respond_to?(:update_columns)
+    patch base_org_identity_telephones_registration_url(ri: "jp", host: @host),
+          params: { staff_telephone: { pass_code: "123456" } }, headers: @headers
 
-    attrs = {
-      last_step_up_at: at,
-      last_step_up_scope: scope.presence || "verification",
-      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
-      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
-      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
-      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
-      last_step_up_audience: ("step_up:org" if token.respond_to?(:last_step_up_audience)),
-      updated_at: Time.current,
-    }.compact
-    token.update_columns(attrs)
+    assert_redirected_to new_base_org_identity_telephones_registration_path(ri: "jp")
   end
 end

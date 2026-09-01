@@ -285,6 +285,66 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
     assert VisitorTelephone.exists?(public_id: new_public_id)
   end
 
+  test "sign-up with an already verified telephone answers the otp page without creating records" do
+    visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
+    existing = visitor.visitor_telephones.create!(
+      raw_number: "+819012377001",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
+    )
+
+    assert_no_difference("Visitor.count") do
+      assert_no_difference("VisitorTelephone.count") do
+        post auth_com_sign_up_telephone_url(ri: "jp"),
+             params: {
+               visitor_telephone: {
+                 raw_number: existing.number, confirm_policy: "1", confirm_using_mfa: "1",
+               },
+               "cf-turnstile-response": "test",
+             }, headers: default_headers
+      end
+    end
+
+    assert_response :redirect
+    assert_includes response.location, "/sign/up/check/telephone/otp"
+
+    get auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+
+    assert_response :success
+    assert_not_includes response.body, I18n.t("errors.messages.taken")
+  end
+
+  test "a code submitted against an already verified telephone never starts an account" do
+    visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
+    existing = visitor.visitor_telephones.create!(
+      raw_number: "+819012377002",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
+    )
+    post auth_com_sign_up_telephone_url(ri: "jp"),
+         params: {
+           visitor_telephone: { raw_number: existing.number, confirm_policy: "1", confirm_using_mfa: "1" },
+           "cf-turnstile-response": "test",
+         }, headers: default_headers
+    get auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+
+    assert_no_difference("Visitor.count") do
+      patch auth_com_sign_up_check_telephone_otp_url(ri: "jp"),
+            params: { visitor_telephone: { pass_code: "123456" } }, headers: default_headers
+    end
+
+    assert_response :unprocessable_content
+    assert_equal VisitorTelephoneStatus::VERIFIED, existing.reload.visitor_telephone_status_id
+  end
+
+  test "the otp entry page redirects to the telephone form when no registration is in progress" do
+    get auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+
+    assert_response :redirect
+  end
+
   private
 
   def default_headers

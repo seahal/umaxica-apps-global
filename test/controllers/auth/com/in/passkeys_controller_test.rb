@@ -115,6 +115,86 @@ class Auth::Com::Sign::In::PasskeysControllerTest
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
 
+  test "options accepts a verified telephone number as the identifier" do
+    post auth_com_sign_in_passkey_options_path(ri: "jp"),
+         params: { identifier: @visitor.visitor_telephones.first.number },
+         headers: @origin_headers
+
+    assert_response :ok
+    json = response.parsed_body
+
+    assert_not_nil json["challenge_id"]
+    assert_equal "com:#{@visitor.id}",
+                 session[:passkey_challenges][json["challenge_id"]]["actor_global_key"]
+  end
+
+  test "verification refuses a passkey whose visitor has no verified contact" do
+    @visitor.visitor_emails.update_all(visitor_email_status_id: VisitorEmailStatus::UNVERIFIED)
+    @visitor.visitor_telephones.update_all(visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED)
+
+    post auth_com_sign_in_passkey_options_path(ri: "jp"),
+         params: { identifier: @visitor.visitor_emails.first.address },
+         headers: @origin_headers
+    challenge_id = response.parsed_body["challenge_id"]
+    verification_context = Struct.new(:sign_count, :verified_at).new(1, Time.current)
+
+    Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
+      post auth_com_sign_in_passkey_verification_path(ri: "jp"),
+           params: {
+             challenge_id: challenge_id,
+             credential: {
+               id: @passkey.webauthn_id,
+               response: {
+                 clientDataJSON: "e30=", authenticatorData: "e30=", signature: "sig", userHandle: "h",
+               },
+             },
+           }, headers: @origin_headers
+    end
+
+    assert_response :unauthorized
+    assert_includes response.body, I18n.t("errors.webauthn.credential_not_found")
+  end
+
+  test "verification rejects a credential that belongs to another visitor" do
+    other_visitor = create_verified_visitor_with_email(email_address: "com_other_passkey@example.com")
+    other_passkey = VisitorPasskey.create!(
+      visitor: other_visitor,
+      webauthn_id: Base64.urlsafe_encode64("com_other_login_id_bytes_0000001", padding: false),
+      external_id: SecureRandom.uuid,
+      public_key: "other_login_key",
+      description: "Other Login Key",
+      status_id: VisitorPasskeyStatus::ACTIVE,
+    )
+    post auth_com_sign_in_passkey_options_path(ri: "jp"),
+         params: { identifier: @visitor.visitor_emails.first.address },
+         headers: @origin_headers
+    challenge_id = response.parsed_body["challenge_id"]
+    verification_context = Struct.new(:sign_count, :verified_at).new(1, Time.current)
+
+    Webauthn::AssertionVerifier.stub(:verify!, verification_context) do
+      post auth_com_sign_in_passkey_verification_path(ri: "jp"),
+           params: {
+             challenge_id: challenge_id,
+             credential: {
+               id: other_passkey.webauthn_id,
+               response: {
+                 clientDataJSON: "e30=", authenticatorData: "e30=", signature: "sig", userHandle: "h",
+               },
+             },
+           }, headers: @origin_headers
+    end
+
+    assert_response :unauthorized
+  end
+
+  test "verification rejects a challenge id that was never issued" do
+    post auth_com_sign_in_passkey_verification_path(ri: "jp"),
+         params: { challenge_id: "not-a-real-challenge", credential: { id: "x" } },
+         headers: @origin_headers
+
+    assert_response :bad_request
+  end
+
   private
 
   def configured_host(surface_name)

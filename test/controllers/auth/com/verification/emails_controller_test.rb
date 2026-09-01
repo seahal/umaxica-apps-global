@@ -279,6 +279,83 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert controller.instance_variable_get(:@consumed_for_test)
   end
 
+  test "edit renders the code entry page while the otp session is already active" do
+    return_to = "/settings/emails?ri=jp"
+
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
+      Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
+        pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
+        get auth_com_verification_url(
+          scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: step_up_grant(return_to),
+        ), headers: @headers
+
+        assert_response :success
+
+        get new_auth_com_verification_email_url(ri: "jp"), headers: @headers
+
+        assert_response :redirect
+        nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
+
+        with_email_nonce_stub(true) do
+          get edit_auth_com_verification_email_url(nonce, ri: "jp"), headers: @headers
+        end
+      end
+    end
+
+    assert_response :success
+    assert_equal "auth/com/verification/emails/edit", inertia_component
+  end
+
+  test "update re-renders the code entry page when the submitted code is rejected" do
+    return_to = "/settings/emails?ri=jp"
+
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
+      Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
+        pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
+        get auth_com_verification_url(
+          scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: step_up_grant(return_to),
+        ), headers: @headers
+        get new_auth_com_verification_email_url(ri: "jp"), headers: @headers
+        nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
+
+        with_email_nonce_stub(true) do
+          with_verify_email_otp_stub(false) do
+            patch auth_com_verification_email_url(nonce, ri: "jp"),
+                  params: { verification: { code: "000000" } }, headers: @headers
+          end
+        end
+      end
+    end
+
+    assert_response :unprocessable_content
+    assert_equal "auth/com/verification/emails/edit", inertia_component
+    assert_nil @token.reload.last_step_up_at
+  end
+
+  # The resend button posts to the dedicated redelivery resource, not back to the
+  # emails controller, and it only acts for the nonce the step-up session is bound to.
+  test "redelivery for a nonce the session is not bound to is sent back to verification" do
+    return_to = "/settings/emails?ri=jp"
+
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
+      pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
+      get auth_com_verification_url(
+        scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: step_up_grant(return_to),
+      ), headers: @headers
+
+      get new_auth_com_verification_email_url(ri: "jp"), headers: @headers
+
+      assert_response :redirect
+
+      assert_no_enqueued_emails do
+        post auth_com_verification_email_redelivery_url("not-the-bound-nonce", ri: "jp"), headers: @headers
+      end
+
+      assert_response :redirect
+      assert_match %r{/verification}, response.location
+    end
+  end
+
   private
 
   def with_verify_email_otp_stub(result)

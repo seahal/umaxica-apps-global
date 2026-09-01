@@ -7,6 +7,8 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class Base::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
+  fixtures :clients
+
   # include PreferenceJwtHelper
 
   setup do
@@ -161,6 +163,75 @@ class Base::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
     assert_predicate cookies[PreferenceCookieName.access(surface: :app)], :present?
     assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
+  end
+
+  # A signed-in actor who has never had a preference row gets one created on the first
+  # write, together with the child records every preference type expects. The other
+  # PATCH tests here are anonymous, so `preference_write_resource_preference!` returned
+  # early and the creation path never ran.
+  test "PATCH update creates the actor preference record on a signed-in first write" do
+    client = clients(:one)
+    ClientPreference.where(user_id: client.id).destroy_all
+    token = ClientToken.create!(
+      user: client,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      discarded_at: 1.day.from_now,
+    )
+    BaseSelectorBootstrapAuthority.call(surface: :app, principal: client)
+    BaseSelectorAuthority.prepare(surface: :app, principal: client, session: token)
+    access_token = AuthenticationToken.encode(
+      client, host: @host, session_public_id: token.public_id,
+              resource_type: "client", jwt_issuer_id: "surface:BASE_APP",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+
+    preference = AppPreference.create!(
+      status_id: AppPreferenceStatus::NOTHING,
+      expires_at: PreferenceBase::REFRESH_TOKEN_TTL.from_now,
+    )
+    option_class = PreferenceClassRegistry.option_class("App", :theme)
+    ensure_theme_defaults!(option_class)
+    AppPreferenceTheme.create!(preference: preference, option_id: option_class::SYSTEM)
+    cookies[PreferenceCookieName.access] = encode_preference_jwt(
+      preferences: { "ct" => "sy" }, host: @host, public_id: preference.public_id,
+    )
+
+    assert_difference -> { ClientPreference.where(user_id: client.id).count }, 1 do
+      with_preference_jwt_keys(host: @host) do
+        patch base_app_web_v0_theme_path,
+              params: { theme: "dark" },
+              headers: {
+                "Authorization" => "Bearer #{access_token}",
+                "Client-Agent" => "Mozilla/5.0",
+                "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+              },
+              as: :json
+      end
+    end
+
+    assert_response :ok
+    actor_preference = ClientPreference.find_by!(user_id: client.id)
+
+    assert_equal option_class::DARK,
+                 PreferenceClassRegistry.record_class("Client", :theme).find_by!(
+                   preference_id: actor_preference.id,
+                 ).option_id
+  end
+
+  # A stale or forged preference refresh cookie must not break the write: the failed
+  # refresh is reset and the request still answers with the updated theme.
+  test "PATCH update recovers when the refresh cookie matches no preference record" do
+    cookies[PreferenceCookieName.refresh(surface: :app)] =
+      "prf_#{SecureRandom.alphanumeric(21)}.#{SecureRandom.hex(16)}"
+
+    with_preference_jwt_keys(host: @host) do
+      patch base_app_web_v0_theme_path, params: { theme: "dark" }, as: :json
+    end
+
+    assert_response :ok
+    assert_equal "dr", response.parsed_body["theme"]
+    assert_includes response.headers["Set-Cookie"].to_s, "#{PreferenceIoKeys::Cookies::THEME}=dr"
   end
 
   private
