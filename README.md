@@ -74,7 +74,8 @@ rebuilding the container.
 
 Corepack is not used, not installed in the image, and no `corepack enable` step is required.
 
-A fresh clone needs no local file. Start the standard stack, install dependencies, and boot the app:
+A fresh clone needs no local file. Start the standard stack, install dependencies, and boot
+the app:
 
 ```bash
 git clone https://github.com/seahal/umaxica-apps-jit-global.git
@@ -89,15 +90,15 @@ pnpm install
 bin/setup
 ```
 
-`compose.yaml` is the complete standard environment. `compose.override.yaml` is an **optional**,
-gitignored, per-machine override that nothing creates for you — see `compose.override.yaml.example`
-and
+`compose.yaml` is the complete standard environment. `compose.override.yaml` is an
+**optional**, gitignored, per-machine override that nothing creates for you — see
+`compose.override.yaml.example` and
 [Dev Containers CLI startup on rootless Podman](docs/operations/devcontainer-cli-podman-startup.md#the-compose-file-contract).
 The preferred way in is `Dev Containers: Reopen in Container`.
 
 `core` runs `sleep infinity` and is the workspace container; start the Rails processes with
-`bin/dev` inside it. The PostgreSQL services use Compose environment variables instead of inline
-fixed credentials:
+`bin/dev` inside it. The PostgreSQL services use Compose
+environment variables instead of inline fixed credentials:
 
 ```bash
 POSTGRESQL_USER=root

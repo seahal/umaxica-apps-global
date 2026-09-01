@@ -130,8 +130,8 @@ Browser --(HTTPS)--> Cloudflare edge --(QUIC tunnel)--> cloudflared (compose: cl
   --(private `frontend` network)--> core (Rails)
 ```
 
-- `cloudflared` is configured in `compose.yaml` behind the `tunnel` profile (`cloudflare-tunnel`
-  service, image `cloudflare/cloudflared:2026.8.2`,
+- `cloudflared` is configured in `compose.yaml` behind the `tunnel` profile (`cloudflare-tunnel` service, image
+  `cloudflare/cloudflared:2026.8.2`,
   `tunnel --protocol quic --metrics 0.0.0.0:2000 run`, and `TUNNEL_TOKEN` resolved from the
   gitignored repository `.env`). The base `compose.yaml` must never define it. The always-merged
   development overlay starts the connector during the standard Dev Container lifecycle. It is the
@@ -182,14 +182,14 @@ Browser --(HTTPS, Access cookie/JWT)--> Cloudflare edge --(Access policy check)-
   validation point — it runs before the request reaches Rails at all.
 - **The development tunnel hostnames are Access-protected, and that protection lives in the
   Cloudflare account, not in this repository.** This remotely managed connector authenticates with
-  the tunnel-scoped token described in `docs/operations/cloudflare-private-origin.md`, so its
-  ingress rules and `originRequest.access` blocks are configured in the Cloudflare dashboard; no
-  file here can assert they are present. Treat "the Access application exists and the published
-  development route enables Access validation" as an external check, in the sense of the "External
-  Checks" section of `docs/operations/cloudflare-private-origin.md` — the repository-side controls
-  (network isolation, Host Authorization, Rails authentication) do not depend on it, but the
-  confidentiality of the development surface does. Record the hostname, `audTag`, and `teamName`
-  here once they are settled.
+  the tunnel-scoped token described in `docs/operations/cloudflare-private-origin.md`, so its ingress
+  rules and `originRequest.access` blocks are configured in the Cloudflare dashboard; no file here
+  can assert they are present. Treat "the Access application exists and the published development
+  route enables Access validation" as an external check, in the sense of the "External Checks"
+  section of `docs/operations/cloudflare-private-origin.md` — the repository-side controls (network
+  isolation, Host Authorization, Rails authentication) do not depend on it, but the confidentiality
+  of the development surface does. Record the hostname, `audTag`, and `teamName` here once they are
+  settled.
 - Rails does not validate `Cf-Access-Jwt-Assertion` itself and should not, unless a specific feature
   needs to consume Access identity/claims directly — none does today. Adding Rails-side validation
   merely for "defense in depth" duplicates the connector-side check without a concrete requirement
