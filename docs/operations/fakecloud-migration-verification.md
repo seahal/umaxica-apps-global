@@ -116,8 +116,8 @@ Run on a machine that can rebuild. Record failures here rather than deleting the
 
 ### Compose
 
-- [ ] `podman compose -f compose.yaml config` succeeds (with
-      `PODMAN_COMPOSE_PROVIDER` set as `docs/operations/container-engine-podman-notes.md` requires)
+- [ ] `podman compose -f compose.yaml config` succeeds (with `PODMAN_COMPOSE_PROVIDER` set as
+      `docs/operations/container-engine-podman-notes.md` requires)
 - [ ] `docker compose config` succeeds — syntax compatibility only, Docker is not a supported engine
 - [ ] `podman compose config` still lists all five observability services (they are no longer
       profile-gated)

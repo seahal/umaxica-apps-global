@@ -38,8 +38,7 @@ The gates are intentionally independent:
    `3000`/`3036`. See `docs/operations/development-host-port-exposure.md`.
 5. **Workers VPC connector prerequisites**: cloudflared is pinned at the supported `2026.8.2`
    release, runs with QUIC, authenticates with the remotely managed tunnel token from the gitignored
-   repository `.env`, and requires outbound UDP port 7844. See "Authenticating the Connector"
-   below.
+   repository `.env`, and requires outbound UDP port 7844. See "Authenticating the Connector" below.
 6. **Repository regression checks**: run the focused tests first, then the full Rails suite,
    coverage, and lint checks when the test databases are available.
 
@@ -130,9 +129,9 @@ devcontainer up --workspace-folder .
 bin/tunnel-origin-check
 ```
 
-Run these commands from a host terminal, not from inside `core`. A missing token fails during Compose
-resolution with `CLOUDFLARED_TOKEN must be set in .env`; there is no anonymous or browser-login
-fallback.
+Run these commands from a host terminal, not from inside `core`. A missing token fails during
+Compose resolution with `CLOUDFLARED_TOKEN must be set in .env`; there is no anonymous or
+browser-login fallback.
 
 Do not leave a standalone `docker run ... tunnel run --token ...` connector running for this tunnel
 at the same time. Inspect `docker ps` and `podman ps` on the host before switching to the Compose
