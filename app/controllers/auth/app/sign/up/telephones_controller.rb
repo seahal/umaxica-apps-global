@@ -275,10 +275,6 @@ module Auth
             end
           end
 
-          def boolean_value(value)
-            ActiveModel::Type::Boolean.new.cast(value)
-          end
-
           def redirect_telephone_session_expired
             redirect_to(
               new_auth_app_sign_up_telephone_path,
@@ -298,23 +294,8 @@ module Auth
             params.fetch(:client_telephone, params.fetch(:user_telephone, {}))
           end
 
-          def valid_registration_session?(registration_session)
-            return dummy_existing_telephone_session_valid? if dummy_existing_telephone_flow?(registration_session)
-
-            session_public_id = session_public_id_from_registration(registration_session)
-            registration_session.present? &&
-              session_public_id.to_s == @user_telephone.public_id.to_s
-          end
-
           def session_public_id_from_registration(registration_session = session[:user_telephone_registration])
             registration_session&.dig("public_id") || registration_session&.dig(:public_id)
-          end
-
-          def otp_session_expired?(registration_session)
-            return !dummy_existing_telephone_session_valid? if dummy_existing_telephone_flow?(registration_session)
-
-            @user_telephone.otp_expired? ||
-              registration_session["expires_at"].to_i <= Time.current.to_i
           end
 
           # Read by the check-step OTP controller, which inherits from this one.

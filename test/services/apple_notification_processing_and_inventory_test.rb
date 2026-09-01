@@ -43,6 +43,21 @@ class AppleNotificationProcessingAndInventoryTest < ActiveSupport::TestCase
     assert_empty result.aal3_methods, "no surface issues a third factor yet"
   end
 
+  test "each principal kind is counted through the contact table its own surface owns" do
+    visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
+    operator = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
+
+    visitor_result = AuthenticationCredentialInventory.call(visitor)
+    operator_result = AuthenticationCredentialInventory.call(operator)
+
+    assert_equal visitor, visitor_result.actor
+    assert_empty visitor_result.contact_identifiers
+    assert_equal operator, operator_result.actor
+    # The staff surface keeps no contact identifier of its own, so the count is
+    # zero rather than read from another surface's table.
+    assert_empty operator_result.contact_identifiers
+  end
+
   # Two availability slots claiming the same hostname would leave the switch that
   # answers for it undefined, so the registry refuses to build at all.
   test "a hostname claimed by two availability slots is refused by name" do

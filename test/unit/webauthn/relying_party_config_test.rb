@@ -113,5 +113,16 @@ module Webauthn
     ensure
       saved.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
     end
+
+    test "configs compare by relying party id and origin, not by identity" do
+      config = Webauthn::RelyingPartyConfig.new(rp_id: "auth.umaxica.app", origin: "https://auth.umaxica.app")
+      same = Webauthn::RelyingPartyConfig.new(rp_id: "auth.umaxica.app", origin: "https://auth.umaxica.app")
+      other_origin = Webauthn::RelyingPartyConfig.new(rp_id: "auth.umaxica.com", origin: "https://auth.umaxica.com")
+
+      assert_equal config, same
+      assert_not_equal config, other_origin
+      assert_not_equal config, "auth.umaxica.app"
+      assert_equal config.hash, same.hash
+    end
   end
 end

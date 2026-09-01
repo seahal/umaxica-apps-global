@@ -72,11 +72,14 @@ module SignSocialAuthenticationEndpoint
   rescue SocialAuth::LastIdentityError => e
     redirect_to(
       social_unlink_failure_path(provider),
-      alert: I18n.t(e.message),
+      # `ApplicationError` translates its i18n key when the error is built, so the
+      # message is already the copy to show. Translating it again looks the message
+      # itself up as a key and renders "Translation missing" to the client.
+      alert: e.message,
       status: :see_other,
     )
   rescue SocialAuth::BaseError => e
-    render plain: I18n.t(e.message), status: e.status_code
+    render plain: e.message, status: e.status_code
   end
 
   def require_social_link_step_up!

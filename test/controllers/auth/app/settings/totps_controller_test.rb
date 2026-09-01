@@ -217,6 +217,28 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{\Adata:image/png;base64,}, inertia_props.fetch("qr_code_image")
   end
 
+  test "new refuses to start another authenticator once the limit is reached" do
+    @user.client_totp_credentials.destroy_all
+    Auth::App::Settings::TotpsController::MAX_TOTPS.times do |index|
+      ClientTotpCredential.create!(
+        user: @user,
+        private_key: ROTP::Base32.random_base32,
+        user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
+        title: "totp-#{index}",
+      )
+    end
+
+    with_prosopite_paused do
+      get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
+    end
+
+    assert_response :success
+    assert_equal I18n.t(
+      "session_limit.totp_limit_reached",
+      count: Auth::App::Settings::TotpsController::MAX_TOTPS,
+    ), response.body
+  end
+
   test "new allows bootstrap with zero unused usable recovery passcodes" do
     @user.client_totp_credentials.destroy_all
     @user.client_secret_credentials.destroy_all

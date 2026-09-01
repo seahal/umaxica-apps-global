@@ -224,6 +224,82 @@ class Auth::App::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
     assert_redirected_to auth_app_sign_in_challenge_path(ri: "jp")
   end
 
+  test "the second-factor secret credential submission is rejected when it does not match" do
+    @user.update!(mfa_level_enabled: true)
+    _secret_credential, raw_secret_credential = issue_secret_credential!(
+      kind: ClientSecretCredentialKind::PERMANENT,
+      uses: 10,
+    )
+
+    post auth_app_sign_in_secret_url(ri: "jp"),
+         params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
+         headers: default_headers
+
+    assert_redirected_to auth_app_sign_in_challenge_path(ri: "jp")
+
+    post auth_app_sign_in_secret_url(ri: "jp"),
+         params: {
+           :mfa_secret_credential_form => { secret_credential_value: "wrong-secret_credential" },
+           "cf-turnstile-response" => "test_token",
+         },
+         headers: default_headers
+
+    assert_response :unprocessable_content
+    assert_includes inertia_props.fetch("form_errors"),
+                    I18n.t("sign.app.authentication.secret_credential.create.invalid")
+  end
+
+  test "a blank second-factor secret credential is rejected before any verification runs" do
+    @user.update!(mfa_level_enabled: true)
+    _secret_credential, raw_secret_credential = issue_secret_credential!(
+      kind: ClientSecretCredentialKind::PERMANENT,
+      uses: 10,
+    )
+
+    post auth_app_sign_in_secret_url(ri: "jp"),
+         params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
+         headers: default_headers
+
+    assert_redirected_to auth_app_sign_in_challenge_path(ri: "jp")
+
+    post auth_app_sign_in_secret_url(ri: "jp"),
+         params: {
+           :mfa_secret_credential_form => { secret_credential_value: "" },
+           "cf-turnstile-response" => "test_token",
+         },
+         headers: default_headers
+
+    assert_response :unprocessable_content
+  end
+
+  test "an unexpected failure while verifying the second factor is reported without leaking the cause" do
+    @user.update!(mfa_level_enabled: true)
+    _secret_credential, raw_secret_credential = issue_secret_credential!(
+      kind: ClientSecretCredentialKind::PERMANENT,
+      uses: 10,
+    )
+
+    post auth_app_sign_in_secret_url(ri: "jp"),
+         params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
+         headers: default_headers
+
+    assert_redirected_to auth_app_sign_in_challenge_path(ri: "jp")
+
+    exploding = ->(**) { raise IOError, "verifier unavailable" }
+
+    ClientSecretCredential.stub(:allowed_for_secret_credential_sign_in, exploding) do
+      post auth_app_sign_in_secret_url(ri: "jp"),
+           params: {
+             :mfa_secret_credential_form => { secret_credential_value: raw_secret_credential },
+             "cf-turnstile-response" => "test_token",
+           },
+           headers: default_headers
+    end
+
+    assert_response :unprocessable_content
+    assert_not_includes response.body, "verifier unavailable"
+  end
+
   test "mismatched secret_credential fails with unified message" do
     _secret_credential, _raw_secret_credential = issue_secret_credential!
 

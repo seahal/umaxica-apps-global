@@ -69,6 +69,42 @@ class ActorSupportPreferenceMappingTest < ActiveSupport::TestCase
     assert_nil @harness.invoke(:reset_resource_preference_association, missing_association, :user_preference)
   end
 
+  # Actor hydration runs before the action, so a component that raises there
+  # would surface as an unrelated failure deep inside the request. Each component
+  # is wrapped so the failure is named and reported as a resolution error.
+  test "a sign sequence that cannot be resolved is reported as a named resolution failure" do
+    exploding = Harness.new
+    exploding.define_singleton_method(:session) { raise IOError, "session store down" }
+
+    error = assert_raises(ActorSupport::ResolutionError) do
+      exploding.invoke(:resolved_active_sign_sequence_id)
+    end
+
+    assert_match(/sign_sequence/, error.message)
+  end
+
+  test "a selected context that cannot be resolved is reported as a named resolution failure" do
+    exploding = Harness.new
+    exploding.define_singleton_method(:current_session) { raise IOError, "token store down" }
+
+    error = assert_raises(ActorSupport::ResolutionError) do
+      exploding.invoke(:resolved_current_selection)
+    end
+
+    assert_match(/selected_context/, error.message)
+  end
+
+  test "the cookie consent projection is read from the preference record when there is one" do
+    preference = Struct.new(:consented, :functional, :performant, :targetable, :consent_version, :consented_at)
+      .new(true, true, false, false, "v1", Time.zone.local(2026, 9, 1))
+
+    cookie = @harness.invoke(:resolved_current_cookie, Object.new, preference_record: preference)
+
+    assert cookie.consented
+    assert cookie.functional
+    assert_not cookie.performant
+  end
+
   test "resolved_current_actor_type names the actor kind behind the record" do
     operator = Object.new
     operator.define_singleton_method(:operator?) { true }

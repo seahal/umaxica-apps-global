@@ -121,6 +121,31 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
   end
 
+  test "create sends the operator back to the chooser when the credential payload is not json" do
+    establish_pending_mfa!
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
+    challenge_id = session[:passkey_challenges].keys.first
+
+    post auth_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
+      mfa_passkey_form: { challenge_id: challenge_id, credential_json: "{not-json" },
+    }
+
+    assert_response :see_other
+    assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
+  end
+
+  test "new sends the operator back to the chooser when the relying party is not configured" do
+    establish_pending_mfa!
+    missing = ->(*) { raise Webauthn::RelyingPartyConfigResolver::MissingConfigurationError, "no rp configured" }
+
+    Webauthn::RelyingPartyConfigResolver.stub(:resolve, missing) do
+      get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
+    end
+
+    assert_response :see_other
+    assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
+  end
+
   test "create verifies passkey and redirects on success" do
     establish_pending_mfa!
 

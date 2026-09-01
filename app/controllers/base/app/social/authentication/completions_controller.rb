@@ -59,7 +59,7 @@ module Base
           rescue IdentitySocialCeremonyContract::Error, ActionController::ParameterMissing, ActiveRecord::RecordNotFound
             render_social_completion_failure
           rescue SocialAuth::BaseError => e
-            render_social_completion_failure(message: I18n.t(e.message))
+            render_social_completion_failure(message: e.message)
           end
 
           private

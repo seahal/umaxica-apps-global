@@ -227,28 +227,12 @@ module Auth
             end
           end
 
-          def valid_registration_session?(registration_session)
-            return dummy_existing_telephone_session_valid? if dummy_existing_telephone_flow?(registration_session)
-
-            session_public_id = session_public_id_from_registration(registration_session)
-            registration_session.present? &&
-              session_public_id.to_s == @visitor_telephone.public_id.to_s
-          end
-
           def session_public_id_from_registration(registration_session = session[:visitor_telephone_registration])
             if registration_session.is_a?(Hash)
               registration_session["public_id"] || registration_session[:public_id]
             else
               registration_session
             end
-          end
-
-          def otp_session_expired?(registration_session)
-            return !dummy_existing_telephone_session_valid? if dummy_existing_telephone_flow?(registration_session)
-            return @visitor_telephone.otp_expired? unless registration_session.is_a?(Hash)
-
-            @visitor_telephone.otp_expired? ||
-              registration_session["expires_at"].to_i <= Time.current.to_i
           end
 
           def existing_signup_telephone_flow?(registration_session)
@@ -311,10 +295,6 @@ module Auth
             return if public_id.blank?
 
             VisitorTelephone.find_by(public_id: public_id)
-          end
-
-          def boolean_value(value)
-            ActiveModel::Type::Boolean.new.cast(value)
           end
 
           def issue_sign_up_flow!

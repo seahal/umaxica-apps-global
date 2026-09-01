@@ -86,4 +86,37 @@ class ExternalAuthenticationVerifiedPrincipalTest < ActiveSupport::TestCase
       )
     end
   end
+
+  test "a principal without a verification authority is refused" do
+    error =
+      assert_raises(ArgumentError) do
+        ExternalAuthentication::VerifiedPrincipal.new(
+          provider: "apple",
+          subject: "sub-1",
+          issuer: "https://appleid.apple.com",
+          audience: "com.umaxica.app",
+          verified_at: Time.current,
+          verification_authority: "",
+        )
+      end
+
+    assert_equal "verification_authority is required", error.message
+  end
+
+  test "a tenant context is refused for a provider that has no tenants" do
+    error =
+      assert_raises(ArgumentError) do
+        ExternalAuthentication::VerifiedPrincipal.new(
+          provider: "google",
+          subject: "sub-1",
+          issuer: "https://accounts.google.com",
+          audience: "client-id",
+          verified_at: Time.current,
+          verification_authority: "omniauth-google/1.0.0",
+          tenant_context: "tenant-1",
+        )
+      end
+
+    assert_equal "tenant context is only supported for Entra", error.message
+  end
 end

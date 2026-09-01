@@ -84,4 +84,18 @@ class AdministrativeAccessLockTest < ActiveSupport::TestCase
       )
     end
   end
+
+  test "an unregistered reason code is refused before anything is written" do
+    client = clients(:one)
+    operator = operators(:one)
+
+    error =
+      assert_no_difference -> { AccountAccessEvent.count } do
+        assert_raises(ArgumentError) do
+          AdministrativeAccessLock.lock!(account: client, operator: operator, reason_code: "not_a_reason")
+        end
+      end
+
+    assert_equal "reason_code is invalid", error.message
+  end
 end

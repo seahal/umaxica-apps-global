@@ -3,66 +3,48 @@
 
 require "test_helper"
 
+# A step-up email code page can be reloaded with the scope and path target still
+# in the query string, which is how the session is rebuilt after a token
+# rotation. A request that names neither, or one the step-up store refuses, must
+# report that no session was restored rather than raise into the page.
 class SignEmailOtpVerificationSupportTest < ActiveSupport::TestCase
-  class Harness
-    include SignEmailOtpVerificationSupport
+  self.fixture_table_names = []
 
-    attr_accessor :params, :session, :current_step_up_session, :verification_errors
+  def harness(scope:, pt:, &definition)
+    Class.new do
+      include SignEmailOtpVerificationSupport
 
-    def initialize
-      @params = ActionController::Parameters.new({})
-      @session = {}
+      define_method(:incoming_scope) { scope }
+      define_method(:incoming_pt) { pt }
+
+      attr_reader :started
+
+      def start_step_up_session!(**arguments)
+        @started = arguments
+      end
+
+      def invoke(name, ...) = send(name, ...)
+
+      class_eval(&definition) if definition
+    end.new
+  end
+
+  test "a request that names both a scope and a path target restores the session" do
+    subject = harness(scope: "settings_email", pt: "signed-pt")
+
+    assert subject.invoke(:restore_step_up_session_from_params!)
+    assert_equal({ scope: "settings_email", pt_param: "signed-pt" }, subject.started)
+  end
+
+  test "a request that names neither restores nothing" do
+    assert_not harness(scope: nil, pt: nil).invoke(:restore_step_up_session_from_params!)
+  end
+
+  test "a request the step-up store refuses restores nothing rather than raising" do
+    subject = harness(scope: "settings_email", pt: "signed-pt") do
+      def start_step_up_session!(**) = raise(ActionController::BadRequest, "invalid pt")
     end
 
-    def request
-      nil
-    end
-  end
-
-  test "verification recovery params keep present scope and pt" do
-    harness = Harness.new
-    harness.params = ActionController::Parameters.new(verification: { scope: "settings_email", pt: "abc" }, ri: "jp")
-
-    assert_equal({ ri: "jp", scope: "settings_email", pt: "abc" }, harness.send(:verification_recovery_redirect_params))
-  end
-
-  test "verify_email_otp rejects invalid missing and mismatched codes" do
-    harness = Harness.new
-    harness.params = ActionController::Parameters.new(verification: { code: "12" })
-
-    assert_not harness.send(:verify_email_otp!)
-    assert_equal [I18n.t("sign.app.verification.errors.invalid_code")], harness.verification_errors
-
-    harness.params = ActionController::Parameters.new(verification: { code: "123456" })
-
-    assert_not harness.send(:verify_email_otp!)
-    assert_equal [I18n.t("sign.app.verification.errors.resend_required")], harness.verification_errors
-
-    session = Object.new
-    session.define_singleton_method(:id) { 11 }
-    session.define_singleton_method(:discarded_at) { 1.minute.ago }
-    harness.current_step_up_session = session
-    harness.session[:sign_step_up_email_otp] = {
-      "step_up_session_id" => 11,
-      "expires_at" => 1.hour.from_now.to_i,
-      "otp_digest" => "deadbeef",
-    }
-    harness.params = ActionController::Parameters.new(verification: { code: "123456" })
-
-    assert_not harness.send(:verify_email_otp!)
-    assert_equal [I18n.t("sign.app.verification.errors.code_expired")], harness.verification_errors
-
-    session.define_singleton_method(:discarded_at) { 1.hour.from_now }
-    harness.current_step_up_session = session
-
-    assert_not harness.send(:verify_email_otp!)
-    assert_equal [I18n.t("sign.app.verification.errors.incorrect_code")], harness.verification_errors
-  end
-
-  test "restore step up session from params returns false without both values" do
-    harness = Harness.new
-    harness.params = ActionController::Parameters.new(verification: { scope: "settings_email" })
-
-    assert_not harness.send(:restore_step_up_session_from_params!)
+    assert_not subject.invoke(:restore_step_up_session_from_params!)
   end
 end

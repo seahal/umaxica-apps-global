@@ -82,6 +82,34 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_equal VisitorTokenStatus::ACTIVE, @token.reload.visitor_token_status_id
   end
 
+  test "update with a batch of refs revokes every selected session but never the current one" do
+    first = create_active_session(@visitor)
+    second = create_active_session(@visitor)
+    headers = request_headers(@token)
+
+    patch auth_com_sign_in_session_url(ri: "jp"),
+          params: { revoke_refs: [first.signed_ref, second.signed_ref, @token.signed_ref] },
+          headers: headers
+
+    assert_response :redirect
+    assert_not_nil first.reload.discarded_at
+    assert_not_nil second.reload.discarded_at
+    assert_predicate @token.reload, :currently_usable?
+  end
+
+  test "update with a batch that names another visitor's session leaves it alone" do
+    other_visitor = create_verified_visitor_with_email(email_address: "batch-ses-#{SecureRandom.hex(4)}@example.com")
+    other_token = create_active_session(other_visitor)
+    headers = request_headers(@token)
+
+    patch auth_com_sign_in_session_url(ri: "jp"),
+          params: { revoke_refs: [other_token.signed_ref] },
+          headers: headers
+
+    assert_response :redirect
+    assert_predicate other_token.reload, :currently_usable?
+  end
+
   test "update with ref belonging to another visitor does not revoke" do
     other_visitor = create_verified_visitor_with_email(email_address: "other-ses-#{SecureRandom.hex(4)}@example.com")
     other_token = create_active_session(other_visitor)

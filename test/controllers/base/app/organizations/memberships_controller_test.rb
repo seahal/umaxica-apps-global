@@ -268,4 +268,12 @@ class Base::App::Organizations::MembershipsControllerTest
     base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id
     base
   end
+
+  test "show returns empty json for a membership the actor may read" do
+    get base_app_organization_membership_url(@organization_public_id, @membership.id, ri: "jp", host: @host),
+        headers: as_user_headers(@user, host: @host), as: :json
+
+    assert_response :success
+    assert_empty response.parsed_body
+  end
 end

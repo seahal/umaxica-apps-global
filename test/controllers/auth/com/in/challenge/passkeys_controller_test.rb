@@ -126,6 +126,46 @@ class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     assert_redirected_to auth_com_sign_in_challenge_path(ri: "jp")
   end
 
+  test "create sends the visitor back to the chooser when the credential payload is not json" do
+    establish_pending_mfa!
+    get new_auth_com_sign_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
+    challenge_id = session[:passkey_challenges].keys.first
+
+    post auth_com_sign_in_challenge_passkey_path(ri: "jp"),
+         params: { mfa_passkey_form: { challenge_id: challenge_id, credential_json: "{not-json" } },
+         headers: @origin_headers
+
+    assert_response :see_other
+    assert_redirected_to auth_com_sign_in_challenge_path(ri: "jp")
+  end
+
+  test "create sends the visitor back to the chooser when the credential belongs to another account" do
+    other_visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
+    establish_pending_mfa!
+    get new_auth_com_sign_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
+    challenge_id = session[:passkey_challenges].keys.first
+    @passkey.update!(visitor_id: other_visitor.id)
+
+    post auth_com_sign_in_challenge_passkey_path(ri: "jp"),
+         params: {
+           mfa_passkey_form: {
+             challenge_id: challenge_id,
+             credential_json: {
+               id: @passkey.webauthn_id,
+               type: "public-key",
+               response: { clientDataJSON: "d",
+                           authenticatorData: "d",
+                           signature: "d",
+                           userHandle: other_visitor.public_id, },
+             }.to_json,
+           },
+         },
+         headers: @origin_headers
+
+    assert_response :see_other
+    assert_redirected_to auth_com_sign_in_challenge_path(ri: "jp")
+  end
+
   test "create verifies passkey and redirects on success" do
     establish_pending_mfa!
 

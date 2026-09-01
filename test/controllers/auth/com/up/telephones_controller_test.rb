@@ -285,6 +285,81 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
     assert VisitorTelephone.exists?(public_id: new_public_id)
   end
 
+  test "create is refused while a verified telephone of the same number is locked out" do
+    visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
+    existing = visitor.visitor_telephones.create!(
+      raw_number: "+819012377901",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
+    )
+    existing.update!(locked_at: 10.minutes.from_now)
+
+    assert_no_difference("VisitorTelephone.count") do
+      post auth_com_sign_up_telephone_url(ri: "jp"),
+           params: {
+             visitor_telephone: { raw_number: existing.number, confirm_policy: "1", confirm_using_mfa: "1" },
+             "cf-turnstile-response": "test",
+           }, headers: default_headers
+    end
+
+    assert_response :too_many_requests
+    assert_equal I18n.t("sign.app.registration.email.create.otp_resend_too_soon"), response.body
+  end
+
+  test "create is refused while a pending sign-up telephone of the same number is locked out" do
+    visitor = Visitor.create!(status_id: VisitorStatus::NOTHING, visibility_id: VisitorVisibility::VISITOR)
+    existing = visitor.visitor_telephones.create!(
+      raw_number: "+819012377902",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+      visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP,
+    )
+    existing.update!(locked_at: 10.minutes.from_now)
+
+    assert_no_difference("VisitorTelephone.count") do
+      post auth_com_sign_up_telephone_url(ri: "jp"),
+           params: {
+             visitor_telephone: { raw_number: existing.number, confirm_policy: "1", confirm_using_mfa: "1" },
+             "cf-turnstile-response": "test",
+           }, headers: default_headers
+    end
+
+    assert_response :too_many_requests
+  end
+
+  test "create is refused when the creator reports the number rate limited under its own lock" do
+    rate_limited = SignComUpTelephoneSignupCreator::Result.new(
+      status: :rate_limited, telephone: VisitorTelephone.new, session_payload: nil,
+    )
+
+    SignComUpTelephoneSignupCreator.stub(:call, rate_limited) do
+      post auth_com_sign_up_telephone_url(ri: "jp"),
+           params: {
+             visitor_telephone: { raw_number: "+819012377903", confirm_policy: "1", confirm_using_mfa: "1" },
+             "cf-turnstile-response": "test",
+           }, headers: default_headers
+    end
+
+    assert_response :too_many_requests
+  end
+
+  test "create re-renders the telephone form when the creator rejects the record" do
+    raiser = lambda do |**|
+      raise ActiveRecord::RecordInvalid, VisitorTelephone.new
+    end
+
+    SignComUpTelephoneSignupCreator.stub(:call, raiser) do
+      post auth_com_sign_up_telephone_url(ri: "jp"),
+           params: {
+             visitor_telephone: { raw_number: "+819012377904", confirm_policy: "1", confirm_using_mfa: "1" },
+             "cf-turnstile-response": "test",
+           }, headers: default_headers
+    end
+
+    assert_response :unprocessable_content
+  end
+
   test "sign-up with an already verified telephone answers the otp page without creating records" do
     visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
     existing = visitor.visitor_telephones.create!(
@@ -313,6 +388,62 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
 
     assert_response :success
     assert_not_includes response.body, I18n.t("errors.messages.taken")
+  end
+
+  test "resending the code for an already verified telephone answers without creating records" do
+    visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
+    existing = visitor.visitor_telephones.create!(
+      raw_number: "+819012377801",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
+    )
+
+    post auth_com_sign_up_telephone_url(ri: "jp"),
+         params: {
+           visitor_telephone: { raw_number: existing.number, confirm_policy: "1", confirm_using_mfa: "1" },
+           "cf-turnstile-response": "test",
+         }, headers: default_headers
+
+    assert_response :redirect
+
+    assert_no_difference("VisitorTelephone.count") do
+      post auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+    end
+
+    assert_response :redirect
+    assert_includes response.location, "/sign/up/check/telephone/otp"
+
+    # The second resend lands inside the send cooldown and must be refused with the
+    # same message a real pending registration gets, so the two cannot be told apart.
+    post auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+
+    assert_response :too_many_requests
+    assert_equal I18n.t("sign.app.registration.email.create.otp_resend_too_soon"), response.body
+  end
+
+  test "the code page for an already verified telephone stops answering once the window closes" do
+    visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
+    existing = visitor.visitor_telephones.create!(
+      raw_number: "+819012377802",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
+    )
+
+    post auth_com_sign_up_telephone_url(ri: "jp"),
+         params: {
+           visitor_telephone: { raw_number: existing.number, confirm_policy: "1", confirm_using_mfa: "1" },
+           "cf-turnstile-response": "test",
+         }, headers: default_headers
+
+    assert_response :redirect
+
+    travel CommonOtp::OTP_EXPIRATION_MINUTES.minutes + 1.minute do
+      get auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+    end
+
+    assert_response :unprocessable_content
   end
 
   test "a code submitted against an already verified telephone never starts an account" do

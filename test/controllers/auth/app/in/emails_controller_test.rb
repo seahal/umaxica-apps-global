@@ -271,6 +271,120 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_equal cycle.public_id, session.dig(:app_sign_in_flow_locator, "public_id")
   end
 
+  test "post create is refused while the record-level otp cooldown is still running" do
+    user = clients(:one)
+    test_email = user.client_emails.create!(address: "otp_cooldown_#{SecureRandom.hex(4)}@example.com")
+    test_email.update!(otp_last_sent_at: Time.current)
+
+    post auth_app_sign_in_email_url(ri: "jp"),
+         params: {
+           :user_email => { address: test_email.address },
+           "cf-turnstile-response" => "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :too_many_requests
+    assert_equal I18n.t("sign.app.authentication.email.create.cooldown"), response.body
+  end
+
+  test "post create is refused when the user already holds a restricted session at the limit" do
+    # A fixture user carries sessions of its own, and the model refuses a fourth row
+    # outright; start from a user whose whole session list is the one built here.
+    user = Client.create!(status_id: ClientStatus::NOTHING, visibility_id: ClientVisibility::USER)
+    test_email = user.client_emails.create!(address: "session_limit_#{SecureRandom.hex(4)}@example.com")
+    ClientToken::MAX_SESSIONS_PER_USER.times do
+      ClientToken.create!(
+        user: user,
+        user_token_status_id: ClientTokenStatus::ACTIVE,
+        user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      )
+    end
+    ClientToken.create!(
+      user: user,
+      user_token_status_id: ClientTokenStatus::RESTRICTED,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+    )
+
+    assert_no_difference -> { ActionMailer::Base.deliveries.count } do
+      post auth_app_sign_in_email_url(ri: "jp"),
+           params: {
+             :user_email => { address: test_email.address },
+             "cf-turnstile-response" => "test_token",
+           },
+           headers: { "Host" => @host }
+    end
+
+    assert_response :forbidden
+    assert_equal I18n.t("session_limit.login_limit_exceeded"), response.body
+  end
+
+  test "patch update after an unknown address is rejected without disclosing that no account exists" do
+    post auth_app_sign_in_email_url(ri: "jp"),
+         params: {
+           :user_email => { address: "no-such-user-#{SecureRandom.hex(4)}@example.com" },
+           "cf-turnstile-response" => "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :found
+    assert_nil SignAppInEmailAuthenticationState.load(session)&.id
+
+    patch auth_app_sign_in_email_url(ri: "jp"),
+          params: { user_email: { pass_code: "123456" } },
+          headers: { "Host" => @host }
+
+    assert_response :unprocessable_content
+    assert_equal "auth/app/sign/in/emails/edit", inertia_component
+  end
+
+  test "patch update is rejected when the account stopped allowing login after the code was sent" do
+    user = clients(:one)
+    test_email = user.client_emails.create!(address: "blocked_#{SecureRandom.hex(4)}@example.com")
+
+    post auth_app_sign_in_email_url(ri: "jp"),
+         params: {
+           :user_email => { address: test_email.address },
+           "cf-turnstile-response" => "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :found
+    assert_equal test_email.id, SignAppInEmailAuthenticationState.load(session)&.id
+
+    otp_private_key = ROTP::Base32.random_base32
+    otp_counter = 12_345
+    test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
+    user.update!(status_id: ClientStatus::RESERVED)
+
+    patch auth_app_sign_in_email_url(ri: "jp"),
+          params: { user_email: { pass_code: ROTP::HOTP.new(otp_private_key).at(otp_counter).to_s } },
+          headers: { "Host" => @host }
+
+    assert_response :unprocessable_content
+    assert_equal "auth/app/sign/in/emails/edit", inertia_component
+  end
+
+  test "patch update with a malformed pass code answers json requests with the error body" do
+    user = clients(:one)
+    test_email = user.client_emails.create!(address: "json_invalid_#{SecureRandom.hex(4)}@example.com")
+
+    post auth_app_sign_in_email_url(ri: "jp"),
+         params: {
+           :user_email => { address: test_email.address },
+           "cf-turnstile-response" => "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :found
+
+    patch auth_app_sign_in_email_url(ri: "jp"),
+          params: { user_email: { pass_code: "not-a-code" } },
+          headers: { "Host" => @host, "Accept" => "application/json" }
+
+    assert_response :unprocessable_content
+    assert_predicate response.parsed_body.fetch("error"), :present?
+  end
+
   test "successful OTP verification accepts the form scope used by the sign-in page" do
     user = clients(:one)
     test_email = user.client_emails.create!(address: "form_scope_test_#{SecureRandom.hex(4)}@example.com")

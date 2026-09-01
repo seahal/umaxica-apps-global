@@ -61,4 +61,16 @@ class OidcIssuerTest < ActiveSupport::TestCase
     assert_equal "http://localhost:3000", OidcIssuer.absolute_url("localhost")
     assert_equal "http://127.0.0.1:4567", OidcIssuer.absolute_url("127.0.0.1:4567")
   end
+
+  test "a host the URI parser rejects is treated as non-public rather than raising" do
+    assert_not OidcIssuer.public_host?("[")
+    assert OidcIssuer.public_host?("accounts.example")
+    assert_not OidcIssuer.public_host?("localhost")
+  end
+
+  test "a value the URI parser rejects still yields its bare host component" do
+    assert_equal "accounts.example", OidcIssuer.host_component("https://accounts.example")
+    assert_equal "accounts.example", OidcIssuer.host_component("//accounts.example")
+    assert_equal "accounts.example]", OidcIssuer.host_component("https://accounts.example]")
+  end
 end
