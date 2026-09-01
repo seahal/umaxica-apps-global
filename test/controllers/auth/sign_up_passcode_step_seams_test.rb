@@ -40,9 +40,10 @@ class Auth::SignUpPasscodeStepSeamsTest < ActiveSupport::TestCase
     Auth::Com::Sign::Up::Check::Telephone::PasscodesController,
   ].each do |klass|
     test "#{klass.name} answers a step with no pending account as not found" do
-      harness = harness_for(klass) do
-        def sign_up_pending_actor = nil
-      end
+      harness =
+        harness_for(klass) do
+          def sign_up_pending_actor = nil
+        end
 
       harness.invoke(:load_sign_up_actor)
 

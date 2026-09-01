@@ -37,9 +37,10 @@ class SharedSeamFallbacksTest < ActiveSupport::TestCase
   end
 
   test "the external authentication ceremony reference is written to and consumed from the session" do
-    endpoint = harness(ExternalAuthenticationEndpoint) do
-      def session = @session ||= {}
-    end
+    endpoint =
+      harness(ExternalAuthenticationEndpoint) do
+        def session = @session ||= {}
+      end
 
     endpoint.invoke(:store_external_authentication_ceremony_reference, "ceremony-1")
 

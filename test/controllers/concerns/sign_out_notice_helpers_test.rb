@@ -10,7 +10,7 @@ require "test_helper"
 class SignOutNoticeHelpersTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
-  class Harness < ActionController::Base
+  class Harness < ApplicationController
     include SignOutNotice
 
     def invoke(name, ...) = send(name, ...)

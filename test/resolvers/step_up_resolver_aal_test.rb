@@ -11,8 +11,10 @@ class StepUpResolverAalTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   def token_with(aal:, at: Time.current, scope: "settings_email", method: "passkey")
-    token = Struct.new(:last_step_up_aal, :last_step_up_at, :last_step_up_scope, :last_step_up_method,
-                       :public_id, :id, keyword_init: true)
+    token = Struct.new(
+      :last_step_up_aal, :last_step_up_at, :last_step_up_scope, :last_step_up_method,
+      :public_id, :id, keyword_init: true,
+    )
       .new(
         last_step_up_aal: aal,
         last_step_up_at: at,

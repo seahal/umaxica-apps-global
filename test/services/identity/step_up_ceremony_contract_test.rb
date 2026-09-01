@@ -106,6 +106,184 @@ class IdentityStepUpCeremonyContractTest < ActiveSupport::TestCase
     end
   end
 
+  test "freshness committer rejects a blank token and mismatched actor session method or aal" do
+    travel_to @now do
+      result_token = IdentityStepUpCeremonyResult.issue(
+        valid_result_claims,
+        issuer_id: IdentityStepUpCeremonyContract.sign_issuer_id("app"),
+        now: @now,
+      )
+
+      error =
+        assert_raises(IdentityStepUpCeremonyContract::Error) do
+          IdentityStepUpCeremonyFreshnessCommitter.call!(
+            result_token: result_token,
+            token: nil,
+            expected_scope: "settings_email",
+            expected_aal: "aal2",
+            expected_method: "totp",
+            audience: "step_up:app",
+            now: @now,
+          )
+        end
+      assert_includes error.message, "token is required"
+
+      other_client = Client.create!(status_id: ClientStatus::NOTHING)
+      other = ClientToken.create!(
+        user: other_client,
+        user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+        user_token_status_id: ClientTokenStatus::ACTIVE,
+      )
+      error =
+        assert_raises(IdentityStepUpCeremonyContract::Error) do
+          IdentityStepUpCeremonyFreshnessCommitter.call!(
+            result_token: result_token,
+            token: other,
+            expected_scope: "settings_email",
+            expected_aal: "aal2",
+            expected_method: "totp",
+            audience: "step_up:app",
+            now: @now,
+          )
+        end
+      assert_includes error.message, "result actor does not match current actor"
+
+      mismatched_session = ClientToken.create!(
+        user: @client,
+        user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+        user_token_status_id: ClientTokenStatus::ACTIVE,
+      )
+      error =
+        assert_raises(IdentityStepUpCeremonyContract::Error) do
+          IdentityStepUpCeremonyFreshnessCommitter.call!(
+            result_token: result_token,
+            token: mismatched_session,
+            expected_scope: "settings_email",
+            expected_aal: "aal2",
+            expected_method: "totp",
+            audience: "step_up:app",
+            now: @now,
+          )
+        end
+      assert_includes error.message, "result session does not match current session"
+
+      error =
+        assert_raises(IdentityStepUpCeremonyContract::Error) do
+          IdentityStepUpCeremonyFreshnessCommitter.call!(
+            result_token: result_token,
+            token: @token,
+            expected_scope: "settings_email",
+            expected_aal: "aal2",
+            expected_method: "passkey",
+            audience: "step_up:app",
+            now: @now,
+          )
+        end
+      assert_includes error.message, "result method does not match ceremony"
+    end
+  end
+
+  test "freshness committer rejects an insufficient AAL and records only attributes the token has" do
+    travel_to @now do
+      low_aal = IdentityStepUpCeremonyResult.issue(
+        valid_result_claims.merge("aal" => "aal1", "result_jti" => SecureRandom.uuid),
+        issuer_id: IdentityStepUpCeremonyContract.sign_issuer_id("app"),
+        now: @now,
+      )
+      error =
+        assert_raises(IdentityStepUpCeremonyContract::Error) do
+          IdentityStepUpCeremonyFreshnessCommitter.call!(
+            result_token: low_aal,
+            token: @token,
+            expected_scope: "settings_email",
+            expected_aal: "aal2",
+            expected_method: "totp",
+            audience: "step_up:app",
+            now: @now,
+          )
+        end
+      assert_includes error.message, "result AAL is insufficient"
+
+      result_token = IdentityStepUpCeremonyResult.issue(
+        valid_result_claims.merge(
+          "result_jti" => SecureRandom.uuid, "actor_ref" => "visitor-1",
+          "session_ref" => "visitor-session",
+        ),
+        issuer_id: IdentityStepUpCeremonyContract.sign_issuer_id("app"),
+        now: @now,
+      )
+      visitor_token = VisitorOnlyStepUpToken.new(
+        public_id: "visitor-session", visitor: Struct.new(:public_id).new("visitor-1"),
+      )
+      IdentityStepUpCeremonyFreshnessCommitter.call!(
+        result_token: result_token,
+        token: visitor_token,
+        expected_scope: "settings_email",
+        expected_aal: "aal2",
+        expected_method: "totp",
+        audience: "step_up:app",
+        now: @now,
+      )
+
+      assert_equal "settings_email", visitor_token.updated.fetch(:last_step_up_scope)
+      assert_equal @now.to_i, visitor_token.updated.fetch(:last_step_up_at).to_i
+
+      staff_token = StaffOnlyStepUpToken.new(
+        public_id: "visitor-session", staff: Struct.new(:public_id).new("visitor-1"),
+      )
+      IdentityStepUpCeremonyFreshnessCommitter.call!(
+        result_token: result_token,
+        token: staff_token,
+        expected_scope: "settings_email",
+        expected_aal: "aal2",
+        expected_method: "totp",
+        audience: "step_up:app",
+        now: @now,
+      )
+
+      assert_equal "visitor-1", staff_token.staff.public_id
+    end
+  end
+
+  test "freshness revoker clears only the freshness columns the token actually has" do
+    bare = BareStepUpToken.new(public_id: "sess")
+    IdentityStepUpCeremonyFreshnessRevoker.call!(bare)
+
+    assert_equal({ last_step_up_at: nil, last_step_up_scope: nil }, bare.updated)
+  end
+
+  class BareStepUpToken
+    attr_reader :public_id, :updated
+
+    def initialize(public_id:)
+      @public_id = public_id
+    end
+
+    def update!(attrs)
+      @updated = attrs
+    end
+
+    def has_attribute?(_name) = false
+  end
+
+  class VisitorOnlyStepUpToken < BareStepUpToken
+    attr_reader :visitor
+
+    def initialize(public_id:, visitor:)
+      super(public_id: public_id)
+      @visitor = visitor
+    end
+  end
+
+  class StaffOnlyStepUpToken < BareStepUpToken
+    attr_reader :staff
+
+    def initialize(public_id:, staff:)
+      super(public_id: public_id)
+      @staff = staff
+    end
+  end
+
   test "fetch_surface_value rejects invalid surfaces" do
     assert_raises(IdentityStepUpCeremonyContract::Error) do
       IdentityStepUpCeremonyContract.sign_issuer("bad")

@@ -36,11 +36,12 @@ class SignUpStepAndOtpSeamsTest < ActiveSupport::TestCase
   end
 
   test "a transition the step did not ask for is recorded and refused" do
-    support = harness(SignUpContactOtpControllerSupport) do
-      def sign_up_family = "email"
+    support =
+      harness(SignUpContactOtpControllerSupport) do
+        def sign_up_family = "email"
 
-      def sign_up_surface = :app
-    end
+        def sign_up_surface = :app
+      end
     support.instance_variable_set(:@sign_up_ticket, nil)
     result = Struct.new(:status, :next_event).new(:ok, :finalize)
     recorded = []

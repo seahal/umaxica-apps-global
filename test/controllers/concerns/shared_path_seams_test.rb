@@ -11,7 +11,7 @@ class SharedPathSeamsTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   def harness(concern, &definition)
-    Class.new(ActionController::Base) do
+    Class.new(ApplicationController) do
       include concern
 
       attr_accessor :params_hash
@@ -39,12 +39,14 @@ class SharedPathSeamsTest < ActiveSupport::TestCase
   end
 
   test "the withdrawal ceremony entry prefers the session entry point when the surface has one" do
-    with_session = harness(WithdrawalCeremonyAuthentication) do
-      def withdrawal_session_new_path = "/identity/withdrawal/session/new"
-    end
-    without_session = harness(WithdrawalCeremonyAuthentication) do
-      def withdrawal_new_path = "/identity/withdrawal/new"
-    end
+    with_session =
+      harness(WithdrawalCeremonyAuthentication) do
+        def withdrawal_session_new_path = "/identity/withdrawal/session/new"
+      end
+    without_session =
+      harness(WithdrawalCeremonyAuthentication) do
+        def withdrawal_new_path = "/identity/withdrawal/new"
+      end
 
     assert_equal "/identity/withdrawal/session/new", with_session.invoke(:withdrawal_ceremony_entry_path)
     assert_equal "/identity/withdrawal/new", without_session.invoke(:withdrawal_ceremony_entry_path)
@@ -53,23 +55,23 @@ class SharedPathSeamsTest < ActiveSupport::TestCase
   # The staff surface has no sign-up of its own, so its fallback is the site root.
   { app: "/sign/in", com: "/sign/in", org: "/" }.each do |surface, expected|
     test "the #{surface} sign-up flow falls back to its own sign-in entry point" do
-      subject = harness(SignUpSequenceControllerSupport) do
-        define_method(:sign_up_surface) { surface }
-      end
+      subject =
+        harness(SignUpSequenceControllerSupport) do
+          define_method(:sign_up_surface) { surface }
+        end
 
       assert_includes subject.invoke(:sign_up_default_sign_in_path), expected
     end
-
-
   end
 
   # Only the app and com surfaces register a telephone during sign-up; the staff
   # surface has no such step, so it answers with nothing rather than a path.
   { app: true, com: true, org: false }.each do |surface, registers_telephone|
     test "the #{surface} sign-up telephone code page is answered only where the step exists" do
-      subject = harness(SignUpSequenceControllerSupport) do
-        define_method(:sign_up_surface) { surface }
-      end
+      subject =
+        harness(SignUpSequenceControllerSupport) do
+          define_method(:sign_up_surface) { surface }
+        end
 
       path = subject.invoke(:sign_up_telephone_edit_path)
 

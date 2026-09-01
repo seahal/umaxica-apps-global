@@ -11,7 +11,8 @@ class SmallRenderAndIdentitySeamsTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   def harness(concern_or_class, &definition)
-    base = concern_or_class.is_a?(Module) && !concern_or_class.is_a?(Class) ? ActionController::Base : concern_or_class
+    bare_module = concern_or_class.is_a?(Module) && !concern_or_class.is_a?(Class)
+    base = bare_module ? ActionController::Base : concern_or_class
     Class.new(base) do
       include concern_or_class if concern_or_class.is_a?(Module) && !concern_or_class.is_a?(Class)
 
@@ -52,9 +53,10 @@ class SmallRenderAndIdentitySeamsTest < ActiveSupport::TestCase
 
   test "a session endpoint refuses to put an internal row id on the wire" do
     [Core::Com::Api::V0::SessionsController, Core::Org::Api::V0::SessionsController].each do |controller_class|
-      subject = harness(controller_class) do
-        def current_resource = Struct.new(:public_id).new("")
-      end
+      subject =
+        harness(controller_class) do
+          def current_resource = Struct.new(:public_id).new("")
+        end
 
       assert_raises(StandardError) { subject.invoke(:actor_public_id) }
     end

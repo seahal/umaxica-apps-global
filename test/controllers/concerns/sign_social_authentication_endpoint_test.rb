@@ -11,7 +11,7 @@ class SignSocialAuthenticationEndpointTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   def harness(&definition)
-    Class.new(ActionController::Base) do
+    Class.new(ApplicationController) do
       include SignSocialAuthenticationEndpoint
 
       attr_accessor :redirected, :rendered

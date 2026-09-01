@@ -25,7 +25,7 @@ class RemainingSurfaceSeamsTest < ActiveSupport::TestCase
   end
 
   test "the preference index path is the preference index url of the same surface" do
-    subject = Class.new(ActionController::Base) do
+    subject = Class.new(ApplicationController) do
       include PreferenceSignScreenActions
 
       def preference_index_url = "https://auth.example/preferences"

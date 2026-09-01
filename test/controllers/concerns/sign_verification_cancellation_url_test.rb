@@ -10,7 +10,7 @@ require "test_helper"
 class SignVerificationCancellationUrlTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
-  class Harness < ActionController::Base
+  class Harness < ApplicationController
     include SignVerificationCancellation
 
     def invoke(name, ...) = send(name, ...)

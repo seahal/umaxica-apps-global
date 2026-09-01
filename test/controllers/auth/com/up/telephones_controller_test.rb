@@ -345,9 +345,10 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   test "create re-renders the telephone form when the creator rejects the record" do
-    raiser = lambda do |**|
-      raise ActiveRecord::RecordInvalid, VisitorTelephone.new
-    end
+    raiser =
+      lambda do |**|
+        raise ActiveRecord::RecordInvalid, VisitorTelephone.new
+      end
 
     SignComUpTelephoneSignupCreator.stub(:call, raiser) do
       post auth_com_sign_up_telephone_url(ri: "jp"),

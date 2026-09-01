@@ -17,7 +17,7 @@ class RecoveryAndRateLimitSeamsTest < ActiveSupport::TestCase
   end
 
   test "the authorize rate limiter records a near-limit warning before it refuses" do
-    subject = Class.new(ActionController::Base) do
+    subject = Class.new(ApplicationController) do
       include OauthAuthorizeRateLimit
 
       def self.name = "Base::Com::Oauth::AuthorizationsController"

@@ -10,7 +10,7 @@ require "test_helper"
 class OauthAuthorizeRateLimitKeysTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
-  class Harness < ActionController::Base
+  class Harness < ApplicationController
     include OauthAuthorizeRateLimit
 
     attr_accessor :params_hash

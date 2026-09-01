@@ -28,17 +28,19 @@ class OidcCallbackFallbacksTest < ActiveSupport::TestCase
   end
 
   test "a path target that cannot be resolved falls back to the site root" do
-    exploding = harness do
-      def oidc_flow_value(_key) = raise(IOError, "flow store unavailable")
-    end
+    exploding =
+      harness do
+        def oidc_flow_value(_key) = raise(IOError, "flow store unavailable")
+      end
 
     assert_equal "/", exploding.invoke(:session_limit_gate_pt)
   end
 
   test "a session-limit rejection is rendered even when the surface has no renderer of its own" do
-    plain = harness do
-      def oidc_flow_value(_key) = nil
-    end
+    plain =
+      harness do
+        def oidc_flow_value(_key) = nil
+      end
 
     plain.invoke(:render_oidc_session_limit_hard_reject, { message: "too many", http_status: :conflict })
 
@@ -46,9 +48,10 @@ class OidcCallbackFallbacksTest < ActiveSupport::TestCase
   end
 
   test "a rejection with no message of its own falls back to the shared session-limit copy" do
-    plain = harness do
-      def oidc_flow_value(_key) = nil
-    end
+    plain =
+      harness do
+        def oidc_flow_value(_key) = nil
+      end
 
     plain.invoke(:render_oidc_session_limit_hard_reject, {})
 
@@ -56,12 +59,14 @@ class OidcCallbackFallbacksTest < ActiveSupport::TestCase
   end
 
   test "the session management page is resolved from whichever surface helper exists" do
-    staff = harness do
-      def sign_org_sign_in_session_path = "/org/in/session"
-    end
-    corporate = harness do
-      def sign_com_sign_in_session_path = "/com/in/session"
-    end
+    staff =
+      harness do
+        def sign_org_sign_in_session_path = "/org/in/session"
+      end
+    corporate =
+      harness do
+        def sign_com_sign_in_session_path = "/com/in/session"
+      end
     bare = harness
 
     assert_equal "/org/in/session", staff.invoke(:oidc_session_management_path)

@@ -24,9 +24,14 @@ class IdentityStepUpCeremonyResultConsumerGuardsTest < ActiveSupport::TestCase
       required_aal: StepUpRequirement::NO_AAL, phishing_resistant_required: true,
     )
     result = {
-      "surface" => "app", "actor_ref" => "actor", "session_ref" => "session",
-      "transaction_id" => "txn", "grant_jti" => "jti", "scope" => "settings_email",
-      "method" => "passkey", "aal" => StepUpRequirement::NO_AAL,
+      "surface" => "app",
+      "actor_ref" => "actor",
+      "session_ref" => "session",
+      "transaction_id" => "txn",
+      "grant_jti" => "jti",
+      "scope" => "settings_email",
+      "method" => "passkey",
+      "aal" => StepUpRequirement::NO_AAL,
     }
     result.define_singleton_method(:phishing_resistant?) { false }
 

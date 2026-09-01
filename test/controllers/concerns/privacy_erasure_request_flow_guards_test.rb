@@ -11,7 +11,7 @@ require "test_helper"
 class PrivacyErasureRequestFlowGuardsTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
-  class Harness < ActionController::Base
+  class Harness < ApplicationController
     include PrivacyErasureRequestFlow
 
     attr_accessor :params_hash, :rendered

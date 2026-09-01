@@ -23,9 +23,10 @@ class SurfaceSeamDefaultsTest < ActiveSupport::TestCase
   end
 
   test "an rp identity class with no state association falls back to the active status id" do
-    identity_class = Class.new do
-      def self.reflect_on_association(_name) = nil
-    end
+    identity_class =
+      Class.new do
+        def self.reflect_on_association(_name) = nil
+      end
     subject = Class.new do
       include OidcRpIdentityProvisioning
 

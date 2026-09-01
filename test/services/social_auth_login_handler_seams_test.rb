@@ -44,6 +44,6 @@ class SocialAuthLoginHandlerSeamsTest < ActiveSupport::TestCase
 
     handler(repository: repository).send(:build_identity_for_user, :the_user)
 
-    assert_equal [:the_user, :principal, :candidate], built
+    assert_equal %i(the_user principal candidate), built
   end
 end

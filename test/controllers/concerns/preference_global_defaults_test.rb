@@ -40,9 +40,10 @@ class PreferenceGlobalDefaultsTest < ActiveSupport::TestCase
   test "an option table that lists no usable name falls back to the compiled allowlist" do
     @harness.prepare_preferences(Object.new)
 
-    empty_option_class = Class.new do
-      def self.filter_map(&) = []
-    end
+    empty_option_class =
+      Class.new do
+        def self.filter_map(&) = []
+      end
 
     PreferenceClassRegistry.stub(:option_class, empty_option_class) do
       assert_equal PreferenceGlobal::ALLOWED_REGION_VALUES, @harness.invoke(:allowed_region_values)

@@ -11,7 +11,7 @@ class SmallEndpointFallbacksTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   def controller_harness(concern, &definition)
-    Class.new(ActionController::Base) do
+    Class.new(ApplicationController) do
       include concern
 
       attr_reader :rendered, :headers_set, :redirected
@@ -61,24 +61,26 @@ class SmallEndpointFallbacksTest < ActiveSupport::TestCase
   end
 
   test "an unknown social provider is refused as a bad request rather than passed through" do
-    ceremony = controller_harness(SocialCeremonyParams) do
-      attr_accessor :params_hash
+    ceremony =
+      controller_harness(SocialCeremonyParams) do
+        attr_accessor :params_hash
 
-      def params
-        ActionController::Parameters.new(params_hash || {})
+        def params
+          ActionController::Parameters.new(params_hash || {})
+        end
       end
-    end
     ceremony.params_hash = { id: "not-a-provider" }
 
     assert_raises(ActionController::BadRequest) { ceremony.invoke(:social_provider_param) }
   end
 
   test "a blank social return target resolves to nothing rather than being signed" do
-    ceremony = controller_harness(SocialCeremonyParams) do
-      def signed_pt_token(value) = "signed:#{value}"
+    ceremony =
+      controller_harness(SocialCeremonyParams) do
+        def signed_pt_token(value) = "signed:#{value}"
 
-      def path_from_signed_pt(value) = value.sub("signed:", "/")
-    end
+        def path_from_signed_pt(value) = value.sub("signed:", "/")
+      end
 
     assert_nil ceremony.invoke(:safe_social_return_to, "")
     assert_equal "/settings", ceremony.invoke(:safe_social_return_to, "settings")

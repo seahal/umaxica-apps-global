@@ -34,11 +34,12 @@ class PasskeyRegistrationFlowOptionsTest < ActiveSupport::TestCase
   end
 
   test "a surface with no relying party configured answers with the shared options error" do
-    subject = harness do
-      def issue_passkey_registration_challenge(**)
-        raise Webauthn::RelyingPartyConfigResolver::MissingConfigurationError, "rp_id missing"
+    subject =
+      harness do
+        def issue_passkey_registration_challenge(**)
+          raise Webauthn::RelyingPartyConfigResolver::MissingConfigurationError, "rp_id missing"
+        end
       end
-    end
     recorded = []
 
     Rails.logger.stub(:error, ->(*args, &block) { recorded << (args.first || block&.call).to_s }) do
@@ -53,9 +54,10 @@ class PasskeyRegistrationFlowOptionsTest < ActiveSupport::TestCase
   test "the recovery reveal purpose is scoped to the surface that issued the passcodes" do
     purposes =
       %i(app com org).to_h do |surface_key|
-        subject = harness do
-          define_method(:webauthn_surface) { Struct.new(:key).new(surface_key) }
-        end
+        subject =
+          harness do
+            define_method(:webauthn_surface) { Struct.new(:key).new(surface_key) }
+          end
 
         [surface_key, subject.invoke(:recovery_passcode_reveal_purpose)]
       end

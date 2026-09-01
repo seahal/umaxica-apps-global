@@ -234,9 +234,10 @@ module Auth::App::Up
     end
 
     test "create re-renders the telephone form when the creator rejects the record" do
-      raiser = lambda do |**|
-        raise ActiveRecord::RecordInvalid, ClientTelephone.new
-      end
+      raiser =
+        lambda do |**|
+          raise ActiveRecord::RecordInvalid, ClientTelephone.new
+        end
 
       SignAppUpTelephoneSignupCreator.stub(:call, raiser) do
         post auth_app_sign_up_telephone_url, params: {

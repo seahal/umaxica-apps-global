@@ -68,7 +68,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     # ROTP verifies the exact 30-second step with no drift allowance, so a code
     # generated just before a window boundary is already stale by the time the
     # controller checks it. Pin the clock across generation and submission.
-    travel_to Time.current do
+    freeze_time do
       code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
 
       with_prosopite_paused do
@@ -123,7 +123,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     # ROTP verifies the exact 30-second step with no drift allowance, so a code
     # generated just before a window boundary is already stale by the time the
     # controller checks it. Pin the clock across generation and submission.
-    travel_to Time.current do
+    freeze_time do
       code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
 
       assert_no_difference -> { ClientVerification.count } do

@@ -27,12 +27,14 @@ class Auth::OidcAuthorizationResumeTest < ActiveSupport::TestCase
       harness = harness_for(klass)
       harness.session[:oidc_authorization_login_challenge] = "challenge-1"
       captured = nil
-      registrar = lambda do |**arguments|
-        captured = arguments
-        Struct.new(:resume_url).new("https://www.example/oauth/authorize?resume=1")
-      end
+      registrar =
+        lambda do |**arguments|
+          captured = arguments
+          Struct.new(:resume_url).new("https://www.example/oauth/authorize?resume=1")
+        end
 
       Actor.clear
+
       OidcAuthorizationTransactionCoordinator.stub(:register_result!, registrar) do
         assert_equal "https://www.example/oauth/authorize?resume=1",
                      harness.invoke(:oidc_authorization_after_login_path)
@@ -50,6 +52,7 @@ class Auth::OidcAuthorizationResumeTest < ActiveSupport::TestCase
       refusing = ->(**) { raise IdentityStepUpCeremonyContract::Error, "no such transaction" }
 
       Actor.clear
+
       OidcAuthorizationTransactionCoordinator.stub(:register_result!, refusing) do
         assert_raises(StandardError) { harness.invoke(:oidc_authorization_after_login_path) }
       end

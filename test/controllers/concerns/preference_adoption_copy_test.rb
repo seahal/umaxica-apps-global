@@ -64,9 +64,10 @@ class PreferenceAdoptionCopyTest < ActiveSupport::TestCase
   test "a target with no child row yet has one created from the registry default" do
     source = Preference.new("plain_preference_language" => Child.new(1))
     target = Preference.new({})
-    option_class = Class.new do
-      def self.ensure_defaults! = nil
-    end
+    option_class =
+      Class.new do
+        def self.ensure_defaults! = nil
+      end
 
     PreferenceClassRegistry.stub(:option_class, option_class) do
       PreferenceClassRegistry.stub(:default_option_id, 99) do

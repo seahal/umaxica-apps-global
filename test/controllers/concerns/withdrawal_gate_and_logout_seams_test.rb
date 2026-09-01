@@ -10,7 +10,7 @@ require "test_helper"
 class WithdrawalGateAndLogoutSeamsTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
-  class GateHarness < ActionController::Base
+  class GateHarness < ApplicationController
     include AuthenticationWithdrawalGate
 
     attr_accessor :format_symbol, :rendered

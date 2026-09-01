@@ -15,18 +15,19 @@ class PreferenceAdoptionConnectionFallbackTest < ActiveSupport::TestCase
   # A preference-shaped record with no ActiveRecord ancestry at all, so
   # `preference_connection_class` finds nothing to switch to.
   class PlainConsentRecord
-    attr_reader :updates
+    attr_reader :updates, :consented_at
 
     def initialize(consented_at: nil)
       @consented_at = consented_at
       @updates = []
     end
 
-    attr_reader :consented_at
-
     def consented = true
+
     def functional = true
+
     def performant = false
+
     def targetable = false
 
     def update!(attributes)
@@ -35,18 +36,19 @@ class PreferenceAdoptionConnectionFallbackTest < ActiveSupport::TestCase
   end
 
   class PlainCookie
-    attr_reader :updates
+    attr_reader :updates, :consented_at
 
     def initialize(consented_at: nil)
       @consented_at = consented_at
       @updates = []
     end
 
-    attr_reader :consented_at
-
     def consented = true
+
     def functional = false
+
     def performant = true
+
     def targetable = false
 
     def update!(attributes)

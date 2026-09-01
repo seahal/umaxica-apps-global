@@ -47,15 +47,16 @@ class VerificationAndRecoveryRenderSeamsTest < ActiveSupport::TestCase
   end
 
   test "a passkey options request that fails answers with the shared options error" do
-    flow = harness(PasskeySignInFlow) do
-      def params = ActionController::Parameters.new(identifier: "someone@example.com")
+    flow =
+      harness(PasskeySignInFlow) do
+        def params = ActionController::Parameters.new(identifier: "someone@example.com")
 
-      def valid_passkey_identifier?(_value) = true
+        def valid_passkey_identifier?(_value) = true
 
-      def find_active_passkey_actor(_identifier) = raise(IOError, "credential store unavailable")
+        def find_active_passkey_actor(_identifier) = raise(IOError, "credential store unavailable")
 
-      def passkey_identifier_invalid_error_key = "errors.webauthn.identifier_invalid"
-    end
+        def passkey_identifier_invalid_error_key = "errors.webauthn.identifier_invalid"
+      end
 
     recorded = []
     Rails.logger.stub(:error, ->(*args, &block) { recorded << (args.first || block&.call).to_s }) do

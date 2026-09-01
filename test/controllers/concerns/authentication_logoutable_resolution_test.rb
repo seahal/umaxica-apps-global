@@ -46,9 +46,10 @@ class AuthenticationLogoutableResolutionTest < ActiveSupport::TestCase
   end
 
   test "a refresh cookie that cannot be parsed resolves to no session rather than raising" do
-    parser = Class.new do
-      def self.parse_refresh_token(_plain) = raise(ArgumentError, "malformed refresh token")
-    end
+    parser =
+      Class.new do
+        def self.parse_refresh_token(_plain) = raise(ArgumentError, "malformed refresh token")
+      end
     @harness.token_class_value = parser
     @harness.cookie_jar = { AuthenticationBase::REFRESH_COOKIE_KEY => "garbage" }
 
@@ -57,9 +58,10 @@ class AuthenticationLogoutableResolutionTest < ActiveSupport::TestCase
   end
 
   test "the session public id falls back to the one carried by the refresh cookie" do
-    parser = Class.new do
-      def self.parse_refresh_token(_plain) = ["public-id-from-cookie", "secret"]
-    end
+    parser =
+      Class.new do
+        def self.parse_refresh_token(_plain) = ["public-id-from-cookie", "secret"]
+      end
     @harness.token_class_value = parser
     @harness.cookie_jar = { AuthenticationBase::REFRESH_COOKIE_KEY => "refresh-token" }
     @harness.refresh_record = Struct.new(:public_id).new("public-id-from-cookie")
@@ -71,9 +73,10 @@ class AuthenticationLogoutableResolutionTest < ActiveSupport::TestCase
   end
 
   test "a surface with neither a session nor a usable refresh cookie resolves to no session id" do
-    parser = Class.new do
-      def self.parse_refresh_token(_plain) = ["public-id-from-cookie", "secret"]
-    end
+    parser =
+      Class.new do
+        def self.parse_refresh_token(_plain) = ["public-id-from-cookie", "secret"]
+      end
     @harness.token_class_value = parser
     @harness.cookie_jar = { AuthenticationBase::REFRESH_COOKIE_KEY => "refresh-token" }
     @harness.refresh_record = nil

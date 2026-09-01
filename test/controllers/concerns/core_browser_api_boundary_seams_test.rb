@@ -15,7 +15,7 @@ class CoreBrowserApiBoundarySeamsTest < ActiveSupport::TestCase
   def harness_for(resource_type)
     # The concern registers a before_action, so it can only be included into a
     # controller class, not a bare object.
-    Class.new(ActionController::Base) do
+    Class.new(ApplicationController) do
       include CoreBrowserApiBoundary
 
       define_method(:core_resource_type) { resource_type }

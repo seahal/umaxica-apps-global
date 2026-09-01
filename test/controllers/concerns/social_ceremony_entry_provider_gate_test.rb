@@ -9,7 +9,7 @@ require "test_helper"
 class SocialCeremonyEntryProviderGateTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
-  class Harness < ActionController::Base
+  class Harness < ApplicationController
     include SocialCeremonyEntry
 
     attr_accessor :params_hash, :providers, :redirected

@@ -11,7 +11,7 @@ require "test_helper"
 class SessionLimitPendingGuardTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
-  class Harness < ActionController::Base
+  class Harness < ApplicationController
     include SessionLimitPendingGuard
 
     attr_accessor :pending, :params_hash, :allowed, :redirected

@@ -52,7 +52,7 @@ class RegistrationAndContentSeamsTest < ActiveSupport::TestCase
   end
 
   test "published entries are serialised one row at a time and unpublishable rows are dropped" do
-    harness = Class.new(ActionController::Base) do
+    harness = Class.new(ApplicationController) do
       include PublishingContentRendering
 
       attr_accessor :entries
@@ -61,7 +61,7 @@ class RegistrationAndContentSeamsTest < ActiveSupport::TestCase
 
       def publishing_entry_json(entry) = (entry == :skip) ? nil : { slug: entry }
     end.new
-    harness.entries = [:first, :skip, :second]
+    harness.entries = %i(first skip second)
 
     assert_equal [{ slug: :first }, { slug: :second }], harness.send(:publishing_entries_json)
   end

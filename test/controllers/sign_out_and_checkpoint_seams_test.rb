@@ -33,13 +33,15 @@ class SignOutAndCheckpointSeamsTest < ActiveSupport::TestCase
       # The shared implementation this override calls needs a live request; the
       # override's own contribution -- selecting the document layout -- is what
       # this pins.
-      harness.singleton_class.prepend(Module.new do
-        def reject_oidc_logout_challenge!(reason)
-          super
-        rescue StandardError
-          nil
-        end
-      end)
+      harness.singleton_class.prepend(
+        Module.new do
+          def reject_oidc_logout_challenge!(reason)
+            super
+          rescue StandardError
+            nil
+          end
+        end,
+      )
 
       harness.invoke(:reject_oidc_logout_challenge!, "invalid_challenge")
 
@@ -51,9 +53,10 @@ class SignOutAndCheckpointSeamsTest < ActiveSupport::TestCase
     test "#{klass.name} posts its logout confirmation back to its own endpoint" do
       # An anonymous subclass has no controller path of its own, and the shared
       # sign-out helpers derive their route prefix from it.
-      harness = harness_for(klass) do
-        define_method(:controller_path) { klass.controller_path }
-      end
+      harness =
+        harness_for(klass) do
+          define_method(:controller_path) { klass.controller_path }
+        end
       form = harness.invoke(:sign_out_confirmation_form)
 
       assert_predicate form.fetch(:action), :present?

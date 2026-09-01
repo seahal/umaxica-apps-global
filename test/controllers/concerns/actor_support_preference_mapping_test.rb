@@ -76,9 +76,10 @@ class ActorSupportPreferenceMappingTest < ActiveSupport::TestCase
     exploding = Harness.new
     exploding.define_singleton_method(:session) { raise IOError, "session store down" }
 
-    error = assert_raises(ActorSupport::ResolutionError) do
-      exploding.invoke(:resolved_active_sign_sequence_id)
-    end
+    error =
+      assert_raises(ActorSupport::ResolutionError) do
+        exploding.invoke(:resolved_active_sign_sequence_id)
+      end
 
     assert_match(/sign_sequence/, error.message)
   end
@@ -87,9 +88,10 @@ class ActorSupportPreferenceMappingTest < ActiveSupport::TestCase
     exploding = Harness.new
     exploding.define_singleton_method(:current_session) { raise IOError, "token store down" }
 
-    error = assert_raises(ActorSupport::ResolutionError) do
-      exploding.invoke(:resolved_current_selection)
-    end
+    error =
+      assert_raises(ActorSupport::ResolutionError) do
+        exploding.invoke(:resolved_current_selection)
+      end
 
     assert_match(/selected_context/, error.message)
   end

@@ -10,7 +10,7 @@ require "test_helper"
 class PromotionalEmailUnsubscribeActionsVerificationTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
-  class Harness < ActionController::Base
+  class Harness < ApplicationController
     include PromotionalEmailUnsubscribeActions
 
     attr_accessor :params_hash, :action, :email_model, :scope

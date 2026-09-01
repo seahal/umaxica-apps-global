@@ -77,7 +77,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     TurnstileVerifierStub.challenge_enabled = true
     TurnstileVerifierStub.challenge_response = { "success" => false }
 
-    post auth_app_settings_passkeys_options_path(ri: "jp"), headers: @headers, as: :json
+    post(auth_app_settings_passkeys_options_path(ri: "jp"), headers: @headers, as: :json)
 
     assert_response :unprocessable_content
     assert_equal I18n.t("turnstile_error"), response.parsed_body.fetch("error")
@@ -89,7 +89,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     TurnstileVerifierStub.challenge_enabled = true
     TurnstileVerifierStub.challenge_response = { "success" => false }
 
-    post auth_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
+    post(auth_app_settings_passkeys_options_path(ri: "jp"), headers: @headers)
 
     assert_response :see_other
     assert_includes response.location, "/settings/passkeys"

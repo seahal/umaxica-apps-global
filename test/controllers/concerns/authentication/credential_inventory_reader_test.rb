@@ -41,4 +41,45 @@ class AuthenticationCredentialInventoryReaderTest < ActiveSupport::TestCase
     assert_empty inventory.aal2_methods
     assert_empty inventory.contact_identifiers
   end
+
+  test "current inventory actor prefers an operator, then a visitor, then a client" do
+    OperatorStatus.find_or_create_by!(id: OperatorStatus::ACTIVE)
+    operator = Operator.create!(status_id: OperatorStatus::ACTIVE)
+    visitor_harness = VisitorActorHarness.new
+    visitor_harness.current_visitor = Visitor.new
+    operator_harness = OperatorActorHarness.new
+    operator_harness.current_operator = operator
+
+    assert_equal operator, operator_harness.send(:current_inventory_actor)
+    assert_instance_of Visitor, visitor_harness.send(:current_inventory_actor)
+  end
+
+  test "current inventory actor falls back to Actor.actor unless that actor is unauthenticated" do
+    authenticated = Object.new
+    unauthenticated = Object.new
+    unauthenticated.define_singleton_method(:unauthenticated?) { true }
+
+    Actor.stub(:actor, authenticated) do
+      assert_equal authenticated, EmptyActorHarness.new.send(:current_inventory_actor)
+    end
+    Actor.stub(:actor, unauthenticated) do
+      assert_nil EmptyActorHarness.new.send(:current_inventory_actor)
+    end
+  end
+
+  class OperatorActorHarness
+    include AuthenticationCredentialInventoryReader
+
+    attr_accessor :current_operator
+  end
+
+  class VisitorActorHarness
+    include AuthenticationCredentialInventoryReader
+
+    attr_accessor :current_visitor
+  end
+
+  class EmptyActorHarness
+    include AuthenticationCredentialInventoryReader
+  end
 end

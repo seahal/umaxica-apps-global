@@ -11,10 +11,10 @@ require "test_helper"
 class WithdrawalCeremonyReentryGuardsTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
-  class Harness < ActionController::Base
+  class Harness < ApplicationController
     include WithdrawalCeremonyReentry
 
-    attr_accessor :session_hash, :params_hash, :renders, :reentry_state_value, :email_model
+    attr_accessor :session_hash, :params_hash, :reentry_state_value, :email_model
 
     def session
       @session_hash ||= {}

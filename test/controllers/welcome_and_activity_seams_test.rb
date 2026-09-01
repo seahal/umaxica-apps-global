@@ -55,9 +55,10 @@ class WelcomeAndActivitySeamsTest < ActiveSupport::TestCase
       presenter.define_singleton_method(:login_method_label) { |_activity| "Email" }
       presenter.define_singleton_method(:context_text) { |_activity| "from Tokyo" }
 
-      harness = harness_for(klass) do
-        define_method(:activity_log) { presenter }
-      end
+      harness =
+        harness_for(klass) do
+          define_method(:activity_log) { presenter }
+        end
       activity = Struct.new(:id, :event_id).new(7, 4)
 
       row = harness.invoke(:serialize_activity, activity)

@@ -12,7 +12,7 @@ class SignOidcLogoutCompletionTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   def harness(&definition)
-    Class.new(ActionController::Base) do
+    Class.new(ApplicationController) do
       include SignOidcLogout
 
       attr_accessor :redirected, :rendered, :consumed, :params_hash

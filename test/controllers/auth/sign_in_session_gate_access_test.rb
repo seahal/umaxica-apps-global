@@ -33,11 +33,12 @@ class Auth::SignInSessionGateAccessTest < ActiveSupport::TestCase
   end
 
   test "a valid gate together with the pending client admits the request" do
-    harness = harness_for(Auth::App::Sign::In::SessionsController) do
-      def session_limit_gate_valid? = true
+    harness =
+      harness_for(Auth::App::Sign::In::SessionsController) do
+        def session_limit_gate_valid? = true
 
-      def logged_in? = false
-    end
+        def logged_in? = false
+      end
     harness.session[:pending_login_user_id] = 42
 
     assert_nil harness.invoke(:require_authentication_or_gate)
@@ -45,18 +46,20 @@ class Auth::SignInSessionGateAccessTest < ActiveSupport::TestCase
 
   test "the staff surface resolves the pending operator from the gate when none is signed in" do
     operator = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
-    harness = harness_for(Auth::Org::Sign::In::SessionsController) do
-      def current_resource = nil
-    end
+    harness =
+      harness_for(Auth::Org::Sign::In::SessionsController) do
+        def current_resource = nil
+      end
     harness.session[:pending_login_staff_id] = operator.id
 
     assert_equal operator, harness.invoke(:resolve_current_operator)
   end
 
   test "the staff surface resolves no operator when the gate names none" do
-    harness = harness_for(Auth::Org::Sign::In::SessionsController) do
-      def current_resource = nil
-    end
+    harness =
+      harness_for(Auth::Org::Sign::In::SessionsController) do
+        def current_resource = nil
+      end
 
     assert_nil harness.invoke(:resolve_current_operator)
   end
