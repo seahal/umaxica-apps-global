@@ -29,10 +29,9 @@ module Auth
         layout :settings_passkeys_layout
 
         before_action :authenticate_client!
-        step_up only: %i(new create options verification), bootstrap: true
+        step_up only: %i(new create), bootstrap: true
         step_up only: :destroy
-        before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create options verification)
-        before_action :verify_settings_passkey_turnstile!, only: :options
+        before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create)
 
         # GET /settings/passkeys
         def index
@@ -52,7 +51,7 @@ module Auth
         def new
           authorize!(ClientPasskey, to: :new?)
           @passkey = current_client.client_passkeys.new
-          start_passkey_ceremony!(_surface: "app", _actor: current_client, _session_ref: current_session_public_id)
+          start_passkey_ceremony!(surface: "app", actor: current_client, session_ref: current_session_public_id)
           render_inertia_page(props: new_page_props)
         end
 
@@ -83,12 +82,6 @@ module Auth
             end
           end
         end
-
-        # POST /settings/passkeys/options
-        def options = (authorize!(ClientPasskey, to: :create?); render_passkey_registration_options)
-
-        # POST /settings/passkeys/verification
-        def verification = (authorize!(ClientPasskey, to: :create?); verify_passkey_registration)
 
         # PATCH/PUT /settings/passkeys/:id
         def update
@@ -273,21 +266,6 @@ module Auth
             auth_app_settings_passkeys_path(ri: params[:ri]),
             status: :see_other,
           )
-        end
-
-        def verify_settings_passkey_turnstile!
-          return true if cloudflare_turnstile_stealth_validation["success"]
-
-          respond_to do |format|
-            format.html do
-              redirect_back_or_to(
-                auth_app_settings_passkeys_path(ri: params[:ri]),
-                status: :see_other,
-              )
-            end
-            format.json { render json: { error: t("turnstile_error") }, status: :unprocessable_content }
-          end
-          false
         end
 
         def passkey_verification_required_message

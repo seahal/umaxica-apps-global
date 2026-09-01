@@ -35,7 +35,7 @@ module VerificationBase
   end
 
   def verification_required_aal
-    :aal2
+    StepUpRequirement::NO_AAL
   end
 
   def verification_satisfied?
@@ -396,7 +396,7 @@ module VerificationBase
   end
 
   def step_up_strong_methods
-    StepUpRequirement::DEFAULT_ALLOWED_METHODS
+    step_up_supported_methods
   end
 
   def verification_model
@@ -431,7 +431,7 @@ module VerificationBase
     ::StepUpMethodsResolver.call(
       actor: actor,
       ticket: current_step_up_ticket,
-      supported_methods: step_up_supported_methods,
+      supported_methods: step_up_permitted_methods,
     )
   end
 
@@ -455,6 +455,34 @@ module VerificationBase
     return token.step_up_session if token&.respond_to?(:step_up_session)
 
     nil
+  end
+
+  # The signed acme transaction is the authoritative operation policy.  A local
+  # verification endpoint may offer only the intersection of that policy and the
+  # fixed surface policy; no client parameter can expand either set.
+  def step_up_permitted_methods
+    supported = step_up_supported_methods
+    return supported unless respond_to?(:current_step_up_session, true)
+
+    scope = current_step_up_session&.scope
+    return supported if scope.blank?
+
+    transaction = current_step_up_ceremony_transaction_for_policy(scope)
+    return supported unless transaction
+
+    supported & transaction.allowed_methods_array.map(&:to_sym)
+  end
+
+  def current_step_up_ceremony_transaction_for_policy(scope)
+    if respond_to?(:acme_step_up_completion_state?, true) && acme_step_up_completion_state?
+      return current_step_up_ceremony_transaction!(scope: scope)
+    end
+
+    IdentityStepUpCeremonyReplayStore.for(step_up_ceremony_surface).latest_pending_for(
+      actor_ref: step_up_ceremony_actor_ref,
+      session_ref: actor_token.public_id,
+      required_scope: scope,
+    )
   end
 
   def step_up_supported_methods

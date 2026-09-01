@@ -113,7 +113,9 @@ end
 
 # DAMP local helper copy for former shared test support.
 class Auth::App::TestCsrfController
-  TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  TEST_BROWSER_USER_AGENT =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
 
   private
@@ -269,8 +271,14 @@ class Auth::App::TestCsrfController
     VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
     VisitorPasskeyStatus.find_or_create_by!(id: VisitorPasskeyStatus::ACTIVE)
     if defined?(VisitorSecretCredentialStatus)
-      [VisitorSecretCredentialStatus::ACTIVE, VisitorSecretCredentialStatus::EXPIRED, VisitorSecretCredentialStatus::REVOKED,
-       VisitorSecretCredentialStatus::USED, VisitorSecretCredentialStatus::DELETED, VisitorSecretCredentialStatus::NOTHING,].each do |id|
+      [
+        VisitorSecretCredentialStatus::ACTIVE,
+        VisitorSecretCredentialStatus::EXPIRED,
+        VisitorSecretCredentialStatus::REVOKED,
+        VisitorSecretCredentialStatus::USED,
+        VisitorSecretCredentialStatus::DELETED,
+        VisitorSecretCredentialStatus::NOTHING,
+      ].each do |id|
         VisitorSecretCredentialStatus.find_or_create_by!(id: id)
       end
     end
@@ -564,9 +572,11 @@ end
 
 # DAMP local helper copy on the test class.
 class Auth::App::AuthPublicControllerTest
-  TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
-    :TEST_BROWSER_USER_AGENT, false,
-  )
+  TEST_BROWSER_USER_AGENT =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
+      :TEST_BROWSER_USER_AGENT, false,
+    )
   PREFERENCE_JWT_KEY = OpenSSL::PKey::EC.generate("secp384r1") unless const_defined?(:PREFERENCE_JWT_KEY, false)
 
   private
@@ -636,7 +646,9 @@ class Auth::App::AuthPublicControllerTest
     token ||= ClientToken.where(user_id: user.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
     token ||= ClientToken.create!(
       user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB,
-      user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -654,7 +666,9 @@ class Auth::App::AuthPublicControllerTest
     ).order(created_at: :desc).first
     token ||= OperatorToken.create!(
       staff_id: staff.id, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-      staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
+      staff_token_status_id: OperatorTokenStatus::ACTIVE,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -672,7 +686,9 @@ class Auth::App::AuthPublicControllerTest
     ).order(created_at: :desc).first
     token ||= VisitorToken.create!(
       visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
-      visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY,
+      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -730,7 +746,12 @@ class Auth::App::AuthPublicControllerTest
     visitor = Visitor.create!(status_id: VisitorStatus::NOTHING, visibility_id: VisitorVisibility::VISITOR)
     VisitorEmail.create!(
       visitor_id: visitor.id, address: email_address,
-      address_digest: IdentifierBlindIndex.bidx_for_email(email_address), visitor_email_status_id: VisitorEmailStatus::VERIFIED, otp_private_key: SecureRandom.base64(24), otp_counter: "", otp_attempts_count: 0, public_id: SecureRandom.alphanumeric(21),
+      address_digest: IdentifierBlindIndex.bidx_for_email(email_address),
+      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
+      otp_private_key: SecureRandom.base64(24),
+      otp_counter: "",
+      otp_attempts_count: 0,
+      public_id: SecureRandom.alphanumeric(21),
     )
     visitor.reload
   end

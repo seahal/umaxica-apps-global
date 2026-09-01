@@ -3,6 +3,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { present } from "../../support/present";
+
 // The base/app self-service pages moved out of ERB, so the markup and the form handlers are now
 // covered here. Inertia is mocked because these specs exercise the components, not the transport.
 const post = vi.fn();
@@ -248,14 +250,26 @@ describe("AvatarForm", () => {
 
   it("edits both fields and posts to the create action", () => {
     const element = mount(<AvatarForm {...createProps} />);
-    const moniker = element.querySelector<HTMLInputElement>("#avatar_moniker");
-    const handle = element.querySelector<HTMLInputElement>("#avatar_handle");
+    const moniker = present(
+      element.querySelector<HTMLInputElement>("#avatar_moniker"),
+      "the moniker field",
+    );
+    const handle = present(
+      element.querySelector<HTMLInputElement>("#avatar_handle"),
+      "the handle field",
+    );
+    const descriptor = present(
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set,
+      "the input value setter",
+    );
 
     act(() => {
-      moniker?.dispatchEvent(new Event("input", { bubbles: true }));
+      descriptor.call(moniker, "Ada");
+      moniker.dispatchEvent(new Event("input", { bubbles: true }));
     });
     act(() => {
-      handle?.dispatchEvent(new Event("input", { bubbles: true }));
+      descriptor.call(handle, "ada");
+      handle.dispatchEvent(new Event("input", { bubbles: true }));
     });
     act(() => {
       element

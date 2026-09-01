@@ -178,7 +178,7 @@ describe("passkey settings screens", () => {
         title="Passkey"
         description="登録済みのPasskey"
         back_link={{ label: "もどる", href: "/settings/passkeys?ri=jp" }}
-        passkey_description="MacBook"
+        passkey_description={null}
         details={[{ key: "created_at", label: "作成日", value: "2026/01/01" }]}
         edit_link={{ label: "編集", href: "/settings/passkeys/pk_1/edit?ri=jp" }}
       />,
@@ -187,6 +187,21 @@ describe("passkey settings screens", () => {
     expect(html).toContain("作成日");
     expect(html).toContain('href="/settings/passkeys/pk_1/edit?ri=jp"');
     expect(html).not.toContain("削除");
+  });
+
+  it("names the passkey when the server sent a description", () => {
+    const html = renderToStaticMarkup(
+      <PasskeysShow
+        title="Passkey"
+        description="登録済みのPasskey"
+        back_link={{ label: "もどる", href: "/settings/passkeys?ri=jp" }}
+        passkey_description="MacBook"
+        details={[{ key: "created_at", label: "作成日", value: "2026/01/01" }]}
+        edit_link={{ label: "編集", href: "/settings/passkeys/pk_1/edit?ri=jp" }}
+      />,
+    );
+
+    expect(html).toContain("MacBook");
   });
 
   it("frames the registration ceremony", () => {

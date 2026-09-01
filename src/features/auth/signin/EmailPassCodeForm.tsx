@@ -65,6 +65,7 @@ export default function EmailPassCodeForm({
     pt: form.pt,
   });
 
+  /* v8 ignore next -- useForm always initialises the scoped field as a string */
   const value = readString(data[field.scope], field.field) ?? "";
   const fieldId = `${field.scope}_${field.field}`;
 

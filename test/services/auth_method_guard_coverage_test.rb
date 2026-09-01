@@ -62,12 +62,17 @@ class AuthMethodGuardCoverageTest < ActiveSupport::TestCase
   end
 
   Inventory =
-    Struct.new(:aal1_method_count, :retains_aal1_value, :retains_aal2_value, :retains_contactability_value) do
+    Struct.new(
+      :aal1_method_count, :retains_aal1_value, :retains_aal2_value, :retains_contactability_value,
+      :retains_uv_step_up_value,
+    ) do
       def retains_aal1? = retains_aal1_value
 
       def retains_aal2? = retains_aal2_value
 
       def retains_contactability? = retains_contactability_value
+
+      def retains_uv_step_up? = retains_uv_step_up_value
     end
 
   test "verified counts cover client, visitor, and fallback branches" do
@@ -134,7 +139,7 @@ class AuthMethodGuardCoverageTest < ActiveSupport::TestCase
     email = Object.new
     telephone = Object.new
     totp = Object.new
-    inventory = Inventory.new(2, true, false, true)
+    inventory = Inventory.new(2, true, false, true, false)
     calls = []
 
     AuthenticationCredentialInventory.stub(

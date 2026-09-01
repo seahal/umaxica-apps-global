@@ -18,6 +18,8 @@ class AuthenticationCredentialInventoryOwnerTest < ActiveSupport::TestCase
         aal1_methods: [:email_otp],
         aal2_methods: [:passkey],
         aal3_methods: [:hardware_key],
+        step_up_methods: [:email_otp, :passkey],
+        uv_step_up_methods: [:email_otp, :passkey],
         contact_identifiers: [:email],
         phishing_resistant_methods: [:passkey],
       )
@@ -55,10 +57,10 @@ class AuthenticationCredentialInventoryOwnerTest < ActiveSupport::TestCase
     end
   end
 
-  test "aal2 and step up methods share inventory result" do
+  test "aal2 and step up methods are independent inventory dimensions" do
     with_inventory do
       assert_equal [:passkey], @owner.aal2_methods(excluding: @excluding)
-      assert_equal [:passkey], @owner.step_up_methods(excluding: @excluding)
+      assert_equal [:email_otp, :passkey], @owner.step_up_methods(excluding: @excluding)
       assert_equal 1, @owner.aal2_method_count(excluding: @excluding)
       assert @owner.aal2_available?(excluding: @excluding)
       assert @owner.step_up_available?(excluding: @excluding)

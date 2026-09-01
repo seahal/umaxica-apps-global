@@ -39,7 +39,9 @@ module Preference
         status_class: -> { AppPreferenceStatus },
         binding_class: -> { AppPreferenceBindingMethod },
         dbsc_class: -> { AppPreferenceDbscStatus },
-        resource_fixture: -> { Client.create!(status_id: ClientStatus::NOTHING, visibility_id: ClientVisibility::USER) },
+        resource_fixture: -> {
+          Client.create!(status_id: ClientStatus::NOTHING, visibility_id: ClientVisibility::USER)
+        },
         resource_pref_class: -> { ClientPreference },
         resource_fk: :user_id,
         resource_language_assoc: "user_preference_language",
@@ -106,7 +108,8 @@ module Preference
           resource_pref = adopt!(browser_pref, resource, cfg)
 
           assert_equal EN, resource_language(resource_pref, cfg).option_id,
-                       "explicit authority, not timestamp, must decide the winner even when the new default row is newer"
+                       "explicit authority, not timestamp, must decide the winner even when the new default " \
+                       "row is newer"
         end
       end
 

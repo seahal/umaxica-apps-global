@@ -49,7 +49,7 @@ module StepUp
       assert_predicate step_up, :satisfied?
       assert_predicate step_up, :usable_token?
       assert_equal "profile", step_up.scope
-      assert_equal :aal2, step_up.required_aal
+      assert_nil step_up.required_aal
       assert_equal now + 10.minutes, step_up.expires_at
     end
 

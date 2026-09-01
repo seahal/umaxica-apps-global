@@ -9,7 +9,10 @@ module ExternalAuthenticationEndpoint
   private
 
   def external_authentication_allowed?(surface:, provider:, operation:)
-    ExternalAuthentication::ProviderSurfacePolicy.new.allowed?(surface: surface, provider: provider, operation: operation)
+    ExternalAuthentication::ProviderSurfacePolicy.new.allowed?(
+      surface: surface, provider: provider,
+      operation: operation,
+    )
   end
 
   def external_authentication_start_available?(provider:, operation:, context:)

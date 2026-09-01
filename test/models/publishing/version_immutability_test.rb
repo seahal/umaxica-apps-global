@@ -85,10 +85,12 @@ module Publishing
         publishing_term(vocabulary: @tag, locale: "ja", slug: "ruby")
 
       RevisionSingleTaxonomyAssignment.create!(
-        entry_revision: revision, vocabulary: @category, vocabulary_kind: @category.kind, taxonomy_term: guide, locale: "ja",
+        entry_revision: revision, vocabulary: @category, vocabulary_kind: @category.kind, taxonomy_term: guide,
+        locale: "ja",
       )
       RevisionMultipleTaxonomyAssignment.create!(
-        entry_revision: revision, vocabulary: @tag, vocabulary_kind: @tag.kind, taxonomy_term: ruby, locale: "ja", position: 0,
+        entry_revision: revision, vocabulary: @tag, vocabulary_kind: @tag.kind, taxonomy_term: ruby, locale: "ja",
+        position: 0,
       )
     end
   end

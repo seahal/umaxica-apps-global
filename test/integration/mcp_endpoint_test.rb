@@ -51,7 +51,8 @@ class McpEndpointTest < ActionDispatch::IntegrationTest
   test "no surface host routes /mcp to another surface's controller" do
     routed =
       SURFACES.to_h do |surface|
-        [surface[:host], Rails.application.routes.recognize_path("http://#{surface[:host]}/mcp", method: :post)[:controller]]
+        [surface[:host],
+         Rails.application.routes.recognize_path("http://#{surface[:host]}/mcp", method: :post)[:controller],]
       end
 
     assert_equal SURFACES.pluck(:controller).sort, routed.values.sort

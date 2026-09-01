@@ -85,14 +85,14 @@ root.
 
 ## What the Configuration Already Does
 
-`devcontainer.json` runs `.devcontainer/write-host-ids.sh && bin/setup-dev-secrets` as
-`initializeCommand`. The first writes the real `UID` and `GID` into the gitignored repository-root
-`.env`, because `$UID` and `$GID` are bash builtins rather than exported variables and Compose
-cannot read them directly. The second registers the external Podman secrets — `dev_postgres_writer`,
-`dev_postgres_replication`, `dev_rustfs_access_key`, `dev_rustfs_secret_key`, and
-`dev_rustfs_rpc_secret` — before any service starts. Global and Edge do not share a host Podman
-network; the Edge Worker uses Cloudflare Workers VPC to reach this tunnel. `postCreateCommand` then
-runs `bundle install && pnpm install`.
+`devcontainer.json` declares no `initializeCommand`; the stack needs no host-side bootstrap. Service
+passwords are fixed development-only literals declared inline in `compose.yaml`, so nothing has to
+be provisioned before the first `up`. The one manual prerequisite is the `UID` and `GID` lines in
+the gitignored repository-root `.env`, because `$UID` and `$GID` are bash builtins rather than
+exported variables and Compose cannot read them directly (see
+`docs/operations/development-credential-provisioning.md`). Global and Edge do not share a host
+Podman network; the Edge Worker uses Cloudflare Workers VPC to reach this tunnel.
+`postCreateCommand` then runs `bundle install && pnpm install`.
 
 The Podman-specific properties are Compose concerns and need no flags: `userns_mode: keep-id`,
 `user: !reset null`, the `bind.selinux: Z` labels on the workspace and on the read-only

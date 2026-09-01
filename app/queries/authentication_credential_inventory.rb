@@ -9,12 +9,13 @@ class AuthenticationCredentialInventory
       :aal1_methods,
       :aal2_methods,
       :aal3_methods,
+      :step_up_methods,
+      :uv_step_up_methods,
       :contact_identifiers,
       :phishing_resistant_methods,
       keyword_init: true,
     ) do
       alias_method :login_methods, :aal1_methods
-      alias_method :step_up_methods, :aal2_methods
 
       def aal1_method_count = aal1_methods.count
 
@@ -26,7 +27,7 @@ class AuthenticationCredentialInventory
 
       def login_method_count = aal1_method_count
 
-      def step_up_method_count = aal2_method_count
+      def step_up_method_count = step_up_methods.count
 
       def aal1_available? = aal1_method_count.positive?
 
@@ -38,7 +39,7 @@ class AuthenticationCredentialInventory
 
       def login_available? = aal1_available?
 
-      def step_up_available? = aal2_available?
+      def step_up_available? = step_up_method_count.positive?
 
       def retains_aal1? = aal1_available?
 
@@ -52,6 +53,8 @@ class AuthenticationCredentialInventory
 
       def retains_step_up? = step_up_available?
 
+      def retains_uv_step_up? = uv_step_up_methods.any?
+
       def last_aal1_method? = aal1_method_count.zero?
 
       def last_aal2_method? = aal2_method_count.zero?
@@ -60,7 +63,7 @@ class AuthenticationCredentialInventory
 
       def last_login_method? = last_aal1_method?
 
-      def last_step_up_method? = last_aal2_method?
+      def last_step_up_method? = step_up_method_count.zero?
 
       def removable_aal1_credential? = !last_aal1_method?
 
@@ -70,7 +73,7 @@ class AuthenticationCredentialInventory
 
       def removable_login_credential? = removable_aal1_credential?
 
-      def removable_step_up_credential? = removable_aal2_credential?
+      def removable_step_up_credential? = !last_step_up_method?
     end
 
   def self.call(actor, excluding: nil, reload: false)
@@ -94,6 +97,8 @@ class AuthenticationCredentialInventory
       aal1_methods: aal1_methods,
       aal2_methods: aal2_methods,
       aal3_methods: [],
+      step_up_methods: normal_step_up_methods,
+      uv_step_up_methods: uv_step_up_methods,
       contact_identifiers: contact_identifiers,
       phishing_resistant_methods: phishing_resistant_methods,
     )
@@ -110,6 +115,8 @@ class AuthenticationCredentialInventory
       aal1_methods: [],
       aal2_methods: [],
       aal3_methods: [],
+      step_up_methods: [],
+      uv_step_up_methods: [],
       contact_identifiers: [],
       phishing_resistant_methods: [],
     )
@@ -125,9 +132,24 @@ class AuthenticationCredentialInventory
   end
 
   def aal2_methods
+    []
+  end
+
+  def normal_step_up_methods
     methods = []
-    methods << :email_otp if aal2_email_count.positive?
+    methods << :email_otp if aal1_email_count.positive?
     methods << :passkey if active_passkey_count.positive?
+    methods << :totp if active_totp_count.positive?
+    methods
+  end
+
+  # Removal guards must not treat legacy passkeys with unknown UV history as a
+  # guaranteed compatible fallback. They remain selectable so a successful UV
+  # assertion can establish the fact, but cannot protect removal of another method.
+  def uv_step_up_methods
+    methods = []
+    methods << :email_otp if aal1_email_count.positive?
+    methods << :passkey if uv_verified_passkey_count.positive?
     methods << :totp if active_totp_count.positive?
     methods
   end
@@ -140,7 +162,7 @@ class AuthenticationCredentialInventory
   end
 
   def phishing_resistant_methods
-    aal2_methods & [:passkey]
+    normal_step_up_methods & [:passkey]
   end
 
   def client_social_login_methods
@@ -247,6 +269,21 @@ class AuthenticationCredentialInventory
     end
 
     0
+  end
+
+  def uv_verified_passkey_count
+    scope = active_passkeys_scope
+    return 0 unless scope
+
+    count_scope(scope.where.not(uv_verified_at: nil), scope.klass.name)
+  end
+
+  def active_passkeys_scope
+    return actor.client_passkeys.where(status_id: ClientPasskeyStatus::ACTIVE) if actor.respond_to?(:client_passkeys)
+    return actor.visitor_passkeys.where(status_id: VisitorPasskeyStatus::ACTIVE) if actor.respond_to?(:visitor_passkeys)
+    return actor.staff_passkeys.where(status_id: OperatorPasskeyStatus::ACTIVE) if actor.respond_to?(:staff_passkeys)
+
+    nil
   end
 
   def active_totp_count

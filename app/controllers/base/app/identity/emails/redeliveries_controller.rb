@@ -19,10 +19,16 @@ module Base
 
           before_action :authenticate_client!
           before_action :preserve_email_registration_redirect_parameter, only: :create
+          before_action :authorize_email_redelivery!, only: :create
           step_up only: :create, bootstrap: true
           def create = resend
 
           private
+
+          # Reissuing the pending registration's passcode is part of the same create ceremony the
+          # registrations controller gates, so it is authorized with the same rule. Without this the
+          # private-action check rejects every request.
+          def authorize_email_redelivery! = authorize!(ClientEmail, to: :create?)
 
           def email_registration_target_user = current_client
 

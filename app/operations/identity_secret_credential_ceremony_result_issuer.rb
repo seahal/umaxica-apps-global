@@ -44,6 +44,13 @@ class IdentitySecretCredentialCeremonyResultIssuer
     raise IdentitySecretCredentialCeremonyContract::Error, "candidate is required" if candidate.blank?
     raise IdentitySecretCredentialCeremonyContract::Error,
           "secret credential ceremony grant is required" if grant_token.blank?
+
+    validate_grant_claims!
+    validate_transaction_state!
+    validate_candidate_claims!
+  end
+
+  def validate_grant_claims!
     raise IdentitySecretCredentialCeremonyContract::Error,
           "grant surface does not match ceremony" unless grant["surface"].to_s == surface
     raise IdentitySecretCredentialCeremonyContract::Error,
@@ -54,8 +61,14 @@ class IdentitySecretCredentialCeremonyResultIssuer
           "grant operation does not match ceremony" unless grant["operation"].to_s == operation
     raise IdentitySecretCredentialCeremonyContract::Error,
           "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
+  end
+
+  def validate_transaction_state!
     raise IdentitySecretCredentialCeremonyContract::Error, "transaction is expired" if transaction.expired?(now: now)
     raise IdentitySecretCredentialCeremonyContract::Error, "transaction is already consumed" if transaction.consumed?
+  end
+
+  def validate_candidate_claims!
     raise IdentitySecretCredentialCeremonyContract::Error,
           "candidate surface does not match ceremony" unless candidate.surface.to_s == surface
     raise IdentitySecretCredentialCeremonyContract::Error,

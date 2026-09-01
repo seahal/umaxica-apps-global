@@ -133,12 +133,18 @@ class CeremonyTransactionableTest < ActiveSupport::TestCase
           expires_at: @now + 1.hour,
           now: @now,
         }
-        options[:telephone_candidate_ref] = "telephone-candidate-#{index}" if transaction_class.column_names.include?("telephone_candidate_ref")
-        options[:normalized_number_digest] = "number-digest-#{index}" if transaction_class.column_names.include?("normalized_number_digest")
-        options[:credential_candidate_ref] = "credential-candidate-#{index}" if transaction_class.column_names.include?("credential_candidate_ref")
-        options[:credential_candidate_digest] = "credential-digest-#{index}" if transaction_class.column_names.include?("credential_candidate_digest")
-        options[:email_candidate_ref] = "email-candidate-#{index}" if transaction_class.column_names.include?("email_candidate_ref")
-        options[:normalized_email_digest] = "email-digest-#{index}" if transaction_class.column_names.include?("normalized_email_digest")
+        options[:telephone_candidate_ref] =
+          "telephone-candidate-#{index}" if transaction_class.column_names.include?("telephone_candidate_ref")
+        options[:normalized_number_digest] =
+          "number-digest-#{index}" if transaction_class.column_names.include?("normalized_number_digest")
+        options[:credential_candidate_ref] =
+          "credential-candidate-#{index}" if transaction_class.column_names.include?("credential_candidate_ref")
+        options[:credential_candidate_digest] =
+          "credential-digest-#{index}" if transaction_class.column_names.include?("credential_candidate_digest")
+        options[:email_candidate_ref] =
+          "email-candidate-#{index}" if transaction_class.column_names.include?("email_candidate_ref")
+        options[:normalized_email_digest] =
+          "email-digest-#{index}" if transaction_class.column_names.include?("normalized_email_digest")
         if transaction_class.column_names.include?("evp_nonce_digest")
           options[:evp_nonce_digest] = "evp-nonce-#{index}"
           options[:evp_outcome] = "pending"
@@ -151,9 +157,14 @@ class CeremonyTransactionableTest < ActiveSupport::TestCase
         assert_includes transaction_class.expired_at(@now + 2.hours), transaction
         assert_includes transaction_class.purgeable_at(@now + 8.days), transaction
         assert_not_includes transaction_class.consumed, transaction
-        assert_equal "telephone-candidate-#{index}", transaction.grant_claims["telephone_candidate_ref"] if transaction.respond_to?(:telephone_candidate_ref)
-        assert_equal "credential-candidate-#{index}", transaction.grant_claims["credential_candidate_ref"] if transaction.respond_to?(:credential_candidate_ref)
-        assert_equal "email-candidate-#{index}", transaction.grant_claims["email_candidate_ref"] if transaction.respond_to?(:email_candidate_ref)
+        assert_equal "telephone-candidate-#{index}",
+                     transaction.grant_claims["telephone_candidate_ref"] \
+                       if transaction.respond_to?(:telephone_candidate_ref)
+        assert_equal "credential-candidate-#{index}",
+                     transaction.grant_claims["credential_candidate_ref"] \
+                       if transaction.respond_to?(:credential_candidate_ref)
+        assert_equal "email-candidate-#{index}",
+                     transaction.grant_claims["email_candidate_ref"] if transaction.respond_to?(:email_candidate_ref)
         assert_equal "pending", transaction.evp_outcome if transaction.respond_to?(:evp_outcome)
       end
     end

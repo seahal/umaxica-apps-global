@@ -47,7 +47,7 @@ module Auth
             no_redirect: true,
           )
 
-          before_action :load_user_email, only: :edit
+          before_action :load_user_email, only: %i(edit update)
 
           def identity_email_model
             VisitorEmail
@@ -66,7 +66,7 @@ module Auth
           end
 
           def create
-            address_params = params.permit(user_email: [:address])[:user_email] || {}
+            address_params = params.slice(:user_email).permit(user_email: [:address])[:user_email] || {}
             address = address_params[:address]
             unless cloudflare_turnstile_validation["success"] && address.present?
               @user_email = VisitorEmail.new(address: address)
@@ -101,6 +101,40 @@ module Auth
             preserve_pt
 
             redirect_to(edit_auth_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
+          end
+
+          def update
+            @user_email.pass_code = update_pass_code_params[:pass_code]
+            unless @user_email.valid?
+              @user_email.errors.add(:pass_code, t("sign.app.authentication.email.update.invalid_code"))
+              return render inertia: "auth/com/sign/in/emails/edit", props: sign_in_email_edit_props,
+                            status: :unprocessable_content
+            end
+
+            result = verify_otp_code(@user_email, @user_email.pass_code)
+            unless result[:success] && @user_email.visitor&.login_allowed?
+              increment_otp_attempts!(@user_email) unless result[:success]
+              @user_email.errors.add(:pass_code, t("sign.app.authentication.email.update.invalid_code"))
+              return render inertia: "auth/com/sign/in/emails/edit", props: sign_in_email_edit_props,
+                            status: :unprocessable_content
+            end
+
+            visitor = @user_email.visitor
+            clear_otp(@user_email)
+            session.delete(:user_email_authentication_id)
+            session.delete(:user_email_authentication_address)
+            result = AuthenticationSessionCommitter.call(
+              controller: self, resource: visitor, pt: peek_pt, ri: current_region_identifier, auth_method: "email",
+            )
+            sign_in_result = sign_in_result_from_session_result(result, actor: visitor)
+            unless sign_in_result.success? || sign_in_result.mfa_required? || sign_in_result.session_limit_pending?
+              return render_session_limit_hard_reject(
+                message: sign_in_result.message,
+                http_status: sign_in_result.response_status,
+              )
+            end
+
+            redirect_to(sign_in_result.redirect_to.presence || auth_com_root_path, status: :see_other)
           end
 
           private
@@ -144,7 +178,8 @@ module Auth
               field_placeholder: t("sign.app.authentication.email.edit.code_placeholder"),
               submit_label: t("sign.app.authentication.email.edit.submit"),
               delivery_help: t("sign.app.authentication.email.edit.delivery_help"),
-              return_link: { label: t("sign.app.authentication.email.edit.return_page"), href: new_auth_com_sign_in_email_path(pt: pt) },
+              return_link: { label: t("sign.app.authentication.email.edit.return_page"),
+                             href: new_auth_com_sign_in_email_path(pt: pt), },
               resend: {
                 endpoint: auth_com_web_v0_in_email_otp_path,
                 state: @otp_resend_state.to_s,
@@ -182,6 +217,11 @@ module Auth
             else
               redirect_to(new_auth_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
             end
+          end
+
+          def update_pass_code_params
+            params.permit(visitor_email: [:pass_code], user_email: [:pass_code]).fetch(:visitor_email, {}).presence ||
+              params.permit(visitor_email: [:pass_code], user_email: [:pass_code]).fetch(:user_email, {}).presence || {}
           end
 
           def process_email_authentication(normalized_address)

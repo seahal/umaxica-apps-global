@@ -173,7 +173,7 @@ class SignUpSessionStateTest < ActiveSupport::TestCase
 
     state.sequence_id = "seq-com"
 
-    assert_equal "seq-com", session[:sign_com_up_sequence_id]
+    assert_equal "seq-com", session[:auth_com_up_sequence_id]
 
     state.telephone_otp = { "phone" => "456" }
 

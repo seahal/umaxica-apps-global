@@ -415,7 +415,9 @@ module Auth
           end
 
           def update_pass_code_params
-            permitted = params.permit(client_email: [:pass_code], user_email: [:pass_code])
+            permitted = params
+              .slice(:client_email, :user_email)
+              .permit(client_email: [:pass_code], user_email: [:pass_code])
             permitted.fetch(:client_email, {}).presence || permitted.fetch(:user_email, {}).presence || {}
           rescue ActionController::ParameterMissing
             {}
@@ -434,7 +436,9 @@ module Auth
 
           def email_params(*keys)
             permitted_keys = keys.presence || %i(address pass_code)
-            permitted = params.permit(client_email: permitted_keys, user_email: permitted_keys)
+            permitted = params
+              .slice(:client_email, :user_email)
+              .permit(client_email: permitted_keys, user_email: permitted_keys)
             permitted.fetch(:client_email, {}).presence || permitted.fetch(:user_email, {}).presence || {}
           rescue ActionController::ParameterMissing
             {}

@@ -59,6 +59,7 @@ export default function OtpResendButton({
   };
 
   const request = async () => {
+    /* v8 ignore next -- the button is disabled while remaining is positive */
     if (remaining > 0) {
       return;
     }

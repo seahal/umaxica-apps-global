@@ -24,6 +24,32 @@ ENV["SMTP_FROM_ADDRESS_APP"] = "from@umaxica.app"
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
 
 require_relative "../config/environment"
+
+# Build the test-mode Vite assets before anything renders a view.
+#
+# `config/vite.json` sets `"autoBuild": false` for test, and `/public/vite*` is gitignored, so
+# nothing else in the repository guarantees that `public/vite-test` exists or is current. Every
+# layout under `app/views/layouts` calls `vite_stylesheet_tag`/`vite_typescript_tag`, and
+# `ViteRuby::Manifest#lookup!` raises from inside view rendering when an entry is absent, so a
+# fresh checkout, a CI runner, or a run made after editing `src/` failed with an error naming an
+# entrypoint instead of the missing build. Building here keeps that dependency explicit and
+# satisfied in every environment.
+#
+# Placement matters: this runs in the parent process, before
+# `ActiveSupport::TestCase.parallelize` forks workers, so one build serves the whole run instead
+# of every worker racing to write the same output directory. `ViteRuby::Builder#build` compares a
+# digest of the watched files against `tmp/cache/vite/last-build-test.json` and skips the Vite
+# call when nothing changed, so a repeat run pays only for the digest.
+unless ViteRuby.commands.build
+  # rubocop:disable I18n/RailsI18n/DecorateString
+  abort <<~MESSAGE
+    Vite test-mode build failed, so public/vite-test has no usable manifest and every test that
+    renders a layout would fail on a missing entrypoint. See the Vite output above; the same build
+    runs standalone as `pnpm exec vite build --mode test`.
+  MESSAGE
+  # rubocop:enable I18n/RailsI18n/DecorateString
+end
+
 require "rails/test_help"
 require_relative "support/parallel_test_database_cloner"
 require_relative "support/external_identity_test_helper"
@@ -129,7 +155,8 @@ module AuthenticationHarness
   end
 
   def authentication_harness_session_token(resource, session_public_id:)
-    token = authentication_harness_token_model(resource).find_by(public_id: session_public_id) if session_public_id.present?
+    token = authentication_harness_token_model(resource).find_by(public_id: session_public_id) \
+      if session_public_id.present?
     token || authentication_harness_latest_token(resource) || authentication_harness_create_token(resource)
   end
 

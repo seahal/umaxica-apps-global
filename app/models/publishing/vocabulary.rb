@@ -12,7 +12,8 @@ module Publishing
 
     KINDS = TaxonomyKind::KEYS
 
-    has_many :terms, class_name: "Publishing::TaxonomyTerm", inverse_of: :vocabulary, dependent: :restrict_with_exception
+    has_many :terms, class_name: "Publishing::TaxonomyTerm", inverse_of: :vocabulary,
+                     dependent: :restrict_with_exception
 
     validates :audience, inclusion: { in: Edition::AUDIENCES }
     validates :surface, inclusion: { in: Edition::SURFACES }

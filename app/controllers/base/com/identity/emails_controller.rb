@@ -116,7 +116,8 @@ module Base
           {
             public_id: email.public_id,
             address: email.address,
-            status_label: verified ? t("views.sign.com.settings.emails.index.verified") : t("views.sign.com.settings.emails.index.unverified"),
+            status_label: verified ? t("views.sign.com.settings.emails.index.verified") :
+              t("views.sign.com.settings.emails.index.unverified"),
             edit_link: {
               label: t("sign.app.settings.email.index.edit"),
               href: edit_base_com_identity_email_path(email.public_id, ri: params[:ri]),

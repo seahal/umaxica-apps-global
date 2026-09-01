@@ -146,7 +146,10 @@ class TargetedModelLineCoverageTest < ActiveSupport::TestCase
 
     assert_equal 0, flow.checkpoint_version
     assert_equal ["inner"],
-                 flow.send(:flatten_requirement_keys, { "outer" => [{ "inner" => true }] }, include_current_level: false)
+                 flow.send(
+                   :flatten_requirement_keys, { "outer" => [{ "inner" => true }] },
+                   include_current_level: false,
+                 )
     assert_not flow.send(:safe_internal_return_to?, "http://[")
 
     calls = []

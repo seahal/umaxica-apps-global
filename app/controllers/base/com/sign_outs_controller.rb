@@ -61,7 +61,8 @@ module Base
         {
           title: t("sign.shared.sign_out.title"),
           active: active,
-          description: active ? t("sign.shared.sign_out.confirm_description") : t("sign.shared.sign_out.already_signed_out"),
+          description: active ? t("sign.shared.sign_out.confirm_description") :
+            t("sign.shared.sign_out.already_signed_out"),
           form: active ? sign_out_confirmation_form : nil,
           home_link: { label: t("sign.shared.sign_out.home_link"), href: sign_out_home_path },
         }

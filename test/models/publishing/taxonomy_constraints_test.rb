@@ -13,30 +13,48 @@ module Publishing
 
     test "vocabulary key is unique per audience and surface" do
       assert_raises(ActiveRecord::RecordNotUnique) do
-        Vocabulary.new(audience: "app", surface: "docs", key: "category", kind: @category.kind, internal_name: "Dup").save!(validate: false)
+        Vocabulary.new(
+          audience: "app", surface: "docs", key: "category", kind: @category.kind,
+          internal_name: "Dup",
+        ).save!(validate: false)
       end
 
       # The same key under a different audience is a different vocabulary, by
       # design. `category` and `tag` exist in every scope already, so proving
       # this needs a key the structural migration does not own.
       Vocabulary.create!(audience: "app", surface: "docs", key: "topic", kind: @category.kind, internal_name: "Topic")
-      other = Vocabulary.create!(audience: "com", surface: "docs", key: "topic", kind: @category.kind, internal_name: "Topic")
+      other = Vocabulary.create!(
+        audience: "com", surface: "docs", key: "topic", kind: @category.kind,
+        internal_name: "Topic",
+      )
 
       assert_predicate other, :persisted?
     end
 
     test "vocabulary rejects an unknown audience, surface, kind, or key format" do
       assert_raises(ActiveRecord::CheckViolation) do
-        Vocabulary.new(audience: "nope", surface: "docs", key: "k", kind: @category.kind, internal_name: "N").save!(validate: false)
+        Vocabulary.new(
+          audience: "nope", surface: "docs", key: "k", kind: @category.kind,
+          internal_name: "N",
+        ).save!(validate: false)
       end
       assert_raises(ActiveRecord::CheckViolation) do
-        Vocabulary.new(audience: "app", surface: "nope", key: "k", kind: @category.kind, internal_name: "N").save!(validate: false)
+        Vocabulary.new(
+          audience: "app", surface: "nope", key: "k", kind: @category.kind,
+          internal_name: "N",
+        ).save!(validate: false)
       end
       assert_raises(ActiveRecord::CheckViolation) do
-        Vocabulary.new(audience: "app", surface: "news", key: "k", kind: "sideways", internal_name: "N").save!(validate: false)
+        Vocabulary.new(
+          audience: "app", surface: "news", key: "k", kind: "sideways",
+          internal_name: "N",
+        ).save!(validate: false)
       end
       assert_raises(ActiveRecord::CheckViolation) do
-        Vocabulary.new(audience: "app", surface: "news", key: "Bad Key", kind: @category.kind, internal_name: "N").save!(validate: false)
+        Vocabulary.new(
+          audience: "app", surface: "news", key: "Bad Key", kind: @category.kind,
+          internal_name: "N",
+        ).save!(validate: false)
       end
     end
 

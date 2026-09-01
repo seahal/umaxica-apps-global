@@ -65,6 +65,7 @@ function unmountReactIslands(): void {
   mountedElements.forEach((element) => {
     const reactRoot = mountedRoots.get(element);
 
+    /* v8 ignore next -- every mounted element is recorded in `mountedRoots` */
     if (reactRoot) {
       reactRoot.unmount();
       mountedRoots.delete(element);

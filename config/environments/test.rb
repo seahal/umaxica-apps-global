@@ -39,7 +39,12 @@ Rails.application.configure do
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 
-  # Keep request forgery protection off by default so the existing suite can migrate in batches.
+  # Off by default, permanently - this is the Rails-generated test default, and under
+  # `protect_from_forgery using: :header_or_legacy_token` a bare test request verifies
+  # successfully anyway, so enabling it suite-wide would buy appearance, not coverage.
+  # CSRF is asserted by targeted boundary tests that opt in with `with_forgery_protection`.
+  # Decision and the condition that would reopen it:
+  # adr/csrf-protection-disabled-in-test-environment.md
   config.action_controller.allow_forgery_protection = false
 
   # Store uploaded files on the local file system in a temporary directory.
@@ -81,9 +86,54 @@ Rails.application.configure do
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
 
-  # Disable Rails logging during tests for better suite performance.
-  config.logger = Logger.new(nil)
-  config.log_level = :fatal
+  # A parameter the permit list does not cover is a Strong Parameters gap, not a note to
+  # read later. The default :log lets the gap ship; raise so a test fails on it.
+  config.action_controller.action_on_unpermitted_parameters = :raise
+
+  # On by default since load_defaults 7.0 - pinned so a defaults bump cannot silently
+  # turn redirect-to-user-input back into a warning.
+  config.action_controller.action_on_open_redirect = :raise
+
+  # Match development so an enqueue site that loses its job is visible in a failing test.
+  config.active_job.verbose_enqueue_logs = true
+
+  # A failing test with no log is a failing test you debug blind. Log to a file - never to
+  # stdout, which would interleave with minitest's own output across parallel workers.
+  #
+  # :info is the default because it is the level that costs almost nothing and answers most
+  # questions: request verb/path/status, redirect targets, rendered templates, enqueued jobs,
+  # delivered mail. SQL lives at :debug and is the expensive one, both in I/O and in string
+  # building, so it stays opt-in: run `LOG_LEVEL=debug bin/rails test path/to/file.rb` when a
+  # specific failure needs query-level detail.
+  #
+  # `filter_parameters` (config/initializers/filter_parameter_logging.rb) already redacts
+  # credentials, tokens, and identifiers, so the request lines here carry no secrets.
+  config.log_level = ENV.fetch("LOG_LEVEL", "info").to_sym
+
+  # Truncate per run, deliberately in place of Rails' own bound on this file.
+  #
+  # Since `load_defaults "7.1"` Rails sets `log_file_size = 100.megabytes` for local
+  # environments, so `log/test.log` already rotates at 100 MB keeping one old file - it does
+  # not grow without bound. That bound protects the disk; it does not make the file readable.
+  # Appending leaves several runs interleaved in one file, and a rotation can split the run
+  # you are debugging across two files.
+  #
+  # Truncating makes the file mean exactly one thing: the run that just finished. It also
+  # bounds the size far more tightly than 100 MB. Passing an open File (rather than a path)
+  # is what takes this out of `log_file_size`'s hands, and that is intended.
+  #
+  # The cost: two `bin/rails test` invocations running at once clobber each other's log.
+  test_log = Rails.root.join("log/test.log")
+  test_log.dirname.mkpath
+  test_log_device = test_log.open("w")
+  test_log_device.sync = true
+
+  # Workers fork after this logger is built and share the one file, so lines from different
+  # workers interleave. Tagging by request id is what lets you follow one request through
+  # that interleaving; Rails already prints a test-name banner for non-request tests.
+  config.logger =
+    ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(test_log_device))
+  config.log_tags = [:request_id]
 
   # ci seed up.
   if ENV["CI"]

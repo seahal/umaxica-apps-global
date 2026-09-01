@@ -41,7 +41,10 @@ module Publishing
       edition = Edition.create!(audience: "app", surface: "info", locale: "ja")
       entry = Entry.create!(edition:, locale: "ja")
 
-      slug = EntrySlug.create!(entry:, edition:, locale: "ja", slug: "sample-entry", state: "canonical", canonicalized_at: Time.current)
+      slug = EntrySlug.create!(
+        entry:, edition:, locale: "ja", slug: "sample-entry", state: "canonical",
+        canonicalized_at: Time.current,
+      )
 
       assert_equal "canonical", slug.state
 

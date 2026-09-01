@@ -58,7 +58,10 @@ module PublishingSchema
     m.add_check_constraint(table, "lock_version >= 0", name: "chk_publishing_entries_lock_version")
     archive_check(m, table)
     m.add_index(table, %i(id locale), unique: true)
-    composite_fk(m, table, %i(edition_id locale), :publishing_editions, %i(id locale), "fk_publishing_entries_edition_locale")
+    composite_fk(
+      m, table, %i(edition_id locale), :publishing_editions, %i(id locale),
+      "fk_publishing_entries_edition_locale",
+    )
   end
 
   def create_slugs(m)
@@ -84,11 +87,15 @@ module PublishingSchema
       table,
       "(state = 'reserved' AND canonicalized_at IS NULL AND redirected_at IS NULL) OR " \
       "(state = 'canonical' AND canonicalized_at IS NOT NULL AND redirected_at IS NULL) OR " \
-      "(state = 'redirect' AND canonicalized_at IS NOT NULL AND redirected_at IS NOT NULL AND redirected_at >= canonicalized_at)",
+      "(state = 'redirect' AND canonicalized_at IS NOT NULL AND " \
+      "redirected_at IS NOT NULL AND redirected_at >= canonicalized_at)",
       name: "chk_publishing_slug_timestamps",
     )
     composite_fk(m, table, %i(entry_id locale), :publishing_entries, %i(id locale), "fk_publishing_slug_entry_locale")
-    composite_fk(m, table, %i(edition_id locale), :publishing_editions, %i(id locale), "fk_publishing_slug_edition_locale")
+    composite_fk(
+      m, table, %i(edition_id locale), :publishing_editions, %i(id locale),
+      "fk_publishing_slug_edition_locale",
+    )
   end
 
   def create_revisions(m)
@@ -118,7 +125,10 @@ module PublishingSchema
       table, table, column: %i(restored_from_revision_id entry_id), primary_key: %i(id entry_id),
                     on_delete: :restrict, name: "fk_publishing_restore_revision_entry",
     )
-    composite_fk(m, table, %i(entry_id locale), :publishing_entries, %i(id locale), "fk_publishing_revision_entry_locale")
+    composite_fk(
+      m, table, %i(entry_id locale), :publishing_entries, %i(id locale),
+      "fk_publishing_revision_entry_locale",
+    )
   end
 
   def add_current_revision(m)
@@ -153,7 +163,10 @@ module PublishingSchema
       table, :publishing_entry_revisions, column: %i(entry_revision_id entry_id), primary_key: %i(id entry_id),
                                           on_delete: :restrict, name: "fk_publishing_version_revision_entry",
     )
-    composite_fk(m, table, %i(entry_id locale), :publishing_entries, %i(id locale), "fk_publishing_version_entry_locale")
+    composite_fk(
+      m, table, %i(entry_id locale), :publishing_entries, %i(id locale),
+      "fk_publishing_version_entry_locale",
+    )
     content_checks(m, table)
     m.add_check_constraint(table, "sequence > 0", name: "chk_publishing_version_sequence")
     m.add_foreign_key(
@@ -182,8 +195,18 @@ module PublishingSchema
       table, :publishing_entry_versions, column: %i(entry_version_id entry_id), primary_key: %i(id entry_id),
                                          on_delete: :restrict, name: "fk_publishing_publication_version_entry",
     )
-    m.add_check_constraint(table, "effective_until IS NULL OR effective_until > effective_from", name: "chk_publishing_publication_window")
-    m.add_check_constraint(table, "NOT (cancelled_at IS NOT NULL AND terminated_at IS NOT NULL)", name: "chk_publishing_publication_end_mode")
+    add_publication_constraints(m, table)
+  end
+
+  def add_publication_constraints(m, table)
+    m.add_check_constraint(
+      table, "effective_until IS NULL OR effective_until > effective_from",
+      name: "chk_publishing_publication_window",
+    )
+    m.add_check_constraint(
+      table, "NOT (cancelled_at IS NOT NULL AND terminated_at IS NOT NULL)",
+      name: "chk_publishing_publication_end_mode",
+    )
     m.add_check_constraint(
       table,
       "(cancelled_at IS NULL AND cancellation_reason IS NULL) OR " \
@@ -193,7 +216,8 @@ module PublishingSchema
     m.add_check_constraint(
       table,
       "(terminated_at IS NULL AND termination_reason IS NULL) OR " \
-      "(terminated_at IS NOT NULL AND termination_reason IS NOT NULL AND terminated_at >= effective_from AND effective_until = terminated_at)",
+      "(terminated_at IS NOT NULL AND termination_reason IS NOT NULL AND " \
+      "terminated_at >= effective_from AND effective_until = terminated_at)",
       name: "chk_publishing_publication_termination",
     )
     m.add_exclusion_constraint(
@@ -205,6 +229,11 @@ module PublishingSchema
   end
 
   def create_media(m)
+    create_media_files(m)
+    create_media_usages(m)
+  end
+
+  def create_media_files(m)
     files = :publishing_media_files
     m.create_table(files) do |t|
       public_id(t)
@@ -223,11 +252,20 @@ module PublishingSchema
     finish_public_id(m, files)
     m.add_index(files, :storage_key, unique: true)
     m.add_check_constraint(files, "byte_size >= 0", name: "chk_publishing_media_size")
-    m.add_check_constraint(files, "digest_algorithm = 'sha256' AND digest ~ '^[0-9a-f]{64}$'", name: "chk_publishing_media_digest")
-    m.add_check_constraint(files, "(width IS NULL AND height IS NULL) OR (width > 0 AND height > 0)", name: "chk_publishing_media_dimensions")
+    m.add_check_constraint(
+      files, "digest_algorithm = 'sha256' AND digest ~ '^[0-9a-f]{64}$'",
+      name: "chk_publishing_media_digest",
+    )
+    m.add_check_constraint(
+      files, "(width IS NULL AND height IS NULL) OR (width > 0 AND height > 0)",
+      name: "chk_publishing_media_dimensions",
+    )
     m.add_check_constraint(files, "jsonb_typeof(metadata) = 'object'", name: "chk_publishing_media_metadata")
     archive_check(m, files)
+  end
 
+  def create_media_usages(m)
+    files = :publishing_media_files
     usages = :publishing_media_usages
     m.create_table(usages) do |t|
       public_id(t)
@@ -246,17 +284,38 @@ module PublishingSchema
       t.timestamps(null: false)
     end
     finish_public_id(m, usages)
-    m.add_check_constraint(usages, "num_nonnulls(entry_revision_id, entry_version_id) = 1", name: "chk_publishing_media_owner_xor")
+    add_media_usage_constraints(m, usages)
+    add_media_usage_indexes(m, usages)
+  end
+
+  def add_media_usage_constraints(m, usages)
+    m.add_check_constraint(
+      usages, "num_nonnulls(entry_revision_id, entry_version_id) = 1",
+      name: "chk_publishing_media_owner_xor",
+    )
     m.add_check_constraint(usages, "position >= 0", name: "chk_publishing_media_position")
-    m.add_check_constraint(usages, "field_path IS NOT NULL OR block_path IS NOT NULL", name: "chk_publishing_media_path")
-    m.add_check_constraint(usages, "presentation_metadata IS NULL OR jsonb_typeof(presentation_metadata) = 'object'", name: "chk_publishing_presentation_metadata")
+    m.add_check_constraint(
+      usages, "field_path IS NOT NULL OR block_path IS NOT NULL",
+      name: "chk_publishing_media_path",
+    )
+    m.add_check_constraint(
+      usages, "presentation_metadata IS NULL OR jsonb_typeof(presentation_metadata) = 'object'",
+      name: "chk_publishing_presentation_metadata",
+    )
+  end
+
+  def add_media_usage_indexes(m, usages)
     m.add_index(
-      usages, %i(entry_revision_id role field_path block_path position), unique: true,
-                                                                         where: "entry_revision_id IS NOT NULL", name: "uidx_publishing_revision_media_position",
+      usages, %i(entry_revision_id role field_path block_path position),
+      unique: true,
+      where: "entry_revision_id IS NOT NULL",
+      name: "uidx_publishing_revision_media_position",
     )
     m.add_index(
-      usages, %i(entry_version_id role field_path block_path position), unique: true,
-                                                                        where: "entry_version_id IS NOT NULL", name: "uidx_publishing_version_media_position",
+      usages, %i(entry_version_id role field_path block_path position),
+      unique: true,
+      where: "entry_version_id IS NOT NULL",
+      name: "uidx_publishing_version_media_position",
     )
     m.add_foreign_key(
       usages, :publishing_entry_revisions, column: %i(entry_revision_id entry_id), primary_key: %i(id entry_id),
@@ -292,7 +351,12 @@ module PublishingSchema
   end
 
   def archive_check(m, table)
-    m.add_check_constraint(table, "(archived_at IS NULL AND archive_reason IS NULL) OR (archived_at IS NOT NULL AND archive_reason IS NOT NULL)", name: "chk_#{table}_archive")
+    m.add_check_constraint(
+      table,
+      "(archived_at IS NULL AND archive_reason IS NULL) OR " \
+      "(archived_at IS NOT NULL AND archive_reason IS NOT NULL)",
+      name: "chk_#{table}_archive",
+    )
   end
 
   def content_checks(m, table)

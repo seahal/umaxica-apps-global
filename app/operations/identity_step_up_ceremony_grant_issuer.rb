@@ -5,8 +5,8 @@ class IdentityStepUpCeremonyGrantIssuer
   Issuance = Data.define(:transaction, :grant)
 
   def self.issue!(surface:, actor_ref:, session_ref:, required_scope:, required_aal:, allowed_methods:,
-                  resource_ref: nil, return_to: nil, transaction_id: nil, grant_jti: nil, expires_at: nil,
-                  now: Time.current)
+                  phishing_resistant_required: false, resource_ref: nil, return_to: nil, transaction_id: nil,
+                  grant_jti: nil, expires_at: nil, now: Time.current)
     transaction =
       IdentityStepUpCeremonyReplayStore.for(surface).create_transaction!(
         surface: surface,
@@ -15,6 +15,7 @@ class IdentityStepUpCeremonyGrantIssuer
         required_scope: required_scope,
         required_aal: required_aal,
         allowed_methods: allowed_methods,
+        phishing_resistant_required: phishing_resistant_required,
         resource_ref: resource_ref,
         return_to: return_to,
         transaction_id: transaction_id,

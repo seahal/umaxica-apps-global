@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "securerandom"
+require_relative "../object_storage_environment"
 
 module ObjectStorageTasks
   module_function
@@ -14,40 +15,19 @@ module ObjectStorageTasks
     OBJECT_STORAGE_FORCE_PATH_STYLE
   ).freeze
 
-  # Credentials are delivered as mounted Podman secrets, so their values are read
-  # from a file path rather than from the variable itself. This mirrors
-  # POSTGRESQL_PASSWORD_FILE in config/database.yml; the direct variables remain
-  # supported for deployments whose credential provider exports values inline.
-  FILE_BACKED_ENVIRONMENT = %w(
-    OBJECT_STORAGE_ACCESS_KEY_ID
-    OBJECT_STORAGE_SECRET_ACCESS_KEY
-  ).freeze
-
+  # Environment reading, including the `<NAME>_FILE` secret-mount convention, is
+  # shared with the Shrine storage configuration in ObjectStorage::Environment.
+  #
+  # This task keeps its own single OBJECT_STORAGE_BUCKET: it provisions and smoke
+  # tests the local development bucket and is not part of the attachment path,
+  # which resolves a bucket per storage boundary instead.
   def configuration
-    values =
-      REQUIRED_ENVIRONMENT.to_h do |name|
-        value = fetch_environment(name)
-        raise ArgumentError, "#{name} must not be blank" if value.empty?
-
-        [name, value]
-      end
+    values = REQUIRED_ENVIRONMENT.index_with { |name| ObjectStorage::Environment.fetch(name) }
 
     values.merge(
-      "OBJECT_STORAGE_FORCE_PATH_STYLE" => parse_boolean(
-        "OBJECT_STORAGE_FORCE_PATH_STYLE",
-        values.fetch("OBJECT_STORAGE_FORCE_PATH_STYLE"),
-      ),
+      "OBJECT_STORAGE_FORCE_PATH_STYLE" =>
+        ObjectStorage::Environment.fetch_boolean("OBJECT_STORAGE_FORCE_PATH_STYLE"),
     )
-  end
-
-  # A configured `<NAME>_FILE` is authoritative: a missing or unreadable file
-  # raises instead of falling back to the direct variable, so a broken secret
-  # mount cannot quietly authenticate with stale or absent credentials.
-  def fetch_environment(name)
-    path = ENV["#{name}_FILE"] if FILE_BACKED_ENVIRONMENT.include?(name)
-    return ENV.fetch(name) if path.blank?
-
-    File.read(path).strip
   end
 
   def client(configuration)
@@ -79,7 +59,7 @@ module ObjectStorageTasks
 
   def smoke!(client, bucket)
     key = "smoke/#{SecureRandom.uuid}"
-    expected_body = "Umaxica RustFS smoke test: #{key}"
+    expected_body = "Umaxica object storage smoke test: #{key}"
     uploaded = false
 
     begin
@@ -113,13 +93,6 @@ module ObjectStorageTasks
     rescue Aws::S3::Errors::NotFound
       puts "Object storage DELETE verified: #{key}"
     end
-  end
-
-  def parse_boolean(name, value)
-    return true if value == "true"
-    return false if value == "false"
-
-    raise ArgumentError, "#{name} must be exactly true or false"
   end
 end
 

@@ -12,6 +12,19 @@ import { describedByText } from "../../support/dom";
 const { default: TextField } = await import("@/components/ui/TextField");
 
 describe("TextField", () => {
+  it("ignores a function className rather than stringifying it", () => {
+    render(
+      <TextField
+        label="Address"
+        className={() => "from-render-props"}
+      />,
+    );
+
+    expect(screen.getByLabelText("Address").closest("div")?.className).not.toContain(
+      "from-render-props",
+    );
+  });
+
   it("gives the input its label without the caller building an id", () => {
     render(<TextField label="Address" />);
 

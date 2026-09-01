@@ -40,7 +40,9 @@ module ExternalSignIn
       raise FetchError, "JWKS fetch failed (HTTP #{response.code}) for tenant #{tenant_id}" unless response.is_a?(Net::HTTPSuccess)
 
       jwks = JSON.parse(response.body)
-      raise FetchError, "JWKS response has an invalid shape for tenant #{tenant_id}" unless jwks.is_a?(Hash) && jwks["keys"].is_a?(Array)
+      raise FetchError,
+            "JWKS response has an invalid shape for tenant " \
+            "#{tenant_id}" unless jwks.is_a?(Hash) && jwks["keys"].is_a?(Array)
 
       jwks
     rescue JSON::ParserError, URI::InvalidURIError, Timeout::Error, SocketError, SystemCallError, TypeError => e

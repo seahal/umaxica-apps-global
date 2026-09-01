@@ -119,10 +119,12 @@ module SurfaceChrome
     surface = chrome_configuration.fetch(:surface)
 
     if chrome_logged_in?
-      [{ label: chrome_t("sign.#{surface}.layout.nav.logout"), href: chrome_url("new_#{family}_#{surface}_sign_out_path") }]
+      [{ label: chrome_t("sign.#{surface}.layout.nav.logout"),
+         href: chrome_url("new_#{family}_#{surface}_sign_out_path"), }]
     else
       [
-        { label: chrome_t("sign.#{surface}.layout.nav.sign_up"), href: chrome_url("#{family}_#{surface}_sign_up_path") },
+        { label: chrome_t("sign.#{surface}.layout.nav.sign_up"),
+          href: chrome_url("#{family}_#{surface}_sign_up_path"), },
         { label: chrome_t("sign.#{surface}.layout.nav.log_in"), href: chrome_url("#{family}_#{surface}_sign_in_path") },
       ]
     end
@@ -140,7 +142,8 @@ module SurfaceChrome
           href: chrome_url("base_#{surface}_dashboard_url", base_options),
         }
       else
-        { label: chrome_t("sign.#{surface}.preferences.footer.home"), href: chrome_url("#{family}_#{surface}_root_path") }
+        { label: chrome_t("sign.#{surface}.preferences.footer.home"),
+          href: chrome_url("#{family}_#{surface}_root_path"), }
       end
 
     [

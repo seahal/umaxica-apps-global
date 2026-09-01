@@ -66,7 +66,10 @@ module Base
 
           def recovery_email_status_column = :visitor_email_status_id
 
-          def recovery_verified_email_status_ids = VisitorEmail::EDITABLE_SUBSCRIPTION_PREFERENCE_STATUS_IDS
+          # VisitorEmail has no EDITABLE_SUBSCRIPTION_PREFERENCE_STATUS_IDS counterpart to the app
+          # surface's ClientEmail constant; the verified-status set this needs already exists as
+          # AuthMethodGuard::VISITOR_VERIFIED_EMAIL_STATUSES and carries the same two statuses.
+          def recovery_verified_email_status_ids = AuthMethodGuard::VISITOR_VERIFIED_EMAIL_STATUSES
 
           def recovery_entry_path = new_base_com_identity_recovery_session_path
 

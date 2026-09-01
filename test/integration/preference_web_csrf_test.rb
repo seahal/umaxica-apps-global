@@ -11,14 +11,20 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
 
     patch(
       base_app_web_v0_theme_path, params: { theme: "dark" },
-                                  headers: { "Accept" => "application/json", "Sec-Fetch-Site" => "cross-site" }, as: :json,
+                                  headers: {
+                                    "Accept" => "application/json",
+                                    "Sec-Fetch-Site" => "cross-site",
+                                  }, as: :json,
     )
 
     assert_response :forbidden
 
     patch(
       base_app_web_v0_cookie_path, params: { consented: true },
-                                   headers: { "Accept" => "application/json", "Sec-Fetch-Site" => "cross-site" }, as: :json,
+                                   headers: {
+                                     "Accept" => "application/json",
+                                     "Sec-Fetch-Site" => "cross-site",
+                                   }, as: :json,
     )
 
     assert_response :forbidden
@@ -37,14 +43,20 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
 
     patch(
       base_com_web_v0_theme_path, params: { theme: "dark" },
-                                  headers: { "Accept" => "application/json", "Sec-Fetch-Site" => "cross-site" }, as: :json,
+                                  headers: {
+                                    "Accept" => "application/json",
+                                    "Sec-Fetch-Site" => "cross-site",
+                                  }, as: :json,
     )
 
     assert_response :forbidden
 
     patch(
       base_com_web_v0_cookie_path, params: { consented: true },
-                                   headers: { "Accept" => "application/json", "Sec-Fetch-Site" => "cross-site" }, as: :json,
+                                   headers: {
+                                     "Accept" => "application/json",
+                                     "Sec-Fetch-Site" => "cross-site",
+                                   }, as: :json,
     )
 
     assert_response :forbidden
@@ -63,14 +75,20 @@ class PreferenceWebCsrfTest < ActionDispatch::IntegrationTest
 
     patch(
       base_org_web_v0_theme_path, params: { theme: "dark" },
-                                  headers: { "Accept" => "application/json", "Sec-Fetch-Site" => "cross-site" }, as: :json,
+                                  headers: {
+                                    "Accept" => "application/json",
+                                    "Sec-Fetch-Site" => "cross-site",
+                                  }, as: :json,
     )
 
     assert_response :forbidden
 
     patch(
       base_org_web_v0_cookie_path, params: { consented: true },
-                                   headers: { "Accept" => "application/json", "Sec-Fetch-Site" => "cross-site" }, as: :json,
+                                   headers: {
+                                     "Accept" => "application/json",
+                                     "Sec-Fetch-Site" => "cross-site",
+                                   }, as: :json,
     )
 
     assert_response :forbidden

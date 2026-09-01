@@ -11,7 +11,7 @@ module IdentityStepUpCeremonyContract
   SURFACES = %w(app com org).freeze
   # Telephone OTP is deliberately absent: SMS is not an accepted step-up proof.
   METHODS = %w(passkey totp email_otp secret_credential).freeze
-  AALS = %w(aal1 aal2).freeze
+  AALS = %w(none aal1 aal2).freeze
   LEEWAY = 30
 
   SIGN_ISSUERS = {
@@ -115,6 +115,10 @@ module IdentityStepUpCeremonyContract
 
   def validate_inclusion!(payload, key, allowed)
     raise IdentityStepUpCeremonyContract::Error, "#{key} is invalid" unless allowed.include?(payload[key].to_s)
+  end
+
+  def validate_boolean!(payload, key)
+    raise IdentityStepUpCeremonyContract::Error, "#{key} must be boolean" unless [true, false].include?(payload[key])
   end
 
   def validate_binding!(payload)

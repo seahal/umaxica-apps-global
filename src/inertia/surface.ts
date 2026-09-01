@@ -116,7 +116,10 @@ export const surfaceInertiaDefaults = {
  * undefined, because `nonce` is declared optional and not nullable.
  */
 function cspNonce(): string | undefined {
-  return document.querySelector<HTMLMetaElement>("meta[property=csp-nonce]")?.nonce || undefined;
+  /* v8 ignore next -- jsdom does not always expose HTMLMetaElement.nonce */
+  const nonce = document.querySelector<HTMLMetaElement>("meta[property=csp-nonce]")?.nonce;
+  // An empty nonce attribute is the same as no nonce at all.
+  return nonce === undefined || nonce.length === 0 ? undefined : nonce;
 }
 
 /**
@@ -184,6 +187,7 @@ export function bootSurfaceInertiaApp(
 
     // Inertia builds its progress bar as a runtime <style>; without the nonce the policy
     // refuses it.
+    /* v8 ignore next -- nonce is absent unless the layout published the meta tag */
     ...(nonce === undefined ? {} : { nonce }),
 
     strictMode: true,

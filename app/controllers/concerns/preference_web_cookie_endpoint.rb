@@ -142,11 +142,15 @@ module PreferenceWebCookieEndpoint
     cookie_params = params[:cookie]
     return nil unless cookie_params.is_a?(ActionController::Parameters) || cookie_params.is_a?(Hash)
 
+    # Both branches read the same fixed set of keys and ignore the rest. The Hash branch
+    # already narrowed first; the Parameters branch did not, so anything else the payload
+    # carried read as unpermitted rather than as simply not ours.
+    consent_keys = %i(consented functional performant targetable)
     cookie_params =
       if cookie_params.is_a?(ActionController::Parameters)
-        cookie_params.permit(:consented, :functional, :performant, :targetable).to_h
+        cookie_params.slice(*consent_keys).permit(*consent_keys).to_h
       else
-        cookie_params.to_h.slice(:consented, :functional, :performant, :targetable)
+        cookie_params.to_h.slice(*consent_keys)
       end.with_indifferent_access
     return nil unless cookie_params.key?(:consented)
 

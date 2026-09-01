@@ -15,9 +15,19 @@ SimpleCov.group "Validators", "app/validators"
 SimpleCov.group "Errors", "app/errors"
 
 SimpleCov.coverage :line do
-  minimum 94
+  minimum 98
+  # Suite-wide averages let a file with no test hide behind well-covered neighbours.
+  # Hold every file to a floor of its own.
+  minimum_per_file 70
 end
 
 SimpleCov.coverage :branch do
-  minimum 74
+  minimum 90
 end
+
+# `refuse_coverage_drop` is deliberately NOT set. It compares against
+# `coverage/.last_run.json`, and when that file is missing SimpleCov treats the run as having
+# no previous result and passes. CI checks out fresh, `coverage/` is gitignored, and the
+# workflow uploads it as an artifact without ever restoring it - so the check would never
+# fire while still reading as a guarantee. Enabling it means first restoring the previous
+# run's `coverage/.last_run.json` in the workflow.

@@ -21,6 +21,9 @@ class AuthenticationBaseTestController < ApplicationController
     current_account transparent_refresh_access_token authenticate! bulletin_association_for_resource
     withdrawal_gate_redirect_path handle_missing_refresh_token handle_inactive_resource
     handle_administrative_access_locked_refresh handle_refresh_error resolve_token_kind_id enforce_authentication_open!
+    policy_for_authentication_mode find_restricted_sessions_scope dbsc_route_helper
+    default_status_token_attributes login_token_reference_models
+    count_active_sessions best_effort_refresh_side_effect token_class_for_resource
     enforce_authentication_private! enforce_authentication_guest! resolve_access_policy_for
     refresh_dbsc_allowed? refresh_dbsc_source refresh_binding_source
     token_kind_model set_pending_mfa! pending_mfa pending_mfa_valid? clear_pending_mfa!
@@ -803,6 +806,135 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.define_singleton_method(:token_class) { token_class }
 
     assert_equal "BROWSER_WEB", @controller.resolve_token_kind_id("BROWSER_WEB")
+  end
+
+  # Native app sign-ins arrive with a string token kind and an integer kind column.
+  # The mapping falls through to a per-surface table when the kind model carries no
+  # `code` column; only the browser rows of that table were reached before.
+  test "resolve_token_kind_id maps native client kinds on every surface" do
+    codeless_kind_model =
+      Class.new do
+        def self.column_names = []
+
+        def self.name = "CodelessTokenKind"
+      end
+
+    [
+      ["operator", "staff", OperatorTokenKind::CLIENT_IOS, OperatorTokenKind::CLIENT_ANDROID],
+      ["client", "user", ClientTokenKind::CLIENT_IOS, ClientTokenKind::CLIENT_ANDROID],
+      ["visitor", "visitor", VisitorTokenKind::CLIENT_IOS, VisitorTokenKind::CLIENT_ANDROID],
+    ].each do |surface, prefix, ios_kind, android_kind|
+      token_class = Class.new
+      token_class.define_singleton_method(:columns_hash) do
+        { "#{prefix}_token_kind_id" => Struct.new(:type).new(:integer) }
+      end
+      @controller.define_singleton_method(:resource_type) { surface }
+      @controller.define_singleton_method(:token_class) { token_class }
+      @controller.define_singleton_method(:token_kind_model) { codeless_kind_model }
+
+      assert_equal ios_kind, @controller.resolve_token_kind_id("CLIENT_IOS"), surface
+      assert_equal android_kind, @controller.resolve_token_kind_id("CLIENT_ANDROID"), surface
+    end
+  end
+
+  test "resolve_token_kind_id refuses a kind the surface table does not name" do
+    codeless_kind_model =
+      Class.new do
+        def self.column_names = []
+
+        def self.name = "CodelessTokenKind"
+      end
+    token_class = Class.new
+    token_class.define_singleton_method(:columns_hash) do
+      { "user_token_kind_id" => Struct.new(:type).new(:integer) }
+    end
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:token_class) { token_class }
+    @controller.define_singleton_method(:token_kind_model) { codeless_kind_model }
+
+    error =
+      assert_raises(ActiveRecord::RecordNotFound) do
+        @controller.resolve_token_kind_id("CLIENT_TOASTER")
+      end
+
+    assert_match(/CLIENT_TOASTER/, error.message)
+  end
+
+  test "refresh_dbsc_source names which DBSC header arrived" do
+    assert_equal "none", @controller.refresh_dbsc_source
+
+    @request.headers[AuthIoKeys::Headers::DBSC_RESPONSE] = "proof"
+
+    assert_equal "response", @controller.refresh_dbsc_source
+
+    @request.headers[AuthIoKeys::Headers::DBSC_SESSION_ID] = "session-id"
+
+    assert_equal "both", @controller.refresh_dbsc_source
+  end
+
+  test "policy_for_authentication_mode refuses a mode the policy table does not name" do
+    error =
+      assert_raises(AuthenticationBase::InvalidPolicyError) do
+        @controller.policy_for_authentication_mode(:nonsense)
+      end
+
+    assert_match(/nonsense/, error.message)
+  end
+
+  test "resolve_access_policy_for honours an except list" do
+    klass = Class.new
+    klass.define_singleton_method(:access_policy_rules) do
+      [{ policy: :public, except: ["destroy"] }]
+    end
+    @controller.define_singleton_method(:class) { klass }
+
+    assert_equal :public, @controller.resolve_access_policy_for("index")&.fetch(:policy)
+    assert_nil @controller.resolve_access_policy_for("destroy")
+  end
+
+  test "find_restricted_sessions_scope picks the token table that belongs to the actor" do
+    assert_nil @controller.find_restricted_sessions_scope(Object.new)
+
+    visitor = Visitor.new
+    visitor.id = 4_242
+    scope = @controller.find_restricted_sessions_scope(visitor)
+
+    assert_equal VisitorToken, scope.klass
+    assert_equal 4_242, scope.where_values_hash["visitor_id"]
+  end
+
+  test "dbsc_route_helper says which surface has no route helper" do
+    @controller.define_singleton_method(:resource_type) { "visitor" }
+
+    error =
+      assert_raises(NoMethodError) do
+        @controller.dbsc_route_helper(:no_such_primary_url, :no_such_compatibility_url)
+      end
+
+    assert_match(/visitor/, error.message)
+  end
+
+  # Every per-surface attribute table has an `else` arm. Nothing reached them, so a
+  # resource type outside the three surfaces would have gone unnoticed until it
+  # produced an empty attribute set somewhere far away from here.
+  test "the per-surface token attribute tables fall back to empty for an unknown surface" do
+    @controller.define_singleton_method(:resource_type) { "martian" }
+
+    assert_empty @controller.default_dbsc_token_attributes(nil)
+    assert_empty @controller.default_status_token_attributes(nil)
+    assert_empty @controller.login_token_reference_models
+    assert_not @controller.dbsc_registration_eligible_kind?(ClientTokenKind::BROWSER_WEB)
+  end
+
+  test "best_effort_refresh_side_effect swallows a failing side effect and answers nil" do
+    assert_equal :done, @controller.best_effort_refresh_side_effect { :done }
+    assert_nil(@controller.best_effort_refresh_side_effect { raise StandardError, "boom" })
+  end
+
+  test "session_limit_gate_pt falls back to a root path when the request cannot answer" do
+    @controller.define_singleton_method(:request) { raise StandardError, "no request" }
+
+    assert_equal "/", @controller.session_limit_gate_pt
   end
 
   test "refresh dbsc allowed helper covers missing mismatch and success" do
@@ -1876,7 +2008,10 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
 
     assert_difference("ClientOccurrence.count", 1) do
       SignRiskEmitter.stub(:emit, nil) do
-        assert_nil @controller.send(:handle_invalid_refresh_token_reason, "refresh_token_reuse_detected", token.public_id, token)
+        assert_nil @controller.send(
+          :handle_invalid_refresh_token_reason, "refresh_token_reuse_detected",
+          token.public_id, token,
+        )
       end
     end
 
@@ -2317,7 +2452,9 @@ end
 
 # DAMP local helper copy for former shared test support.
 class AuthenticationBaseTestController
-  TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  TEST_BROWSER_USER_AGENT =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
 
   private
@@ -2473,8 +2610,14 @@ class AuthenticationBaseTestController
     VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
     VisitorPasskeyStatus.find_or_create_by!(id: VisitorPasskeyStatus::ACTIVE)
     if defined?(VisitorSecretCredentialStatus)
-      [VisitorSecretCredentialStatus::ACTIVE, VisitorSecretCredentialStatus::EXPIRED, VisitorSecretCredentialStatus::REVOKED,
-       VisitorSecretCredentialStatus::USED, VisitorSecretCredentialStatus::DELETED, VisitorSecretCredentialStatus::NOTHING,].each do |id|
+      [
+        VisitorSecretCredentialStatus::ACTIVE,
+        VisitorSecretCredentialStatus::EXPIRED,
+        VisitorSecretCredentialStatus::REVOKED,
+        VisitorSecretCredentialStatus::USED,
+        VisitorSecretCredentialStatus::DELETED,
+        VisitorSecretCredentialStatus::NOTHING,
+      ].each do |id|
         VisitorSecretCredentialStatus.find_or_create_by!(id: id)
       end
     end
@@ -2802,9 +2945,11 @@ end
 
 # DAMP local helper copy on the test class.
 class AuthenticationBaseCoverageTest
-  TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
-    :TEST_BROWSER_USER_AGENT, false,
-  )
+  TEST_BROWSER_USER_AGENT =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
+      :TEST_BROWSER_USER_AGENT, false,
+    )
   PREFERENCE_JWT_KEY = OpenSSL::PKey::EC.generate("secp384r1") unless const_defined?(:PREFERENCE_JWT_KEY, false)
 
   private
@@ -2874,7 +3019,9 @@ class AuthenticationBaseCoverageTest
     token ||= ClientToken.where(user_id: user.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
     token ||= ClientToken.create!(
       user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB,
-      user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -2892,7 +3039,9 @@ class AuthenticationBaseCoverageTest
     ).order(created_at: :desc).first
     token ||= OperatorToken.create!(
       staff_id: staff.id, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-      staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
+      staff_token_status_id: OperatorTokenStatus::ACTIVE,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -2910,7 +3059,9 @@ class AuthenticationBaseCoverageTest
     ).order(created_at: :desc).first
     token ||= VisitorToken.create!(
       visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
-      visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY,
+      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -2968,7 +3119,12 @@ class AuthenticationBaseCoverageTest
     visitor = Visitor.create!(status_id: VisitorStatus::NOTHING, visibility_id: VisitorVisibility::VISITOR)
     VisitorEmail.create!(
       visitor_id: visitor.id, address: email_address,
-      address_digest: IdentifierBlindIndex.bidx_for_email(email_address), visitor_email_status_id: VisitorEmailStatus::VERIFIED, otp_private_key: SecureRandom.base64(24), otp_counter: "", otp_attempts_count: 0, public_id: SecureRandom.alphanumeric(21),
+      address_digest: IdentifierBlindIndex.bidx_for_email(email_address),
+      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
+      otp_private_key: SecureRandom.base64(24),
+      otp_counter: "",
+      otp_attempts_count: 0,
+      public_id: SecureRandom.alphanumeric(21),
     )
     visitor.reload
   end

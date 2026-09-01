@@ -23,7 +23,12 @@ class OpenapiPalmProfileContractTest < ActionDispatch::IntegrationTest
     persisted = persisted_palm_token
 
     get "/api/v0/profile",
-        headers: json_headers.merge("Authorization" => "Bearer #{palm_token(sid: persisted.oidc_sid, jti: persisted.oidc_jti)}")
+        headers: json_headers.merge(
+          "Authorization" => "Bearer #{palm_token(
+            sid: persisted.oidc_sid,
+            jti: persisted.oidc_jti,
+          )}",
+        )
 
     assert_response :success
     assert_equal "no-store", response.headers["Cache-Control"]
@@ -56,7 +61,12 @@ class OpenapiPalmProfileContractTest < ActionDispatch::IntegrationTest
     cookies["auth_access"] = "irrelevant"
 
     get "/api/v0/profile",
-        headers: json_headers.merge("Authorization" => "Bearer #{palm_token(sid: persisted.oidc_sid, jti: persisted.oidc_jti)}")
+        headers: json_headers.merge(
+          "Authorization" => "Bearer #{palm_token(
+            sid: persisted.oidc_sid,
+            jti: persisted.oidc_jti,
+          )}",
+        )
 
     assert_response :unauthorized
     assert_equal "application/problem+json", response.media_type

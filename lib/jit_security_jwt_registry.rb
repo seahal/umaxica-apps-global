@@ -246,31 +246,42 @@ module JitSecurityJwtRegistry
 
   def validate_record!(record)
     return if record.current_kid.blank? && record.keys.empty?
+
+    validate_record_metadata!(record)
+    validate_active_key!(record)
+    validate_record_keys!(record)
+  end
+
+  def validate_record_metadata!(record)
     raise ConfigurationError, "#{record.id} issuer is missing" if record.issuer.blank?
     raise ConfigurationError, "#{record.id} audiences are missing" if record.audiences.blank?
     raise ConfigurationError, "#{record.id} active kid is missing" if record.current_kid.blank?
     if enforce_public_key_hygiene? && reserved_env_kid?(record.current_kid)
       raise ConfigurationError, "#{record.id} active kid must not contain reserved environment markers"
     end
-    if insecure_default_kid?(record.current_kid)
-      raise ConfigurationError,
-            "#{record.id} active kid must not be #{DEFAULT_KID.inspect}"
-    end
+    return unless insecure_default_kid?(record.current_kid)
+
+    raise ConfigurationError, "#{record.id} active kid must not be #{DEFAULT_KID.inspect}"
+
+  end
+
+  def validate_active_key!(record)
     unless record.keys.key?(record.current_kid)
-      raise ConfigurationError,
-            "#{record.id} active key #{record.current_kid.inspect} is missing"
+      raise ConfigurationError, "#{record.id} active key #{record.current_kid.inspect} is missing"
     end
     if record.revoked_kids.include?(record.current_kid)
-      raise ConfigurationError,
-            "#{record.id} active key #{record.current_kid.inspect} is revoked"
+      raise ConfigurationError, "#{record.id} active key #{record.current_kid.inspect} is revoked"
     end
 
     current = record.keys.fetch(record.current_kid)
     raise ConfigurationError, "#{record.id} active private key is missing" if current.private_key.nil?
-    unless record.jwks.fetch(:keys).any? { |jwk| jwk.fetch("kid") == record.current_kid }
-      raise ConfigurationError, "#{record.id} active key #{record.current_kid.inspect} is missing from JWKS"
-    end
+    return if record.jwks.fetch(:keys).any? { |jwk| jwk.fetch("kid") == record.current_kid }
 
+    raise ConfigurationError, "#{record.id} active key #{record.current_kid.inspect} is missing from JWKS"
+
+  end
+
+  def validate_record_keys!(record)
     record.keys.each_value do |key|
       if enforce_public_key_hygiene? && reserved_env_kid?(key.kid)
         raise ConfigurationError, "#{record.id}:#{key.kid} must not contain reserved environment markers"

@@ -410,12 +410,18 @@ class SignUpSequenceControllerSupportExtraCoverageTest < ActiveSupport::TestCase
 
   test "finalize_app_sign_up_actor! covers branches and rescue" do
     harness = Harness.new
-    harness.instance_variable_set(:@sign_up_ticket, Struct.new(:pending_contact_type, :pending_contact_id).new("other", nil))
+    harness.instance_variable_set(
+      :@sign_up_ticket,
+      Struct.new(:pending_contact_type, :pending_contact_id).new("other", nil),
+    )
     harness.actor_value = Struct.new(:public_id).new("a-1")
 
     assert_equal :failed, harness.send(:finalize_app_sign_up_actor!, harness.actor_value)
 
-    harness.instance_variable_set(:@sign_up_ticket, Struct.new(:pending_contact_type, :pending_contact_id).new("telephone", 1))
+    harness.instance_variable_set(
+      :@sign_up_ticket,
+      Struct.new(:pending_contact_type, :pending_contact_id).new("telephone", 1),
+    )
     telephone = Struct.new(:id).new(1)
     ClientTelephone.stub(:find_by, telephone) do
       SignAppUpTelephoneRegistrationFinalizer.stub(:call, Struct.new(:status).new(:ok)) do
@@ -430,7 +436,11 @@ class SignUpSequenceControllerSupportExtraCoverageTest < ActiveSupport::TestCase
 
         assert_equal :accepted, harness.send(:finalize_app_sign_up_actor!, harness.actor_value)
       end
-      SignAppUpTelephoneRegistrationFinalizer.stub(:call, ->(*) { raise SignAppUpTelephoneRegistrationFinalizer::PasskeyMissingError }) do
+      SignAppUpTelephoneRegistrationFinalizer.stub(
+        :call, ->(*) {
+                 raise SignAppUpTelephoneRegistrationFinalizer::PasskeyMissingError
+               },
+      ) do
         harness.define_singleton_method(:issue_sign_up_recovery_passcodes!) { |*| nil }
 
         assert_equal :failed, harness.send(:finalize_app_sign_up_actor!, harness.actor_value)
@@ -444,7 +454,10 @@ class SignUpSequenceControllerSupportExtraCoverageTest < ActiveSupport::TestCase
       end
     end.new(ClientStatus::UNVERIFIED_WITH_SIGN_UP, "a-1")
     harness.actor_value = actor
-    harness.instance_variable_set(:@sign_up_ticket, Struct.new(:pending_contact_type, :pending_contact_id).new("email", nil))
+    harness.instance_variable_set(
+      :@sign_up_ticket,
+      Struct.new(:pending_contact_type, :pending_contact_id).new("email", nil),
+    )
     Client.stub(:transaction, ->(&block) { block.call }) do
       harness.define_singleton_method(:issue_sign_up_recovery_passcodes!) { |*| nil }
 
@@ -455,11 +468,17 @@ class SignUpSequenceControllerSupportExtraCoverageTest < ActiveSupport::TestCase
 
   test "finalize_com_sign_up_actor! covers branches and rescue" do
     harness = Harness.new
-    harness.instance_variable_set(:@sign_up_ticket, Struct.new(:pending_contact_type, :pending_contact_id).new("other", nil))
+    harness.instance_variable_set(
+      :@sign_up_ticket,
+      Struct.new(:pending_contact_type, :pending_contact_id).new("other", nil),
+    )
 
     assert_equal :failed, harness.send(:finalize_com_sign_up_actor!, Struct.new(:public_id).new("a-1"))
 
-    harness.instance_variable_set(:@sign_up_ticket, Struct.new(:pending_contact_type, :pending_contact_id).new("telephone", 1))
+    harness.instance_variable_set(
+      :@sign_up_ticket,
+      Struct.new(:pending_contact_type, :pending_contact_id).new("telephone", 1),
+    )
     telephone = Struct.new(:id).new(1)
     VisitorTelephone.stub(:find_by, telephone) do
       SignComUpTelephoneRegistrationFinalizer.stub(:call, Struct.new(:status).new(:ok)) do
@@ -475,7 +494,10 @@ class SignUpSequenceControllerSupportExtraCoverageTest < ActiveSupport::TestCase
       end
     end
 
-    harness.instance_variable_set(:@sign_up_ticket, Struct.new(:pending_contact_type, :pending_contact_id).new("email", nil))
+    harness.instance_variable_set(
+      :@sign_up_ticket,
+      Struct.new(:pending_contact_type, :pending_contact_id).new("email", nil),
+    )
     harness.define_singleton_method(:issue_sign_up_recovery_passcodes!) { |*| nil }
 
     assert_equal :accepted, harness.send(:finalize_com_sign_up_actor!, Struct.new(:public_id).new("a-1"))

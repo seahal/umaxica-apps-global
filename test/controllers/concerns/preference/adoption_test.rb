@@ -258,7 +258,8 @@ module Preference
       user_pref.reload
 
       assert_equal ClientPreferenceLanguageOption::JA, user_pref.user_preference_language.option_id,
-                   "a legacy principal value must never be overwritten merely because the browser has an explicit marker"
+                   "a legacy principal value must never be overwritten merely because the browser has an " \
+                   "explicit marker"
       assert_predicate user_pref, :legacy_unknown_explicit_state?,
                        "sync must not write to the principal side while it stays legacy, so the row stays legacy"
     end

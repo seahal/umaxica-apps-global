@@ -3,135 +3,155 @@
 
 require "test_helper"
 
+# Withdrawal entry and scheduling pages for a visitor on the corporate surface:
+# the acknowledgement gate that reveals the deactivation form, the validation
+# failure that keeps the visitor active, and the deactivation that starts the
+# withdrawal and moves the visitor to the recovery page.
 class Base::Com::Identity::WithdrawalsControllerTest < ActionDispatch::IntegrationTest
+  fixtures :visitors, :visitor_statuses, :visitor_email_statuses,
+           :visitor_token_kinds, :visitor_token_statuses, :visitor_token_binding_methods,
+           :visitor_token_dbsc_statuses
+
   setup do
-    @host = configured_host(:base_corporate)
-    @visitor = create_verified_visitor_with_email(email_address: "com-withdrawal-#{SecureRandom.hex(4)}@example.com")
+    @host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL")
+    host! @host
+    @visitor = visitors(:reserved_visitor)
+    @token = VisitorToken.create!(
+      visitor: @visitor,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      discarded_at: 1.day.from_now,
+    )
+    BaseSelectorBootstrapAuthority.call(surface: :com, principal: @visitor)
+    BaseSelectorAuthority.prepare(surface: :com, principal: @visitor, session: @token)
+    _verification, raw_verification = VisitorVerification.issue_for_token!(token: @token)
+    cookies[VisitorVerification.cookie_name] = raw_verification
+    @token.update!(
+      last_step_up_at: Time.current,
+      last_step_up_scope: "withdrawal",
+      last_step_up_aal: "aal2",
+      last_step_up_method: "passkey",
+      last_step_up_session_public_id: @token.public_id,
+      last_step_up_purpose: "step_up",
+      last_step_up_audience: "step_up:com",
+    )
+    access_token = AuthenticationToken.encode(
+      @visitor, host: @host, session_public_id: @token.public_id,
+                resource_type: "visitor", jwt_issuer_id: "surface:BASE_COM",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+    @headers = {
+      "Authorization" => "Bearer #{access_token}",
+      "Client-Agent" => "Mozilla/5.0",
+      "Host" => @host,
+      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+    }.freeze
   end
 
-  test "new renders the withdrawal entry page for an active visitor" do
-    get new_base_com_identity_withdrawal_url(ri: "jp"), headers: auth_headers
+  test "new renders the withdrawal entry without the deactivation form before the schedule is acknowledged" do
+    get new_base_com_identity_withdrawal_url(ri: "jp", host: @host), headers: @headers
 
     assert_response :success
+    props = inertia_props
+
+    assert_equal I18n.t("sign.app.settings.withdrawal.new.page_title"), props.fetch("title")
+    assert_not props.fetch("already_deactivated")
+    assert_nil props.fetch("deactivate")
   end
 
-  test "new re-renders with an error when the schedule acknowledgement is missing" do
-    get new_base_com_identity_withdrawal_url(ri: "jp", ack_schedule_purge: "0"), headers: auth_headers
+  test "new reveals the deactivation form once the purge schedule is acknowledged" do
+    get new_base_com_identity_withdrawal_url(ri: "jp", host: @host, ack_schedule_purge: "1"), headers: @headers
+
+    assert_response :success
+    assert_equal base_com_identity_withdrawal_path(ri: "jp"), inertia_props.fetch("deactivate").fetch("url")
+  end
+
+  test "new re-renders the entry when the purge acknowledgement is rejected" do
+    get new_base_com_identity_withdrawal_url(ri: "jp", host: @host, ack_schedule_purge: "0"), headers: @headers
 
     assert_response :unprocessable_content
+    assert_predicate inertia_props.fetch("schedule").fetch("errors"), :present?
   end
 
-  test "new advances to the deactivation confirmation once the schedule is acknowledged" do
-    get new_base_com_identity_withdrawal_url(ri: "jp", ack_schedule_purge: "1"), headers: auth_headers
+  test "update without acknowledging the purge schedule leaves the visitor active" do
+    patch base_com_identity_withdrawal_url(ri: "jp", host: @host),
+          params: { ack_schedule_purge: "0" }, headers: @headers
 
-    assert_response :success
+    assert_response :unprocessable_content
+    assert_not VisitorWithdrawalFlow.exists?(visitor_id: @visitor.id)
   end
 
-  test "update starts the withdrawal request for a visitor who has none yet" do
-    patch base_com_identity_withdrawal_url(ri: "jp"),
-          params: { ack_schedule_purge: "1" },
-          headers: auth_headers
+  test "update with the purge acknowledgement starts the withdrawal request" do
+    patch base_com_identity_withdrawal_url(ri: "jp", host: @host),
+          params: { ack_schedule_purge: "1" }, headers: @headers
 
-    assert_response :redirect
-    assert_equal 1, @visitor.visitor_withdrawal_flows.reload.count
-    assert_predicate @visitor.visitor_withdrawal_flows.first, :withdrawal_requested?
+    assert_response :see_other
+    assert_predicate VisitorWithdrawalFlow.where(visitor_id: @visitor.id), :exists?
   end
 
-  test "update deactivates the visitor once the withdrawal request is already open" do
-    patch base_com_identity_withdrawal_url(ri: "jp"),
-          params: { ack_schedule_purge: "1" },
-          headers: auth_headers
+  test "update rejects deactivation when today's acknowledgement is missing" do
+    patch base_com_identity_withdrawal_url(ri: "jp", host: @host),
+          params: { ack_schedule_purge: "1" }, headers: @headers
 
-    assert_response :redirect
-
-    # `ack_deactivate_today` is what moves the flow past the request step
-    # (should_start_withdrawal_request? keys off its presence).
-    patch base_com_identity_withdrawal_url(ri: "jp"),
-          params: { ack_schedule_purge: "1", ack_deactivate_today: "1" },
-          headers: auth_headers
-
-    assert_response :redirect
-    assert_predicate @visitor.reload.deactivated_at, :present?
-  end
-
-  test "update re-renders when the deactivation acknowledgement is refused" do
-    patch base_com_identity_withdrawal_url(ri: "jp"),
-          params: { ack_schedule_purge: "1" },
-          headers: auth_headers
-
-    assert_response :redirect
-
-    patch base_com_identity_withdrawal_url(ri: "jp"),
-          params: { ack_schedule_purge: "1", ack_deactivate_today: "0" },
-          headers: auth_headers
+    patch base_com_identity_withdrawal_url(ri: "jp", host: @host),
+          params: { ack_deactivate_today: "0" }, headers: @headers
 
     assert_response :unprocessable_content
     assert_nil @visitor.reload.deactivated_at
   end
 
-  private
+  test "update deactivates the visitor once both acknowledgements are given" do
+    patch base_com_identity_withdrawal_url(ri: "jp", host: @host),
+          params: { ack_schedule_purge: "1" }, headers: @headers
 
-  # `new` and `update` both declare verification_required_action?, so the session needs satisfied
-  # step-up material for the "withdrawal" scope. Cookies go into the integration jar rather than a
-  # literal Cookie header so the Rails session cookie survives between requests.
-  def auth_headers
-    return @auth_headers if @auth_headers
+    patch base_com_identity_withdrawal_url(ri: "jp", host: @host),
+          params: { ack_deactivate_today: "1" }, headers: @headers
 
-    headers = as_visitor_headers(@visitor, host: @host)
-    token = authentication_harness_latest_token(@visitor)
-    mark_token_step_up_satisfied_for_test(token, scope: "withdrawal")
-    _verification, raw_token = VisitorVerification.issue_for_token!(token: token)
-    access_token = headers["Cookie"].to_s[/#{Regexp.escape(AuthenticationBase::ACCESS_COOKIE_KEY)}=([^;]+)/, 1]
-    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
-    cookies[VisitorVerification.cookie_name] = raw_token
+    assert_response :see_other
+    assert_redirected_to edit_base_com_identity_withdrawal_path(ri: "jp")
+    assert_not_nil @visitor.reload.deactivated_at
+    assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY].presence
+  end
+  test "recovery page and privacy erasure pages are reachable once the ceremony is issued" do
+    patch base_com_identity_withdrawal_url(ri: "jp", host: @host),
+          params: { ack_schedule_purge: "1" }, headers: @headers
+    patch base_com_identity_withdrawal_url(ri: "jp", host: @host),
+          params: { ack_deactivate_today: "1" }, headers: @headers
 
-    @auth_headers = headers.except("Cookie", "HTTP_COOKIE")
+    assert_response :see_other
+
+    get edit_base_com_identity_withdrawal_url(ri: "jp", host: @host), headers: { "Host" => @host }
+
+    assert_response :success
+    assert_equal I18n.t("sign.app.settings.withdrawal.recovery.page_title"), inertia_props.fetch("title")
+
+    get new_base_com_identity_privacy_erasure_url(ri: "jp", host: @host), headers: { "Host" => @host }
+
+    assert_response :success
+    assert_equal "Early personal data erasure", inertia_props.fetch("title")
+
+    assert_difference("VisitorPrivacyRequest.count", 1) do
+      post base_com_identity_privacy_erasure_url(ri: "jp", host: @host), headers: { "Host" => @host }
+    end
+
+    get base_com_identity_privacy_erasure_status_url(ri: "jp", host: @host), headers: { "Host" => @host }
+
+    assert_response :success
+    assert_predicate inertia_props.fetch("privacy_request"), :present?
   end
 
-  def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
-    return unless token.respond_to?(:update_columns)
+  test "the withdrawal ceremony session can be ended from the recovery page" do
+    patch base_com_identity_withdrawal_url(ri: "jp", host: @host),
+          params: { ack_schedule_purge: "1" }, headers: @headers
+    patch base_com_identity_withdrawal_url(ri: "jp", host: @host),
+          params: { ack_deactivate_today: "1" }, headers: @headers
 
-    attrs = {
-      last_step_up_at: at,
-      last_step_up_scope: scope.presence || "verification",
-      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
-      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
-      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
-      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
-      last_step_up_audience: ("step_up:com" if token.respond_to?(:last_step_up_audience)),
-      updated_at: Time.current,
-    }.compact
-    token.update_columns(attrs)
-  end
+    delete base_com_identity_withdrawal_session_url(ri: "jp", host: @host), headers: { "Host" => @host }
 
-  # DAMP local helper copy for former shared test support.
-  def configured_host(surface_name)
-    Rails.configuration.x.boot_config.fetch(:hosts).public_send(surface_name).host
-  end
+    assert_response :redirect
 
-  def create_verified_visitor_with_email(email_address: "visitor-#{SecureRandom.hex(4)}@example.com")
-    ensure_visitor_reference_records!
-    visitor = Visitor.create!(status_id: VisitorStatus::NOTHING, visibility_id: VisitorVisibility::VISITOR)
-    VisitorEmail.create!(
-      visitor_id: visitor.id,
-      address: email_address,
-      address_digest: IdentifierBlindIndex.bidx_for_email(email_address),
-      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
-      otp_private_key: SecureRandom.base64(24),
-      otp_counter: "",
-      otp_attempts_count: 0,
-      public_id: SecureRandom.alphanumeric(21),
-    )
-    visitor.reload
-    visitor.refresh_mfa_status! if visitor.respond_to?(:refresh_mfa_status!)
-    visitor.reload
-  end
+    get edit_base_com_identity_withdrawal_url(ri: "jp", host: @host), headers: { "Host" => @host }
 
-  def ensure_visitor_reference_records!
-    VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)
-    VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
-    VisitorMfaLevel.find_or_create_by!(id: VisitorMfaLevel::NOTHING)
-    VisitorMfaStatus.find_or_create_by!(id: VisitorMfaStatus::UNCONFIGURED)
-    VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
+    assert_response :redirect
   end
 end

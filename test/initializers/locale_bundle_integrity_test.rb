@@ -22,7 +22,9 @@ class LocaleBundleIntegrityTest < ActiveSupport::TestCase
   test "no locale bundle defines the same key twice" do
     duplicates =
       locale_bundles.flat_map do |path|
-        duplicate_keys(Psych.parse(path.read)).map { |key, first, second| "#{path.basename}: #{key} (line #{first} then #{second})" }
+        duplicate_keys(Psych.parse(path.read)).map { |key, first, second|
+          "#{path.basename}: #{key} (line #{first} then #{second})"
+        }
       end
 
     assert_empty duplicates,

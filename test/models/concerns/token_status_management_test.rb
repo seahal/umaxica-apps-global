@@ -215,7 +215,7 @@ class TokenStatusManagementTest < ActiveSupport::TestCase
       @token.revoke!
 
       assert_predicate @token.discarded_at, :present?
-      assert_in_delta Time.current.to_f, @token.discarded_at.to_f, 1
+      assert_in_delta Time.current.to_f, Float(@token.discarded_at), 1
       assert_equal ClientTokenStatus::REVOKED, @token.user_token_status_id
     end
   end

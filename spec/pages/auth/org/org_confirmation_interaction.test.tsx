@@ -84,6 +84,17 @@ describe("org passkey settings confirmation", () => {
     ],
   };
 
+  it("explains an empty inventory", () => {
+    mount(
+      <OrgPasskeySettingsIndex
+        {...indexProps}
+        passkeys={[]}
+      />,
+    );
+
+    expect(container.textContent).toContain("登録がありません。");
+  });
+
   it("holds the deletion back until the operator accepts", () => {
     mount(<OrgPasskeySettingsIndex {...indexProps} />);
 
@@ -140,7 +151,20 @@ describe("org session limit confirmation", () => {
     back_link: { label: "もどる", href: "/sign/in" },
     cancel_logout_label: "キャンセルしてログアウト",
     cancel_logout_confirm: "キャンセルしますか？ログアウトされます。",
-    sessions: [{ ref: "signed-ref", digest: "abcd", created_at: "2026-01-01", last_used_at: null }],
+    sessions: [
+      {
+        ref: "signed-ref",
+        digest: "abcd",
+        created_at: "2026-01-01",
+        last_used_at: "2026-01-02",
+      },
+      {
+        ref: "signed-ref-2",
+        digest: "efgh",
+        created_at: "2026-01-01",
+        last_used_at: null,
+      },
+    ],
   };
 
   it("cancels the ceremony only once the operator accepts", () => {
@@ -156,5 +180,16 @@ describe("org session limit confirmation", () => {
     submitForm(1);
     answerConfirmation(true);
     expect(submitted).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the empty copy when the server named no sessions", () => {
+    mount(
+      <OrgSessionLimitPage
+        {...props}
+        sessions={[]}
+      />,
+    );
+
+    expect(container.textContent).toContain("セッションがありません。");
   });
 });

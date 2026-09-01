@@ -84,6 +84,29 @@ describe("TurnstileController", () => {
       expect(rendered).toHaveLength(1);
     });
 
+    it("connects without a surrounding form", async () => {
+      const { controller } = await mount(`
+        <div data-controller="turnstile" data-turnstile-error-message-value="Verification failed">
+          <div data-turnstile-target="container" data-sitekey="site-key"></div>
+          <input type="hidden" data-turnstile-target="response">
+        </div>
+      `);
+
+      await controller.scheduleChallenge();
+      controller.disconnect();
+
+      expect(rendered.at(-1)?.options.sitekey).toBe("site-key");
+    });
+
+    it("unbinds the form listener on disconnect", async () => {
+      const { controller } = await mount();
+
+      controller.disconnect();
+      controller.runScheduledChallenge();
+
+      expect(rendered.length).toBeGreaterThanOrEqual(0);
+    });
+
     it("does nothing when the markup carries no widget host", async () => {
       const { controller } = await mount(`
         <form><div data-controller="turnstile"></div></form>

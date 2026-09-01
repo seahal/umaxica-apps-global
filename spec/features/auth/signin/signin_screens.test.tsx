@@ -75,7 +75,12 @@ describe("sign-in method choice", () => {
         action: "/social/entra/session?ri=jp",
         authenticity_token: "csrf-value",
         aria_label: null,
-        artwork: null,
+        artwork: {
+          light: "/images/social/entra_light.svg",
+          dark: "/images/social/entra_dark.svg",
+          width: 180,
+          height: 40,
+        },
         logos: null,
       },
     ],

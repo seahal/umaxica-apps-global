@@ -34,7 +34,8 @@ module Publishing
       entry = publishing_draft(edition: @edition, slug: "forgery", title: "Forgery")
       revision = entry.current_revision
       RevisionSingleTaxonomyAssignment.create!(
-        entry_revision: revision, vocabulary: @category, vocabulary_kind: @category.kind, taxonomy_term: @leaf, locale: "ja",
+        entry_revision: revision, vocabulary: @category, vocabulary_kind: @category.kind, taxonomy_term: @leaf,
+        locale: "ja",
       )
       version = EntryVersion.create!(
         entry:, entry_revision: revision, locale: "ja", title: "Forgery", body: { "text" => "x" },
@@ -159,7 +160,10 @@ module Publishing
     end
 
     def promote(category: nil, tags: [])
-      entry = publishing_draft(edition: @edition, slug: "snapshot-#{SecureRandom.alphanumeric(6).downcase}", title: "Snapshot")
+      entry = publishing_draft(
+        edition: @edition, slug: "snapshot-#{SecureRandom.alphanumeric(6).downcase}",
+        title: "Snapshot",
+      )
       if category
         RevisionSingleTaxonomyAssignment.create!(
           entry_revision: entry.current_revision, vocabulary: @category, vocabulary_kind: @category.kind,

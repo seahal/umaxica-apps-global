@@ -4,7 +4,8 @@
 require "test_helper"
 
 class ComEnforcementCaseTest < ActiveSupport::TestCase
-  test "apply! transitions a temporary_freeze with an access-blocking Principal Effect to active and locks the visitor" do
+  test "apply! transitions a temporary_freeze with an access-blocking Principal Effect to active and locks the " \
+       "visitor" do
     visitor = visitors(:reserved_visitor)
     operator = operators(:one)
 
@@ -29,7 +30,8 @@ class ComEnforcementCaseTest < ActiveSupport::TestCase
 
     assert_equal "active", the_case.state
     assert_predicate visitor, :admin_locked?
-    assert_equal 1, EnforcementEvent.where(realm: "com", case_public_id: the_case.public_id, event_type: "applied").count
+    assert_equal 1,
+                 EnforcementEvent.where(realm: "com", case_public_id: the_case.public_id, event_type: "applied").count
   end
 
   test "com realm authentication method effects reject google as an unsupported method" do

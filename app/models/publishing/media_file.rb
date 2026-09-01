@@ -33,6 +33,7 @@ module Publishing
 
     include PublicId
 
-    has_many :media_usages, class_name: "Publishing::MediaUsage", inverse_of: :media_file, dependent: :restrict_with_exception
+    has_many :media_usages, class_name: "Publishing::MediaUsage", inverse_of: :media_file,
+                            dependent: :restrict_with_exception
   end
 end

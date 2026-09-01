@@ -33,7 +33,9 @@ module Publishing
       assert_equal @guide.id, revision.single_taxonomy_assignments.sole.taxonomy_term_id
       assert_equal(
         %w(rails ruby),
-        revision.multiple_taxonomy_assignments.includes(:taxonomy_term).map { |assignment| assignment.taxonomy_term.slug },
+        revision.multiple_taxonomy_assignments.includes(:taxonomy_term).map { |assignment|
+          assignment.taxonomy_term.slug
+        },
       )
       assert_equal [0, 1], revision.multiple_taxonomy_assignments.map(&:position)
     end
@@ -90,7 +92,8 @@ module Publishing
 
     def assign_category(revision, term)
       RevisionSingleTaxonomyAssignment.create!(
-        entry_revision: revision, vocabulary: @category, vocabulary_kind: @category.kind, taxonomy_term: term, locale: "ja",
+        entry_revision: revision, vocabulary: @category, vocabulary_kind: @category.kind, taxonomy_term: term,
+        locale: "ja",
       )
     end
 

@@ -32,7 +32,9 @@ module ExternalSignIn
       private_constant :UUID_FORMAT
 
       # jwks_loader: injectable for testing; defaults to EntraJwksCache#loader in production.
-      def initialize(id_token:, expected_nonce:, expected_tenant_id:, client_id:, jwks_loader: nil, clock: -> { Time.current })
+      def initialize(id_token:, expected_nonce:, expected_tenant_id:, client_id:, jwks_loader: nil, clock: -> {
+        Time.current
+      })
         @id_token = id_token
         @expected_nonce = expected_nonce
         @expected_tenant_id = expected_tenant_id

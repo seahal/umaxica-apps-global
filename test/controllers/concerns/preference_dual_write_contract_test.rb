@@ -40,7 +40,9 @@ class PreferenceDualWriteContractTest < ActiveSupport::TestCase
 
       ctx = PreferenceDualWriteContractTestController.new
       ctx.define_singleton_method(:preference_class) { cfg[:preference_class].call }
-      ctx.define_singleton_method(:preference_prefix) { |_p = nil| cfg[:preference_class].call.name.gsub("Preference", "") }
+      ctx.define_singleton_method(:preference_prefix) { |_p = nil|
+        cfg[:preference_class].call.name.gsub("Preference", "")
+      }
       ctx.instance_variable_set(:@preferences, browser_pref)
 
       ctx.send(:write_resource_preference_option!, resource_pref, :language, PreferenceLifecycleSurfaces::EN)

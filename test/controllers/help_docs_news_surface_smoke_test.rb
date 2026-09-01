@@ -65,7 +65,10 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
       assert_response :success, surface.fetch(:label)
       assert_not_empty response.body, surface.fetch(:label)
 
-      published = create_publishing_entry(audience: "app", surface: surface.fetch(:surface), namespace: surface.fetch(:label).downcase)
+      published = create_publishing_entry(
+        audience: "app", surface: surface.fetch(:surface),
+        namespace: surface.fetch(:label).downcase,
+      )
 
       get surface.fetch(:entries_index_path),
           params: { locale: "test-smoke" },

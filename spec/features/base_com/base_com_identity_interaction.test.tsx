@@ -137,6 +137,22 @@ describe("DestructiveButton", () => {
     expect(destroy).toHaveBeenCalledWith("/identity/emails/e1", expect.objectContaining({}));
   });
 
+  it("forwards extra payload when the server named some", () => {
+    mount(
+      <DestructiveButton
+        action={action}
+        data={{ challenge: "tok" }}
+      />,
+    );
+    submitForm();
+    acceptConfirmation();
+
+    expect(destroy).toHaveBeenCalledWith(
+      "/identity/emails/e1",
+      expect.objectContaining({ data: { challenge: "tok" } }),
+    );
+  });
+
   it("does nothing when the confirmation is declined", () => {
     mount(<DestructiveButton action={action} />);
     submitForm();
@@ -356,6 +372,17 @@ describe("EmailEdit", () => {
       />,
     );
     click("[data-testid='solve-turnstile']");
+    submitForm();
+    expect(patch).toHaveBeenCalledWith(
+      "/identity/emails/e1",
+      {
+        visitor_email: { promotional: "0", notifiable: "1" },
+        "cf-turnstile-response": "turnstile-token",
+      },
+      expect.objectContaining({}),
+    );
+    patch.mockClear();
+    click("[data-testid='solve-turnstile']");
     toggle("#visitor_email_promotional");
     toggle("#visitor_email_notifiable");
     submitForm();
@@ -400,6 +427,17 @@ describe("EmailRegistrationNew", () => {
     );
     click("[data-testid='solve-turnstile']");
     setInput("#visitor_email_address", "person@example.com");
+    submitForm();
+    expect(post).toHaveBeenCalledWith(
+      "/identity/emails/registration",
+      {
+        visitor_email: { address: "person@example.com", notifiable: "0" },
+        "cf-turnstile-response": "turnstile-token",
+      },
+      expect.objectContaining({}),
+    );
+    post.mockClear();
+    click("[data-testid='solve-turnstile']");
     toggle("#visitor_email_notifiable");
     submitForm();
 
@@ -537,7 +575,7 @@ describe("OtpReentryNew", () => {
     mount(
       <OtpReentryNew
         title="Account recovery"
-        description="A code will be sent."
+        description=""
         address_form={addressForm}
         pass_code_form={null}
       />,
@@ -581,6 +619,13 @@ describe("OtpReentryNew", () => {
       { pass_code: "654321" },
       expect.objectContaining({}),
     );
+    const [, , options] = present(post.mock.calls[0], "the pass-code router.post call");
+    act(() => {
+      startVisit(options);
+    });
+    act(() => {
+      finishVisit(options);
+    });
   });
 });
 
@@ -630,7 +675,10 @@ describe("EnforcementRecoveryShow", () => {
               url: "/identity/recovery/appeals",
               scope: "appeal",
               reason_label: "Appeal reason",
-              reason_codes: [{ label: "mistake", value: "mistake" }],
+              reason_codes: [
+                { label: "mistake", value: "mistake" },
+                { label: "other", value: "other" },
+              ],
               statement_label: "Appeal statement",
               statement_max_length: 500,
               submit_label: "Submit appeal",

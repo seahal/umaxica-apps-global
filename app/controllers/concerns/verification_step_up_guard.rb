@@ -17,7 +17,7 @@ module VerificationStepUpGuard
     # only:         actions the requirement applies to (forwarded to before_action only:)
     # scope:        step-up scope; defaults to the controller's #verification_scope
     #               so the scope stays single-sourced with the existing override.
-    # required_aal: overrides the default AAL only when given.
+    # required_aal is optional; ordinary step-up has no NIST AAL floor.
     # bootstrap:    when true, uses require_step_up_unless_bootstrap! so actors with
     #               no step-up method configured are not blocked from setup.
     def step_up(only:, scope: nil, required_aal: nil, bootstrap: false)

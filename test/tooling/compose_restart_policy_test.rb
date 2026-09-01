@@ -17,9 +17,12 @@ class ComposeRestartPolicyTest < Minitest::Test
   ].freeze
 
   # The services a developer runs every session, and the only ones expected to
-  # recover on their own. One-shot services (`dev-credentials`) and the
-  # observability profile deliberately stay on `restart: "no"`.
-  RECOVERING_SERVICES = %w(core primary replica valkey).freeze
+  # recover on their own. One-shot services deliberately stay on `restart: "no"`.
+  # The observability group is on this list because it is no longer
+  # profile-gated: a plain `up` starts all of it.
+  RECOVERING_SERVICES = %w(
+    alloy core fakecloud grafana loki prometheus primary replica tempo valkey
+  ).freeze
 
   # Podman applies no backoff, so an unbounded policy turns a bad configuration into
   # ~2.8 container recreations a second. See

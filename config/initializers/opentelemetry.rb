@@ -3,6 +3,21 @@
 
 return if Rails.env.test?
 
+# `compose.yaml` declares OPEN_TELEMETRY on `core` and sets it to "true": the
+# observability group is no longer profile-gated, so `alloy` is always running
+# and always able to receive.
+#
+# The gate stays because `core` also runs outside Compose -- a host `bin/rails`,
+# a CI job, a one-off `podman run` -- where no agent exists. Without it the SDK
+# would initialise there too and export into a host that does not resolve,
+# producing a steady trickle of exporter retry warnings.
+#
+# Two-argument fetch, matching config/initializers/redis.rb: this is a toggle
+# with a meaningful off state, not required configuration whose absence should
+# stop the boot. The default is off so that the no-agent environments above stay
+# quiet without each having to set the variable.
+return unless ENV.fetch("OPEN_TELEMETRY", "false") == "true"
+
 require "opentelemetry/sdk"
 require "opentelemetry/exporter/otlp"
 require "opentelemetry/instrumentation/action_mailer"

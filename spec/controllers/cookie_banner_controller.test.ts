@@ -60,6 +60,69 @@ describe("CookieBannerController", () => {
       expect(bannerIsOnPage()).toBe(false);
     });
 
+    it("accepts through the button the banner exposes", async () => {
+      const fetchMock = vi.fn<typeof fetch>();
+      fetchMock.mockResolvedValueOnce(jsonResponse({ show_banner: true }));
+      fetchMock.mockResolvedValue(noContentResponse());
+      vi.stubGlobal("fetch", fetchMock);
+      const { element } = await mount();
+
+      element.querySelector<HTMLButtonElement>("[data-action='cookie-banner#accept']")?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(requestWithMethod(fetchMock, "PATCH")?.body).toEqual({
+        cookie: { consented: true, functional: true, performant: true, targetable: true },
+      });
+    });
+
+    it("skips a named decision whose checkbox is absent", async () => {
+      const fetchMock = vi.fn<typeof fetch>();
+      fetchMock.mockResolvedValueOnce(jsonResponse({ show_banner: true }));
+      fetchMock.mockResolvedValue(noContentResponse());
+      vi.stubGlobal("fetch", fetchMock);
+      const { controller } = await mount(`
+        <div data-controller="cookie-banner">
+          <button type="button" data-action="cookie-banner#accept">Accept</button>
+        </div>
+        <div data-controller="cookie-toggle">
+          <form></form>
+        </div>
+      `);
+
+      await controller.submitConsent(true);
+
+      expect(requestWithMethod(fetchMock, "PATCH")).toBeDefined();
+    });
+
+    it("skips preference fields the stored decision does not name", async () => {
+      const fetchMock = vi.fn<typeof fetch>();
+      fetchMock.mockResolvedValueOnce(jsonResponse({ show_banner: true }));
+      fetchMock.mockResolvedValue(noContentResponse());
+      vi.stubGlobal("fetch", fetchMock);
+      const { controller } = await mount();
+
+      controller.syncCookieFormConsent({ consented: true });
+
+      expect(consentBox("consented")?.checked).toBe(true);
+    });
+
+    it("does nothing when there is no cookie-toggle form to sync", async () => {
+      const fetchMock = vi.fn<typeof fetch>();
+      fetchMock.mockResolvedValueOnce(jsonResponse({ show_banner: true }));
+      fetchMock.mockResolvedValue(noContentResponse());
+      vi.stubGlobal("fetch", fetchMock);
+      const { controller } = await mount(`
+        <div data-controller="cookie-banner">
+          <button type="button" data-action="cookie-banner#accept">Accept</button>
+        </div>
+      `);
+
+      await controller.submitConsent(true);
+
+      expect(requestWithMethod(fetchMock, "PATCH")).toBeDefined();
+    });
+
     it("stays for a visitor who has not consented", async () => {
       vi.stubGlobal(
         "fetch",
@@ -113,6 +176,22 @@ describe("CookieBannerController", () => {
   // the way the server actually answers it. Parsing that response threw, which left the banner on
   // screen after the decision had already been stored.
   describe("accept", () => {
+    it("reports a failed accept instead of removing the banner", async () => {
+      const fetchMock = vi.fn<typeof fetch>();
+      fetchMock.mockResolvedValueOnce(jsonResponse({ show_banner: true }));
+      fetchMock.mockResolvedValue(jsonResponse({}, 500));
+      vi.stubGlobal("fetch", fetchMock);
+      const { element } = await mount();
+      const events = recordEvents(element, "cookie-banner:error");
+
+      element.querySelector<HTMLButtonElement>("[data-action='cookie-banner#accept']")?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(bannerIsOnPage()).toBe(true);
+      expect(events.events).toHaveLength(1);
+    });
+
     it("records consent for every category and removes the banner", async () => {
       const fetchMock = vi.fn<typeof fetch>();
       fetchMock.mockResolvedValueOnce(jsonResponse({ show_banner: true }));

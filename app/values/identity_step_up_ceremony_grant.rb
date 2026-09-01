@@ -8,7 +8,7 @@ class IdentityStepUpCeremonyGrant
   REQUIRED_CLAIMS = %w(
     typ iss aud purpose surface actor_ref session_ref transaction_id jti required_scope required_aal iat exp
   ).freeze
-  OPTIONAL_CLAIMS = %w(allowed_methods resource_ref return_to).freeze
+  OPTIONAL_CLAIMS = %w(allowed_methods resource_ref return_to phishing_resistant_required).freeze
   ALLOWED_CLAIMS = (REQUIRED_CLAIMS + OPTIONAL_CLAIMS).freeze
 
   attr_reader :payload, :kid
@@ -40,6 +40,13 @@ class IdentityStepUpCeremonyGrant
 
   def [](key) = payload[key.to_s]
 
+  def required_aal
+    value = self[:required_aal].to_s
+    (value == StepUpRequirement::NO_AAL) ? nil : value.to_sym
+  end
+
+  def phishing_resistant_required? = self[:phishing_resistant_required] == true
+
   def validate!(now: Time.current)
     IdentityStepUpCeremonyContract.validate_common_payload!(
       payload,
@@ -50,6 +57,10 @@ class IdentityStepUpCeremonyGrant
       issuer: IdentityStepUpCeremonyContract.acme_issuer(payload["surface"]),
       now: now,
     )
+    IdentityStepUpCeremonyContract.validate_boolean!(
+      payload,
+      "phishing_resistant_required",
+    ) if payload.key?("phishing_resistant_required")
     validate_allowed_methods!
   end
 

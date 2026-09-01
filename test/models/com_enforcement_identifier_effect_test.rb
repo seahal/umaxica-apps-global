@@ -45,7 +45,10 @@ class ComEnforcementIdentifierEffectTest < ActiveSupport::TestCase
     enforcement_case = ban_case
     open_effect = create_effect(enforcement_case, "in-force-com@example.test", effective_at: 1.hour.ago)
     future = create_effect(enforcement_case, "future-com@example.test", effective_at: 1.hour.from_now)
-    expired = create_effect(enforcement_case, "expired-com@example.test", effective_at: 2.hours.ago, expires_at: 1.hour.ago)
+    expired = create_effect(
+      enforcement_case, "expired-com@example.test", effective_at: 2.hours.ago,
+                                                    expires_at: 1.hour.ago,
+    )
     ended = create_effect(enforcement_case, "ended-com@example.test", effective_at: 2.hours.ago, ended_at: 1.hour.ago)
 
     in_force = ComEnforcementIdentifierEffect.in_force

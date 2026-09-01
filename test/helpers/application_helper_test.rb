@@ -20,14 +20,6 @@ class ApplicationHelperTest < ActionView::TestCase
     define_singleton_method(:current_banner_for) { |**kwargs| @helper_context.current_banner_for(**kwargs) }
   end
 
-  def stub_cookie(value)
-    cookie_hash = { :ct => value, "ct" => value }
-    @helper_context.define_singleton_method(:cookies) { cookie_hash }
-    @helper_context.define_singleton_method(:request) {
-      Struct.new(:host, :cookies).new("www.umaxica.app", cookie_hash)
-    }
-  end
-
   def stub_request_host(host)
     cookie_hash = {}
     @helper_context.define_singleton_method(:request) { Struct.new(:host, :cookies).new(host, cookie_hash) }

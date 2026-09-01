@@ -11,5 +11,5 @@
     "linkinator"
   ],
   "includeEntryExports": false,
-  "exclude": ["types", "duplicates", "nsExports", "nsTypes", "catalog"]
+  "exclude": ["types", "nsTypes", "catalog"]
 }

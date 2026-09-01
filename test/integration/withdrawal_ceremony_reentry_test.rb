@@ -51,6 +51,47 @@ class WithdrawalCeremonyReentryTest < ActionDispatch::IntegrationTest
     assert_predicate ClientOccurrence.where(event_type: "withdrawal.ceremony_issued"), :exists?
   end
 
+  # A wrong code must not disclose whether the address, the state or the code was the
+  # problem: the same generic page comes back with a 422 and no ceremony is issued.
+  test "a wrong re-entry code answers the same generic page without issuing a ceremony" do
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    host! host
+    client = create_client
+    client.update!(
+      withdrawal_started_at: 2.hours.ago,
+      deactivated_at: 90.minutes.ago,
+      discarded_at: 31.days.from_now,
+      purged_at: 31.days.from_now,
+    )
+    ClientEmailStatus.find_or_create_by!(id: ClientEmailStatus::VERIFIED)
+    email = ClientEmail.create!(
+      user: client,
+      address: "reentry-wrong-code@example.test",
+      confirm_policy: "1",
+      user_email_status_id: ClientEmailStatus::VERIFIED,
+    )
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:deliver) { |**_args| true }
+
+    OtpAdapter.stub(:for, fake_adapter) do
+      post base_app_identity_withdrawal_session_url(ri: "jp", host: host),
+           params: { withdrawal_reentry: { address: "reentry-wrong-code@example.test" } },
+           headers: browser_headers
+    end
+
+    assert_response :success
+
+    assert_no_difference -> { ClientWithdrawalCeremony.count } do
+      post base_app_identity_withdrawal_session_url(ri: "jp", host: host),
+           params: { pass_code: "000000" },
+           headers: browser_headers
+    end
+
+    assert_response :unprocessable_content
+    assert_predicate email.reload.get_otp, :present?,
+                     "#{email.public_id}: a wrong code must not consume the issued OTP"
+  end
+
   test "active client does not obtain withdrawal ceremony through reentry" do
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host! host

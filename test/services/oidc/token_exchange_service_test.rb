@@ -481,7 +481,8 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     end
   end
 
-  test "token exchange rejects a core-next-rp code whose stored redirect_uri belongs to a different realm than the code's resource_type" do
+  test "token exchange rejects a core-next-rp code whose stored redirect_uri belongs to a different realm than " \
+       "the code's resource_type" do
     org_redirect_uri = @client.redirect_uris_by_realm.fetch("operator").first
     code_record = issue_code!(client_id: "core-next-rp", redirect_uri: org_redirect_uri)
 

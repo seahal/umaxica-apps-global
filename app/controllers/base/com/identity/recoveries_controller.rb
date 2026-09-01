@@ -16,7 +16,8 @@ module Base
 
         def show
           @enforcement_cases = ComEnforcementCase.in_force.where(
-            principal_public_id: current_recovery_ceremony.subject.public_id, kind: "security_lock", visibility: "visible",
+            principal_public_id: current_recovery_ceremony.subject.public_id, kind: "security_lock",
+            visibility: "visible",
             release_mode: "verification_required",
           )
           render_com_identity_recovery(enforcement_cases: @enforcement_cases)
@@ -30,7 +31,10 @@ module Base
           return if current_recovery_ceremony
 
           clear_recovery_ceremony_cookie!
-          safe_redirect_to(new_base_com_identity_recovery_session_path, fallback: auth_com_sign_in_path, status: :see_other)
+          safe_redirect_to(
+            new_base_com_identity_recovery_session_path, fallback: auth_com_sign_in_path,
+                                                         status: :see_other,
+          )
         end
       end
     end

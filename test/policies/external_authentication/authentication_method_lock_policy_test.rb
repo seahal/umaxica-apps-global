@@ -141,7 +141,10 @@ class ExternalAuthenticationAuthenticationMethodLockPolicyTest < ActiveSupport::
       effective_at: Time.current,
     )
     EnforcementCaseApplyOperation.call(enforcement_case: the_case)
-    EnforcementCaseEndOperation.call(enforcement_case: the_case, reason: "revoked", ended_by_operator_public_id: operator.public_id)
+    EnforcementCaseEndOperation.call(
+      enforcement_case: the_case, reason: "revoked",
+      ended_by_operator_public_id: operator.public_id,
+    )
 
     assert_not policy.locked?(
       enforcement_case_class: AppEnforcementCase,

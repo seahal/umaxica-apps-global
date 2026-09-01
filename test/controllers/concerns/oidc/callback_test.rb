@@ -480,6 +480,98 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "default provision_rp_account_from_id_token_payload! raises NotImplementedError" do
+    dummy_class =
+      Class.new(ApplicationController) do
+        def self.declare_authentication_mode!(*)
+        end
+
+        include OidcCallback
+      end
+
+    assert_raises(NotImplementedError) do
+      dummy_class.new.send(:provision_rp_account_from_id_token_payload!, {}, "aud")
+    end
+  end
+
+  # The legacy single-flow session keys are only cleared when the callback that
+  # arrived is the one they belong to; a callback for some other state must leave
+  # another tab's in-flight flow alone.
+  test "clear_legacy_oidc_flow_if_current! only clears the flow it matches" do
+    dummy_class =
+      Class.new(ApplicationController) do
+        def self.declare_authentication_mode!(*)
+        end
+
+        include OidcCallback
+
+        attr_writer :fake_session
+
+        def session = @fake_session
+      end
+
+    controller = dummy_class.new
+    controller.fake_session = {
+      oidc_state: "state-a", oidc_code_verifier: "verifier", oidc_nonce: "nonce", oidc_pt: "/after",
+    }
+
+    controller.send(:clear_legacy_oidc_flow_if_current!, "state-b")
+
+    assert_equal "state-a", controller.session[:oidc_state]
+
+    controller.send(:clear_legacy_oidc_flow_if_current!, "state-a")
+
+    assert_empty controller.session
+  end
+
+  # The RP logout sid is written onto the session row so a later back-channel logout
+  # can find it. A non-UUID sid, a session that cannot take column writes, or a token
+  # row with neither column must all leave the row alone.
+  test "bind_oidc_rp_logout_session! writes the sid only onto a session row that can take it" do
+    dummy_class =
+      Class.new(ApplicationController) do
+        def self.declare_authentication_mode!(*)
+        end
+
+        include OidcCallback
+
+        attr_writer :session_record
+
+        def oidc_client_id = "test-client"
+
+        def token_record_connection_owner(_klass) = ActiveRecord::Base
+      end
+
+    controller = dummy_class.new
+    writable = Class.new do
+      attr_reader :updated
+
+      def has_attribute?(name) = %i(oidc_sid oidc_client_id).include?(name.to_sym)
+
+      def respond_to_missing?(name, include_private = false)
+        name.to_sym == :update_columns || super
+      end
+
+      def update_columns(*) = nil
+
+      def update!(**attributes) = @updated = attributes
+    end.new
+    controller.instance_variable_set(:@current_session, writable)
+
+    controller.send(:bind_oidc_rp_logout_session!, { "sid" => "not-a-uuid" })
+
+    assert_nil writable.updated
+
+    sid = SecureRandom.uuid
+    controller.send(:bind_oidc_rp_logout_session!, { "sid" => sid })
+
+    assert_equal({ oidc_sid: sid, oidc_client_id: "test-client" }, writable.updated)
+
+    controller.instance_variable_set(:@current_session, nil)
+
+    assert_nil controller.send(:bind_oidc_rp_logout_session!, { "sid" => SecureRandom.uuid })
+  end
+
   test "default oidc_client_id raises NotImplementedError" do
     # create a dummy controller without overriding
     dummy_class =
@@ -518,7 +610,9 @@ end
 
 # DAMP local helper copy for former shared test support.
 class OidcCallbackTestController
-  TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  TEST_BROWSER_USER_AGENT =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
 
   private
@@ -674,8 +768,14 @@ class OidcCallbackTestController
     VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
     VisitorPasskeyStatus.find_or_create_by!(id: VisitorPasskeyStatus::ACTIVE)
     if defined?(VisitorSecretCredentialStatus)
-      [VisitorSecretCredentialStatus::ACTIVE, VisitorSecretCredentialStatus::EXPIRED, VisitorSecretCredentialStatus::REVOKED,
-       VisitorSecretCredentialStatus::USED, VisitorSecretCredentialStatus::DELETED, VisitorSecretCredentialStatus::NOTHING,].each do |id|
+      [
+        VisitorSecretCredentialStatus::ACTIVE,
+        VisitorSecretCredentialStatus::EXPIRED,
+        VisitorSecretCredentialStatus::REVOKED,
+        VisitorSecretCredentialStatus::USED,
+        VisitorSecretCredentialStatus::DELETED,
+        VisitorSecretCredentialStatus::NOTHING,
+      ].each do |id|
         VisitorSecretCredentialStatus.find_or_create_by!(id: id)
       end
     end
@@ -1003,9 +1103,11 @@ end
 
 # DAMP local helper copy on the test class.
 class OidcCallbackTest
-  TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
-    :TEST_BROWSER_USER_AGENT, false,
-  )
+  TEST_BROWSER_USER_AGENT =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
+      :TEST_BROWSER_USER_AGENT, false,
+    )
   PREFERENCE_JWT_KEY = OpenSSL::PKey::EC.generate("secp384r1") unless const_defined?(:PREFERENCE_JWT_KEY, false)
 
   private
@@ -1075,7 +1177,9 @@ class OidcCallbackTest
     token ||= ClientToken.where(user_id: user.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
     token ||= ClientToken.create!(
       user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB,
-      user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -1093,7 +1197,9 @@ class OidcCallbackTest
     ).order(created_at: :desc).first
     token ||= OperatorToken.create!(
       staff_id: staff.id, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-      staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
+      staff_token_status_id: OperatorTokenStatus::ACTIVE,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -1111,7 +1217,9 @@ class OidcCallbackTest
     ).order(created_at: :desc).first
     token ||= VisitorToken.create!(
       visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
-      visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY,
+      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -1169,7 +1277,12 @@ class OidcCallbackTest
     visitor = Visitor.create!(status_id: VisitorStatus::NOTHING, visibility_id: VisitorVisibility::VISITOR)
     VisitorEmail.create!(
       visitor_id: visitor.id, address: email_address,
-      address_digest: IdentifierBlindIndex.bidx_for_email(email_address), visitor_email_status_id: VisitorEmailStatus::VERIFIED, otp_private_key: SecureRandom.base64(24), otp_counter: "", otp_attempts_count: 0, public_id: SecureRandom.alphanumeric(21),
+      address_digest: IdentifierBlindIndex.bidx_for_email(email_address),
+      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
+      otp_private_key: SecureRandom.base64(24),
+      otp_counter: "",
+      otp_attempts_count: 0,
+      public_id: SecureRandom.alphanumeric(21),
     )
     visitor.reload
   end

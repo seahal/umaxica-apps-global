@@ -76,6 +76,16 @@ const props: SessionLimitManagerProps = {
         last_used_at: null,
         ref: null,
       },
+      {
+        label: "他の保留",
+        current: false,
+        current_label: null,
+        created_at_label: "作成日時",
+        created_at: "2026-01-03 09:06",
+        last_used_at_label: null,
+        last_used_at: null,
+        ref: null,
+      },
     ],
   },
 };

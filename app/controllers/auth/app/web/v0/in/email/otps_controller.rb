@@ -18,7 +18,10 @@ module Auth
               private
 
               def otp_params
-                params.permit(:state)
+                # `slice` first: this reads a fixed set of keys and ignores everything else the
+                # request carries (`ri`, the Turnstile token). Permitting without narrowing would
+                # report those as unpermitted, which they are not - they are simply not ours.
+                params.slice(:state).permit(:state)
               end
 
               def render_result(result)

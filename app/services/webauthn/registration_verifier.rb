@@ -5,7 +5,7 @@ module Webauthn
   # Creates registration options and verifies attestation responses for one
   # surface's relying party. The user-verification requirement comes from
   # Webauthn::UvPolicy (registration is "required"): every credential this
-  # application registers must be usable on the AAL2-aligned path, and a
+  # application registers must satisfy the server UV policy, and a
   # UV=false attestation is rejected even if the authenticator claims success.
   class RegistrationVerifier
     class VerificationError < StandardError; end

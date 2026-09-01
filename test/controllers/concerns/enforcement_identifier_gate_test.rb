@@ -48,7 +48,8 @@ class EnforcementIdentifierGateTest < ActiveSupport::TestCase
     )
   end
 
-  test "enforcement_blocks_email_attachment? and enforcement_blocks_email_recovery? check their own flags independently" do
+  test "enforcement_blocks_email_attachment? and enforcement_blocks_email_recovery? check their own flags " \
+       "independently" do
     client = clients(:one)
     operator = operators(:one)
     the_case = AppEnforcementCase.create!(
@@ -73,7 +74,8 @@ class EnforcementIdentifierGateTest < ActiveSupport::TestCase
     )
   end
 
-  test "enforcement_blocks_telephone_attachment? and enforcement_blocks_telephone_recovery? check their own flags independently" do
+  test "enforcement_blocks_telephone_attachment? and enforcement_blocks_telephone_recovery? check their own " \
+       "flags independently" do
     client = clients(:one)
     operator = operators(:one)
     the_case = AppEnforcementCase.create!(

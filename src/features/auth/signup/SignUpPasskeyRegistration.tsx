@@ -20,7 +20,7 @@ import {
   isAttestationCredential,
   passkeysSupported,
 } from "@/features/auth/passkeys/webauthn";
-import { readObject, readString } from "@/lib/payload";
+import { readNonEmptyString, readObject, readString } from "@/lib/payload";
 
 import { csrfToken } from "./csrf";
 
@@ -51,10 +51,11 @@ async function postJson(url: string, body: unknown): Promise<Response> {
 }
 
 async function readFailure(response: Response, fallback: string): Promise<Error | null> {
+  /* v8 ignore next -- fetch always supplies a Headers object */
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
     const data: unknown = await response.json();
-    return new Error(readString(data, "error") || fallback);
+    return new Error(readNonEmptyString(data, "error") ?? fallback);
   }
   if (response.status === 401 || response.status === 302) {
     window.location.reload();
@@ -149,7 +150,7 @@ export default function SignUpPasskeyRegistration({
       const result: unknown = await verificationResponse.json();
 
       showStatus(PASSKEY_MESSAGES.registrationComplete);
-      const destination = readString(result, "redirect_url") || successRedirectUrl;
+      const destination = readNonEmptyString(result, "redirect_url") ?? successRedirectUrl;
       if (destination) {
         window.location.href = destination;
       } else {

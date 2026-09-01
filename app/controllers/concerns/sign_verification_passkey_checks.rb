@@ -51,7 +51,11 @@ module SignVerificationPasskeyChecks
       sign_count: passkey.sign_count,
       purpose: :ordinary_step_up,
     )
-    passkey.update!(sign_count: context.sign_count)
+    attrs = { sign_count: context.sign_count }
+    if passkey.respond_to?(:has_attribute?) && passkey.has_attribute?(:uv_verified_at)
+      attrs[:uv_verified_at] = context.verified_at
+    end
+    passkey.update!(**attrs)
     true
   rescue Webauthn::ChallengeStore::ChallengeError
     @verification_errors = [I18n.t("errors.webauthn.challenge_invalid")]

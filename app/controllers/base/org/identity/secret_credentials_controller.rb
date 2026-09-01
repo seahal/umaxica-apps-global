@@ -163,7 +163,10 @@ module Base
             created_at_label: t("activerecord.attributes.staff_secret_credential.created_at"),
             created_at: l(@secret_credential.created_at, format: :long),
             last_used_at_label: t("activerecord.attributes.staff_secret_credential.last_used_at"),
-            last_used_at: @secret_credential.last_used_at ? l(@secret_credential.last_used_at, format: :long) : t("defaults.never"),
+            last_used_at: @secret_credential.last_used_at ? l(
+              @secret_credential.last_used_at,
+              format: :long,
+            ) : t("defaults.never"),
             back_link: {
               label: t("actions.back"),
               href: base_org_identity_secrets_path(ri: params[:ri]),
@@ -185,7 +188,8 @@ module Base
               name: @secret_credential.name,
               name_label: OperatorSecretCredential.human_attribute_name(:name),
               value_label: t("activerecord.attributes.staff_secret_credential.value"),
-              confirm_saved_label: t("views.sign.org.settings.secret_credentials.new.confirm_secret_credential_saved_label"),
+              confirm_saved_label:
+                t("views.sign.org.settings.secret_credentials.new.confirm_secret_credential_saved_label"),
               submit: t("actions.save"),
             },
             cancel_link: { label: t("actions.cancel"), href: base_org_identity_secrets_path },
@@ -248,8 +252,10 @@ module Base
           @secret_credential.errors.add(:base, t("turnstile_error"))
         end
 
-        def secret_credential_turnstile_failure_redirect_path
-          base_org_identity_secrets_path(ri: params[:ri])
+        def render_secret_credential_turnstile_create_failure
+          render inertia: "base/org/identity/secret_credentials/new",
+                 props: new_page_props,
+                 status: :unprocessable_content
         end
 
         def verification_required_action?

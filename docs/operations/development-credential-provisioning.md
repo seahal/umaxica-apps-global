@@ -119,119 +119,115 @@ encrypted credentials, or in the provider's own secret store. Never place it in 
 Compose file, a container image, a plan under `plans/`, or a note under `notes/`. When a credential
 is no longer needed, or may have been exposed, tell the development lead so it can be revoked.
 
-## Development service passwords: the `dev-credentials` service
+## Development service passwords: fixed literals
 
-PostgreSQL and RustFS passwords are generated inside the stack, not on the host. The
-`dev-credentials` Compose service runs to completion before `core`, `primary`, `replica`, and
-`rustfs` start, and writes five files into the `dev-credentials` named volume:
+The development PostgreSQL passwords are fixed literals declared inline in `compose.yaml`. They are
+not generated, not rotated, and not secret:
 
-| File                   | Read by                      |
-| :--------------------- | :--------------------------- |
-| `postgres-writer`      | `core`, `primary`, `replica` |
-| `postgres-replication` | `primary`, `replica`         |
-| `rustfs-access-key`    | `core`, `rustfs`             |
-| `rustfs-secret-key`    | `core`, `rustfs`             |
-| `rustfs-rpc-secret`    | `rustfs`                     |
+| Variable                        | Value         | Set on               |
+| :------------------------------ | :------------ | :------------------- |
+| `POSTGRESQL_PASSWORD`           | `development` | `core`               |
+| `POSTGRES_PASSWORD`             | `development` | `primary`, `replica` |
+| `POSTGRES_REPLICATION_PASSWORD` | `replication` | `primary`, `replica` |
 
-Every consumer mounts the volume read-only at `/run/dev-credentials` and reads the value through a
-`*_PASSWORD_FILE` / `*_FILE` environment variable. There is no host-side bootstrap command and no
-Podman Secret registration: a fresh clone only needs `.env` and the Rails credential keys.
+This is deliberate. The stack is development-only, every database it serves is disposable, no port
+is published for `primary` or `replica`, and the values guard nothing reachable off the host. A
+value the whole team can read in the file it is written in is worth more here than a random one
+nobody can look up. Production credentials are unaffected and continue to come from Rails encrypted
+credentials and the provider's own secret store, as described above.
 
-Each file is written once and then reused, because PostgreSQL bakes the superuser password into
-`primary-data` at initdb time. To rotate, remove the `dev-credentials`, `primary-data`, and
-`replica-data` volumes together — dropping only `dev-credentials` leaves the databases holding the
-previous password, and `primary` then refuses its own credential.
+Keep the three `core` values identical to the `primary` and `replica` values. PostgreSQL bakes the
+password into `primary-data` at initdb time, so changing a literal without also removing the
+`primary-data` and `replica-data` volumes locks the stack out of its own database. Recreate both
+volumes together after any change.
 
-This covers development service passwords only. It does not write `.env`, and it does not supply
-Rails credential keys or any provider credential. Running it will not resolve a decryption failure
-or a missing `CLOUDFLARED_TOKEN`.
+There is no host-side bootstrap command, no Podman Secret registration, and no credential volume: a
+fresh clone only needs `.env` (for `UID` and `GID`) and the Rails credential keys. This covers
+development service passwords only; it does not supply Rails credential keys or any provider
+credential, so it will not resolve a decryption failure or a missing `CLOUDFLARED_TOKEN`.
 
 ## GitHub authentication inside the development container
 
-The container performs no GitHub login of its own. The host's existing authentication is forwarded
-into `core` by the `core` block in `compose.custom.yaml`, so `ssh -T git@github.com`, `git fetch`,
-and `gh` work in a freshly recreated container without `gh auth login`.
+**No host credential is passed into the container.** Not a private key, not the ssh-agent socket,
+not `~/.config/gh`, not a token. Nothing in this repository binds a host credential path into
+`core`, and no environment variable carries one.
 
-Nothing secret is stored for this. No private key, no `~/.ssh` directory, and no token literal is
-written into a repository file, a Compose file, or the image. Two host-shaped values are read from
-the environment that launches Compose:
-
-| Variable         | Carries                                    | Reaches the container as                  |
-| :--------------- | :----------------------------------------- | :---------------------------------------- |
-| `SSH_AUTH_SOCK`  | the path of the host `ssh-agent` socket    | a bind mount at `/ssh-agent`              |
-| `GH_TOKEN`       | a GitHub API token                         | the `GH_TOKEN` environment variable       |
-
-`${HOME}/.ssh/known_hosts` is additionally bound read-only at `/home/global/.ssh/known_hosts`. It
-holds public host keys only, and ssh needs it to verify `github.com`.
-
-Signing stays in the host agent: the container sends a challenge over the socket and receives a
-signature, so the private key never crosses the boundary. `GH_TOKEN` also reaches git, because the
-container's `/home/global/.gitconfig` routes `https://github.com` through
-`gh auth git-credential` — the `origin` remote stays on HTTPS and is not rewritten.
-
-### Host setup
-
-Both variables must be exported in the shell or session that starts Podman or VS Code. Compose
-interpolates them from the process environment; the repository-root `.env` is not consulted for
-them, and a token must never be written there.
+Every tool authenticates inside the running container through its own browser login, and the result
+is discarded when the container is recreated:
 
 ```bash
-# A stable agent socket path. A per-login /tmp/ssh-XXXX/agent.N path changes on every
-# login, and the container would need recreating each time to follow it.
-systemctl --user enable --now ssh-agent.socket
-echo 'export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/ssh-agent.socket' >> ~/.bash_profile
-
-ssh-add ~/.ssh/id_ed25519
-ssh-add -l                     # must list the key
-ssh -T git@github.com          # must greet you by username
-
-export GH_TOKEN="$(gh auth token)"   # or a personal access token
+gh auth login --web --git-protocol https && gh auth setup-git
+claude   # then /login
+codex login
 ```
 
-Run `ssh -T git@github.com` on the host before the first `up`. Besides proving the agent works, it
-guarantees `~/.ssh/known_hosts` exists: Podman creates a missing bind source as a *directory*, and a
-directory at `~/.ssh/known_hosts` breaks ssh on the host as well.
+**Remotes must be HTTPS.** `git@github.com` does not work inside the container, by design;
+`gh auth setup-git` wires the credential helper so `git fetch` and `git push` work over HTTPS.
 
-Both variables tolerate absence. With no `GH_TOKEN`, gh falls back to whatever
-`~/.config/gh/hosts.yml` holds inside the container, which is usually a stale token; with no
-`SSH_AUTH_SOCK`, the placeholder mount makes ssh report `Error connecting to agent` rather than
-failing Compose resolution. Neither degrades silently into a working-looking state.
+### What was removed, and why
+
+Two arrangements were tried and withdrawn.
+
+**The host ssh-agent socket** was bind-mounted at `/ssh-agent`, with `~/.ssh/known_hosts` bound
+read-only. The private key never crossed the boundary, which is true but not sufficient: anything
+running inside the container -- a build script, a dependency's install hook, an agent acting on the
+repository -- could ask the socket to sign with **every key the agent holds**, for as long as the
+container lived, with no per-use confirmation and no record on the host of what was signed. The
+socket is a signing oracle; forwarding it grants use of the key even though it withholds the key.
+
+**`GH_TOKEN`** was forwarded from the host as the replacement. It was then removed too, because
+`gh auth login` run inside the container works: a host token bought nothing that the in-container
+browser login does not, while adding a credential that outlives any single container and has to be
+exported into every shell that starts Compose.
+
+Do not reintroduce either. If a workflow genuinely needs SSH to GitHub, run it on the host.
+
+### Two limits on the "no host credential" claim
+
+State them plainly rather than reading the claim more broadly than it holds.
+
+1. **Dev Container Features can declare their own `mounts`.** Those do not appear in
+   `devcontainer.json` or in any compose file, so auditing this repository alone is not sufficient.
+   Read each Feature's `devcontainer-feature.json` before adding it, and prefer Features that
+   authenticate in-container over Features that bind a host state directory.
+
+   One Feature in use does exactly that, and it is accepted knowingly.
+   `ghcr.io/sliekens/devcontainer-features/grok-build` declares
+
+   ```
+   ${localEnv:HOME}/.grok/  ->  /var/lib/grok-build   (read-write)
+   ```
+
+   and its `onCreateCommand` symlinks the container's `~/.grok` to that target, so the host's
+   `auth.json`, sessions, and configuration are live-writable from inside the container. The Feature
+   exposes only `version` and `channel`; there is no option to disable the mount, and every project
+   using the Feature shares the one host directory. Anything running in the container can read and
+   rewrite the host Grok credentials.
+
+   This is retained for the convenience of surviving a rebuild without re-authenticating. To remove
+   it, drop the Feature and run the upstream installer from `postCreateCommand`
+   (`curl -fsSL https://x.ai/cli/install.sh | sh`), then `grok login` inside the container. The MCS
+   level pinned in `.devcontainer/compose.override.yml` exists for this mount; remove them together.
+
+   The other three Features -- `github-cli`, `anthropics/claude-code`, and `nolanjx/codex` --
+   declare no `mounts`. That was verified by reading each cached `devcontainer-feature.json`, not
+   assumed.
+
+2. **The workspace bind mount carries whatever the repository holds.** That includes the gitignored
+   `.env` (`CLOUDFLARED_TOKEN`) and `config/credentials/*.key`. Those files are readable inside
+   `core`. What the claim above means precisely is that no _host-owned_ credential outside the
+   repository is handed over, and that `CLOUDFLARED_TOKEN` reaches only the separate
+   `cloudflare-tunnel` sidecar as an environment variable.
 
 ### Verification
 
-Recreate the container — mounts and `security_opt` are creation-time settings — then, inside it:
+Inside the container:
 
 ```bash
-ssh-add -l                 # lists the host key, proving the socket forwarded
-ssh -T git@github.com      # authenticates as your GitHub user
-git fetch                  # HTTPS via GH_TOKEN and the gh credential helper
-gh auth status             # reports the token as coming from GH_TOKEN
+gh auth status             # reports a token from the in-container login, not the environment
+git fetch                  # HTTPS via the gh credential helper
 gh repo view
 ```
-
-`gh auth status` naming `GH_TOKEN` is the point of the check: it confirms the environment token took
-precedence over any token left in the container's `hosts.yml`.
-
-### SELinux
-
-The host is expected to be SELinux-enforcing. Both new mounts carry `selinux: Z`, matching every
-other bind in this project, so Podman relabels them to `container_file_t` at the container's MCS
-level. `compose.custom.yaml` pins that level to `s0:c101,c202`, the same value
-`.devcontainer/compose.override.yml` pins, so the Dev Container path and the plain
-`podman compose -f compose.yaml -f compose.custom.yaml up -d core` path agree; without the pin each
-CLI run would allocate a fresh category pair and lock the other path out of the relabelled files.
-
-Relabelling `~/.ssh/known_hosts` is visible on the host. A normal RHEL login user runs as
-`unconfined_u` and keeps reading the file; a confined login user may not.
-
-If `ssh -T git@github.com` fails inside the container, read the actual denial on the host:
-
-```bash
-sudo ausearch -m AVC -ts recent
-```
-
-and apply only the fix that denial names. Do not reach for `label=disable`, `privileged`, a wider
-`:Z`, or a private-key mount — each defeats the boundary this arrangement exists to keep.
 
 ## Related documents
 

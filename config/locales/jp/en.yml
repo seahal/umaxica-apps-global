@@ -580,6 +580,9 @@ en:
     attributes:
       agent_assignment:
         assigned_at: Assigned at
+      app_enforcement_appeal:
+        reason_code: Appeal reason
+        statement: Appeal statement
       avatar_block:
         blocked_avatar_id: Blocked avatar
         blocker_avatar_id: Blocker avatar
@@ -610,12 +613,18 @@ en:
         otp_private_key: OTP private key
       client_telephone_ceremony_transaction:
         result_jti: Result JTI
+      com_enforcement_appeal:
+        reason_code: Appeal reason
+        statement: Appeal statement
       individual_assignment:
         assigned_at: Assigned at
       operator_identity:
         source_record_id: Source record ID
       operator_step_up_session:
         staff_token_id: Staff token ID
+      org_enforcement_appeal:
+        reason_code: Appeal reason
+        statement: Appeal statement
       persona_assignment:
         assigned_at: Assigned at
       staff_passkey:
@@ -935,14 +944,17 @@ en:
     app:
       identity:
         credential_warning:
-          body: Adding another sign-in method helps you access your account if Apple sign-in is unavailable.
+          body:
+            Adding another sign-in method helps you access your account if Apple sign-in is
+            unavailable.
           google: Link Google
           heading: Add another sign-in method
           passkey: Add a passkey
         emails:
           registrations:
             edit:
-              delivery_help: The code expires after a short time. Request a new one if it does not arrive.
+              delivery_help:
+                The code expires after a short time. Request a new one if it does not arrive.
               description: Enter the verification code that was sent to the address you added.
           show:
             page_title: Email address
@@ -978,7 +990,8 @@ en:
             page_title: Telephone removed
           registrations:
             edit:
-              delivery_help: The code expires after a short time. Request a new one if it does not arrive.
+              delivery_help:
+                The code expires after a short time. Request a new one if it does not arrive.
           show:
             page_title: Telephone
           update:
@@ -1098,9 +1111,15 @@ en:
           erasures:
             new:
               paragraphs:
-                privacy_request: This is a privacy request for personal data deletion or restriction. It is separate from normal withdrawal.
-                records: Messages, posts, audit logs, billing records, and similar records may follow separate retention policies.
-                retention: After processing, recovery may no longer be available. Some data may be retained for legal, safety, audit, billing, or dispute handling reasons.
+                privacy_request:
+                  This is a privacy request for personal data deletion or restriction. It is
+                  separate from normal withdrawal.
+                records:
+                  Messages, posts, audit logs, billing records, and similar records may follow
+                  separate retention policies.
+                retention:
+                  After processing, recovery may no longer be available. Some data may be retained
+                  for legal, safety, audit, billing, or dispute handling reasons.
         recoveries:
           show:
             description: Complete verification to restore access.
@@ -4191,6 +4210,11 @@ en:
     telephone_verification:
       sms_message: "Verification code: %{code}"
     unknown_authenticator: Unknown authenticator
+    withdrawal:
+      errors:
+        deletion_failed: Withdrawal could not be completed. Please try again later.
+        invalid_state: Withdrawal cannot continue from the current state (%{current_status}).
+        recovery_not_available: This account cannot be recovered.
   support:
     array:
       last_word_connector: ", and "

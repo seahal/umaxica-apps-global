@@ -2,16 +2,20 @@
 
 ## Status
 
-Accepted (2026-07-19)
+Partially superseded (2026-08-31)
+
+The purpose-specific UV registry remains accepted. Only the historical implication that a UV
+ceremony is automatically AAL2-equivalent is superseded by the independent step-up and
+achieved-assurance policy in `docs/security/authentication-assurance-levels.md`.
 
 ## Context
 
 WebAuthn `userVerification` previously accepted arbitrary strings, including `"preferred"` and
-`"discouraged"`, in individual controllers. This allowed direct sign-in to accept assertions
-without user verification (UV). The redesign changed every ceremony to `required`, and a static
-regression test prohibited `preferred` and `discouraged`. The value nevertheless remained a string
-constant inside the verifiers, with no place to express the requirement that ordinary sign-in stay
-strict while step-up may eventually use a different policy.
+`"discouraged"`, in individual controllers. This allowed direct sign-in to accept assertions without
+user verification (UV). The redesign changed every ceremony to `required`, and a static regression
+test prohibited `preferred` and `discouraged`. The value nevertheless remained a string constant
+inside the verifiers, with no place to express the requirement that ordinary sign-in stay strict
+while step-up may eventually use a different policy.
 
 The confirmed requirements are:
 
@@ -23,8 +27,8 @@ The confirmed requirements are:
 - Introduce `Webauthn::UvPolicy`, a closed registry with entries for `registration`,
   `direct_sign_in`, `mfa_challenge`, `ordinary_step_up`, and `high_risk_step_up`. **Every purpose is
   currently `required`**, so behavior does not change.
-- `RegistrationVerifier` and `AssertionVerifier` accept `purpose:` and use `UvPolicy` to resolve both
-  the client option and server-side enforcement: `user_verification: true` plus explicit
+- `RegistrationVerifier` and `AssertionVerifier` accept `purpose:` and use `UvPolicy` to resolve
+  both the client option and server-side enforcement: `user_verification: true` plus explicit
   `user_verified?` and `user_present?` checks. Call sites must not supply UV strings directly; a
   static regression test enforces this boundary.
 - A future relaxation may change only the `ordinary_step_up` registry entry. A ceremony without UV

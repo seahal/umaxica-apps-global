@@ -56,7 +56,10 @@ module Auth
               end
 
               @passkey_challenge_id, @passkey_request_options =
-                issue_passkey_authentication_challenge(allow_credentials: passkeys, actor: @mfa_user, uv_purpose: :mfa_challenge)
+                issue_passkey_authentication_challenge(
+                  allow_credentials: passkeys, actor: @mfa_user,
+                  uv_purpose: :mfa_challenge,
+                )
 
               render inertia: true, props: challenge_passkey_props
             rescue Webauthn::RelyingPartyConfigResolver::MissingConfigurationError => e

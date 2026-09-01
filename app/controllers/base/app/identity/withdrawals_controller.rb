@@ -113,7 +113,10 @@ module Base
             terminated: @terminated,
             unavailable_message: t("sign.app.settings.withdrawal.recovery.unavailable"),
             deadline_message: @terminated ?
-              nil : t("sign.app.settings.withdrawal.recovery.deadline", date: I18n.l(@recovery_deadline, format: :long)),
+              nil : t(
+                "sign.app.settings.withdrawal.recovery.deadline",
+                date: I18n.l(@recovery_deadline, format: :long),
+              ),
             recovery: withdrawal_recovery_props,
             termination: withdrawal_termination_props,
             erasure_link: {

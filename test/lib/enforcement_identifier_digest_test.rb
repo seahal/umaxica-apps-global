@@ -61,8 +61,14 @@ class EnforcementIdentifierDigestTest < ActiveSupport::TestCase
   end
 
   test "for_google_subject and for_apple_subject key on issuer plus subject, not email" do
-    google = EnforcementIdentifierDigest.for_google_subject(realm: "app", issuer: "https://accounts.google.com", subject: "123")
-    apple = EnforcementIdentifierDigest.for_apple_subject(realm: "app", issuer: "https://appleid.apple.com", subject: "123")
+    google = EnforcementIdentifierDigest.for_google_subject(
+      realm: "app", issuer: "https://accounts.google.com",
+      subject: "123",
+    )
+    apple = EnforcementIdentifierDigest.for_apple_subject(
+      realm: "app", issuer: "https://appleid.apple.com",
+      subject: "123",
+    )
 
     assert_equal "google_subject", google[:identifier_kind]
     assert_equal "apple_subject", apple[:identifier_kind]

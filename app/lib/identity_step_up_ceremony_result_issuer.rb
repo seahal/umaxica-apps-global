@@ -3,7 +3,7 @@
 
 class IdentityStepUpCeremonyResultIssuer
   def self.issue!(surface:, actor_ref:, session_ref:, transaction_id:, grant_jti:, scope:, aal:, method:,
-                  challenge_id:, expires_at:, attempt_count: nil, now: Time.current)
+                  phishing_resistant: false, challenge_id:, expires_at:, attempt_count: nil, now: Time.current)
     IdentityStepUpCeremonyResult.issue(
       {
         "surface" => surface.to_s,
@@ -14,6 +14,7 @@ class IdentityStepUpCeremonyResultIssuer
         "result_jti" => SecureRandom.uuid,
         "scope" => scope.to_s,
         "aal" => aal.to_s,
+        "phishing_resistant" => phishing_resistant,
         "method" => method.to_s,
         "verified_at" => now.to_i,
         "challenge_id" => challenge_id.to_s,

@@ -67,7 +67,25 @@ class SideRouteContractTest < ActionDispatch::IntegrationTest
   def with_boot_config(side_service_host: ENV.fetch("PUBLIC_SIDE_SERVICE_URL"),
                        side_corporate_host: ENV.fetch("PUBLIC_SIDE_CORPORATE_URL"),
                        side_staff_host: ENV.fetch("PUBLIC_SIDE_STAFF_URL"))
-    hosts = OpenStruct.new(
+    hosts = side_route_boot_hosts(side_service_host, side_corporate_host, side_staff_host)
+
+    Rails.configuration.x.stub(:boot_config, BootConfig.new(hosts)) do
+      Rails.application.reload_routes!
+      yield
+    ensure
+      Rails.application.reload_routes!
+    end
+  end
+
+  def side_route_boot_hosts(side_service_host, side_corporate_host, side_staff_host)
+    OpenStruct.new(
+      **side_route_identity_hosts,
+      **side_route_product_hosts(side_service_host, side_corporate_host, side_staff_host),
+    )
+  end
+
+  def side_route_identity_hosts
+    {
       auth_service: OpenStruct.new(host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")),
       auth_corporate: OpenStruct.new(host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost")),
       auth_staff: OpenStruct.new(host: ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost")),
@@ -77,23 +95,19 @@ class SideRouteContractTest < ActionDispatch::IntegrationTest
       sign_service: OpenStruct.new(host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")),
       sign_corporate: OpenStruct.new(host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost")),
       sign_staff: OpenStruct.new(host: ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost")),
+    }
+  end
+
+  def side_route_product_hosts(side_service_host, side_corporate_host, side_staff_host)
+    {
       core_service: OpenStruct.new(
-        host: ENV.fetch(
-          "PUBLIC_CORE_SERVICE_URL",
-          ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"),
-        ),
+        host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost")),
       ),
       core_corporate: OpenStruct.new(
-        host: ENV.fetch(
-          "PUBLIC_CORE_CORPORATE_URL",
-          ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"),
-        ),
+        host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost")),
       ),
       core_staff: OpenStruct.new(
-        host: ENV.fetch(
-          "PUBLIC_CORE_STAFF_URL",
-          ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"),
-        ),
+        host: ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost")),
       ),
       base_service: OpenStruct.new(host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
       base_corporate: OpenStruct.new(host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")),
@@ -110,13 +124,6 @@ class SideRouteContractTest < ActionDispatch::IntegrationTest
       side_service: OpenStruct.new(host: side_service_host),
       side_corporate: OpenStruct.new(host: side_corporate_host),
       side_staff: OpenStruct.new(host: side_staff_host),
-    )
-
-    Rails.configuration.x.stub(:boot_config, BootConfig.new(hosts)) do
-      Rails.application.reload_routes!
-      yield
-    ensure
-      Rails.application.reload_routes!
-    end
+    }
   end
 end

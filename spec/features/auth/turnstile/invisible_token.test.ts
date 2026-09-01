@@ -49,7 +49,7 @@ describe("solveInvisibleTurnstile", () => {
     const promise = solveInvisibleTurnstile("site-key", ERROR_MESSAGE, null);
     await Promise.resolve();
 
-    const widget = rendered[0];
+    const [widget] = rendered;
 
     expect(widget?.options.sitekey).toBe("site-key");
     expect(widget?.options.size).toBe("invisible");

@@ -28,55 +28,10 @@ class SecurityJwtPreferenceTokenCodec
       return nil if token.blank? || host.blank?
 
       header = jwt_configuration.parse_header(token)
-      unless valid_header?(header)
-        report_invalid_header(host: host, header: header)
-        return nil
-      end
-
-      issuer_id = jwt_issuer_id.presence || "preference"
-      public_key = resolve_public_key(header, issuer_id)
-      if public_key.nil?
-        JitSecurityJwtAnomalyReporter.report_preference(
-          host: host,
-          header: header,
-          reason: "UNKNOWN_KID",
-        )
-        return nil
-      end
-
-      payload, = JWT.decode(token, public_key, true, decode_options(host))
-      validated_payload = validate_payload(payload, host)
-      unless validated_payload
-        report_invalid_payload(host: host, header: header, payload: payload)
-        return nil
-      end
-
-      validated_payload
-    rescue JWT::ExpiredSignature
-      JitSecurityJwtAnomalyReporter.report_preference(
-        host: host,
-        header: header,
-        reason: "EXPIRED",
+      decode_verified_payload(
+        token, host: host, header: header, jwt_issuer_id: jwt_issuer_id,
+               raise_on_audience_mismatch: raise_on_audience_mismatch,
       )
-      Rails.logger.debug("PreferenceToken.decode failed: token expired")
-      nil
-    rescue JWT::InvalidAudError => e
-      report_audience_mismatch(host: host, header: header, token: token, error: e)
-      Rails.logger.debug { "PreferenceToken.decode invalid audience: #{e.class}: #{e.message}" }
-      raise AudienceMismatchError, e.message if raise_on_audience_mismatch
-
-      nil
-    rescue JWT::InvalidIssuerError, JWT::InvalidIatError, JWT::ImmatureSignature => e
-      report_claim_error(host: host, header: header, error: e)
-      Rails.logger.debug { "PreferenceToken.decode invalid claims: #{e.class}: #{e.message}" }
-      nil
-    rescue JWT::DecodeError, JWT::VerificationError => e
-      report_decode_error(host: host, header: header, error: e)
-      Rails.logger.debug { "PreferenceToken.decode invalid token: #{e.message}" }
-      nil
-    rescue OpenSSL::PKey::PKeyError, ArgumentError, TypeError => e
-      Rails.logger.error(JitLogEvent.format("preference.token.decoding_failed", error_class: e.class.name))
-      nil
     end
 
     def extract_preferences(payload)
@@ -98,6 +53,50 @@ class SecurityJwtPreferenceTokenCodec
     end
 
     private
+
+    def decode_verified_payload(token, host:, header:, jwt_issuer_id:, raise_on_audience_mismatch:)
+      unless valid_header?(header)
+        report_invalid_header(host: host, header: header)
+        return nil
+      end
+
+      issuer_id = jwt_issuer_id.presence || "preference"
+      public_key = resolve_public_key(header, issuer_id)
+      if public_key.nil?
+        JitSecurityJwtAnomalyReporter.report_preference(host: host, header: header, reason: "UNKNOWN_KID")
+        return nil
+      end
+
+      payload, = JWT.decode(token, public_key, true, decode_options(host))
+      validated_payload = validate_payload(payload, host)
+      unless validated_payload
+        report_invalid_payload(host: host, header: header, payload: payload)
+        return nil
+      end
+
+      validated_payload
+    rescue JWT::ExpiredSignature
+      JitSecurityJwtAnomalyReporter.report_preference(host: host, header: header, reason: "EXPIRED")
+      Rails.logger.debug("PreferenceToken.decode failed: token expired")
+      nil
+    rescue JWT::InvalidAudError => e
+      report_audience_mismatch(host: host, header: header, token: token, error: e)
+      Rails.logger.debug { "PreferenceToken.decode invalid audience: #{e.class}: #{e.message}" }
+      raise AudienceMismatchError, e.message if raise_on_audience_mismatch
+
+      nil
+    rescue JWT::InvalidIssuerError, JWT::InvalidIatError, JWT::ImmatureSignature => e
+      report_claim_error(host: host, header: header, error: e)
+      Rails.logger.debug { "PreferenceToken.decode invalid claims: #{e.class}: #{e.message}" }
+      nil
+    rescue JWT::DecodeError, JWT::VerificationError => e
+      report_decode_error(host: host, header: header, error: e)
+      Rails.logger.debug { "PreferenceToken.decode invalid token: #{e.message}" }
+      nil
+    rescue OpenSSL::PKey::PKeyError, ArgumentError, TypeError => e
+      Rails.logger.error(JitLogEvent.format("preference.token.decoding_failed", error_class: e.class.name))
+      nil
+    end
 
     def jwt_active_kid(issuer_id)
       return jwt_configuration.active_kid if issuer_id == "preference"

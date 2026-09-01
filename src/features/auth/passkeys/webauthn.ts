@@ -42,7 +42,7 @@ export type AttestationCredential = Credential & {
   getClientExtensionResults: () => AuthenticationExtensionsClientOutputs;
 };
 
-function hasCredentialParts(credential: Credential, responseKeys: string[]): boolean {
+function hasCredentialParts(credential: object, responseKeys: string[]): boolean {
   if (!("rawId" in credential) || !("response" in credential)) {
     return false;
   }
@@ -59,9 +59,7 @@ function isAssertionCredential(credential: Credential): credential is AssertionC
   return hasCredentialParts(credential, ["clientDataJSON", "authenticatorData", "signature"]);
 }
 
-export function isAttestationCredential(
-  credential: Credential,
-): credential is AttestationCredential {
+export function isAttestationCredential(credential: object): credential is AttestationCredential {
   return hasCredentialParts(credential, ["clientDataJSON", "attestationObject"]);
 }
 

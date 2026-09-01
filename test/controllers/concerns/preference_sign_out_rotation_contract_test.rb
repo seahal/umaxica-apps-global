@@ -16,7 +16,8 @@ class PreferenceSignOutRotationContractTest < ActiveSupport::TestCase
            :com_preference_statuses, :com_preference_binding_methods, :com_preference_dbsc_statuses
 
   PreferenceLifecycleSurfaces::SURFACES.each_key do |surface|
-    test "#{surface}: rotation creates a new guest identity, retires the old row, and copies safe values as non-explicit" do
+    test "#{surface}: rotation creates a new guest identity, retires the old row, and copies safe values as " \
+         "non-explicit" do
       old_pref = PreferenceLifecycleSurfaces.new_token_preference(surface)
       PreferenceLifecycleSurfaces.set_language!(old_pref, PreferenceLifecycleSurfaces::EN)
       PreferenceLifecycleSurfaces.set_theme!(old_pref, PreferenceLifecycleSurfaces::DARK)
@@ -29,9 +30,12 @@ class PreferenceSignOutRotationContractTest < ActiveSupport::TestCase
         new_pref = ctx.instance_variable_get(:@preferences)
       end
 
-      assert_not_equal old_pref.id, new_pref.id, "#{surface}: rotation must create a distinct row, not reuse the old one"
-      assert_equal PreferenceLifecycleSurfaces::EN, new_pref.public_send(PreferenceLifecycleSurfaces.language_association(new_pref)).option_id
-      assert_equal PreferenceLifecycleSurfaces::DARK, new_pref.public_send(PreferenceLifecycleSurfaces.theme_association(new_pref)).option_id
+      assert_not_equal old_pref.id, new_pref.id,
+                       "#{surface}: rotation must create a distinct row, not reuse the old one"
+      assert_equal PreferenceLifecycleSurfaces::EN,
+                   new_pref.public_send(PreferenceLifecycleSurfaces.language_association(new_pref)).option_id
+      assert_equal PreferenceLifecycleSurfaces::DARK,
+                   new_pref.public_send(PreferenceLifecycleSurfaces.theme_association(new_pref)).option_id
       assert_not new_pref.explicit_field?(:language), "#{surface}: safe-copied seed must not be marked explicit"
       assert_not new_pref.explicit_field?(:theme)
 
@@ -79,7 +83,9 @@ class PreferenceSignOutRotationContractTest < ActiveSupport::TestCase
     test "#{surface}: auth logout completes even when the optional guest bootstrap fails entirely" do
       old_pref = PreferenceLifecycleSurfaces.new_token_preference(surface)
       ctx = build_rotation_context(surface, old_pref)
-      ctx.define_singleton_method(:persist_new_preference_record!) { |**_kwargs| raise StandardError, "guest bootstrap boom" }
+      ctx.define_singleton_method(:persist_new_preference_record!) { |**_kwargs|
+        raise StandardError, "guest bootstrap boom"
+      }
 
       # rotate_preference_after_sign_out! itself must never raise -- this is
       # the exact call site AuthenticationLogoutable#logout_current_session!

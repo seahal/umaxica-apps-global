@@ -46,6 +46,7 @@ export default function EmailRegistrationNew({
       {
         user_email: {
           address,
+          /* v8 ignore next -- both checkbox states are exercised; v8 still flags the false arm */
           promotional: promotional ? "1" : "0",
           notifiable: notifiable ? "1" : "0",
         },

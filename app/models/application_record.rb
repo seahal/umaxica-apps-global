@@ -23,12 +23,7 @@ class ApplicationRecord < ActiveRecord::Base
     fixed_ids = ids.uniq
     seed_key = "#{name}:#{connection_db_config&.name || "default"}:#{fixed_ids.sort.join(",")}"
 
-    present_ids =
-      if defined?(Prosopite)
-        Prosopite.pause { where(primary_key => fixed_ids).pluck(primary_key) }
-      else
-        where(primary_key => fixed_ids).pluck(primary_key)
-      end
+    present_ids = pluck_fixed_ids(fixed_ids)
     missing_ids = fixed_ids - present_ids
     return if FIXED_ID_SEED_CACHE[seed_key] && missing_ids.blank?
     return if missing_ids.blank?
@@ -64,4 +59,13 @@ class ApplicationRecord < ActiveRecord::Base
 
     FIXED_ID_SEED_CACHE[seed_key] = true
   end
+
+  def self.pluck_fixed_ids(fixed_ids)
+    if defined?(Prosopite)
+      Prosopite.pause { where(primary_key => fixed_ids).pluck(primary_key) }
+    else
+      where(primary_key => fixed_ids).pluck(primary_key)
+    end
+  end
+  private_class_method :pluck_fixed_ids
 end

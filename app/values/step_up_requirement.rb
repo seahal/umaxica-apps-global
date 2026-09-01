@@ -3,12 +3,14 @@
 
 class StepUpRequirement
   SUPPORTED_AALS = %i(aal1 aal2 aal3).freeze
-  DEFAULT_AAL = :aal2
+  NO_AAL = "none"
+  DEFAULT_AAL = nil
   DEFAULT_ALLOWED_METHODS = %i(totp passkey).freeze
   DEFAULT_TTL = 15.minutes
 
   attr_reader :required_aal, :allowed_methods, :scope, :session_binding,
-              :token_binding, :ttl, :purpose, :audience, :require_session_binding
+              :token_binding, :ttl, :purpose, :audience, :require_session_binding,
+              :step_up_required, :phishing_resistant_required
 
   def self.build(value = nil, **attributes)
     return value if value.is_a?(self)
@@ -20,7 +22,8 @@ class StepUpRequirement
     end
   end
 
-  def initialize(required_aal: DEFAULT_AAL, allowed_methods: DEFAULT_ALLOWED_METHODS, scope: nil,
+  def initialize(step_up_required: true, required_aal: DEFAULT_AAL,
+                 phishing_resistant_required: false, allowed_methods: DEFAULT_ALLOWED_METHODS, scope: nil,
                  session_binding: nil, token_binding: nil, ttl: DEFAULT_TTL,
                  purpose: nil, audience: nil, require_session_binding: false)
     @required_aal = normalize_aal(required_aal)
@@ -34,11 +37,17 @@ class StepUpRequirement
     @purpose = purpose.to_s.presence
     @audience = audience.to_s.presence
     @require_session_binding = require_session_binding
+    @step_up_required = !!step_up_required
+    @phishing_resistant_required = !!phishing_resistant_required
   end
 
-  def aal_supported?
-    SUPPORTED_AALS.include?(required_aal) && required_aal != :aal3
-  end
+  def step_up_required? = step_up_required
+
+  def aal_required? = required_aal.present?
+
+  def phishing_resistant_required? = phishing_resistant_required
+
+  def aal_supported? = !aal_required? || (SUPPORTED_AALS.include?(required_aal) && required_aal != :aal3)
 
   def method_allowed?(method)
     method = normalize_method(method)
@@ -48,7 +57,10 @@ class StepUpRequirement
   private
 
   def normalize_aal(value)
-    value.to_s.presence&.downcase&.to_sym || DEFAULT_AAL
+    normalized = value.to_s.presence&.downcase
+    return nil if normalized.blank? || normalized == NO_AAL
+
+    normalized.to_sym
   end
 
   def normalize_method(value)

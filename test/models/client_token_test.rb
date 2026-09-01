@@ -459,7 +459,7 @@ class ClientTokenTest < ActiveSupport::TestCase
     token.update_columns(discarded_at: Float::INFINITY)
     token.rotate_refresh_token!
 
-    assert_in_delta 30.days.from_now.to_f, token.discarded_at.to_f, 2
+    assert_in_delta 30.days.from_now.to_f, Float(token.discarded_at), 2
   end
 
   test "refresh token assignment and authentication handle blank values" do

@@ -40,6 +40,7 @@ export default class extends Controller {
 
     document.addEventListener("turbo:load", this.runScheduledChallenge, { once: true });
 
+    /* v8 ignore next -- jsdom documents are already complete when controllers connect */
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", this.runScheduledChallenge, { once: true });
     } else {

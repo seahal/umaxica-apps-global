@@ -100,7 +100,8 @@ module Base
           {
             public_id: telephone.id.to_s,
             value: telephone.number,
-            status: verified ? t("views.sign.org.settings.telephones.index.verified") : t("views.sign.org.settings.telephones.index.unverified"),
+            status: verified ? t("views.sign.org.settings.telephones.index.verified") :
+              t("views.sign.org.settings.telephones.index.unverified"),
             edit_link: {
               label: t("sign.org.settings.telephone.index.edit"),
               href: edit_base_org_identity_telephone_path(telephone),

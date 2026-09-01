@@ -22,7 +22,8 @@ class WebauthnInvariantsTest < ActiveSupport::TestCase
     offenders = scan(/user_verification.{0,20}(preferred|discouraged)/i)
 
     assert_empty offenders,
-                 "AAL2-aligned paths require userVerification=required; found weakened UV policy in:\n#{offenders.join("\n")}"
+                 "AAL2-aligned paths require userVerification=required; found weakened UV policy " \
+                 "in:\n#{offenders.join("\n")}"
   end
 
   test "user_verification strings appear only in the UvPolicy registry" do
@@ -40,7 +41,8 @@ class WebauthnInvariantsTest < ActiveSupport::TestCase
     end
 
     assert_empty offenders,
-                 "UV policy values must come from Webauthn::UvPolicy, never raw strings at call sites:\n#{offenders.join("\n")}"
+                 "UV policy values must come from Webauthn::UvPolicy, never raw strings at call " \
+                 "sites:\n#{offenders.join("\n")}"
   end
 
   test "assertion and registration verifiers resolve UV through UvPolicy" do
@@ -56,21 +58,24 @@ class WebauthnInvariantsTest < ActiveSupport::TestCase
     offenders = scan(/request\.(host|base_url)/, only_webauthn_files: true)
 
     assert_empty offenders,
-                 "WebAuthn RP ID/origin must come from per-surface configuration, never the request:\n#{offenders.join("\n")}"
+                 "WebAuthn RP ID/origin must come from per-surface configuration, never the " \
+                 "request:\n#{offenders.join("\n")}"
   end
 
   test "no shared WEBAUTHN_RP_ID or WEBAUTHN_ORIGIN environment keys" do
     offenders = scan(/WEBAUTHN_(RP_ID|ORIGIN|RP_MAP)\b/)
 
     assert_empty offenders,
-                 "Surface-shared WebAuthn env keys are forbidden; use WEBAUTHN_<APP|COM|ORG>_* only:\n#{offenders.join("\n")}"
+                 "Surface-shared WebAuthn env keys are forbidden; use WEBAUTHN_<APP|COM|ORG>_* " \
+                 "only:\n#{offenders.join("\n")}"
   end
 
   test "no controller-class-name regex surface guessing" do
     offenders = scan(/\\ASign::(App|Com|Org)::/, only_webauthn_files: true)
 
     assert_empty offenders,
-                 "Surface resolution must be declared explicitly, not inferred from class names:\n#{offenders.join("\n")}"
+                 "Surface resolution must be declared explicitly, not inferred from class " \
+                 "names:\n#{offenders.join("\n")}"
   end
 
   test "no global WebAuthn configuration mutation outside gem defaults" do

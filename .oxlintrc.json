@@ -78,7 +78,7 @@
     "import/no-cycle": "error",
     "unicorn/no-useless-undefined": "off",
     "unicorn/new-for-builtins": "off",
-    "typescript/prefer-nullish-coalescing": "off",
+    "typescript/prefer-nullish-coalescing": "error",
     "react-perf/jsx-no-new-function-as-prop": "off",
     "react-perf/jsx-no-new-object-as-prop": "off",
     "react-perf/jsx-no-new-array-as-prop": "off",
@@ -123,22 +123,13 @@
   },
   "overrides": [
     {
-      "files": [
-        "src/components/ConfirmDialog.tsx",
-        "src/features/ui_gallery/UiGallery.tsx"
-      ],
+      "files": ["src/components/ConfirmDialog.tsx", "src/features/ui_gallery/UiGallery.tsx"],
       "rules": {
         "jsx-a11y/no-autofocus": "off"
       }
     },
     {
-      "files": [
-        "**/*.test.ts",
-        "**/*.test.tsx",
-        "**/*.spec.ts",
-        "**/*.spec.tsx",
-        "spec/**/*"
-      ],
+      "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "spec/**/*"],
       "plugins": [
         "import",
         "promise",
@@ -156,34 +147,23 @@
         "typescript/unbound-method": "off",
         "unicorn/no-document-cookie": "off",
         "vitest/no-conditional-in-test": "error",
-        "vitest/require-to-throw-message": "off",
-        "typescript/no-unsafe-assignment": "off",
-        "typescript/no-unsafe-argument": "off"
+        "vitest/require-to-throw-message": "off"
       }
     },
     {
-      "files": [
-        "**/src/**"
-      ],
-      "excludeFiles": [
-        "**/src/pages/**"
-      ],
+      "files": ["**/src/**"],
+      "excludeFiles": ["**/src/pages/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
               {
-                "group": [
-                  "@/pages/**",
-                  "**/pages/**"
-                ],
+                "group": ["@/pages/**", "**/pages/**"],
                 "message": "A page belongs to one surface's Inertia application, which resolves it through its own import.meta.glob. Import the feature component the page re-exports instead."
               },
               {
-                "group": [
-                  "**/spec/**"
-                ],
+                "group": ["**/spec/**"],
                 "message": "Application code that imports a spec ships the spec."
               }
             ]

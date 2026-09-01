@@ -44,7 +44,12 @@ class PalmAccessTokenAuthenticatorTest < ActiveSupport::TestCase
   end
 
   test "rejects palm-api audience token bound to a client_id not in the allowed native client list" do
-    result = authenticate(token: palm_token(audiences: [PalmAccessTokenAuthenticator::AUDIENCE], client_id: "core-next-rp"))
+    result = authenticate(
+      token: palm_token(
+        audiences: [PalmAccessTokenAuthenticator::AUDIENCE],
+        client_id: "core-next-rp",
+      ),
+    )
 
     assert_not result.success?
     assert_equal "invalid_token", result.error

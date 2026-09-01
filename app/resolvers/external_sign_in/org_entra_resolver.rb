@@ -31,7 +31,8 @@ module ExternalSignIn
       )
 
       raise IdentityNotFoundError,
-            "no identity provisioned for (#{tenant_context.tenant_id}, #{tenant_context.object_identifier})" if identity.nil?
+            "no identity provisioned for (#{tenant_context.tenant_id}, " \
+            "#{tenant_context.object_identifier})" if identity.nil?
       raise IdentityNotFoundError, "identity is not active" unless identity.status_id == OperatorEntraIdentityState::ACTIVE
 
       Result.new(identity: identity, operator: operator_for(identity))

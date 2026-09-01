@@ -68,7 +68,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
     source = read("config/routes/auth.rb")
     com_block = surface_block(source, "# Corporate credential gateway host", "# Staff credential gateway host")
 
-    assert_match(/resource :email, only: %i\(new create edit\)/, com_block)
+    assert_match(/resource :email, only: %i\(new create edit update\)/, com_block)
     assert_match(/resource :secret, only: %i\(new create\)/, com_block)
     assert_no_match(/namespace :social|google|apple|microsoft/i, com_block)
   end

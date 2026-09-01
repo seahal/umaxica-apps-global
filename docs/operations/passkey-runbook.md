@@ -15,8 +15,8 @@
 ## Unknown AAGUID Values
 
 - Unknown and zero AAGUID values are normal. Registration succeeds, `provider_name` remains NULL,
-  the list uses the i18n default ("Passkey" or "My Passkey"), and the detail page displays
-  "Unknown authenticator".
+  the list uses the i18n default ("Passkey" or "My Passkey"), and the detail page displays "Unknown
+  authenticator".
 - Do not reject registration or warn the user solely because an AAGUID is unknown. It is a
   self-asserted value.
 
@@ -50,4 +50,12 @@
 - Catalog load failures surface on the resolver's first use. Check YAML syntax and inspect
   `Webauthn::AuthenticatorNameResolver.catalog` in the Rails console.
 - UV failures such as `UserVerificationRequiredError` or the `uv_rejected` risk event may indicate
-  that the client cannot perform UV. The supported fallback is the password sign-in flow.
+  that the authenticator cannot perform UV. Do not grandfather or infer UV capability for an
+  existing credential.
+- APP and COM users may use Email OTP sign-in as the supported fallback. Email OTP is a Umaxica
+  product exception and does not achieve NIST AAL2.
+- ORG users may use Secret Credential or Microsoft Entra ID sign-in. Before enforcing the migration
+  in production, identify operators whose only sign-in path is a passkey without `uv_verified_at`;
+  arrange re-enrollment or another existing ORG sign-in method before rollout.
+- A successful UV-required assertion sets `uv_verified_at`. Credential-removal guards must not treat
+  a legacy passkey with unknown UV history as the final guaranteed compatible fallback.

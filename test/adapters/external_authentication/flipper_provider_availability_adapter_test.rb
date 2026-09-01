@@ -47,7 +47,10 @@ class ExternalAuthenticationFlipperProviderAvailabilityAdapterTest < ActiveSuppo
   end
 
   test "controls Entra independently from Apple and Google" do
-    subject = adapter(social_ceremony_app_apple: true, social_ceremony_app_google: true, social_ceremony_org_entra: false)
+    subject = adapter(
+      social_ceremony_app_apple: true, social_ceremony_app_google: true,
+      social_ceremony_org_entra: false,
+    )
 
     assert_equal :disabled, subject.start_decision(provider: "entra", operation: "login", context: {}).state
     assert_equal :enabled, subject.start_decision(provider: "apple", operation: "login", context: {}).state

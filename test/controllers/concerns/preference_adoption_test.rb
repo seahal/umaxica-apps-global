@@ -34,6 +34,23 @@ class PreferenceAdoptionTest < ActiveSupport::TestCase
     def update!(attributes) = self.updates = attributes
   end
 
+  # When the browser and the account have each explicitly set the same key, the
+  # reconciliation compares recency rather than preferring a side. A principal child
+  # with no timestamp is treated as the winner so an unstamped legacy row is not
+  # overwritten by a browser marker.
+  test "key_recency_winner compares the two sides by recency" do
+    harness = Harness.new
+    older = Struct.new(:updated_at).new(2.hours.ago)
+    newer = Struct.new(:updated_at).new(1.minute.ago)
+    unstamped = Struct.new(:updated_at).new(nil)
+
+    assert_equal :browser, harness.invoke(:key_recency_winner, newer, older)
+    assert_equal :principal, harness.invoke(:key_recency_winner, older, newer)
+    assert_equal :principal, harness.invoke(:key_recency_winner, newer, unstamped)
+    assert_equal :principal, harness.invoke(:key_recency_winner, unstamped, newer)
+    assert_equal :principal, harness.invoke(:key_recency_winner, older, older)
+  end
+
   test "resource mappings cover every preference surface and unknown classes" do
     harness = Harness.new
 

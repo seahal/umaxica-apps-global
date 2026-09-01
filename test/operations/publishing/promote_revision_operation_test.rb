@@ -70,7 +70,10 @@ module Publishing
       assign_category(entry.current_revision, @setup_term)
       @setup_term.update!(archived_at: Time.current, archive_reason: "retired")
 
-      error = assert_raises(ArchivedTaxonomyAssignmentError) { PromoteRevisionOperation.call(revision: entry.current_revision) }
+      error =
+        assert_raises(ArchivedTaxonomyAssignmentError) {
+          PromoteRevisionOperation.call(revision: entry.current_revision)
+        }
       detail = error.details.sole
 
       assert_equal "category", detail.vocabulary_key
@@ -122,15 +125,21 @@ module Publishing
 
       # Without this, a revision could drift away from the version promoted from
       # it, and UNIQUE(entry_revision_id) makes a corrected version impossible.
-      assert_database_rejects { connection.execute("UPDATE publishing_entry_revisions SET title = 'drifted' WHERE id = #{revision.id}") }
+      assert_database_rejects {
+        connection.execute("UPDATE publishing_entry_revisions SET title = 'drifted' WHERE id = #{revision.id}")
+      }
       assert_database_rejects { connection.execute("DELETE FROM publishing_entry_revisions WHERE id = #{revision.id}") }
       assert_database_rejects { assign_tags(revision, [@rails]) }
       assert_database_rejects do
-        connection.execute("DELETE FROM publishing_revision_multiple_taxonomy_assignments WHERE entry_revision_id = #{revision.id}")
+        connection.execute(
+          "DELETE FROM publishing_revision_multiple_taxonomy_assignments WHERE " \
+          "entry_revision_id = #{revision.id}",
+        )
       end
       assert_database_rejects do
         connection.execute(
-          "UPDATE publishing_revision_multiple_taxonomy_assignments SET position = 9 WHERE entry_revision_id = #{revision.id}",
+          "UPDATE publishing_revision_multiple_taxonomy_assignments SET position = 9 WHERE entry_revision_id = " \
+          "#{revision.id}",
         )
       end
 
@@ -195,7 +204,8 @@ module Publishing
 
     def assign_category(revision, term)
       RevisionSingleTaxonomyAssignment.create!(
-        entry_revision: revision, vocabulary: @category, vocabulary_kind: @category.kind, taxonomy_term: term, locale: "ja",
+        entry_revision: revision, vocabulary: @category, vocabulary_kind: @category.kind, taxonomy_term: term,
+        locale: "ja",
       )
     end
 

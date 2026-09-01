@@ -82,6 +82,7 @@ class IdentityPasskeyCeremonyFinalCommitter
         :webauthn_id => result["webauthn_id"],
         :public_key => result["public_key"],
         :sign_count => result["sign_count"].to_i,
+        :uv_verified_at => now,
         :description => result["description"].presence || I18n.t("sign.default_passkey_description"),
         **Webauthn::AuthenticatorMetadata.permit(result["authenticator_metadata"]),
       }

@@ -107,19 +107,27 @@ class Auth::Org::Omniauth::OmniauthCallbackQueryCountTest < ActionDispatch::Inte
 
     assert_response :redirect
 
-    connection_selects = statements.select { |s| s[:sql].include?("organization_entra_connections") && s[:sql].start_with?("SELECT") }
-    identity_selects = statements.select { |s| s[:sql].include?("operator_entra_identities") && s[:sql].start_with?("SELECT") }
+    connection_selects =
+      statements.select { |s|
+        s[:sql].include?("organization_entra_connections") && s[:sql].start_with?("SELECT")
+      }
+    identity_selects =
+      statements.select { |s|
+        s[:sql].include?("operator_entra_identities") && s[:sql].start_with?("SELECT")
+      }
     operator_selects = statements.select { |s| s[:sql].include?(%(FROM "operators")) }
 
     # Zero: the tenant and client come from configuration, so nothing in the
     # callback path reads organization_entra_connections. A non-zero count here
     # means the connection concept has crept back into sign-in.
     assert_empty connection_selects,
-                 "the callback must not query OrganizationEntraConnection, got:\n#{connection_selects.pluck(:sql).join("\n")}"
+                 "the callback must not query OrganizationEntraConnection, " \
+                 "got:\n#{connection_selects.pluck(:sql).join("\n")}"
     assert_equal 1, identity_selects.size,
                  "expected exactly one OperatorEntraIdentity lookup, got:\n#{identity_selects.pluck(:sql).join("\n")}"
     assert_operator operator_selects.size, :<=, 2,
-                    "expected at most 2 Operator lookups (resolver + login_allowed?), got:\n#{operator_selects.pluck(:sql).join("\n")}"
+                    "expected at most 2 Operator lookups (resolver + login_allowed?), " \
+                    "got:\n#{operator_selects.pluck(:sql).join("\n")}"
 
     graph_or_userinfo_calls = statements.select { |s| s[:sql].match?(/graph\.microsoft|userinfo/i) }
 

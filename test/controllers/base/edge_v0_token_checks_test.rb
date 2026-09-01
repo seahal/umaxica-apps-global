@@ -21,6 +21,12 @@ class Base::EdgeV0TokenChecksTest < ActionDispatch::IntegrationTest
       build_token: ->(test_case) { OperatorToken.create!(staff: test_case.operators(:one)) },
       resource_type: "operator",
     },
+    {
+      host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
+      actor: ->(test_case) { test_case.visitors(:reserved_visitor) },
+      build_token: ->(test_case) { VisitorToken.create!(visitor: test_case.visitors(:reserved_visitor)) },
+      resource_type: "visitor",
+    },
   ].freeze
 
   test "GET check without an access token returns 401 on every surface" do

@@ -12,9 +12,11 @@ module SignAppVerificationBase
   private
 
   def verification_params
-    params.fetch(:verification, {}).permit(
-      :code, :challenge_id, :credential_json, :scope, :pt,
-    )
+    # `slice` first: this reads a fixed set of keys out of the verification payload and
+    # ignores anything else it carries. Permitting without narrowing would report those
+    # extras as unpermitted, which they are not - they are simply not ours.
+    keys = %i(code challenge_id credential_json scope pt)
+    params.fetch(:verification, {}).slice(*keys).permit(*keys)
   end
 
   def email_otp_session_active?

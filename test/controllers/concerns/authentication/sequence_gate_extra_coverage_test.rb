@@ -765,6 +765,34 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     assert_predicate cycle.updates.first[:session_issued_at], :present?
   end
 
+  # The OIDC hand-off promotes a session-limited cycle only once every participant
+  # ahead of the hand-off has cleared. A blocking guardrail or checkpoint stops it,
+  # and the caller treats that as "do not hand off".
+  test "advance_oidc_session_promotion stops at a blocking guardrail" do
+    cycle = FakeCycle.new(states: { guardrail: true })
+    @harness.guardrail_result = Result.new(true)
+
+    SignInGuardrailParticipant.stub(:new, GuardrailParticipant.new(Result.new(true))) do
+      assert_not @harness.send(:advance_oidc_session_promotion!, cycle, Object.new)
+    end
+  end
+
+  test "advance_oidc_session_promotion stops at a blocking checkpoint" do
+    cycle = FakeCycle.new(states: { guardrail: false, checkpoint: true })
+    @harness.checkpoint_result = Result.new(true)
+
+    assert_not @harness.send(:advance_oidc_session_promotion!, cycle, Object.new)
+  end
+
+  test "advance_oidc_session_promotion clears when no participant blocks" do
+    cycle = FakeCycle.new(states: { guardrail: true, checkpoint: true })
+    @harness.checkpoint_result = Result.new(false)
+
+    SignInGuardrailParticipant.stub(:new, GuardrailParticipant.new(Result.new(false))) do
+      assert @harness.send(:advance_oidc_session_promotion!, cycle, Object.new)
+    end
+  end
+
   test "sign_in_sequence_redirect_path returns the default path when the guardrail participant blocks" do
     @harness.cycle = FakeCycle.new(states: { guardrail: true })
     @harness.guardrail_result = Result.new(true)
@@ -1195,7 +1223,8 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     assert_equal token.id, reloaded.token_id
   end
 
-  test "advance_cycle_to_checkpoint_after_active_session! skips already-cleared steps for a session-issuance-pending cycle" do
+  test "advance_cycle_to_checkpoint_after_active_session! skips already-cleared steps for a " \
+       "session-issuance-pending cycle" do
     cycle =
       Class.new do
         attr_accessor :advanced_to_checkpoint, :token_id
@@ -1534,14 +1563,16 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     assert_nil resume_url
   end
 
-  test "promote_current_session_limit_cycle_for_oidc_handoff! hands off to bind_session_and_register_oidc! on success" do
+  test "promote_current_session_limit_cycle_for_oidc_handoff! hands off to bind_session_and_register_oidc! on " \
+       "success" do
     @harness.cycle = FakeCycle.new(states: { session_limit: true })
     @harness.session[:oidc_authorization_login_challenge] = "chal-3"
     actor = Client.new(id: 9)
     fake_result = Struct.new(:cycle).new(FakeCycle.new(states: { session_limit: true }))
     @harness.define_singleton_method(:advance_oidc_session_promotion!) { |_cycle, _actor| true }
     @harness.current_session = Struct.new(:id, :public_id).new(1, "session-pub")
-    @harness.define_singleton_method(:bind_session_and_register_oidc!) do |_cycle, _actor, challenge, auth_method, issued_session|
+    @harness.define_singleton_method(:bind_session_and_register_oidc!) do |_cycle, _actor, challenge, auth_method,
+      issued_session|
       ["bound", challenge, auth_method, issued_session]
     end
 

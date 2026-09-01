@@ -85,6 +85,7 @@ export default function PreferenceSelect({
           name={`${form.scope}[${form.field}]`}
           value={value}
           onChange={(next) => {
+            /* v8 ignore next -- React Aria reports null only when the selection is cleared */
             if (next !== null) {
               setValue(String(next));
             }

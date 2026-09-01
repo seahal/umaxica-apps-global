@@ -7,6 +7,8 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class Base::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
+  fixtures :clients
+
   # include PreferenceJwtHelper
 
   setup do
@@ -163,6 +165,75 @@ class Base::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
     assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
   end
 
+  # A signed-in actor who has never had a preference row gets one created on the first
+  # write, together with the child records every preference type expects. The other
+  # PATCH tests here are anonymous, so `preference_write_resource_preference!` returned
+  # early and the creation path never ran.
+  test "PATCH update creates the actor preference record on a signed-in first write" do
+    client = clients(:one)
+    ClientPreference.where(user_id: client.id).destroy_all
+    token = ClientToken.create!(
+      user: client,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      discarded_at: 1.day.from_now,
+    )
+    BaseSelectorBootstrapAuthority.call(surface: :app, principal: client)
+    BaseSelectorAuthority.prepare(surface: :app, principal: client, session: token)
+    access_token = AuthenticationToken.encode(
+      client, host: @host, session_public_id: token.public_id,
+              resource_type: "client", jwt_issuer_id: "surface:BASE_APP",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+
+    preference = AppPreference.create!(
+      status_id: AppPreferenceStatus::NOTHING,
+      expires_at: PreferenceBase::REFRESH_TOKEN_TTL.from_now,
+    )
+    option_class = PreferenceClassRegistry.option_class("App", :theme)
+    ensure_theme_defaults!(option_class)
+    AppPreferenceTheme.create!(preference: preference, option_id: option_class::SYSTEM)
+    cookies[PreferenceCookieName.access] = encode_preference_jwt(
+      preferences: { "ct" => "sy" }, host: @host, public_id: preference.public_id,
+    )
+
+    assert_difference -> { ClientPreference.where(user_id: client.id).count }, 1 do
+      with_preference_jwt_keys(host: @host) do
+        patch base_app_web_v0_theme_path,
+              params: { theme: "dark" },
+              headers: {
+                "Authorization" => "Bearer #{access_token}",
+                "Client-Agent" => "Mozilla/5.0",
+                "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+              },
+              as: :json
+      end
+    end
+
+    assert_response :ok
+    actor_preference = ClientPreference.find_by!(user_id: client.id)
+
+    assert_equal option_class::DARK,
+                 PreferenceClassRegistry.record_class("Client", :theme).find_by!(
+                   preference_id: actor_preference.id,
+                 ).option_id
+  end
+
+  # A stale or forged preference refresh cookie must not break the write: the failed
+  # refresh is reset and the request still answers with the updated theme.
+  test "PATCH update recovers when the refresh cookie matches no preference record" do
+    cookies[PreferenceCookieName.refresh(surface: :app)] =
+      "prf_#{SecureRandom.alphanumeric(21)}.#{SecureRandom.hex(16)}"
+
+    with_preference_jwt_keys(host: @host) do
+      patch base_app_web_v0_theme_path, params: { theme: "dark" }, as: :json
+    end
+
+    assert_response :ok
+    assert_equal "dr", response.parsed_body["theme"]
+    assert_includes response.headers["Set-Cookie"].to_s, "#{PreferenceIoKeys::Cookies::THEME}=dr"
+  end
+
   private
 
   def ensure_theme_defaults!(option_class)
@@ -186,35 +257,15 @@ class Base::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
     token
   end
-
-  def with_preference_jwt_keys(host: nil)
-    key = OpenSSL::PKey::EC.generate("secp384r1")
-    public_key_for_stub = ->(_kid, **_options) { key }
-    audiences = host ? [host] : PreferenceJwtConfiguration.audiences
-
-    PreferenceJwtConfiguration.stub(:private_key, key) do
-      PreferenceJwtConfiguration.stub(:public_key, key) do
-        PreferenceJwtConfiguration.stub(:private_key_for_active, key) do
-          PreferenceJwtConfiguration.stub(:public_key_for, public_key_for_stub) do
-            PreferenceJwtConfiguration.stub(:active_kid, "default") do
-              PreferenceJwtConfiguration.stub(:issuer, "jit-preference") do
-                PreferenceJwtConfiguration.stub(:audiences, audiences) do
-                  yield
-                end
-              end
-            end
-          end
-        end
-      end
-    end
-  end
 end
 
 # DAMP local helper copy on the test class.
 class Base::App::Web::V0::ThemeControllerTest
-  TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
-    :TEST_BROWSER_USER_AGENT, false,
-  )
+  TEST_BROWSER_USER_AGENT =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
+      :TEST_BROWSER_USER_AGENT, false,
+    )
   PREFERENCE_JWT_KEY = OpenSSL::PKey::EC.generate("secp384r1") unless const_defined?(:PREFERENCE_JWT_KEY, false)
 
   private
@@ -284,7 +335,9 @@ class Base::App::Web::V0::ThemeControllerTest
     token ||= ClientToken.where(user_id: user.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
     token ||= ClientToken.create!(
       user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB,
-      user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -302,7 +355,9 @@ class Base::App::Web::V0::ThemeControllerTest
     ).order(created_at: :desc).first
     token ||= OperatorToken.create!(
       staff_id: staff.id, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-      staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
+      staff_token_status_id: OperatorTokenStatus::ACTIVE,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -320,7 +375,9 @@ class Base::App::Web::V0::ThemeControllerTest
     ).order(created_at: :desc).first
     token ||= VisitorToken.create!(
       visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
-      visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY,
+      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     base
@@ -378,7 +435,12 @@ class Base::App::Web::V0::ThemeControllerTest
     visitor = Visitor.create!(status_id: VisitorStatus::NOTHING, visibility_id: VisitorVisibility::VISITOR)
     VisitorEmail.create!(
       visitor_id: visitor.id, address: email_address,
-      address_digest: IdentifierBlindIndex.bidx_for_email(email_address), visitor_email_status_id: VisitorEmailStatus::VERIFIED, otp_private_key: SecureRandom.base64(24), otp_counter: "", otp_attempts_count: 0, public_id: SecureRandom.alphanumeric(21),
+      address_digest: IdentifierBlindIndex.bidx_for_email(email_address),
+      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
+      otp_private_key: SecureRandom.base64(24),
+      otp_counter: "",
+      otp_attempts_count: 0,
+      public_id: SecureRandom.alphanumeric(21),
     )
     visitor.reload
   end

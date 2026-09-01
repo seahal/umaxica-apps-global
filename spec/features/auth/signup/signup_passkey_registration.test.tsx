@@ -91,9 +91,7 @@ describe("SignUpPasskeyRegistration", () => {
   });
 
   it("carries the attestation, description and checkpoint version, then follows the redirect", async () => {
-    credentials.create.mockResolvedValue(
-      attestationCredential({ transports: ["internal"] }) as unknown as Credential,
-    );
+    credentials.create.mockResolvedValue(attestationCredential({ transports: ["internal"] }));
     const fetchMock = stubFetchQueue(
       jsonResponse({ challenge_id: "challenge-1", options: CREATION_OPTIONS }),
       jsonResponse({ redirect_url: "/sign/up/checkpoint/next" }),
@@ -126,9 +124,7 @@ describe("SignUpPasskeyRegistration", () => {
   });
 
   it("sends an empty transports list when the authenticator reports none", async () => {
-    credentials.create.mockResolvedValue(
-      attestationCredential({ transports: null }) as unknown as Credential,
-    );
+    credentials.create.mockResolvedValue(attestationCredential({ transports: null }));
     const fetchMock = stubFetchQueue(
       jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }),
       jsonResponse({ redirect_url: "/next" }),
@@ -143,8 +139,11 @@ describe("SignUpPasskeyRegistration", () => {
   });
 
   it("falls back to the page's own destination when the server names none", async () => {
-    credentials.create.mockResolvedValue(attestationCredential() as unknown as Credential);
-    stubFetchQueue(jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }), jsonResponse({}));
+    credentials.create.mockResolvedValue(attestationCredential());
+    stubFetchQueue(
+      jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }),
+      jsonResponse({}),
+    );
     const location = stubLocation();
 
     const screen = await start();
@@ -154,8 +153,11 @@ describe("SignUpPasskeyRegistration", () => {
   });
 
   it("reloads when neither the server nor the page names a destination", async () => {
-    credentials.create.mockResolvedValue(attestationCredential() as unknown as Credential);
-    stubFetchQueue(jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }), jsonResponse({}));
+    credentials.create.mockResolvedValue(attestationCredential());
+    stubFetchQueue(
+      jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }),
+      jsonResponse({}),
+    );
     const location = stubLocation();
 
     await start({ success_redirect_url: "" });
@@ -164,7 +166,7 @@ describe("SignUpPasskeyRegistration", () => {
   });
 
   it("refuses an answer the authenticator did not shape as an attestation", async () => {
-    credentials.create.mockResolvedValue({ id: "c", type: "public-key" } as Credential);
+    credentials.create.mockResolvedValue({ id: "c", type: "public-key" });
     stubFetchQueue(jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }));
 
     const screen = await start();
@@ -232,7 +234,7 @@ describe("SignUpPasskeyRegistration", () => {
   });
 
   it("reports a refused verification with the registration message", async () => {
-    credentials.create.mockResolvedValue(attestationCredential() as unknown as Credential);
+    credentials.create.mockResolvedValue(attestationCredential());
     stubFetchQueue(
       jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }),
       textResponse("<html></html>", 422),
@@ -244,7 +246,7 @@ describe("SignUpPasskeyRegistration", () => {
   });
 
   it("reloads instead of continuing when the verification session is gone", async () => {
-    credentials.create.mockResolvedValue(attestationCredential() as unknown as Credential);
+    credentials.create.mockResolvedValue(attestationCredential());
     stubFetchQueue(
       jsonResponse({ challenge_id: "c", options: CREATION_OPTIONS }),
       textResponse("<html></html>", 302),

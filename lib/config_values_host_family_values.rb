@@ -72,93 +72,105 @@ ConfigValuesHostFamilyValues = ConfigValues::HostFamilyValues
 
 class << ConfigValues::HostFamilyValues
   def build(env:, production:)
-    ConfigValues::HostFamilyValues.new(
-      acme_service: origin(env, "BASE_SERVICE_URL", production ? nil : "base.app.localhost", production: production),
+    ConfigValues::HostFamilyValues.new(**host_family_origins(env: env, production: production)).freeze
+  end
+
+  def host_family_origins(env:, production:)
+    host_family_primary_origins(env: env, production: production).merge(
+      host_family_secondary_origins(env: env, production: production),
+    )
+  end
+
+  def development_host(production, host)
+    production ? nil : host
+  end
+
+  def host_family_primary_origins(env:, production:)
+    {
+      acme_service: origin(
+        env, "BASE_SERVICE_URL", development_host(production, "base.app.localhost"),
+        production: production,
+      ),
       acme_corporate: origin(
-        env, "BASE_CORPORATE_URL", production ? nil : "base.com.localhost",
+        env, "BASE_CORPORATE_URL", development_host(production, "base.com.localhost"), production: production,
+      ),
+      acme_staff: origin(
+        env, "BASE_STAFF_URL", development_host(production, "base.org.localhost"),
         production: production,
       ),
-      acme_staff: origin(env, "BASE_STAFF_URL", production ? nil : "base.org.localhost", production: production),
-      sign_service: origin(env, auth_key(env, "SERVICE"), production ? nil : "sign.app.localhost", production: production),
+      sign_service: origin(
+        env, auth_key(env, "SERVICE"), development_host(production, "sign.app.localhost"), production: production,
+      ),
       sign_corporate: origin(
-        env, auth_key(env, "CORPORATE"), production ? nil : "sign.com.localhost",
-        production: production,
+        env, auth_key(env, "CORPORATE"), development_host(production, "sign.com.localhost"), production: production,
       ),
-      sign_staff: origin(env, auth_key(env, "STAFF"), production ? nil : "sign.org.localhost", production: production),
+      sign_staff: origin(
+        env, auth_key(env, "STAFF"), development_host(production, "sign.org.localhost"), production: production,
+      ),
       core_service: origin(
-        env,
-        core_key(env, "SERVICE"),
-        production ? nil : "jpx.umaxica.app",
-        production: production,
+        env, core_key(env, "SERVICE"), development_host(production, "jpx.umaxica.app"), production: production,
       ),
       core_corporate: origin(
-        env,
-        core_key(env, "CORPORATE"),
-        production ? nil : "jpx.umaxica.com",
+        env, core_key(env, "CORPORATE"), development_host(production, "jpx.umaxica.com"), production: production,
+      ),
+      core_staff: origin(
+        env, core_key(env, "STAFF"), development_host(production, "jpx.umaxica.org"),
         production: production,
       ),
-      core_staff: origin(env, core_key(env, "STAFF"), production ? nil : "jpx.umaxica.org", production: production),
       base_service: origin(
-        env,
-        base_key(env, "SERVICE"),
-        production ? nil : "www-jp.umaxica.app",
-        production: production,
+        env, base_key(env, "SERVICE"), development_host(production, "www-jp.umaxica.app"), production: production,
       ),
       base_corporate: origin(
-        env,
-        base_key(env, "CORPORATE"),
-        production ? nil : "www-jp.umaxica.com",
-        production: production,
+        env, base_key(env, "CORPORATE"), development_host(production, "www-jp.umaxica.com"), production: production,
       ),
       base_staff: origin(
-        env,
-        base_key(env, "STAFF"),
-        production ? nil : "www-jp.umaxica.org",
-        production: production,
+        env, base_key(env, "STAFF"), development_host(production, "www-jp.umaxica.org"), production: production,
       ),
+    }
+  end
+
+  def host_family_secondary_origins(env:, production:)
+    {
       side_service: origin(
-        env,
-        side_key(env, "SERVICE"),
-        production ? nil : "side-jp.umaxica.app",
-        production: production,
+        env, side_key(env, "SERVICE"), development_host(production, "side-jp.umaxica.app"), production: production,
       ),
       side_corporate: origin(
-        env,
-        side_key(env, "CORPORATE"),
-        production ? nil : "side-jp.umaxica.com",
-        production: production,
+        env, side_key(env, "CORPORATE"), development_host(production, "side-jp.umaxica.com"), production: production,
       ),
       side_staff: origin(
-        env,
-        side_key(env, "STAFF"),
-        production ? nil : "side-jp.umaxica.org",
-        production: production,
+        env, side_key(env, "STAFF"), development_host(production, "side-jp.umaxica.org"), production: production,
       ),
-      palm_service: origin(env, "PALM_SERVICE_URL", production ? nil : "palm-jp.umaxica.app", production: production),
+      palm_service: origin(
+        env, "PALM_SERVICE_URL", development_host(production, "palm-jp.umaxica.app"), production: production,
+      ),
       palm_corporate: origin(
-        env,
-        "PALM_CORPORATE_URL",
-        production ? nil : "palm-jp.umaxica.com",
+        env, "PALM_CORPORATE_URL", development_host(production, "palm-jp.umaxica.com"), production: production,
+      ),
+      palm_staff: origin(
+        env, "PALM_STAFF_URL", development_host(production, "palm-jp.umaxica.org"),
         production: production,
       ),
-      palm_staff: origin(env, "PALM_STAFF_URL", production ? nil : "palm-jp.umaxica.org", production: production),
-      help_service: origin(env, "HELP_SERVICE_URL", production ? nil : "help.app.localhost", production: production),
+      help_service: origin(
+        env, "HELP_SERVICE_URL", development_host(production, "help.app.localhost"), production: production,
+      ),
       help_corporate: origin(
-        env,
-        "HELP_CORPORATE_URL",
-        production ? nil : "help.com.localhost",
+        env, "HELP_CORPORATE_URL", development_host(production, "help.com.localhost"), production: production,
+      ),
+      help_staff: origin(
+        env, "HELP_STAFF_URL", development_host(production, "help.org.localhost"),
         production: production,
       ),
-      help_staff: origin(env, "HELP_STAFF_URL", production ? nil : "help.org.localhost", production: production),
-      info_service: origin(env, "INFO_SERVICE_URL", production ? nil : "info.app.localhost", production: production),
+      info_service: origin(
+        env, "INFO_SERVICE_URL", development_host(production, "info.app.localhost"), production: production,
+      ),
       info_corporate: origin(
-        env,
-        "INFO_CORPORATE_URL",
-        production ? nil : "info.com.localhost",
+        env, "INFO_CORPORATE_URL", development_host(production, "info.com.localhost"), production: production,
+      ),
+      info_staff: origin(
+        env, "INFO_STAFF_URL", development_host(production, "info.org.localhost"),
         production: production,
       ),
-      info_staff: origin(env, "INFO_STAFF_URL", production ? nil : "info.org.localhost", production: production),
-    ).freeze
+    }
   end
 
   # Resolves the ENV key for a base surface (service/corporate/staff).

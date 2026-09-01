@@ -31,10 +31,14 @@ module Base
       private
 
       def selector_params
-        params.permit(
-          :account_public_id, :organization_public_id, :organization_unit_public_id,
-          :collective_public_id, :collective_unit_public_id,
-        ).to_h.symbolize_keys
+        # `slice` first: this reads a fixed set of keys and ignores everything else the
+        # request carries (`ri`, the Turnstile token). Permitting without narrowing would
+        # report those as unpermitted, which they are not - they are simply not ours.
+        keys = %i(
+          account_public_id organization_public_id organization_unit_public_id
+          collective_public_id collective_unit_public_id
+        )
+        params.slice(*keys).permit(*keys).to_h.symbolize_keys
       end
     end
   end

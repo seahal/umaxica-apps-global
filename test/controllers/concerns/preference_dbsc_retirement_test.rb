@@ -81,7 +81,8 @@ class PreferenceDbscRetirementTest < ActiveSupport::TestCase
     assert_not @ctx.send(:valid_refresh_preference?, @preference)
   end
 
-  test "load_preference_record_from_refresh_token! resolves nil for a retired DBSC-bound row presented with a valid digest" do
+  test "load_preference_record_from_refresh_token! resolves nil for a retired DBSC-bound row presented with a " \
+       "valid digest" do
     # Mirrors the stubbing style of the pre-existing
     # "load preference record from refresh token covers valid invalid and
     # create branches" test in test/controllers/concerns/preference/base_test.rb:1334

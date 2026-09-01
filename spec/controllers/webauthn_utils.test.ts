@@ -16,6 +16,13 @@ const nested = (value: unknown, name: string): unknown =>
 
 const firstOf = (value: unknown): unknown => (Array.isArray(value) ? value[0] : undefined);
 
+// The test needs a constructor whose `name` can be blanked out, to prove toArrayBuffer
+// falls back to `typeof`. Typing `prototype` explicitly keeps it off `any`, which the
+// unsafe-argument rules would otherwise flag at the Object.create call below.
+const AnonymousHolder: { prototype: object; name: string } = function AnonymousHolder() {
+  // Never called - only its prototype and name matter.
+};
+
 describe("webauthn_utils", () => {
   describe("toArrayBuffer", () => {
     test("Base64URL 文字列を ArrayBuffer に変換する", () => {
@@ -56,6 +63,12 @@ describe("webauthn_utils", () => {
       const obj: unknown = Object.create(null);
       expect(() => toArrayBuffer(obj)).toThrow("object");
     });
+
+    test("名前のない constructor でも typeof fallback になる", () => {
+      Object.defineProperty(AnonymousHolder, "name", { value: "" });
+      const anonymous: unknown = Object.create(AnonymousHolder.prototype);
+      expect(() => toArrayBuffer(anonymous)).toThrow("object");
+    });
   });
 
   describe("normalizePublicKeyOptions", () => {
@@ -70,6 +83,12 @@ describe("webauthn_utils", () => {
       const options = { publicKey: { challenge: "Y2hhbGxlbmdl" } };
       const normalized = normalizePublicKeyOptions(options);
       expect(field(normalized, "challenge")).toBeInstanceOf(ArrayBuffer);
+    });
+
+    test("excludeCredentials がオブジェクトでない要素は空の記録として扱う", () => {
+      expect(() => normalizePublicKeyOptions({ excludeCredentials: ["not-an-object"] })).toThrow(
+        "excludeCredentials[0].id",
+      );
     });
 
     test("excludeCredentials の id を正規化する", () => {
@@ -144,6 +163,21 @@ describe("webauthn_utils", () => {
       expect(options.user.id).toBeInstanceOf(ArrayBuffer);
       expect(options.rp).toEqual({ name: "Umaxica", id: "example.test" });
       expect(options.pubKeyCredParams).toHaveLength(1);
+    });
+
+    test("rp.id が無い payload は name だけ残す", () => {
+      const options = normalizeCreationOptions({ ...CREATION, rp: { name: "Umaxica" } });
+
+      expect(options.rp).toEqual({ name: "Umaxica" });
+    });
+
+    test("pubKeyCredParams alg が数値でない payload を拒む", () => {
+      expect(() =>
+        normalizeCreationOptions({
+          ...CREATION,
+          pubKeyCredParams: [{ type: "public-key", alg: "-7" }],
+        }),
+      ).toThrow("alg");
     });
 
     test("rp を持たない payload を拒む", () => {

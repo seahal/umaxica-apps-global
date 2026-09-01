@@ -103,7 +103,7 @@ class VerificationBaseStepUpLoggingTest < ActiveSupport::TestCase
     assert_equal "app", data[:surface]
     assert_equal "client", data[:actor_type]
     assert_equal "settings_passkey", data[:scope]
-    assert_equal "aal2", data[:required_aal]
+    assert_equal StepUpRequirement::NO_AAL, data[:required_aal]
     assert_not data[:step_up_satisfied]
     assert data[:step_up_usable_token]
     assert_equal "passkey", data[:step_up_method]

@@ -7,6 +7,23 @@
 > do not imply sign-side authority. Do not use this document to reintroduce sign-side sessions,
 > refresh, preference, dashboard, account lifecycle, token issuance, logout, or step-up freshness.
 
+Fresh Umaxica step-up, achieved AAL, phishing resistance, allowed methods, and freshness are
+independent conditions. Email OTP may complete APP/COM normal step-up but has no achieved NIST AAL;
+TOTP alone and current UV passkey ceremonies record AAL1, while passkey is phishing-resistant.
+
+## Surface policy
+
+| surface | sign-up / sign-in                                                | normal step-up                                         | passkey UV                                             |
+| ------- | ---------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------ |
+| APP     | Email OTP and passkey (plus existing documented primary methods) | Passkey preferred; TOTP and Email OTP are alternatives | required for registration and sign-in                  |
+| COM     | Email OTP and passkey (plus existing documented primary methods) | Passkey and Email OTP                                  | required for registration and sign-in                  |
+| ORG     | Passkey, Secret Credential, and Microsoft Entra ID               | Passkey only                                           | required for registration where applicable and sign-in |
+
+Email OTP on APP and COM is an explicit Umaxica product exception. It completes normal step-up
+freshness, but neither Email OTP nor TOTP alone satisfies NIST AAL2. ORG does not use Email OTP for
+sign-up, sign-in, or step-up. A future operation may independently require an AAL, phishing
+resistance, a restricted method set, and a freshness window.
+
 This product uses `AAL1`, `AAL2`, and `AAL3` as authentication-boundary terms.
 
 The terminology is inspired by NIST SP 800-63, but this document does not claim strict NIST
@@ -15,11 +32,11 @@ No other local AAL levels, such as `AAL0` or `AAL4`, are used.
 
 ## Levels
 
-| level  | product meaning                                                                | implementation status |
-| ------ | ------------------------------------------------------------------------------ | --------------------- |
-| `AAL1` | Baseline signed-in session. Methods that can establish login/session state.    | Current               |
-| `AAL2` | Step-up verification for sensitive signed-in actions.                          | Current               |
-| `AAL3` | Reserved for highest-impact operational control, such as system-shutdown keys. | Future                |
+| level  | product meaning                                                                | implementation status                                                                         |
+| ------ | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `AAL1` | Baseline signed-in session. Methods that can establish login/session state.    | Current                                                                                       |
+| `AAL2` | Achieved assurance evaluated from the complete authentication ceremony.        | Supported as a requirement; no current normal step-up method is automatically promoted to it. |
+| `AAL3` | Reserved for highest-impact operational control, such as system-shutdown keys. | Future                                                                                        |
 
 ## AAL1
 
@@ -37,8 +54,8 @@ Current AAL1 sign-in methods are surface-aware:
 `passcode` means the current sign-in code path implemented by the existing secret-backed models and
 routes.
 
-Email address is not an AAL method by itself. Email functions as AAL1 or AAL2 only when email OTP
-verification succeeds.
+Email address is not an authenticator. Successful Email OTP may establish APP/COM authentication or
+normal step-up, but it does not achieve NIST AAL2.
 
 Telephone is not an AAL method in this product. A telephone number may be used as a personal
 identifier, contact identifier, recovery input, or an entry point that starts an AAL1 sign-in flow,
@@ -80,89 +97,45 @@ The AAL1 availability state follows the same reference-value shape as AAL2 avail
 | transition | behavior                                                                                                                                                                                                                                                                       |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `0 -> 1`   | Allowed only through explicit entry points. For `Client` and `Visitor`, this is normally sign-up or approved recovery bootstrap. For `Operator`, provisioning or another authorized flow must approve the creation, and ordinary self-service operator creation requires AAL2. |
-| `1 -> N`   | Allowed after AAL2 step-up. Specific bootstrap, sign-up, or recovery routes may be explicitly exempted.                                                                                                                                                                        |
-| `N -> 1`   | Allowed after AAL2 step-up, provided at least one AAL1 credential remains after removal.                                                                                                                                                                                       |
+| `1 -> N`   | Allowed after fresh normal step-up. Specific bootstrap, sign-up, or recovery routes may be explicitly exempted.                                                                                                                                                                |
+| `N -> 1`   | Allowed after fresh normal step-up, provided at least one AAL1 credential remains after removal.                                                                                                                                                                               |
 | `1 -> 0`   | Forbidden from ordinary UI and credential-management flows. Allowed only for account deletion, withdrawal, operator-approved recovery, or explicit destructive administrative processes.                                                                                       |
 
-Removing an AAL1 credential is a sensitive operation. The normal removal path requires recent AAL2
-even when the actor will still have one or more AAL1 credentials afterward.
+Removing an AAL1 credential is a sensitive operation. The normal removal path requires recent normal
+step-up even when the actor will still have one or more AAL1 credentials afterward.
 
 Social-login unlink has a narrower no-lockout rule than the general AAL1 inventory. For `app`,
 removing Google or Apple social login must leave at least one verified email OTP, active passkey, or
 active social login provider other than the removed provider. Passcode remains an AAL1 method, but
 it is not counted as the remaining method for Google / Apple unlink.
 
-## AAL2
+## Achieved Assurance And Step-Up
 
-AAL2 is the current step-up boundary. It is used for sensitive signed-in actions and is implemented
-through the step-up authentication mechanism.
+Umaxica step-up completion and NIST achieved AAL are independent facts. A normal protected operation
+may require fresh, scope-bound reauthentication without requiring AAL2. Its requirement can
+independently constrain `step_up_required`, `required_aal`, `phishing_resistant_required`,
+`allowed_methods`, and freshness.
 
-Current default AAL2 methods are surface-aware:
+The current ceremony evidence is recorded as follows:
 
-| surface | default AAL2 methods |
-| ------- | -------------------- |
-| `app`   | passkey, TOTP        |
-| `com`   | passkey              |
-| `org`   | passkey              |
+| method    | completes normal step-up | achieved AAL | phishing-resistant |
+| --------- | ------------------------ | ------------ | ------------------ |
+| Email OTP | APP and COM              | `none`       | no                 |
+| TOTP      | APP                      | `aal1`       | no                 |
+| Passkey   | APP, COM, and ORG        | `aal1`       | yes                |
 
-AAL2 method preference is surface-aware. For `app`, prefer phishing-resistant methods first:
-passkey, then TOTP. Email OTP is not a default AAL2 method. A policy may allow it only through an
-explicit method set with issuer, purpose, audience, and credential-age constraints.
+Email OTP is an explicit Umaxica exception. It can establish APP/COM authentication and complete
+normal step-up, but it is never silently promoted to NIST AAL2. TOTP alone also does not achieve
+AAL2. Passkey assurance is derived from the verified WebAuthn ceremony; the current UV-required
+ceremony records AAL1 and phishing resistance rather than assuming AAL2.
 
-AAL2 is recent, scoped authentication. A fresh sign-in does not automatically satisfy step-up, and
-refreshing an access token returns the session to the default AAL1 context.
+Step-up scope, freshness, purpose, audience, session binding, token binding, method policy, achieved
+AAL, and phishing resistance are checked separately. A signed ceremony result cannot satisfy a
+transaction whose required AAL or phishing-resistance condition exceeds its recorded evidence.
 
-Passcodes, social login, and telephone credentials do not count as AAL2 methods.
-
-Step-up scope is exact. A token satisfies a sensitive action only when `last_step_up_scope` matches
-the action's required scope, `last_step_up_at` is still within the freshness window, the recorded
-method is in the policy-allowed method set, and the recorded session/token binding matches the
-current request. A generic verification event must not satisfy scoped sensitive actions such as
-withdrawal, credential removal, or session revoke-all.
-
-On `app`, social-login linking and unlinking use separate exact scopes. Linking Google or Apple
-requires `social_link`; unlinking Google or Apple requires `social_unlink`. A step-up completed for
-ordinary configuration scopes such as `settings_email` must not authorize social-linking.
-
-Credential registration is not Step-Up satisfaction. Adding a new email, TOTP credential, passkey,
-telephone, or recovery secret may update method availability, but it must not update token Step-Up
-freshness. Sensitive actions must still complete a normal Step-Up challenge after bootstrap.
-
-The action's required AAL, method set, and step-up scope come from authorization policy. The policy
-answers what proof is required for this actor, action, and resource. The step-up gate answers
-whether the current session already has that proof or must be challenged. Controllers may include
-metadata for inventory and CI assertions, but runtime enforcement must not use metadata as a second
-source of truth.
-
-Policies must not perform step-up side effects. They must not redirect, write `session`, write
-cookies, issue challenges, consume step-up tickets, or decode return targets. Those operations
-belong to the step-up gate and return-target primitives.
-
-### AAL2 Availability And Freshness
-
-AAL2 has two separate states:
-
-| owner                                                  | state                                                                 | meaning                                              |
-| ------------------------------------------------------ | --------------------------------------------------------------------- | ---------------------------------------------------- |
-| actor (`Client`, `Visitor`, `Operator`)                | `multi_factor_status_id`                                              | Whether any registered AAL2 credential exists.       |
-| token (`ClientToken`, `VisitorToken`, `OperatorToken`) | `last_step_up_at`, `last_step_up_scope`, method, AAL, session binding | Whether this session recently completed scoped AAL2. |
-
-The actor availability state must stay true when AAL2 credentials are created, removed, revoked, or
-made inactive. Token freshness must remain session-scoped; it must not be stored on the actor,
-because one session completing step-up must not elevate every other session.
-
-### AAL2 Credential Transitions
-
-| transition | behavior                                                                                                                                                    |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `0 -> 1`   | Allowed only through the AAL2 bootstrap flow, such as `/verification/setup` leading to email, passkey, or TOTP registration where that method is supported. |
-| `1 -> N`   | Allowed only after recent AAL2 step-up.                                                                                                                     |
-| `N -> 1`   | Allowed only after recent AAL2 step-up, provided at least one AAL2 credential remains after removal.                                                        |
-| `1 -> 0`   | Forbidden from ordinary UI and credential-management flows. Allowed only through the approved MFA reset flow.                                               |
-
-Removing an AAL2 credential requires AAL2 even when other AAL2 credentials remain. Moving from one
-registered AAL2 credential to zero is MFA reset account recovery, not ordinary credential
-management.
+Credential registration is not step-up satisfaction. Adding a credential may change available
+methods, but it must not update token freshness. The `multi_factor_status_id` materialized state
+means that a normal step-up method is configured; it is not proof of achieved AAL2.
 
 ## Personal And Contact Identifiers
 
@@ -177,19 +150,19 @@ contact identifiers are AAL levels.
 
 Current personal identifiers:
 
-| credential       | personal identifier | contact identifier | AAL relationship                                                                            |
-| ---------------- | ------------------- | ------------------ | ------------------------------------------------------------------------------------------- |
-| email address    | yes                 | yes                | Not AAL by itself. Email OTP success may satisfy app/com AAL1 or AAL2 depending on context. |
-| telephone number | yes                 | yes                | Not AAL1, AAL2, or AAL3. It is an entry point, contact point, or recovery input only.       |
-| Google identity  | yes                 | no                 | Google provider authentication may satisfy AAL1 on supported surfaces.                      |
-| Apple identity   | yes                 | no                 | Apple provider authentication may satisfy AAL1 on app.                                      |
+| credential       | personal identifier | contact identifier | AAL relationship                                                                                                  |
+| ---------------- | ------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| email address    | yes                 | yes                | Not AAL by itself. Email OTP may authenticate or complete APP/COM normal step-up, but does not achieve NIST AAL2. |
+| telephone number | yes                 | yes                | Not AAL1, AAL2, or AAL3. It is an entry point, contact point, or recovery input only.                             |
+| Google identity  | yes                 | no                 | Google provider authentication may satisfy AAL1 on supported surfaces.                                            |
+| Apple identity   | yes                 | no                 | Apple provider authentication may satisfy AAL1 on app.                                                            |
 
 Current contact identifiers:
 
-| credential       | contact identifier | AAL relationship                                                                            |
-| ---------------- | ------------------ | ------------------------------------------------------------------------------------------- |
-| email address    | yes                | Not AAL by itself. Email OTP success may satisfy app/com AAL1 or AAL2 depending on context. |
-| telephone number | yes                | Not AAL1, AAL2, or AAL3. It is an entry point, contact point, or recovery input only.       |
+| credential       | contact identifier | AAL relationship                                                                                                  |
+| ---------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| email address    | yes                | Not AAL by itself. Email OTP may authenticate or complete APP/COM normal step-up, but does not achieve NIST AAL2. |
+| telephone number | yes                | Not AAL1, AAL2, or AAL3. It is an entry point, contact point, or recovery input only.                             |
 
 Ordinary credential-management flows must preserve at least one usable contact identifier after a
 removal. Moving from one contact identifier to zero is forbidden from ordinary UI flows. It is
@@ -197,32 +170,27 @@ allowed only through account deletion, withdrawal, approved recovery, or explici
 administrative processes.
 
 Contact-identifier deletion is sensitive because it changes the account's notification and recovery
-surface. The normal path requires recent AAL2 before deletion, and the deletion guard must evaluate
-the post-removal inventory with the credential excluded.
+surface. The normal path requires recent normal step-up before deletion, and the deletion guard must
+evaluate the post-removal inventory with the credential excluded.
 
-Email deletion may reduce contact identifier count, AAL1 availability, and AAL2 availability at the
-same time. Telephone deletion reduces contact identifier count only; it must not be treated as
-reducing AAL1, AAL2, or AAL3 availability.
+Email deletion may reduce contact identifier count, AAL1 availability, and normal step-up
+availability at the same time. Telephone deletion reduces contact identifier count only; it must not
+be treated as reducing AAL1, AAL2, or AAL3 availability.
 
 Contact-identifier counts are immediate DB-backed inventory values. They are not token/session
 state, and they should not be read from `Actor.authn`.
 
-## Reverse Lookup
+## Authentication And Step-Up Matrix
 
-Use this table when deciding which boundary a method belongs to.
+| surface | sign-up / sign-in                                                                                              | normal step-up                              |
+| ------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| APP     | Email OTP and passkey are allowed; existing social and other primary flows remain governed by their own policy | Passkey, TOTP, Email OTP; passkey preferred |
+| COM     | Email OTP and passkey are allowed                                                                              | Passkey, Email OTP                          |
+| ORG     | Passkey, Secret Credential, Microsoft Entra ID                                                                 | Passkey only                                |
 
-| method              | `app`   | `com`       | `org`       | notes                                                               |
-| ------------------- | ------- | ----------- | ----------- | ------------------------------------------------------------------- |
-| email OTP sign-in   | AAL1    | AAL1        | not current | Primary sign-in on app/com.                                         |
-| email OTP step-up   | AAL2    | AAL2        | not AAL2    | Org email is credential management, not step-up.                    |
-| passkey sign-in     | AAL1    | AAL1        | AAL1        | Sign-in remains AAL1 until explicit step-up.                        |
-| passkey step-up     | AAL2    | AAL2        | AAL2        | Current phishing-resistant AAL2 method.                             |
-| TOTP sign-in        | AAL1    | not current | not current | Current on app; org route/controller/view/test inventory is absent. |
-| TOTP step-up        | AAL2    | not current | not current | Current only on app.                                                |
-| Google social login | AAL1    | not current | not current | Current on app only.                                                |
-| Apple social login  | AAL1    | not current | not current | Current on app only.                                                |
-| passcode            | AAL1    | AAL1        | AAL1        | Primary or fallback sign-in code, not step-up.                      |
-| telephone           | not AAL | not AAL     | not AAL     | Entry point or contact credential only.                             |
+ORG Email OTP is not an authentication or step-up method. COM does not gain a Visitor TOTP lifecycle
+in this change. Surface policy and the signed transaction method set are intersected server-side, so
+a direct request cannot expand the permitted methods.
 
 ## AAL3
 
@@ -241,34 +209,32 @@ behavior.
 
 ## Implementation Notes
 
-- AAL1 inventory answers "can this actor sign in or keep a normal session?"
-- AAL2 inventory answers "can this actor satisfy step-up?"
-- AAL3 inventory should remain empty or unsupported until a future ADR defines the exact behavior.
-- Contact identifier inventory answers "can this account still be reached or recovered through a
-  registered contact point?"
-- Code and docs should avoid adding non-NIST-inspired product levels such as `AAL0` or `AAL4`.
-- Authorization policies should declare the required assurance boundary, method set, and scope for
-  sensitive actions. Controller metadata may exist only as inventory/assertion data.
-- Credential availability must be classified through the shared inventory and maintained by
-  model/service lifecycle code.
+- AAL1 inventory answers whether an actor retains a baseline sign-in method.
+- Normal step-up inventory answers whether an actor retains a method permitted by the surface
+  policy. It is not an AAL2 inventory.
+- `uv_verified_at` records successful use in a UV-required ceremony. A legacy passkey with a NULL
+  value remains selectable so successful UV can establish compatibility, but credential-removal
+  guards do not treat it as the final guaranteed UV-capable fallback.
+- AAL3 remains unsupported until a future ADR defines it.
+- Contact-identifier inventory is independent from authentication assurance.
 
 ## WebAuthn User Verification Policy
 
 Passkey ceremonies resolve their `userVerification` requirement through the closed
-`Webauthn::UvPolicy` registry (`app/values/webauthn/uv_policy.rb`); call sites never pass raw
-policy strings. Server-side enforcement (`verify(..., user_verification: true)` plus explicit
+`Webauthn::UvPolicy` registry (`app/values/webauthn/uv_policy.rb`); call sites never pass raw policy
+strings. Server-side enforcement (`verify(..., user_verification: true)` plus explicit
 `user_verified?` / `user_present?` re-checks) follows the same policy.
 
-| Purpose | Flow | Policy |
-| --- | --- | --- |
-| `registration` | sign-up and settings passkey registration | required |
-| `direct_sign_in` | identifier-first passkey sign-in | required |
-| `mfa_challenge` | passkey as second factor after another factor | required |
-| `ordinary_step_up` | step-up verification for sensitive settings | required |
-| `high_risk_step_up` | reserved for future high-risk operations | required |
+| Purpose             | Flow                                          | Policy   |
+| ------------------- | --------------------------------------------- | -------- |
+| `registration`      | sign-up and settings passkey registration     | required |
+| `direct_sign_in`    | identifier-first passkey sign-in              | required |
+| `mfa_challenge`     | passkey as second factor after another factor | required |
+| `ordinary_step_up`  | step-up verification for sensitive settings   | required |
+| `high_risk_step_up` | reserved for future high-risk operations      | required |
 
-The purposes are deliberately distinct so a future decision can relax exactly one of them
-(e.g. `ordinary_step_up`) without touching the AAL2-aligned sign-in and registration paths;
-any such change requires updating `docs/security/webauthn-security-invariants.md` and
-`adr/passkey-uv-policy.md` first. Only a user-verified, user-present assertion supports the
-AAL2-aligned claim (`Webauthn::AuthenticationContext#aal2_aligned?`).
+The purposes are deliberately distinct so a future decision can relax exactly one of them (e.g.
+`ordinary_step_up`) without changing the UV-required sign-in and registration paths; any such change
+requires updating `docs/security/webauthn-security-invariants.md` and `adr/passkey-uv-policy.md`
+first. Only a user-verified, user-present assertion supports the AAL2-aligned claim
+(`Webauthn::AuthenticationContext#aal2_aligned?`).

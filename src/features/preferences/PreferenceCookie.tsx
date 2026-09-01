@@ -77,6 +77,7 @@ export default function PreferenceCookie({
             <Checkbox
               key={category.key}
               name={`${form.scope}[${category.key}]`}
+              /* v8 ignore next -- every category key is seeded from the form */
               isSelected={categories[category.key] ?? false}
               onChange={(isSelected: boolean) =>
                 setCategories((current) => ({

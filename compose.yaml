@@ -79,12 +79,22 @@ services:
       BRAND_NAME: UMAXICA
       PORT: "3000"
       BINDING: "0.0.0.0"
-      OPEN_TELEMETRY: "false"
+      # `alloy` is no longer profile-gated, so it is always there to receive.
+      # Leaving this "false" would run the whole collection stack while Rails
+      # itself emitted nothing.
+      OPEN_TELEMETRY: "true"
       NODE_ENV: development
-      # --- PostgreSQL credentials (injected from host .env with local defaults) ---
-      POSTGRESQL_USER: "${POSTGRESQL_USER:-root}"
-      POSTGRESQL_PASSWORD_FILE: /run/dev-credentials/postgres-writer
-      POSTGRESQL_DATABASE: "${POSTGRESQL_DATABASE:-db}"
+      # --- PostgreSQL credentials ---
+      # Fixed literals, not generated secrets. This stack is development-only,
+      # every database it serves is disposable, and nothing here is reachable
+      # off the host, so a value the whole team can read from the file it is
+      # written in is worth more than a random one nobody can look up. Keep
+      # these three identical to the `primary` and `replica` values below;
+      # PostgreSQL bakes the password into `primary-data` at initdb time, so a
+      # mismatch locks the stack out of its own volume.
+      POSTGRESQL_USER: root
+      POSTGRESQL_PASSWORD: development
+      POSTGRESQL_DATABASE: db
       # --- Identifier HMAC salts (dev-only fixed values; differ from production) ---
       EMAIL_ADDRESS_HMAC_SALT: "${EMAIL_ADDRESS_HMAC_SALT:-development_email_address_hmac_salt}"
       TELEPHONE_NUMBER_HMAC_SALT: "${TELEPHONE_NUMBER_HMAC_SALT:-development_telephone_number_hmac_salt}"
@@ -156,24 +166,26 @@ services:
       FLIPPER_UI_PASSWORD: "${FLIPPER_UI_PASSWORD:-development_flipper_password}"
       REDIS_NORMAL_URL: "redis://valkey:6379/7"
       # --- Observability ---
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4318"
       # --- Mail ---
       AWS_SES_REGION: ap-northeast-1
-      # --- Local object storage (optional profile) ---
-      # Credentials are read from the `dev-credentials` volume below, matching
-      # the PostgreSQL `*_PASSWORD_FILE` convention. They are mounted
-      # unconditionally even though RustFS itself is profile-gated, so enabling
-      # the profile does not additionally require recreating this container.
-      OBJECT_STORAGE_ENDPOINT: "http://rustfs:9000"
+      # --- Object storage (fakecloud S3) ---
+      OBJECT_STORAGE_ENDPOINT: "http://fakecloud:4566"
       OBJECT_STORAGE_REGION: "us-east-1"
       # Fixed development bucket name, like the endpoint and region above. It is
       # not host-shaped and not a credential, so it belongs in the service
       # contract rather than in the repository-root .env.
       OBJECT_STORAGE_BUCKET: umaxica-local
-      OBJECT_STORAGE_ACCESS_KEY_ID_FILE: /run/dev-credentials/rustfs-access-key
-      OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE: /run/dev-credentials/rustfs-secret-key
+      # fakecloud validates the shape of a SigV4 signature but never the key
+      # material, so these are not secrets and the former Podman-secret machinery
+      # bought nothing. Literal, obviously-fake values are the point: a real AWS
+      # access key appearing here is visible on sight rather than hidden behind a
+      # generated /run/secrets file. Production takes no key from these variables
+      # at all -- it uses the AWS SDK default credential chain and rejects
+      # OBJECT_STORAGE_ENDPOINT outright (lib/object_storage_shrine_configuration.rb).
+      OBJECT_STORAGE_ACCESS_KEY_ID: "test"
+      OBJECT_STORAGE_SECRET_ACCESS_KEY: "test"
       OBJECT_STORAGE_FORCE_PATH_STYLE: "true"
-      # --- Public hosts (browser-visible) ---
       PUBLIC_AUTH_CORPORATE_URL: auth.umaxica.com
       PUBLIC_AUTH_SERVICE_URL: auth.umaxica.app
       PUBLIC_AUTH_STAFF_URL: auth.umaxica.org
@@ -330,10 +342,6 @@ services:
       - type: volume
         source: workspace-podman-storage
         target: "/home/global/.local/share/containers"
-      - type: volume
-        source: dev-credentials
-        target: "/run/dev-credentials"
-        read_only: true
     # Loopback-only host publication. `BINDING: 0.0.0.0` above is the
     # *container-side* listener and must stay: cloudflare-tunnel and the probe
     # containers reach Rails over the `frontend` network, not through the host.
@@ -409,145 +417,77 @@ services:
         aliases:
           - global
     depends_on:
-      dev-credentials:
-        condition: service_completed_successfully
       primary:
         condition: service_healthy
       replica:
         condition: service_started
       valkey:
         condition: service_healthy
-  dev-credentials:
-    # Generates the dev-only service credentials that PostgreSQL, RustFS, and the
-    # Rails container read as `*_FILE` paths. This replaces the former host-side
-    # `bin/setup-dev-secrets` bootstrap: the stack now provisions itself on the
-    # first `up`, so a fresh clone needs no manual step and no Podman Secret
-    # registration. Every consumer mounts the volume read-only.
-    #
-    # Alpine rather than a purpose-built image: `head -c` on /dev/urandom and
-    # busybox `base64` are enough, and the tag is already pulled for `valkey`.
-    image: docker.io/valkey/valkey:8.0-alpine3.22
-    user: root
-    restart: "no"
-    entrypoint:
-      - /bin/sh
-      - -ec
-    command:
-      - |
-        # Each file is written once and then reused, because PostgreSQL bakes the
-        # password into `primary-data` at initdb time; regenerating it on every
-        # `up` would lock the stack out of its own existing volume. Delete the
-        # `dev-credentials` volume (and the data volumes) to rotate.
-        #
-        # `/` `+` `=` are stripped: a `/` inside the RustFS access key corrupts
-        # every SigV4 signature (see the `rustfs` command below), and dropping the
-        # other two keeps all five values shell- and URL-safe.
-        for name in postgres-writer postgres-replication rustfs-access-key rustfs-secret-key rustfs-rpc-secret; do
-          path="/credentials/$${name}"
-          test -s "$${path}" || head -c 48 /dev/urandom | base64 | tr -d '\n/+=' > "$${path}"
-          # World-readable on purpose: postgres (999), rustfs (10001), and the
-          # keep-id-mapped workload user all read the same volume, and these are
-          # locally generated development credentials that never leave the host.
-          chmod 0644 "$${path}"
-        done
-    volumes:
-      - dev-credentials:/credentials
-  rustfs-permissions:
-    image: docker.io/library/alpine:3.24.1
-    profiles:
-      - object-storage
-    user: root
-    read_only: true
-    network_mode: none
-    security_opt:
-      - no-new-privileges:true
-    restart: "no"
-    command:
-      - /bin/sh
-      - -ec
-      - |
-        for directory in /data/rustfs0 /data/rustfs1 /data/rustfs2 /data/rustfs3; do
-          chown 10001:10001 "$${directory}"
-          chmod 0750 "$${directory}"
-        done
-    volumes:
-      - rustfs-data0:/data/rustfs0
-      - rustfs-data1:/data/rustfs1
-      - rustfs-data2:/data/rustfs2
-      - rustfs-data3:/data/rustfs3
-  rustfs:
-    image: docker.io/rustfs/rustfs:1.0.0-beta.10
-    profiles:
-      - object-storage
-    ports:
-      - "127.0.0.1:${RUSTFS_API_HOST_PORT:-9000}:9000"
-      - "127.0.0.1:${RUSTFS_CONSOLE_HOST_PORT:-9001}:9001"
-    depends_on:
-      dev-credentials:
-        condition: service_completed_successfully
-      rustfs-permissions:
-        condition: service_completed_successfully
-    entrypoint:
-      - /bin/sh
-      - -ec
-    command:
-      - |
-        # Credentials arrive on the `dev-credentials` volume rather than through
-        # Compose interpolation, so they never sit in the repository-root .env
-        # next to non-secret settings.
-        for secret in access-key secret-key rpc-secret; do
-          path="/run/dev-credentials/rustfs-$${secret}"
-          test -s "$${path}" || {
-            echo "missing or empty credential: $${path}; the dev-credentials service did not run" >&2
-            exit 1
-          }
-        done
-        RUSTFS_ACCESS_KEY="$$(cat /run/dev-credentials/rustfs-access-key)"
-        RUSTFS_SECRET_KEY="$$(cat /run/dev-credentials/rustfs-secret-key)"
-        RUSTFS_RPC_SECRET="$$(cat /run/dev-credentials/rustfs-rpc-secret)"
-        export RUSTFS_ACCESS_KEY RUSTFS_SECRET_KEY RUSTFS_RPC_SECRET
-        if [ "$${RUSTFS_RPC_SECRET}" = "$${RUSTFS_SECRET_KEY}" ]; then
-          echo "rustfs-rpc-secret must differ from rustfs-secret-key" >&2
-          exit 1
-        fi
-        # SigV4 builds the credential scope as
-        # `<access key>/<date>/<region>/s3/aws4_request`, so a `/` inside the
-        # access key silently corrupts every signature. Reject it here instead
-        # of leaving the operator to debug opaque 403 responses.
-        case "$${RUSTFS_ACCESS_KEY}" in
-          */*)
-            echo "rustfs-access-key must not contain '/'; delete the dev-credentials volume to regenerate it" >&2
-            exit 1
-            ;;
-        esac
-        exec /entrypoint.sh rustfs
+  # Local AWS emulator. This is the project-common AWS compatibility layer for
+  # development: S3 and the MSK control plane are reached here instead of
+  # through a per-service emulator. It is deliberately not profile-gated, so a
+  # plain `up` gives every developer the same AWS surface without extra flags.
+  #
+  # No container socket is mounted. fakecloud can back a provisioned MSK cluster
+  # with a real sibling Kafka broker, but only if it is handed a Docker/Podman
+  # socket, which would grant this container full container-management rights
+  # under the invoking user. Without one it serves the MSK control plane with the
+  # same response shapes, which is what the Terraform resources exercise. Kafka produce/consume
+  # is therefore out of scope; see docs/operations/local-aws-fakecloud.md.
+  fakecloud:
+    # Pinned by digest, not by version: the upstream registry publishes only
+    # `latest`, `main`, and `sha-<commit>` tags, so there is no semver tag to
+    # track. Dependabot's docker ecosystem updates the digest on this form.
+    image: ghcr.io/faiscadev/fakecloud:latest@sha256:48b0a8b3f0ee14d0d71f704954e1d2c6b48b88fab67468dd85beb633b33f7dc9
+    hostname: fakecloud
     environment:
-      RUSTFS_VOLUMES: "/data/rustfs{0...3}"
-      RUSTFS_ADDRESS: "0.0.0.0:9000"
-      RUSTFS_CONSOLE_ADDRESS: "0.0.0.0:9001"
-      RUSTFS_CONSOLE_ENABLE: "true"
-      RUSTFS_REGION: "us-east-1"
-    security_opt:
-      - no-new-privileges:true
-    restart: "no"
+      # Without this fakecloud keeps every bucket and object in memory, so a
+      # restart silently discards local state. Persisting to the named volume
+      # below makes `down` keep state and `down -v` discard it.
+      FAKECLOUD_STORAGE_MODE: persistent
+      FAKECLOUD_DATA_PATH: /var/lib/fakecloud
+      FAKECLOUD_LOG: info
+    volumes:
+      - fakecloud-data:/var/lib/fakecloud
+    networks:
+      - backend
+    # Loopback-only publication so Terraform and the AWS CLI can run from the
+    # host, the same reason the former RustFS service published 9000. fakecloud
+    # is not a datastore, so this does not weaken the never-publish rule in
+    # docs/operations/development-host-port-exposure.md.
+    ports:
+      - "127.0.0.1:${FAKECLOUD_HOST_PORT:-4566}:4566"
+    # Bounded on purpose. Podman applies no backoff to `unless-stopped`, so a
+    # service that exits immediately on a bad configuration is recreated several
+    # times a second until the netns, veth, conmon, and journald churn saturates
+    # a CPU. Three attempts ride out a transient failure and leave a real
+    # misconfiguration stopped and visible.
+    restart: on-failure:3
+    # journald enforces no per-container size cap, and a restart loop writes the same
+    # startup failure thousands of times, so a capped json-file driver is what actually
+    # bounds the disk cost of a bad configuration. Read it with `podman logs`.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # The upstream image is Debian bookworm carrying only ca-certificates,
+    # nftables, kmod, and procps -- it has no curl and no wget, so the health
+    # probe published in fakecloud's own docs cannot run here. bash is
+    # Priority: required in Debian, so /dev/tcp reaches the documented
+    # introspection endpoint with no added package.
     healthcheck:
       test:
         - CMD
-        - curl
-        - -fsS
-        - http://127.0.0.1:9000/health/ready
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/4566 && printf 'GET /_fakecloud/health HTTP/1.0\r\n\r\n' >&3 &&
+          grep -q '"status":"ok"' <&3
       interval: 5s
       timeout: 3s
       retries: 20
-      start_period: 10s
-    volumes:
-      - dev-credentials:/run/dev-credentials:ro
-      - rustfs-data0:/data/rustfs0
-      - rustfs-data1:/data/rustfs1
-      - rustfs-data2:/data/rustfs2
-      - rustfs-data3:/data/rustfs3
-    networks:
-      - backend
+      start_period: 5s
   primary:
     container_name: global-devcontainer-primary
     build:
@@ -565,20 +505,16 @@ services:
       - "-c"
       - hba_file=/etc/postgresql/pg_hba.conf
     environment:
-      POSTGRES_USER: "${POSTGRESQL_USER:-root}"
-      POSTGRES_PASSWORD_FILE: /run/dev-credentials/postgres-writer
-      POSTGRES_DB: "${POSTGRESQL_DATABASE:-db}"
-      POSTGRES_REPLICATION_USER: "${POSTGRESQL_REPLICATION_USER:-replicator}"
-      POSTGRES_REPLICATION_PASSWORD_FILE: /run/dev-credentials/postgres-replication
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: development
+      POSTGRES_DB: db
+      POSTGRES_REPLICATION_USER: replicator
+      POSTGRES_REPLICATION_PASSWORD: replication
       TZ: UTC
       POSTGRES_INITDB_WAL_LEVEL: replica
       POSTGRES_INITDB_MAX_WAL_SENDERS: 10
       POSTGRES_INITDB_MAX_REPLICATION_SLOTS: 10
-    depends_on:
-      dev-credentials:
-        condition: service_completed_successfully
     volumes:
-      - dev-credentials:/run/dev-credentials:ro
       - primary-data:/var/lib/postgresql/data
       # `:z` adds an SELinux shared label so Fedora/RHEL hosts permit container
       # reads. Harmless on non-SELinux hosts (Arch, Ubuntu).
@@ -608,14 +544,13 @@ services:
       # basebackup attempts before the role exists.
       test:
         - CMD-SHELL
-        - export PGPASSWORD="$$(cat "$${POSTGRES_PASSWORD_FILE}")" && pg_isready -U
-          "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 && test "$$(psql -U
-          "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc 'SELECT pg_is_in_recovery()')"
-          = f && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc
-          "SELECT count(*) FROM pg_roles WHERE rolname = '$${POSTGRES_REPLICATION_USER}' AND
-          rolreplication")" = 1 && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h
-          127.0.0.1 -Atqc "SELECT count(*) FROM pg_replication_slots WHERE slot_name =
-          'replication_slot_slave1'")" = 1
+        - export PGPASSWORD="$${POSTGRES_PASSWORD}" && pg_isready -U "$${POSTGRES_USER}" -d
+          "$${POSTGRES_DB}" -h 127.0.0.1 && test "$$(psql -U "$${POSTGRES_USER}" -d
+          "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc 'SELECT pg_is_in_recovery()')" = f && test "$$(psql
+          -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc "SELECT count(*) FROM
+          pg_roles WHERE rolname = '$${POSTGRES_REPLICATION_USER}' AND rolreplication")" = 1 && test
+          "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc "SELECT count(*)
+          FROM pg_replication_slots WHERE slot_name = 'replication_slot_slave1'")" = 1
       interval: 3s
       timeout: 3s
       retries: 40
@@ -627,21 +562,18 @@ services:
       dockerfile: Containerfile
     entrypoint: "/entrypoint.sh"
     environment:
-      POSTGRES_USER: "${POSTGRESQL_USER:-root}"
-      POSTGRES_PASSWORD_FILE: /run/dev-credentials/postgres-writer
-      POSTGRES_DB: "${POSTGRESQL_DATABASE:-db}"
-      POSTGRES_REPLICATION_USER: "${POSTGRESQL_REPLICATION_USER:-replicator}"
-      POSTGRES_REPLICATION_PASSWORD_FILE: /run/dev-credentials/postgres-replication
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: development
+      POSTGRES_DB: db
+      POSTGRES_REPLICATION_USER: replicator
+      POSTGRES_REPLICATION_PASSWORD: replication
       TZ: UTC
     volumes:
-      - dev-credentials:/run/dev-credentials:ro
       - replica-data:/var/lib/postgresql/data
       - "./podman/psql-sub/entrypoint.sh:/entrypoint.sh:ro,z"
       - "./podman/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
       - "./podman/psql-sub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
     depends_on:
-      dev-credentials:
-        condition: service_completed_successfully
       primary:
         condition: service_healthy
     networks:
@@ -668,11 +600,11 @@ services:
       # nest correctly inside "$(...)".
       test:
         - CMD-SHELL
-        - export PGPASSWORD="$$(cat "$${POSTGRES_PASSWORD_FILE}")" && pg_isready -U
-          "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 && test "$$(psql -U
-          "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc 'SELECT pg_is_in_recovery()')"
-          = t && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc
-          "SELECT count(*) > 0 FROM pg_stat_wal_receiver WHERE status = 'streaming'")" = t
+        - export PGPASSWORD="$${POSTGRES_PASSWORD}" && pg_isready -U "$${POSTGRES_USER}" -d
+          "$${POSTGRES_DB}" -h 127.0.0.1 && test "$$(psql -U "$${POSTGRES_USER}" -d
+          "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc 'SELECT pg_is_in_recovery()')" = t && test "$$(psql
+          -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1 -Atqc "SELECT count(*) > 0 FROM
+          pg_stat_wal_receiver WHERE status = 'streaming'")" = t
       interval: 3s
       timeout: 3s
       retries: 30
@@ -707,78 +639,37 @@ services:
       timeout: 2s
       retries: 20
       start_period: 3s
-  kafka:
-    image: docker.io/confluentinc/cp-kafka:7.9.0
-    hostname: kafka
-    # The Confluent entrypoint writes generated configuration under /etc/kafka.
-    # Run it as container root so that directory remains writable through
-    # rootless Podman's host-user UID mapping.
-    user: root
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      # Two listeners only, both bound to the `kafka` container address on the
-      # `backend` network. The former EXTERNAL listener (0.0.0.0:9092,
-      # advertised as localhost:9092) existed solely to serve the host port
-      # publication, and nothing consumes it: the repository has no Kafka
-      # client. Gemfile.lock carries only opentelemetry-instrumentation-*
-      # shims, which instrument a client that is not installed. Removing the
-      # listener keeps 9092 from being reachable from anywhere at all, rather
-      # than leaving an unauthenticated PLAINTEXT broker listening on every
-      # container interface. See
-      # docs/operations/development-host-port-exposure.md.
-      KAFKA_LISTENERS: CONTROLLER://kafka:29093,INTERNAL://kafka:29092
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      CLUSTER_ID: q1Sh-9_ISia_zwGINzRvyQ
-    networks:
-      - backend
-    # Bounded on purpose. Podman applies no backoff to `unless-stopped`, so a service that
-    # exits immediately on a bad configuration is recreated several times a second until
-    # the netns, veth, conmon, and journald churn saturates a CPU. Three attempts ride out
-    # a transient failure and leave a real misconfiguration stopped and visible.
-    restart: on-failure:3
-    # No host port publication, here or in any override: the broker is a
-    # `backend`-network-only service reached as `kafka:29092`.
-    healthcheck:
-      test:
-        - CMD
-        - kafka-broker-api-versions
-        - "--bootstrap-server"
-        - kafka:29092
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
   loki:
     container_name: global-devcontainer-loki
-    image: docker.io/grafana/loki:latest
+    image: docker.io/grafana/loki:3.7.7
     # Rootless podman creates named volumes as the host user. Running these
     # opt-in observability services as container root keeps their data
     # directories writable without changing host ownership.
     user: root
-    profiles:
-      - observability
     command: "-config.file=/etc/loki/local-config.yaml"
     volumes:
       - loki-volume:/tmp/loki
     networks:
       - observability
-    restart: "no"
+    # Runs every session now that the observability group is no longer
+    # profile-gated, so it recovers like the other always-on services. Bounded
+    # because Podman applies no backoff; see compose_restart_policy_test.rb.
+    restart: on-failure:5
+    # journald enforces no per-container size cap, and a restart loop writes the
+    # same startup failure thousands of times, so a capped json-file driver is
+    # what bounds the disk cost of a bad configuration. Read it with
+    # `podman logs`.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
   tempo:
     container_name: global-devcontainer-tempo
     image: docker.io/grafana/tempo:2.10.5
     # See loki: rootless podman named-volume ownership needs the container
     # writer to map back to the host user.
     user: root
-    profiles:
-      - observability
     command:
       - "-config.file=/etc/tempo.yaml"
     # No host port publication. Tempo's 3200/4317/4318/9411 are consumed only
@@ -790,18 +681,31 @@ services:
       - tempo-volume:/var/tempo
     networks:
       - observability
-    restart: "no"
+    # Runs every session now that the observability group is no longer
+    # profile-gated, so it recovers like the other always-on services. Bounded
+    # because Podman applies no backoff; see compose_restart_policy_test.rb.
+    restart: on-failure:5
+    # journald enforces no per-container size cap, and a restart loop writes the
+    # same startup failure thousands of times, so a capped json-file driver is
+    # what bounds the disk cost of a bad configuration. Read it with
+    # `podman logs`.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
   grafana:
     container_name: global-devcontainer-grafana
-    image: docker.io/grafana/grafana:latest
+    image: docker.io/grafana/grafana:13.2.0
     # Grafana writes SQLite migrations under /var/lib/grafana; with rootless
     # podman the named volume can otherwise appear read-only to Grafana's UID.
     user: root
-    profiles:
-      - observability
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      # Development-only, and read from the environment rather than committed as
+      # a literal, per adr/traces-and-metrics-routing-via-alloy.md. Grafana
+      # publishes no host port, so this guards a container-only UI.
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"
       GF_PATHS_PROVISIONING: "/etc/grafana/provisioning"
     volumes:
       - grafana-volume:/var/lib/grafana
@@ -812,31 +716,93 @@ services:
       - loki
       - tempo
       - prometheus
-    restart: "no"
-  otel-collector:
-    image: docker.io/otel/opentelemetry-collector-contrib:latest
-    profiles:
-      - observability
+    # Runs every session now that the observability group is no longer
+    # profile-gated, so it recovers like the other always-on services. Bounded
+    # because Podman applies no backoff; see compose_restart_policy_test.rb.
+    restart: on-failure:5
+    # journald enforces no per-container size cap, and a restart loop writes the
+    # same startup failure thousands of times, so a capped json-file driver is
+    # what bounds the disk cost of a bad configuration. Read it with
+    # `podman logs`.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  # The single observability agent (adr/traces-and-metrics-routing-via-alloy.md).
+  # Alloy is an OpenTelemetry Collector distribution with native Prometheus
+  # pipelines, so it replaces both the former `otel-collector` service and the
+  # Prometheus scrape job that pulled that collector's :8889 endpoint.
+  alloy:
+    container_name: global-devcontainer-alloy
+    image: docker.io/grafana/alloy:v1.19.2
+    # `run` is not the image default; the entrypoint expects the subcommand and
+    # the config path. --storage.path is where Alloy keeps its WAL for
+    # prometheus.remote_write; without it a restart loses buffered metrics.
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
     volumes:
-      - "./podman/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro,z"
+      - "./podman/alloy/config.alloy:/etc/alloy/config.alloy:ro,z"
+      - alloy-volume:/var/lib/alloy/data
     networks:
       - observability
     depends_on:
       - tempo
-    restart: "no"
+      - prometheus
+    # Runs every session now that the observability group is no longer
+    # profile-gated, so it recovers like the other always-on services. Bounded
+    # because Podman applies no backoff; see compose_restart_policy_test.rb.
+    restart: on-failure:5
+    # journald enforces no per-container size cap, and a restart loop writes the
+    # same startup failure thousands of times, so a capped json-file driver is
+    # what bounds the disk cost of a bad configuration. Read it with
+    # `podman logs`.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
   prometheus:
-    image: docker.io/prom/prometheus:latest
+    image: docker.io/prom/prometheus:v3.14.0
     # Prometheus writes its TSDB under /prometheus; keep rootless podman named
-    # volumes writable when the observability profile is explicitly enabled.
+    # volumes writable under rootless podman.
     user: root
-    profiles:
-      - observability
+    # Overriding `command` drops the image's default flags, so the config and
+    # TSDB paths have to be restated here.
+    #
+    # --web.enable-remote-write-receiver is required: Alloy pushes over
+    # remote_write instead of being scraped, and Prometheus rejects those
+    # requests without it.
+    #
+    # Retention is explicit because adr/traces-and-metrics-routing-via-alloy.md
+    # treats an unbounded local volume as a misconfiguration. 24h matches the
+    # Tempo block_retention in podman/tempo/tempo.yaml.
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=24h"
+      - "--web.enable-remote-write-receiver"
     volumes:
       - "./podman/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z"
       - prometheus-volume:/prometheus
     networks:
       - observability
-    restart: "no"
+    # Runs every session now that the observability group is no longer
+    # profile-gated, so it recovers like the other always-on services. Bounded
+    # because Podman applies no backoff; see compose_restart_policy_test.rb.
+    restart: on-failure:5
+    # journald enforces no per-container size cap, and a restart loop writes the
+    # same startup failure thousands of times, so a capped json-file driver is
+    # what bounds the disk cost of a bad configuration. Read it with
+    # `podman logs`.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 networks:
   backend: {}
   frontend: {}
@@ -855,11 +821,12 @@ networks:
   # never create, start, or pull it. See
   # docs/operations/cloudflare-private-origin.md.
 volumes:
-  dev-credentials: {}
+  fakecloud-data: {}
   primary-data: {}
   workspace-podman-storage: {}
   replica-data: {}
   valkey-volume: {}
+  alloy-volume: {}
   loki-volume: {}
   tempo-volume: {}
   grafana-volume: {}
@@ -868,7 +835,3 @@ volumes:
   umaxica-home-share: {}
   umaxica-node-modules: {}
   umaxica-bundle: {}
-  rustfs-data0: {}
-  rustfs-data1: {}
-  rustfs-data2: {}
-  rustfs-data3: {}

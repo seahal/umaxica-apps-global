@@ -631,6 +631,9 @@ ja:
     attributes:
       agent_assignment:
         assigned_at: 割当日時
+      app_enforcement_appeal:
+        reason_code: 申し立て理由
+        statement: 申し立て内容
       avatar_block:
         blocked_avatar_id: ブロック対象Avatar
         blocker_avatar_id: ブロッカーAvatar
@@ -666,12 +669,18 @@ ja:
         otp_private_key: OTP秘密鍵
       client_telephone_ceremony_transaction:
         result_jti: 結果JTI
+      com_enforcement_appeal:
+        reason_code: 申し立て理由
+        statement: 申し立て内容
       individual_assignment:
         assigned_at: 割当日時
       operator_identity:
         source_record_id: ソースレコードID
       operator_step_up_session:
         staff_token_id: スタッフトークンID
+      org_enforcement_appeal:
+        reason_code: 申し立て理由
+        statement: 申し立て内容
       persona_assignment:
         assigned_at: 割当日時
       staff_email:
@@ -1063,7 +1072,9 @@ ja:
     app:
       identity:
         credential_warning:
-          body: 別のサインイン方法を追加すると、Apple サインインを利用できないときもアカウントにアクセスできます。
+          body:
+            別のサインイン方法を追加すると、Apple
+            サインインを利用できないときもアカウントにアクセスできます。
           google: Google と連携する
           heading: 別のサインイン方法を追加
           passkey: パスキーを追加
@@ -4388,6 +4399,10 @@ ja:
         withdrawal_required: 退会処理が完了していません。
     unknown_authenticator: 不明な認証器
     withdrawal:
+      errors:
+        deletion_failed: 退会処理を完了できませんでした。時間をおいて再度お試しください。
+        invalid_state: 現在の状態（%{current_status}）では退会手続きを続行できません。
+        recovery_not_available: このアカウントは復元できません。
       test: テスト
   support:
     array:

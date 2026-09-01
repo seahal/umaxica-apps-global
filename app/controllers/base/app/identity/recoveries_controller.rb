@@ -30,7 +30,10 @@ module Base
           return if current_recovery_ceremony
 
           clear_recovery_ceremony_cookie!
-          safe_redirect_to(new_base_app_identity_recovery_session_path, fallback: auth_app_sign_in_path, status: :see_other)
+          safe_redirect_to(
+            new_base_app_identity_recovery_session_path, fallback: auth_app_sign_in_path,
+                                                         status: :see_other,
+          )
         end
       end
     end

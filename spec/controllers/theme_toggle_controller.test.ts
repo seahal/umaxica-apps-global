@@ -66,6 +66,16 @@ describe("ThemeToggleController", () => {
       expect(fetchMock).toHaveBeenCalled();
     });
 
+    it("does nothing when the event is not from an element", async () => {
+      const fetchMock = vi.fn<typeof fetch>();
+      vi.stubGlobal("fetch", fetchMock);
+      const { controller } = await mount();
+
+      controller.toggle(new Event("click"));
+
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     it("does nothing when the visitor presses the theme already in force", async () => {
       const fetchMock = vi.fn<typeof fetch>();
       vi.stubGlobal("fetch", fetchMock);

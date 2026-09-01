@@ -30,7 +30,8 @@ class Base::App::BillingsControllerTest < ActionDispatch::IntegrationTest
     get base_app_billings_url(ri: "jp"), headers: {
       "Authorization" => "Bearer #{access_token}",
       "Client-Agent" => "Mozilla/5.0",
-      "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+                      "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       "X-TEST-CURRENT-USER" => @client.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @client_token.public_id,
     }

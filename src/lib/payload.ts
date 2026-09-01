@@ -19,6 +19,15 @@ export function readString(payload: unknown, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+// A payload key that is present but empty carries no more information than a missing one -
+// an empty redirect target or error message is not something a caller can use. Collapsing
+// both to undefined lets callers reach for `??` and say so, instead of leaning on `||`
+// falsiness and hiding the intent.
+export function readNonEmptyString(payload: unknown, key: string): string | undefined {
+  const value = readString(payload, key);
+  return value === undefined || value.length === 0 ? undefined : value;
+}
+
 export function readNumber(payload: unknown, key: string): number | undefined {
   const value = propertyOf(payload, key);
   return typeof value === "number" ? value : undefined;

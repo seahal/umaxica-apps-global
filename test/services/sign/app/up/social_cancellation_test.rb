@@ -62,7 +62,10 @@ class SignAppUpSocialCancellationTest < ActiveSupport::TestCase
   test "does not remove a social identity outside the current cycle actor" do
     pending_user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
     other_user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-    identity = create_active_external_identity(client: other_user, provider: "google", subject: "keep-other-cycle-google")
+    identity = create_active_external_identity(
+      client: other_user, provider: "google",
+      subject: "keep-other-cycle-google",
+    )
     cycle = social_cycle(pending_user, identity, provider: "google")
 
     result = SignAppUpSocialCancellation.call(cycle: cycle)

@@ -6,16 +6,41 @@
 // would offer a ceremony the request phase refuses.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import OrgSignInEntry from "@/pages/auth/org/sign/ins/show";
-import OrgSignUpEntry from "@/pages/auth/org/sign/ups/show";
+import type { TurnstileApi } from "@/lib/turnstile";
 import OrgEntraSettingsEdit from "@/pages/auth/org/settings/entras/edit";
 import OrgEntraSettingsShow from "@/pages/auth/org/settings/entras/show";
+import OrgPasskeySettingsEdit from "@/pages/auth/org/settings/passkeys/edit";
+import OrgPasskeySettingsNew from "@/pages/auth/org/settings/passkeys/new";
+import OrgMfaPasskeyPage from "@/pages/auth/org/sign/in/challenge/passkeys/new";
+import OrgPasskeySignInPage from "@/pages/auth/org/sign/in/passkeys/new";
+import OrgSecretSignInPage from "@/pages/auth/org/sign/in/secrets/new";
+import OrgSignInEntry from "@/pages/auth/org/sign/ins/show";
+import OrgInvitationPage from "@/pages/auth/org/sign/up/invitations/new";
+import OrgSignUpEntry from "@/pages/auth/org/sign/ups/show";
 import OrgEntraSessionEntry from "@/pages/auth/org/social/sessions/new";
-import OrgVerificationEntry from "@/pages/auth/org/verifications/show";
+import OrgVerificationPasskeyPage from "@/pages/auth/org/verification/passkeys/new";
 import OrgVerificationSetup from "@/pages/auth/org/verification/setups/new";
-import type { TurnstileApi } from "@/lib/turnstile";
+import OrgVerificationEntry from "@/pages/auth/org/verifications/show";
 
 import { mount } from "../../../support/react";
+
+vi.mock("@/features/auth/passkeys/PasskeyAuthenticationPanel", () => ({
+  default: ({ submit_label: submitLabel }: { submit_label: string }) => (
+    <button type="button">{submitLabel}</button>
+  ),
+}));
+
+vi.mock("@/features/auth/passkeys/PasskeyRegistrationPanel", () => ({
+  default: ({ submit_label: submitLabel }: { submit_label: string }) => (
+    <button type="button">{submitLabel}</button>
+  ),
+}));
+
+vi.mock("@/features/auth/passkeys/StepUpPasskeyForm", () => ({
+  default: ({ submit_label: submitLabel }: { submit_label: string }) => (
+    <button type="button">{submitLabel}</button>
+  ),
+}));
 
 const BACK = { label: "戻る", href: "/org" };
 
@@ -99,9 +124,7 @@ describe("OrgSignInEntry", () => {
       screen.container.querySelector<HTMLInputElement>('input[name="authenticity_token"]')?.value,
     ).toBe("csrf-value");
     expect(
-      screen.container.querySelector<HTMLInputElement>(
-        ".social-provider-button--entra",
-      )?.value,
+      screen.container.querySelector<HTMLInputElement>(".social-provider-button--entra")?.value,
     ).toBe("Entra ID でログイン");
     expect(screen.container.querySelector('a[href="/org/secret"]')?.textContent).toContain(
       "パスワードでログイン",
@@ -282,5 +305,259 @@ describe("OrgVerificationSetup", () => {
     );
 
     expect(screen.text("h1")).toBe("確認方法の設定");
+  });
+});
+
+const turnstile = {
+  site_key: "site-key",
+  mode: "render" as const,
+  action: null,
+  cdata: null,
+};
+
+describe("OrgSecretSignInPage", () => {
+  it("posts identifier and secret with the CSRF token", () => {
+    const screen = mount(
+      <OrgSecretSignInPage
+        title="パスワードでログイン"
+        form_action="/org/sign/in/secret"
+        hidden_fields={{ pt: "pending", ri: "jp" }}
+        errors_title="入力を確認してください"
+        errors={["認証に失敗しました"]}
+        identifier={{
+          name: "staff_secret_credential_login_form[identifier]",
+          label: "ID",
+          placeholder: "OP-1",
+          min_length: 3,
+          max_length: 32,
+          pattern: "[A-Z0-9-]+",
+        }}
+        secret={{
+          name: "staff_secret_credential_login_form[secret_credential_value]",
+          label: "パスワード",
+          placeholder: "••••",
+        }}
+        submit_label="送信する"
+        back_link={BACK}
+        turnstile={turnstile}
+      />,
+    );
+
+    expect(screen.container.querySelector("form")?.getAttribute("action")).toBe(
+      "/org/sign/in/secret",
+    );
+    expect(
+      screen.container.querySelector<HTMLInputElement>('input[name="authenticity_token"]')?.value,
+    ).toBe("csrf-value");
+    expect(screen.container.querySelector('input[name="pt"]')?.getAttribute("value")).toBe(
+      "pending",
+    );
+    expect(screen.container.textContent).toContain("認証に失敗しました");
+  });
+
+  it("omits the pending-token field when the server sent none", () => {
+    const screen = mount(
+      <OrgSecretSignInPage
+        title="パスワードでログイン"
+        form_action="/org/sign/in/secret"
+        hidden_fields={{ pt: null, ri: "jp" }}
+        errors_title="入力を確認してください"
+        errors={[]}
+        identifier={{
+          name: "staff_secret_credential_login_form[identifier]",
+          label: "ID",
+          placeholder: "OP-1",
+          min_length: 3,
+          max_length: 32,
+          pattern: "[A-Z0-9-]+",
+        }}
+        secret={{
+          name: "staff_secret_credential_login_form[secret_credential_value]",
+          label: "パスワード",
+          placeholder: "••••",
+        }}
+        submit_label="送信する"
+        back_link={BACK}
+        turnstile={turnstile}
+      />,
+    );
+
+    expect(screen.container.querySelector('input[name="pt"]')).toBeNull();
+  });
+});
+
+describe("OrgInvitationPage", () => {
+  it("posts the invitation code", () => {
+    const screen = mount(
+      <OrgInvitationPage
+        title="招待コード"
+        description="コードを入力してください"
+        form_error="無効なコードです"
+        form_action="/org/sign/up/invitation"
+        invitation_code_label="招待コード"
+        invitation_code=""
+        submit_label="送信する"
+        back_link={BACK}
+        turnstile={turnstile}
+      />,
+    );
+
+    expect(screen.container.querySelector("form")?.getAttribute("action")).toBe(
+      "/org/sign/up/invitation",
+    );
+    expect(screen.container.textContent).toContain("無効なコードです");
+  });
+
+  it("renders the invitation form with no inline error", () => {
+    const screen = mount(
+      <OrgInvitationPage
+        title="招待コード"
+        description="コードを入力してください"
+        form_error={null}
+        form_action="/org/sign/up/invitation"
+        invitation_code_label="招待コード"
+        invitation_code=""
+        submit_label="送信する"
+        back_link={BACK}
+        turnstile={turnstile}
+      />,
+    );
+
+    expect(screen.container.querySelector("form")?.getAttribute("action")).toBe(
+      "/org/sign/up/invitation",
+    );
+  });
+});
+
+describe("Org passkey ceremony pages", () => {
+  const panel = {
+    options_url: "/org/in/passkeys/options",
+    verification_url: "/org/in/passkeys/verification",
+    region: "jp",
+    identifier_param: "public_id",
+    turnstile_site_key: "site-key",
+    turnstile_error_message: "検証に失敗しました",
+    field: {
+      label: "ID",
+      placeholder: "OP-1",
+      min_length: 3,
+      max_length: 32,
+      pattern: "[A-Z0-9-]+",
+    },
+    submit_label: "パスキーでログイン",
+  };
+
+  it("renders operator passkey sign-in", () => {
+    const screen = mount(
+      <OrgPasskeySignInPage
+        title="パスキー"
+        description="登録済みのパスキー"
+        panel={panel}
+        back_link={BACK}
+      />,
+    );
+
+    expect(screen.container.textContent).toContain("パスキーでログイン");
+  });
+
+  it("renders the second-factor passkey form", () => {
+    const screen = mount(
+      <OrgMfaPasskeyPage
+        title="パスキーで確認"
+        description="登録済みのパスキー"
+        form={{
+          action: "/org/sign/in/challenge/passkey",
+          param_scope: "mfa_passkey_form",
+          challenge_id: "challenge-1",
+          request_options: { challenge: "abc" },
+          submit_label: "認証する",
+        }}
+        back_link={BACK}
+      />,
+    );
+
+    expect(screen.container.textContent).toContain("認証する");
+  });
+
+  it("renders passkey registration", () => {
+    const screen = mount(
+      <OrgPasskeySettingsNew
+        title="パスキー登録"
+        description="新しいパスキー"
+        registration={{
+          options_url: "/org/settings/passkeys",
+          verification_url: "/org/settings/passkeys",
+          description_label: "名前",
+          description_placeholder: "MacBook",
+          submit_label: "登録する",
+          turnstile_site_key: "site-key",
+          turnstile_error_message: "検証に失敗しました",
+        }}
+        cancel_link={BACK}
+      />,
+    );
+
+    expect(screen.container.textContent).toContain("登録する");
+  });
+
+  it("renders passkey rename", () => {
+    const screen = mount(
+      <OrgPasskeySettingsEdit
+        title="パスキーの名前"
+        form_action="/org/settings/passkeys/pk_1"
+        description_label="名前"
+        description_value="MacBook"
+        submit_label="更新"
+        cancel_link={BACK}
+        errors_title="入力を確認してください"
+        errors={[]}
+        turnstile={turnstile}
+      />,
+    );
+
+    expect(screen.container.querySelector("form")?.getAttribute("action")).toBe(
+      "/org/settings/passkeys/pk_1",
+    );
+  });
+
+  it("renders the verification passkey challenge", () => {
+    const screen = mount(
+      <OrgVerificationPasskeyPage
+        title="パスキーで確認"
+        description="登録済みのパスキー"
+        errors_sentence="失敗しました"
+        form={{
+          action: "/org/verification/passkey",
+          param_scope: "verification",
+          challenge_id: "challenge-1",
+          request_options: { challenge: "abc" },
+          submit_label: "認証する",
+        }}
+        back_link={BACK}
+      />,
+    );
+
+    expect(screen.container.textContent).toContain("失敗しました");
+    expect(screen.container.textContent).toContain("認証する");
+  });
+
+  it("renders the verification passkey challenge with no inline error", () => {
+    const screen = mount(
+      <OrgVerificationPasskeyPage
+        title="パスキーで確認"
+        description="登録済みのパスキー"
+        errors_sentence={null}
+        form={{
+          action: "/org/verification/passkey",
+          param_scope: "verification",
+          challenge_id: "challenge-1",
+          request_options: { challenge: "abc" },
+          submit_label: "認証する",
+        }}
+        back_link={BACK}
+      />,
+    );
+
+    expect(screen.container.textContent).toContain("認証する");
   });
 });

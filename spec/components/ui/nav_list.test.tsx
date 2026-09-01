@@ -20,6 +20,7 @@ describe("NavList", () => {
   it("renders one list item per entry", () => {
     render(
       <NavList
+        label="Methods"
         items={[
           { label: "Passkey", href: "/passkeys/new" },
           { label: "Authenticator app", href: "/totps/new" },
@@ -27,6 +28,7 @@ describe("NavList", () => {
       />,
     );
 
+    expect(screen.getByRole("list", { name: "Methods" })).toBeTruthy();
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByRole("link", { name: "Passkey" }).getAttribute("href")).toBe(
       "/passkeys/new",

@@ -68,17 +68,36 @@ module ParallelTestDatabaseCloner
     admin_connection.exec("select pg_advisory_lock(hashtext('umaxica_parallel_test_database_cloner'))")
 
     stamped_sha = clone_sha_by_database(admin_connection)
+    raise_if_missing_base_databases!(base_configs, stamped_sha)
+    clone_replica_databases!(
+      configs: configs,
+      base_configs_by_name: base_configs_by_name,
+      first_config: first_config,
+      schema_sha_by_database: schema_sha_by_database,
+      stamped_sha: stamped_sha,
+    )
+    clone_worker_databases!(
+      databases: databases,
+      workers: workers,
+      first_config: first_config,
+      schema_sha_by_database: schema_sha_by_database,
+      stamped_sha: stamped_sha,
+    )
+  ensure
+    admin_connection&.exec("select pg_advisory_unlock(hashtext('umaxica_parallel_test_database_cloner'))")
+    admin_connection&.close
+  end
 
+  def raise_if_missing_base_databases!(base_configs, stamped_sha)
     missing_base = base_configs.map(&:database).reject { |database| stamped_sha.key?(database) }
     # rubocop:disable I18n/RailsI18n/DecorateString
     raise RuntimeError,
           "Missing base test DBs: #{missing_base.join(", ")}. " \
           "Run RAILS_ENV=test bin/rails db:test:prepare." unless missing_base.empty?
     # rubocop:enable I18n/RailsI18n/DecorateString
+  end
 
-    # Replica base DBs are themselves template clones of their writer DB and in
-    # turn serve as templates for their own worker clones, so they must be
-    # current before the worker-clone pass.
+  def clone_replica_databases!(configs:, base_configs_by_name:, first_config:, schema_sha_by_database:, stamped_sha:)
     replica_tasks =
       configs.select(&:replica?).filter_map do |replica_config|
         base_config = base_configs_by_name.fetch(replica_config.name.delete_suffix("_replica"))
@@ -91,7 +110,9 @@ module ParallelTestDatabaseCloner
       end
     run_clone_tasks(first_config, replica_tasks)
     replica_tasks.each { |task| stamped_sha[task.fetch(:clone)] = task.fetch(:sha) }
+  end
 
+  def clone_worker_databases!(databases:, workers:, first_config:, schema_sha_by_database:, stamped_sha:)
     worker_tasks =
       databases.flat_map do |database|
         workers.times.filter_map do |worker|
@@ -104,9 +125,6 @@ module ParallelTestDatabaseCloner
         end
       end
     run_clone_tasks(first_config, worker_tasks)
-  ensure
-    admin_connection&.exec("select pg_advisory_unlock(hashtext('umaxica_parallel_test_database_cloner'))")
-    admin_connection&.close
   end
 
   # One catalog query yields existence + stamped schema sha for every database.

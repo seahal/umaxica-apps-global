@@ -18,6 +18,7 @@ vi.mock("@inertiajs/react", () => ({
   ),
 }));
 
+const { default: Card } = await import("@/components/ui/Card");
 const { default: Page } = await import("@/components/ui/Page");
 
 describe("Page", () => {
@@ -106,5 +107,29 @@ describe("Page", () => {
     const header = screen.getByRole("banner");
     expect(within(header).getByRole("heading", { level: 1, name: "Passkeys" })).toBeTruthy();
     expect(within(header).getByRole("button", { name: "Add" })).toBeTruthy();
+  });
+
+  it("renders the up link without a title", () => {
+    render(
+      <Page up={{ label: "Settings", href: "/settings" }}>
+        <p>body</p>
+      </Page>,
+    );
+
+    expect(screen.getByRole("link", { name: "Settings" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
+  });
+});
+
+describe("Card", () => {
+  it("renders actions without a heading", () => {
+    render(
+      <Card actions={<button type="button">Edit</button>}>
+        <p>body</p>
+      </Card>,
+    );
+
+    expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { level: 2 })).toBeNull();
   });
 });

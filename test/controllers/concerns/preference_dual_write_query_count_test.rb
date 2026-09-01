@@ -71,7 +71,8 @@ class PreferenceDualWriteQueryCountTest < ActiveSupport::TestCase
       capture_sql do
         ctx.send(
           :update_preference_child_dual_write!, child,
-          { option_id: AppPreferenceLanguageOption::EN }, option_type: :language, audit_event: "PREFERENCE_LANGUAGE_UPDATED",
+          { option_id: AppPreferenceLanguageOption::EN }, option_type: :language,
+                                                          audit_event: "PREFERENCE_LANGUAGE_UPDATED",
         )
       end
 

@@ -255,7 +255,8 @@ module Auth
 
           def process_standard_login(user)
             result = AuthenticationSessionCommitter.call(
-              controller: self, resource: user, pt: nil, ri: current_region_identifier, auth_method: "secret_credential",
+              controller: self, resource: user, pt: nil, ri: current_region_identifier,
+              auth_method: "secret_credential",
             )
             sign_in_result = sign_in_result_from_session_result(result, actor: user)
             if sign_in_result.mfa_required? || sign_in_result.session_limit_pending?

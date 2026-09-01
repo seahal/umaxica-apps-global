@@ -25,7 +25,7 @@ class << ConfigValues::JumpGatewayValues
       rescue KeyError
         "#{origin}/.well-known/jwks.json"
       end
-    ttl_seconds = env.fetch("JUMP_RT_TTL_SECONDS", 5.minutes.to_i).to_i
+    ttl_seconds = Integer(env.fetch("JUMP_RT_TTL_SECONDS", 5.minutes.to_i.to_s), 10)
     audience = env.fetch("PUBLIC_JUMP_GATEWAY_AUDIENCE", nil) || env.fetch("JUMP_GATEWAY_AUDIENCE", nil) || origin.to_s
     revoked_kids =
       env.fetch("JUMP_RETURN_REVOKED_KIDS", "").to_s.split(",").each_with_object([]) do |kid, memo|

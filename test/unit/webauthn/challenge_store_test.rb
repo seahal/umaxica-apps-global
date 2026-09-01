@@ -86,7 +86,10 @@ module Webauthn
     end
 
     test "anonymous challenges bind to a nil actor and reject actor spoofing" do
-      id = @store.issue!(challenge: "raw-challenge", purpose: :authentication, **APP_BINDING.merge(actor_global_key: nil))
+      id = @store.issue!(
+        challenge: "raw-challenge", purpose: :authentication,
+        **APP_BINDING.merge(actor_global_key: nil),
+      )
 
       assert_raises(Webauthn::ChallengeStore::ChallengeBindingMismatchError) do
         @store.consume!(id, purpose: :authentication, **APP_BINDING)

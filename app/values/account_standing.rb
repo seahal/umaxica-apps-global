@@ -12,7 +12,11 @@ class AccountStanding
 
   def self.from_cases(cases)
     visible_cases = Array(cases).select { |enforcement_case| visible_in_force?(enforcement_case) }
-    new(level: derive_level(visible_cases), decisions: visible_cases.map { |enforcement_case| decision_for(enforcement_case) })
+    new(
+      level: derive_level(visible_cases), decisions: visible_cases.map { |enforcement_case|
+        decision_for(enforcement_case)
+      },
+    )
   end
 
   def initialize(level:, decisions:)

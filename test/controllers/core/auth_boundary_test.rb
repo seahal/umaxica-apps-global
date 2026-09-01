@@ -81,7 +81,8 @@ class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
         "http://#{host}/sign/out", params: { ri: "jp" },
                                    headers: bearer_headers(
                                      AuthenticationToken.encode(
-                                       user, host: host, session_public_id: token.public_id, resource_type: resource_type,
+                                       user, host: host, session_public_id: token.public_id,
+                                             resource_type: resource_type,
                                              jwt_issuer_id: surface.fetch(:jwt_issuer_id),
                                      ),
                                    ),

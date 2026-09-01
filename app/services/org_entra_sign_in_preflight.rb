@@ -95,7 +95,8 @@ class OrgEntraSignInPreflight < ApplicationService
     Check.new(
       name: "issuer",
       ok: advertised == expected,
-      detail: (advertised == expected) ? "the tenant answers on the issuer the verifier requires" : "the tenant answers on a different issuer; check OMNI_AUTH_ENTRA_ORG_TENANT_ID",
+      detail: (advertised == expected) ? "the tenant answers on the issuer the verifier " \
+        "requires" : "the tenant answers on a different issuer; check OMNI_AUTH_ENTRA_ORG_TENANT_ID",
     )
   rescue StandardError => e
     Check.new(name: "issuer", ok: false, detail: "could not reach the tenant: #{e.class}")
@@ -107,7 +108,8 @@ class OrgEntraSignInPreflight < ApplicationService
     Check.new(
       name: "provisioning",
       ok: active.positive?,
-      detail: active.positive? ? "#{active} of #{total} identities are active" : "no active identity; nobody can sign in yet",
+      detail: active.positive? ? "#{active} of #{total} identities are " \
+        "active" : "no active identity; nobody can sign in yet",
     )
   end
 

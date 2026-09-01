@@ -2,8 +2,8 @@
 
 set -e
 
-POSTGRES_PASSWORD="$(<"${POSTGRES_PASSWORD_FILE:?POSTGRES_PASSWORD_FILE is required}")"
-POSTGRES_REPLICATION_PASSWORD="$(<"${POSTGRES_REPLICATION_PASSWORD_FILE:?POSTGRES_REPLICATION_PASSWORD_FILE is required}")"
+: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
+: "${POSTGRES_REPLICATION_PASSWORD:?POSTGRES_REPLICATION_PASSWORD is required}"
 
 # A data directory without standby.signal means a previous run fell through to
 # a standalone initdb (or the basebackup was interrupted). Serving that copy

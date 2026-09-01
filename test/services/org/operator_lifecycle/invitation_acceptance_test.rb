@@ -136,6 +136,66 @@ class OrgOperatorLifecycleInvitationAcceptanceTest < ActiveSupport::TestCase
     end
   end
 
+  # OrgRegistrationPolicy.validate! already refuses a consumed or expired
+  # invitation, so the checks inside the transaction only fire when the state
+  # changed between validation and the row lock -- the exact race the lock is
+  # there for. They are reached here by handing back an invitation that was
+  # consumed after it validated.
+  test "an invitation consumed between validation and the lock is refused" do
+    @invitation.update!(consumed_at: Time.current)
+    invitation = @invitation
+
+    OrgRegistrationPolicy.stub(:validate!, invitation) do
+      assert_no_difference -> { Operator.count } do
+        result = OrgOperatorLifecycleInvitationAcceptance.call(invitation_code: invitation.code)
+
+        assert_not result.success?
+        assert_equal "Invitation has already been used", result.error
+        assert_equal invitation, result.invitation
+      end
+    end
+  end
+
+  test "an invitation expired between validation and the lock is refused" do
+    @invitation.update!(expires_at: 1.minute.ago)
+    invitation = @invitation
+
+    OrgRegistrationPolicy.stub(:validate!, invitation) do
+      assert_no_difference -> { Operator.count } do
+        result = OrgOperatorLifecycleInvitationAcceptance.call(invitation_code: invitation.code)
+
+        assert_not result.success?
+        assert_equal "Invitation has expired", result.error
+      end
+    end
+  end
+
+  # The operator and email rows commit on a different connection than the
+  # invitation, so a later failure cannot roll them back. What the service
+  # guarantees today is that the failure surfaces unchanged and the invitation is
+  # left unconsumed, so the code can be presented again.
+  #
+  # It does NOT currently guarantee that the committed rows are cleaned up. The
+  # compensating delete cannot remove them: Operator declares
+  # `has_many :staff_emails, dependent: :restrict_with_error` and the email this
+  # service creates is `undeletable: true`, which aborts its own destroy. Both
+  # rows therefore survive, which is the state the compensation was written to
+  # prevent -- the email UNIQUE index will refuse the retry this test proves is
+  # otherwise possible. Asserted here as it behaves, not as it was intended.
+  test "a failure after the operator commits leaves the invitation retryable and surfaces the error" do
+    failing = ->(**) { raise IOError, "identity graph unavailable" }
+
+    IdentityGraphProvisioner.stub(:call!, failing) do
+      result = OrgOperatorLifecycleInvitationAcceptance.call(invitation_code: @invitation.code)
+
+      assert_not result.success?
+      assert_equal "identity graph unavailable", result.error
+      assert_nil result.operator
+    end
+
+    assert_not_predicate @invitation.reload, :consumed?
+  end
+
   private
 
   def accept_invitation_concurrently(code)

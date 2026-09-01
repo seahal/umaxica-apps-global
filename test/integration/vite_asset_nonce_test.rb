@@ -21,7 +21,13 @@ class ViteAssetNonceTest < ActionDispatch::IntegrationTest
   end
 
   test "every Vite asset tag on an Inertia page carries the response nonce" do
-    get(base_app_groups_url(ri: "jp", host: @host), headers: as_user_headers(@user, host: @host))
+    # vite_rails emits dev-server URLs and no preload links whenever it can reach a running
+    # Vite dev server, so with one up on the test port this test silently stops exercising
+    # the built-asset path it exists to guard. Pin the probe rather than let an unrelated
+    # process running on the machine decide what is verified.
+    ViteRuby.instance.stub(:dev_server_running?, false) do
+      get(base_app_groups_url(ri: "jp", host: @host), headers: as_user_headers(@user, host: @host))
+    end
 
     assert_response :success
 

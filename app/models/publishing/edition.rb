@@ -31,7 +31,8 @@ module Publishing
     SURFACES = %w(info docs news help).freeze
 
     has_many :entries, class_name: "Publishing::Entry", inverse_of: :edition, dependent: :restrict_with_exception
-    has_many :entry_slugs, class_name: "Publishing::EntrySlug", inverse_of: :edition, dependent: :restrict_with_exception
+    has_many :entry_slugs, class_name: "Publishing::EntrySlug", inverse_of: :edition,
+                           dependent: :restrict_with_exception
 
     validates :audience, inclusion: { in: AUDIENCES }
     validates :surface, inclusion: { in: SURFACES }

@@ -196,7 +196,8 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
     assert_nil client.reload.terminated_at
   end
 
-  test "purge excludes an operator blocked by an in-force withdrawal_purge_blocked Principal Effect from the batch delete" do
+  test "purge excludes an operator blocked by an in-force withdrawal_purge_blocked Principal Effect from the " \
+       "batch delete" do
     blocked_operator = Operator.create!
     applying_operator = operators(:one)
     blocked_operator.update_columns(discarded_at: 1.hour.ago, purged_at: 1.hour.ago)

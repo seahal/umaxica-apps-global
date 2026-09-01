@@ -11,7 +11,7 @@ module Base
         declare_authentication_mode! :private
 
         before_action :authenticate_operator!
-        before_action :authorize_activity_log!, only: %i(index show)
+        before_action :authorize_activity_log!, only: %i(index)
 
         def index
           @activities = activity_log.activities.limit(100)
@@ -19,10 +19,6 @@ module Base
         rescue ActiveRecord::ActiveRecordError
           @activities = OperatorChronicle.none
           render inertia: "base/org/identity/activities/index", props: index_page_props
-        end
-
-        def show
-          index
         end
 
         private

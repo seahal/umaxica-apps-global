@@ -18,6 +18,9 @@ class AppEnforcementPrincipalEffect < AppPrincipalRecord
   def kind_permits_principal_effect
     return unless enforcement_case
 
-    errors.add(:base, "method_protection Cases may not carry a Principal Effect") if enforcement_case.kind == "method_protection"
+    errors.add(
+      :base,
+      "method_protection Cases may not carry a Principal Effect",
+    ) if enforcement_case.kind == "method_protection"
   end
 end

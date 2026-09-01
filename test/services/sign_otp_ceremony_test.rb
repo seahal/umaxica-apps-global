@@ -64,6 +64,43 @@ class SignOtpCeremonyTest < ActiveSupport::TestCase
     end
   end
 
+  test "verify! refuses a code aimed at a destination the ticket is not bound to" do
+    email = create_verified_client_email("sign-otp-mismatch@example.test")
+    flow = create_email_flow(pending_contact_id: email.id)
+    adapter = Object.new
+    adapter.define_singleton_method(:deliver) { |**| nil }
+
+    issued =
+      OtpAdapter.stub(:for, adapter) do
+        SignOtpCeremony.issue!(
+          purpose: :sign_up, surface: :app, channel: :email, subject: flow, destination: email.address,
+        )
+      end
+
+    assert_predicate issued, :success?
+
+    result = SignOtpCeremony.verify!(
+      purpose: :sign_up, surface: :app, channel: :email, subject: flow,
+      destination: "someone-else@example.test", code: issued.code,
+    )
+
+    assert_not result.success?
+    assert_equal :destination_mismatch, result.status
+    assert_not_nil email.reload.get_otp,
+                   "#{email.address}: mismatched destination must not consume the bound OTP"
+  end
+
+  test "issue! refuses a channel the sign-up ticket is not waiting on" do
+    flow = create_email_flow
+
+    error =
+      assert_raises(ArgumentError) do
+        SignOtpCeremony.issue!(purpose: :sign_up, surface: :app, channel: :telephone, subject: flow)
+      end
+
+    assert_equal "OTP channel does not match sign-up ticket", error.message
+  end
+
   private
 
   def create_email_flow(pending_contact_id: nil)

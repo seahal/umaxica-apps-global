@@ -15,6 +15,17 @@ import { finishVisit, startVisit } from "../../support/visit";
 const patch = vi.fn<typeof inertiaRouter.patch>();
 const deleteRequest = vi.fn<typeof inertiaRouter.delete>();
 
+vi.mock("@/features/turnstile/TurnstileWidget", () => ({
+  default: ({ onToken }: { onToken?: (token: string) => void }) => (
+    <button
+      type="button"
+      onClick={() => onToken?.("turnstile-token")}
+    >
+      challenge
+    </button>
+  ),
+}));
+
 vi.mock("@inertiajs/react", () => ({
   Link: ({ href, children }: { href: string; children: React.ReactNode }) => (
     <a href={href}>{children}</a>
@@ -29,6 +40,8 @@ const { default: PreferenceSelect } = await import("@/features/preferences/Prefe
 const { default: PreferenceCookie } = await import("@/features/preferences/PreferenceCookie");
 const { default: PreferenceCustomization } =
   await import("@/features/preferences/PreferenceCustomization");
+const { default: PreferenceEmailUnsubscribe } =
+  await import("@/features/preferences/PreferenceEmailUnsubscribe");
 
 let container: HTMLDivElement;
 let root: Root;
@@ -192,13 +205,21 @@ describe("PreferenceCustomization interaction", () => {
     mount(<PreferenceCustomization {...props} />);
 
     const checkbox = container.querySelector<HTMLInputElement>("input[name='confirm_reset']")!;
+    const form = container.querySelector<HTMLFormElement>("form")!;
+
+    act(() => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(deleteRequest).toHaveBeenCalledWith(
+      "/preference/customization?ri=jp",
+      containing({ data: { confirm_reset: "" } }),
+    );
+    deleteRequest.mockClear();
 
     act(() => {
       checkbox.click();
     });
     expect(checkbox.checked).toBe(true);
-
-    const form = container.querySelector<HTMLFormElement>("form")!;
 
     act(() => {
       form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
@@ -224,5 +245,68 @@ describe("PreferenceCustomization interaction", () => {
       finishVisit(options);
     });
     expect(container.querySelector("button")?.textContent).toBe("リセット");
+  });
+});
+
+describe("PreferenceEmailUnsubscribe interaction", () => {
+  const form = {
+    action: "/preference/emails?token=abc",
+    token: "signed-token",
+    submit_label: "配信停止",
+    turnstile_site_key: "site-key",
+  };
+
+  it("deletes with the signed token and the challenge response", () => {
+    mount(
+      <PreferenceEmailUnsubscribe
+        title="配信停止"
+        heading="配信を停止します"
+        promotional
+        description="確認してください"
+        form={form}
+      />,
+    );
+
+    const [challenge] = container.querySelectorAll("button");
+    act(() => {
+      challenge?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const formElement = container.querySelector<HTMLFormElement>("form")!;
+    act(() => {
+      formElement.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(deleteRequest).toHaveBeenCalledWith("/preference/emails?token=abc", {
+      data: { token: "signed-token", "cf-turnstile-response": "turnstile-token" },
+    });
+  });
+
+  it("omits the form when promotional mail is already off", () => {
+    mount(
+      <PreferenceEmailUnsubscribe
+        title="配信停止"
+        heading="配信を停止します"
+        promotional={false}
+        description="確認してください"
+        form={form}
+      />,
+    );
+
+    expect(container.querySelector("form")).toBeNull();
+  });
+
+  it("omits the form when the server sent no token", () => {
+    mount(
+      <PreferenceEmailUnsubscribe
+        title="配信停止"
+        heading="配信を停止します"
+        promotional
+        description="確認してください"
+        form={null}
+      />,
+    );
+
+    expect(container.querySelector("form")).toBeNull();
   });
 });

@@ -46,6 +46,7 @@ export default function TurnstileWidget({
 
     const start = async () => {
       const element = container.current;
+      /* v8 ignore next -- the effect runs after the host div is committed */
       if (!element) {
         return;
       }
