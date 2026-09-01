@@ -51,8 +51,11 @@ class ActorSupportPreferenceMappingTest < ActiveSupport::TestCase
   # when the association it names is not there to reset.
   test "the optional actor-context seams fall back rather than raising" do
     assert_not @harness.invoke(:resolved_current_restricted_session?)
-    assert_equal StepUpResolver::DEFAULT_REQUIRED_AAL,
-                 @harness.invoke(:resolved_current_step_up_required_aal)
+    # The resolver default is nil -- "no particular AAL demanded" -- so pin the
+    # constant as well, or a later change to it would leave this reading as a
+    # coincidental nil rather than as the fallback it is meant to assert.
+    assert_nil StepUpResolver::DEFAULT_REQUIRED_AAL
+    assert_nil @harness.invoke(:resolved_current_step_up_required_aal)
 
     without_association = Object.new
 

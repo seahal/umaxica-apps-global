@@ -96,6 +96,6 @@
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/herdr:1": { "VERSION": "v0.8.0" },
     "ghcr.io/srzstephen/devcontainer-features/claude-code:1": {},
-    "ghcr.io/nolanjx/devcontainer-features/codex:1": {}
+    "ghcr.io/nolanjx/devcontainer-features/codex:1": {},
   }
 }
