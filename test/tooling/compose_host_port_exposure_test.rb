@@ -125,8 +125,10 @@ class ComposeHostPortExposureTest < Minitest::Test
     return {} unless File.exist?(path)
 
     # Compose interpolation (`${VAR:-default}`) is opaque to YAML but always sits inside a scalar,
-    # so plain parsing is enough to read the structure. `aliases: false` keeps a hostile anchor
-    # from expanding, and no Compose file here relies on YAML aliases.
-    YAML.safe_load_file(path, aliases: false) || {}
+    # so plain parsing is enough to read the structure. Aliases must be expanded: the second
+    # Cloudflare connector merges the first, and an unexpanded service would hide whatever it
+    # inherits from this contract. The inputs are tracked repository files, so there is no
+    # untrusted anchor to guard against.
+    YAML.safe_load_file(path, aliases: true) || {}
   end
 end

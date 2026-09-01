@@ -117,12 +117,36 @@ class ComposeLocalOverrideOptionalTest < Minitest::Test
       File.join(REPOSITORY_ROOT, "compose.yaml"),
       aliases: true,
     ).fetch("services")
-    connector = services.fetch("cloudflare-tunnel")
+    # One connector per remotely managed tunnel, each behind its own profile: a connector
+    # runs exactly one tunnel, so the choice is which profile a session starts.
+    { "cloudflare-tunnel" => "tunnel", "cloudflare-tunnel-edge" => "tunnel-edge" }
+      .each do |service, profile|
+      connector = services.fetch(service)
 
-    assert_includes connector.fetch("profiles"), "tunnel"
-    refute connector.key?("depends_on"),
-           "a Compose dependency becomes a container dependency under Podman and breaks " \
-           "the Dev Containers CLI's --remove-existing-container"
+      assert_includes connector.fetch("profiles"), profile
+      refute connector.key?("depends_on"),
+             "a Compose dependency becomes a container dependency under Podman and breaks " \
+             "the Dev Containers CLI's --remove-existing-container"
+    end
+  end
+
+  def test_the_tunnel_connectors_differ_only_in_profile_and_token
+    # The second connector merges the first, so the pinned cloudflared release, the QUIC
+    # command, the `frontend` attachment, and the crash-loop caps cannot drift apart. This
+    # asserts the merge is still in place after any edit to either service.
+    services = YAML.safe_load_file(
+      File.join(REPOSITORY_ROOT, "compose.yaml"),
+      aliases: true,
+    ).fetch("services")
+
+    primary = services.fetch("cloudflare-tunnel")
+    edge = services.fetch("cloudflare-tunnel-edge")
+
+    assert_equal %w(environment profiles),
+                 (primary.keys | edge.keys).reject { |key| primary[key] == edge[key] }.sort,
+                 "the two connectors must share every setting except their profile and token"
+    assert_equal({ "TUNNEL_TOKEN" => "${CLOUDFLARED_TOKEN:-}" }, primary.fetch("environment"))
+    assert_equal({ "TUNNEL_TOKEN" => "${CLOUDFLARED_EDGE_TOKEN:-}" }, edge.fetch("environment"))
   end
 
   private

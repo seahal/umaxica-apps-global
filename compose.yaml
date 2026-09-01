@@ -833,7 +833,7 @@ services:
   # every machine that never runs a tunnel -- which is exactly how this file used
   # to break `devcontainer up` on a clean checkout. A connector started without a
   # token exits immediately, and `restart: on-failure:3` bounds that.
-  cloudflare-tunnel:
+  cloudflare-tunnel: &cloudflare-connector
     profiles:
       - tunnel
     # Cloudflare supports cloudflared releases for one year. Keep this explicit tag current;
@@ -874,6 +874,26 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+  # The same connector against the second remotely managed tunnel. The Cloudflare
+  # account holds two development tunnels, and a connector can only run one, so
+  # this is a second service rather than a switch on the first: the tunnel a
+  # session uses is chosen by which profile is started.
+  #
+  #   docker compose --profile tunnel up -d        # CLOUDFLARED_TOKEN
+  #   docker compose --profile tunnel-edge up -d   # CLOUDFLARED_EDGE_TOKEN
+  #
+  # Everything except the profile and the token is merged from the definition
+  # above, so the pinned release, the QUIC/metrics command, the `frontend`
+  # attachment and the crash-loop caps cannot drift between the two.
+  #
+  # Both profiles may be started together; the two connectors then serve their
+  # own tunnels over the same private `*.localhost` origins.
+  cloudflare-tunnel-edge:
+    <<: *cloudflare-connector
+    profiles:
+      - tunnel-edge
+    environment:
+      TUNNEL_TOKEN: "${CLOUDFLARED_EDGE_TOKEN:-}"
 networks:
   backend: {}
   frontend: {}

@@ -97,54 +97,78 @@ Cloudflare account before rollout, not a Rails authentication bypass.
 
 ## Authenticating the Connector
 
-`cloudflare-tunnel` is a connector for the existing remotely managed tunnel. It reads the tunnel's
-scoped connector token from `CLOUDFLARED_TOKEN` in the repository-local `.env`; Compose passes that
-value to cloudflared as `TUNNEL_TOKEN`. This is not an account API key. It authorizes a connector to
-run that tunnel, so it is still a secret and must not be committed, logged, or pasted into a command
-argument.
+The Cloudflare account holds two remotely managed development tunnels, and a connector runs exactly
+one of them. Compose therefore defines one connector service per tunnel, each behind its own
+profile:
 
-Retrieve the token in the Cloudflare dashboard:
+| Service                  | Profile       | Token variable           |
+| :----------------------- | :------------ | :----------------------- |
+| `cloudflare-tunnel`      | `tunnel`      | `CLOUDFLARED_TOKEN`      |
+| `cloudflare-tunnel-edge` | `tunnel-edge` | `CLOUDFLARED_EDGE_TOKEN` |
+
+`cloudflare-tunnel-edge` merges `cloudflare-tunnel`'s definition through a YAML anchor, so the two
+differ only in profile and token; the pinned release, the QUIC command, the `frontend` attachment,
+and the crash-loop caps are shared by construction. `test/tooling/compose_local_override_optional_test.rb`
+is the guard.
+
+Each service reads its tunnel's scoped connector token from the repository-local `.env` and passes
+it to cloudflared as `TUNNEL_TOKEN`. Neither is an account API key. Each authorizes a connector to
+run one tunnel, so both are still secrets and must not be committed, logged, or pasted into a
+command argument.
+
+Retrieve a token in the Cloudflare dashboard:
 
 1. Go to **Networking > Tunnels**.
-2. Open the development tunnel.
+2. Open the tunnel you want this machine to connect.
 3. Select **Add a replica**.
 4. Copy only the `eyJ...` token from the displayed installation command.
 5. Store it in the repository root `.env` and restrict the file mode:
 
 ```dotenv
-CLOUDFLARED_TOKEN=<paste the tunnel token here>
+CLOUDFLARED_TOKEN=<paste the first tunnel's token here>
+CLOUDFLARED_EDGE_TOKEN=<paste the second tunnel's token here>
 ```
 
 ```bash
 chmod 600 .env
 ```
 
-If `.env` already contains other settings, add or replace only its `CLOUDFLARED_TOKEN` line. Never
-commit `.env`; the repository, Docker, and container build ignore files all exclude it.
+If `.env` already contains other settings, add or replace only the token lines. Never commit `.env`;
+the repository, Docker, and container build ignore files all exclude it.
 
-The connector has no Compose profile. Once `.env` contains the token, the standard Dev Container
-lifecycle starts `core` and `cloudflare-tunnel` together:
+Both variables use `${VAR:-}` rather than `${VAR:?}`: Compose interpolates the whole file whichever
+service is named, so a required variable would stop `up core` on a machine that never runs a tunnel.
+A connector started without a token exits within milliseconds, and `restart: on-failure:3` bounds
+that into a visible, stopped container rather than a restart storm. Read `podman logs` for the
+connector when a tunnel does not come up.
+
+Starting a connector is opt-in by profile. Run these commands from a host terminal, not from inside
+`core`:
 
 ```bash
 devcontainer up --workspace-folder .
-bin/tunnel-origin-check
+podman compose --profile tunnel up -d        # first tunnel
+podman compose --profile tunnel-edge up -d   # alternative tunnel
 ```
 
-Run these commands from a host terminal, not from inside `core`. A missing token fails during Compose
-resolution with `CLOUDFLARED_TOKEN must be set in .env`; there is no anonymous or browser-login
-fallback.
+Starting both profiles is supported: the two connectors then serve their own tunnels over the same
+private `*.localhost` origins on `frontend`. Nothing in Rails changes with the choice of tunnel —
+the ingress rules and published hostnames live in the Cloudflare account, and Rails Host
+Authorization accepts the same two hostname families either way.
 
-Do not leave a standalone `docker run ... tunnel run --token ...` connector running for this tunnel
-at the same time. Inspect `docker ps` and `podman ps` on the host before switching to the Compose
-sidecar.
+Do not leave a standalone `docker run ... tunnel run --token ...` connector running for either
+tunnel at the same time. Inspect `docker ps` and `podman ps` on the host before switching to the
+Compose sidecar.
 
 To rotate or revoke the connector credential, refresh the token in the Cloudflare dashboard, replace
-only the `CLOUDFLARED_TOKEN` value in `.env`, and recreate the connector. Removing the local value
+only that tunnel's token value in `.env`, and recreate its connector. Removing the local value
 alone does not revoke a copied token at Cloudflare:
 
 ```bash
 podman compose -f compose.yaml --profile tunnel \
   up -d --force-recreate --no-deps cloudflare-tunnel
+podman compose -f compose.yaml --profile tunnel-edge \
+  up -d --force-recreate --no-deps cloudflare-tunnel-edge
 ```
 
 The connector reaches Rails directly over `frontend`. It has no `host.docker.internal` alias, no
@@ -153,7 +177,7 @@ the Cloudflare VPC Service pointed at an unambiguous Rails service address on `f
 
 ## Running the Transport Probe
 
-Start `core` and `cloudflare-tunnel`, then run:
+Start `core` and whichever connector this session uses, then run:
 
 ```bash
 bin/tunnel-origin-check
