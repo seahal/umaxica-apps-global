@@ -15,16 +15,15 @@ SimpleCov.group "Validators", "app/validators"
 SimpleCov.group "Errors", "app/errors"
 
 SimpleCov.coverage :line do
-  minimum 94
+  minimum 98
+  # Suite-wide averages let a file with no test hide behind well-covered neighbours.
+  # Hold every file to a floor of its own.
+  minimum_per_file 70
 end
 
 SimpleCov.coverage :branch do
-  minimum 74
+  minimum 90
 end
-
-# The minimums above are suite-wide averages, so a file with no test at all can hide
-# behind well-covered neighbours. Hold every file to a floor of its own.
-SimpleCov.minimum_coverage_by_file line: 70
 
 # `refuse_coverage_drop` is deliberately NOT set. It compares against
 # `coverage/.last_run.json`, and when that file is missing SimpleCov treats the run as having
