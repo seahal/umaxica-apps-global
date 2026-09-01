@@ -75,4 +75,58 @@ class OperatorSecretCredentialPolicyTest < ActiveSupport::TestCase
     assert_not policy.update?
     assert_not policy.destroy?
   end
+
+  def test_relation_scope_filters_by_staff_id
+    relation = Class.new do
+      attr_reader :calls
+
+      def initialize
+        @calls = []
+      end
+
+      def where(**kwargs)
+        @calls << [:where, kwargs]
+        :where_scope
+      end
+
+      def none
+        @calls << :none
+        :none_scope
+      end
+    end.new
+
+    user = Operator.new(id: 1)
+
+    assert_equal :where_scope, OperatorSecretCredentialPolicy.new(OperatorSecretCredential.new, user: user).apply_scope(
+      relation,
+      type: :active_record_relation,
+    )
+    assert_equal [[:where, { staff_id: 1 }]], relation.calls
+  end
+
+  def test_relation_scope_returns_none_for_nil_user
+    relation = Class.new do
+      attr_reader :calls
+
+      def initialize
+        @calls = []
+      end
+
+      def where(**kwargs)
+        @calls << [:where, kwargs]
+        :where_scope
+      end
+
+      def none
+        @calls << :none
+        :none_scope
+      end
+    end.new
+
+    assert_equal :none_scope, OperatorSecretCredentialPolicy.new(OperatorSecretCredential.new, user: nil).apply_scope(
+      relation,
+      type: :active_record_relation,
+    )
+    assert_equal [:none], relation.calls
+  end
 end

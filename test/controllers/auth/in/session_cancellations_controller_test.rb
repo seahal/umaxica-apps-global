@@ -78,6 +78,79 @@ class AuthInSessionCancellationsControllerTest < ActiveSupport::TestCase
     assert_includes redirects.first, "ri=jp"
   end
 
+  test "org cancellation with pending OIDC login_challenge includes it in redirect path" do
+    actor = Operator.create!(status_id: OperatorStatus::ACTIVE)
+    cycle = create_session_limit_cycle(OperatorSignInFlow, actor)
+    challenge = "org_login_challenge_abc"
+
+    session_hash = {
+      :pending_login_staff_id => actor.id,
+      :oidc_authorization_login_challenge => challenge,
+      SessionLimitGate::GATE_SESSION_KEY => {
+        "nonce" => "legacy",
+        "issued_at" => Time.current.to_i,
+        "pt" => "/dashboard",
+        "flow" => "in.session",
+      },
+    }
+    redirects = []
+    controller = Auth::Org::Sign::In::Session::CancellationsController.new
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
+    controller.define_singleton_method(:current_region_identifier) { "jp" }
+    controller.define_singleton_method(:current_resource) { nil }
+    controller.define_singleton_method(:current_session) { nil }
+    controller.define_singleton_method(:current_db_sign_in_flow_for_sequence) { cycle.reload }
+    controller.define_singleton_method(:consume_session_limit_gate!) { session.delete(SessionLimitGate::GATE_SESSION_KEY) }
+    controller.define_singleton_method(:log_out) { nil }
+    controller.define_singleton_method(:redirect_to) { |path| redirects << path }
+    controller.define_singleton_method(:resolve_session_limit_cancellation_actor) { actor }
+    controller.define_singleton_method(:url_options) {
+      { host: ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost") }
+    }
+
+    controller.create
+
+    assert_includes redirects.first, "login_challenge=#{challenge}"
+    assert_includes redirects.first, "ri=jp"
+  end
+
+  test "org cancellation without pending OIDC login_challenge redirects to plain sign-in path" do
+    actor = Operator.create!(status_id: OperatorStatus::ACTIVE)
+    cycle = create_session_limit_cycle(OperatorSignInFlow, actor)
+
+    session_hash = {
+      :pending_login_staff_id => actor.id,
+      SessionLimitGate::GATE_SESSION_KEY => {
+        "nonce" => "legacy",
+        "issued_at" => Time.current.to_i,
+        "pt" => "/dashboard",
+        "flow" => "in.session",
+      },
+    }
+    redirects = []
+    controller = Auth::Org::Sign::In::Session::CancellationsController.new
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
+    controller.define_singleton_method(:current_region_identifier) { "jp" }
+    controller.define_singleton_method(:current_resource) { nil }
+    controller.define_singleton_method(:current_session) { nil }
+    controller.define_singleton_method(:current_db_sign_in_flow_for_sequence) { cycle.reload }
+    controller.define_singleton_method(:consume_session_limit_gate!) { session.delete(SessionLimitGate::GATE_SESSION_KEY) }
+    controller.define_singleton_method(:log_out) { nil }
+    controller.define_singleton_method(:redirect_to) { |path| redirects << path }
+    controller.define_singleton_method(:resolve_session_limit_cancellation_actor) { actor }
+    controller.define_singleton_method(:url_options) {
+      { host: ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost") }
+    }
+
+    controller.create
+
+    assert_equal 1, redirects.size
+    assert_includes redirects.first, "ri=jp"
+    assert_not_includes redirects.first, "login_challenge="
+  end
+
   test "app cancellation without pending OIDC login_challenge redirects to plain sign-in path" do
     actor = Client.create!(public_id: "u_#{SecureRandom.hex(6)}", status_id: ClientStatus::ACTIVE)
     cycle = create_session_limit_cycle(ClientSignInFlow, actor)
