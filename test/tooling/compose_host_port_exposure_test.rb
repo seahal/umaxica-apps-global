@@ -12,10 +12,15 @@ require "yaml"
 class ComposeHostPortExposureTest < Minitest::Test
   REPOSITORY_ROOT = File.expand_path("../..", __dir__)
 
-  # Every Compose file that participates in a development `up`, plus the opt-in overlays.
+  # Every tracked Compose file that participates in a development `up`, plus the opt-in
+  # overlays. `.devcontainer/compose.override.yml` is where the Dev Container's own
+  # publications live, so it belongs here too. The gitignored `compose.override.yaml` is
+  # deliberately absent: it is optional, per-machine, and not present on a fresh clone.
   COMPOSE_FILES = %w(
     compose.yaml
-    compose.custom.yaml
+    compose.override.yaml.example
+    compose.remote-access.yaml
+    .devcontainer/compose.override.yml
     podman/fdw-poc/compose.fdw-poc.yml
     docker/fdw-poc/compose.fdw-poc.yml
   ).freeze

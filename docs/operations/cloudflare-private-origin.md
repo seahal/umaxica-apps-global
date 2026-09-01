@@ -143,9 +143,7 @@ only the `CLOUDFLARED_TOKEN` value in `.env`, and recreate the connector. Removi
 alone does not revoke a copied token at Cloudflare:
 
 ```bash
-podman compose \
-  -f compose.yaml \
-  -f compose.custom.yaml \
+podman compose -f compose.yaml --profile tunnel \
   up -d --force-recreate --no-deps cloudflare-tunnel
 ```
 

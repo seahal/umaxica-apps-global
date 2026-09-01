@@ -33,7 +33,7 @@ services:
       # and revoked immediately after enrolment, so requiring it here would make
       # every later start fail. `.devcontainer/remote-access-preflight.sh` is what
       # enforces "present on the first start, absent on every one after".
-      TS_AUTHKEY: '${TS_AUTHKEY:-}'
+      TS_AUTHKEY: "${TS_AUTHKEY:-}"
     volumes:
       # sshd's host key and PID file. A volume, not the workspace: the private
       # host key must never be written into a bind-mounted git repository, and the

@@ -172,3 +172,12 @@ node_modules
 # Vite uses dotenv and suggests to ignore local-only env files. See
 # https://vitejs.dev/guide/env-and-mode.html#env-files
 *.local
+
+# Optional developer-local Compose override. `compose.yaml` alone is a complete
+# standard environment, so this file is never required and is never created
+# automatically -- a fresh clone must start without it. Documented by the
+# tracked `compose.override.yaml.example`, which nobody has to copy.
+#
+# Not to be confused with `.devcontainer/compose.override.yml`, which IS tracked
+# and IS part of the standard Dev Container configuration.
+/compose.override.yaml

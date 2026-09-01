@@ -62,7 +62,7 @@ Run all of this on the host (or inside `core`, if it has `podman`, `aws` CLI, an
 
 1. Ensure RustFS is running (see `docs/operations/local-object-storage-rustfs.md`):
    ```sh
-   COMPOSE="podman compose -f compose.yaml -f compose.custom.yaml"
+   COMPOSE="podman compose -f compose.yaml"
    $COMPOSE --profile object-storage up -d rustfs-permissions rustfs
    ```
 
@@ -160,7 +160,7 @@ Run after the findings above are recorded. This removes every disposable artifac
 except this document.
 
 ```sh
-COMPOSE="podman compose -f compose.yaml -f compose.custom.yaml"
+COMPOSE="podman compose -f compose.yaml"
 
 # 1. Stop and remove the PoC container (tmpfs PGDATA is discarded automatically).
 $COMPOSE -f podman/fdw-poc/compose.fdw-poc.yml \

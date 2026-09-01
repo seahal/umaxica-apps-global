@@ -130,7 +130,7 @@ Browser --(HTTPS)--> Cloudflare edge --(QUIC tunnel)--> cloudflared (compose: cl
   --(private `frontend` network)--> core (Rails)
 ```
 
-- `cloudflared` is configured in `compose.custom.yaml` (`cloudflare-tunnel` service, image
+- `cloudflared` is configured in `compose.yaml` behind the `tunnel` profile (`cloudflare-tunnel` service, image
   `cloudflare/cloudflared:2026.8.2`,
   `tunnel --protocol quic --metrics 0.0.0.0:2000 run`, and `TUNNEL_TOKEN` resolved from the
   gitignored repository `.env`). The base `compose.yaml` must never define it. The always-merged
@@ -205,7 +205,7 @@ Cloudflare Worker (fetch()) --(Workers VPC binding)--> VPC Service (bound to a T
 - Workers VPC binds to a Tunnel-registered VPC Service and proxies an absolute-URL `fetch()` request
   to the target host/port over that tunnel connection — it reuses the same Cloudflare Tunnel
   infrastructure as path 1, not a separate ingress. Workers VPC requires cloudflared `2025.7.0` or
-  newer; `compose.custom.yaml` pins the supported `2026.8.2` release because Cloudflare supports
+  newer; `compose.yaml` pins the supported `2026.8.2` release because Cloudflare supports
   cloudflared releases for one year.
 - This path does not currently exist in the repository — no VPC Service or Worker binding is
   configured. This section documents the intended architecture per your Q5 answer (Workers VPC is a

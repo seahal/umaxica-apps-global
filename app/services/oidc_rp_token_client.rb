@@ -46,7 +46,8 @@ class OidcRpTokenClient < ApplicationService
 
     log_token_exchange_failure(uri: uri, response: response, oauth_error: body[:error].presence)
     Result.new(success: false, token_response: nil, error: body[:error].presence || "token_exchange_failed")
-  rescue JSON::ParserError, URI::InvalidURIError, OutboundHttp::Connection::InsecureEndpointError, *OutboundHttp::Connection::NETWORK_ERRORS => e
+  rescue JSON::ParserError, URI::InvalidURIError, OutboundHttp::Connection::InsecureEndpointError,
+         *OutboundHttp::Connection::NETWORK_ERRORS => e
     log_token_exchange_failure(uri: safe_token_uri, error_class: e.class.name)
     Result.new(success: false, token_response: nil, error: "token_exchange_failed")
   end

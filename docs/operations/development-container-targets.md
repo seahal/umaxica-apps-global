@@ -29,7 +29,7 @@ The repository keeps exactly two Compose files:
 
 - `compose.yaml` — the project-common definition, including the workspace bind mount, the loopback
   host publications, `userns_mode: keep-id`, and the build target knob.
-- `compose.custom.yaml` — the developer-owned overlay for anything specific to one machine or one
+- `compose.override.yaml` — the OPTIONAL, gitignored developer override for anything specific to one machine or one
   person: the Cloudflare connector, host devices, personal tooling.
 
 `.devcontainer/devcontainer.json` loads both, in that order. Do not add a third overlay.
@@ -55,10 +55,7 @@ Host port publication is loopback-only and is decided in `compose.yaml`;
 The default build target is `development`:
 
 ```sh
-podman compose \
-  -f compose.yaml \
-  -f compose.custom.yaml \
-  up --build
+podman compose -f compose.yaml up --build
 ```
 
 ## Start the workspace target
@@ -71,7 +68,8 @@ The workspace target is an explicit, per-developer opt-in with two steps.
    CORE_BUILD_TARGET=workspace
    ```
 
-2. Give `core` the FUSE device in your own `compose.custom.yaml`. It is not committed there because
+2. Give `core` the FUSE device in your own `compose.override.yaml` (copy the commented block out of
+   `compose.override.yaml.example`). It is not committed because
    not every host exposes `/dev/fuse`, and a device Compose cannot resolve makes the whole project
    fail to start:
 

@@ -1,15 +1,29 @@
 ---
-# This repository keeps exactly two Compose files:
+# The COMPLETE standard development environment. A fresh `git clone` plus a
+# container engine must be enough to resolve this configuration and to open the
+# Dev Container — no local file has to be created first. Nothing here may use a
+# required `${VAR:?}` interpolation: Compose interpolates the whole file
+# whichever service is named, so one would stop every machine that has not set
+# the variable, even for a service it never starts.
 #
-#   compose.yaml         — the project-common definition. Everything every developer
-#                          and the Dev Container needs, including the workspace bind
-#                          mount and the loopback host publications.
-#   compose.custom.yaml  — the developer-owned overlay. Anything specific to one
-#                          machine or one person's setup (tunnel connector, host
-#                          devices, personal tooling).
+# The file layout:
 #
-# `.devcontainer/devcontainer.json` loads both, in that order. There is no third
-# overlay; do not reintroduce one.
+#   compose.yaml                  — this file. Everything every developer and the
+#                                   Dev Container needs, including the workspace
+#                                   bind mount and the loopback host publications.
+#   .devcontainer/compose.override.yml
+#                                 — TRACKED. The Dev Container's own overlay
+#                                   (container names, SELinux labels, ports). Part
+#                                   of the standard environment, not a local file.
+#   compose.override.yaml         — OPTIONAL, gitignored, per developer/machine.
+#                                   Never created automatically; documented by
+#                                   `compose.override.yaml.example`.
+#   compose.remote-access.yaml    — opt-in, tracked, never in `dockerComposeFile`.
+#
+# `.devcontainer/devcontainer.json` loads the first two, in that order. The Dev
+# Containers CLI passes each entry to Compose as `-f`, which also suppresses
+# Compose's auto-discovery of `compose.override.yaml` — so a local override
+# applies to a bare `docker compose`, not to the editor.
 #
 # The `-dc` suffix is historical and is kept deliberately: the project name is the
 # prefix of every named volume, so changing it would orphan the development
@@ -24,7 +38,8 @@ services:
       # `development` is the normal image. Set CORE_BUILD_TARGET=workspace in the
       # repository-local `.env` to build the nested-rootless-Podman `workspace`
       # stage instead; that stage additionally needs a `/dev/fuse` device entry,
-      # which is host-shaped and therefore belongs in compose.custom.yaml.
+      # which is host-shaped and therefore belongs in your own, optional
+      # `compose.override.yaml` (see `compose.override.yaml.example`).
       # See docs/operations/development-container-targets.md.
       target: "${CORE_BUILD_TARGET:-development}"
       args:
@@ -803,6 +818,62 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+  # The Cloudflare Tunnel connector. It lives here rather than in a local
+  # override because the connector, its pinned release and its hardening are
+  # project-wide facts; only the token is per-developer, and that arrives from
+  # the gitignored `.env`.
+  #
+  # Starting it is opt-in through the `tunnel` PROFILE, not through the presence
+  # of a file: a plain `up` never starts it, and `--profile tunnel up` does. That
+  # is what the old overlay's "presence is the opt-in" arrangement was reaching
+  # for, and it does not make a fresh clone depend on a local file.
+  #
+  # `:-` rather than `:?` on the token. Compose interpolates the whole file
+  # whichever service is named, so a required variable would stop `up core` on
+  # every machine that never runs a tunnel -- which is exactly how this file used
+  # to break `devcontainer up` on a clean checkout. A connector started without a
+  # token exits immediately, and `restart: on-failure:3` bounds that.
+  cloudflare-tunnel:
+    profiles:
+      - tunnel
+    # Cloudflare supports cloudflared releases for one year. Keep this explicit tag current;
+    # Workers VPC additionally requires 2025.7.0 or newer.
+    image: docker.io/cloudflare/cloudflared:2026.8.2
+    # No `depends_on: core`. Podman turns a Compose dependency into a container
+    # dependency, and the Dev Containers CLI's `--remove-existing-container` then
+    # fails on a bare `podman rm -f`.
+    #
+    # Workers VPC DNS routing requires QUIC and outbound UDP 7844.
+    # TUNNEL_TOKEN identifies and authenticates the remotely managed tunnel, so no tunnel
+    # name, cert.pem, credentials JSON, or browser-login helper is needed in this project.
+    #
+    # --metrics serves cloudflared's own /ready endpoint to the compose network so that
+    # `bin/tunnel-origin-check` can tell a connected tunnel apart from a restarting one.
+    # It publishes no host port.
+    command: tunnel --protocol quic --metrics 0.0.0.0:2000 run
+    environment:
+      TUNNEL_TOKEN: "${CLOUDFLARED_TOKEN:-}"
+    # The private `*.localhost` Rails origins live on `frontend`; without it every
+    # working ingress rule breaks.
+    networks:
+      - frontend
+    # A connector that cannot identify its tunnel exits within milliseconds. Podman applies
+    # no backoff to `unless-stopped`, so that turns into an unbounded restart storm which
+    # saturates a CPU with netns, veth, conmon, and journald churn until someone notices.
+    # Three attempts ride out a transient edge failure and keep a misconfiguration a
+    # bounded, visible incident instead.
+    restart: on-failure:3
+    # Caps what a crash loop can consume before a human notices it.
+    cpus: 0.5
+    mem_limit: 256m
+    pids_limit: 128
+    # journald enforces no per-container size cap, so a crash loop writing to it degrades
+    # the whole host journal. Keep connector output in a bounded ring instead.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 networks:
   backend: {}
   frontend: {}
@@ -813,13 +884,8 @@ networks:
     # string, which podman-compose cannot safely treat as the boolean required
     # by the Compose model and causes `up` to fail while building network args.
     external: false
-  # NOTE: `cloudflare-tunnel` lives entirely in compose.custom.yaml (repo
-  # root), an overlay included unconditionally via
-  # .devcontainer/devcontainer.json's dockerComposeFile array. The connector
-  # itself sits behind that file's `tunnel` profile, so even with the overlay
-  # merged a plain `up` does not start it. This base compose.yaml alone must
-  # never create, start, or pull it. See
-  # docs/operations/cloudflare-private-origin.md.
+  # `cloudflare-tunnel` attaches to `frontend`; see the service definition and
+  # its `tunnel` profile above. See docs/operations/cloudflare-private-origin.md.
 volumes:
   fakecloud-data: {}
   primary-data: {}

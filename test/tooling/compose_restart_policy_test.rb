@@ -12,7 +12,7 @@ class ComposeRestartPolicyTest < Minitest::Test
   REPOSITORY_ROOT = File.expand_path("../..", __dir__)
   COMPOSE_FILES = [
     "compose.yaml",
-    "compose.custom.yaml",
+    "compose.override.yaml.example",
     ".devcontainer/compose.override.yml",
   ].freeze
 

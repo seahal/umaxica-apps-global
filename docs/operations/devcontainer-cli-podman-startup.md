@@ -140,7 +140,7 @@ Take the whole project down first instead, then start it again:
 
 ```sh
 podman compose --project-name umaxicaappsglobaldc \
-  -f compose.yaml -f .devcontainer/compose.override.yml -f compose.custom.yaml down
+  -f compose.yaml -f .devcontainer/compose.override.yml down
 
 devcontainer up \
   --docker-path /usr/bin/podman \
@@ -159,3 +159,59 @@ databases and re-clone the replica afterwards.
 - [Container Engine Notes (Podman / Docker)](container-engine-podman-notes.md)
 - [Development Container Targets](development-container-targets.md)
 - [Development Host Port Exposure](development-host-port-exposure.md)
+
+
+## The Compose file contract
+
+```text
+compose.yaml                        = the complete standard environment
+.devcontainer/compose.override.yml  = tracked; the Dev Container's own overlay
+compose.override.yaml               = optional, gitignored, per developer/machine
+compose.override.yaml.example       = tracked documentation of the above
+compose.remote-access.yaml          = opt-in, tracked, never in dockerComposeFile
+```
+
+A fresh clone needs **no local file**:
+
+```bash
+git clone https://github.com/seahal/umaxica-apps-jit-global.git
+cd umaxica-apps-jit-global
+
+# creating a local override is NOT required
+
+docker compose config
+```
+
+then `Dev Containers: Reopen in Container`, or the `devcontainer up` invocation above.
+
+Two rules make that hold, and both are asserted by
+`test/tooling/compose_local_override_optional_test.rb`:
+
+1. **Every `dockerComposeFile` entry is a tracked file.** The Dev Containers CLI passes each
+   entry to Compose as `-f`, so an entry a clone does not contain fails the whole `up` at
+   configuration resolution with a bare `no such file or directory`.
+2. **No file on that path uses a required `${VAR:?}` interpolation.** Compose interpolates
+   every listed file in full whichever service is named, so one required variable stops
+   `devcontainer up` on a machine that never runs that service. This is how the retired
+   `compose.custom.yaml` broke clean checkouts: it demanded `CLOUDFLARED_TOKEN` for a
+   connector nobody had asked to start. Opt-in belongs to a `profiles:` entry instead —
+   `cloudflare-tunnel` now sits behind `--profile tunnel` in `compose.yaml`.
+
+The same `-f` also suppresses Compose's auto-discovery of `compose.override.yaml`, so a
+developer's local override applies to a bare `docker compose` and to explicit `-f` runs,
+not to the editor. Copy `compose.override.yaml.example` only if you want one of the
+machine-specific things it documents.
+
+### Migrating from `compose.custom.yaml`
+
+`compose.custom.yaml` is deleted. Its `cloudflare-tunnel` service moved into `compose.yaml`
+behind the `tunnel` profile, with `${CLOUDFLARED_TOKEN:-}` instead of `${CLOUDFLARED_TOKEN:?}`.
+Start the connector with:
+
+```bash
+podman compose -f compose.yaml --profile tunnel up -d cloudflare-tunnel
+```
+
+If you kept host devices or personal tooling in your own copy, move them to
+`compose.override.yaml` (see `compose.override.yaml.example`) and delete the old file. It was
+tracked, so `git pull` removes it for you unless you have local modifications.

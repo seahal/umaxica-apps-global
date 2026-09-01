@@ -86,7 +86,7 @@ Static checks only, all run inside `core`:
 
 - All six Compose files parse as YAML.
 - No dangling `depends_on`, secret, or volume reference across the merged `compose.yaml` +
-  `compose.override.yml` + `compose.custom.yaml`; no orphaned volume or secret.
+  `.devcontainer/compose.override.yml`; no orphaned volume or secret.
 - `bin/rails test` — 10401 runs, 3 failures, each shown to be pre-existing or environmental:
   `DevelopmentContainerContractTest#test_the_Dev_Container_loads_only_the_two_repository_Compose_files`
   (proven pre-existing by stashing the test file; it reads `devcontainer.json` from the git index),
@@ -116,7 +116,7 @@ Run on a machine that can rebuild. Record failures here rather than deleting the
 
 ### Compose
 
-- [ ] `podman compose -f compose.yaml -f compose.custom.yaml config` succeeds (with
+- [ ] `podman compose -f compose.yaml config` succeeds (with
       `PODMAN_COMPOSE_PROVIDER` set as `docs/operations/container-engine-podman-notes.md` requires)
 - [ ] `docker compose config` succeeds — syntax compatibility only, Docker is not a supported engine
 - [ ] `podman compose config` still lists all five observability services (they are no longer
