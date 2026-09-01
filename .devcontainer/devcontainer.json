@@ -6,28 +6,13 @@
   "containerUser": "global",
   "workspaceFolder": "/home/global/workspace",
   "overrideCommand": false,
-  // `db:prepare` is idempotent: it creates any missing database and applies
-  // pending migrations, so a fresh clone and a long-lived volume converge to the
-  // same state. It replaces the former `.devcontainer/setup-db.sh`, which was
-  // never wired into a lifecycle hook and still read a `POSTGRESQL_PASSWORD`
-  // environment variable this stack no longer sets.
   "postCreateCommand": "bundle install && pnpm install && bin/rails db:prepare",
   "forwardPorts": [3000, 3036, 5050],
   "remoteEnv": {
     "EDITOR": "code --wait --reuse-window",
     "DEBUGGER_DISABLE": "1",
-    // Do NOT forward the host's TERM. Ghostty, kitty, and WezTerm ship their
-    // own terminfo, so a host value like `xterm-ghostty` has no entry inside
-    // the image — `infocmp` fails, `tput clear` fails, and with it Ctrl+L,
-    // the arrow keys, history, less, htop, and every TUI. Pin a value the
-    // Debian trixie base image is guaranteed to carry in
-    // /usr/share/terminfo/x/ instead. COLORTERM is safe to forward: it only
-    // signals 24-bit color support and never looks anything up in terminfo.
-    // Kept in sync with seahal/umaxica-apps-edge.
     "TERM": "xterm-256color",
     "COLORTERM": "${localEnv:COLORTERM}",
-    // The Claude Code feature installs to ~/.local/bin; the image does not put
-    // it on PATH.
     "PATH": "/home/global/.local/bin:${containerEnv:PATH}"
   },
   "customizations": {
@@ -111,30 +96,6 @@
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/herdr:1": { "VERSION": "v0.8.0" },
     "ghcr.io/srzstephen/devcontainer-features/claude-code:1": {},
-    "ghcr.io/nolanjx/devcontainer-features/codex:1": {},
-    "ghcr.io/sliekens/devcontainer-features/grok-build:1": {}
+    "ghcr.io/nolanjx/devcontainer-features/codex:1": {}
   }
-  // No host credential enters the `core` service. The Cloudflare tunnel token from
-  // the repository-local `.env` is scoped to the separate `cloudflare-tunnel` sidecar and
-  // is not present in `core`. There are no `mounts`, no
-  // host bind of ~/.ssh, ~/.config/gh, ~/.gitconfig, ~/.claude, or ~/.codex,
-  // and no persistent volume holding tool auth state. Credentials are obtained
-  // inside the running container through browser logins and are discarded when
-  // the container is recreated:
-  //   gh auth login --web --git-protocol https && gh auth setup-git
-  //   claude   # then /login
-  //   codex login
-  // Git remotes must be HTTPS: no SSH key exists here for git@github.com.
-  //
-  // The Postgres password is a fixed, dev-only literal declared inline in
-  // `compose.yaml`. It guards nothing reachable off this host and no user
-  // credential is stored there.
-  //
-  // Read-only workspace write-guards are declared in compose.override.yml,
-  // because the Dev Container string-form `readonly` option is not effective
-  // with the current rootless Podman provider. Heavy-write cache directories
-  // route through named volumes under /home/global so they never churn host
-  // ownership. Dependency manifests and lockfiles inherit the writable
-  // workspace mount because Bundler and pnpm replace them during explicit
-  // update commands; CI protects reproducibility with frozen install modes.
 }
