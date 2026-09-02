@@ -70,7 +70,8 @@ Development is therefore reachable two ways, and both must work:
 - through the tunnel, where the request carries the browser's public site name, because cloudflared
   leaves `Host` unmodified unless `httpHostHeader` is set;
 - directly on the compose `frontend` network through the private `*.localhost` aliases, which is how
-  local Edge processes and `bin/tunnel-origin-check` reach Rails.
+  local Edge processes and the transport probe in `docs/operations/cloudflare-private-origin.md`
+  reach Rails.
 
 ### How the two families reach Host Authorization
 

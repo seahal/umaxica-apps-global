@@ -74,8 +74,10 @@ silently redirect production S3 traffic past that check.
 
 ### Migrating from RustFS
 
-`bin/setup-dev-secrets` no longer generates the three RustFS secrets and rejects unknown entries in
-`.secrets/`, so a stale checkout fails loudly rather than silently. Clean up once:
+Nothing generates or validates `.secrets/` any more, so a stale checkout carries the three RustFS
+files inertly rather than failing on them. Nothing reads them either -- the Podman Secrets they
+backed are gone from `compose.yaml` -- but they are credential-shaped files with no owner. Clean up
+once:
 
 ```bash
 rm -f .secrets/rustfs-access-key .secrets/rustfs-secret-key .secrets/rustfs-rpc-secret

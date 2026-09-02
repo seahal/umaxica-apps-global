@@ -23,9 +23,10 @@ same Podman frontend network
 
 The gates are intentionally independent:
 
-1. **Private transport**: `bin/tunnel-origin-check` starts a pinned ephemeral curl container on the
-   exact compose `frontend` network used by the running `cloudflare-tunnel` container. It requests
-   `GET /health` through every private surface alias and requires HTTP `200`.
+1. **Private transport**: an ephemeral curl container on the same compose `frontend` network as the
+   running connector requests `GET /health/liveness` through every private surface alias and
+   requires HTTP `200`. No committed script performs this — `bin/` carries generated binstubs only —
+   so it is a manual procedure, written out under "Running the Transport Probe" below.
 2. **Host Authorization**: `ruby test/config/host_authorization_contract_test.rb` boots a separate
    Rails development process, constructs the middleware from the effective development settings,
    requests the non-excluded `/` path, accepts the private origins and the published site hostnames,
@@ -177,24 +178,59 @@ the Cloudflare VPC Service pointed at an unambiguous Rails service address on `f
 
 ## Running the Transport Probe
 
-Start `core` and whichever connector this session uses, then run:
+Run this from a host terminal: `podman` is not on `PATH` inside `core`. Start `core` and whichever
+connector this session uses first.
+
+Nothing is executed inside the cloudflared container — that image carries no shell, curl, or wget.
+Every request comes from a throwaway curl container attached to the connector's own network, so a
+`200` is evidence that the connector's network position reaches Rails, not merely that Rails is up.
+
+Take the connector's network from its compose labels rather than assuming a project name:
 
 ```bash
-bin/tunnel-origin-check
+cid=$(podman ps -q --filter label=com.docker.compose.service=cloudflare-tunnel)
+net=$(podman inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$cid")
 ```
 
-The probe does not execute anything inside the cloudflared container and does not require that image
-to contain a shell, curl, or wget. It discovers the connector container's actual compose-labeled
-`frontend` network and attaches `curlimages/curl:8.16.0` by immutable digest to that same network.
-Each line is explicitly labeled as transport evidence.
+Gate the connector before reading anything into an origin result. A container id alone proves
+nothing: `ps -q` still reports one between restarts, so a crash-looping connector otherwise reads as
+a Rails or DNS fault instead.
 
-The probe pulls its pinned image on first use. Failure to pull the image, resolve an alias, connect
-to Rails, or receive HTTP `200` makes the command fail nonzero.
+```bash
+podman inspect -f '{{.State.Status}} restarts={{.RestartCount}}' "$cid"   # want: running restarts=0
+podman run --rm --network "$net" docker.io/curlimages/curl:8.16.0 \
+  -sS --max-time 5 http://cloudflare-tunnel:2000/ready                    # want: {"status":200,...}
+```
 
-Before probing origins it checks that the connector is `running` with a `RestartCount` of zero and
-that cloudflared's own `/ready` endpoint answers `200`. A container id alone proves nothing: `ps -q`
-still reports one between restarts, so without those gates a crash-looping connector reads as a
-Rails or DNS fault instead.
+Then request `/health/liveness` through each private alias. Probe the liveness endpoint, not
+`/health`: `HealthCheckRendering#render_snapshot` answers `head :not_acceptable` unless the request
+negotiates HTML, so `/health` returns `406` to curl's default `Accept: */*`. `/health/liveness` is
+JSON-only and answers `200`. Leave `Host` to curl — it sends `<alias>:3000`, which is the form
+`config.hosts` carries for the private origins.
+
+The alias list is the `frontend` `aliases:` block of the `core` service in `compose.yaml`; that
+block is the single source, so read it there rather than copying the names into a second list that
+can drift:
+
+```bash
+aliases=$(podman inspect -f '{{range .NetworkSettings.Networks}}{{range .Aliases}}{{println .}}{{end}}{{end}}' \
+  "$(podman ps -q --filter label=com.docker.compose.service=core)" | grep '\.localhost$')
+
+for a in $aliases; do
+  podman run --rm --network "$net" docker.io/curlimages/curl:8.16.0 \
+    -sS -o /dev/null --max-time 5 -w "%{http_code} $a\n" "http://$a:3000/health/liveness"
+done
+```
+
+Every line must read `200`. Pin the curl tag, or a digest, rather than tracking `latest`.
+
+A `403` is Host Authorization, not transport: the alias resolved and Rails answered, but no
+`config.hosts` entry admits that name. Fix it in `config/environments/development.rb` or remove the
+alias; do not read it as a connector fault.
+
+The health endpoints are excluded from Host Authorization in production, so this gate proves
+transport only — see the note under "Invariants and Verification Gates" and run Gates 2 and 3 for
+the rest.
 
 ## External Checks
 

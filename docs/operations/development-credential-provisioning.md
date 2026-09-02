@@ -15,9 +15,12 @@ each item belongs, and who issues it.
 | `.env`            | repository root       | `.env`                      |
 | `.secrets/`       | repository root       | `.secrets/`                 |
 
-`.secrets/` is no longer written by anything in this repository -- development service passwords are
-generated inside the stack, as described below. The ignore rules stay so that a directory created by
-hand, or left over from an earlier checkout, can never enter a commit or a build context.
+`.secrets/` is not written by anything in this repository. Development service passwords are fixed
+literals declared inline in `compose.yaml`, as described below, and the Podman Secret machinery that
+once populated this directory was removed with the script that registered it. One optional workflow
+still reads a file there, created by hand: `docs/operations/remote-codex-over-tailscale.md`. The
+ignore rules stay so that a directory created that way, or left over from an earlier checkout, can
+never enter a commit or a build context.
 
 `config/credentials/development.yml.enc` and `config/credentials/test.yml.enc` are tracked, and are
 unreadable without the matching `.key` file. Committing a `.key` file defeats the encryption of the

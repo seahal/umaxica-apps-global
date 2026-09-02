@@ -32,8 +32,9 @@ ports: 3000:3000            ->  every machine on the LAN reaches it.  <- not all
 ```
 
 `compose.yaml` therefore keeps `BINDING: "0.0.0.0"` and `VITE_RUBY_HOST: "0.0.0.0"`. Do not "harden"
-those to `127.0.0.1`: that would break `cloudflare-tunnel`, `bin/tunnel-origin-check`, and every
-container-to-container call, while changing nothing about host exposure.
+those to `127.0.0.1`: that would break `cloudflare-tunnel`, the transport probe in
+`docs/operations/cloudflare-private-origin.md`, and every container-to-container call, while
+changing nothing about host exposure.
 
 ## Current Publications
 
@@ -113,9 +114,9 @@ curl --max-time 5 http://<host-lan-ip>:3000/health
 curl --max-time 5 http://<host-lan-ip>:3036/
 ```
 
-`bin/tunnel-origin-check` remains the gate for the container-network path, and Gate 4 of
-`docs/operations/cloudflare-private-origin.md` requires `podman compose config` to show no new host
-port publication.
+The container-network path is gated separately by the transport probe in
+`docs/operations/cloudflare-private-origin.md`, whose Gate 4 also requires `podman compose config`
+to show no new host port publication.
 
 ## Out of Scope
 

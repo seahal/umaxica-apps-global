@@ -88,6 +88,20 @@ worktree `up` would recreate the primary checkout's containers from an incomplet
 cloudflared's own `/ready` endpoint to answer before probing origins. A container id alone proved
 nothing: `ps -q` reports one between restarts.
 
+Superseded on 2026-09-01 as a description of the two scripts named above; the incident, its root
+cause, and the compose changes are unaffected.
+
+`bin/tunnel-origin-check` was deleted on 2026-08-30 (`cf448f19e`) and not replaced: `bin/` carries
+generated binstubs only. The check it performed survives as a manual host procedure under "Running
+the Transport Probe" in `docs/operations/cloudflare-private-origin.md`, including the two gates
+described in the paragraph above.
+
+`bin/tunnel-preflight` is not in this repository and, on inspection of every ref, never was. Read
+the paragraph describing it as a record of what the session intended rather than of what landed.
+`compose.custom.yaml`, which it pinned, has since been retired as well.
+
+See `notes/implementation/2026-09-01-bin-custom-script-removal.md`.
+
 Four assertions in `test/unit/security/development_container_contract_test.rb` were confirmed to
 fail against the exact pre-fix configuration and to pass after it.
 

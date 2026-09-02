@@ -126,6 +126,22 @@ and unverified checks plainly. Lead with the outcome; keep responses proportiona
 not add a separate verifier pass; delegate only independent, substantial work whose parallel
 execution outweighs re-establishing context.
 
+## Evidence
+
+Completed tests, validations, verifications, audits, security checks and
+performance checks leave a short record in `evidence/` when retaining the result
+is useful. Records describe work that was actually performed — never plans,
+intentions, or unverified claims. A check that could not be completed is
+recorded as such, with the reason and whatever was observed.
+
+- `evidence/` is flat; no subdirectories.
+- Only `.md` files.
+- `YYYY-MM-DD-<topic>.md`, ISO date, lowercase hyphenated topic.
+- No raw logs, screenshots, binaries, archives, dumps, generated reports or
+  other large artifacts. Summarize them, and cite the commands, identifiers,
+  hashes, measurements and excerpts that carry the result.
+- Enforced by `bin/rails test test/tooling/evidence_layout_test.rb`.
+
 ## Tool Compatibility
 
 - Claude Code reads this file via `CLAUDE.md` (`@AGENTS.md` import) — keep that file as the import
