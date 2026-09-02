@@ -322,6 +322,45 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"), captured[:host]
   end
 
+  test "base com revocation delegates with com host binding" do
+    captured = nil
+    result = RevocationResult.new(success: true)
+    host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
+
+    OidcTokenRevoker.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
+      post base_com_oauth_revocation_url(host: host),
+           params: {
+             token: "refresh",
+             client_id: "core-next-rp",
+             client_secret: "secret",
+             token_type_hint: "refresh_token",
+           }
+    end
+
+    assert_response :ok
+    assert_equal "refresh", captured[:token]
+    assert_equal "core-next-rp", captured[:client_id]
+    assert_equal host, captured[:host]
+  end
+
+  test "base com revocation returns unauthorized when the revoker fails" do
+    result = RevocationResult.new(success: false, error: "invalid_client", error_description: "bad secret")
+    host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
+
+    OidcTokenRevoker.stub(:call, ->(**) { result }) do
+      post base_com_oauth_revocation_url(host: host),
+           params: {
+             token: "refresh",
+             client_id: "core-next-rp",
+             client_secret: "wrong",
+           }
+    end
+
+    assert_response :unauthorized
+    assert_equal "invalid_client", response.parsed_body.fetch("error")
+    assert_equal "bad secret", response.parsed_body.fetch("error_description")
+  end
+
   test "sign revocation endpoint is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(

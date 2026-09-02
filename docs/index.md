@@ -8,6 +8,9 @@ Repository documents are separated by purpose.
 - `adr/` contains accepted architecture and design decisions, including rationale and tradeoffs.
 - `notes/` contains non-authoritative ADR-adjacent notes and implementation handoff notes.
 - `memos/` contains exploratory observations and rough analysis that do not affect implementation.
+- `evidence/` contains records of verification that was actually performed - what was checked, how,
+  what was observed, and what was concluded. Tests, validations, audits, security checks,
+  performance checks, migration verification, and defect reproduction belong here.
 
 Rules:
 
@@ -21,6 +24,10 @@ Rules:
 - Keep stable operational guidance out of `plans/`.
 - Record major accepted design decisions in `adr/`.
 - When a plan is implemented, update `docs/`.
+- Keep intentions out of `evidence/`: it records work that was performed, not work that is planned.
+  A check that could not be completed is recorded as such, with the reason and the partial result.
+  `evidence/` is flat, holds only `.md` files named `YYYY-MM-DD-<topic>.md`, and never holds raw
+  logs, screenshots, dumps, or other generated artifacts - summarize those in the record.
 - Do not document `safe_path_from_encoded_rt` as an approved helper. It is deprecated; if this term
   appears while updating docs, remove it or replace it with signed `ReturnTargetToken` handling.
 

@@ -847,8 +847,10 @@ services:
     # TUNNEL_TOKEN identifies and authenticates the remotely managed tunnel, so no tunnel
     # name, cert.pem, credentials JSON, or browser-login helper is needed in this project.
     #
-    # --metrics serves cloudflared's own /ready endpoint to the compose network so that
-    # `bin/tunnel-origin-check` can tell a connected tunnel apart from a restarting one.
+    # --metrics serves cloudflared's own /ready endpoint to the compose network, which is
+    # what tells a connected tunnel apart from a restarting one -- a container id alone does
+    # not. The transport probe in docs/operations/cloudflare-private-origin.md reads it, and
+    # so does incident triage (notes/implementation/2026-08-23-cloudflare-tunnel-restart-storm.md).
     # It publishes no host port.
     command: tunnel --protocol quic --metrics 0.0.0.0:2000 run
     environment:
