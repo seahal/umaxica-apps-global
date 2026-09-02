@@ -217,6 +217,28 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{\Adata:image/png;base64,}, inertia_props.fetch("qr_code_image")
   end
 
+  test "new refuses to start another authenticator once the limit is reached" do
+    @user.client_totp_credentials.destroy_all
+    Auth::App::Settings::TotpsController::MAX_TOTPS.times do |index|
+      ClientTotpCredential.create!(
+        user: @user,
+        private_key: ROTP::Base32.random_base32,
+        user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
+        title: "totp-#{index}",
+      )
+    end
+
+    with_prosopite_paused do
+      get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
+    end
+
+    assert_response :success
+    assert_equal I18n.t(
+      "session_limit.totp_limit_reached",
+      count: Auth::App::Settings::TotpsController::MAX_TOTPS,
+    ), response.body
+  end
+
   test "new allows bootstrap with zero unused usable recovery passcodes" do
     @user.client_totp_credentials.destroy_all
     @user.client_secret_credentials.destroy_all
@@ -238,15 +260,20 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
     with_mocked_totp do |secret_credential|
       get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
-      token = ROTP::TOTP.new(secret_credential).now
+      # TOTP codes are only valid for a 30-second window, so generation and the
+      # verifying request are pinned to the same instant -- otherwise a slow run can
+      # straddle a window boundary and turn a valid code invalid before it arrives.
+      freeze_time do
+        token = ROTP::TOTP.new(secret_credential).now
 
-      assert_difference("ClientTotpCredential.count", 1) do
-        assert_difference(-> { @user.reload.client_secret_credentials.count }, 9) do
-          post auth_app_settings_totps_url(ri: "jp"),
-               params: {
-                 user_totp_credential: { first_token: token },
-               },
-               headers: @headers
+        assert_difference("ClientTotpCredential.count", 1) do
+          assert_difference(-> { @user.reload.client_secret_credentials.count }, 9) do
+            post auth_app_settings_totps_url(ri: "jp"),
+                 params: {
+                   user_totp_credential: { first_token: token },
+                 },
+                 headers: @headers
+          end
         end
       end
     end
@@ -350,15 +377,22 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
-      token = ROTP::TOTP.new(secret_credential).now
       step_up_before = Time.current
 
-      assert_difference("ClientTotpCredential.count", 1) do
-        assert_difference(-> { @user.reload.client_secret_credentials.count }, 10) do
-          with_prosopite_paused do
-            post auth_app_settings_totps_url(ri: "jp"),
-                 params: { user_totp_credential: { first_token: token } },
-                 headers: @headers
+      # TOTP codes are only valid for a 30-second window, so the generation and the
+      # verifying request are pinned to the same instant -- otherwise the assertion
+      # under a slow run (e.g. line-coverage instrumentation) can straddle a window
+      # boundary and turn a valid code invalid before the request reaches it.
+      travel_to(step_up_before) do
+        token = ROTP::TOTP.new(secret_credential).now
+
+        assert_difference("ClientTotpCredential.count", 1) do
+          assert_difference(-> { @user.reload.client_secret_credentials.count }, 10) do
+            with_prosopite_paused do
+              post auth_app_settings_totps_url(ri: "jp"),
+                   params: { user_totp_credential: { first_token: token } },
+                   headers: @headers
+            end
           end
         end
       end
@@ -382,14 +416,16 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
         get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
       end
 
-      token = ROTP::TOTP.new(secret_credential).now
+      freeze_time do
+        token = ROTP::TOTP.new(secret_credential).now
 
-      assert_difference("ClientTotpCredential.count", 1) do
-        assert_difference(-> { @user.reload.client_secret_credentials.count }, 5) do
-          with_prosopite_paused do
-            post auth_app_settings_totps_url(ri: "jp"),
-                 params: { user_totp_credential: { first_token: token } },
-                 headers: @headers
+        assert_difference("ClientTotpCredential.count", 1) do
+          assert_difference(-> { @user.reload.client_secret_credentials.count }, 5) do
+            with_prosopite_paused do
+              post auth_app_settings_totps_url(ri: "jp"),
+                   params: { user_totp_credential: { first_token: token } },
+                   headers: @headers
+            end
           end
         end
       end
@@ -409,14 +445,16 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
-      token = ROTP::TOTP.new(secret_credential).now
+      freeze_time do
+        token = ROTP::TOTP.new(secret_credential).now
 
-      with_prosopite_paused do
-        post auth_app_settings_totps_url(ri: "jp"),
-             params: {
-               user_totp_credential: { first_token: token, title: "New TOTP" },
-             },
-             headers: @headers
+        with_prosopite_paused do
+          post auth_app_settings_totps_url(ri: "jp"),
+               params: {
+                 user_totp_credential: { first_token: token, title: "New TOTP" },
+               },
+               headers: @headers
+        end
       end
 
       created_totp = ClientTotpCredential.order(created_at: :desc).first
@@ -434,16 +472,18 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
         get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
       end
 
-      raw_token = ROTP::TOTP.new(secret_credential).now
-      pasted_token = "#{raw_token.first(3)} #{raw_token.last(3)}"
+      freeze_time do
+        raw_token = ROTP::TOTP.new(secret_credential).now
+        pasted_token = "#{raw_token.first(3)} #{raw_token.last(3)}"
 
-      assert_difference("ClientTotpCredential.count", 1) do
-        with_prosopite_paused do
-          post auth_app_settings_totps_url(ri: "jp"),
-               params: {
-                 user_totp_credential: { first_token: pasted_token, title: "Pasted TOTP" },
-               },
-               headers: @headers
+        assert_difference("ClientTotpCredential.count", 1) do
+          with_prosopite_paused do
+            post auth_app_settings_totps_url(ri: "jp"),
+                 params: {
+                   user_totp_credential: { first_token: pasted_token, title: "Pasted TOTP" },
+                 },
+                 headers: @headers
+          end
         end
       end
     end
@@ -502,15 +542,17 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       assert_predicate inertia_props.fetch("turnstile").fetch("site_key"), :present?
 
       TurnstileVerifierStub.challenge_response = { "success" => false }
-      token = ROTP::TOTP.new(secret_credential).now
+      freeze_time do
+        token = ROTP::TOTP.new(secret_credential).now
 
-      assert_no_difference("ClientTotpCredential.count") do
-        with_prosopite_paused do
-          post auth_app_settings_totps_url(ri: "jp"),
-               params: {
-                 user_totp_credential: { first_token: token, title: "Blocked TOTP" },
-               },
-               headers: @headers
+        assert_no_difference("ClientTotpCredential.count") do
+          with_prosopite_paused do
+            post auth_app_settings_totps_url(ri: "jp"),
+                 params: {
+                   user_totp_credential: { first_token: token, title: "Blocked TOTP" },
+                 },
+                 headers: @headers
+          end
         end
       end
     end
@@ -577,13 +619,15 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       end
 
       assert_response :success
-      first_code = ROTP::TOTP.new(secret_credential).now
+      freeze_time do
+        first_code = ROTP::TOTP.new(secret_credential).now
 
-      assert_difference("ClientTotpCredential.count", 1) do
-        with_prosopite_paused do
-          post auth_app_settings_totps_url(ri: "jp"),
-               params: { user_totp_credential: { first_token: first_code } },
-               headers: headers
+        assert_difference("ClientTotpCredential.count", 1) do
+          with_prosopite_paused do
+            post auth_app_settings_totps_url(ri: "jp"),
+                 params: { user_totp_credential: { first_token: first_code } },
+                 headers: headers
+          end
         end
       end
     end

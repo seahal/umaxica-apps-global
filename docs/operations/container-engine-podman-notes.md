@@ -134,5 +134,5 @@ chcon -Rt container_file_t podman/<service>/
 Run the stack with the developer overlay layered on the base compose file:
 
 ```bash
-podman compose -f compose.yaml -f compose.custom.yaml up
+podman compose -f compose.yaml up
 ```

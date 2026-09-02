@@ -12,10 +12,15 @@ require "yaml"
 class ComposeHostPortExposureTest < Minitest::Test
   REPOSITORY_ROOT = File.expand_path("../..", __dir__)
 
-  # Every Compose file that participates in a development `up`, plus the opt-in overlays.
+  # Every tracked Compose file that participates in a development `up`, plus the opt-in
+  # overlays. `.devcontainer/compose.override.yml` is where the Dev Container's own
+  # publications live, so it belongs here too. The gitignored `compose.override.yaml` is
+  # deliberately absent: it is optional, per-machine, and not present on a fresh clone.
   COMPOSE_FILES = %w(
     compose.yaml
-    compose.custom.yaml
+    compose.override.yaml.example
+    compose.remote-access.yaml
+    .devcontainer/compose.override.yml
     podman/fdw-poc/compose.fdw-poc.yml
     docker/fdw-poc/compose.fdw-poc.yml
   ).freeze
@@ -120,8 +125,10 @@ class ComposeHostPortExposureTest < Minitest::Test
     return {} unless File.exist?(path)
 
     # Compose interpolation (`${VAR:-default}`) is opaque to YAML but always sits inside a scalar,
-    # so plain parsing is enough to read the structure. `aliases: false` keeps a hostile anchor
-    # from expanding, and no Compose file here relies on YAML aliases.
-    YAML.safe_load_file(path, aliases: false) || {}
+    # so plain parsing is enough to read the structure. Aliases must be expanded: the second
+    # Cloudflare connector merges the first, and an unexpanded service would hide whatever it
+    # inherits from this contract. The inputs are tracked repository files, so there is no
+    # untrusted anchor to guard against.
+    YAML.safe_load_file(path, aliases: true) || {}
   end
 end

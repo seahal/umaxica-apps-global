@@ -57,6 +57,7 @@ require_relative "support/publishing_content_helper"
 require_relative "support/form_action_policy_helper"
 require_relative "support/fetch_metadata_defaults"
 require_relative "support/turnstile_verifier_stub"
+require_relative "support/outbound_http_stub"
 require_relative "support/login_cooldown_helper"
 require_relative "support/inertia_page_object"
 
@@ -262,33 +263,16 @@ module ActiveSupport
     include PublishingContentHelper
     include FormActionPolicyHelper
     include LoginCooldownHelper
+    include OutboundHttpStub
 
-    parallel_workers =
-      if ENV["COVERAGE"] == "true"
-        # `parallelize(workers: 1)` below cannot pin the run to one worker on its
-        # own: ActiveSupport::TestCase.parallelize reads ENV["PARALLEL_WORKERS"]
-        # in preference to its `workers:` argument. A surviving
-        # PARALLEL_WORKERS > 1 would therefore fork that many workers while
-        # ParallelTestDatabaseCloner.install! -- which returns early at
-        # workers <= 1 -- had prepared no per-worker clones and registered no
-        # after_fork_hook, leaving every worker on the same unprepared test
-        # database. Refuse the combination instead of running it.
-        requested_workers = ENV["PARALLEL_WORKERS"]
-        if requested_workers.present? && requested_workers != "1"
-          # rubocop:disable I18n/RailsI18n/DecorateString
-          raise ArgumentError,
-                "COVERAGE=true runs on a single test worker, but PARALLEL_WORKERS=#{requested_workers} " \
-                "is set and Rails gives the environment variable precedence. " \
-                "Unset PARALLEL_WORKERS, or set it to 1, for a coverage run."
-          # rubocop:enable I18n/RailsI18n/DecorateString
-        end
-
-        1
-      else
-        # Physical cores, not logical: measured on a 16C/32T host -- 32 workers
-        # lost more in fork + per-worker DB-clone overhead than they gained.
-        Integer(ENV.fetch("PARALLEL_WORKERS") { Concurrent.physical_processor_count.to_s }, 10)
-      end
+    # Physical cores, not logical: measured on a 16C/32T host -- 32 workers lost more in fork +
+    # per-worker DB-clone overhead than they gained.
+    #
+    # A coverage run uses the same workers as any other run. `.simplecov` sets
+    # `merge_subprocesses true`, so SimpleCov hooks `Process._fork` and each worker records and
+    # writes its own resultset for the parent to merge; before that setting existed the run had to
+    # be pinned to a single worker or the forked workers' coverage was lost.
+    parallel_workers = Integer(ENV.fetch("PARALLEL_WORKERS") { Concurrent.physical_processor_count.to_s }, 10)
     raise ArgumentError, "PARALLEL_WORKERS must be positive" unless parallel_workers.positive?
 
     fixtures :all

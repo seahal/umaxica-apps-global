@@ -171,6 +171,84 @@ module Auth::App::Up
       assert_includes response.body, I18n.t("sign.app.registration.telephone.update.invalid_code")
     end
 
+    test "create is refused while a verified telephone of the same number is locked out" do
+      user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
+      existing_telephone = ClientTelephone.create!(
+        user: user,
+        number: "+1234567801",
+        user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+        confirm_policy: "1",
+        confirm_using_mfa: "1",
+      )
+      existing_telephone.update!(locked_at: 10.minutes.from_now)
+
+      assert_no_difference("ClientTelephone.count") do
+        post auth_app_sign_up_telephone_url, params: {
+          user_telephone: {
+            raw_number: existing_telephone.number, confirm_policy: "1", confirm_using_mfa: "1",
+          },
+          "cf-turnstile-response": "test",
+        }
+      end
+
+      assert_response :too_many_requests
+      assert_equal I18n.t("sign.app.registration.email.create.otp_resend_too_soon"), response.body
+    end
+
+    test "create is refused while a pending sign-up telephone of the same number is locked out" do
+      user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
+      existing_telephone = ClientTelephone.create!(
+        user: user,
+        number: "+1234567802",
+        user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP,
+        confirm_policy: "1",
+        confirm_using_mfa: "1",
+      )
+      existing_telephone.update!(locked_at: 10.minutes.from_now)
+
+      assert_no_difference("ClientTelephone.count") do
+        post auth_app_sign_up_telephone_url, params: {
+          user_telephone: {
+            raw_number: existing_telephone.number, confirm_policy: "1", confirm_using_mfa: "1",
+          },
+          "cf-turnstile-response": "test",
+        }
+      end
+
+      assert_response :too_many_requests
+    end
+
+    test "create is refused when the creator reports the number rate limited under its own lock" do
+      rate_limited = SignAppUpTelephoneSignupCreator::Result.new(
+        status: :rate_limited, telephone: ClientTelephone.new, session_payload: nil,
+      )
+
+      SignAppUpTelephoneSignupCreator.stub(:call, rate_limited) do
+        post auth_app_sign_up_telephone_url, params: {
+          user_telephone: { raw_number: "+1234567803", confirm_policy: "1", confirm_using_mfa: "1" },
+          "cf-turnstile-response": "test",
+        }
+      end
+
+      assert_response :too_many_requests
+    end
+
+    test "create re-renders the telephone form when the creator rejects the record" do
+      raiser =
+        lambda do |**|
+          raise ActiveRecord::RecordInvalid, ClientTelephone.new
+        end
+
+      SignAppUpTelephoneSignupCreator.stub(:call, raiser) do
+        post auth_app_sign_up_telephone_url, params: {
+          user_telephone: { raw_number: "+1234567804", confirm_policy: "1", confirm_using_mfa: "1" },
+          "cf-turnstile-response": "test",
+        }
+      end
+
+      assert_response :unprocessable_content
+    end
+
     test "create shows identical user-facing response for existing and new telephones" do
       user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
       existing_telephone = ClientTelephone.create!(
@@ -708,6 +786,67 @@ module Auth::App::Up
 
       assert_response :success
       assert_not_includes response.body, I18n.t("errors.messages.taken")
+    end
+
+    test "resending the code for an already verified telephone answers without creating records" do
+      user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
+      existing_telephone = ClientTelephone.create!(
+        user: user,
+        number: "+1234567811",
+        user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+        confirm_policy: "1",
+        confirm_using_mfa: "1",
+      )
+
+      post auth_app_sign_up_telephone_url, params: {
+        user_telephone: {
+          raw_number: existing_telephone.number, confirm_policy: "1", confirm_using_mfa: "1",
+        },
+        "cf-turnstile-response": "test",
+      }
+
+      assert_response :redirect
+
+      assert_no_difference("ClientTelephone.count") do
+        post auth_app_sign_up_check_telephone_otp_url(ri: "jp")
+      end
+
+      assert_response :redirect
+      assert_includes response.location, "/sign/up/check/telephone/otp"
+
+      # The second resend lands inside the send cooldown and must be refused with the
+      # same message a real pending registration gets, so the two cannot be told apart.
+      post auth_app_sign_up_check_telephone_otp_url(ri: "jp")
+
+      assert_response :too_many_requests
+      assert_equal I18n.t("sign.app.registration.email.create.otp_resend_too_soon"), response.body
+    end
+
+    test "the code page for an already verified telephone stops answering once the window closes" do
+      user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
+      existing_telephone = ClientTelephone.create!(
+        user: user,
+        number: "+1234567812",
+        user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+        confirm_policy: "1",
+        confirm_using_mfa: "1",
+      )
+
+      post auth_app_sign_up_telephone_url, params: {
+        user_telephone: {
+          raw_number: existing_telephone.number, confirm_policy: "1", confirm_using_mfa: "1",
+        },
+        "cf-turnstile-response": "test",
+      }
+
+      assert_response :redirect
+
+      travel CommonOtp::OTP_EXPIRATION_MINUTES.minutes + 1.minute do
+        get auth_app_sign_up_check_telephone_otp_url(ri: "jp")
+      end
+
+      assert_response :redirect
+      assert_includes response.location, "/sign/up/telephone"
     end
 
     test "a code submitted against an already verified telephone never starts an account" do

@@ -64,6 +64,42 @@ class IdentityOneTimeRevealTest < ActiveSupport::TestCase
     end
   end
 
+  test "issue! refuses a missing actor session value or purpose" do
+    actor = clients(:one)
+
+    error =
+      assert_raises(ArgumentError) do
+        IdentityOneTimeReveal.issue!(
+          actor: nil, session_nonce: "session-1", value: "secret", purpose: "test.reveal",
+        )
+      end
+    assert_includes error.message, "actor is required"
+
+    error =
+      assert_raises(ArgumentError) do
+        IdentityOneTimeReveal.issue!(
+          actor: actor, session_nonce: "", value: "secret", purpose: "test.reveal",
+        )
+      end
+    assert_includes error.message, "session_nonce is required"
+
+    error =
+      assert_raises(ArgumentError) do
+        IdentityOneTimeReveal.issue!(
+          actor: actor, session_nonce: "session-1", value: "", purpose: "test.reveal",
+        )
+      end
+    assert_includes error.message, "value is required"
+
+    error =
+      assert_raises(ArgumentError) do
+        IdentityOneTimeReveal.issue!(
+          actor: actor, session_nonce: "session-1", value: "secret", purpose: "",
+        )
+      end
+    assert_includes error.message, "purpose is required"
+  end
+
   test "returns nil for malformed/invalid token signature" do
     actor = clients(:one)
     Rails.stub(:cache, @cache) do

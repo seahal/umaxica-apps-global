@@ -134,7 +134,16 @@ module Auth
               )
             end
 
-            redirect_to(sign_in_result.redirect_to.presence || auth_com_root_path, status: :see_other)
+            # The successful destination is the base corporate dashboard, a different host
+            # from this surface, so a bare `redirect_to` raises OpenRedirectError. Branch
+            # exactly as AuthenticationSequenceGate#redirect_to_sign_in_sequence! does:
+            # same-origin paths redirect directly, full URLs go through the jump gateway.
+            destination = sign_in_result.redirect_to.presence || auth_com_root_path
+            if destination.start_with?("/")
+              redirect_to(destination, allow_other_host: false, status: :see_other)
+            else
+              redirect_to_jump_url(destination, status: :see_other)
+            end
           end
 
           private
@@ -219,9 +228,17 @@ module Auth
             end
           end
 
+          # Slice before permitting, as the app surface does: `permit` on the whole
+          # parameter set reports every unrelated key (`ri`, and anything else the
+          # request carries) as unpermitted, which raises under the dev and test
+          # setting for `action_on_unpermitted_parameters`.
           def update_pass_code_params
-            params.permit(visitor_email: [:pass_code], user_email: [:pass_code]).fetch(:visitor_email, {}).presence ||
-              params.permit(visitor_email: [:pass_code], user_email: [:pass_code]).fetch(:user_email, {}).presence || {}
+            permitted = params
+              .slice(:visitor_email, :user_email)
+              .permit(visitor_email: [:pass_code], user_email: [:pass_code])
+            permitted.fetch(:visitor_email, {}).presence || permitted.fetch(:user_email, {}).presence || {}
+          rescue ActionController::ParameterMissing
+            {}
           end
 
           def process_email_authentication(normalized_address)

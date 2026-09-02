@@ -128,6 +128,47 @@ module Auth::App::In
       assert_redirected_to auth_app_sign_in_challenge_path(ri: "jp")
     end
 
+    test "create sends the client back to the chooser when the credential payload is not json" do
+      travel(31.seconds) { establish_pending_mfa_via_secret_credential! }
+      get new_auth_app_sign_in_challenge_passkey_path(ri: "jp")
+      challenge_id = session[:passkey_challenges].keys.first
+
+      post auth_app_sign_in_challenge_passkey_path(ri: "jp"), params: {
+        mfa_passkey_form: {
+          challenge_id: challenge_id,
+          credential_json: "{not-json",
+        },
+      }
+
+      assert_response :see_other
+      assert_redirected_to auth_app_sign_in_challenge_path(ri: "jp")
+    end
+
+    test "create sends the client back to the chooser when the credential belongs to another account" do
+      other_user = Client.create!(mfa_level_enabled: true)
+      travel(31.seconds) { establish_pending_mfa_via_secret_credential! }
+      get new_auth_app_sign_in_challenge_passkey_path(ri: "jp")
+      challenge_id = session[:passkey_challenges].keys.first
+      @passkey.update!(user_id: other_user.id)
+
+      post auth_app_sign_in_challenge_passkey_path(ri: "jp"), params: {
+        mfa_passkey_form: {
+          challenge_id: challenge_id,
+          credential_json: {
+            id: @passkey.webauthn_id,
+            type: "public-key",
+            response: { clientDataJSON: "d",
+                        authenticatorData: "d",
+                        signature: "d",
+                        userHandle: other_user.public_id, },
+          }.to_json,
+        },
+      }
+
+      assert_response :see_other
+      assert_redirected_to auth_app_sign_in_challenge_path(ri: "jp")
+    end
+
     test "create verifies passkey and finalizes login with pending_mfa" do
       travel 31.seconds do
         establish_pending_mfa_via_secret_credential!

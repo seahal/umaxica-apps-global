@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "json"
-require "net/http"
 
 module ExternalAuthentication
   class AppleNotificationJwksCache
@@ -11,6 +10,8 @@ module ExternalAuthentication
     JWKS_URI = URI("https://appleid.apple.com/auth/keys")
     CACHE_TTL = 1.hour
     MAXIMUM_RESPONSE_BYTES = 64.kilobytes
+    OPEN_TIMEOUT = 2
+    READ_TIMEOUT = 5
 
     def initialize(fetcher: nil)
       @fetcher = fetcher || method(:fetch_jwks)
@@ -32,22 +33,21 @@ module ExternalAuthentication
     end
 
     def fetch_jwks
-      response =
-        Net::HTTP.start(
-          JWKS_URI.host,
-          JWKS_URI.port,
-          use_ssl: true,
-          open_timeout: 2,
-          read_timeout: 5,
-        ) { |http| http.request(Net::HTTP::Get.new(JWKS_URI)) }
-      raise FetchError unless response.is_a?(Net::HTTPSuccess)
+      connection = OutboundHttp::Connection.build(
+        url: JWKS_URI,
+        open_timeout: OPEN_TIMEOUT,
+        read_timeout: READ_TIMEOUT,
+        require_https: true,
+      )
+      response = connection.get(JWKS_URI)
+      raise FetchError unless response.success?
       raise FetchError if response.body.to_s.bytesize > MAXIMUM_RESPONSE_BYTES
 
       jwks = JSON.parse(response.body)
       raise FetchError unless jwks.is_a?(Hash) && jwks["keys"].is_a?(Array)
 
       jwks
-    rescue JSON::ParserError, SocketError, SystemCallError, Timeout::Error, TypeError
+    rescue JSON::ParserError, TypeError, *OutboundHttp::Connection::NETWORK_ERRORS
       raise FetchError
     end
   end

@@ -42,7 +42,7 @@ bin/rails assets:clobber        # Remove compiled assets
 
 ## Local Setup
 
-- Docker and Docker Compose
+- Docker Compose, or rootless Podman with `podman-compose`
 - Ruby `4.0.x`
 - Bundler
 - Node.js `24.19.0` (Active LTS)
@@ -74,16 +74,30 @@ rebuilding the container.
 
 Corepack is not used, not installed in the image, and no `corepack enable` step is required.
 
-Start the local stack, install dependencies, and boot the app:
+A fresh clone needs no local file. Start the standard stack, install dependencies, and boot
+the app:
 
 ```bash
+git clone https://github.com/seahal/umaxica-apps-jit-global.git
+cd umaxica-apps-jit-global
+
+# creating a local override is NOT required
+docker compose config     # resolves as-is
+
 docker compose up
 bundle install
 pnpm install
 bin/setup
 ```
 
-`docker compose up` starts the `core` service with `bin/dev`. The PostgreSQL services use Compose
+`compose.yaml` is the complete standard environment. `compose.override.yaml` is an
+**optional**, gitignored, per-machine override that nothing creates for you — see
+`compose.override.yaml.example` and
+[Dev Containers CLI startup on rootless Podman](docs/operations/devcontainer-cli-podman-startup.md#the-compose-file-contract).
+The preferred way in is `Dev Containers: Reopen in Container`.
+
+`core` runs `sleep infinity` and is the workspace container; start the Rails processes with
+`bin/dev` inside it. The PostgreSQL services use Compose
 environment variables instead of inline fixed credentials:
 
 ```bash

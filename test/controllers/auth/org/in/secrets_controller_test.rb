@@ -155,6 +155,40 @@ class Auth::Org::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
     )
   end
 
+  test "create is refused when the challenge verification fails" do
+    TurnstileVerifierStub.challenge_response = { "success" => false }
+
+    post auth_org_sign_in_secret_url(ri: "jp"),
+         params: {
+           secret_credential_login_form: {
+             identifier: @staff.public_id.downcase,
+             secret_credential_value: @raw_secret_credential,
+           },
+           "cf-turnstile-response": "test_token",
+         }
+
+    assert_response :unprocessable_content
+    assert_nil @secret_credential.reload.last_used_at
+  end
+
+  test "an unexpected failure while verifying the secret credential is reported without leaking the cause" do
+    exploding = ->(*) { raise IOError, "verifier unavailable" }
+
+    OperatorSecretCredential.stub(:allowed_for_secret_credential_sign_in, exploding) do
+      post auth_org_sign_in_secret_url(ri: "jp"),
+           params: {
+             secret_credential_login_form: {
+               identifier: @staff.public_id.downcase,
+               secret_credential_value: @raw_secret_credential,
+             },
+             "cf-turnstile-response": "test_token",
+           }
+    end
+
+    assert_response :unprocessable_content
+    assert_not_includes response.body, "verifier unavailable"
+  end
+
   test "create rejects blank form" do
     post auth_org_sign_in_secret_url(ri: "jp"),
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }

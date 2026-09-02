@@ -22,7 +22,15 @@ services:
     # Relative paths in compose files resolve against the project directory
     # (the dir holding the first -f file), so `.` is the repo root.
     # Pin the MCS level instead of letting SELinux allocate a fresh category
-    # pair per container. The grok-build feature's onCreateCommand runs
+    # pair per container.
+    #
+    # Kept after the grok-build feature that first required it was removed: the
+    # same failure returns for ANY host path a container stamps with its own
+    # categories and a later container has to read, and every bind below uses
+    # `:Z` (private relabel), which is exactly that shape. Dropping the pin would
+    # make each recreate reshuffle the categories on the workspace bind.
+    #
+    # The original case, for the record: the grok-build feature's onCreateCommand ran
     # `install -d` over its bind-mounted `~/.grok`, and coreutils `install`
     # applies the default SELinux context, so each successful run stamped that
     # container's categories onto the host directory — and the next container,
@@ -32,7 +40,9 @@ services:
     # working across recreates. MCS confinement itself is unchanged; only the
     # category allocation stops being random. `label=disable` would also fix it,
     # but this file deliberately uses per-mount `:Z` rather than switching label
-    # enforcement off, so keep the weaker change.
+    # enforcement off, so keep the weaker change. (umaxica-apps-edge makes the
+    # opposite call for a different reason: its 17 binds carry no `:z`/`:Z` at
+    # all, so there is nothing there for a pinned level to keep consistent.)
     security_opt:
       - label=level:s0:c101,c202
     volumes:
@@ -87,5 +97,5 @@ services:
     container_name: global-devcontainer-tempo
   grafana:
     container_name: global-devcontainer-grafana
-  # cloudflare-tunnel is defined in compose.custom.yaml (repo root); see
-  # docs/operations/cloudflare-private-origin.md.
+  # cloudflare-tunnel is defined in compose.yaml behind the `tunnel` profile, so a
+  # plain `up` never starts it; see docs/operations/cloudflare-private-origin.md.

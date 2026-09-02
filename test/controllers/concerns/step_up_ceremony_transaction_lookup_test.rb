@@ -13,6 +13,11 @@ class StepUpCeremonyTransactionLookupTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   class Harness
+    # Mirror the production composition: every verification base controller
+    # (auth/app, auth/com, auth/org) includes the session store before the
+    # lifecycle, and the lifecycle's transaction lookup reads
+    # `acme_step_up_completion_state` from the store.
+    include ::SignVerificationStepUpSessionStore
     include ::SignVerificationStepUpLifecycle
 
     attr_accessor :session, :actor_ref, :token_public_id, :step_up_session

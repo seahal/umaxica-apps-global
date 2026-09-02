@@ -63,4 +63,14 @@ class ProblemTypeTest < ActiveSupport::TestCase
     assert_equal :authentication_required, ProblemType.for_status(401).slug
     assert_equal :authorization_denied, ProblemType.for_status(403).slug
   end
+
+  test "two references to the same registered type hash alike so they deduplicate in a Set" do
+    not_found = ProblemType.fetch(:not_found)
+    same = ProblemType.fetch(:not_found)
+    other = ProblemType.fetch(:rate_limited)
+
+    assert_equal not_found.hash, same.hash
+    assert_not_equal not_found.hash, other.hash
+    assert_equal 2, Set[not_found, same, other].size
+  end
 end

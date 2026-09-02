@@ -128,6 +128,65 @@ class Auth::Com::Sign::In::SecretsControllerTest
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
 
+  test "create rejects an identifier that is neither an email address nor a telephone number" do
+    post auth_com_sign_in_secret_url(ri: "jp"),
+         params: {
+           secret_credential_login_form: {
+             identifier: "not-an-identifier",
+             secret_credential_value: @raw_secret_credential,
+           },
+           "cf-turnstile-response": "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :unprocessable_content
+  end
+
+  test "create is refused when the visitor already holds a restricted session at the limit" do
+    VisitorToken.create!(
+      visitor: @visitor,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+      skip_session_limit_check: true,
+    )
+    VisitorToken.create!(
+      visitor: @visitor,
+      visitor_token_status_id: VisitorTokenStatus::RESTRICTED,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+    )
+
+    post auth_com_sign_in_secret_url(ri: "jp"),
+         params: {
+           secret_credential_login_form: {
+             identifier: @visitor.visitor_emails.first.address,
+             secret_credential_value: @raw_secret_credential,
+           },
+           "cf-turnstile-response": "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :forbidden
+  end
+
+  test "an unexpected failure while verifying the secret credential is reported without leaking the cause" do
+    exploding = ->(*) { raise IOError, "verifier unavailable" }
+
+    VisitorSecretCredential.stub(:allowed_for_secret_credential_sign_in, exploding) do
+      post auth_com_sign_in_secret_url(ri: "jp"),
+           params: {
+             secret_credential_login_form: {
+               identifier: @visitor.visitor_emails.first.address,
+               secret_credential_value: @raw_secret_credential,
+             },
+             "cf-turnstile-response": "test_token",
+           },
+           headers: { "Host" => @host }
+    end
+
+    assert_response :unprocessable_content
+    assert_not_includes response.body, "verifier unavailable"
+  end
+
   test "create rejects an unknown identifier without disclosing whether it exists" do
     post auth_com_sign_in_secret_url(ri: "jp"),
          params: {

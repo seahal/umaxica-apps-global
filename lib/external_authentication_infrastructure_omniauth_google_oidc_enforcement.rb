@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "json"
-require "net/http"
 require "securerandom"
 require "active_support/security_utils"
 
@@ -12,6 +11,7 @@ module ExternalAuthenticationInfrastructureOmniauthGoogleOidcEnforcement
   JWKS_URI = URI("https://www.googleapis.com/oauth2/v3/certs")
   JWKS_CACHE_KEY = "external_authentication/google_oidc/jwks"
   JWKS_CACHE_TTL = 1.hour
+  JWKS_TIMEOUT = 3
   MAX_TOKEN_AGE = 10.minutes
   CLOCK_SKEW = 60.seconds
 
@@ -94,23 +94,22 @@ module ExternalAuthenticationInfrastructureOmniauthGoogleOidcEnforcement
   end
 
   def fetch_google_jwks
-    request = Net::HTTP::Get.new(JWKS_URI)
-    response =
-      Net::HTTP.start(
-        JWKS_URI.host,
-        JWKS_URI.port,
-        use_ssl: true,
-        open_timeout: 3,
-        read_timeout: 3,
-        write_timeout: 3,
-      ) { |http| http.request(request) }
-    raise JWT::DecodeError, "Google JWKS fetch failed" unless response.is_a?(Net::HTTPSuccess)
+    connection =
+      OutboundHttp::Connection.build(
+        url: JWKS_URI,
+        open_timeout: JWKS_TIMEOUT,
+        read_timeout: JWKS_TIMEOUT,
+        write_timeout: JWKS_TIMEOUT,
+        require_https: true,
+      )
+    response = connection.get(JWKS_URI)
+    raise JWT::DecodeError, "Google JWKS fetch failed" unless response.success?
 
     jwks = JSON.parse(response.body)
     raise JWT::DecodeError, "Google JWKS has an invalid shape" unless jwks.is_a?(Hash) && jwks["keys"].is_a?(Array)
 
     jwks
-  rescue JSON::ParserError, Timeout::Error, SocketError, SystemCallError, URI::InvalidURIError => e
+  rescue JSON::ParserError, URI::InvalidURIError, *OutboundHttp::Connection::NETWORK_ERRORS => e
     raise JWT::DecodeError, e.class.name
   end
 end

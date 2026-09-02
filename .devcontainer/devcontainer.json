@@ -1,12 +1,21 @@
 {
   "name": "umaxica-apps-global-dc",
-  "dockerComposeFile": ["../compose.yaml", "./compose.override.yml", "../compose.custom.yaml"],
+  // Both entries are TRACKED files, so this configuration resolves on a fresh
+  // clone with no local file created. The Dev Containers CLI passes each entry
+  // to Compose as `-f`, so an entry a clone does not contain fails the whole
+  // `up` at configuration resolution -- and a tracked file that needs a
+  // `${VAR:?}` fails the same way on a machine without the variable, which is
+  // how the retired `../compose.custom.yaml` used to break a clean checkout.
+  //
+  // That same `-f` suppresses Compose's auto-discovery of the optional
+  // `compose.override.yaml`, so a developer's local override applies to a bare
+  // `docker compose`, not here.
+  "dockerComposeFile": ["../compose.yaml", "./compose.override.yml"],
   "service": "core",
   "remoteUser": "global",
   "containerUser": "global",
   "workspaceFolder": "/home/global/workspace",
   "overrideCommand": false,
-  "postCreateCommand": "bundle install && pnpm install && bin/rails db:prepare",
   "forwardPorts": [3000, 3036, 5050],
   "remoteEnv": {
     "EDITOR": "code --wait --reuse-window",
@@ -26,13 +35,11 @@
         "rubocop.vscode-rubocop",
         "openai.chatgpt",
         "anthropic.claude-code",
-        "anthropic.claude-code",
         "-sorbet.sorbet-vscode-extension",
         "-dbaeumer.vscode-eslint",
         "-esbenp.prettier-vscode",
         "-eamodio.gitlens",
         "-KoichiSasada.vscode-rdbg",
-        "-sorbet.sorbet-vscode-extension",
         "-GitHub.copilot",
         "-GitHub.copilot-chat"
       ],

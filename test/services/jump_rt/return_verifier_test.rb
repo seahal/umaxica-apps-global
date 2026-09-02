@@ -4,6 +4,8 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class JumpRtReturnVerifierTest < ActiveSupport::TestCase
+  JWKS_URL = "https://jump.umaxica.net/.well-known/jwks.json"
+
   self.fixture_table_names = []
 
   setup do
@@ -285,34 +287,31 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
 
   test "fetch_jwks parses a successful bounded response without network access" do
     verifier = build_verifier
-    response = stub_http_success({ keys: [@public_jwk] }.to_json)
-    http = Object.new
-    http.define_singleton_method(:get) { |_path| response }
-    start = ->(*, &block) { block.call(http) }
+    stubs = stub_jwks { [200, {}, { keys: [@public_jwk] }.to_json] }
 
-    verifier.stub(:jwks_url, "https://jump.umaxica.net/.well-known/jwks.json") do
-      Net::HTTP.stub(:start, start) do
+    verifier.stub(:jwks_url, JWKS_URL) do
+      stub_outbound_http(stubs) do
         assert_equal({ "keys" => [@public_jwk] }, verifier.send(:fetch_jwks))
       end
     end
+
+    stubs.verify_stubbed_calls
   end
 
-  test "fetch_jwks normalizes transport and response failures" do
+  test "fetch_jwks rejects a plaintext jwks url before making a request" do
     verifier = build_verifier
 
     verifier.stub(:jwks_url, "http://jump.umaxica.net/.well-known/jwks.json") do
       assert_raises(JWT::DecodeError) { verifier.send(:fetch_jwks) }
     end
+  end
 
-    invalid_json = stub_http_success("not-json")
-    http = Object.new
-    http.define_singleton_method(:get) { |_path| invalid_json }
-    start = ->(*, &block) { block.call(http) }
-    verifier.stub(:jwks_url, "https://jump.umaxica.net/.well-known/jwks.json") do
-      Net::HTTP.stub(:start, start) do
-        assert_raises(JWT::DecodeError) { verifier.send(:fetch_jwks) }
-      end
-    end
+  test "fetch_jwks normalizes response and transport failures" do
+    assert_jwks_decode_error { [200, {}, "not-json"] }
+    assert_jwks_decode_error { [502, {}, "upstream unavailable"] }
+    assert_jwks_decode_error { [200, {}, "x" * (JumpRtReturnVerifier::MAX_JWKS_BYTES + 1)] }
+    assert_jwks_decode_error { raise Faraday::TimeoutError, "read timeout" }
+    assert_jwks_decode_error { raise Faraday::ConnectionFailed, "connection refused" }
   end
 
   private
@@ -326,13 +325,21 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
     )
   end
 
-  def stub_http_success(body)
-    Class.new do
-      attr_reader :body
+  def stub_jwks(&)
+    Faraday::Adapter::Test::Stubs.new { |stub| stub.get(JWKS_URL, &) }
+  end
 
-      define_method(:initialize) { |value| @body = value }
-      define_method(:is_a?) { |klass| klass == Net::HTTPSuccess || super(klass) }
-    end.new(body)
+  def assert_jwks_decode_error(&)
+    verifier = build_verifier
+    stubs = stub_jwks(&)
+
+    verifier.stub(:jwks_url, JWKS_URL) do
+      stub_outbound_http(stubs) do
+        assert_raises(JWT::DecodeError) { verifier.send(:fetch_jwks) }
+      end
+    end
+
+    stubs.verify_stubbed_calls
   end
 
   def verify(token)

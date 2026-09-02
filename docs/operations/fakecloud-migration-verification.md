@@ -14,31 +14,24 @@ Everything here is mechanical. No design decisions are outstanding.
 `bin/`, `.devcontainer/`, and `.github/` are mounted `read_only: true` into `core` (see
 `.devcontainer/compose.override.yml`), so these could not be written from inside it.
 
-> **`podman compose up` fails until these are applied.** `compose.yaml` no longer declares the
-> `dev_rustfs_*` external secrets, but `bin/setup-dev-secrets` still registers them, and
-> `.devcontainer/compose.override.yml` still overrides a `rustfs` service that no longer exists.
+> **All three edits have since been applied and Part 1 is closed.** 1.2 and 1.3 landed with the
+> fakecloud consolidation (`64f66841b`, 2026-08-31). 1.1 was resolved differently: the script it
+> asked to edit was deleted outright, along with the Podman Secret machinery it registered, so
+> there is nothing left to patch. The steps are kept below as the record of what the migration
+> required; do not apply them.
 
-### 1.1 `bin/setup-dev-secrets`
+### 1.1 `bin/setup-dev-secrets` — resolved by deleting the script
 
-Remove the three RustFS entries from the `generated` map:
+The edit described here was never applied. `compose.yaml` declares no `secrets:` block and no
+service consumes a `dev_*` secret, `devcontainer.json` declares no `initializeCommand`, and the
+script was therefore orphaned; it was removed rather than corrected. Development service passwords
+are fixed literals in `compose.yaml` (`docs/operations/development-credential-provisioning.md`).
 
-```diff
-   [dev_flipper_ui_password]=flipper-ui-password
--  [dev_rustfs_access_key]=rustfs-access-key
--  [dev_rustfs_secret_key]=rustfs-secret-key
--  [dev_rustfs_rpc_secret]=rustfs-rpc-secret
-   [dev_tinyrdm_admin_password]=tinyrdm-admin-password
-```
+The one file it created that something still reads is `.secrets/codex_authorized_keys`, whose bind
+mount in `compose.remote-access.yaml` needs a file to exist. `docs/operations/remote-codex-over-tailscale.md`
+already documents creating it by hand as step 1 of enrolment.
 
-and drop them from the `allowed` regex on the following line:
-
-```diff
--allowed='^(postgres-writer|postgres-reader|postgres-replication|email-hmac-salt|telephone-hmac-salt|enforcement-(app|com|org)-hmac|flipper-ui-password|rustfs-(access-key|secret-key|rpc-secret)|tinyrdm-admin-password|grafana-admin-password|codex_authorized_keys)$'
-+allowed='^(postgres-writer|postgres-reader|postgres-replication|email-hmac-salt|telephone-hmac-salt|enforcement-(app|com|org)-hmac|flipper-ui-password|tinyrdm-admin-password|grafana-admin-password|codex_authorized_keys)$'
-```
-
-Dropping them from `allowed` is deliberate: a stale `.secrets/rustfs-*` file then fails the script
-loudly instead of being silently ignored. Clean up once per developer machine:
+Stale local state from the RustFS era is inert but worth clearing once per developer machine:
 
 ```bash
 rm -f .secrets/rustfs-access-key .secrets/rustfs-secret-key .secrets/rustfs-rpc-secret
@@ -86,7 +79,7 @@ Static checks only, all run inside `core`:
 
 - All six Compose files parse as YAML.
 - No dangling `depends_on`, secret, or volume reference across the merged `compose.yaml` +
-  `compose.override.yml` + `compose.custom.yaml`; no orphaned volume or secret.
+  `.devcontainer/compose.override.yml`; no orphaned volume or secret.
 - `bin/rails test` — 10401 runs, 3 failures, each shown to be pre-existing or environmental:
   `DevelopmentContainerContractTest#test_the_Dev_Container_loads_only_the_two_repository_Compose_files`
   (proven pre-existing by stashing the test file; it reads `devcontainer.json` from the git index),
@@ -116,7 +109,7 @@ Run on a machine that can rebuild. Record failures here rather than deleting the
 
 ### Compose
 
-- [ ] `podman compose -f compose.yaml -f compose.custom.yaml config` succeeds (with
+- [ ] `podman compose -f compose.yaml config` succeeds (with
       `PODMAN_COMPOSE_PROVIDER` set as `docs/operations/container-engine-podman-notes.md` requires)
 - [ ] `docker compose config` succeeds — syntax compatibility only, Docker is not a supported engine
 - [ ] `podman compose config` still lists all five observability services (they are no longer

@@ -461,13 +461,13 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - name: Format check (oxfmt)
-        run: pnpm -s run format:check
+        run: pnpm --loglevel silent run format:check
       - name: Lint (oxlint)
-        run: pnpm -s run lint
+        run: pnpm --loglevel silent run lint
       - name: Typecheck (tsc)
-        run: pnpm -s run typecheck
+        run: pnpm --loglevel silent run typecheck
       - name: Test (vitest, with coverage)
-        run: pnpm -s run test:coverage
+        run: pnpm --loglevel silent run test:coverage
       - name: Upload JavaScript coverage
         if: always()
         uses: actions/upload-artifact@v6.0.0

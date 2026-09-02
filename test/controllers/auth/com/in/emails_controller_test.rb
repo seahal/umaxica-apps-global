@@ -163,6 +163,153 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :unprocessable_content
   end
 
+  test "get edit renders the code page from the address held in session for an unknown address" do
+    post auth_com_sign_in_email_url(ri: "jp"),
+         params: {
+           user_email: { address: "unknown-visitor-#{SecureRandom.hex(4)}@example.com" },
+           "cf-turnstile-response": "test",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :redirect
+    assert_nil session[:user_email_authentication_id]
+    assert_predicate session[:user_email_authentication_address], :present?
+
+    get edit_auth_com_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_response :success
+    assert_equal "auth/com/sign/in/emails/edit", inertia_component
+    assert_predicate inertia_props.fetch("resend").fetch("state"), :present?
+  end
+
+  test "get edit returns to the address page when the stored email no longer has a live code" do
+    visitor = create_verified_visitor_with_email(email_address: "stale-otp-#{SecureRandom.hex(4)}@example.com")
+    email = visitor.visitor_emails.last
+
+    post auth_com_sign_in_email_url(ri: "jp"),
+         params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
+         headers: { "Host" => @host }
+
+    assert_response :redirect
+    assert_equal email.id, session[:user_email_authentication_id]
+
+    email.store_otp(ROTP::Base32.random_base32, 12_345, 1.minute.ago.to_i)
+
+    get edit_auth_com_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_response :redirect
+    assert_redirected_to %r{/sign/in/email/new}
+  end
+
+  test "post create is refused while the record-level otp cooldown is still running" do
+    visitor = create_verified_visitor_with_email(email_address: "otp-cooldown-#{SecureRandom.hex(4)}@example.com")
+    email = visitor.visitor_emails.last
+    email.update!(otp_last_sent_at: Time.current)
+
+    post auth_com_sign_in_email_url(ri: "jp"),
+         params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
+         headers: { "Host" => @host }
+
+    assert_response :too_many_requests
+    assert_equal I18n.t("sign.app.authentication.email.create.cooldown"), response.body
+  end
+
+  test "post create is refused when the visitor already holds a restricted session at the limit" do
+    visitor = create_verified_visitor_with_email(email_address: "limit-#{SecureRandom.hex(4)}@example.com")
+    email = visitor.visitor_emails.last
+    VisitorToken.create!(
+      visitor: visitor,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+      skip_session_limit_check: true,
+    )
+    VisitorToken.create!(
+      visitor: visitor,
+      visitor_token_status_id: VisitorTokenStatus::RESTRICTED,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+    )
+
+    assert_no_difference -> { ActionMailer::Base.deliveries.count } do
+      post auth_com_sign_in_email_url(ri: "jp"),
+           params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
+           headers: { "Host" => @host }
+    end
+
+    assert_response :forbidden
+    assert_equal I18n.t("session_limit.login_limit_exceeded"), response.body
+  end
+
+  test "patch update with a valid pass code signs the visitor in and clears the email session" do
+    visitor = create_verified_visitor_with_email(email_address: "com-otp-#{SecureRandom.hex(4)}@example.com")
+    email = visitor.visitor_emails.last
+
+    post auth_com_sign_in_email_url(ri: "jp"),
+         params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
+         headers: { "Host" => @host }
+
+    assert_response :redirect
+    assert_equal email.id, session[:user_email_authentication_id]
+
+    otp_private_key = ROTP::Base32.random_base32
+    otp_counter = 12_345
+    email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
+
+    patch auth_com_sign_in_email_url(ri: "jp"),
+          params: { visitor_email: { pass_code: ROTP::HOTP.new(otp_private_key).at(otp_counter).to_s } },
+          headers: { "Host" => @host }
+
+    assert_response :see_other
+    assert_nil session[:user_email_authentication_id]
+    assert_nil session[:user_email_authentication_address]
+    assert_predicate email.reload, :otp_expired?
+  end
+
+  test "patch update with a malformed pass code re-renders the code page" do
+    visitor = create_verified_visitor_with_email(email_address: "com-bad-#{SecureRandom.hex(4)}@example.com")
+    email = visitor.visitor_emails.last
+
+    post auth_com_sign_in_email_url(ri: "jp"),
+         params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
+         headers: { "Host" => @host }
+
+    assert_response :redirect
+
+    email.store_otp(ROTP::Base32.random_base32, 12_345, 12.minutes.from_now.to_i)
+
+    patch auth_com_sign_in_email_url(ri: "jp"),
+          params: { visitor_email: { pass_code: "not-a-code" } },
+          headers: { "Host" => @host }
+
+    assert_response :unprocessable_content
+    assert_equal "auth/com/sign/in/emails/edit", inertia_component
+    assert_equal email.id, session[:user_email_authentication_id]
+  end
+
+  test "patch update with a wrong pass code counts the attempt and re-renders the code page" do
+    visitor = create_verified_visitor_with_email(email_address: "com-wrong-#{SecureRandom.hex(4)}@example.com")
+    email = visitor.visitor_emails.last
+
+    post auth_com_sign_in_email_url(ri: "jp"),
+         params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
+         headers: { "Host" => @host }
+
+    assert_response :redirect
+
+    otp_private_key = ROTP::Base32.random_base32
+    otp_counter = 12_345
+    email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
+    wrong_code = ROTP::HOTP.new(otp_private_key).at(otp_counter + 1).to_s
+
+    patch auth_com_sign_in_email_url(ri: "jp"),
+          params: { visitor_email: { pass_code: wrong_code } },
+          headers: { "Host" => @host }
+
+    assert_response :unprocessable_content
+    assert_equal "auth/com/sign/in/emails/edit", inertia_component
+    assert_equal 1, email.reload.otp_attempts_count
+    assert_equal email.id, session[:user_email_authentication_id]
+  end
+
   private
 end
 

@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-require "net/http"
-
 # Checks everything about the org Entra sign-in that can be checked without a
 # browser, so a failed live smoke test points at one cause instead of the whole
 # ceremony. Administrator tooling, run through `rake entra_identity:preflight`.
@@ -23,6 +21,10 @@ class OrgEntraSignInPreflight < ApplicationService
 
   UUID_FORMAT = /\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i
   private_constant :UUID_FORMAT
+
+  OPEN_TIMEOUT = 2
+  READ_TIMEOUT = 5
+  private_constant :OPEN_TIMEOUT, :READ_TIMEOUT
 
   # metadata_fetcher is injectable so the unit test can exercise the comparison
   # logic without a network call.
@@ -98,7 +100,7 @@ class OrgEntraSignInPreflight < ApplicationService
       detail: (advertised == expected) ? "the tenant answers on the issuer the verifier " \
         "requires" : "the tenant answers on a different issuer; check OMNI_AUTH_ENTRA_ORG_TENANT_ID",
     )
-  rescue StandardError => e
+  rescue MetadataError, JSON::ParserError, URI::InvalidURIError, *OutboundHttp::Connection::NETWORK_ERRORS => e
     Check.new(name: "issuer", ok: false, detail: "could not reach the tenant: #{e.class}")
   end
 
@@ -115,8 +117,14 @@ class OrgEntraSignInPreflight < ApplicationService
 
   def fetch_discovery_document(tenant_id)
     uri = URI("https://login.microsoftonline.com/#{tenant_id}/v2.0/.well-known/openid-configuration")
-    response = Net::HTTP.get_response(uri)
-    raise MetadataError, "HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+    connection = OutboundHttp::Connection.build(
+      url: uri,
+      open_timeout: OPEN_TIMEOUT,
+      read_timeout: READ_TIMEOUT,
+      require_https: true,
+    )
+    response = connection.get(uri)
+    raise MetadataError, "HTTP #{response.status}" unless response.success?
 
     JSON.parse(response.body)
   end

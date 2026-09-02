@@ -372,6 +372,50 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
+  test "com base cancellation closes pending transaction and clears freshness" do
+    host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
+    visitor = create_verified_visitor_with_email(email_address: "visitor-cancel-#{SecureRandom.hex(4)}@example.com")
+    token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    issuance = issue_step_up_grant!(
+      surface: "com",
+      actor_ref: visitor.public_id,
+      session_ref: token.public_id,
+      scope: "settings_email",
+      methods: ["passkey"],
+      return_to: base_com_identity_emails_path(ri: "jp"),
+    )
+
+    post base_com_verification_cancellation_url(ri: "jp", host: host),
+         headers: com_session_headers(host, token, visitor),
+         params: { scope: "settings_email", return_to: base_com_identity_emails_path(ri: "jp") }
+
+    assert_response :see_other
+    assert_predicate issuance.transaction.reload, :canceled?
+    assert_nil token.reload.last_step_up_at
+  end
+
+  test "org base cancellation closes pending transaction and clears freshness" do
+    host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
+    operator = operators(:one)
+    token = operator_tokens(:one)
+    issuance = issue_step_up_grant!(
+      surface: "org",
+      actor_ref: operator.public_id,
+      session_ref: token.public_id,
+      scope: "settings_email",
+      methods: ["passkey"],
+      return_to: base_org_identity_emails_path(ri: "jp"),
+    )
+
+    post base_org_verification_cancellation_url(ri: "jp", host: host),
+         headers: org_session_headers(host, token, operator),
+         params: { scope: "settings_email", return_to: base_org_identity_emails_path(ri: "jp") }
+
+    assert_response :see_other
+    assert_predicate issuance.transaction.reload, :canceled?
+    assert_nil token.reload.last_step_up_at
+  end
+
   test "com base verification intent creates visitor transaction" do
     host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
     visitor = create_verified_visitor_with_email(email_address: "visitor-step-up-#{SecureRandom.hex(4)}@example.com")

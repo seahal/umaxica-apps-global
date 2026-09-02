@@ -65,12 +65,17 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     session[:step_up_email_otp] = { "expires_at" => 5.minutes.from_now.to_i }
 
-    code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
+    # ROTP verifies the exact 30-second step with no drift allowance, so a code
+    # generated just before a window boundary is already stale by the time the
+    # controller checks it. Pin the clock across generation and submission.
+    freeze_time do
+      code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
 
-    with_prosopite_paused do
-      post auth_app_verification_totp_url(ri: "jp"),
-           params: { verification: { code: code } },
-           headers: @headers
+      with_prosopite_paused do
+        post auth_app_verification_totp_url(ri: "jp"),
+             params: { verification: { code: code } },
+             headers: @headers
+      end
     end
 
     assert_response :success
@@ -115,26 +120,31 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     assert_response :success
     assert_equal 1, ClientStepUpSession.where(user_token: @token).count
 
-    code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
+    # ROTP verifies the exact 30-second step with no drift allowance, so a code
+    # generated just before a window boundary is already stale by the time the
+    # controller checks it. Pin the clock across generation and submission.
+    freeze_time do
+      code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
 
-    assert_no_difference -> { ClientVerification.count } do
-      with_prosopite_paused do
-        post auth_app_verification_totp_url(ri: "jp"),
-             params: { verification: { code: code } },
-             headers: @headers
+      assert_no_difference -> { ClientVerification.count } do
+        with_prosopite_paused do
+          post auth_app_verification_totp_url(ri: "jp"),
+               params: { verification: { code: code } },
+               headers: @headers
+        end
       end
-    end
 
-    assert_response :success
-    assert_includes response.body, "step-up-completion-form"
-    assert_equal 0, ClientStepUpSession.where(user_token: @token).count
+      assert_response :success
+      assert_includes response.body, "step-up-completion-form"
+      assert_equal 0, ClientStepUpSession.where(user_token: @token).count
 
-    # sign no longer writes freshness; acme commits it when it consumes the result.
-    assert_no_difference -> { ClientVerification.count } do
-      with_prosopite_paused do
-        post auth_app_verification_totp_url(ri: "jp"),
-             params: { verification: { code: code } },
-             headers: @headers
+      # sign no longer writes freshness; acme commits it when it consumes the result.
+      assert_no_difference -> { ClientVerification.count } do
+        with_prosopite_paused do
+          post auth_app_verification_totp_url(ri: "jp"),
+               params: { verification: { code: code } },
+               headers: @headers
+        end
       end
     end
 

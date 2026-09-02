@@ -53,6 +53,117 @@ class Base::Org::Support::EnforcementCasesControllerTest < ActionDispatch::Integ
     assert_equal client.public_id, body.fetch("principal_public_id")
   end
 
+  test "show returns the case the operator asked for" do
+    client = clients(:one)
+    mark_token_step_up_satisfied_for_test(@operator_token, scope: "enforcement_case_apply")
+
+    post(
+      base_org_support_app_enforcement_cases_url(host: @host),
+      params: {
+        enforcement_case: {
+          kind: "cooldown",
+          duration_mode: "timed",
+          visibility: "visible",
+          release_mode: "automatic",
+          effective_at: Time.current,
+          expires_at: 1.day.from_now,
+          reason_code: "abuse",
+          principal_public_id: client.public_id,
+        },
+      },
+      headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
+      as: :json,
+    )
+
+    assert_response :created
+    public_id = response.parsed_body.fetch("public_id")
+
+    get(
+      base_org_support_app_enforcement_case_url(public_id, host: @host),
+      headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
+      as: :json,
+    )
+
+    assert_response :ok
+    assert_equal public_id, response.parsed_body.fetch("public_id")
+    assert_equal client.public_id, response.parsed_body.fetch("principal_public_id")
+  end
+
+  test "a case that names no such record is not found" do
+    mark_token_step_up_satisfied_for_test(@operator_token, scope: "enforcement_case_apply")
+
+    get(
+      base_org_support_app_enforcement_case_url("no-such-public-id", host: @host),
+      headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
+      as: :json,
+    )
+
+    assert_response :not_found
+  end
+
+  test "a create whose effect payload is rejected answers unprocessable rather than raising" do
+    client = clients(:one)
+    mark_token_step_up_satisfied_for_test(@operator_token, scope: "enforcement_case_apply")
+
+    post(
+      base_org_support_app_enforcement_cases_url(host: @host),
+      params: {
+        enforcement_case: {
+          kind: "cooldown",
+          duration_mode: "timed",
+          visibility: "visible",
+          release_mode: "automatic",
+          effective_at: Time.current,
+          expires_at: 1.day.from_now,
+          reason_code: "abuse",
+          principal_public_id: client.public_id,
+        },
+        identifier_effect: { identifier_kind: "not-a-kind" },
+      },
+      headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
+      as: :json,
+    )
+
+    assert_response :unprocessable_content
+    assert_predicate response.parsed_body.fetch("error"), :present?
+  end
+
+  test "a create may attach a principal effect and an authentication-method effect at once" do
+    client = clients(:one)
+    mark_token_step_up_satisfied_for_test(@operator_token, scope: "enforcement_case_apply")
+
+    post(
+      base_org_support_app_enforcement_cases_url(host: @host),
+      params: {
+        enforcement_case: {
+          kind: "cooldown",
+          duration_mode: "timed",
+          visibility: "visible",
+          release_mode: "automatic",
+          effective_at: Time.current,
+          expires_at: 1.day.from_now,
+          reason_code: "abuse",
+          principal_public_id: client.public_id,
+        },
+        principal_effect: {
+          principal_public_id: client.public_id,
+          access_blocking: "full",
+          recovery_blocked: true,
+        },
+        authentication_method_effect: {
+          principal_public_id: client.public_id,
+          authentication_method: "passkey",
+          effect: "unusable",
+        },
+      },
+      headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
+      as: :json,
+    )
+
+    assert_response :created
+    assert_equal client.public_id, response.parsed_body.fetch("principal_public_id")
+  end
+
   test "a hidden permanent_ban requires approval and does not apply on create" do
     client = clients(:one)
     mark_token_step_up_satisfied_for_test(@operator_token, scope: "enforcement_case_apply")

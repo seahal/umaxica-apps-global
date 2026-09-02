@@ -17,7 +17,7 @@ ARG GITHUB_ACTIONS=""
 ARG REVISION=""
 # Node.js Active LTS (v24 "Krypton"; maintenance starts 2026-10-20). Pinned to an
 # exact patch so Global and Edge cannot drift to different Node builds.
-ARG NODE_VERSION=24.19.0
+ARG NODE_VERSION=24.20.0
 # pnpm is pinned for the same reason; `pnpm@latest` made every rebuild irreproducible.
 ARG PNPM_VERSION=12.0.0
 
@@ -287,25 +287,15 @@ COPY --from=node-toolchain /usr/local/lib/node_modules /usr/local/lib/node_modul
 RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
-# Tailscale is baked in rather than run as a sidecar: `core` itself joins the
-# tailnet, in userspace-networking mode, which needs no /dev/net/tun, no
-# NET_ADMIN and no root -- the same properties the sidecar relied on. The version
-# is pinned to what the sidecar ran; bump deliberately, and keep it in step with
-# the `tailscale` client on the host so the two behave the same. Nothing starts it
-# automatically and no SSH server rides along: `tailscale up` prints a login URL
-# and the developer signs in, the same way every other credential in this
-# container is obtained. The wrapper below is what makes that bare `tailscale up`
-# work in an ordinary development shell.
-RUN curl -fsSL https://pkgs.tailscale.com/stable/debian/trixie.noarmor.gpg \
-    -o /usr/share/keyrings/tailscale-archive-keyring.gpg \
-    && echo 'deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/debian trixie main' \
-    > /etc/apt/sources.list.d/tailscale.list
-
 # hadolint ignore=DL3008
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     rm -f /etc/apt/apt.conf.d/docker-clean \
     && curl -1sLf "https://dl.cloudsmith.io/public/evilmartians/lefthook/setup.deb.sh" | bash \
+    && curl -fsSL https://pkgs.tailscale.com/stable/debian/trixie.noarmor.gpg \
+      -o /usr/share/keyrings/tailscale-archive-keyring.gpg \
+    && echo 'deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/debian trixie main' \
+      > /etc/apt/sources.list.d/tailscale.list \
     && apt-get update -qq \
     && apt-get install --no-install-recommends -y \
     bat \
@@ -324,6 +314,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     ncdu \
     netcat-openbsd \
     openssh-client \
+    openssh-server \
     openssl \
     ripgrep \
     silversearcher-ag \
@@ -394,71 +385,48 @@ RUN rm -f /usr/local/bin/pn \
 # with EACCES until someone chowns it by hand — once per container recreate.
 # Materializing the full XDG tree here means Podman never has to invent a
 # parent, and the chown below stamps the workload owner on all of it.
-# `.local/state/tailscale` is created here, owned by the workload user, so Podman's
-# copy-up gives the tailnet-state volume the right ownership instead of inventing a
-# root-owned parent. Same path in umaxica-apps-edge.
+# The two remote-sshd paths below serve the opt-in `compose.remote-access.yaml`
+# overlay. They are created here, owned by the workload user, so Podman's copy-up
+# gives the host-key volume and the read-only authorized_keys bind the right
+# ownership instead of inventing a root-owned parent that sshd's StrictModes then
+# rejects. Same paths in umaxica-apps-edge and portal.
 RUN mkdir -p "${HOME}/workspace" \
     "${HOME}/.cache" \
     "${HOME}/.config" \
     "${HOME}/.local/bin" \
     "${HOME}/.local/share" \
     "${HOME}/.local/state" \
+    "${HOME}/.local/state/remote-sshd" \
     "${HOME}/.local/state/tailscale" \
+    "${HOME}/.config/umaxica" \
     && chown -R "${DOCKER_UID}:${DOCKER_GID}" "${HOME}" /usr/local/bundle \
-    && chmod 0700 "${HOME}/.local/state/tailscale"
+    && chmod 0700 "${HOME}/.local/state/remote-sshd" \
+    && chmod 0700 "${HOME}/.local/state/tailscale" \
+    && chmod 0755 "${HOME}/.config/umaxica"
 
 COPY --chown=0:0 podman/core/entrypoint.sh /usr/local/bin/core-entrypoint
 COPY --chown=0:0 podman/core/dev-supervisor.sh /usr/local/bin/core-dev-supervisor
 # Root-owned and read-only: `global` owns the workspace bind, so leaving either of
 # these there would let anything with a development shell rewrite what the next
 # container start executes -- including which keys it accepts.
+#
+# Both are inert unless `compose.remote-access.yaml` replaces `core`'s command.
+# The names are the shared ones: umaxica-apps-edge and portal bake the same two
+# paths from the same two source files.
+COPY --chown=0:0 .devcontainer/remote-sshd_config /etc/ssh/remote-sshd_config
+COPY --chown=0:0 .devcontainer/remote-sshd-entrypoint.sh /usr/local/bin/remote-sshd-entrypoint
+
+# Shadows /usr/bin/tailscale on PATH: the bare CLI expects a root tailscaled
+# this container can never run. The wrapper targets — and on first use starts —
+# the user-space daemon, so `tailscale up` works in any shell. See the script.
+COPY --chown=0:0 .devcontainer/tailscale-wrapper.sh /usr/local/bin/tailscale
+
 RUN chmod 0555 \
     /usr/local/bin/core-entrypoint \
-    /usr/local/bin/core-dev-supervisor
-
-# `tailscale` for interactive shells, shadowing /usr/bin/tailscale on PATH.
-#
-# The real CLI, run bare, dials the system socket of a root tailscaled this
-# container can never run: no systemd, `cap_drop: ALL`, and `no-new-privileges`
-# so no sudo either. This wrapper points every invocation at a user-space daemon
-# instead -- running as the login account, `--tun=userspace-networking`, no
-# capability needed -- and starts that daemon on first use, so a plain
-# `tailscale up` works in a fresh shell.
-#
-# Written here rather than COPYed from `.devcontainer/`: a heredoc keeps
-# `.devcontainer/` down to `devcontainer.json` and its lock file, matching
-# umaxica-apps-edge. It lands 0555 under root ownership, so the workspace bind --
-# which `global` owns and any development shell can write -- cannot influence
-# what a `tailscale` call runs.
-RUN cat > /usr/local/bin/tailscale <<'WRAPPER' && chmod 0555 /usr/local/bin/tailscale
-#!/usr/bin/env bash
-set -euo pipefail
-
-state=${HOME}/.local/state/tailscale
-socket=${state}/tailscaled.sock
-
-# `version --daemon` round-trips to the daemon and fails when the socket is
-# missing OR stale -- a leftover socket file from a stopped container would make
-# a bare socket test lie.
-if ! /usr/bin/tailscale --socket="${socket}" version --daemon > /dev/null 2>&1; then
-  mkdir -p "${state}"
-  chmod 0700 "${state}"
-  echo 'tailscale: starting user-space tailscaled (log: ~/.local/state/tailscale/tailscaled.log)' >&2
-  # One line on purpose: a backslash continuation inside a Containerfile
-  # heredoc is eaten by the Dockerfile parser before the shell ever sees it.
-  nohup /usr/sbin/tailscaled --tun=userspace-networking --statedir="${state}" --socket="${socket}" >> "${state}/tailscaled.log" 2>&1 &
-  for _ in $(seq 1 50); do
-    /usr/bin/tailscale --socket="${socket}" version --daemon > /dev/null 2>&1 && break
-    sleep 0.2
-  done
-  if ! /usr/bin/tailscale --socket="${socket}" version --daemon > /dev/null 2>&1; then
-    echo "tailscale: tailscaled did not come up; see ${state}/tailscaled.log" >&2
-    exit 69
-  fi
-fi
-
-exec /usr/bin/tailscale --socket="${socket}" "$@"
-WRAPPER
+    /usr/local/bin/core-dev-supervisor \
+    /usr/local/bin/remote-sshd-entrypoint \
+    /usr/local/bin/tailscale \
+    && chmod 0444 /etc/ssh/remote-sshd_config
 
 USER ${DOCKER_USER}
 

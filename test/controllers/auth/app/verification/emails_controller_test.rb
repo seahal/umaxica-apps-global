@@ -63,6 +63,54 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     end
   end
 
+  # An account with no verified address cannot receive an email code. Every entry
+  # point into the email step-up has to say so on the page instead of advancing to
+  # a code form that could never be satisfied.
+  test "new re-renders the email step-up page when the account has no verified address" do
+    @user.client_emails.destroy_all
+    return_to = "/settings/emails?ri=jp"
+
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
+      pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
+      grant = signed_step_up_grant_for(
+        actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
+      )
+      get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
+          headers: @headers
+
+      assert_response :success
+
+      get new_auth_app_verification_email_url(ri: "jp"), headers: @headers
+    end
+
+    assert_response :unprocessable_content
+    assert_equal "auth/app/verification/emails/new", inertia_component
+    assert_includes inertia_props.fetch("errors"),
+                    I18n.t("sign.app.verification.errors.email_not_verified")
+  end
+
+  test "edit returns to the method chooser when the addressed email is gone" do
+    email = @user.client_emails.last
+    return_to = "/settings/emails?ri=jp"
+
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
+      pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
+      grant = signed_step_up_grant_for(
+        actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
+      )
+      get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
+          headers: @headers
+
+      assert_response :success
+      @user.client_emails.destroy_all
+
+      get edit_auth_app_verification_email_url(email.public_id, ri: "jp"), headers: @headers
+    end
+
+    assert_response :redirect
+    assert_includes response.location, "/verification"
+  end
+
   test "email selection from verification page reaches otp entry page" do
     return_to = "/settings/emails/#{@user.client_emails.last.public_id}/edit?ri=jp"
 

@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-require "net/http"
-
 class JumpRtReturnVerifier
   ALGORITHM = SecurityJwtJumpRtTokenCodec::ALGORITHM
   TOKEN_TYPE = SecurityJwtJumpRtTokenCodec::TOKEN_TYPE
@@ -141,21 +139,19 @@ class JumpRtReturnVerifier
     uri = URI.parse(jwks_url)
     raise JWT::DecodeError, "jwks fetch failed" unless uri.is_a?(URI::HTTPS)
 
-    response =
-      Net::HTTP.start(
-        uri.host,
-        uri.port,
-        use_ssl: true,
+    connection =
+      OutboundHttp::Connection.build(
+        url: uri,
         open_timeout: HTTP_OPEN_TIMEOUT,
         read_timeout: HTTP_READ_TIMEOUT,
-      ) do |http|
-        http.get(uri.request_uri)
-      end
-    raise JWT::DecodeError, "jwks fetch failed" unless response.is_a?(Net::HTTPSuccess)
+        require_https: true,
+      )
+    response = connection.get(uri)
+    raise JWT::DecodeError, "jwks fetch failed" unless response.success?
     raise JWT::DecodeError, "jwks response too large" if response.body.to_s.bytesize > MAX_JWKS_BYTES
 
     JSON.parse(response.body.presence || "{}")
-  rescue JSON::ParserError, URI::InvalidURIError, SocketError, SystemCallError, Net::OpenTimeout, Net::ReadTimeout
+  rescue JSON::ParserError, URI::InvalidURIError, *OutboundHttp::Connection::NETWORK_ERRORS
     raise JWT::DecodeError, "jwks fetch failed"
   end
 

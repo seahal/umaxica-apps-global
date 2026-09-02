@@ -13,92 +13,60 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
     JitSecurityJwtRegistry.instance_variable_set(:@issuers, @original_issuers)
   end
 
+  TOKEN_URL = "https://log.umaxica.app/oauth/token"
+
   test "uses private_key_jwt when a client assertion key is configured" do
     captured = nil
-    response = Net::HTTPOK.new("1.1", "200", "OK")
-    response.instance_variable_set(:@read, true)
-    response.body = JSON.generate(id_token: "id-token")
+    stubs =
+      Faraday::Adapter::Test::Stubs.new do |stub|
+        stub.post(TOKEN_URL) do |env|
+          captured = Rack::Utils.parse_nested_query(env.body)
+          [200, {}, JSON.generate(id_token: "id-token")]
+        end
+      end
 
     with_oidc_client_key("ACME_APP") do
-      Net::HTTP.stub(
-        :post_form, ->(_uri, params) {
-                      captured = params
-                      response
-                    },
-      ) do
-        result = OidcRpTokenClient.call(
-          token_url: "https://log.umaxica.app/oauth/token",
-          client_id: "base-rails-rp",
-          client_secret: nil,
-          code: "code",
-          redirect_uri: "https://www.umaxica.app/auth/callback",
-          code_verifier: "verifier",
-        )
+      stub_outbound_http(stubs) do
+        result = exchange(code: "code", code_verifier: "verifier")
 
         assert_predicate result, :success?
       end
     end
 
-    assert_equal OidcClientAssertionJwt::ASSERTION_TYPE, captured.fetch(:client_assertion_type)
-    assert_predicate captured.fetch(:client_assertion), :present?
-    assert_not captured.key?(:client_secret)
+    stubs.verify_stubbed_calls
+
+    assert_equal OidcClientAssertionJwt::ASSERTION_TYPE, captured.fetch("client_assertion_type")
+    assert_predicate captured.fetch("client_assertion"), :present?
+    assert_not captured.key?("client_secret")
   end
 
   test "private_key_jwt clients fail locally instead of falling back to client_secret" do
-    net_http_called = false
+    refuse_outbound_http =
+      lambda do |**_kwargs|
+        flunk("private_key_jwt client must not exchange with client_secret when assertion key is missing")
+      end
 
     OidcClientAssertionJwt.stub(:issue, nil) do
-      Net::HTTP.stub(
-        :post_form, ->(*) {
-          net_http_called = true
-
-          flunk("private_key_jwt client must not exchange with client_secret when assertion key is missing")
-        },
-      ) do
-        result = OidcRpTokenClient.call(
-          token_url: "https://log.umaxica.app/oauth/token",
-          client_id: "base-rails-rp",
-          client_secret: "fallback-secret",
-          code: "code",
-          redirect_uri: "https://www.umaxica.app/auth/callback",
-          code_verifier: "verifier",
-        )
+      OutboundHttp::Connection.stub(:build, refuse_outbound_http) do
+        result = exchange(code: "code", code_verifier: "verifier", client_secret: "fallback-secret")
 
         assert_not_predicate result, :success?
         assert_equal "client_assertion_unavailable", result.error
       end
     end
-
-    assert_not net_http_called
   end
 
   test "logs safe token exchange failure details for non-success responses" do
-    logged = []
-    response = Net::HTTPBadRequest.new("1.1", "400", "Bad Request")
-    response.instance_variable_set(:@read, true)
-    response.body = JSON.generate(error: "invalid_grant", error_description: "Authorization code expired")
+    body = JSON.generate(error: "invalid_grant", error_description: "Authorization code expired")
 
-    with_oidc_client_key("ACME_APP") do
-      Rails.logger.stub(:info, ->(message) { logged << message }) do
-        Net::HTTP.stub(:post_form, response) do
-          result = OidcRpTokenClient.call(
-            token_url: "https://log.umaxica.app/oauth/token",
-            client_id: "base-rails-rp",
-            client_secret: nil,
-            code: "sensitive-code",
-            redirect_uri: "https://www.umaxica.app/auth/callback",
-            code_verifier: "sensitive-verifier",
-          )
-
-          assert_not_predicate result, :success?
-          assert_equal "invalid_grant", result.error
-        end
+    logged =
+      capture_exchange_log(->(_env) { [400, {}, body] }) do |result|
+        assert_not_predicate result, :success?
+        assert_equal "invalid_grant", result.error
       end
-    end
 
-    event = logged.map { |line| JSON.parse(line) }.find { |line| line["event"] == "oidc.rp.token_exchange.failed" }
+    event = token_exchange_failure_event(logged)
 
-    assert event
     assert_equal "base-rails-rp", event.dig("data", "client_id")
     assert_equal "log.umaxica.app", event.dig("data", "endpoint_host")
     assert_equal 400, event.dig("data", "http_status")
@@ -107,37 +75,81 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
     assert_no_match(/sensitive-code|sensitive-verifier/, logged.join("\n"))
   end
 
+  # Faraday wraps the SocketError this used to raise, so the logged error_class
+  # is now the Faraday class. The invariant under test is unchanged: the class
+  # is recorded and the upstream message, which may name a host, is not.
   test "logs safe token exchange failure details for transport errors" do
+    transport_failure = ->(_env) { raise Faraday::ConnectionFailed, "connection refused for secret.example" }
+    logged =
+      capture_exchange_log(transport_failure) do |result|
+        assert_not_predicate result, :success?
+        assert_equal "token_exchange_failed", result.error
+      end
+
+    event = token_exchange_failure_event(logged)
+
+    assert_equal "base-rails-rp", event.dig("data", "client_id")
+    assert_equal "log.umaxica.app", event.dig("data", "endpoint_host")
+    assert_equal "Faraday::ConnectionFailed", event.dig("data", "error_class")
+    assert_no_match(/sensitive-code|sensitive-verifier|secret\.example/, logged.join("\n"))
+  end
+
+  # An authorization code is single-use, so the exchange must reach the token
+  # endpoint exactly once even when it fails.
+  test "does not retry a failed exchange" do
+    attempts = 0
+    stubs =
+      Faraday::Adapter::Test::Stubs.new do |stub|
+        stub.post(TOKEN_URL) do
+          attempts += 1
+          raise Faraday::TimeoutError, "read timeout"
+        end
+      end
+
+    with_oidc_client_key("ACME_APP") do
+      stub_outbound_http(stubs) do
+        assert_not_predicate exchange(code: "code", code_verifier: "verifier"), :success?
+      end
+    end
+
+    assert_equal 1, attempts
+  end
+
+  private
+
+  def exchange(code:, code_verifier:, client_secret: nil)
+    OidcRpTokenClient.call(
+      token_url: TOKEN_URL,
+      client_id: "base-rails-rp",
+      client_secret: client_secret,
+      code: code,
+      redirect_uri: "https://www.umaxica.app/auth/callback",
+      code_verifier: code_verifier,
+    )
+  end
+
+  def capture_exchange_log(response)
     logged = []
+    stubs = Faraday::Adapter::Test::Stubs.new { |stub| stub.post(TOKEN_URL, &response) }
 
     with_oidc_client_key("ACME_APP") do
       Rails.logger.stub(:info, ->(message) { logged << message }) do
-        Net::HTTP.stub(:post_form, ->(*) { raise SocketError, "connection refused for secret.example" }) do
-          result = OidcRpTokenClient.call(
-            token_url: "https://log.umaxica.app/oauth/token",
-            client_id: "base-rails-rp",
-            client_secret: nil,
-            code: "sensitive-code",
-            redirect_uri: "https://www.umaxica.app/auth/callback",
-            code_verifier: "sensitive-verifier",
-          )
-
-          assert_not_predicate result, :success?
-          assert_equal "token_exchange_failed", result.error
+        stub_outbound_http(stubs) do
+          yield(exchange(code: "sensitive-code", code_verifier: "sensitive-verifier"))
         end
       end
     end
 
-    event = logged.map { |line| JSON.parse(line) }.find { |line| line["event"] == "oidc.rp.token_exchange.failed" }
-
-    assert event
-    assert_equal "base-rails-rp", event.dig("data", "client_id")
-    assert_equal "log.umaxica.app", event.dig("data", "endpoint_host")
-    assert_equal "SocketError", event.dig("data", "error_class")
-    assert_no_match(/sensitive-code|sensitive-verifier|secret\.example/, logged.join("\n"))
+    stubs.verify_stubbed_calls
+    logged
   end
 
-  private
+  def token_exchange_failure_event(logged)
+    event = logged.map { |line| JSON.parse(line) }.find { |line| line["event"] == "oidc.rp.token_exchange.failed" }
+
+    assert event, "expected an oidc.rp.token_exchange.failed event"
+    event
+  end
 
   def with_oidc_client_key(namespace, active_kid: "#{namespace.downcase.tr("_", "-")}-oidc-test",
                            private_key: OpenSSL::PKey::EC.generate("secp384r1"))

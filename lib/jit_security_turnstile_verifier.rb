@@ -1,13 +1,17 @@
 # typed: false
 # frozen_string_literal: true
 
-require "net/http"
 require "json"
 require "uri"
 require "jit_security_turnstile_config"
 
 class JitSecurityTurnstileVerifier
   VERIFY_URI = URI("https://challenges.cloudflare.com/turnstile/v0/siteverify").freeze
+  # siteverify sits on the request path, and this call previously ran on the
+  # stdlib default read timeout: an unreachable Cloudflare held the visitor's
+  # request for a minute before the degraded-mode branch below was reached.
+  OPEN_TIMEOUT = 2
+  READ_TIMEOUT = 5
 
   def self.verify(token:, remote_ip:, secret_key: nil, mode: nil)
     new(token: token, remote_ip: remote_ip, secret_key: secret_key, mode: mode).verify
@@ -91,7 +95,13 @@ class JitSecurityTurnstileVerifier
   end
 
   def perform_request
-    response = Net::HTTP.post_form(
+    connection = OutboundHttp::Connection.build(
+      url: VERIFY_URI,
+      open_timeout: OPEN_TIMEOUT,
+      read_timeout: READ_TIMEOUT,
+      require_https: true,
+    )
+    response = connection.post(
       VERIFY_URI,
       {
         "secret" => @secret_key,

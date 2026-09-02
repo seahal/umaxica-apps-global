@@ -1,13 +1,17 @@
 # typed: false
 # frozen_string_literal: true
 
-require "net/http"
-
 class OidcRpTokenClient < ApplicationService
   # RFC 7523 client assertion type. Held here rather than borrowed from an
   # Entra-specific class: this client is the generic OIDC RP token exchange and
   # must not depend on a provider-specific one.
   CLIENT_ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+
+  # No connection-level retry: an authorization code is single-use, so a retried
+  # exchange burns the code and turns a recoverable timeout into a hard sign-in
+  # failure. A timeout here must surface as one failed exchange.
+  OPEN_TIMEOUT = 2
+  READ_TIMEOUT = 5
 
   Result =
     Data.define(:success, :token_response, :error) do
@@ -30,13 +34,20 @@ class OidcRpTokenClient < ApplicationService
     params = request_params
     return params if params.is_a?(Result)
 
-    response = Net::HTTP.post_form(uri, params)
+    connection = OutboundHttp::Connection.build(
+      url: uri,
+      open_timeout: OPEN_TIMEOUT,
+      read_timeout: READ_TIMEOUT,
+      require_https: true,
+    )
+    response = connection.post(uri, params)
     body = JSON.parse(response.body.presence || "{}").with_indifferent_access
-    return Result.new(success: true, token_response: body, error: nil) if response.is_a?(Net::HTTPSuccess)
+    return Result.new(success: true, token_response: body, error: nil) if response.success?
 
     log_token_exchange_failure(uri: uri, response: response, oauth_error: body[:error].presence)
     Result.new(success: false, token_response: nil, error: body[:error].presence || "token_exchange_failed")
-  rescue JSON::ParserError, URI::InvalidURIError, SocketError, SystemCallError, Timeout::Error => e
+  rescue JSON::ParserError, URI::InvalidURIError, OutboundHttp::Connection::InsecureEndpointError,
+         *OutboundHttp::Connection::NETWORK_ERRORS => e
     log_token_exchange_failure(uri: safe_token_uri, error_class: e.class.name)
     Result.new(success: false, token_response: nil, error: "token_exchange_failed")
   end
@@ -80,7 +91,7 @@ class OidcRpTokenClient < ApplicationService
         client_id: client_id,
         endpoint_host: uri&.host,
         endpoint_path: uri&.path,
-        http_status: response&.code&.to_i,
+        http_status: response&.status,
         oauth_error: oauth_error,
         error_class: error_class,
       ),

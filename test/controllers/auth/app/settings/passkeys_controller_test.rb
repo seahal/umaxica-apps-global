@@ -71,6 +71,32 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_equal "sign-rp", query["client_id"]
   end
 
+  # A failed stealth challenge must not mint registration options: the browser
+  # would then hold a challenge it could complete without ever passing the check.
+  test "options refuses a failed stealth challenge for a json request" do
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => false }
+
+    post(auth_app_settings_passkeys_options_path(ri: "jp"), headers: @headers, as: :json)
+
+    assert_response :unprocessable_content
+    assert_equal I18n.t("turnstile_error"), response.parsed_body.fetch("error")
+  ensure
+    TurnstileVerifierStub.challenge_response = { "success" => true }
+  end
+
+  test "options refuses a failed stealth challenge for a document request" do
+    TurnstileVerifierStub.challenge_enabled = true
+    TurnstileVerifierStub.challenge_response = { "success" => false }
+
+    post(auth_app_settings_passkeys_options_path(ri: "jp"), headers: @headers)
+
+    assert_response :see_other
+    assert_includes response.location, "/settings/passkeys"
+  ensure
+    TurnstileVerifierStub.challenge_response = { "success" => true }
+  end
+
   # Case D-2: Logged in -> JSON options
   test "options returns challenge and options" do
     post auth_app_settings_passkeys_options_path(ri: "jp"),

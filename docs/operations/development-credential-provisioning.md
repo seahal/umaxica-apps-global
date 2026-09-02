@@ -15,9 +15,12 @@ each item belongs, and who issues it.
 | `.env`            | repository root       | `.env`                      |
 | `.secrets/`       | repository root       | `.secrets/`                 |
 
-`.secrets/` is no longer written by anything in this repository -- development service passwords are
-generated inside the stack, as described below. The ignore rules stay so that a directory created by
-hand, or left over from an earlier checkout, can never enter a commit or a build context.
+`.secrets/` is not written by anything in this repository. Development service passwords are fixed
+literals declared inline in `compose.yaml`, as described below, and the Podman Secret machinery that
+once populated this directory was removed with the script that registered it. One optional workflow
+still reads a file there, created by hand: `docs/operations/remote-codex-over-tailscale.md`. The
+ignore rules stay so that a directory created that way, or left over from an earlier checkout, can
+never enter a commit or a build context.
 
 `config/credentials/development.yml.enc` and `config/credentials/test.yml.enc` are tracked, and are
 unreadable without the matching `.key` file. Committing a `.key` file defeats the encryption of the
@@ -63,13 +66,14 @@ CI does not use these files. GitHub Actions supplies the key through the `RAILS_
 
 ## Repository-root `.env`
 
-Compose reads the repository-root `.env`. It currently carries three settings:
+Compose reads the repository-root `.env`. It currently carries four settings:
 
-| Key                 | Source                                        |
-| :------------------ | :-------------------------------------------- |
-| `UID`               | written by hand: your host `id -u`            |
-| `GID`               | written by hand: your host `id -g`            |
-| `CLOUDFLARED_TOKEN` | Cloudflare dashboard, or the development lead |
+| Key                      | Source                                        |
+| :----------------------- | :-------------------------------------------- |
+| `UID`                    | written by hand: your host `id -u`            |
+| `GID`                    | written by hand: your host `id -g`            |
+| `CLOUDFLARED_TOKEN`      | Cloudflare dashboard, or the development lead |
+| `CLOUDFLARED_EDGE_TOKEN` | Cloudflare dashboard, or the development lead |
 
 `UID` and `GID` feed the `DOCKER_UID`/`DOCKER_GID` build args, which decide the workload UID baked
 into the `core` image. `$UID`/`$GID` are bash builtins rather than exported variables, so Compose
@@ -84,10 +88,13 @@ occurrence, but a duplicate is confusing to read. Leaving them out is not silent
 to `1000`, and on a host whose user is not `1000:1000` every bind-mounted repository file appears
 with the wrong owner inside the container.
 
-`CLOUDFLARED_TOKEN` is tunnel-scoped. Retrieve it yourself from the Cloudflare dashboard following
-`docs/operations/cloudflare-private-origin.md`; **request it from the development lead when you do
-not have dashboard access.** A missing token fails during Compose resolution with an explicit
-message, and there is no anonymous fallback.
+Both `CLOUDFLARED_TOKEN` and `CLOUDFLARED_EDGE_TOKEN` are tunnel-scoped: the account holds two
+development tunnels and each variable authorizes a connector for one of them, started by the
+`tunnel` and `tunnel-edge` profiles respectively. Retrieve them yourself from the Cloudflare
+dashboard following `docs/operations/cloudflare-private-origin.md`; **request them from the
+development lead when you do not have dashboard access.** Only the tunnel you actually start needs a
+token; a connector started without one exits immediately and stays stopped after three bounded
+restart attempts. There is no anonymous fallback.
 
 There is no committed `.env.example` template. Do not add one — a template invites secret values to
 be filled in next to tracked defaults. Restrict the file after creating it:
