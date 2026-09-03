@@ -371,6 +371,11 @@ services:
       backend: {}
       frontend:
         aliases:
+          # Private pod-internal / tunnel origins (PRIVATE_*_URL). The Cloudflare
+          # Tunnel ingress rules resolve their `service:` address on this network,
+          # so these names must resolve to `core` here. Without them cloudflared
+          # falls back to loopback and every proxied request fails with
+          # `dial tcp [::1]:3000: connect: connection refused`.
           - base.app.localhost
           - base.com.localhost
           - base.org.localhost
@@ -406,27 +411,29 @@ services:
           # its `service:` address on this network, so the published names have to resolve
           # to `core` here. Only Umaxica-owned names belong in this list.
           # See docs/architecture/cloudflare-request-paths.md.
-          - auth.umaxica.app
           - auth.umaxica.com
           - auth.umaxica.org
+          - auth.umaxica.app
           - www.umaxica.app
           - www.umaxica.com
           - www.umaxica.org
           - www.umaxica.dev
-          - side-jp.umaxica.app
-          - side-jp.umaxica.com
-          - side-jp.umaxica.org
-          - info.umaxica.app
-          - info.umaxica.com
-          - info.umaxica.org
-          # Canonical Core family per adr/core-canonical-public-host.md. The legacy
-          # core-jp.*, docs-jp.*, help-jp.*, and news-jp.* aliases are gone: PUBLIC_CORE_*
-          # now names jp.umaxica.*, and PUBLIC_DOCS_* names a private *.localhost origin, so
-          # those hostnames are no longer configured anywhere and Rails would reject them.
           - jp.umaxica.app
           - jp.umaxica.com
           - jp.umaxica.org
+          - jp.umaxica.dev
+          - us.umaxica.app
+          - us.umaxica.com
+          - us.umaxica.org
+          - us.umaxica.dev
+          - side-jp.umaxica.app
+          - side-jp.umaxica.com
+          - side-jp.umaxica.org
+          - side-us.umaxica.app
+          - side-us.umaxica.com
+          - side-us.umaxica.org
           - palm-jp.umaxica.app
+          - palm-us.umaxica.app
       observability: {}
       outer:
         aliases:
