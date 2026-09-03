@@ -45,6 +45,7 @@ class HtmlTitleContractTest < ActionDispatch::IntegrationTest
   # Prefixes that answer with JSON, XML or plain text. Listed rather than inferred
   # so that a new HTML route is never silently treated as out of scope.
   NON_HTML_PATH_PATTERNS = [
+    %r{\A/health\z},
     %r{\A/health/(liveness|readiness|startup)\z},
     %r{\A/\.well-known/},
     %r{\A/(web|edge|api)/v\d},
@@ -111,16 +112,17 @@ class HtmlTitleContractTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "the health snapshot takes its TLD from the host that serves it" do
+  test "the health snapshot is a non-HTML probe and is excluded from title contracts" do
     HEALTH_HOSTS.each do |entry|
       host! entry.fetch(:host)
       get "/health"
 
       assert_response :success, "GET /health on #{entry.fetch(:host)}"
-      assert_single_html_document
-      assert_equal "Health — #{BRAND} (#{entry.fetch(:tld)})", rendered_title,
-                   "health title on #{entry.fetch(:host)}"
+      assert_equal "text/plain", response.media_type, "GET /health on #{entry.fetch(:host)}"
+      assert_match(/\Astatus: /, response.body)
     end
+
+    assert_includes non_html_get_paths, "/health"
   end
 
   test "the page title is localized while the brand stays constant" do
