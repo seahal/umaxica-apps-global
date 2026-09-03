@@ -68,8 +68,8 @@ class PlainTextHealthEndpointsTest < ActionDispatch::IntegrationTest
   test "liveness stays successful when external dependencies fail" do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
-    Health::ReadinessCheck.stub(:call, ->(*) { raise "readiness dependency touched" }) do
-      ActiveRecord::Base.stub(:connection, -> { raise "database touched" }) do
+    Health::ReadinessCheck.stub(:call, ->(*) { raise StandardError, "readiness dependency touched" }) do
+      ActiveRecord::Base.stub(:connection, -> { raise StandardError, "database touched" }) do
         get "/health/livenesses"
       end
     end

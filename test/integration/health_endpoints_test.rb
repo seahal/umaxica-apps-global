@@ -576,7 +576,10 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     recognized = Rails.application.routes.recognize_path("http://#{host}#{path}", method: :get)
 
     assert_equal controller, recognized[:controller]
-    assert_equal path == "/health" ? "show" : "index", recognized[:action]
+    expected_action = "index"
+    expected_action = "show" if path == "/health"
+
+    assert_equal expected_action, recognized[:action]
   end
 
   def assert_probe_status(status, expected_response)
