@@ -59,6 +59,12 @@ scope module: :core, as: :core do
       # Versioned BFF API.
       namespace :api do
         namespace :v0 do
+          # Machine-readable health and revision. The literal ".json" is part of the path, not a
+          # Rails format token (`format: false`), mirroring the `.well-known/jwks.json` precedent.
+          # These are JSON-only; the controllers answer 406 to any other `Accept`.
+          resource :health, only: :show, path: "health.json", format: false
+          resource :revision, only: :show, path: "revision.json", format: false
+
           # Session summary.
           resource :session, only: :show
 
@@ -146,6 +152,12 @@ scope module: :core, as: :core do
       # Versioned BFF API.
       namespace :api do
         namespace :v0 do
+          # Machine-readable health and revision. The literal ".json" is part of the path, not a
+          # Rails format token (`format: false`), mirroring the `.well-known/jwks.json` precedent.
+          # These are JSON-only; the controllers answer 406 to any other `Accept`.
+          resource :health, only: :show, path: "health.json", format: false
+          resource :revision, only: :show, path: "revision.json", format: false
+
           # Session summary.
           resource :session, only: :show
 
@@ -236,6 +248,12 @@ scope module: :core, as: :core do
       # Versioned BFF API.
       namespace :api do
         namespace :v0 do
+          # Machine-readable health and revision. The literal ".json" is part of the path, not a
+          # Rails format token (`format: false`), mirroring the `.well-known/jwks.json` precedent.
+          # These are JSON-only; the controllers answer 406 to any other `Accept`.
+          resource :health, only: :show, path: "health.json", format: false
+          resource :revision, only: :show, path: "revision.json", format: false
+
           # Session summary.
           resource :session, only: :show
 
@@ -284,6 +302,16 @@ scope module: :core, as: :core do
         resource :startup, only: :show
       end
 
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a
+      # Rails format token (`format: false`), mirroring the `.well-known/jwks.json` precedent.
+      # These are JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace :api do
+        namespace :v0 do
+          resource :health, only: :show, path: "health.json", format: false
+          resource :revision, only: :show, path: "revision.json", format: false
+        end
+      end
+
       # CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
@@ -304,6 +332,16 @@ scope module: :core, as: :core do
         resource :liveness, only: :show
         resource :readiness, only: :show
         resource :startup, only: :show
+      end
+
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a
+      # Rails format token (`format: false`), mirroring the `.well-known/jwks.json` precedent.
+      # These are JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace :api do
+        namespace :v0 do
+          resource :health, only: :show, path: "health.json", format: false
+          resource :revision, only: :show, path: "revision.json", format: false
+        end
       end
 
       # CSP report sink; keep configured report-uri path.

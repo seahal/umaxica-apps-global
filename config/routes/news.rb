@@ -35,9 +35,17 @@ scope module: :news, as: :news do
       namespace :api do
         # Versioned news API.
         namespace :v0 do
-          # Published news entries. `param: :slug` only renames the path
-          # segment to the public identifier; the route stays fully resourceful.
-          resources :entries, only: %i(index show), param: :slug
+          # Published news entries. `param: :public_id` addresses the resource by
+          # its opaque API identity, distinct from the presentation slug; the
+          # route stays fully resourceful.
+          resources :entries, only: %i(index show), param: :public_id
+
+          # Machine-readable health and revision. The literal ".json" is part of
+          # the path, not a Rails format token (`format: false`), mirroring the
+          # `.well-known/jwks.json` precedent. JSON-only; the controllers answer
+          # 406 to any other `Accept`.
+          resource :health, only: :show, path: "health.json", format: false
+          resource :revision, only: :show, path: "revision.json", format: false
         end
       end
     end
@@ -75,9 +83,17 @@ scope module: :news, as: :news do
       namespace :api do
         # Versioned news API.
         namespace :v0 do
-          # Published news entries. `param: :slug` only renames the path
-          # segment to the public identifier; the route stays fully resourceful.
-          resources :entries, only: %i(index show), param: :slug
+          # Published news entries. `param: :public_id` addresses the resource by
+          # its opaque API identity, distinct from the presentation slug; the
+          # route stays fully resourceful.
+          resources :entries, only: %i(index show), param: :public_id
+
+          # Machine-readable health and revision. The literal ".json" is part of
+          # the path, not a Rails format token (`format: false`), mirroring the
+          # `.well-known/jwks.json` precedent. JSON-only; the controllers answer
+          # 406 to any other `Accept`.
+          resource :health, only: :show, path: "health.json", format: false
+          resource :revision, only: :show, path: "revision.json", format: false
         end
       end
     end
@@ -115,9 +131,17 @@ scope module: :news, as: :news do
       namespace :api do
         # Versioned news API.
         namespace :v0 do
-          # Published news entries. `param: :slug` only renames the path
-          # segment to the public identifier; the route stays fully resourceful.
-          resources :entries, only: %i(index show), param: :slug
+          # Published news entries. `param: :public_id` addresses the resource by
+          # its opaque API identity, distinct from the presentation slug; the
+          # route stays fully resourceful.
+          resources :entries, only: %i(index show), param: :public_id
+
+          # Machine-readable health and revision. The literal ".json" is part of
+          # the path, not a Rails format token (`format: false`), mirroring the
+          # `.well-known/jwks.json` precedent. JSON-only; the controllers answer
+          # 406 to any other `Accept`.
+          resource :health, only: :show, path: "health.json", format: false
+          resource :revision, only: :show, path: "revision.json", format: false
         end
       end
     end

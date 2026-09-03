@@ -47,9 +47,12 @@ Development is the one environment with two live ingresses, so it is the one env
 ingress delivers a `Host` from its own family, and Rails must admit the `Host` it actually receives
 from each.
 
-`/health` is the deliberate exception: orchestrator and container probes reach the origin directly
-and carry no meaningful `Host`, so production excludes that path from Host Authorization rather than
-allowlisting a probe hostname.
+`/health` and the three singular text probe paths (`/health/{liveness,readiness,startup}`) are the
+deliberate exception: orchestrator and container probes reach the origin directly and carry no
+meaningful `Host`, so production excludes those exact paths from Host Authorization
+(`lib/health_probe_paths.rb`) rather than allowlisting a probe hostname. The machine JSON endpoints
+`/api/v0/health.json` and `/api/v0/revision.json` are reached through the tunnel with a real `Host`
+and are deliberately not exempt.
 
 **A third hostname family is not justified.** Every observed request path resolves its `Host` to a
 member of one of the two existing families. The Workers VPC path is the only one where the value is

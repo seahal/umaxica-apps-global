@@ -28,6 +28,7 @@ class PublishingEntrySerializer
     return nil unless version
 
     {
+      public_id: entry.public_id,
       namespace: namespace.to_s,
       surface: surface.to_s,
       slug: canonical_slug,

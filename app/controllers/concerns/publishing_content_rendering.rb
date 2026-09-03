@@ -43,7 +43,7 @@ module PublishingContentRendering
   # adr/api-collection-contract.md: a single resource is returned at the top level, with no wrapper
   # key.
   def render_publishing_entry_show
-    entry = publishing_entries_query.find_by(slug: params.expect(:slug))
+    entry = publishing_entries_query.find_published(public_id: params.expect(:public_id))
     return render_problem(:not_found) unless entry
 
     payload = publishing_entry_json(entry)

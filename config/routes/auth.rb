@@ -29,6 +29,16 @@ scope(module: :auth, as: :auth) do
         resource(:startup, only: :show)
       end
 
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
+      # format token (`format: false`), mirroring the `.well-known/jwks.json` precedent above.
+      # These are JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace(:api) do
+        namespace(:v0) do
+          resource(:health, only: :show, path: "health.json", format: false)
+          resource(:revision, only: :show, path: "revision.json", format: false)
+        end
+      end
+
       resources(:robots, only: :index, path: "robots.txt")
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
@@ -249,6 +259,16 @@ scope(module: :auth, as: :auth) do
         resource(:startup, only: :show)
       end
 
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
+      # format token (`format: false`), mirroring the `.well-known/jwks.json` precedent above.
+      # These are JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace(:api) do
+        namespace(:v0) do
+          resource(:health, only: :show, path: "health.json", format: false)
+          resource(:revision, only: :show, path: "revision.json", format: false)
+        end
+      end
+
       resources(:robots, only: :index, path: "robots.txt")
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
@@ -403,6 +423,16 @@ scope(module: :auth, as: :auth) do
         resource(:liveness, only: :show)
         resource(:readiness, only: :show)
         resource(:startup, only: :show)
+      end
+
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
+      # format token (`format: false`), mirroring the `.well-known/jwks.json` precedent above.
+      # These are JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace(:api) do
+        namespace(:v0) do
+          resource(:health, only: :show, path: "health.json", format: false)
+          resource(:revision, only: :show, path: "revision.json", format: false)
+        end
       end
 
       resources(:robots, only: :index, path: "robots.txt")

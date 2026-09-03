@@ -57,7 +57,8 @@ host—marketing, authentication, docs/news, help/support, BFF, and API—consis
 - **Defense in depth**: Signed cookies, JWTs, Turnstile, rate limiting, encryption, and
   `allow_browser versions: :modern` guard every entry point.
 - **Observability-first**: All HTTP, Redis, and ActionMailer operations are instrumented;
-  `/health` + `/v1/health` exist for every host.
+  `/health` (`text/plain`) and `/api/v0/health.json` exist for every host
+  (`docs/reference/health-endpoints.md`).
 - **Composable tooling**: pnpm-managed JavaScript tooling, Vite-backed CSS entrypoints, Foreman +
   Docker Compose for orchestration, GitHub Actions for CI.
 
@@ -91,12 +92,12 @@ Downstream: Google Cloud (Run/Build/Storage), Cloudflare R2, Fastly CDN
 
 | Namespace            | Host variables                                          | Responsibilities                                                                                                           |
 | -------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `Top::Com/App/Org`   | `TOP_CORPORATE_URL`, `TOP_SERVICE_URL`, `TOP_STAFF_URL` | Redirect to `EDGE_*` hosts, render `/health` & `/v1/health`, expose preference UIs (`cookie`, `region`, `theme`, `reset`). |
+| `Top::Com/App/Org`   | `TOP_CORPORATE_URL`, `TOP_SERVICE_URL`, `TOP_STAFF_URL` | Redirect to `EDGE_*` hosts, render `/health` (text) & `/api/v0/health.json`, expose preference UIs (`cookie`, `region`, `theme`, `reset`). |
 | `Auth::App/Org`      | `ID_SERVICE_URL`, `ID_STAFF_URL`                        | Registration (email/phone), authentication, passkeys, OAuth, recovery, withdrawal.                                         |
 | `Help::Com/App/Org`  | `HELP_*`                                                | Contact forms with Turnstile, OTP validation, email/SMS confirmation, success receipts.                                    |
 | `Docs::*`, `News::*` | `DOCS_*`, `NEWS_*`                                      | Documentation and newsroom placeholders with branded health endpoints.                                                     |
 | `Bff::*`             | `BFF_*`                                                 | Preference APIs for non-authenticated clients (email/locale endpoints).                                                    |
-| `Api::*`             | `API_*`                                                 | JSON endpoints (`/v1/health`, `/v1/inquiry/valid_email_addresses`, `/v1/inquiry/valid_telephone_numbers`).                 |
+| `Api::*`             | `API_*`                                                 | JSON endpoints (`/api/v0/health.json`, `/v1/inquiry/valid_email_addresses`, `/v1/inquiry/valid_telephone_numbers`).                 |
 
 Routes live in `config/routes/*.rb`; the main `config/routes.rb` `draw`s each fragment to keep
 concerns scoped.
@@ -158,7 +159,7 @@ concerns scoped.
 
 ### 4.4 Docs & News
 
-- Each namespace exposes `root`, `/health`, `/v1/health` with host constraints; upcoming roadmap
+- Each namespace exposes `root`, `/health` (text), `/api/v0/health.json`, and `/revision` with host constraints; upcoming roadmap
   will hydrate documentation/newsroom content via React views (see `src/pages/docs/**` and
   `src/pages/news/**`).
 
@@ -272,7 +273,7 @@ Sensitive columns leverage Active Record encryption.
 
 | Interface      | Type          | Description                                                                                                                                 |
 | -------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| HTTP           | REST          | Host-scoped routes for top/sign/help/docs/news/api/bff, including `/health`, `/v1/health`, `/sign/...`, `/help/...`, `/api/v1/inquiry/...`. |
+| HTTP           | REST          | Host-scoped routes for top/sign/help/docs/news/api/bff, including `/health` (text), `/api/v0/health.json`, `/sign/...`, `/help/...`, `/api/v1/inquiry/...`. |
 | Mail           | SMTP / API    | `Email::App/Com/Org::{Otp,Alert,Promotional}Mailer` deliver surface-scoped mail. OTP job arguments carry encrypted OTP payloads.            |
 | SMS            | HTTPS         | `Outbound::Sms` sends OTP codes through the configured provider. SMS job arguments carry encrypted message bodies.                          |
 | Redis/Valkey   | RESP          | Sessions, rate limiting, Memorize store.                                                                                                    |

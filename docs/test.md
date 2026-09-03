@@ -113,7 +113,7 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
 | Sign::App/Org     | `log.umaxica.app`, `log.umaxica.org`                    | Registration (email/phone), passkey/TOTP, JWT cookies, logout, withdrawal  |
 | Help::Com/App/Org | `help.umaxica.com`, etc.                                | Contact form validation, Turnstile, encrypted persistence, email/SMS hooks |
 | Docs::_/News::_   | `docs.umaxica.*`, `news.umaxica.*`                      | Health endpoints, React hydration placeholder                              |
-| API::\*           | `api.umaxica.*`                                         | `/health`, `/v1/health`, inquiry validation endpoints                      |
+| API::\*           | `api.umaxica.*`                                         | `/health` (text), `/api/v0/health.json`, inquiry validation endpoints                      |
 | BFF::\*           | `bff.umaxica.*`                                         | Preference APIs, locale propagation                                        |
 
 ---
@@ -124,8 +124,10 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
 
 - **TC-ROUTE-001** Top root redirect (per host): GET `/` and expect 302 to `EDGE_*` host with
   `allow_other_host`.
-- **TC-ROUTE-002** Health endpoints: GET `/health` (HTML) and `/v1/health` (JSON) for each host.
-  Verify status, payload, cache headers.
+- **TC-ROUTE-002** Health endpoints: GET `/health` and `/health/{startup,liveness,readiness}`
+  (`text/plain`) and `GET /api/v0/health.json` (`application/json`, `pass/warn/fail`) for each
+  host. Verify status (200/503), exact body, `Cache-Control: no-store`, and `406` on a non-JSON
+  `Accept` to the `.json` endpoint.
 - **TC-ROUTE-003** Host constraint enforcement: hitting `top` routes with mismatched host
   returns 404.
 - **TC-ROUTE-004** Rate limit guard: simulate >1,000 requests/hour to sign/help endpoints; expect
@@ -176,14 +178,16 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
   Base64 email; expect JSON body with `valid`.
 - **TC-API-402** Telephone validation: POST JSON to `/api/app/v1/inquiry/valid_telephone_numbers`;
   expects `valid` key and proper status codes.
-- **TC-API-403** Health JSON: `/api/*/v1/health` returns `{ status: "OK" }`. query params normalized
-  by the preference concerns.
+- **TC-API-403** Health JSON: `GET /api/v0/health.json` returns
+  `{"status":"pass|warn|fail","checks":{…}}` with `fail` → 503; a readiness failure must not drop
+  the `liveness` check to `fail`. `GET /api/v0/revision.json` returns `{"revision":"<sha>"}` or
+  `{"revision":null}`.
 
 ### 7.6 Docs/News/Help health
 
 - **TC-DOC-501** GET `/` on docs/news hosts returns 200 with placeholder markup and hydration
   dataset.
-- **TC-DOC-502** `/health` + `/v1/health` respond for docs/news/help staff hosts.
+- **TC-DOC-502** `/health` (text) + `/api/v0/health.json` respond for docs/news/help staff hosts.
 
 ### 7.7 Redirect & Security
 

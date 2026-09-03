@@ -39,8 +39,14 @@ scope module: :help, as: :help do
       namespace :api do
         # Versioned help API.
         namespace :v0 do
-          # Published help entries.
-          resources :entries, only: %i(index show), param: :slug
+          # Published help entries, addressed by opaque public_id.
+          resources :entries, only: %i(index show), param: :public_id
+
+          # Machine-readable health and revision. The literal ".json" is part of
+          # the path, not a Rails format token (`format: false`), mirroring the
+          # `.well-known/jwks.json` precedent. JSON-only; 406 to any other Accept.
+          resource :health, only: :show, path: "health.json", format: false
+          resource :revision, only: :show, path: "revision.json", format: false
         end
       end
     end
@@ -82,8 +88,14 @@ scope module: :help, as: :help do
       namespace :api do
         # Versioned help API.
         namespace :v0 do
-          # Published help entries.
-          resources :entries, only: %i(index show), param: :slug
+          # Published help entries, addressed by opaque public_id.
+          resources :entries, only: %i(index show), param: :public_id
+
+          # Machine-readable health and revision. The literal ".json" is part of
+          # the path, not a Rails format token (`format: false`), mirroring the
+          # `.well-known/jwks.json` precedent. JSON-only; 406 to any other Accept.
+          resource :health, only: :show, path: "health.json", format: false
+          resource :revision, only: :show, path: "revision.json", format: false
         end
       end
     end
@@ -125,8 +137,14 @@ scope module: :help, as: :help do
       namespace :api do
         # Versioned help API.
         namespace :v0 do
-          # Published help entries.
-          resources :entries, only: %i(index show), param: :slug
+          # Published help entries, addressed by opaque public_id.
+          resources :entries, only: %i(index show), param: :public_id
+
+          # Machine-readable health and revision. The literal ".json" is part of
+          # the path, not a Rails format token (`format: false`), mirroring the
+          # `.well-known/jwks.json` precedent. JSON-only; 406 to any other Accept.
+          resource :health, only: :show, path: "health.json", format: false
+          resource :revision, only: :show, path: "revision.json", format: false
         end
       end
     end

@@ -68,8 +68,10 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
   - Scopes traffic via `constraints host: ENV["<HOST_VAR>"]`
   - Adds nested modules (e.g., `scope module: :com, as: :com`)
   - Defines RESTful resources for health endpoints, preferences, docs, API, etc.
-- All routes expose `/health` (HTML) and `/v1/health` (JSON) courtesy of controllers mixing in the
-  `Health` concern.
+- All surfaces expose `text/plain` health probes (`/health` aggregate,
+  `/health/{startup,liveness,readiness}`) plus machine JSON `/api/v0/health.json` and
+  `/api/v0/revision.json`, via `HealthCheckRendering` / `ApplicationRevisionRendering` delegating
+  to the `Health` service layer. See `docs/reference/health-endpoints.md`.
 
 ### 3.2 Shared Controller Concerns
 
@@ -84,7 +86,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 | `CloudflareTurnstile` | Validates Turnstile tokens via HTTP POST                                                                         |
 | `Redirect`            | Validates allowed redirect hosts and Base64 tokens                                                               |
 | `Memorize`            | Thin Valkey wrapper (encrypted) for per-session ephemeral storage                                                |
-| `Health`              | Implements `show_html`/`show_json` for heartbeat endpoints                                                       |
+| `Health`              | `Health` service layer + `HealthCheckRendering` render text probes and `/api/v0/health.json`                     |
 
 ### 3.3 Top Namespace
 
@@ -281,7 +283,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 | Interface            | Endpoint(s)                                                                                               | Details                                                                                                                                                                         |
 | -------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| HTTP/Turbo           | `/`, `/health`, `/v1/health`, `/preference/*`, `/sign/*`, `/help/contacts`, `/api/v1/inquiry/*`, `/bff/*` | Host-specific responses; `allow_browser` enforces modern clients.                                                                                                               |
+| HTTP/Turbo           | `/`, `/health`, `/api/v0/health.json`, `/preference/*`, `/sign/*`, `/help/contacts`, `/api/v1/inquiry/*`, `/bff/*` | Host-specific responses; `allow_browser` enforces modern clients.                                                                                                               |
 | Cloudflare Turnstile | `https://challenges.cloudflare.com/turnstile/v0/siteverify`                                               | Called server-side with secret key, form response, and client IP.                                                                                                               |
 | ActionMailer         | `Email::{App,Com,Org}::{OtpMailer,AlertMailer,PromotionalMailer}`                                         | OTP, alert, and promotion senders are fixed per surface and purpose, for example `otp@umaxica.app` and `promotion@umaxica.org`. OTP job arguments carry encrypted OTP payloads. |
 | SMS                  | `Outbound::Sms`                                                                                           | Called via `Outbound::Sms.deliver_later` for OTP-related flows; `SMS_PROVIDER` selects the concrete provider. SMS job arguments carry encrypted message bodies.                 |

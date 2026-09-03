@@ -111,3 +111,13 @@ not implemented at all, because those applications are not in this repository.
 - The Cloudflare edge rule that blocks public traffic to `/health*` is owned outside this
   repository and was not inspected; this record does not verify it.
 - Nothing was committed; all changes are left in the working tree.
+
+## Follow-up (2026-09-03, later)
+
+A subsequent decision reversed the "keep the current contract" choice recorded above. The
+2026-09-03 text+JSON contract makes the probes `text/plain` (`/health` a four-line aggregate,
+`/health/{startup,liveness,readiness}` returning `"ok\n"` / 503) and adds a machine family
+`/api/v0/health.json` + `/api/v0/revision.json` (`application/json`, `pass/warn/fail`, `406` on a
+non-JSON `Accept`). Probe paths stay singular. The `Cache-Control: no-store` directive verified
+here is retained on every text and JSON response, including the new `406`. Current contract:
+`docs/reference/health-endpoints.md`.

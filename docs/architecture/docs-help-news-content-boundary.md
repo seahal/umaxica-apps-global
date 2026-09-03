@@ -58,10 +58,12 @@ Rails should conceptually keep:
 
 ```text
 GET /
-GET /health
-GET /health/liveness
+GET /health              # text/plain aggregate
+GET /health/liveness     # text/plain probe
 GET /health/readiness
 GET /health/startup
+GET /api/v0/health.json   # application/json machine health
+GET /api/v0/revision.json
 GET /api/v0/entries
 GET /api/v0/entries/:slug
 ```

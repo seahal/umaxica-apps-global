@@ -33,6 +33,16 @@ scope module: :side, as: :side do
         resource :startup, only: :show
       end
 
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
+      # format token (`format: false`), mirroring the `.well-known/jwks.json` precedent. These are
+      # JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace(:api) do
+        namespace(:v0) do
+          resource(:health, only: :show, path: "health.json", format: false)
+          resource(:revision, only: :show, path: "revision.json", format: false)
+        end
+      end
+
       # Crawler policy endpoint; keep fixed public path.
       resources :robots, only: :index, path: "robots.txt"
 
@@ -101,6 +111,16 @@ scope module: :side, as: :side do
         resource :startup, only: :show
       end
 
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
+      # format token (`format: false`), mirroring the `.well-known/jwks.json` precedent. These are
+      # JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace(:api) do
+        namespace(:v0) do
+          resource(:health, only: :show, path: "health.json", format: false)
+          resource(:revision, only: :show, path: "revision.json", format: false)
+        end
+      end
+
       # Crawler policy endpoint; keep fixed public path.
       resources :robots, only: :index, path: "robots.txt"
 
@@ -166,6 +186,16 @@ scope module: :side, as: :side do
 
         # Boot/startup probe.
         resource :startup, only: :show
+      end
+
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
+      # format token (`format: false`), mirroring the `.well-known/jwks.json` precedent. These are
+      # JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace(:api) do
+        namespace(:v0) do
+          resource(:health, only: :show, path: "health.json", format: false)
+          resource(:revision, only: :show, path: "revision.json", format: false)
+        end
       end
 
       # Crawler policy endpoint; keep fixed public path.

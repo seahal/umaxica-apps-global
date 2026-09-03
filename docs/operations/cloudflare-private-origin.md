@@ -202,10 +202,10 @@ podman run --rm --network "$net" docker.io/curlimages/curl:8.16.0 \
   -sS --max-time 5 http://cloudflare-tunnel:2000/ready                    # want: {"status":200,...}
 ```
 
-Then request `/health/liveness` through each private alias. Probe the liveness endpoint, not
-`/health`: `HealthCheckRendering#render_snapshot` answers `head :not_acceptable` unless the request
-negotiates HTML, so `/health` returns `406` to curl's default `Accept: */*`. `/health/liveness` is
-JSON-only and answers `200`. Leave `Host` to curl — it sends `<alias>:3000`, which is the form
+Then request `/health/liveness` through each private alias. Under the 2026-09-03 text health
+contract both `/health` and `/health/liveness` return `text/plain` `200` (they no longer negotiate
+on `Accept`), so either works; `/health/liveness` is the narrower, dependency-free probe and stays
+the recommended target. Leave `Host` to curl — it sends `<alias>:3000`, which is the form
 `config.hosts` carries for the private origins.
 
 The alias list is the `frontend` `aliases:` block of the `core` service in `compose.yaml`; that
