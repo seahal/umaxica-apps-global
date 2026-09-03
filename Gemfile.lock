@@ -18,7 +18,7 @@ GIT
 
 GIT
   remote: https://github.com/rails/propshaft.git
-  revision: 74258195a7f1602605171b974d06323820c0137a
+  revision: dc979db89cd07c72ee4d11d415ae1cb4fd072623
   specs:
     propshaft (1.3.2)
       actionpack (>= 7.0.0)
@@ -27,7 +27,7 @@ GIT
 
 GIT
   remote: https://github.com/rails/rails.git
-  revision: 7d3b098615d01563bdab9909cbc2048ab5012e54
+  revision: 2164c6c6f7fb91cc1caff5ee4b05931445de42ea
   branch: main
   specs:
     actioncable (8.2.0.alpha)
