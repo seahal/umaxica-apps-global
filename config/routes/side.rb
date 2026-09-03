@@ -18,19 +18,13 @@ scope module: :side, as: :side do
       # Deployment identifier endpoint.
       resource :revision, only: :show
 
-      # Basic health summary.
-      resource :health, only: :show
-
-      # Machine-readable health probes.
-      namespace :health do
-        # Process liveness probe.
-        resource :liveness, only: :show
-
-        # Dependency readiness probe.
-        resource :readiness, only: :show
-
-        # Boot/startup probe.
-        resource :startup, only: :show
+      # Resourceful plain-text health endpoints.
+      resource :health, only: :show, format: false do
+        scope module: :health do
+          resources :startups, only: :index, format: false
+          resources :livenesses, only: :index, format: false
+          resources :readinesses, only: :index, format: false
+        end
       end
 
       # Crawler policy endpoint; keep fixed public path.
@@ -86,19 +80,13 @@ scope module: :side, as: :side do
       # Deployment identifier endpoint.
       resource :revision, only: :show
 
-      # Basic health summary.
-      resource :health, only: :show
-
-      # Machine-readable health probes.
-      namespace :health do
-        # Process liveness probe.
-        resource :liveness, only: :show
-
-        # Dependency readiness probe.
-        resource :readiness, only: :show
-
-        # Boot/startup probe.
-        resource :startup, only: :show
+      # Resourceful plain-text health endpoints.
+      resource :health, only: :show, format: false do
+        scope module: :health do
+          resources :startups, only: :index, format: false
+          resources :livenesses, only: :index, format: false
+          resources :readinesses, only: :index, format: false
+        end
       end
 
       # Crawler policy endpoint; keep fixed public path.
@@ -153,19 +141,13 @@ scope module: :side, as: :side do
       # Deployment identifier endpoint.
       resource :revision, only: :show
 
-      # Basic health summary.
-      resource :health, only: :show
-
-      # Machine-readable health probes.
-      namespace :health do
-        # Process liveness probe.
-        resource :liveness, only: :show
-
-        # Dependency readiness probe.
-        resource :readiness, only: :show
-
-        # Boot/startup probe.
-        resource :startup, only: :show
+      # Resourceful plain-text health endpoints.
+      resource :health, only: :show, format: false do
+        scope module: :health do
+          resources :startups, only: :index, format: false
+          resources :livenesses, only: :index, format: false
+          resources :readinesses, only: :index, format: false
+        end
       end
 
       # Crawler policy endpoint; keep fixed public path.

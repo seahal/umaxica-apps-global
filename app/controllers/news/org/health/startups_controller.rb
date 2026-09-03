@@ -10,7 +10,7 @@ module News
         AUTHENTICATION_MODE = :bare
         HEALTH_PROFILE = ::Health::Profiles::Org
 
-        def show
+        def index
           render_probe(::Health::StartupCheck.call(profile: health_profile))
         end
       end

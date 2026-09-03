@@ -61,11 +61,12 @@ scope(module: :base, as: :base) do
       # Deployment identifier endpoint.
       resource(:revision, only: :show)
 
-      resource(:health, only: :show)
-      namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+      resource(:health, only: :show, format: false) do
+        scope(module: :health) do
+          resources(:startups, only: :index, format: false)
+          resources(:livenesses, only: :index, format: false)
+          resources(:readinesses, only: :index, format: false)
+        end
       end
 
       resources(:robots, only: :index, path: "robots.txt")
@@ -288,11 +289,12 @@ scope(module: :base, as: :base) do
       # Deployment identifier endpoint.
       resource(:revision, only: :show)
 
-      resource(:health, only: :show)
-      namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+      resource(:health, only: :show, format: false) do
+        scope(module: :health) do
+          resources(:startups, only: :index, format: false)
+          resources(:livenesses, only: :index, format: false)
+          resources(:readinesses, only: :index, format: false)
+        end
       end
 
       resources(:robots, only: :index, path: "robots.txt")
@@ -458,11 +460,12 @@ scope(module: :base, as: :base) do
       # Deployment identifier endpoint.
       resource(:revision, only: :show)
 
-      resource(:health, only: :show)
-      namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+      resource(:health, only: :show, format: false) do
+        scope(module: :health) do
+          resources(:startups, only: :index, format: false)
+          resources(:livenesses, only: :index, format: false)
+          resources(:readinesses, only: :index, format: false)
+        end
       end
 
       resources(:robots, only: :index, path: "robots.txt")
@@ -599,11 +602,12 @@ scope(module: :base, as: :base) do
       # Deployment identifier endpoint.
       resource(:revision, only: :show)
 
-      resource(:health, only: :show)
-      namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+      resource(:health, only: :show, format: false) do
+        scope(module: :health) do
+          resources(:startups, only: :index, format: false)
+          resources(:livenesses, only: :index, format: false)
+          resources(:readinesses, only: :index, format: false)
+        end
       end
 
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
@@ -644,11 +648,12 @@ scope(module: :base, as: :base) do
       # Deployment identifier endpoint.
       resource(:revision, only: :show)
 
-      resource(:health, only: :show)
-      namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+      resource(:health, only: :show, format: false) do
+        scope(module: :health) do
+          resources(:startups, only: :index, format: false)
+          resources(:livenesses, only: :index, format: false)
+          resources(:readinesses, only: :index, format: false)
+        end
       end
 
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")

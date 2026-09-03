@@ -1,9 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-# Shared rendering for health controllers. Every health endpoint derives its
-# response from a Health::CheckResult through this concern, so no controller
-# hand-rolls health JSON or duplicates the status mapping.
+# Shared plain-text rendering for health controllers.
 module HealthCheckRendering
   extend ActiveSupport::Concern
 
@@ -11,20 +9,20 @@ module HealthCheckRendering
     before_action :disable_health_response_cache
   end
 
-  # Probe endpoints (liveness/readiness/startup): JSON only. No respond_to,
-  # no HTML fallback, no layout, no flash, no redirect.
   def render_probe(result)
-    render json: result.as_public_json(namespace: health_namespace), status: result.http_status
+    render plain: result.ok? ? "ok\n" : "unavailable\n", status: result.http_status
   end
 
-  # Snapshot endpoint (/health): HTML for browsers, JSON when requested.
   def render_snapshot(result)
-    @health_snapshot = result
-    @health_namespace = health_namespace
+    probes = result.dependencies
+    body = [
+      "status: #{public_status(result.ok?)}",
+      "startup: #{public_status(probes.fetch("startup").fetch(:status) == "ok")}",
+      "liveness: #{public_status(probes.fetch("liveness").fetch(:status) == "ok")}",
+      "readiness: #{public_status(probes.fetch("readiness").fetch(:status) == "ok")}",
+    ].join("\n")
 
-    return head :not_acceptable unless request.format.html?
-
-    render "shared/health/show", formats: :html, status: result.http_status
+    render plain: "#{body}\n", status: result.http_status
   end
 
   private
@@ -39,19 +37,8 @@ module HealthCheckRendering
     response.set_header("Cache-Control", "no-store")
   end
 
-  # The routed surface that answered, as "<realm>/<surface>". `controller_path` is the path
-  # Rails resolved for the request (for example "core/app/health/livenesses"), so this follows
-  # whichever `constraints(host:)` block matched instead of restating it.
-  def health_namespace
-    segments = controller_path.split("/")
-
-    if segments.length < 2
-      raise Health::MissingNamespaceError,
-            "#{self.class.name} is not nested under a <realm>/<surface> namespace, so the " \
-            "answering surface cannot be named in its health response"
-    end
-
-    segments.first(2).join("/")
+  def public_status(ok)
+    ok ? "ok" : "unavailable"
   end
 
   def health_profile

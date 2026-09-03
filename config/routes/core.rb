@@ -24,11 +24,12 @@ scope module: :core, as: :core do
       resource :revision, only: :show
 
       # Health summary and probes.
-      resource :health, only: :show
-      namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
+      resource(:health, only: :show, format: false) do
+        scope(module: :health) do
+          resources(:startups, only: :index, format: false)
+          resources(:livenesses, only: :index, format: false)
+          resources(:readinesses, only: :index, format: false)
+        end
       end
 
       # Crawler policy endpoint.
@@ -111,11 +112,12 @@ scope module: :core, as: :core do
       resource :revision, only: :show
 
       # Health summary and probes.
-      resource :health, only: :show
-      namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
+      resource(:health, only: :show, format: false) do
+        scope(module: :health) do
+          resources(:startups, only: :index, format: false)
+          resources(:livenesses, only: :index, format: false)
+          resources(:readinesses, only: :index, format: false)
+        end
       end
 
       # Crawler policy endpoint.
@@ -198,11 +200,12 @@ scope module: :core, as: :core do
       resource :revision, only: :show
 
       # Health summary and probes.
-      resource :health, only: :show
-      namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
+      resource(:health, only: :show, format: false) do
+        scope(module: :health) do
+          resources(:startups, only: :index, format: false)
+          resources(:livenesses, only: :index, format: false)
+          resources(:readinesses, only: :index, format: false)
+        end
       end
 
       # Crawler policy endpoint.
@@ -277,11 +280,12 @@ scope module: :core, as: :core do
       resource :revision, only: :show
 
       # Health summary and probes.
-      resource :health, only: :show
-      namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
+      resource(:health, only: :show, format: false) do
+        scope(module: :health) do
+          resources(:startups, only: :index, format: false)
+          resources(:livenesses, only: :index, format: false)
+          resources(:readinesses, only: :index, format: false)
+        end
       end
 
       # CSP report sink; keep configured report-uri path.
@@ -299,11 +303,12 @@ scope module: :core, as: :core do
       resource :revision, only: :show
 
       # Health summary and probes.
-      resource :health, only: :show
-      namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
+      resource(:health, only: :show, format: false) do
+        scope(module: :health) do
+          resources(:startups, only: :index, format: false)
+          resources(:livenesses, only: :index, format: false)
+          resources(:readinesses, only: :index, format: false)
+        end
       end
 
       # CSP report sink; keep configured report-uri path.

@@ -10,7 +10,7 @@ module Auth
         AUTHENTICATION_MODE = :bare
         HEALTH_PROFILE = ::Health::Profiles::SignCom
 
-        def show
+        def index
           render_probe(::Health::LivenessCheck.call(profile: health_profile))
         end
       end
