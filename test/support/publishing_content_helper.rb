@@ -84,17 +84,19 @@ module PublishingContentHelper
   end
 
   def publishing_revision_media_usage(
-    revision:, media_file:, role: "body", position: 0, field_path: "body.blocks.0", block_path: "blocks.0"
+    revision:, media_file:, role: "body", position: 0, field_path: "body.blocks.0", block_path: "blocks.0",
+    caption: nil, alt_text: nil, presentation_metadata: nil
   )
     Publishing::RevisionMediaUsage.create!(
       entry_revision: revision,
-      entry: revision.entry,
       media_file:,
-      locale: revision.locale,
       role:,
       field_path:,
       block_path:,
       position:,
+      caption:,
+      alt_text:,
+      presentation_metadata:,
     )
   end
 

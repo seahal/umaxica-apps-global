@@ -13,14 +13,16 @@ module Publishing
 
     test "publishing_media_usages no longer exists" do
       assert_not PublishingRecord.connection.table_exists?("publishing_media_usages")
-      assert_not Rails.root.join("app/models/publishing/media_usage.rb").exist?
+      assert_raises(NameError) { Publishing.const_get(:MediaUsage) }
     end
 
-    test "revision media usages have a required revision owner and no version owner column" do
+    test "revision media usages have a required revision owner and no derived or version columns" do
       columns = PublishingRecord.connection.columns("publishing_revision_media_usages").map(&:name)
 
       assert_includes columns, "entry_revision_id"
       assert_not_includes columns, "entry_version_id"
+      assert_not_includes columns, "entry_id"
+      assert_not_includes columns, "locale"
       revision_owner =
         PublishingRecord.connection.columns("publishing_revision_media_usages")
           .find { |column| column.name == "entry_revision_id" }
@@ -28,11 +30,13 @@ module Publishing
       assert_not revision_owner.null
     end
 
-    test "version media usages have a required version owner and no revision owner column" do
+    test "version media usages have a required version owner and no derived or revision columns" do
       columns = PublishingRecord.connection.columns("publishing_version_media_usages").map(&:name)
 
       assert_includes columns, "entry_version_id"
       assert_not_includes columns, "entry_revision_id"
+      assert_not_includes columns, "entry_id"
+      assert_not_includes columns, "locale"
       version_owner =
         PublishingRecord.connection.columns("publishing_version_media_usages")
           .find { |column| column.name == "entry_version_id" }
@@ -60,9 +64,10 @@ module Publishing
       end
     end
 
-    test "promotion copies revision media onto the immutable version" do
+    test "promotion copies placement and presentation fields onto the immutable version" do
       publishing_revision_media_usage(
         revision: @revision, media_file: @media_file, role: "hero", position: 0, field_path: "hero",
+        caption: "Hero caption", alt_text: "Hero alt", presentation_metadata: { "crop" => "center" },
       )
       second = publishing_media_file
       publishing_revision_media_usage(
@@ -76,6 +81,9 @@ module Publishing
       assert_equal [@media_file.id, second.id], copied.map(&:media_file_id)
       assert_equal %w(hero body), copied.map(&:role)
       assert_equal [0, 1], copied.map(&:position)
+      assert_equal "Hero caption", copied.first.caption
+      assert_equal "Hero alt", copied.first.alt_text
+      assert_equal({ "crop" => "center" }, copied.first.presentation_metadata)
     end
 
     test "released version media is immutable through active record and postgresql" do
@@ -124,12 +132,36 @@ module Publishing
       assert_equal "restored draft", copied.reload.caption
     end
 
-    test "split migration copies revision and version owned rows by owner predicate" do
-      source = Rails.root.join("db/publishing_migrate/20260903180100_split_publishing_media_usages.rb").read
+    test "canonical schema creates owner-explicit media tables and never the union table" do
+      schema = Rails.root.join("db/migration_support/publishing_schema.rb").read
+      history = Rails.root.glob("db/publishing_migrate/*.rb").map { |path| path.basename.to_s }
 
-      assert_includes source, "FROM publishing_media_usages"
-      assert_includes source, "WHERE \#{owner_id} IS NOT NULL"
-      assert_includes source, "drop_table(:publishing_media_usages)"
+      assert_includes schema, "publishing_revision_media_usages"
+      assert_includes schema, "publishing_version_media_usages"
+      assert_no_match(/create_table\(?\s*:publishing_media_usages\b/, schema)
+      assert_not_includes history, "20260903180000_create_publishing_owner_media_usages.rb"
+      assert_not_includes history, "20260903180100_split_publishing_media_usages.rb"
+    end
+
+    test "commit rejects version media that differs in presentation fields" do
+      publishing_revision_media_usage(
+        revision: @revision, media_file: @media_file, caption: "source caption",
+      )
+
+      assert_raises(ActiveRecord::StatementInvalid) do
+        PublishingRecord.transaction(requires_new: true) do
+          version = EntryVersion.create!(
+            entry: @entry, entry_revision: @revision, locale: @revision.locale, title: @revision.title,
+            body: @revision.body, schema_version: @revision.schema_version,
+            content_digest: @revision.content_digest, sequence: 99,
+          )
+          VersionMediaUsage.create!(
+            entry_version: version, media_file: @media_file, role: "body", field_path: "body.blocks.0",
+            block_path: "blocks.0", position: 0, caption: "different caption",
+          )
+          PublishingRecord.lease_connection.execute("SET CONSTRAINTS ALL IMMEDIATE")
+        end
+      end
     end
   end
 end

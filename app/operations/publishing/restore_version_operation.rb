@@ -88,9 +88,7 @@ module Publishing
       version.media_usages.find_each do |usage|
         RevisionMediaUsage.create!(
           media_file_id: usage.media_file_id,
-          entry_id: usage.entry_id,
           entry_revision: revision,
-          locale: usage.locale,
           role: usage.role,
           field_path: usage.field_path,
           block_path: usage.block_path,

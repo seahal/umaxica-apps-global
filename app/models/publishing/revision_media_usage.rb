@@ -9,10 +9,9 @@ module Publishing
     include PublicId
 
     belongs_to :media_file, class_name: "Publishing::MediaFile", inverse_of: :revision_media_usages
-    belongs_to :entry, class_name: "Publishing::Entry", inverse_of: :revision_media_usages
     belongs_to :entry_revision, class_name: "Publishing::EntryRevision", inverse_of: :media_usages
 
-    validates :locale, :role, presence: true
+    validates :role, presence: true
     validates :position, numericality: { greater_than_or_equal_to: 0, only_integer: true }
     validate :path_present
 

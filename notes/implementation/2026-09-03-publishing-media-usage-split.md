@@ -35,7 +35,9 @@
 
 ## Review Notes
 
-- Tests run: see `evidence/2026-09-03-publishing-media-usage-split.md`.
-- Tests not run: full `bin/rails test`.
-- Documentation promotion: current docs and a new ADR were written in this
-  change.
+- Tests run: see `evidence/2026-09-03-publishing-phase-1b-finalization.md`.
+- Follow-up: Phase 1B finalization removed the transitional migrations and
+  duplicated `entry_id`/`locale` columns. Fresh migrate creates the final
+  tables directly.
+- Documentation promotion: `docs/architecture/publishing-persistence.md` and
+  the polymorphism-prohibition ADR were updated for pre-deployment history.

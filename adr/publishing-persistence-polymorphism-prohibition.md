@@ -30,10 +30,12 @@ do not require twelve physical CMS databases or regional publishing databases.
    forbidden. Ordinary classification such as taxonomy `kind` remains allowed
    when ownership and lifecycle stay homogeneous.
 3. Media placements are two relations: `publishing_revision_media_usages` and
-   `publishing_version_media_usages`.
-4. Prefer Rails migration DSL. PostgreSQL triggers and `INSERT...SELECT` copies
-   are allowed only when the DSL cannot express the invariant, and must be
-   documented and tested.
+   `publishing_version_media_usages`. A fresh migrate creates those tables
+   directly. There is no compatibility copy from `publishing_media_usages`
+   because this correction is pre-deployment.
+4. Prefer Rails migration DSL. PostgreSQL triggers for immutability and
+   deferred snapshot completeness are allowed only when the DSL cannot express
+   the invariant, and must be documented and tested.
 5. Shared public-content HTTP behaviour lives in Rails controller concerns.
    The twelve concrete controllers stay explicit and thin. `included do` is an
    exception that must be justified.

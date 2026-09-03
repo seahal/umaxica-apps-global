@@ -45,12 +45,20 @@ class DatabaseReconstructionAuthorityTest < ActiveSupport::TestCase
 
     assert_no_match(/\bCREATE TABLE\b/i, dump)
 
-    migration_bodies = Rails.root.glob("db/publishing_migrate/*.rb").map(&:read).join("\n")
+    migration_bodies =
+      (Rails.root.glob("db/publishing_migrate/*.rb") + Rails.root.glob("db/migration_support/publishing_schema.rb"))
+        .map(&:read).join("\n")
 
     assert_match(/publishing_editions/, migration_bodies)
     assert_match(/publishing_entries/, migration_bodies)
+    assert_match(/publishing_revision_media_usages/, migration_bodies)
+    assert_match(/publishing_version_media_usages/, migration_bodies)
+    assert_no_match(/create_table\(?\s*:publishing_media_usages\b/, migration_bodies)
     assert PublishingRecord.connection.table_exists?("publishing_editions")
     assert PublishingRecord.connection.table_exists?("publishing_entries")
+    assert PublishingRecord.connection.table_exists?("publishing_revision_media_usages")
+    assert PublishingRecord.connection.table_exists?("publishing_version_media_usages")
+    assert_not PublishingRecord.connection.table_exists?("publishing_media_usages")
   end
 
   test "schema_format remains sql but dump_schema_after_migration is disabled" do

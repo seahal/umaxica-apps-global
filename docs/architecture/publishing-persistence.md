@@ -30,21 +30,41 @@ Ruby polymorphism (modules, composition, ordinary method dispatch) is allowed.
 
 ## Media ownership
 
-Draft placements live in `publishing_revision_media_usages` and belong to an
-entry revision. Released placements live in `publishing_version_media_usages`
-and belong to an entry version. Both point at `publishing_media_files`. The
-former exclusive-arc table `publishing_media_usages` is gone.
+A fresh database creates two owner-explicit relations directly. There is no
+`publishing_media_usages` table and no compatibility/data-copy migration: this
+correction landed before any deployment.
 
-Promotion copies revision media onto the version. Restore copies version media
-onto a new revision. Version media is immutable. Promoted revision media cannot
-change.
+- `publishing_revision_media_usages` belongs only to `entry_revision_id`
+- `publishing_version_media_usages` belongs only to `entry_version_id`
+
+`entry_id` and `locale` are not stored on these relations. They are determined
+by the owner revision or version. BCNF is the baseline; there is no measured
+reason to duplicate those attributes.
+
+Promotion copies placement (`media_file_id`, `role`, `field_path`, `block_path`,
+`position`) and presentation (`alt_text`, `caption`, `presentation_metadata`).
+A deferred PostgreSQL completeness trigger requires those fields to match at
+COMMIT. Version media is immutable. Promoted revision media cannot change.
+
+## Schema authority
+
+Migrations define the schema. `db/seeds.rb` only populates development sample
+data. Seeds must conform to the schema; the schema must not be weakened for
+seeds.
 
 ## Migration DSL
 
 Prefer Rails migration DSL (`create_table`, `add_foreign_key`, `add_index`,
-`add_check_constraint`, `drop_table`). Raw SQL, triggers, and exclusion
-constraints are exceptions: they must be justified, narrowly scoped, tested, and
-must not drop an integrity constraint for portability theatre.
+`add_check_constraint`). Raw SQL, triggers, and exclusion constraints are
+exceptions: they must be justified, narrowly scoped, tested, and must not drop
+an integrity constraint for portability theatre.
+
+Permanent PostgreSQL exceptions for media:
+
+- `publishing_reject_mutation` on version media (immutability Rails callbacks
+  cannot enforce against `update_all` / raw SQL)
+- `publishing_promoted_revision_guard` on revision media
+- `publishing_assert_version_media_complete` deferred completeness at COMMIT
 
 ## Rails controllers
 

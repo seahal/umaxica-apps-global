@@ -14,10 +14,9 @@ module Publishing
     before_destroy { raise(ActiveRecord::ReadOnlyRecord, "Publishing::VersionMediaUsage is immutable") }
 
     belongs_to :media_file, class_name: "Publishing::MediaFile", inverse_of: :version_media_usages
-    belongs_to :entry, class_name: "Publishing::Entry", inverse_of: :version_media_usages
     belongs_to :entry_version, class_name: "Publishing::EntryVersion", inverse_of: :media_usages
 
-    validates :locale, :role, presence: true
+    validates :role, presence: true
     validates :position, numericality: { greater_than_or_equal_to: 0, only_integer: true }
     validate :path_present
 
