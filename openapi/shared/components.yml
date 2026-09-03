@@ -231,7 +231,21 @@ schemas:
   Entry:
     type: object
     description: One published entry, rendered from its frozen published version.
-    required: [namespace, surface, slug, locale, title, summary, body, published_at, taxonomy]
+    required:
+      [
+        namespace,
+        surface,
+        slug,
+        locale,
+        title,
+        summary,
+        body,
+        published_at,
+        updated_at,
+        public_id,
+        snapshot_public_id,
+        taxonomy,
+      ]
     properties:
       namespace:
         type: string
@@ -272,6 +286,16 @@ schemas:
           `publishing_publications.effective_from` is `NOT NULL`, so an entry that renders always
           has one. It was previously described as nullable, which described a state that cannot
           occur.
+      updated_at:
+        type: string
+        format: date-time
+        description: RFC 3339 instant of the published version row. Used for Last-Modified.
+      public_id:
+        type: string
+        description: Stable public identifier of the entry. Never a database primary key.
+      snapshot_public_id:
+        type: string
+        description: Stable public identifier of the published snapshot used for HTML validators.
       taxonomy:
         type: object
         description: >-
