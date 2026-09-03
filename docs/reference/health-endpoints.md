@@ -56,3 +56,14 @@ Field reference:
 Status codes follow `Health::StatusPolicy.http_status` (`app/services/health.rb`): `ok` and
 `degraded_acceptable` return `200`; `unready` returns `503`; `starting` returns `200` on the
 **liveness** probe and `503` otherwise. Equivalently, `result.ok?` ⇒ `200`, else `503`.
+
+## Caching
+
+Every health response carries `Cache-Control: no-store`, set by
+`HealthCheckRendering#disable_health_response_cache` as a `before_action` so it also covers the
+`406` that a non-HTML request to `/health` receives. A health response is a verdict about one
+instance at one instant: a stored `200` keeps an orchestrator sending traffic to an instance that
+has since failed readiness, and a stored `503` keeps traffic away from one that has recovered.
+Rails would otherwise default these responses to `max-age=0, private, must-revalidate`, which
+permits storage. `test/integration/health_endpoints_test.rb` pins the header on all four
+endpoints, on a `503` probe, and on the `406`.

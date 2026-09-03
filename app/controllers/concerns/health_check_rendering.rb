@@ -7,6 +7,10 @@
 module HealthCheckRendering
   extend ActiveSupport::Concern
 
+  included do
+    before_action :disable_health_response_cache
+  end
+
   # Probe endpoints (liveness/readiness/startup): JSON only. No respond_to,
   # no HTML fallback, no layout, no flash, no redirect.
   def render_probe(result)
@@ -24,6 +28,16 @@ module HealthCheckRendering
   end
 
   private
+
+  # A health response is a verdict about this instance at this instant, so a stored copy is a
+  # stale verdict: a cached 200 keeps an orchestrator sending traffic to an instance that has
+  # since failed its readiness probe, and a cached 503 keeps traffic away from one that has
+  # recovered. Rails otherwise defaults these to `max-age=0, private, must-revalidate`, which
+  # permits storage. Applied as a callback rather than inside the render helpers so it also
+  # covers the 406 that a non-HTML request to /health receives.
+  def disable_health_response_cache
+    response.set_header("Cache-Control", "no-store")
+  end
 
   # The routed surface that answered, as "<realm>/<surface>". `controller_path` is the path
   # Rails resolved for the request (for example "core/app/health/livenesses"), so this follows

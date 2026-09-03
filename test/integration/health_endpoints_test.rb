@@ -455,6 +455,48 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     assert_probe_status(:unready, :service_unavailable)
   end
 
+  # An orchestrator acts on the verdict it is handed. A stored 200 keeps traffic going to an
+  # instance that has since failed readiness, and a stored 503 keeps it away from one that has
+  # recovered, so every health response has to be uncacheable - including the ones that are not
+  # a successful probe render.
+  test "no health response may be stored by a cache" do
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+
+    get "/health", headers: { "Accept" => "text/html" }
+
+    assert_response :success
+    assert_equal "no-store", response.headers["Cache-Control"]
+
+    %w(liveness readiness startup).each do |probe|
+      get "/health/#{probe}"
+
+      assert_includes [200, 503], response.status
+      assert_equal "no-store", response.headers["Cache-Control"], "/health/#{probe} may not be stored"
+    end
+  end
+
+  test "a failing probe and a refused format are uncacheable too" do
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+
+    unready = Health::CheckResult.new(
+      check: :readiness,
+      status: :unready,
+      surface: Health::Profiles::SignApp.surface_label,
+    )
+
+    Health::ReadinessCheck.stub(:call, unready) do
+      get "/health/readiness"
+    end
+
+    assert_response :service_unavailable
+    assert_equal "no-store", response.headers["Cache-Control"]
+
+    get "/health", headers: { "Accept" => "application/json" }
+
+    assert_response :not_acceptable
+    assert_equal "no-store", response.headers["Cache-Control"]
+  end
+
   test "public responses omit topology and exception details" do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
     result = Health::CheckResult.new(
