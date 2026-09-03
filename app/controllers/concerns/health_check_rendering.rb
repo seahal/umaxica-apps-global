@@ -31,8 +31,8 @@ module HealthCheckRendering
   # stale verdict: a cached 200 keeps an orchestrator sending traffic to an instance that has
   # since failed its readiness probe, and a cached 503 keeps traffic away from one that has
   # recovered. Rails otherwise defaults these to `max-age=0, private, must-revalidate`, which
-  # permits storage. Applied as a callback rather than inside the render helpers so it also
-  # covers the 406 that a non-HTML request to /health receives.
+  # permits storage. Applied as a callback rather than inside the render helpers so every
+  # health response carries the header.
   def disable_health_response_cache
     response.set_header("Cache-Control", "no-store")
   end

@@ -38,9 +38,11 @@ class PlainTextHealthEndpointsTest < ActionDispatch::IntegrationTest
     end
 
     get "/health.json"
+
     assert_response :not_found
 
     get "/health/readinesses.txt"
+
     assert_response :not_found
   end
 

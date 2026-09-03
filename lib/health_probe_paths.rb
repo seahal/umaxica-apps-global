@@ -9,8 +9,8 @@
 #
 # Anything listed here gives that defence up for that path. A rebinding attacker can reach these
 # paths and read the response. That is accepted for the health probes specifically, because their
-# public JSON is deliberately limited to `status`, the probe name, `{ "database": "ok" }`, and a
-# surface label and revision -- never exception classes, messages, credentials, or topology (see
+# public body is plain text limited to `ok` / `unavailable` (and a four-line snapshot on `/health`)
+# -- never exception classes, messages, credentials, or topology (see
 # `docs/reference/health-endpoints.md`). It is not acceptable for anything else.
 #
 # Why an exemption is needed at all: orchestrator, container-engine and load-balancer probes reach
@@ -27,9 +27,9 @@
 module HealthProbePaths
   PATHS = [
     "/health",
-    "/health/liveness",
-    "/health/readiness",
-    "/health/startup",
+    "/health/livenesses",
+    "/health/readinesses",
+    "/health/startups",
   ].freeze
 
   module_function

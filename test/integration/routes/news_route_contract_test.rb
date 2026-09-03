@@ -55,28 +55,28 @@ class NewsRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{NEWS_APP_HOST}/health/liveness",
+      "http://#{NEWS_APP_HOST}/health/livenesses",
       method: :get,
     )
 
     assert_equal "news/app/health/livenesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{NEWS_APP_HOST}/health/readiness",
+      "http://#{NEWS_APP_HOST}/health/readinesses",
       method: :get,
     )
 
     assert_equal "news/app/health/readinesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{NEWS_APP_HOST}/health/startup",
+      "http://#{NEWS_APP_HOST}/health/startups",
       method: :get,
     )
 
     assert_equal "news/app/health/startups", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{NEWS_APP_HOST}/csp-violation-report",
@@ -130,28 +130,28 @@ class NewsRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{NEWS_COM_HOST}/health/liveness",
+      "http://#{NEWS_COM_HOST}/health/livenesses",
       method: :get,
     )
 
     assert_equal "news/com/health/livenesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{NEWS_COM_HOST}/health/readiness",
+      "http://#{NEWS_COM_HOST}/health/readinesses",
       method: :get,
     )
 
     assert_equal "news/com/health/readinesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{NEWS_COM_HOST}/health/startup",
+      "http://#{NEWS_COM_HOST}/health/startups",
       method: :get,
     )
 
     assert_equal "news/com/health/startups", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{NEWS_COM_HOST}/csp-violation-report",
@@ -205,28 +205,28 @@ class NewsRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{NEWS_ORG_HOST}/health/liveness",
+      "http://#{NEWS_ORG_HOST}/health/livenesses",
       method: :get,
     )
 
     assert_equal "news/org/health/livenesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{NEWS_ORG_HOST}/health/readiness",
+      "http://#{NEWS_ORG_HOST}/health/readinesses",
       method: :get,
     )
 
     assert_equal "news/org/health/readinesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{NEWS_ORG_HOST}/health/startup",
+      "http://#{NEWS_ORG_HOST}/health/startups",
       method: :get,
     )
 
     assert_equal "news/org/health/startups", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{NEWS_ORG_HOST}/csp-violation-report",

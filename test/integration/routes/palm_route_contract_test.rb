@@ -33,28 +33,28 @@ class PalmRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{PALM_HOST}/health/liveness",
+      "http://#{PALM_HOST}/health/livenesses",
       method: :get,
     )
 
     assert_equal "palm/app/health/livenesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{PALM_HOST}/health/readiness",
+      "http://#{PALM_HOST}/health/readinesses",
       method: :get,
     )
 
     assert_equal "palm/app/health/readinesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{PALM_HOST}/health/startup",
+      "http://#{PALM_HOST}/health/startups",
       method: :get,
     )
 
     assert_equal "palm/app/health/startups", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{PALM_HOST}/robots.txt",

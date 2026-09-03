@@ -49,18 +49,18 @@ class BaseAuthorityRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "base/app/health/livenesses", action: "show" },
-      { path: "http://#{BASE_APP_HOST}/health/liveness", method: :get },
+      { controller: "base/app/health/livenesses", action: "index" },
+      { path: "http://#{BASE_APP_HOST}/health/livenesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/app/health/readinesses", action: "show" },
-      { path: "http://#{BASE_APP_HOST}/health/readiness", method: :get },
+      { controller: "base/app/health/readinesses", action: "index" },
+      { path: "http://#{BASE_APP_HOST}/health/readinesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/app/health/startups", action: "show" },
-      { path: "http://#{BASE_APP_HOST}/health/startup", method: :get },
+      { controller: "base/app/health/startups", action: "index" },
+      { path: "http://#{BASE_APP_HOST}/health/startups", method: :get },
     )
 
     assert_recognizes(
@@ -423,18 +423,18 @@ class BaseAuthorityRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "base/com/health/livenesses", action: "show" },
-      { path: "http://#{BASE_COM_HOST}/health/liveness", method: :get },
+      { controller: "base/com/health/livenesses", action: "index" },
+      { path: "http://#{BASE_COM_HOST}/health/livenesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/com/health/readinesses", action: "show" },
-      { path: "http://#{BASE_COM_HOST}/health/readiness", method: :get },
+      { controller: "base/com/health/readinesses", action: "index" },
+      { path: "http://#{BASE_COM_HOST}/health/readinesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/com/health/startups", action: "show" },
-      { path: "http://#{BASE_COM_HOST}/health/startup", method: :get },
+      { controller: "base/com/health/startups", action: "index" },
+      { path: "http://#{BASE_COM_HOST}/health/startups", method: :get },
     )
 
     assert_recognizes(
@@ -646,18 +646,18 @@ class BaseAuthorityRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "base/org/health/livenesses", action: "show" },
-      { path: "http://#{BASE_ORG_HOST}/health/liveness", method: :get },
+      { controller: "base/org/health/livenesses", action: "index" },
+      { path: "http://#{BASE_ORG_HOST}/health/livenesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/org/health/readinesses", action: "show" },
-      { path: "http://#{BASE_ORG_HOST}/health/readiness", method: :get },
+      { controller: "base/org/health/readinesses", action: "index" },
+      { path: "http://#{BASE_ORG_HOST}/health/readinesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/org/health/startups", action: "show" },
-      { path: "http://#{BASE_ORG_HOST}/health/startup", method: :get },
+      { controller: "base/org/health/startups", action: "index" },
+      { path: "http://#{BASE_ORG_HOST}/health/startups", method: :get },
     )
 
     assert_recognizes(

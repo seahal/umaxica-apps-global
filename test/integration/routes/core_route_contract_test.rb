@@ -37,8 +37,8 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
         )
 
         assert_recognizes(
-          { controller: "#{module_prefix}/health/livenesses", action: "show" },
-          { path: "http://#{host}/health/liveness", method: :get },
+          { controller: "#{module_prefix}/health/livenesses", action: "index" },
+          { path: "http://#{host}/health/livenesses", method: :get },
         )
       end
     end
@@ -56,8 +56,8 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
         CORE_ORG_HOST => "core/org",
       }.each do |host, module_prefix|
         assert_recognizes(
-          { controller: "#{module_prefix}/health/livenesses", action: "show" },
-          { path: "http://#{host}/health/liveness", method: :get },
+          { controller: "#{module_prefix}/health/livenesses", action: "index" },
+          { path: "http://#{host}/health/livenesses", method: :get },
         )
       end
     end
@@ -69,7 +69,7 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     ) do
       assert_raises(ActionController::RoutingError) do
         Rails.application.routes.recognize_path(
-          "http://core-service.unrelated.example/health/liveness",
+          "http://core-service.unrelated.example/health/livenesses",
           method: :get,
         )
       end
@@ -101,18 +101,18 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/app/health/livenesses", action: "show" },
-      { path: "http://#{CORE_APP_HOST}/health/liveness", method: :get },
+      { controller: "core/app/health/livenesses", action: "index" },
+      { path: "http://#{CORE_APP_HOST}/health/livenesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/app/health/readinesses", action: "show" },
-      { path: "http://#{CORE_APP_HOST}/health/readiness", method: :get },
+      { controller: "core/app/health/readinesses", action: "index" },
+      { path: "http://#{CORE_APP_HOST}/health/readinesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/app/health/startups", action: "show" },
-      { path: "http://#{CORE_APP_HOST}/health/startup", method: :get },
+      { controller: "core/app/health/startups", action: "index" },
+      { path: "http://#{CORE_APP_HOST}/health/startups", method: :get },
     )
 
     assert_recognizes(
@@ -248,18 +248,18 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/com/health/livenesses", action: "show" },
-      { path: "http://#{CORE_COM_HOST}/health/liveness", method: :get },
+      { controller: "core/com/health/livenesses", action: "index" },
+      { path: "http://#{CORE_COM_HOST}/health/livenesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/com/health/readinesses", action: "show" },
-      { path: "http://#{CORE_COM_HOST}/health/readiness", method: :get },
+      { controller: "core/com/health/readinesses", action: "index" },
+      { path: "http://#{CORE_COM_HOST}/health/readinesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/com/health/startups", action: "show" },
-      { path: "http://#{CORE_COM_HOST}/health/startup", method: :get },
+      { controller: "core/com/health/startups", action: "index" },
+      { path: "http://#{CORE_COM_HOST}/health/startups", method: :get },
     )
 
     assert_recognizes(
@@ -396,18 +396,18 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/org/health/livenesses", action: "show" },
-      { path: "http://#{CORE_ORG_HOST}/health/liveness", method: :get },
+      { controller: "core/org/health/livenesses", action: "index" },
+      { path: "http://#{CORE_ORG_HOST}/health/livenesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/org/health/readinesses", action: "show" },
-      { path: "http://#{CORE_ORG_HOST}/health/readiness", method: :get },
+      { controller: "core/org/health/readinesses", action: "index" },
+      { path: "http://#{CORE_ORG_HOST}/health/readinesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/org/health/startups", action: "show" },
-      { path: "http://#{CORE_ORG_HOST}/health/startup", method: :get },
+      { controller: "core/org/health/startups", action: "index" },
+      { path: "http://#{CORE_ORG_HOST}/health/startups", method: :get },
     )
 
     assert_recognizes(
@@ -550,28 +550,28 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{CORE_NET_HOST}/health/liveness",
+      "http://#{CORE_NET_HOST}/health/livenesses",
       method: :get,
     )
 
     assert_equal "core/net/health/livenesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{CORE_NET_HOST}/health/readiness",
+      "http://#{CORE_NET_HOST}/health/readinesses",
       method: :get,
     )
 
     assert_equal "core/net/health/readinesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{CORE_NET_HOST}/health/startup",
+      "http://#{CORE_NET_HOST}/health/startups",
       method: :get,
     )
 
     assert_equal "core/net/health/startups", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{CORE_NET_HOST}/csp-violation-report",
@@ -600,28 +600,28 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{CORE_DEV_HOST}/health/liveness",
+      "http://#{CORE_DEV_HOST}/health/livenesses",
       method: :get,
     )
 
     assert_equal "core/dev/health/livenesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{CORE_DEV_HOST}/health/readiness",
+      "http://#{CORE_DEV_HOST}/health/readinesses",
       method: :get,
     )
 
     assert_equal "core/dev/health/readinesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{CORE_DEV_HOST}/health/startup",
+      "http://#{CORE_DEV_HOST}/health/startups",
       method: :get,
     )
 
     assert_equal "core/dev/health/startups", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{CORE_DEV_HOST}/csp-violation-report",

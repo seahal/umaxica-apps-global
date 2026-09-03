@@ -72,6 +72,32 @@ module PublishingContentHelper
     entry
   end
 
+  def publishing_media_file(storage_key: nil)
+    Publishing::MediaFile.create!(
+      storage_key: storage_key || "test/#{SecureRandom.hex(12)}",
+      content_type: "image/png",
+      byte_size: 32,
+      digest_algorithm: "sha256",
+      digest: Digest::SHA256.hexdigest(SecureRandom.hex(8)),
+      metadata: {},
+    )
+  end
+
+  def publishing_revision_media_usage(
+    revision:, media_file:, role: "body", position: 0, field_path: "body.blocks.0", block_path: "blocks.0"
+  )
+    Publishing::RevisionMediaUsage.create!(
+      entry_revision: revision,
+      entry: revision.entry,
+      media_file:,
+      locale: revision.locale,
+      role:,
+      field_path:,
+      block_path:,
+      position:,
+    )
+  end
+
   # One-call fixture: draft, promote, publish.
   def publishing_published_entry(audience:, surface:, slug:, title:, locale: "ja", published_at: 1.hour.ago)
     edition = publishing_edition(audience:, surface:, locale:)

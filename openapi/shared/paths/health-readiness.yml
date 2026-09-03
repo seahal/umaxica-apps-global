@@ -1,4 +1,4 @@
-# GET /health/readiness
+# GET /health/readinesses
 #
 # No `servers`: the health endpoints are blocked at the edge and have no public host.
 # They are reachable only from inside the deployment network. Naming a host here would
@@ -7,7 +7,7 @@ get:
   summary: Dependency readiness probe
   description: >-
     Internal probe for orchestrators and monitoring, not a user-facing availability contract.
-    Reports `database` in `dependencies`. Only the public status is exposed.
+    Reports only `ok` or `unavailable` as plain text.
   security: []
   operationId: getHealthReadiness
   tags: [Health]

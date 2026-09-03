@@ -4,9 +4,9 @@ This application does not use Rails' default `/up` endpoint for orchestrator hea
 current health endpoints are surface-local and host-constrained:
 
 - `GET /health`
-- `GET /health/liveness`
-- `GET /health/readiness`
-- `GET /health/startup`
+- `GET /health/livenesses`
+- `GET /health/readinesses`
+- `GET /health/startups`
 
 These are **internal-only checkpoints** for orchestrators and monitoring probes, not a user-facing
 contract. Public traffic to them is blocked at the Cloudflare edge (see "Edge Access Policy" below).
@@ -30,9 +30,9 @@ origin). The decision is recorded in `adr/internal-health-endpoint-edge-isolatio
 Blocked paths (all surfaces, all hosts):
 
 - `/health`
-- `/health/liveness`
-- `/health/readiness`
-- `/health/startup`
+- `/health/livenesses`
+- `/health/readinesses`
+- `/health/startups`
 
 The edge rule is configured and owned on the Cloudflare side; this repository does not hold the edge
 configuration. The intended rule is a Cloudflare WAF / firewall block (return `403`/`404`, or a
@@ -61,17 +61,17 @@ controllers without an explicit authentication mode default to `deny_all`. Rails
 
 | Path                | Role                                                                    |
 | ------------------- | ----------------------------------------------------------------------- |
-| `/health`           | HTML snapshot for the current surface (JSON snapshot for JSON clients). |
-| `/health/liveness`  | JSON liveness probe. It must remain dependency-free.                    |
-| `/health/readiness` | JSON readiness probe for dependencies relevant to the surface.          |
-| `/health/startup`   | JSON startup probe for boot-time checks relevant to the surface.        |
+| `/health`             | Plain-text snapshot of nested probe statuses.              |
+| `/health/livenesses`  | Plain-text liveness probe. It must remain dependency-free. |
+| `/health/readinesses` | Plain-text readiness probe for surface dependencies.       |
+| `/health/startups`    | Plain-text startup probe for boot-time checks.             |
 
 The former `/health/live` and `/health/ready` paths were removed outright (no compatibility shim);
 `test/integration/edge_health_routes_test.rb` guards against their reintroduction. Infrastructure
 probe configuration must point at the `liveness` / `readiness` paths.
 
 All probe responses must avoid exposing internal topology, exception details, credentials, or full
-dependency names. See `docs/reference/health-endpoints.md` for the JSON contract.
+dependency names. See `docs/reference/health-endpoints.md` for the plain-text contract.
 
 ## Related Edge And Firewall Boundary
 

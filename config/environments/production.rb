@@ -199,7 +199,7 @@ Rails.application.configure do
   # Skip DNS rebinding protection for the internal health probes, and only for them.
   #
   # This previously matched `"/health"` alone, while the probe set this application mounts is four
-  # paths. `/health/liveness`, `/health/readiness` and `/health/startup` were therefore answered by
+  # paths. `/health/livenesses`, `/health/readinesses` and `/health/startups` were therefore answered by
   # Host Authorization rather than by the probe whenever the caller addressed the origin by container
   # name or pod IP -- the normal orchestrator case, since those names are deliberately not in
   # `config.hosts`.

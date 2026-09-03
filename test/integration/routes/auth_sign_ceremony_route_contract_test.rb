@@ -36,18 +36,18 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "auth/app/health/livenesses", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/health/liveness", method: :get },
+      { controller: "auth/app/health/livenesses", action: "index" },
+      { path: "http://#{SIGN_APP_HOST}/health/livenesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "auth/app/health/readinesses", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/health/readiness", method: :get },
+      { controller: "auth/app/health/readinesses", action: "index" },
+      { path: "http://#{SIGN_APP_HOST}/health/readinesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "auth/app/health/startups", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/health/startup", method: :get },
+      { controller: "auth/app/health/startups", action: "index" },
+      { path: "http://#{SIGN_APP_HOST}/health/startups", method: :get },
     )
 
     assert_recognizes(
@@ -465,18 +465,18 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "auth/com/health/livenesses", action: "show" },
-      { path: "http://#{SIGN_COM_HOST}/health/liveness", method: :get },
+      { controller: "auth/com/health/livenesses", action: "index" },
+      { path: "http://#{SIGN_COM_HOST}/health/livenesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "auth/com/health/readinesses", action: "show" },
-      { path: "http://#{SIGN_COM_HOST}/health/readiness", method: :get },
+      { controller: "auth/com/health/readinesses", action: "index" },
+      { path: "http://#{SIGN_COM_HOST}/health/readinesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "auth/com/health/startups", action: "show" },
-      { path: "http://#{SIGN_COM_HOST}/health/startup", method: :get },
+      { controller: "auth/com/health/startups", action: "index" },
+      { path: "http://#{SIGN_COM_HOST}/health/startups", method: :get },
     )
 
     assert_recognizes(
@@ -706,18 +706,18 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "auth/org/health/livenesses", action: "show" },
-      { path: "http://#{SIGN_ORG_HOST}/health/liveness", method: :get },
+      { controller: "auth/org/health/livenesses", action: "index" },
+      { path: "http://#{SIGN_ORG_HOST}/health/livenesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "auth/org/health/readinesses", action: "show" },
-      { path: "http://#{SIGN_ORG_HOST}/health/readiness", method: :get },
+      { controller: "auth/org/health/readinesses", action: "index" },
+      { path: "http://#{SIGN_ORG_HOST}/health/readinesses", method: :get },
     )
 
     assert_recognizes(
-      { controller: "auth/org/health/startups", action: "show" },
-      { path: "http://#{SIGN_ORG_HOST}/health/startup", method: :get },
+      { controller: "auth/org/health/startups", action: "index" },
+      { path: "http://#{SIGN_ORG_HOST}/health/startups", method: :get },
     )
 
     assert_recognizes(

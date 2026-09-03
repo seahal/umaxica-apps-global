@@ -243,9 +243,9 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   test "surface routes resolve to concrete local controllers with exact profiles" do
     SURFACES.each do |surface|
       assert_health_route(surface[:host], "/health", surface[:controller])
-      assert_health_route(surface[:host], "/health/liveness", surface[:liveness_controller])
-      assert_health_route(surface[:host], "/health/readiness", surface[:readiness_controller])
-      assert_health_route(surface[:host], "/health/startup", surface[:startup_controller])
+      assert_health_route(surface[:host], "/health/livenesses", surface[:liveness_controller])
+      assert_health_route(surface[:host], "/health/readinesses", surface[:readiness_controller])
+      assert_health_route(surface[:host], "/health/startups", surface[:startup_controller])
 
       [
         surface[:controller],
@@ -260,44 +260,29 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  # One Rails process answers on every surface hostname, and the probe bodies were otherwise
-  # identical, so a caller that sent the wrong `Host` still got a 200 and could not tell which
-  # surface produced it. The namespace is what makes that detectable.
-  test "every probe names the surface that answered" do
+  # One Rails process answers on every surface hostname, and the probe bodies are identical
+  # plain text, so surface identity is in routing, not in the body.
+  test "every host routes probes to a distinct controller namespace" do
     namespaces =
       SURFACES.to_h do |surface|
-        host!(surface[:host])
-
-        get("/health/liveness")
-
-        assert_response :success
-
         expected = surface[:liveness_controller].split("/").first(2).join("/")
 
-        assert_equal expected, response.parsed_body["namespace"],
-                     "#{surface[:host]} answered from #{surface[:liveness_controller]} but named " \
-                     "#{response.parsed_body["namespace"].inspect}"
+        ["/health/livenesses", "/health/readinesses", "/health/startups"].each do |path|
+          recognized = Rails.application.routes.recognize_path(
+            "http://#{surface[:host]}#{path}",
+            method: :get,
+          )
+
+          assert_equal expected, recognized[:controller].split("/").first(2).join("/"),
+                       "#{surface[:host]}#{path} routed to #{recognized[:controller]}"
+        end
 
         [surface[:host], expected]
       end
 
     assert_equal namespaces.values.uniq.length, namespaces.values.length,
-                 "two hostnames report the same namespace, so a misdirected request between them " \
+                 "two hostnames route to the same namespace, so a misdirected request between them " \
                  "would still look correct: #{namespaces.inspect}"
-  end
-
-  test "readiness and startup name the surface that answered too" do
-    surface = SURFACES.first
-    host! surface[:host]
-
-    {
-      "/health/readiness" => surface[:readiness_controller],
-      "/health/startup" => surface[:startup_controller],
-    }.each do |path, controller|
-      get path
-
-      assert_equal controller.split("/").first(2).join("/"), response.parsed_body["namespace"]
-    end
   end
 
   test "all health controllers use the shared rendering concern" do
@@ -315,16 +300,14 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "health html is server rendered snapshot without javascript polling" do
+  test "health snapshot is plain text without javascript polling" do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     get "/health"
 
     assert_response :success
-    assert_includes response.media_type, "text/html"
-    assert_includes response.body, "Health Snapshot"
-    assert_includes response.body, "point-in-time health snapshot"
-    assert_includes response.body, "Generated at"
+    assert_equal "text/plain", response.media_type
+    assert_equal "status: ok\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
     assert_no_match(/fetch\s*\(/i, response.body)
     assert_no_match(/setInterval|setTimeout|EventSource|WebSocket/i, response.body)
   end
@@ -335,53 +318,50 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
       get "/health.json"
 
-      assert_not_predicate response, :successful?
+      assert_response :not_found
 
       get "/health", headers: { "Accept" => "application/json" }
 
-      assert_not_predicate response, :successful?
+      assert_response :success
+      assert_equal "text/plain", response.media_type
     end
   end
 
-  test "health snapshot is available as html with nested probe dependencies" do
+  test "health snapshot is available as plain text with nested probe statuses" do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     get "/health"
 
-    assert_equal "text/html", response.media_type
-    assert_includes response.body, "Health Snapshot"
-    assert_includes response.body, "Generated at"
-
+    assert_equal "text/plain", response.media_type
+    assert_equal "status: ok\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
     assert_no_match(/health\.json/i, response.body)
   end
 
-  test "json probes render json regardless of accept header and html suffix" do
+  test "probes render plain text regardless of accept header and refuse format suffixes" do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
-    %w(liveness readiness startup).each do |probe|
-      [nil, "text/html", "*/*"].each do |accept|
+    %w(livenesses readinesses startups).each do |probe|
+      [nil, "text/html", "*/*", "application/json"].each do |accept|
         headers = accept ? { "Accept" => accept } : {}
 
         get "/health/#{probe}", headers: headers
 
         assert_includes [200, 503], response.status
-        assert_equal "application/json", response.media_type
-        assert_equal probe, response.parsed_body["check"]
+        assert_equal "text/plain", response.media_type
+        assert_equal "ok\n", response.body
         assert_not_predicate response, :redirect?
         assert_nil flash[:alert]
         assert_nil flash[:notice]
       end
     end
 
-    get "/health/readiness.html", headers: { "Accept" => "text/html" }
+    get "/health/readinesses.html", headers: { "Accept" => "text/html" }
 
-    assert_equal "application/json", response.media_type
-    assert_equal "readiness", response.parsed_body["check"]
+    assert_response :not_found
 
-    get "/health/startup.html", headers: { "Accept" => "text/html" }
+    get "/health/startups.html", headers: { "Accept" => "text/html" }
 
-    assert_equal "application/json", response.media_type
-    assert_equal "startup", response.parsed_body["check"]
+    assert_response :not_found
   end
 
   test "liveness remains dependency free" do
@@ -391,23 +371,22 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       ActiveRecord::Base.stub(:connection, -> { raise RuntimeError, "database touched" }) do
         if defined?(REDIS_CLIENT)
           REDIS_CLIENT.stub(:ping, -> { raise RuntimeError, "redis touched" }) do
-            get "/health/liveness"
+            get "/health/livenesses"
           end
         else
-          get "/health/liveness"
+          get "/health/livenesses"
         end
       end
     end
 
     assert_response :success
-    assert_equal "ok", response.parsed_body["status"]
-    assert_empty response.parsed_body["dependencies"]
+    assert_equal "ok\n", response.body
   end
 
   test "readiness does not raise prosopite n plus one errors" do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
-    assert_health_request_has_no_prosopite_n_plus_one("/health/readiness")
+    assert_health_request_has_no_prosopite_n_plus_one("/health/readinesses")
   end
 
   test "health snapshot does not raise prosopite n plus one errors" do
@@ -420,11 +399,11 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     Health::Checks::Database.stub(:new, ->(*) { raise RuntimeError, "database check built" }) do
-      get "/health/startup"
+      get "/health/startups"
     end
 
     assert_response :success
-    assert_empty response.parsed_body["dependencies"]
+    assert_equal "ok\n", response.body
   end
 
   test "app readiness ignores org-only dependencies" do
@@ -467,7 +446,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal "no-store", response.headers["Cache-Control"]
 
-    %w(liveness readiness startup).each do |probe|
+    %w(livenesses readinesses startups).each do |probe|
       get "/health/#{probe}"
 
       assert_includes [200, 503], response.status
@@ -485,7 +464,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     )
 
     Health::ReadinessCheck.stub(:call, unready) do
-      get "/health/readiness"
+      get "/health/readinesses"
     end
 
     assert_response :service_unavailable
@@ -493,7 +472,8 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
     get "/health", headers: { "Accept" => "application/json" }
 
-    assert_response :not_acceptable
+    assert_response :success
+    assert_equal "text/plain", response.media_type
     assert_equal "no-store", response.headers["Cache-Control"]
   end
 
@@ -507,7 +487,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     )
 
     Health::ReadinessCheck.stub(:call, result) do
-      get "/health/readiness"
+      get "/health/readinesses"
     end
 
     forbidden = %w(
@@ -573,16 +553,15 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
               get "/health"
 
               assert_response :success
-              assert_equal "text/html", response.media_type
-              assert_includes response.body, "Health Snapshot"
+              assert_equal "text/plain", response.media_type
+              assert_equal "status: ok\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
 
-              %w(liveness readiness startup).each do |probe|
+              %w(livenesses readinesses startups).each do |probe|
                 get "/health/#{probe}"
 
                 assert_response :success
-                assert_equal "application/json", response.media_type
-                assert_equal probe, response.parsed_body["check"]
-                assert_nil response.parsed_body.dig("details", "surface")
+                assert_equal "text/plain", response.media_type
+                assert_equal "ok\n", response.body
               end
             end
           end
@@ -597,7 +576,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     recognized = Rails.application.routes.recognize_path("http://#{host}#{path}", method: :get)
 
     assert_equal controller, recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal path == "/health" ? "show" : "index", recognized[:action]
   end
 
   def assert_probe_status(status, expected_response)
@@ -608,7 +587,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     )
 
     Health::ReadinessCheck.stub(:call, result) do
-      get("/health/readiness")
+      get("/health/readinesses")
     end
 
     assert_response expected_response
@@ -625,7 +604,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
         end.new(Health::DependencyResult.new(kind: :database, status: :ok))
       },
     ) do
-      get("/health/readiness")
+      get("/health/readinesses")
     end
 
     assert_response :success

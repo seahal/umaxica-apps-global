@@ -23,9 +23,9 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
         ["/", :get] => ["roots", "index"],
         ["/revision", :get] => ["revisions", "show"],
         ["/health", :get] => ["healths", "show"],
-        ["/health/liveness", :get] => ["health/livenesses", "show"],
-        ["/health/readiness", :get] => ["health/readinesses", "show"],
-        ["/health/startup", :get] => ["health/startups", "show"],
+        ["/health/livenesses", :get] => ["health/livenesses", "index"],
+        ["/health/readinesses", :get] => ["health/readinesses", "index"],
+        ["/health/startups", :get] => ["health/startups", "index"],
         ["/csp-violation-report", :post] => ["csp_violation_reports", "create"],
       }.each do |(path, method), (controller, action)|
         recognized = Rails.application.routes.recognize_path("http://#{host}#{path}", method: method)
@@ -57,28 +57,28 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       assert_equal "show", recognized[:action]
 
       recognized = Rails.application.routes.recognize_path(
-        "http://#{host}/health/liveness",
+        "http://#{host}/health/livenesses",
         method: :get,
       )
 
       assert_equal "base/app/health/livenesses", recognized[:controller]
-      assert_equal "show", recognized[:action]
+      assert_equal "index", recognized[:action]
 
       recognized = Rails.application.routes.recognize_path(
-        "http://#{host}/health/readiness",
+        "http://#{host}/health/readinesses",
         method: :get,
       )
 
       assert_equal "base/app/health/readinesses", recognized[:controller]
-      assert_equal "show", recognized[:action]
+      assert_equal "index", recognized[:action]
 
       recognized = Rails.application.routes.recognize_path(
-        "http://#{host}/health/startup",
+        "http://#{host}/health/startups",
         method: :get,
       )
 
       assert_equal "base/app/health/startups", recognized[:controller]
-      assert_equal "show", recognized[:action]
+      assert_equal "index", recognized[:action]
 
       recognized = Rails.application.routes.recognize_path(
         "http://#{host}/robots.txt",
@@ -238,28 +238,28 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_COM_HOST}/health/liveness",
+      "http://#{BASE_COM_HOST}/health/livenesses",
       method: :get,
     )
 
     assert_equal "base/com/health/livenesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_COM_HOST}/health/readiness",
+      "http://#{BASE_COM_HOST}/health/readinesses",
       method: :get,
     )
 
     assert_equal "base/com/health/readinesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_COM_HOST}/health/startup",
+      "http://#{BASE_COM_HOST}/health/startups",
       method: :get,
     )
 
     assert_equal "base/com/health/startups", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_COM_HOST}/robots.txt",
@@ -370,28 +370,28 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_ORG_HOST}/health/liveness",
+      "http://#{BASE_ORG_HOST}/health/livenesses",
       method: :get,
     )
 
     assert_equal "base/org/health/livenesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_ORG_HOST}/health/readiness",
+      "http://#{BASE_ORG_HOST}/health/readinesses",
       method: :get,
     )
 
     assert_equal "base/org/health/readinesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_ORG_HOST}/health/startup",
+      "http://#{BASE_ORG_HOST}/health/startups",
       method: :get,
     )
 
     assert_equal "base/org/health/startups", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_ORG_HOST}/robots.txt",

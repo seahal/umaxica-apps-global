@@ -43,9 +43,9 @@ class InfoRouteContractTest < ActionDispatch::IntegrationTest
     {
       "/" => ["#{controller_prefix}/roots", "index", :get],
       "/health" => ["#{controller_prefix}/healths", "show", :get],
-      "/health/liveness" => ["#{controller_prefix}/health/livenesses", "show", :get],
-      "/health/readiness" => ["#{controller_prefix}/health/readinesses", "show", :get],
-      "/health/startup" => ["#{controller_prefix}/health/startups", "show", :get],
+      "/health/livenesses" => ["#{controller_prefix}/health/livenesses", "index", :get],
+      "/health/readinesses" => ["#{controller_prefix}/health/readinesses", "index", :get],
+      "/health/startups" => ["#{controller_prefix}/health/startups", "index", :get],
       "/csp-violation-report" => ["#{controller_prefix}/csp_violation_reports", "create", :post],
       "/api/v0/entries" => ["#{controller_prefix}/api/v0/entries", "index", :get],
       "/api/v0/entries/terms" => ["#{controller_prefix}/api/v0/entries", "show", :get],

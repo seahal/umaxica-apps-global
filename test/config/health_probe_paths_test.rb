@@ -23,7 +23,7 @@ class HealthProbePathsTest < ActiveSupport::TestCase
 
   test "the exempt path set is exactly the four probes the router mounts" do
     assert_equal(
-      ["/health", "/health/liveness", "/health/readiness", "/health/startup"],
+      ["/health", "/health/livenesses", "/health/readinesses", "/health/startups"],
       HealthProbePaths::PATHS,
     )
   end
@@ -39,7 +39,7 @@ class HealthProbePathsTest < ActiveSupport::TestCase
 
   # The point of exact matching. Each of these lives under or near /health and must still be refused.
   test "a path outside the set is refused from an unauthorized host" do
-    ["/healthcheck", "/health/foo", "/health/liveness/extra", "/health/", "/groups"].each do |path|
+    ["/healthcheck", "/health/foo", "/health/livenesses/extra", "/health/", "/groups"].each do |path|
       status, _headers, _body = call_middleware(path, host: PROBE_HOST)
 
       assert_equal 403, status, "#{path} must not inherit the health probe exemption"

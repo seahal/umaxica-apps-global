@@ -53,13 +53,13 @@ tags:
     description: Read-only published documentation, help, news, and info entries.
 
 paths:
-  /health/liveness:
+  /health/livenesses:
     $ref: "shared/paths/health-liveness.yml"
 
-  /health/readiness:
+  /health/readinesses:
     $ref: "shared/paths/health-readiness.yml"
 
-  /health/startup:
+  /health/startups:
     $ref: "shared/paths/health-startup.yml"
 
   /api/v0/session:

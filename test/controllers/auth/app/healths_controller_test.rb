@@ -9,18 +9,18 @@ class Auth::App::HealthsControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
   end
 
-  test "GET /health returns an html snapshot" do
+  test "GET /health returns a plain text snapshot" do
     get auth_app_health_url(ri: "jp")
 
     assert_response :success
-    assert_equal "text/html", response.media_type
-    assert_includes response.body, "Health Snapshot"
+    assert_equal "text/plain", response.media_type
+    assert_equal "status: ok\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
   end
 
-  test "GET /health/readiness returns json" do
-    get "/health/readiness?ri=jp", headers: { "Accept" => "text/html" }
+  test "GET /health/readinesses returns plain text" do
+    get "/health/readinesses?ri=jp", headers: { "Accept" => "text/html" }
 
-    assert_equal "application/json", response.media_type
-    assert_equal "readiness", response.parsed_body["check"]
+    assert_equal "text/plain", response.media_type
+    assert_equal "ok\n", response.body
   end
 end

@@ -1,4 +1,4 @@
-# GET /health/liveness
+# GET /health/livenesses
 #
 # No `servers`: the health endpoints are blocked at the edge and have no public host.
 # They are reachable only from inside the deployment network. Naming a host here would

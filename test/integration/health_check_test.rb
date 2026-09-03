@@ -18,13 +18,12 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
     )
 
     Health::ReadinessCheck.stub(:call, result) do
-      get "/health/readiness?ri=jp"
+      get "/health/readinesses?ri=jp"
     end
 
     assert_response :success
-    assert_equal "ok", response.parsed_body["status"]
-    assert_equal "readiness", response.parsed_body["check"]
-    assert_equal({ "database" => "ok" }, response.parsed_body["dependencies"])
+    assert_equal "text/plain", response.media_type
+    assert_equal "ok\n", response.body
   end
 
   test "readiness returns unavailable when dependencies fail" do
@@ -36,23 +35,22 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
     )
 
     Health::ReadinessCheck.stub(:call, result) do
-      get "/health/readiness?ri=jp"
+      get "/health/readinesses?ri=jp"
     end
 
     assert_response :service_unavailable
-    assert_equal "unavailable", response.parsed_body["status"]
-    assert_equal({ "database" => "failed" }, response.parsed_body["dependencies"])
+    assert_equal "text/plain", response.media_type
+    assert_equal "unavailable\n", response.body
   end
 
   test "startup reports unavailable when Rails is not initialized" do
     Rails.application.stub(:initialized?, false) do
-      get "/health/startup?ri=jp"
+      get "/health/startups?ri=jp"
     end
 
     assert_response :service_unavailable
-    assert_equal "unavailable", response.parsed_body["status"]
-    assert_equal "starting", response.parsed_body.dig("details", "status")
-    assert_nil response.parsed_body.dig("details", "surface")
+    assert_equal "text/plain", response.media_type
+    assert_equal "unavailable\n", response.body
   end
 
   test "health snapshot HTML does not expose surface" do
@@ -72,17 +70,19 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_equal "text/html", response.media_type
+    assert_equal "text/plain", response.media_type
+    assert_equal "status: ok\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
     assert_no_match(/Surface/i, response.body)
   end
 
   test "health snapshot does not serve json" do
     get "/health.json?ri=jp"
 
-    assert_response :not_acceptable
+    assert_response :not_found
 
     get "/health", headers: { "Accept" => "application/json" }
 
-    assert_response :not_acceptable
+    assert_response :success
+    assert_equal "text/plain", response.media_type
   end
 end

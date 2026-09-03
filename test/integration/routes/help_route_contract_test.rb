@@ -41,28 +41,28 @@ class HelpRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{HELP_APP_HOST}/health/liveness",
+      "http://#{HELP_APP_HOST}/health/livenesses",
       method: :get,
     )
 
     assert_equal "help/app/health/livenesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{HELP_APP_HOST}/health/readiness",
+      "http://#{HELP_APP_HOST}/health/readinesses",
       method: :get,
     )
 
     assert_equal "help/app/health/readinesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{HELP_APP_HOST}/health/startup",
+      "http://#{HELP_APP_HOST}/health/startups",
       method: :get,
     )
 
     assert_equal "help/app/health/startups", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{HELP_APP_HOST}/csp-violation-report",
@@ -116,28 +116,28 @@ class HelpRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{HELP_COM_HOST}/health/liveness",
+      "http://#{HELP_COM_HOST}/health/livenesses",
       method: :get,
     )
 
     assert_equal "help/com/health/livenesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{HELP_COM_HOST}/health/readiness",
+      "http://#{HELP_COM_HOST}/health/readinesses",
       method: :get,
     )
 
     assert_equal "help/com/health/readinesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{HELP_COM_HOST}/health/startup",
+      "http://#{HELP_COM_HOST}/health/startups",
       method: :get,
     )
 
     assert_equal "help/com/health/startups", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{HELP_COM_HOST}/csp-violation-report",
@@ -191,28 +191,28 @@ class HelpRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{HELP_ORG_HOST}/health/liveness",
+      "http://#{HELP_ORG_HOST}/health/livenesses",
       method: :get,
     )
 
     assert_equal "help/org/health/livenesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{HELP_ORG_HOST}/health/readiness",
+      "http://#{HELP_ORG_HOST}/health/readinesses",
       method: :get,
     )
 
     assert_equal "help/org/health/readinesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{HELP_ORG_HOST}/health/startup",
+      "http://#{HELP_ORG_HOST}/health/startups",
       method: :get,
     )
 
     assert_equal "help/org/health/startups", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{HELP_ORG_HOST}/csp-violation-report",

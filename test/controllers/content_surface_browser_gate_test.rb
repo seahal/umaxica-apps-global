@@ -28,11 +28,11 @@ class ContentSurfaceBrowserGateTest < ActionDispatch::IntegrationTest
   end
 
   test "health probes answer an outdated user agent rather than gating them" do
-    %w(/health/liveness /health/readiness /health/startup).each do |path|
+    %w(/health/livenesses /health/readinesses /health/startups).each do |path|
       get path, headers: outdated_headers.merge("Accept" => "application/json")
 
       assert_not_equal 406, response.status, "#{path} refused a probe on browser version grounds"
-      assert_equal "application/json", response.media_type
+      assert_equal "text/plain", response.media_type
     end
   end
 

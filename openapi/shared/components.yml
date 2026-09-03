@@ -124,16 +124,18 @@ responses:
   HealthOk:
     description: The probe passed.
     content:
-      application/json:
+      text/plain:
         schema:
-          $ref: "#/schemas/HealthResult"
+          $ref: "#/schemas/HealthProbeBody"
+        example: "ok\n"
 
   HealthUnavailable:
     description: The probe failed.
     content:
-      application/json:
+      text/plain:
         schema:
-          $ref: "#/schemas/HealthResult"
+          $ref: "#/schemas/HealthProbeBody"
+        example: "unavailable\n"
 
 schemas:
   Problem:
@@ -294,45 +296,9 @@ schemas:
       has_more:
         type: boolean
 
-  HealthResult:
-    type: object
+  HealthProbeBody:
+    type: string
     description: >-
-      The shared probe contract. See docs/reference/health-endpoints.md.
-    required: [status, check, namespace, dependencies, details]
-    properties:
-      status:
-        type: string
-        enum: [ok, unavailable]
-      check:
-        type: string
-        description: >-
-          The probe that produced this result. The aggregate `/health` snapshot renders HTML, not
-          JSON, so its `health` value never appears in a JSON response.
-        enum: [liveness, readiness, startup]
-      namespace:
-        type: string
-        description: >-
-          The routed surface that answered, as `<service>/<surface>`. One process answers on many
-          hostnames and the probe bodies were otherwise identical, so a caller that sent the wrong
-          `Host` could not tell which surface replied.
-        example: core/app
-      dependencies:
-        type: object
-        description: >-
-          Per-probe dependency map. Empty for liveness and startup; carries `database` for
-          readiness.
-        additionalProperties: true
-      details:
-        type: object
-        required: [generated_at]
-        properties:
-          generated_at:
-            type: string
-            format: date-time
-            description: UTC RFC 3339 instant with millisecond precision.
-          revision:
-            type: string
-            description: Deployment revision. Omitted when blank.
-          status:
-            type: string
-            description: Internal status. Present only when the result is degraded.
+      The shared probe contract. See docs/reference/health-endpoints.md. A single line of plain
+      text, either `ok` or `unavailable`, terminated by a newline.
+    enum: ["ok\n", "unavailable\n"]

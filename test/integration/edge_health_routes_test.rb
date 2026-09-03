@@ -35,7 +35,7 @@ class EdgeHealthRoutesTest < ActionDispatch::IntegrationTest
     end
   end
 
-  # The probe contract was unified on /health/liveness and /health/readiness.
+  # The probe contract was unified on /health/livenesses and /health/readinesses.
   # The former /health/live and /health/ready paths were removed outright (no
   # compatibility shim); guard against their reintroduction on any surface.
   test "removed legacy probe paths are not routed" do
