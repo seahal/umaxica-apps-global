@@ -16,21 +16,21 @@ scope module: :side, as: :side do
       resource :mcp, only: :create
 
       # Deployment identifier endpoint.
-      resource :revision, only: :show
+      resource :revision, only: :show, format: false
 
       # Basic health summary.
-      resource :health, only: :show
+      resource :health, only: :show, format: false
 
       # Machine-readable health probes.
       namespace :health do
         # Process liveness probe.
-        resource :liveness, only: :show
+        resource :liveness, only: :show, format: false
 
         # Dependency readiness probe.
-        resource :readiness, only: :show
+        resource :readiness, only: :show, format: false
 
         # Boot/startup probe.
-        resource :startup, only: :show
+        resource :startup, only: :show, format: false
       end
 
       # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
@@ -94,21 +94,21 @@ scope module: :side, as: :side do
       resource :mcp, only: :create
 
       # Deployment identifier endpoint.
-      resource :revision, only: :show
+      resource :revision, only: :show, format: false
 
       # Basic health summary.
-      resource :health, only: :show
+      resource :health, only: :show, format: false
 
       # Machine-readable health probes.
       namespace :health do
         # Process liveness probe.
-        resource :liveness, only: :show
+        resource :liveness, only: :show, format: false
 
         # Dependency readiness probe.
-        resource :readiness, only: :show
+        resource :readiness, only: :show, format: false
 
         # Boot/startup probe.
-        resource :startup, only: :show
+        resource :startup, only: :show, format: false
       end
 
       # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
@@ -171,21 +171,21 @@ scope module: :side, as: :side do
       resource :mcp, only: :create
 
       # Deployment identifier endpoint.
-      resource :revision, only: :show
+      resource :revision, only: :show, format: false
 
       # Basic health summary.
-      resource :health, only: :show
+      resource :health, only: :show, format: false
 
       # Machine-readable health probes.
       namespace :health do
         # Process liveness probe.
-        resource :liveness, only: :show
+        resource :liveness, only: :show, format: false
 
         # Dependency readiness probe.
-        resource :readiness, only: :show
+        resource :readiness, only: :show, format: false
 
         # Boot/startup probe.
-        resource :startup, only: :show
+        resource :startup, only: :show, format: false
       end
 
       # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails

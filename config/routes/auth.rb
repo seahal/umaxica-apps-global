@@ -20,13 +20,13 @@ scope(module: :auth, as: :auth) do
       end
 
       # Deployment identifier endpoint.
-      resource(:revision, only: :show)
+      resource(:revision, only: :show, format: false)
 
-      resource(:health, only: :show)
+      resource(:health, only: :show, format: false)
       namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+        resource(:liveness, only: :show, format: false)
+        resource(:readiness, only: :show, format: false)
+        resource(:startup, only: :show, format: false)
       end
 
       # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
@@ -250,13 +250,13 @@ scope(module: :auth, as: :auth) do
       end
 
       # Deployment identifier endpoint.
-      resource(:revision, only: :show)
+      resource(:revision, only: :show, format: false)
 
-      resource(:health, only: :show)
+      resource(:health, only: :show, format: false)
       namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+        resource(:liveness, only: :show, format: false)
+        resource(:readiness, only: :show, format: false)
+        resource(:startup, only: :show, format: false)
       end
 
       # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
@@ -416,13 +416,13 @@ scope(module: :auth, as: :auth) do
       end
 
       # Deployment identifier endpoint.
-      resource(:revision, only: :show)
+      resource(:revision, only: :show, format: false)
 
-      resource(:health, only: :show)
+      resource(:health, only: :show, format: false)
       namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+        resource(:liveness, only: :show, format: false)
+        resource(:readiness, only: :show, format: false)
+        resource(:startup, only: :show, format: false)
       end
 
       # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails

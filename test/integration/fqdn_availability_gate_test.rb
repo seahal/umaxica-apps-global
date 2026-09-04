@@ -194,7 +194,7 @@ class FqdnAvailabilityGateTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    get(base_app_health_liveness_url(host: @host), headers: host_headers(@host))
+    get(base_app_health_livenesses_url(host: @host), headers: host_headers(@host))
 
     assert_response :success
   end

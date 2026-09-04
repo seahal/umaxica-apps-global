@@ -546,6 +546,8 @@ components:
         - summary
         - body
         - published_at
+        - updated_at
+        - snapshot_public_id
         - taxonomy
       properties:
         public_id:
@@ -587,6 +589,13 @@ components:
           type: string
           format: date-time
           description: RFC 3339 instant with an explicit `Z` offset. Never null. `PublishingEntrySerializer#call` returns nothing at all when there is no active publication, and `publishing_publications.effective_from` is `NOT NULL`, so an entry that renders always has one. It was previously described as nullable, which described a state that cannot occur.
+        updated_at:
+          type: string
+          format: date-time
+          description: RFC 3339 instant of the published version row. Used for Last-Modified.
+        snapshot_public_id:
+          type: string
+          description: Stable public identifier of the published snapshot used for HTML validators.
         taxonomy:
           type: object
           description: Keyed by vocabulary key for this audience and service. A single-valued vocabulary renders one object or null; a multi-valued vocabulary renders an ordered array.

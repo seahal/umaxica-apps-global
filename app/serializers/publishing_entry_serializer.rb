@@ -40,6 +40,8 @@ class PublishingEntrySerializer
       # unable to rely on the field's type.
       body: version.body,
       published_at: current_publication&.effective_from&.iso8601,
+      updated_at: version.updated_at&.iso8601,
+      snapshot_public_id: version.public_id,
       taxonomy: taxonomy(version),
     }
   end

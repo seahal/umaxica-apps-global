@@ -18,7 +18,10 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
 
   openapi_surface :app
 
-  ENTRY_KEYS = %w(public_id namespace surface slug locale title summary body published_at taxonomy).freeze
+  ENTRY_KEYS = %w(
+    public_id namespace surface slug locale title summary body published_at updated_at
+    snapshot_public_id taxonomy
+  ).freeze
   TAXONOMY_KEYS = %w(category tag).freeze
   TERM_KEYS = %w(public_id slug name).freeze
 

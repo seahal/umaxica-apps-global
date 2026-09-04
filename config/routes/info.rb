@@ -10,13 +10,13 @@ scope module: :info, as: :info do
       root to: "roots#index"
 
       # Deployment identifier endpoint.
-      resource :revision, only: :show
+      resource :revision, only: :show, format: false
 
-      resource :health, only: :show
+      resource :health, only: :show, format: false
       namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
+        resource :liveness, only: :show, format: false
+        resource :readiness, only: :show, format: false
+        resource :startup, only: :show, format: false
       end
 
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
@@ -44,13 +44,13 @@ scope module: :info, as: :info do
       root to: "roots#index"
 
       # Deployment identifier endpoint.
-      resource :revision, only: :show
+      resource :revision, only: :show, format: false
 
-      resource :health, only: :show
+      resource :health, only: :show, format: false
       namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
+        resource :liveness, only: :show, format: false
+        resource :readiness, only: :show, format: false
+        resource :startup, only: :show, format: false
       end
 
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
@@ -78,13 +78,13 @@ scope module: :info, as: :info do
       root to: "roots#index"
 
       # Deployment identifier endpoint.
-      resource :revision, only: :show
+      resource :revision, only: :show, format: false
 
-      resource :health, only: :show
+      resource :health, only: :show, format: false
       namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
+        resource :liveness, only: :show, format: false
+        resource :readiness, only: :show, format: false
+        resource :startup, only: :show, format: false
       end
 
       resource :csp_violation_report, only: :create, path: "csp-violation-report"

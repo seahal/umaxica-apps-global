@@ -34,6 +34,15 @@ class HtmlTitleContractTest < ActionDispatch::IntegrationTest
     { host: "core.dev.localhost", tld: "DEV" },
   ].freeze
 
+  # `/health` is served on the network and developer hosts too, which carry their own TLD labels
+  # rather than inheriting one from the surface. Only the host is needed now: the title assertion
+  # these entries once fed was removed when `/health` stopped rendering HTML.
+  HEALTH_HOSTS = [
+    { host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost") },
+    { host: ENV.fetch("PRIVATE_BASE_NETWORK_URL", "base.net.localhost") },
+    { host: ENV.fetch("PRIVATE_BASE_DEVELOPER_URL", "base.dev.localhost") },
+  ].freeze
+
   # Prefixes that answer with JSON, XML or plain text. Listed rather than inferred
   # so that a new HTML route is never silently treated as out of scope.
   NON_HTML_PATH_PATTERNS = [
@@ -101,6 +110,19 @@ class HtmlTitleContractTest < ActionDispatch::IntegrationTest
       assert_equal expected, rendered_title, "title on #{entry.fetch(:host)}"
       assert_title_shape(rendered_title, entry.fetch(:tld))
     end
+  end
+
+  test "the health snapshot is a non-HTML probe and is excluded from title contracts" do
+    HEALTH_HOSTS.each do |entry|
+      host! entry.fetch(:host)
+      get "/health"
+
+      assert_response :success, "GET /health on #{entry.fetch(:host)}"
+      assert_equal "text/plain", response.media_type, "GET /health on #{entry.fetch(:host)}"
+      assert_match(/\Astatus: /, response.body)
+    end
+
+    assert_includes non_html_get_paths, "/health"
   end
 
   test "the page title is localized while the brand stays constant" do

@@ -11,21 +11,21 @@ scope module: :docs, as: :docs do
       root to: "roots#index"
 
       # Deployment identifier endpoint.
-      resource :revision, only: :show
+      resource :revision, only: :show, format: false
 
       # Basic health summary.
-      resource :health, only: :show
+      resource :health, only: :show, format: false
 
       # Machine-readable health probes.
       namespace :health do
         # Process liveness probe.
-        resource :liveness, only: :show
+        resource :liveness, only: :show, format: false
 
         # Dependency readiness probe.
-        resource :readiness, only: :show
+        resource :readiness, only: :show, format: false
 
         # Boot/startup probe.
-        resource :startup, only: :show
+        resource :startup, only: :show, format: false
       end
 
       # Browser CSP report sink; keep configured report-uri path.
@@ -59,21 +59,21 @@ scope module: :docs, as: :docs do
       root to: "roots#index"
 
       # Deployment identifier endpoint.
-      resource :revision, only: :show
+      resource :revision, only: :show, format: false
 
       # Basic health summary.
-      resource :health, only: :show
+      resource :health, only: :show, format: false
 
       # Machine-readable health probes.
       namespace :health do
         # Process liveness probe.
-        resource :liveness, only: :show
+        resource :liveness, only: :show, format: false
 
         # Dependency readiness probe.
-        resource :readiness, only: :show
+        resource :readiness, only: :show, format: false
 
         # Boot/startup probe.
-        resource :startup, only: :show
+        resource :startup, only: :show, format: false
       end
 
       # Browser CSP report sink; keep configured report-uri path.
@@ -105,21 +105,21 @@ scope module: :docs, as: :docs do
       root to: "roots#index"
 
       # Deployment identifier endpoint.
-      resource :revision, only: :show
+      resource :revision, only: :show, format: false
 
       # Basic health summary.
-      resource :health, only: :show
+      resource :health, only: :show, format: false
 
       # Machine-readable health probes.
       namespace :health do
         # Process liveness probe.
-        resource :liveness, only: :show
+        resource :liveness, only: :show, format: false
 
         # Dependency readiness probe.
-        resource :readiness, only: :show
+        resource :readiness, only: :show, format: false
 
         # Boot/startup probe.
-        resource :startup, only: :show
+        resource :startup, only: :show, format: false
       end
 
       # Browser CSP report sink; keep configured report-uri path.
