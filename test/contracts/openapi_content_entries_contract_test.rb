@@ -34,12 +34,13 @@ class OpenapiContentEntriesContractTest < ActionDispatch::IntegrationTest
 
         assert_response :success
         data = response.parsed_body.fetch("data")
+
         assert_equal %w(listed), data.map { |entry| entry.fetch("slug") }
         assert(data.all? { |entry| entry.fetch("public_id").present? })
         assert_openapi_conform 200
       end
 
-      test "GET /api/v0/entries/{slug} conforms for #{service} on the #{surface} surface" do
+      test "GET /api/v0/entries/{public_id} conforms for #{service} on the #{surface} surface" do
         prepare(service:, surface:)
         entry = publish("readable", "Readable")
 
@@ -161,7 +162,7 @@ class OpenapiContentEntriesContractTest < ActionDispatch::IntegrationTest
     assert_response :not_found
 
     archived = publish("archived-entry", "Archived Entry")
-    archived.update!(archived_at: Time.current)
+    archived.update!(archived_at: Time.current, archive_reason: "test fixture")
     get "/api/v0/entries/#{archived.public_id}?locale=ja", headers: json_headers(service: "docs", surface: "app")
 
     assert_response :not_found
