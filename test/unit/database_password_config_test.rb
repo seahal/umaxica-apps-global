@@ -22,4 +22,21 @@ class DatabasePasswordConfigTest < ActiveSupport::TestCase
       assert_operator configuration.fetch("pool"), :>=, 5, name
     end
   end
+
+  test "production database connections require the shared Neon connection settings" do
+    database_yml = Rails.root.join("config/database.yml").read
+
+    assert_equal 21, database_yml.scan(/host: <%= production_value\.call\("NEON_PGHOST"\) %>/).size
+    assert_equal 21, database_yml.scan(/username: <%= production_value\.call\("NEON_PGUSER"\) %>/).size
+    assert_equal 21, database_yml.scan(/password: <%= production_value\.call\("NEON_PGPASSWORD"\) %>/).size
+    assert_equal 20, database_yml.scan(/host: <%= production_value\.call\("NEON_REPLICA_PGHOST"\) %>/).size
+    assert_equal 20, database_yml.scan(/username: <%= production_value\.call\("NEON_REPLICA_PGUSER"\) %>/).size
+    assert_equal 20, database_yml.scan(/password: <%= production_value\.call\("NEON_REPLICA_PGPASSWORD"\) %>/).size
+    assert_equal 20, database_yml.scan(/sslmode: <%= production_value\.call\("NEON_REPLICA_PGSSLMODE"\) %>/).size
+    assert_equal 20,
+                 database_yml.scan(/channel_binding: <%= production_value\.call\("NEON_REPLICA_PGCHANNELBINDING"\) %>/).size
+    assert_includes database_yml, 'sslmode: <%= production_value.call("NEON_PGSSLMODE") %>'
+    assert_includes database_yml, 'channel_binding: <%= production_value.call("NEON_PGCHANNELBINDING") %>'
+    assert_includes database_yml, "Rails.env.production? ? ENV.fetch(name) : ENV[name]"
+  end
 end

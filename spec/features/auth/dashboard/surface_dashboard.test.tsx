@@ -34,6 +34,39 @@ describe("SurfaceDashboard", () => {
     expect(markup).toMatch(/<a href="\/sign\/in\/guard\?ri=jp"[^>]*>Sign-in guard<\/a>/u);
   });
 
+  it("nests publishing groups under a section heading", () => {
+    const markup = renderToStaticMarkup(
+      <SurfaceDashboard
+        title="Dashboard"
+        description="Signed in"
+        sections={[
+          {
+            heading: "Publishing",
+            groups: [
+              {
+                heading: "info",
+                items: [
+                  { label: "app", href: "/publishing/info/app/entries" },
+                  { label: "com", href: "/publishing/info/com/entries" },
+                ],
+              },
+              {
+                heading: "docs",
+                items: [{ label: "org", href: "/publishing/docs/org/entries" }],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(markup).toMatch(/<h2[^>]*>Publishing<\/h2>/u);
+    expect(markup).toMatch(/<h3[^>]*>info<\/h3>/u);
+    expect(markup).toMatch(/<h3[^>]*>docs<\/h3>/u);
+    expect(markup).toMatch(/<a href="\/publishing\/info\/app\/entries"[^>]*>app<\/a>/u);
+    expect(markup).toMatch(/<a href="\/publishing\/docs\/org\/entries"[^>]*>org<\/a>/u);
+  });
+
   it("renders an entry without a destination as plain text", () => {
     const markup = renderToStaticMarkup(<SurfaceDashboard {...props} />);
 

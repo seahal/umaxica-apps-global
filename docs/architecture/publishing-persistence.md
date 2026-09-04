@@ -73,6 +73,55 @@ rendering lives in `PublishingContentRendering`. Each controller declares
 `PUBLISHING_AUDIENCE` and `PUBLISHING_SURFACE`. Including that concern must not
 infer those values from the class name.
 
+## Base.Org management hierarchy
+
+Staff CMS pages live on `base.org` under:
+
+```
+/publishing/{info,docs,news,help}/{app,com,org}/entries
+```
+
+That path is surface and audience only. Locale is not a route segment. One
+management cell lists every `Publishing::Entry` whose Edition matches that
+surface and audience, across existing locales. Display locale in the UI; do not
+silently pick one Edition.
+
+This first slice implements index, show, edit, and update. Update creates a new
+`Publishing::EntryRevision` and moves `Entry.current_revision`; it does not
+mutate the previous revision in place.
+
+The Base.Org dashboard lists the twelve cells as Publishing / surface /
+audience (`app`, `com`, `org`) links to each cell's entry index.
+
+### Revision content digest
+
+`PublishingRevisionContentDigest` is the application convention for a new
+`EntryRevision` created by `Publishing::ReviseEntryOperation`. There was no
+production digest implementation before this CMS slice.
+
+The digest is the SHA-256 hex of canonical JSON with these keys, object keys
+sorted at every nesting level:
+
+- `schema_version`
+- `locale`
+- `title`
+- `summary`
+- `body`
+
+Taxonomy assignments and media usages live on related rows and are not part of
+the digest input. Test fixtures and seeds that still hash `"#{title}-#{sequence}"`
+are not this convention.
+
+### Temporary security posture (alpha)
+
+- Rails authentication: intentionally absent for this slice. Controllers inherit
+  `Base::Org::BareController`.
+- CSRF: enabled (`protect_from_forgery` on the bare boundary).
+- Cloudflare Access on `base.org` or `/publishing/*`: a deployment prerequisite,
+  not verified by Rails. The accepted Access ADR historically excludes
+  `base.org` from Access-protected org content paths. Do not treat the CMS as
+  externally safe until Access (or equivalent) actually covers these routes.
+
 `included do` is an exception. Keep it only when it is the clearest statement of
 a persistence or request-filter contract, and document why.
 

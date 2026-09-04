@@ -28,6 +28,7 @@ module Security
       PUBLIC_ROBOTS_SITEMAPS
       PUBLIC_PWA_OFFLINE
       PUBLIC_CONTENT_READ_APIS
+      PUBLIC_PUBLISHING_CMS
       PUBLIC_PREFERENCE
       PUBLIC_WEB_EDGE
       PUBLIC_OAUTH_OIDC_SSO
@@ -176,6 +177,7 @@ module Security
         public_well_known?(entry) ||
         public_robots_or_sitemap?(entry) ||
         public_content_read_api?(entry) ||
+        public_publishing_cms?(entry) ||
         public_preference?(entry) ||
         public_web_or_edge?(entry)
     end
@@ -228,6 +230,12 @@ module Security
 
       entry.controller_path.start_with?("docs/", "help/", "info/", "news/") &&
         (entry.path == "/" || entry.path.start_with?("/api/v0/entries"))
+    end
+
+    def public_publishing_cms?(entry)
+      entry.controller_path.start_with?("base/org/publishing/") &&
+        entry.path.start_with?("/publishing/") &&
+        %w(index show edit update).include?(entry.action)
     end
 
     def public_preference?(entry) = entry.path.start_with?("/preference")

@@ -81,9 +81,6 @@ Rails.application.configure do
   # Treat PostgreSQL warnings as errors (same strict setting as dev/test)
   config.active_record.db_warnings_action = :raise
 
-  # Warn on excessive record fetches (early detection of N+1 and query design issues)
-  config.active_record.warn_on_records_fetched_greater_than = 10_000
-
   # Cache query log tags for performance
   config.active_record.cache_query_log_tags = true
 

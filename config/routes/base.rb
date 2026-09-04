@@ -506,6 +506,21 @@ scope(module: :base, as: :base) do
       get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
       get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
 
+      # Staff Publishing CMS. The URL is surface and audience only; locale is not a
+      # path segment. Each cell maps to every Edition with that surface and audience.
+      resource :publishing, only: [], module: :publishing do
+        publishing_audiences = %i(app com org)
+        %i(info docs news help).each do |publishing_surface|
+          resource publishing_surface, only: [], module: publishing_surface do
+            publishing_audiences.each do |publishing_audience|
+              resource publishing_audience, only: [], module: publishing_audience do
+                resources :entries, only: %i(index show edit update)
+              end
+            end
+          end
+        end
+      end
+
       # Staff management areas.
       resource :configuration, only: :show
       resources :accounts, only: %i(index show)
