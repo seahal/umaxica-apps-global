@@ -7,7 +7,9 @@
 # These endpoints answer `application/json` and nothing else. They never fall back to HTML or
 # text/plain: a request whose `Accept` excludes JSON is answered `406` with an empty body rather
 # than a representation the caller did not ask for. A request with no `Accept`, or one sending
-# `*/*` or `application/*`, accepts anything (RFC 9110 12.5.1) and is served normally.
+# `*/*`, accepts anything (RFC 9110 12.5.1) and is served normally. `application/*` is served too,
+# because Rails expands a trailing-star range into the concrete registered types and
+# `application/json` is one of them.
 #
 # They are unauthenticated, edge-blocked probes reached through the tunnel with a real `Host`, so
 # they follow the internal probe contract (`docs/reference/health-endpoints.md`) rather than the
@@ -15,7 +17,11 @@
 module MachineJsonNegotiation
   extend ActiveSupport::Concern
 
-  ACCEPTABLE = %w(application/json */* application/*).freeze
+  # Matched against `request.accepts`, which holds the types Rails parsed out of the header.
+  # `*/*` survives parsing as itself, so it is listed. A range such as `application/*` does not:
+  # `Mime::Type.parse` expands it into the twelve concrete registered types, `application/json`
+  # among them, so it is accepted by the first entry and listing the range here would be dead.
+  ACCEPTABLE = %w(application/json */*).freeze
 
   included do
     # A machine health or revision answer is a point-in-time value; a stored copy is a stale one.
