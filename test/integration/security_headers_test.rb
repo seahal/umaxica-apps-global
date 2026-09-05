@@ -24,7 +24,7 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
   test "content security policy and permissions policy are enforced" do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
 
-    get sign_app_health_livenesses_url(ri: "jp")
+    get sign_app_health_liveness_url(ri: "jp")
 
     assert_response :success
     assert_nil response.headers["Content-Security-Policy-Report-Only"]

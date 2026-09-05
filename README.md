@@ -17,7 +17,7 @@ host-constrained, so domain and subdomain matter in both development and product
 - Ruby `4.0.x`
 - PostgreSQL
   - Solid Queue
-- Valkey/Redis
+- Valkey/Redis (application cache and rate-limit counters, on separate services)
 - Vite Rails + Stimulus + Turbo
 - Tailwind CSS via Vite
 - Propshaft

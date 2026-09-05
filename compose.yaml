@@ -155,8 +155,6 @@ services:
       POSTGRESQL_COM_SIGNAL_SUB: replica
       POSTGRESQL_AVATAR_PUB: primary
       POSTGRESQL_AVATAR_SUB: replica
-      POSTGRESQL_CACHE_PUB: primary
-      POSTGRESQL_CACHE_SUB: replica
       POSTGRESQL_CHRONICLE_PUB: primary
       POSTGRESQL_CHRONICLE_SUB: replica
       POSTGRESQL_OCCURRENCE_PUB: primary
@@ -170,16 +168,24 @@ services:
       POSTGRESQL_STORAGE_PUB: primary
       POSTGRESQL_STORAGE_SUB: replica
       POSTGRESQL_PLATFORM_PUB: primary
-      # --- Redis / Valkey ---
-      VALKEY_URL: "redis://valkey:6379/0"
-      RATE_LIMIT_REDIS_URL: "redis://valkey:6379/1"
+      # --- Valkey ---
+      # Two services, not two logical database indexes on one. The stores have
+      # different lifetimes and different blast radiuses: flushing the cache to
+      # reproduce a stale-JWKS bug must not also reset every rate-limit window,
+      # and restarting either must not take the other down. A shared container
+      # with /0 and /1 makes both of those one `FLUSHALL` or one restart away.
+      #
+      # Neither is authoritative. Losing the cache costs a refetch; losing the
+      # counters resets the current windows. Anything whose loss would change
+      # correctness, security, or history is in PostgreSQL.
+      CACHE_REDIS_URL: "redis://valkey-cache:6379/0"
+      RATE_LIMIT_REDIS_URL: "redis://valkey-rate-limit:6379/0"
       # Credentials for the Flipper UI mounted on the developer surface. The mount
       # is wrapped in Rack::Auth::Basic (config/routes/base.rb) and fails closed
       # when these are unset, so local development needs them to reach the UI.
       # Development values only: production supplies them through credentials.
       FLIPPER_UI_USER: "${FLIPPER_UI_USER:-flipper}"
       FLIPPER_UI_PASSWORD: "${FLIPPER_UI_PASSWORD:-development_flipper_password}"
-      REDIS_NORMAL_URL: "redis://valkey:6379/7"
       # --- Observability ---
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4318"
       # --- Mail ---
@@ -443,7 +449,9 @@ services:
         condition: service_healthy
       replica:
         condition: service_started
-      valkey:
+      valkey-cache:
+        condition: service_healthy
+      valkey-rate-limit:
         condition: service_healthy
   # Local AWS emulator. This is the project-common AWS compatibility layer for
   # development: S3 and the MSK control plane are reached here instead of
@@ -631,13 +639,47 @@ services:
       timeout: 3s
       retries: 30
       start_period: 10s
-  valkey:
-    container_name: global-devcontainer-valkey
+  valkey-cache:
+    container_name: global-devcontainer-valkey-cache
     image: docker.io/valkey/valkey:8.0-alpine3.22
+    # Rails.cache (CACHE_REDIS_URL). Reconstructible entries with explicit TTLs;
+    # safe to flush at any time -- every entry refetches from its source.
     networks:
       - backend
     volumes:
-      - valkey-volume:/data
+      - valkey-cache-volume:/data
+    # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
+    # exits immediately on a bad configuration is recreated several times a second until
+    # the netns, veth, conmon, and journald churn saturates a CPU. Five attempts ride out
+    # a transient failure and leave a real misconfiguration stopped and visible.
+    restart: on-failure:5
+    # journald enforces no per-container size cap, and a restart loop writes the same
+    # startup failure thousands of times, so a capped json-file driver is what actually
+    # bounds the disk cost of a bad configuration. Container output no longer reaches
+    # `journalctl`; read it with `podman logs`, which serves either driver.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test:
+        - CMD
+        - valkey-cli
+        - ping
+      interval: 3s
+      timeout: 2s
+      retries: 20
+      start_period: 3s
+  valkey-rate-limit:
+    container_name: global-devcontainer-valkey-rate-limit
+    image: docker.io/valkey/valkey:8.0-alpine3.22
+    # config.x.rate_limit.store (RATE_LIMIT_REDIS_URL). Counters keyed by client,
+    # expiring with their window. Flushing resets windows, nothing else.
+    networks:
+      - backend
+    volumes:
+      - valkey-rate-limit-volume:/data
     # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
     # exits immediately on a bad configuration is recreated several times a second until
     # the netns, veth, conmon, and journald churn saturates a CPU. Five attempts ride out
@@ -923,7 +965,8 @@ volumes:
   primary-data: {}
   workspace-podman-storage: {}
   replica-data: {}
-  valkey-volume: {}
+  valkey-cache-volume: {}
+  valkey-rate-limit-volume: {}
   alloy-volume: {}
   loki-volume: {}
   tempo-volume: {}

@@ -83,6 +83,14 @@ detailed cases, and acceptance criteria derived from the SRS and HLD.
   adopted dependency.
 - **Security tests**: RSpec/Minitest cases for rate limiting, JWT signature validation, redirect
   sanitization, Turnstile failure handling, PII encryption.
+- **Cache and rate-limit stores in test**: both default to `ActiveSupport::Cache::NullStore`, so no
+  test inherits state it did not ask for. A test that passes only because an earlier test warmed the
+  cache does not describe the behaviour it claims to, and rate-limit counters are keyed by request IP
+  -- identical for every test -- so a shared counting store makes unrelated tests 429 depending on
+  suite order. Cache tests stub `Rails.cache` with a `MemoryStore`; rate-limit tests declare
+  `counts_rate_limits!` (`test/support/rate_limit_store_override.rb`), which swaps a `MemoryStore`
+  behind the store controllers captured at class-load time. Neither store reaches an external
+  Valkey in test or CI.
 - **Performance tests**: Dedicated k6/wrk scenarios are deferred. Add them only when a concrete load
   target and environment are defined.
 - **Observability verification**: OTEL traces appear in Tempo; Loki logs capture Turnstile failures;
@@ -131,7 +139,8 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
 - **TC-ROUTE-003** Host constraint enforcement: hitting `top` routes with mismatched host
   returns 404.
 - **TC-ROUTE-004** Rate limit guard: simulate >1,000 requests/hour to sign/help endpoints; expect
-  429 with Valkey-backed limiter.
+  429. Valkey backs the limiter in development and production; the test declares
+  `counts_rate_limits!` and asserts against a deterministic in-process store.
 
 ### 7.2 Preferences & Cookies
 

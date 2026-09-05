@@ -84,12 +84,14 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
     assert_no_match(/sign app/i, response.body)
   end
 
-  test "health aggregate does not serve json and does not refuse it" do
+  # The `.json` suffix is deliberately not a route: `/api/v0/health.json` serves real JSON at nearly
+  # the same spelling, so answering the suffix with text/plain would tell that caller it had reached
+  # the JSON endpoint. An `Accept` header is a different case and is still answered -- a probe that
+  # 406s because its client sent a boilerplate `Accept` reports an outage that is not happening.
+  test "health aggregate does not route a .json suffix but still answers an Accept header" do
     get "/health.json?ri=jp"
 
-    assert_response :success
-    assert_equal "text/plain", response.media_type
-    assert_not_equal "application/json", response.media_type
+    assert_response :not_found
 
     get "/health", headers: { "Accept" => "application/json" }
 
