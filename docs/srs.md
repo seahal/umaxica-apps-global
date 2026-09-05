@@ -92,9 +92,9 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   host-level constraints defined in `config/routes/*.rb` using `ENV` variables to prevent routing
   leakage.
 - **FR-02**: All surfaces implement the 2026-09-03 health contract via the shared `Health` service
-  layer: `text/plain` probes at `/health` (five-line aggregate) and
+  layer: `text/plain` probes at `/health` (seven-line aggregate) and
   `/health/{startup,liveness,readiness}` (`ok\n` / 503), plus machine JSON at `/api/v0/health.json`
-  (`pass/warn/fail`) and `/api/v0/revision.json`. Every response carries `Cache-Control: no-store`
+  (`pass/warn/fail` plus an RFC 3339 UTC timestamp) and `/api/v0/revision.json`. Every response carries `Cache-Control: no-store`
   (a health verdict must not be cached). Details in `docs/reference/health-endpoints.md`.
 - **FR-03**: Controllers must set consistent default URL parameters (`lx`, `ri`, `tz`) using
   `DefaultUrlOptions` so deep links retain localization context.
@@ -247,7 +247,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 
 | ID    | Condition                                                                                                                                            |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AC-01 | `GET .../health` returns 200 `text/plain` (five-line aggregate); `GET .../api/v0/health.json` returns `{"status":"pass",…}` for each host namespace. |
+| AC-01 | `GET .../health` returns 200 `text/plain` (seven-line aggregate); `GET .../api/v0/health.json` returns `{"status":"pass",…}` for each host namespace. |
 | AC-02 | Editing language/region/timezone/theme updates cookies and redirects back to the proper Top scope with query parameters preserved.                   |
 | AC-03 | Email registration flow issues an OTP via ActionMailer only when Turnstile succeeds and saves `UserIdentityEmail` with encrypted address.            |
 | AC-04 | Telephone registration rejects invalid E.164 numbers and uses the configured SMS provider.                                                           |

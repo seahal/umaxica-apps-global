@@ -6,8 +6,8 @@ require "test_helper"
 
 # Contract for the deployment identifier endpoints. Every FQDN this application answers must expose
 #
-#   GET/HEAD /revision          -> text/plain, body exactly "<revision>\n"  (nil -> "\n")
-#   GET      /api/v0/revision.json -> application/json, {"revision":"<sha>"} (nil -> {"revision":null})
+#   GET/HEAD /revision          -> text/plain title, revision, and UTC timestamp
+#   GET      /api/v0/revision.json -> application/json revision and UTC timestamp
 #
 # and the value must come only from Rails.application.revision, shared by both representations.
 class RevisionEndpointTest < ActionDispatch::IntegrationTest
@@ -84,8 +84,6 @@ class RevisionEndpointTest < ActionDispatch::IntegrationTest
   end
 
   test "every surface host answers the text revision contract with the same value" do
-    bodies = []
-
     SURFACES.each do |surface|
       host! surface[:host]
 
@@ -98,17 +96,13 @@ class RevisionEndpointTest < ActionDispatch::IntegrationTest
       assert_equal "text/plain", response.media_type
       assert_not_equal "application/json", response.media_type
       assert_not_equal "text/html", response.media_type
-      assert_equal "#{REVISION}\n", response.body
+      assert_revision_text REVISION
       assert_no_match JSON_BRACE, response.body
       assert_no_match HTML_MARKER, response.body
       assert_equal "no-store", response.headers["Cache-Control"]
       assert_equal "noindex, nofollow", response.headers["X-Robots-Tag"]
 
-      bodies << response.body
     end
-
-    assert_equal ["#{REVISION}\n"], bodies.uniq,
-                 "surfaces disagreed on the revision value"
   end
 
   test "every surface host answers the JSON revision contract" do
@@ -125,8 +119,7 @@ class RevisionEndpointTest < ActionDispatch::IntegrationTest
       assert_not_equal "text/plain", response.media_type
       assert_not_equal "text/html", response.media_type
       assert_no_match HTML_MARKER, response.body
-      assert_equal({ "revision" => REVISION }, response.parsed_body)
-      assert_equal %w(revision), response.parsed_body.keys
+      assert_revision_json REVISION
       assert_equal "no-store", response.headers["Cache-Control"]
     end
   end
@@ -153,7 +146,7 @@ class RevisionEndpointTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_equal "\n", response.body
+    assert_revision_text nil
     assert_equal "text/plain", response.media_type
     assert_equal "no-store", response.headers["Cache-Control"]
     assert_equal "noindex, nofollow", response.headers["X-Robots-Tag"]
@@ -163,7 +156,7 @@ class RevisionEndpointTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_equal({ "revision" => nil }, response.parsed_body)
+    assert_revision_json nil
   end
 
   test "revision is passed through verbatim without truncation in both representations" do
@@ -174,13 +167,13 @@ class RevisionEndpointTest < ActionDispatch::IntegrationTest
       get "/revision"
     end
 
-    assert_equal "#{verbatim}\n", response.body
+    assert_revision_text verbatim
 
     Rails.application.stub(:revision, verbatim) do
       get "/api/v0/revision.json", headers: { "Accept" => "application/json" }
     end
 
-    assert_equal({ "revision" => verbatim }, response.parsed_body)
+    assert_revision_json verbatim
   end
 
   test "text revision never renders html or an authentication redirect under any Accept" do
@@ -197,7 +190,7 @@ class RevisionEndpointTest < ActionDispatch::IntegrationTest
       assert_equal "text/plain", response.media_type
       assert_not_predicate response, :redirect?
       assert_no_match HTML_MARKER, response.body
-      assert_equal "#{REVISION}\n", response.body
+      assert_revision_text REVISION
     end
   end
 
@@ -243,7 +236,7 @@ class RevisionEndpointTest < ActionDispatch::IntegrationTest
     end
 
     forbidden.each { |value| assert_not_includes response.body, value }
-    assert_equal(%w(revision), response.parsed_body.keys)
+    assert_equal(%w(revision timestamp), response.parsed_body.keys.sort)
   end
 
   test "HEAD /revision satisfies the text contract with an empty body" do
@@ -275,5 +268,30 @@ class RevisionEndpointTest < ActionDispatch::IntegrationTest
         Rails.application.routes.recognize_path("http://#{host}/api/v0/revision.json", method: :get)
       end
     end
+  end
+
+  private
+
+  def assert_revision_text(revision)
+    assert_match(
+      Regexp.new(
+        "\\Atitle: Revision status\\nrevision: #{Regexp.escape(revision.to_s)}\\n" \
+        "timestamp: \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z\\n\\z",
+      ),
+      response.body,
+    )
+  end
+
+  def assert_revision_json(revision)
+    if revision.nil?
+      assert_nil response.parsed_body.fetch("revision")
+    else
+      assert_equal revision, response.parsed_body.fetch("revision")
+    end
+    assert_equal %w(revision timestamp), response.parsed_body.keys.sort
+    assert_match(
+      /\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/,
+      response.parsed_body.fetch("timestamp"),
+    )
   end
 end

@@ -9,8 +9,8 @@
 #
 # - `render_probe`         -> text/plain. `"ok\n"` and HTTP 200 when the probe passes; a short
 #   `"unavailable\n"` and HTTP 503 when it does not. `GET /health/{startup,liveness,readiness}`.
-# - `render_snapshot`      -> text/plain aggregate. Five lines, always in the order
-#   `status`, `namespace`, `startup`, `liveness`, `readiness`. `GET /health`.
+# - `render_snapshot`      -> text/plain aggregate. Seven lines, always in the order
+#   `title`, `namespace`, `status`, `startup`, `liveness`, `readiness`, `timestamp`. `GET /health`.
 # - `render_health_status` -> application/json machine aggregate for `/api/v0/health.json`. The
 #   `pass|warn|fail` vocabulary and the HTTP status decision live in `HealthStatusSerializer`.
 #
@@ -43,11 +43,13 @@ module HealthCheckRendering
     dependencies = snapshot.fetch(:dependencies)
 
     body = [
-      "status: #{snapshot.fetch(:status)}",
+      "title: Health status",
       "namespace: #{health_namespace}",
+      "status: #{snapshot.fetch(:status)}",
       "startup: #{probe_line(dependencies, "startup")}",
       "liveness: #{probe_line(dependencies, "liveness")}",
       "readiness: #{probe_line(dependencies, "readiness")}",
+      "timestamp: #{health_timestamp}",
     ].join("\n") + "\n"
 
     render plain: body, status: result.http_status
@@ -61,12 +63,17 @@ module HealthCheckRendering
       namespace: health_namespace,
       readiness: readiness,
       startup: startup,
+      timestamp: health_timestamp,
     )
 
     render json: serialized.body, status: serialized.http_status
   end
 
   private
+
+  def health_timestamp
+    Time.current.utc.iso8601
+  end
 
   # Fails loudly if the snapshot check did not produce the expected nested probe
   # (`generic/no-silent-fallback.mdc`): a blank line would misreport health.

@@ -6,7 +6,8 @@ require "test_helper"
 
 # End-to-end contract for the health endpoints on every declared surface.
 #
-#   GET /health            -> text/plain five-line aggregate (status, namespace, startup, liveness, readiness)
+#   GET /health            -> text/plain seven-line aggregate
+#                            (title, namespace, status, startup, liveness, readiness, timestamp)
 #   GET /health/{probe}    -> text/plain "ok\n" / HTTP 200 or "unavailable\n" / HTTP 503
 #   GET /api/v0/health.json -> application/json {"status":..,"checks":{..}}, 406 on a non-JSON Accept
 class HealthEndpointsTest < ActionDispatch::IntegrationTest
@@ -355,7 +356,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "GET /health is a text/plain five-line aggregate, never HTML or JSON, with no polling" do
+  test "GET /health is a text/plain seven-line aggregate, never HTML or JSON, with no polling" do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     get "/health"
@@ -364,7 +365,13 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     assert_equal "text/plain", response.media_type
     assert_not_equal "text/html", response.media_type
     assert_not_equal "application/json", response.media_type
-    assert_match(/\Astatus: \w+\nnamespace: auth\/app\nstartup: \w+\nliveness: \w+\nreadiness: \w+\n\z/, response.body)
+    assert_match(
+      Regexp.new(
+        "\\Atitle: Health status\\nnamespace: auth/app\\nstatus: \\w+\\nstartup: \\w+\\n" \
+        "liveness: \\w+\\nreadiness: \\w+\\ntimestamp: [^\\n]+Z\\n\\z",
+      ),
+      response.body,
+    )
     assert_no_match(/<html|<!doctype/i, response.body)
     assert_no_match(/fetch\s*\(|setInterval|setTimeout|EventSource|WebSocket/i, response.body)
     assert_no_match(/health\.json/i, response.body)
@@ -598,10 +605,11 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
       body = response.parsed_body
 
-      assert_equal %w(checks namespace status), body.keys.sort
+      assert_equal %w(checks namespace status timestamp), body.keys.sort
       assert_equal %w(liveness readiness startup), body.fetch("checks").keys.sort
       assert_includes %w(pass warn fail), body.fetch("status")
       assert_equal surface[:json_controller].split("/").first(2).join("/"), body.fetch("namespace")
+      assert_match(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/, body.fetch("timestamp"))
 
       body.fetch("checks").each_value do |check|
         assert_equal %w(status), check.keys
@@ -738,7 +746,14 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
               assert_response :success
               assert_equal "text/plain", response.media_type
-              assert_equal "status: ok\nnamespace: #{surface[:controller].split("/").first(2).join("/")}\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
+              namespace = surface[:controller].split("/").first(2).join("/")
+              assert_match(
+                Regexp.new(
+                  "\\Atitle: Health status\\nnamespace: #{namespace}\\nstatus: ok\\nstartup: ok\\n" \
+                  "liveness: ok\\nreadiness: ok\\ntimestamp: [^\\n]+Z\\n\\z",
+                ),
+                response.body,
+              )
 
               PROBES.each do |probe|
                 get "/health/#{probe}"

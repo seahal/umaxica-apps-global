@@ -8,14 +8,14 @@
 # file, or Git). No endpoint here reads Git, the filesystem, or the environment itself, and none
 # fabricates a value.
 #
-# Two representations, one value:
+# Two representations, one revision and render timestamp:
 #
-# - `render_revision`      -> `text/plain`, body exactly `"<revision>\n"`. `GET /revision`.
-# - `render_revision_json` -> `application/json`, body `{"revision": "<revision>"}`. `/api/v0/revision.json`.
+# - `render_revision`      -> `text/plain` title, revision, and timestamp. `GET /revision`.
+# - `render_revision_json` -> `application/json` revision and timestamp. `/api/v0/revision.json`.
 #
-# A missing revision is a normal state, not an error. The text endpoint renders it as an empty
-# line (`"\n"`); the JSON endpoint renders it as `{"revision": null}`. Both come from the single
-# `application_revision` helper.
+# A missing revision is a normal state, not an error. The text endpoint renders an empty
+# `revision:` value; the JSON endpoint renders `{"revision": null, ...}`. Both come from the
+# single `application_revision` helper.
 module ApplicationRevisionRendering
   extend ActiveSupport::Concern
 
@@ -24,7 +24,11 @@ module ApplicationRevisionRendering
   def render_revision
     apply_revision_response_headers
 
-    render plain: "#{application_revision}\n"
+    render plain: [
+      "title: Revision status",
+      "revision: #{application_revision}",
+      "timestamp: #{revision_timestamp}",
+    ].join("\n") + "\n"
   end
 
   # `/api/v0/revision.json`: machine JSON only. The caller-facing 406 for a non-JSON `Accept` is
@@ -32,7 +36,7 @@ module ApplicationRevisionRendering
   def render_revision_json
     apply_revision_response_headers
 
-    render json: { revision: application_revision }
+    render json: { revision: application_revision, timestamp: revision_timestamp }
   end
 
   private
@@ -41,6 +45,10 @@ module ApplicationRevisionRendering
   # callers decide how to represent absence.
   def application_revision
     Rails.application.revision&.to_s
+  end
+
+  def revision_timestamp
+    Time.current.utc.iso8601
   end
 
   def apply_revision_response_headers

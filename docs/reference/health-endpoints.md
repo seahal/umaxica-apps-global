@@ -6,13 +6,15 @@ As of the 2026-09-05 text+JSON contract there are two families:
 
 - **Text probes** (`text/plain; charset=utf-8`, `Cache-Control: no-store`, no redirect, no auth,
   no `.txt` suffix, never JSON or HTML). Each surface mounts:
-  - `GET /health` — aggregate. Body is exactly five lines in a fixed order:
+  - `GET /health` — aggregate. Body is exactly seven lines in a fixed order:
     ```
-    status: ok
+    title: Health status
     namespace: auth/app
+    status: ok
     startup: ok
     liveness: ok
     readiness: ok
+    timestamp: 2026-09-05T12:00:00Z
     ```
   - `GET /health/startup`, `GET /health/liveness`, `GET /health/readiness` — body `"ok\n"` and
     HTTP 200 when healthy, HTTP 503 when not.
@@ -20,10 +22,10 @@ As of the 2026-09-05 text+JSON contract there are two families:
   `text/html`, and a non-JSON `Accept` gets `406` rather than a silent fallback). Each surface that
   exposes `/revision` also mounts:
   - `GET /api/v0/health.json` —
-    `{"status":"pass|warn|fail","checks":{"startup":{"status":…},"liveness":{"status":…},"readiness":{"status":…}},"namespace":"<frame>/<brand>"}`.
+    `{"status":"pass|warn|fail","checks":{"startup":{"status":…},"liveness":{"status":…},"readiness":{"status":…}},"namespace":"<frame>/<brand>","timestamp":"<RFC3339 UTC>"}`.
     HTTP: `pass`/`warn` → 200, `fail` → 503. A readiness failure never changes the liveness entry;
     liveness stays dependency-free.
-  - `GET /api/v0/revision.json` — `{"revision":"<sha>"}`, or `{"revision":null}` when unset.
+  - `GET /api/v0/revision.json` — revision (nullable) and an RFC 3339 UTC render timestamp.
 
 The literal `.json` is part of the route path (`format: false`), mirroring the
 `.well-known/jwks.json` precedent; the controllers negotiate `Accept` explicitly and never
@@ -50,7 +52,8 @@ separate integrated status page (external service). See
     "liveness": { "status": "pass" },
     "readiness": { "status": "pass" }
   },
-  "namespace": "docs/app"
+  "namespace": "docs/app",
+  "timestamp": "2026-09-05T12:00:00Z"
 }
 ```
 
@@ -77,16 +80,18 @@ this boundary; no dependency name, exception, path, or environment value does.
 Individual probes: `"ok\n"` / 200 when `result.ok?`, `"unavailable\n"` / 503 otherwise, following
 `Health::StatusPolicy.http_status` — `starting` is 200 on liveness and 503 elsewhere. The `/health`
 aggregate line values (`ok` / `unavailable`) come from `CheckResult#as_public_json`, not the
-pass/warn/fail vocabulary.
+pass/warn/fail vocabulary. Both aggregate representations use the RFC 3339 UTC time at which Rails
+renders the response, including the `Z` UTC designator.
 
 ## Revision endpoints
 
-`GET /revision` (text) and `GET /api/v0/revision.json` (JSON) derive from one shared code path,
-`Rails.application.revision&.to_s` in `ApplicationRevisionRendering#application_revision`. The
-framework resolves that from `ENV["REVISION"]`, a `REVISION` file, or Git; no endpoint reads Git,
-the filesystem, or the environment directly, and none fabricates a value. When the revision is
-unset: the text endpoint renders `"\n"` (empty value plus the mandatory trailing newline, never
-the literal word `nil`), the JSON endpoint renders `{"revision": null}`.
+`GET /revision` renders `title`, `revision`, and `timestamp` lines in that order.
+`GET /api/v0/revision.json` returns the `revision` and `timestamp` members without a title. Both
+representations derive the revision from `Rails.application.revision&.to_s` in
+`ApplicationRevisionRendering#application_revision`; the framework resolves it from
+`ENV["REVISION"]`, a `REVISION` file, or Git. Neither endpoint reads those sources directly or
+fabricates a value. When the revision is unset, text renders an empty `revision:` value and JSON
+renders `"revision": null`. Both timestamps use RFC 3339 UTC with the `Z` designator.
 
 ## Caching
 

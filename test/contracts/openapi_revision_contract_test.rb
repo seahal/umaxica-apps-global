@@ -30,7 +30,8 @@ class OpenapiRevisionContractTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_equal "application/json", response.media_type
-      assert_equal({ "revision" => REVISION }, response.parsed_body)
+      assert_equal REVISION, response.parsed_body.fetch("revision")
+      assert_match(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/, response.parsed_body.fetch("timestamp"))
       assert_openapi_conform 200
     end
 
@@ -43,7 +44,8 @@ class OpenapiRevisionContractTest < ActionDispatch::IntegrationTest
       end
 
       assert_response :success
-      assert_equal({ "revision" => nil }, response.parsed_body)
+      assert_nil response.parsed_body.fetch("revision")
+      assert_match(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/, response.parsed_body.fetch("timestamp"))
       assert_openapi_conform 200
     end
 

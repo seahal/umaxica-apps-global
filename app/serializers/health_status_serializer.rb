@@ -12,21 +12,28 @@
 # the liveness entry -- liveness is dependency-free and a downstream outage only makes the
 # instance unready.
 #
-# The body identifies the routed controller namespace and exposes no dependency name, exception,
-# path, or environment value.
+# The body identifies the routed controller namespace and render timestamp, and exposes no
+# dependency name, exception, path, or environment value.
 class HealthStatusSerializer
   Result = Data.define(:body, :http_status)
 
   # Emission order matches docs/reference/health-endpoints.md: startup, liveness, readiness.
   CHECK_ORDER = %i(startup liveness readiness).freeze
 
-  def self.call(liveness:, namespace:, readiness:, startup:)
-    new(liveness: liveness, namespace: namespace, readiness: readiness, startup: startup).call
+  def self.call(liveness:, namespace:, readiness:, startup:, timestamp:)
+    new(
+      liveness: liveness,
+      namespace: namespace,
+      readiness: readiness,
+      startup: startup,
+      timestamp: timestamp,
+    ).call
   end
 
-  def initialize(liveness:, namespace:, readiness:, startup:)
+  def initialize(liveness:, namespace:, readiness:, startup:, timestamp:)
     @results = { startup: startup, liveness: liveness, readiness: readiness }
     @namespace = namespace
+    @timestamp = timestamp
   end
 
   def call
@@ -38,6 +45,7 @@ class HealthStatusSerializer
         status: overall,
         checks: mapped.transform_values { |status| { status: status } },
         namespace: @namespace,
+        timestamp: @timestamp,
       },
       http_status: (overall == "fail") ? 503 : 200,
     )

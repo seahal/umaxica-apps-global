@@ -178,10 +178,9 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
   Base64 email; expect JSON body with `valid`.
 - **TC-API-402** Telephone validation: POST JSON to `/api/app/v1/inquiry/valid_telephone_numbers`;
   expects `valid` key and proper status codes.
-- **TC-API-403** Health JSON: `GET /api/v0/health.json` returns
-  `{"status":"pass|warn|fail","checks":{…}}` with `fail` → 503; a readiness failure must not drop
-  the `liveness` check to `fail`. `GET /api/v0/revision.json` returns `{"revision":"<sha>"}` or
-  `{"revision":null}`.
+- **TC-API-403** Health JSON: `GET /api/v0/health.json` returns status, checks, namespace, and an
+  RFC 3339 UTC timestamp, with `fail` → 503; a readiness failure must not drop the `liveness` check
+  to `fail`. `GET /api/v0/revision.json` returns a nullable revision and the same timestamp format.
 
 ### 7.6 Docs/News/Help health
 

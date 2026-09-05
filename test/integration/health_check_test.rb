@@ -5,7 +5,7 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 # Probe and aggregate behaviour on a single surface (auth/app). The wire contract is text/plain:
-# a probe is "ok\n" / 200 or "unavailable\n" / 503, and GET /health is the five-line aggregate.
+# a probe is "ok\n" / 200 or "unavailable\n" / 503, and GET /health is the seven-line aggregate.
 class HealthCheckTest < ActionDispatch::IntegrationTest
   setup do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
@@ -74,12 +74,18 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
     )
 
     Health::SnapshotCheck.stub(:call, result) do
-      get "/health?ri=jp"
+      travel_to Time.zone.at(1_725_000_000) do
+        get "/health?ri=jp"
+      end
     end
 
     assert_response :success
     assert_equal "text/plain", response.media_type
-    assert_equal "status: ok\nnamespace: auth/app\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
+    assert_equal(
+      "title: Health status\nnamespace: auth/app\nstatus: ok\nstartup: ok\n" \
+      "liveness: ok\nreadiness: ok\ntimestamp: 2024-08-30T06:40:00Z\n",
+      response.body,
+    )
     assert_includes response.body.lines, "namespace: auth/app\n"
     assert_no_match(/sign app/i, response.body)
   end
