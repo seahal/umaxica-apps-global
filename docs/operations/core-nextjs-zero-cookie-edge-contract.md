@@ -27,22 +27,15 @@ For `jp.umaxica.app`:
 | Path                       | Origin           | Cookie forwarding             |
 | -------------------------- | ---------------- | ----------------------------- |
 | `/api/v0/*`                | Rails Core       | keep `Cookie`                 |
-| `/web/v0/*`                | Rails Core       | keep `Cookie`                 |
-| `/edge/v0/*`               | Rails Core       | keep `Cookie`                 |
 | `/oidc/*`                  | Rails Core       | keep `Cookie`                 |
 | `/sign/out`                | Rails Core       | keep `Cookie`                 |
 | `/sign/out/complete`       | Rails Core       | keep `Cookie`                 |
 | `/.well-known/jwks.json`   | Rails Core       | keep `Cookie`                 |
 | `/csp-violation-report`    | Rails Core       | keep `Cookie`                 |
-| `/robots.txt`              | Rails Core       | keep `Cookie`                 |
-| `/sitemap.xml`             | Rails Core       | keep `Cookie`                 |
 | `/health`                  | blocked publicly | no public origin              |
 | `/health/*`                | blocked publicly | no public origin              |
 | `/_next/*`                 | Next.js Core     | remove entire `Cookie` header |
 | `/` and all other paths    | Next.js Core     | remove entire `Cookie` header |
-
-`jp.umaxica.org` additionally routes `/configuration` to Rails Core; that route exists only on the
-org realm (`config/routes/core.rb`).
 
 `/oidc/*` covers `/oidc/authorization`, `/oidc/callback`, and `/oidc/backchannel/logout`.
 `/oidc/callback` and `/sign/out*` are the paths that set and clear the credential cookies, so
@@ -98,8 +91,8 @@ Before setting `CORE_BROWSER_JWT_COOKIE_ENABLED=1` in production, record evidenc
    `Set-Cookie`.
 4. A request to `https://jp.umaxica.app/api/v0/...` reaches Rails Core with the credential cookie
    header intact.
-5. Requests to `https://jp.umaxica.app/oidc/callback`, `/sign/out`, `/sign/out/complete`,
-   `/web/v0/...`, and `/edge/v0/...` reach Rails Core with required cookies intact.
+5. Requests to `https://jp.umaxica.app/oidc/callback`, `/sign/out`, `/sign/out/complete`, and
+   `/api/v0/preferences/...` reach Rails Core with required cookies intact.
 6. A request to `https://side.jp.umaxica.app/api/v0/...` with a synthetic `Cookie` header reaches
    Side without a `Cookie` header, and Side rejects any bypassed request that still contains one.
 7. Public requests to `/health` and `/health/*` are blocked at the edge or return only the approved

@@ -238,7 +238,9 @@ module Security
         %w(index show edit update).include?(entry.action)
     end
 
-    def public_preference?(entry) = entry.path.start_with?("/preference")
+    def public_preference?(entry)
+      entry.path.start_with?("/preference") || entry.path.start_with?("/api/v0/preferences")
+    end
 
     def public_web_or_edge?(entry) = entry.path.start_with?("/web/v0/", "/edge/v0/")
 

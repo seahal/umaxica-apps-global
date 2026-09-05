@@ -20,13 +20,6 @@ class OrgConfigurationRoutesTest < ActiveSupport::TestCase
       controller: "base/org/configurations",
       helper: :base_org_configuration_path,
     },
-    core: {
-      org_host: ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org")),
-      app_host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app")),
-      com_host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com")),
-      controller: "core/org/configurations",
-      helper: :core_org_configuration_path,
-    },
   }.freeze
 
   test "org configuration routes resolve only on org hosts" do

@@ -24,7 +24,7 @@ module Core
           private
 
           def dbsc_url
-            core_app_edge_v0_dbsc_url
+            core_app_api_v0_preferences_dbsc_url
           end
         end
       end

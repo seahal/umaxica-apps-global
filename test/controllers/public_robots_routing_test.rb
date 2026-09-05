@@ -32,11 +32,13 @@ class PublicRobotsRoutingTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "core surfaces define public file helpers" do
-    assert_public_file_helpers(
-      robots: %i(core_app_robots_path core_com_robots_path core_org_robots_path),
-      sitemap: %i(core_app_sitemap_path core_com_sitemap_path core_org_sitemap_path),
-    )
+  test "core surfaces do not define public file helpers" do
+    %i(
+      core_app_robots_path core_com_robots_path core_org_robots_path
+      core_app_sitemap_path core_com_sitemap_path core_org_sitemap_path
+    ).each do |helper|
+      assert_not_respond_to self, helper
+    end
   end
 
   test "content surfaces delegate robots to Next.js" do
@@ -59,12 +61,6 @@ class PublicRobotsRoutingTest < ActionDispatch::IntegrationTest
       [method(:base_com_sitemap_url), ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"), "sitemap"],
       [method(:base_org_sitemap_url), ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"), "sitemap"],
       [method(:palm_app_sitemap_url), ENV["PUBLIC_PALM_SERVICE_URL"] || "palm.app.localhost", "sitemap"],
-      [method(:core_app_robots_url), ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"), "robots"],
-      [method(:core_com_robots_url), ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"), "robots"],
-      [method(:core_org_robots_url), ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"), "robots"],
-      [method(:core_app_sitemap_url), ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"), "sitemap"],
-      [method(:core_com_sitemap_url), ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"), "sitemap"],
-      [method(:core_org_sitemap_url), ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"), "sitemap"],
       [method(:acme_com_robots_url), ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"), "robots"],
       [method(:acme_app_robots_url), ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), "robots"],
       [method(:acme_org_robots_url), ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"), "robots"],
