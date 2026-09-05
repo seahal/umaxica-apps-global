@@ -1,0 +1,18 @@
+# frozen_string_literal: true
+
+module Publishing
+  module Docs
+    module Com
+      class VersionSingleTaxonomyAssignment < PublishingRecord
+        self.table_name = "publishing_docs_com_version_single_taxonomy_assignments"
+        include Publishing::FamilyTaxonomyAssignment
+        include PublishingTaxonomySnapshot
+
+
+        belongs_to :entry_version, class_name: "Publishing::Docs::Com::EntryVersion", inverse_of: :single_taxonomy_assignments
+
+        def self.expected_kind = Publishing::TaxonomyKind::SINGLE_HIERARCHICAL
+      end
+    end
+  end
+end

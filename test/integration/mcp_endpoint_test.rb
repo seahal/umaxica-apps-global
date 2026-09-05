@@ -7,7 +7,11 @@ require "test_helper"
 # app, com, and org hosts. Every endpoint speaks the same protocol and offers the same three
 # read-only tools, but must report its own realm and surface and must never answer for another.
 class McpEndpointTest < ActionDispatch::IntegrationTest
-  counts_rate_limits!
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   JSON_HEADERS = {
     "CONTENT_TYPE" => "application/json",
     "HTTP_ACCEPT" => "application/json, text/event-stream",

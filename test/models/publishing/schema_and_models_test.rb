@@ -4,118 +4,78 @@ require "test_helper"
 
 module Publishing
   class SchemaAndModelsTest < ActiveSupport::TestCase
-    test "publishing tables exist only in the publishing database" do
-      %w(
-        publishing_editions
-        publishing_entries
-        publishing_entry_slugs
-        publishing_entry_revisions
-        publishing_entry_versions
-        publishing_publications
-        publishing_media_files
-        publishing_revision_media_usages
-        publishing_version_media_usages
-      ).each do |table|
-        assert PublishingRecord.connection.table_exists?(table), "expected #{table} to exist"
+    OBSOLETE = %w(
+      publishing_editions
+      publishing_entries
+      publishing_entry_slugs
+      publishing_entry_revisions
+      publishing_entry_versions
+      publishing_publications
+      publishing_vocabularies
+      publishing_taxonomy_terms
+      publishing_media_usages
+    ).freeze
+
+    test "obsolete generic lifecycle tables are absent" do
+      OBSOLETE.each do |table|
+        assert_not PublishingRecord.connection.table_exists?(table), "expected #{table} to be gone"
       end
     end
 
-    test "taxonomy is one generic table family, not one table per vocabulary" do
-      %w(
-        publishing_vocabularies
-        publishing_taxonomy_terms
-        publishing_revision_single_taxonomy_assignments
-        publishing_revision_multiple_taxonomy_assignments
-        publishing_version_single_taxonomy_assignments
-        publishing_version_multiple_taxonomy_assignments
-      ).each do |table|
-        assert PublishingRecord.connection.table_exists?(table), "expected #{table} to exist"
-      end
-
-      # Adding a vocabulary is a row, never a table.
-      %w(publishing_categories publishing_tags).each do |table|
-        assert_not PublishingRecord.connection.table_exists?(table), "expected #{table} to not exist"
+    test "all twelve family table sets and global media files exist" do
+      assert PublishingRecord.connection.table_exists?("publishing_media_files")
+      Publishing::ContentFamilies::ENTRY_CLASSES.each do |klass|
+        prefix = klass.table_name.delete_suffix("_entries")
+        %w(
+          entries entry_slugs entry_revisions entry_versions publications
+          vocabularies taxonomy_terms
+          revision_single_taxonomy_assignments revision_multiple_taxonomy_assignments
+          version_single_taxonomy_assignments version_multiple_taxonomy_assignments
+          revision_media_usages version_media_usages
+        ).each do |suffix|
+          table = "#{prefix}_#{suffix}"
+          assert PublishingRecord.connection.table_exists?(table), "expected #{table}"
+        end
       end
     end
 
-    test "builds a full entry lifecycle: edition -> entry -> revision -> version -> publication" do
-      edition = Edition.create!(audience: "app", surface: "info", locale: "ja")
-      entry = Entry.create!(edition:, locale: "ja")
+    test "family tables do not store audience or surface ownership columns" do
+      %w(
+        publishing_docs_app_entries
+        publishing_docs_app_entry_revisions
+        publishing_docs_app_vocabularies
+      ).each do |table|
+        names = PublishingRecord.connection.columns(table).map(&:name)
+        assert_not_includes names, "audience"
+        assert_not_includes names, "surface"
+      end
+    end
 
-      slug = EntrySlug.create!(
-        entry:, edition:, locale: "ja", slug: "sample-entry", state: "canonical",
-        canonicalized_at: Time.current,
-      )
-
-      assert_equal "canonical", slug.state
-
-      revision =
-        EntryRevision.create!(
-          entry:, locale: "ja", title: "Sample", body: { "text" => "hello" }, schema_version: 1,
-          content_digest: "a" * 64, sequence: 1,
-        )
-      entry.update!(current_revision: revision)
-
-      version =
-        EntryVersion.create!(
-          entry:, entry_revision: revision, locale: "ja", title: "Sample", body: { "text" => "hello" },
-          schema_version: 1, content_digest: "a" * 64, sequence: 1,
-        )
-
-      publication = Publication.create!(entry:, entry_version: version, effective_from: 1.day.ago)
+    test "builds a docs/app lifecycle without an edition" do
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "sample-entry", title: "Sample")
+      version = PromoteRevisionOperation.call(revision: entry.current_revision)
+      publication = entry.publications.create!(entry_version: version, effective_from: 1.day.ago)
 
       assert_not publication.cancelled?
-      assert_includes Publication.active, publication
-    end
-
-    test "an edition rejects an unknown audience or surface" do
-      edition = Edition.new(audience: "nope", surface: "info", locale: "ja")
-
-      assert_not edition.valid?
-
-      edition = Edition.new(audience: "app", surface: "nope", locale: "ja")
-
-      assert_not edition.valid?
+      assert_includes entry.publications.merge(entry.publications.klass.active), publication
     end
 
     test "entry versions are immutable after creation" do
-      edition = Edition.create!(audience: "com", surface: "docs", locale: "ja", region_code: "jp")
-      entry = Entry.create!(edition:, locale: "ja")
-      revision =
-        EntryRevision.create!(
-          entry:, locale: "ja", title: "T", body: {}, schema_version: 1, content_digest: "b" * 64, sequence: 1,
-        )
-      version =
-        EntryVersion.create!(
-          entry:, entry_revision: revision, locale: "ja", title: "T", body: {}, schema_version: 1,
-          content_digest: "b" * 64, sequence: 1,
-        )
+      entry = publishing_draft(audience: "com", surface: "docs", slug: "imm", title: "T")
+      version = PromoteRevisionOperation.call(revision: entry.current_revision)
 
       assert_raises(ActiveRecord::ReadOnlyRecord) { version.update!(title: "changed") }
       assert_raises(ActiveRecord::ReadOnlyRecord) { version.destroy! }
     end
 
     test "publications reject overlapping windows for the same entry" do
-      edition = Edition.create!(audience: "org", surface: "help", locale: "ja", region_code: "jp")
-      entry = Entry.create!(edition:, locale: "ja")
-      revision =
-        EntryRevision.create!(
-          entry:, locale: "ja", title: "T", body: {}, schema_version: 1, content_digest: "c" * 64, sequence: 1,
-        )
-      version =
-        EntryVersion.create!(
-          entry:, entry_revision: revision, locale: "ja", title: "T", body: {}, schema_version: 1,
-          content_digest: "c" * 64, sequence: 1,
-        )
-      Publication.create!(entry:, entry_version: version, effective_from: 2.days.ago, effective_until: 1.day.ago)
+      entry = publishing_draft(audience: "org", surface: "help", slug: "overlap", title: "T")
+      version = PromoteRevisionOperation.call(revision: entry.current_revision)
+      entry.publications.create!(entry_version: version, effective_from: 2.days.ago, effective_until: 1.day.ago)
 
       assert_raises(ActiveRecord::StatementInvalid) {
-        Publication.create!(entry:, entry_version: version, effective_from: 36.hours.ago)
+        entry.publications.create!(entry_version: version, effective_from: 36.hours.ago)
       }
-    end
-
-    test "the exclusive-arc publishing_media_usages table is gone" do
-      assert_not PublishingRecord.connection.table_exists?("publishing_media_usages")
     end
   end
 end

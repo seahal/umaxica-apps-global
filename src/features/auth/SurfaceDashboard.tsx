@@ -14,9 +14,15 @@ export type DashboardItem = {
   href: string | null;
 };
 
-export type DashboardSection = {
+export type DashboardGroup = {
   heading: string;
   items: DashboardItem[];
+};
+
+export type DashboardSection = {
+  heading: string;
+  items?: DashboardItem[];
+  groups?: DashboardGroup[];
 };
 
 export type SurfaceDashboardProps = {
@@ -26,6 +32,30 @@ export type SurfaceDashboardProps = {
   /** Absent unless the server decided this actor should be prompted to add a credential. */
   credential_warning?: CredentialWarningProps | null;
 };
+
+function linkList(items: DashboardItem[]) {
+  return (
+    <ul className="flex flex-col gap-1">
+      {items.map((item) => (
+        <li
+          key={item.label}
+          className="text-sm"
+        >
+          {item.href ? (
+            <a
+              href={item.href}
+              className="text-fg underline-offset-4 hover:underline"
+            >
+              {item.label}
+            </a>
+          ) : (
+            <span className="text-fg-muted">{item.label}</span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function SurfaceDashboard({
   title,
@@ -45,26 +75,16 @@ export default function SurfaceDashboard({
           key={section.heading}
           heading={section.heading}
         >
-          <ul className="flex flex-col gap-1">
-            {section.items.map((item) => (
-              <li
-                key={item.label}
-                className="text-sm"
-              >
-                {/* A document visit: these destinations are ceremonies with their own guards. */}
-                {item.href ? (
-                  <a
-                    href={item.href}
-                    className="text-fg underline-offset-4 hover:underline"
-                  >
-                    {item.label}
-                  </a>
-                ) : (
-                  <span className="text-fg-muted">{item.label}</span>
-                )}
-              </li>
-            ))}
-          </ul>
+          {section.groups?.map((group) => (
+            <div
+              key={group.heading}
+              className="flex flex-col gap-1"
+            >
+              <h3 className="text-sm font-medium text-fg">{group.heading}</h3>
+              {linkList(group.items)}
+            </div>
+          ))}
+          {section.items && section.items.length > 0 ? linkList(section.items) : null}
         </Card>
       ))}
     </Page>

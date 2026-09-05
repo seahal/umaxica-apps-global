@@ -8,6 +8,8 @@ require_relative "../../test/support/swappable_cache_store"
 # your test database is "scratch space" for the test suite and is wiped
 # and recreated between test runs. Don't rely on the data there!
 
+require Rails.root.join("test/support/swappable_cache_store")
+
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
@@ -31,20 +33,17 @@ Rails.application.configure do
   # Show full error reports.
   config.consider_all_requests_local = true
 
-  # Both stores are null by default so no test inherits state it did not ask for.
+  # Tests persist neither application cache nor rate-limit state by default, and
+  # CI never depends on an external Redis/Valkey service. Ordinary tests must not
+  # accidentally depend on cached state, and must not accumulate rate-limit
+  # counters and receive surprise 429s.
   #
-  # Rails.cache: a test that passes only because an earlier test warmed the cache
-  # is a test that does not describe the behaviour it claims to. A null cache
-  # forces every read to go to its real source.
-  #
-  # Rate limiting: the counters are process-global and survive a transaction
-  # rollback, so a shared counting store makes an unrelated controller test fail
-  # with 429 depending on suite order and parallel worker assignment. Tests whose
-  # subject *is* rate limiting opt into a real counting store by declaring
-  # `counts_rate_limits!` (test/support/rate_limit_store_override.rb), which is
-  # where threshold, window, bucket, and 429 behaviour is asserted.
+  # Tests whose subject *is* cache or rate-limit behavior opt into a
+  # deterministic ActiveSupport::Cache::MemoryStore explicitly, and restore the
+  # previous store in teardown.
   config.cache_store = :null_store
-  config.x.rate_limit.store = SwappableCacheStore.new(ActiveSupport::Cache::NullStore.new)
+  config.x.rate_limit.store =
+    TestSupport::SwappableCacheStore.new(ActiveSupport::Cache::NullStore.new)
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
@@ -67,7 +66,7 @@ Rails.application.configure do
 
   # Tell Active Job to use the test adapter
   config.active_job.queue_adapter = :test
-  config.solid_queue.connects_to = { database: { writing: :queue, reading: :queue_replica } }
+  config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "example.com" }

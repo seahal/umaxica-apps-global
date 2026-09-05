@@ -91,14 +91,14 @@ Downstream: Google Cloud (Run/Build/Storage), Cloudflare R2, Fastly CDN
 
 ### 3.2 Host / Namespace matrix
 
-| Namespace            | Host variables                                          | Responsibilities                                                                                                           |
-| -------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Namespace            | Host variables                                          | Responsibilities                                                                                                                           |
+| -------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Top::Com/App/Org`   | `TOP_CORPORATE_URL`, `TOP_SERVICE_URL`, `TOP_STAFF_URL` | Redirect to `EDGE_*` hosts, render `/health` (text) & `/api/v0/health.json`, expose preference UIs (`cookie`, `region`, `theme`, `reset`). |
-| `Auth::App/Org`      | `ID_SERVICE_URL`, `ID_STAFF_URL`                        | Registration (email/phone), authentication, passkeys, OAuth, recovery, withdrawal.                                         |
-| `Help::Com/App/Org`  | `HELP_*`                                                | Contact forms with Turnstile, OTP validation, email/SMS confirmation, success receipts.                                    |
-| `Docs::*`, `News::*` | `DOCS_*`, `NEWS_*`                                      | Documentation and newsroom placeholders with branded health endpoints.                                                     |
-| `Bff::*`             | `BFF_*`                                                 | Preference APIs for non-authenticated clients (email/locale endpoints).                                                    |
-| `Api::*`             | `API_*`                                                 | JSON endpoints (`/api/v0/health.json`, `/v1/inquiry/valid_email_addresses`, `/v1/inquiry/valid_telephone_numbers`).                 |
+| `Auth::App/Org`      | `ID_SERVICE_URL`, `ID_STAFF_URL`                        | Registration (email/phone), authentication, passkeys, OAuth, recovery, withdrawal.                                                         |
+| `Help::Com/App/Org`  | `HELP_*`                                                | Contact forms with Turnstile, OTP validation, email/SMS confirmation, success receipts.                                                    |
+| `Docs::*`, `News::*` | `DOCS_*`, `NEWS_*`                                      | Documentation and newsroom placeholders with branded health endpoints.                                                                     |
+| `Bff::*`             | `BFF_*`                                                 | Preference APIs for non-authenticated clients (email/locale endpoints).                                                                    |
+| `Api::*`             | `API_*`                                                 | JSON endpoints (`/api/v0/health.json`, `/v1/inquiry/valid_email_addresses`, `/v1/inquiry/valid_telephone_numbers`).                        |
 
 Routes live in `config/routes/*.rb`; the main `config/routes.rb` `draw`s each fragment to keep
 concerns scoped.
@@ -160,9 +160,9 @@ concerns scoped.
 
 ### 4.4 Docs & News
 
-- Each namespace exposes `root`, `/health` (text), `/api/v0/health.json`, and `/revision` with host constraints; upcoming roadmap
-  will hydrate documentation/newsroom content via React views (see `src/pages/docs/**` and
-  `src/pages/news/**`).
+- Each namespace exposes `root`, `/health` (text), `/api/v0/health.json`, and `/revision` with host
+  constraints; upcoming roadmap will hydrate documentation/newsroom content via React views (see
+  `src/pages/docs/**` and `src/pages/news/**`).
 
 ### 4.5 API & BFF
 
@@ -221,6 +221,8 @@ Sensitive columns leverage Active Record encryption.
 - The two stores stay separate even though both are Valkey: development runs `valkey-cache` and
   `valkey-rate-limit` as distinct services, so a cache flush cannot reset rate-limit windows.
   Counters and cache entries are both disposable; neither can lose authoritative state.
+- Staging and production both use logical DB 0. Staging shares `CACHE_REDIS_URL`; production
+  requires both URLs on `/0` (one managed database or two).
 - Runtime URL context is resolved from the Preference JWT projection and request-local context, not
   from the obsolete `__Secure-root_app_preferences` cookie.
 
@@ -277,8 +279,8 @@ Sensitive columns leverage Active Record encryption.
 
 ## 8. External Interfaces
 
-| Interface      | Type          | Description                                                                                                                                 |
-| -------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Interface      | Type          | Description                                                                                                                                                 |
+| -------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | HTTP           | REST          | Host-scoped routes for top/sign/help/docs/news/api/bff, including `/health` (text), `/api/v0/health.json`, `/sign/...`, `/help/...`, `/api/v1/inquiry/...`. |
 | Mail           | SMTP / API    | `Email::App/Com/Org::{Otp,Alert,Promotional}Mailer` deliver surface-scoped mail. OTP job arguments carry encrypted OTP payloads.            |
 | SMS            | HTTPS         | `Outbound::Sms` sends OTP codes through the configured provider. SMS job arguments carry encrypted message bodies.                          |

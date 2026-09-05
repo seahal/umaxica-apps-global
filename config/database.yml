@@ -11,6 +11,13 @@
   development_host = lambda do |name|
     Rails.env.development? ? ENV.fetch(name) : ENV[name]
   end
+
+  # Rails evaluates every environment in this file while booting. Require Neon
+  # connection settings only for production so development and test do not need
+  # production credentials merely to parse their own database configuration.
+  production_value = lambda do |name|
+    Rails.env.production? ? ENV.fetch(name) : ENV[name]
+  end
 %>
 default: &default
   adapter: postgresql
@@ -25,6 +32,10 @@ default: &default
   # killed mid-statement. Web requests are additionally bounded by rack-timeout (10s).
   statement_timeout: 15s
   advisory_locks: false
+<% if Rails.env.production? %>
+  sslmode: <%= production_value.call("NEON_PGSSLMODE") %>
+  channel_binding: <%= production_value.call("NEON_PGCHANNELBINDING") %>
+<% end %>
 test_default: &test_default
   !!merge <<: *default
   pool: 2
@@ -229,13 +240,6 @@ development:
     pool: 5
     database: development_queue_db
     host: <%= development_host.call("POSTGRESQL_QUEUE_PUB") %>
-    migrations_paths: db/queues_migrate
-  queue_replica:
-    !!merge <<: *development_default
-    pool: 5
-    replica: true
-    database: development_queue_db
-    host: <%= development_host.call("POSTGRESQL_QUEUE_SUB") %>
     migrations_paths: db/queues_migrate
   storage:
     !!merge <<: *development_default
@@ -487,13 +491,6 @@ test:
     database: test_queue_db
     host: <%= test_host %>
     migrations_paths: db/queues_migrate
-  queue_replica:
-    !!merge <<: *test_default
-    replica: true
-    database: test_queue_replica_db
-    host: <%= test_host %>
-    migrations_paths: db/queues_migrate
-    schema_dump: queue_structure.sql
   storage:
     !!merge <<: *test_default
     database: test_storage_db
@@ -554,9 +551,9 @@ production:
     !!merge <<: *default
     database: production_publishing_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.PUBLISHING&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.PUBLISHING&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/publishing_migrate
     schema_dump: publishing_structure.sql
   publishing_replica:
@@ -564,18 +561,20 @@ production:
     replica: true
     database: production_publishing_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.PUBLISHING_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.PUBLISHING_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/publishing_migrate
     schema_dump: publishing_structure.sql
   com_zenith:
     !!merge <<: *default
     database: production_com_zenith_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.COM_ZENITH&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.COM_ZENITH&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths:
       - db/com_principals_migrate
       - db/com_zenith_migrate
@@ -585,9 +584,11 @@ production:
     replica: true
     database: production_com_zenith_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.COM_ZENITH_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.COM_ZENITH_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths:
       - db/com_principals_migrate
       - db/com_zenith_migrate
@@ -596,9 +597,9 @@ production:
     !!merge <<: *default
     database: production_app_zenith_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.APP_ZENITH&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.APP_ZENITH&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths:
       - db/app_principals_migrate
       - db/app_zenith_migrate
@@ -608,9 +609,11 @@ production:
     replica: true
     database: production_app_zenith_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.APP_ZENITH_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.APP_ZENITH_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths:
       - db/app_principals_migrate
       - db/app_zenith_migrate
@@ -619,9 +622,9 @@ production:
     !!merge <<: *default
     database: production_org_zenith_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.ORG_ZENITH&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.ORG_ZENITH&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths:
       - db/org_principals_migrate
       - db/org_zenith_migrate
@@ -631,9 +634,11 @@ production:
     replica: true
     database: production_org_zenith_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.ORG_ZENITH_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.ORG_ZENITH_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths:
       - db/org_principals_migrate
       - db/org_zenith_migrate
@@ -642,9 +647,9 @@ production:
     !!merge <<: *default
     database: production_app_setting_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.APP_SETTING&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.APP_SETTING&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/app_settings_migrate
     schema_dump: app_setting_structure.sql
   app_setting_replica:
@@ -652,18 +657,20 @@ production:
     replica: true
     database: production_app_setting_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.APP_SETTING_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.APP_SETTING_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/app_settings_migrate
     schema_dump: app_setting_structure.sql
   org_setting:
     !!merge <<: *default
     database: production_org_setting_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.ORG_SETTING&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.ORG_SETTING&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/org_settings_migrate
     schema_dump: org_setting_structure.sql
   org_setting_replica:
@@ -671,18 +678,20 @@ production:
     replica: true
     database: production_org_setting_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.ORG_SETTING_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.ORG_SETTING_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/org_settings_migrate
     schema_dump: org_setting_structure.sql
   com_setting:
     !!merge <<: *default
     database: production_com_setting_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.COM_SETTING&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.COM_SETTING&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/com_settings_migrate
     schema_dump: com_setting_structure.sql
   com_setting_replica:
@@ -690,35 +699,39 @@ production:
     replica: true
     database: production_com_setting_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.COM_SETTING_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.COM_SETTING_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/com_settings_migrate
     schema_dump: com_setting_structure.sql
   search:
     !!merge <<: *default
     database: production_search_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.SEARCH&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.SEARCH&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/searches_migrate
   search_replica:
     !!merge <<: *default
     replica: true
     database: production_search_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.SEARCH_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.SEARCH_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/searches_migrate
   chronicle:
     !!merge <<: *default
     database: production_chronicle_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.CHRONICLE&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.CHRONICLE&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/chronicle_migrate
     schema_dump: chronicle_structure.sql
   chronicle_replica:
@@ -726,188 +739,199 @@ production:
     replica: true
     database: production_chronicle_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.CHRONICLE_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.CHRONICLE_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/chronicle_migrate
     schema_dump: chronicle_structure.sql
   org_ticket:
     !!merge <<: *default
     database: production_org_ticket_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.ORG_TICKET&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.ORG_TICKET&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/org_tickets_migrate
   org_ticket_replica:
     !!merge <<: *default
     replica: true
     database: production_org_ticket_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.ORG_TICKET_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.ORG_TICKET_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/org_tickets_migrate
   com_ticket:
     !!merge <<: *default
     database: production_com_ticket_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.COM_TICKET&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.COM_TICKET&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/com_tickets_migrate
   com_ticket_replica:
     !!merge <<: *default
     replica: true
     database: production_com_ticket_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.COM_TICKET_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.COM_TICKET_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/com_tickets_migrate
   app_ticket:
     !!merge <<: *default
     database: production_app_ticket_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.APP_TICKET&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.APP_TICKET&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/app_tickets_migrate
   app_ticket_replica:
     !!merge <<: *default
     replica: true
     database: production_app_ticket_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.APP_TICKET_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.APP_TICKET_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/app_tickets_migrate
   app_signal:
     !!merge <<: *default
     database: production_app_signal_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.APP_SIGNAL&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.APP_SIGNAL&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/app_signals_migrate
   app_signal_replica:
     !!merge <<: *default
     replica: true
     database: production_app_signal_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.APP_SIGNAL_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.APP_SIGNAL_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/app_signals_migrate
   org_signal:
     !!merge <<: *default
     database: production_org_signal_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.ORG_SIGNAL&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.ORG_SIGNAL&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/org_signals_migrate
   org_signal_replica:
     !!merge <<: *default
     replica: true
     database: production_org_signal_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.ORG_SIGNAL_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.ORG_SIGNAL_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/org_signals_migrate
   com_signal:
     !!merge <<: *default
     database: production_com_signal_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.COM_SIGNAL&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.COM_SIGNAL&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/com_signals_migrate
   com_signal_replica:
     !!merge <<: *default
     replica: true
     database: production_com_signal_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.COM_SIGNAL_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.COM_SIGNAL_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/com_signals_migrate
   storage:
     !!merge <<: *default
     database: production_storage_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.STORAGE&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.STORAGE&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/storages_migrate
   storage_replica:
     !!merge <<: *default
     replica: true
     database: production_storage_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.STORAGE_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.STORAGE_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/storages_migrate
   queue:
     !!merge <<: *default
     database: production_queue_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.QUEUE&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.QUEUE&.PASSWORD %>
-    migrations_paths: db/queues_migrate
-  queue_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_queue_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.QUEUE_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.QUEUE_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/queues_migrate
   occurrence:
     !!merge <<: *default
     database: production_occurrence_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.OCCURRENCE&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.OCCURRENCE&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/occurrences_migrate
   occurrence_replica:
     !!merge <<: *default
     replica: true
     database: production_occurrence_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.OCCURRENCE_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.OCCURRENCE_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/occurrences_migrate
   avatar:
     !!merge <<: *default
     database: production_avatar_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.AVATAR&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.AVATAR&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/avatars_migrate
   avatar_replica:
     !!merge <<: *default
     replica: true
     database: production_avatar_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.AVATAR_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.AVATAR_REPLICA&.PASSWORD %>
+    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
+    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
+    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
+    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
+    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/avatars_migrate
   # Feature flags (Flipper). No replica by design; see the development section.
   platform:
     !!merge <<: *default
     database: production_platform_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.PLATFORM&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.PLATFORM&.PASSWORD %>
+    host: <%= production_value.call("NEON_PGHOST") %>
+    username: <%= production_value.call("NEON_PGUSER") %>
+    password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/platform_migrate
     schema_dump: platform_structure.sql

@@ -7,7 +7,11 @@ require "test_helper"
 # way: on the code page, with a too-many-requests status and the shared message.
 # Answering differently on one step would tell a caller which step it hit.
 class Auth::OtpCeremonyRateLimitAnswersTest < ActiveSupport::TestCase
-  counts_rate_limits!
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   self.fixture_table_names = []
 
   def harness_for(controller_class, record)

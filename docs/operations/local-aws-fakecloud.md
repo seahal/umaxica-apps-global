@@ -67,11 +67,25 @@ into `compose.yaml` or `terraform/environments/development` is obvious on sight,
 behind a generated `/run/secrets` file. `development_container_contract_test.rb` asserts these
 values stay literal and uninterpolated.
 
-**Production takes no key from these variables.** `lib/object_storage_shrine_configuration.rb` uses
-the AWS SDK default credential chain in production and raises outright if `OBJECT_STORAGE_ENDPOINT`
-is set there. That is why the application keeps its own variable namespace instead of
-`AWS_ENDPOINT_URL_S3`: an `AWS_*` endpoint variable is consumed _implicitly_ by the SDK, which would
-silently redirect production S3 traffic past that check.
+Production-shaped deployments require an explicit `DEPLOYMENT_TIER`. The `staging` tier uses these
+S3-compatible variables so the production Rails configuration can run against fakecloud. The
+`production` tier takes no key from them, uses the AWS SDK default credential chain, and raises if
+`OBJECT_STORAGE_ENDPOINT` reaches the AWS S3 path. That is why the application keeps its own
+variable namespace instead of `AWS_ENDPOINT_URL_S3`: an `AWS_*` endpoint variable is consumed
+_implicitly_ by the SDK, which would silently redirect real production S3 traffic past that check.
+
+The complete storage matrix is:
+
+| Rails environment | Deployment tier | Storage |
+| ----------------- | --------------- | ------- |
+| `test` | not read | In-memory; no S3 network access |
+| `development` | not read | Configured S3-compatible endpoint |
+| `production` | `staging` | Configured S3-compatible endpoint |
+| `production` | `production` | AWS S3 through the platform credential provider |
+
+Missing or unrecognized `DEPLOYMENT_TIER` values fail when production storage configuration is
+resolved. There is no production default because accidentally interpreting staging as real
+production, or the reverse, changes where durable uploads are written.
 
 ### Migrating from RustFS
 

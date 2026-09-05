@@ -25,6 +25,7 @@ class PublishingContentMatrixTest < ActiveSupport::TestCase
       assert_includes controller.ancestors, PublishingContentRendering, controller.name
       assert_equal audience, controller.publishing_audience, controller.name
       assert_equal surface, controller.publishing_surface, controller.name
+      assert_equal Publishing::ContentFamilies.entry_class(surface:, audience:), controller::ENTRY_CLASS, controller.name
       assert_includes controller.public_instance_methods(false), :index, controller.name
       assert_includes controller.public_instance_methods(false), :show, controller.name
       assert_equal %i(index show), controller.public_instance_methods(false).sort, controller.name

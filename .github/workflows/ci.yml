@@ -201,9 +201,6 @@ jobs:
       ACME_REGION: true
       GLOBAL_MODE: true
       REGION_CODE: all
-      # Valkey
-      VALKEY_URL: redis://localhost:6379/0
-      RATE_LIMIT_REDIS_URL: redis://localhost:6379/1
       # PostgreSQL - Connection
       POSTGRESQL_USER: root
       POSTGRESQL_PORT: 5432
@@ -234,8 +231,6 @@ jobs:
       POSTGRESQL_MESSAGE_SUB: localhost
       POSTGRESQL_NOTIFICATION_PUB: localhost
       POSTGRESQL_NOTIFICATION_SUB: localhost
-      POSTGRESQL_CACHE_PUB: localhost
-      POSTGRESQL_CACHE_SUB: localhost
       POSTGRESQL_QUEUE_PUB: localhost
       POSTGRESQL_QUEUE_SUB: localhost
       POSTGRESQL_STORAGE_PUB: localhost
@@ -264,13 +259,6 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      valkey:
-        image: valkey/valkey:8-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "valkey-cli ping" --health-interval 10s --health-timeout 5s --health-retries
-          5
     steps:
       - uses: actions/checkout@v6.0.1
         with:
@@ -349,9 +337,6 @@ jobs:
       ACME_REGION: true
       GLOBAL_MODE: true
       REGION_CODE: all
-      # Valkey
-      VALKEY_URL: redis://localhost:6379/0
-      RATE_LIMIT_REDIS_URL: redis://localhost:6379/1
       # PostgreSQL - Connection
       POSTGRESQL_USER: root
       POSTGRESQL_PORT: 5432
@@ -382,8 +367,6 @@ jobs:
       POSTGRESQL_MESSAGE_SUB: localhost
       POSTGRESQL_NOTIFICATION_PUB: localhost
       POSTGRESQL_NOTIFICATION_SUB: localhost
-      POSTGRESQL_CACHE_PUB: localhost
-      POSTGRESQL_CACHE_SUB: localhost
       POSTGRESQL_QUEUE_PUB: localhost
       POSTGRESQL_QUEUE_SUB: localhost
       POSTGRESQL_STORAGE_PUB: localhost
@@ -412,13 +395,6 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      valkey:
-        image: valkey/valkey:8-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "valkey-cli ping" --health-interval 10s --health-timeout 5s --health-retries
-          5
     steps:
       - uses: actions/checkout@v6.0.1
         with:

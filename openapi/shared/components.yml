@@ -321,10 +321,10 @@ schemas:
     type: object
     description: >-
       Machine-readable health aggregate for `GET /api/v0/health.json`. See
-      docs/reference/health-endpoints.md. Carries only the two enum-bounded strings `status`
-      and `checks.*.status`; no internal topology, hostname, dependency name, exception, path,
-      or environment value crosses this boundary.
-    required: [status, checks]
+      docs/reference/health-endpoints.md. Identifies the controller namespace selected by routing
+      and carries the enum-bounded strings `status` and `checks.*.status`; no dependency name,
+      exception, path, or environment value crosses this boundary.
+    required: [status, checks, namespace, timestamp]
     properties:
       status:
         type: string
@@ -344,12 +344,22 @@ schemas:
             $ref: "#/schemas/CheckStatus"
           readiness:
             $ref: "#/schemas/CheckStatus"
+      namespace:
+        type: string
+        pattern: '^[a-z]+/[a-z]+$'
+        description: >-
+          The `<frame>/<brand>` controller namespace that handled the request.
+      timestamp:
+        type: string
+        format: date-time
+        description: >-
+          UTC time when Rails rendered the health response, formatted as RFC 3339 with `Z`.
 
   Revision:
     type: object
     description: >-
       Machine-readable deployment revision for `GET /api/v0/revision.json`.
-    required: [revision]
+    required: [revision, timestamp]
     properties:
       revision:
         type: string
@@ -358,3 +368,8 @@ schemas:
           The framework-resolved deployment revision (`Rails.application.revision`). Always
           present as a member; the value is `null` when no revision is configured, which is a
           normal state. Never a fabricated identifier.
+      timestamp:
+        type: string
+        format: date-time
+        description: >-
+          UTC time when Rails rendered the revision response, formatted as RFC 3339 with `Z`.

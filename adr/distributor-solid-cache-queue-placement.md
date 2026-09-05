@@ -1,5 +1,11 @@
 # ADR: Placement of Solid Cache / Solid Queue and application-specific DB
 
+> **Status update (2026-09-05):** Superseded in part by
+> `adr/solid-cache-removal-and-valkey-cache-separation.md`. Solid Cache has been removed from the
+> runtime architecture: `Rails.cache` is Valkey-backed via `CACHE_REDIS_URL`, and the `cache` /
+> `cache_replica` PostgreSQL connections and `db/caches_migrate/` are gone. Solid Queue is
+> unaffected and remains PostgreSQL-backed. Everything below about Solid Cache is historical.
+
 Status: superseded by `four-app-solid-cache-and-solid-queue.md`
 
 Superseded on: 2026-04-23

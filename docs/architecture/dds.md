@@ -50,7 +50,8 @@ Surface-owned database names follow the `surface_role` model documented in
 `docs/architecture/database-boundaries.md`.
 
 Cross-cutting and infrastructure databases remain separate, including `occurrence`, `chronicle`,
-`avatar`, `search`, `queue`, `cache`, and `storage`.
+`avatar`, `search`, `queue`, and `storage`. There is deliberately no `cache` database: application
+cache is Valkey-backed (`CACHE_REDIS_URL`) and non-authoritative.
 
 ## Verification
 

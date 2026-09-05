@@ -206,17 +206,17 @@ Cloudflare Worker (fetch()) --(Workers VPC binding)--> VPC Service (bound to a T
   --(private tunnel connection)--> core (Rails)
 ```
 
-- Workers VPC binds to a Tunnel-registered VPC Service and proxies an absolute-URL `fetch()` request
-  to the target host/port over that tunnel connection — it reuses the same Cloudflare Tunnel
-  infrastructure as path 1, not a separate ingress. Workers VPC requires cloudflared `2025.7.0` or
-  newer; `compose.yaml` pins the supported `2026.8.2` release because Cloudflare supports
-  cloudflared releases for one year.
-- This path does not currently exist in the repository — no VPC Service or Worker binding is
-  configured. This section documents the intended architecture per your Q5 answer (Workers VPC is a
-  distinct, retained trust domain, not a Tunnel replacement) for when that work is scoped.
-- Authentication for this path, once implemented, should be evaluated on its own threat model (a
-  Worker is a Cloudflare-controlled, non-browser client) rather than reusing the browser-facing
-  Access flow.
+- Workers VPC binds to a VPC Service on the dedicated `umaxica-dev-workers-vpc` tunnel. The local
+  connector is `cloudflare-tunnel-workers-vpc`; it is distinct from the browser-facing `Auth`
+  tunnel and has no ingress rules, public hostname, or Access application. Workers VPC requires
+  cloudflared `2025.7.0` or newer; `compose.yaml` pins the supported `2026.8.2` release and uses
+  `--protocol auto` so QUIC remains available.
+- The VPC Service connects to `core-workers-vpc.internal:3000`. This is a Compose DNS alias on the
+  private `frontend` network, so it survives container and network recreation without pinning a
+  Podman-assigned IP. It is the routing target only, not an HTTP Host family.
+- Authentication for this path follows its own threat model (a Worker is a Cloudflare-controlled,
+  non-browser client) rather than reusing the browser-facing Access flow. Rails surface routing,
+  authentication, and authorization remain authoritative after the request reaches the origin.
 
 #### Workers VPC Host header — an explicit design decision
 
@@ -250,8 +250,7 @@ Authorization note above, setting it would add a second name to admit and could 
 
 ## Non-Goals of This Document
 
-- Does not implement Workers VPC, and does not configure Access JWT validation for any hostname —
-  the connector is remotely managed, so that configuration is not expressible here. Record
-  `audTag`/`teamName` above once they are settled.
+- Does not configure the Worker binding or the VPC Service resource; those are owned outside this
+  Rails repository. It does configure the stable Rails-side target and dedicated connector.
 - Does not add Rails-side `CF-Connecting-IP` support — no feature currently needs it, and adding
   custom middleware for it now would be unjustified scope.

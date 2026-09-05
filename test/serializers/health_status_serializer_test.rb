@@ -14,13 +14,16 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
   test "all probes ok is status pass and HTTP 200" do
     serialized = HealthStatusSerializer.call(
       liveness: result(:liveness, :ok),
+      namespace: "test/app",
       readiness: result(:readiness, :ok),
       startup: result(:startup, :ok),
+      timestamp: "2024-08-30T06:40:00Z",
     )
 
     assert_equal(
       { status: "pass",
-        checks: { startup: { status: "pass" }, liveness: { status: "pass" }, readiness: { status: "pass" } }, },
+        checks: { startup: { status: "pass" }, liveness: { status: "pass" }, readiness: { status: "pass" } },
+        namespace: "test/app", timestamp: "2024-08-30T06:40:00Z", },
       serialized.body,
     )
     assert_equal 200, serialized.http_status
@@ -29,8 +32,10 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
   test "an unready readiness is fail overall and HTTP 503, and does not change liveness" do
     serialized = HealthStatusSerializer.call(
       liveness: result(:liveness, :ok),
+      namespace: "test/app",
       readiness: result(:readiness, :unready),
       startup: result(:startup, :ok),
+      timestamp: "2024-08-30T06:40:00Z",
     )
 
     assert_equal "fail", serialized.body.fetch(:status)
@@ -42,8 +47,10 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
   test "degraded but acceptable is warn overall and still HTTP 200" do
     serialized = HealthStatusSerializer.call(
       liveness: result(:liveness, :ok),
+      namespace: "test/app",
       readiness: result(:readiness, :degraded_acceptable),
       startup: result(:startup, :ok),
+      timestamp: "2024-08-30T06:40:00Z",
     )
 
     assert_equal "warn", serialized.body.fetch(:status)
@@ -54,8 +61,10 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
   test "a starting process warns on liveness but fails on startup" do
     liveness_starting = HealthStatusSerializer.call(
       liveness: result(:liveness, :starting),
+      namespace: "test/app",
       readiness: result(:readiness, :ok),
       startup: result(:startup, :ok),
+      timestamp: "2024-08-30T06:40:00Z",
     )
     # Liveness tolerates a starting process: HTTP 200, warn.
     assert_equal "warn", liveness_starting.body.dig(:checks, :liveness, :status)
@@ -64,8 +73,10 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
 
     startup_starting = HealthStatusSerializer.call(
       liveness: result(:liveness, :ok),
+      namespace: "test/app",
       readiness: result(:readiness, :ok),
       startup: result(:startup, :starting),
+      timestamp: "2024-08-30T06:40:00Z",
     )
     # Startup does not: HTTP 503, fail.
     assert_equal "fail", startup_starting.body.dig(:checks, :startup, :status)
@@ -76,8 +87,10 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
   test "checks are emitted in startup, liveness, readiness order" do
     serialized = HealthStatusSerializer.call(
       liveness: result(:liveness, :ok),
+      namespace: "test/app",
       readiness: result(:readiness, :ok),
       startup: result(:startup, :ok),
+      timestamp: "2024-08-30T06:40:00Z",
     )
 
     assert_equal %i(startup liveness readiness), serialized.body.fetch(:checks).keys

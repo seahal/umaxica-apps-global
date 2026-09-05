@@ -7,10 +7,9 @@
 # Problem Details on malformed input. Splitting those steps would hide the
 # HTTP contract behind several modules that always run together.
 #
-# Contract: the including controller declares PUBLISHING_AUDIENCE and
-# PUBLISHING_SURFACE as explicit constants. Those values are never inferred
-# from the class name or request path. See adr/publishing-db-content-authority.md
-# and docs/architecture/publishing-persistence.md.
+# Contract: the including controller declares PUBLISHING_AUDIENCE,
+# PUBLISHING_SURFACE, and ENTRY_CLASS as explicit constants. Those values are
+# never inferred from the class name or request path.
 #
 # This concern installs no callbacks of its own. ApiContentNegotiation, included
 # below, registers before_action filters because content negotiation must run
@@ -37,6 +36,14 @@ module PublishingContentRendering
       end
 
       const_get(:PUBLISHING_SURFACE, false)
+    end
+
+    def publishing_entry_class
+      unless const_defined?(:ENTRY_CLASS, false)
+        raise(NameError, "#{name} must declare ENTRY_CLASS")
+      end
+
+      const_get(:ENTRY_CLASS, false)
     end
   end
 
@@ -140,24 +147,16 @@ module PublishingContentRendering
   # not of an individual entry, so an index of N entries still costs one query.
   def publishing_vocabularies
     @publishing_vocabularies ||=
-      Publishing::Vocabulary
-        .available
-        .for_scope(audience: self.class.publishing_audience, surface: self.class.publishing_surface)
-        .order(:key)
-        .to_a
+      self.class.publishing_entry_class.module_parent::Vocabulary.available.order(:key).to_a
   end
 
   def publishing_entries_query
     @publishing_entries_query ||=
       PublishingPublishedEntriesQuery.new(
-        edition: publishing_edition, category: params[:category], tag: params[:tag],
-      )
-  end
-
-  def publishing_edition
-    @publishing_edition ||=
-      PublishingEditionResolver.call(
-        audience: self.class.publishing_audience, surface: self.class.publishing_surface, locale: publishing_locale,
+        entry_class: self.class.publishing_entry_class,
+        locale: publishing_locale,
+        category: params[:category],
+        tag: params[:tag],
       )
   end
 

@@ -51,11 +51,11 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ### 2.2 Primary Modules
 
-| Layer          | Components                                                                                |
-| -------------- | ----------------------------------------------------------------------------------------- |
-| Presentation   | Namespaced controllers and Turbo/React views under `src`                                  |
-| Domain Logic   | Concerns in `app/controllers/concerns`, services in `app/services`, models per DB         |
-| Integration    | `app/mailers`, `Outbound::Sms`, OTEL instrumentation                                      |
+| Layer          | Components                                                                                          |
+| -------------- | --------------------------------------------------------------------------------------------------- |
+| Presentation   | Namespaced controllers and Turbo/React views under `src`                                            |
+| Domain Logic   | Concerns in `app/controllers/concerns`, services in `app/services`, models per DB                   |
+| Integration    | `app/mailers`, `Outbound::Sms`, OTEL instrumentation                                                |
 | Infrastructure | Compose services (Postgres, Valkey, optional RustFS, Loki, Tempo, Grafana), pnpm/Tailwind toolchain |
 
 ---
@@ -71,8 +71,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
   - Defines RESTful resources for health endpoints, preferences, docs, API, etc.
 - All surfaces expose `text/plain` health probes (`/health` aggregate,
   `/health/{startup,liveness,readiness}`) plus machine JSON `/api/v0/health.json` and
-  `/api/v0/revision.json`, via `HealthCheckRendering` / `ApplicationRevisionRendering` delegating
-  to the `Health` service layer. See `docs/reference/health-endpoints.md`.
+  `/api/v0/revision.json`, via `HealthCheckRendering` / `ApplicationRevisionRendering` delegating to
+  the `Health` service layer. See `docs/reference/health-endpoints.md`.
 
 ### 3.2 Shared Controller Concerns
 
@@ -297,14 +297,14 @@ the runtime architecture. Adding a third Valkey use case requires an ADR.
 
 ## 6. External Interfaces
 
-| Interface            | Endpoint(s)                                                                                               | Details                                                                                                                                                                         |
-| -------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| HTTP/Turbo           | `/`, `/health`, `/api/v0/health.json`, `/preference/*`, `/sign/*`, `/help/contacts`, `/api/v1/inquiry/*`, `/bff/*` | Host-specific responses; `allow_browser` enforces modern clients.                                                                                                               |
-| Cloudflare Turnstile | `https://challenges.cloudflare.com/turnstile/v0/siteverify`                                               | Called server-side with secret key, form response, and client IP.                                                                                                               |
-| ActionMailer         | `Email::{App,Com,Org}::{OtpMailer,AlertMailer,PromotionalMailer}`                                         | OTP, alert, and promotion senders are fixed per surface and purpose, for example `otp@umaxica.app` and `promotion@umaxica.org`. OTP job arguments carry encrypted OTP payloads. |
-| SMS                  | `Outbound::Sms`                                                                                           | Called via `Outbound::Sms.deliver_later` for OTP-related flows; `SMS_PROVIDER` selects the concrete provider. SMS job arguments carry encrypted message bodies.                 |
-| OpenTelemetry        | OTLP exporter                                                                                             | Default endpoint `http://tempo:4318/v1/traces` (configurable).                                                                                                                  |
-| Storage              | RustFS S3-compatible API                                                                                  | Opt-in local `object-storage` Compose profile with `object_storage:prepare`/`object_storage:smoke` rake tasks (`lib/tasks/object_storage.rake`) for manual verification. Not wired into the application: Shrine (`config/initializers/shrine.rb`) uses `Memory` storage in test and local `FileSystem` storage otherwise, and Active Storage (`config/storage.yml`) is `Disk`-only. |
+| Interface            | Endpoint(s)                                                                                                        | Details                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP/Turbo           | `/`, `/health`, `/api/v0/health.json`, `/preference/*`, `/sign/*`, `/help/contacts`, `/api/v1/inquiry/*`, `/bff/*` | Host-specific responses; `allow_browser` enforces modern clients.                                                                                                                                                                                                                                                                                                                   |
+| Cloudflare Turnstile | `https://challenges.cloudflare.com/turnstile/v0/siteverify`                                                        | Called server-side with secret key, form response, and client IP.                                                                                                                                                                                                                                                                                                                   |
+| ActionMailer         | `Email::{App,Com,Org}::{OtpMailer,AlertMailer,PromotionalMailer}`                                                  | OTP, alert, and promotion senders are fixed per surface and purpose, for example `otp@umaxica.app` and `promotion@umaxica.org`. OTP job arguments carry encrypted OTP payloads.                                                                                                                                                                                                     |
+| SMS                  | `Outbound::Sms`                                                                                                    | Called via `Outbound::Sms.deliver_later` for OTP-related flows; `SMS_PROVIDER` selects the concrete provider. SMS job arguments carry encrypted message bodies.                                                                                                                                                                                                                     |
+| OpenTelemetry        | OTLP exporter                                                                                                      | Default endpoint `http://tempo:4318/v1/traces` (configurable).                                                                                                                                                                                                                                                                                                                      |
+| Storage              | RustFS S3-compatible API                                                                                           | Opt-in local `object-storage` Compose profile with `object_storage:prepare`/`object_storage:smoke` rake tasks (`lib/tasks/object_storage.rake`) for manual verification. Not wired into the application: Shrine (`config/initializers/shrine.rb`) uses `Memory` storage in test and local `FileSystem` storage otherwise, and Active Storage (`config/storage.yml`) is `Disk`-only. |
 
 ---
 
@@ -316,8 +316,7 @@ the runtime architecture. Adding a third Valkey use case requires an ADR.
   (`CACHE_REDIS_URL`, `RATE_LIMIT_REDIS_URL`), Cloudflare Turnstile keys, JWT keys, AWS credentials,
   OTLP endpoint.
 - `compose.yaml` launches the normal infrastructure; the `object-storage` profile adds RustFS with
-  four persistent volumes. Other volumes store data per
-  service.
+  four persistent volumes. Other volumes store data per service.
 - `bin/dev` ensures the Rails server, Vite dev server, and background jobs run concurrently via
   `foreman start -f Procfile.dev`.
 - Build/test commands:

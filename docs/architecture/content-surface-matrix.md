@@ -28,7 +28,7 @@ this phase.
 | Public read API | `GET /api/v0/entries` and `GET /api/v0/entries/:slug` on each of the twelve hosts |
 | Rails HTML | Thin root and health only; no article index/detail, sitemap, or RSS |
 | Edge CMS consumption | **Not implemented.** Rails CMS API exists; Edge does not yet fetch `/api/v0/entries` for list/detail pages |
-| Region | Unresolved product semantics. Editions store optional `region_code`. Database CHECK requires a two-letter code for docs/news/help and forbids it for info. Uniqueness remains `(audience, surface, locale)` and does **not** include `region_code`. Do not change this without an architecture decision |
+| Region | Unresolved product semantics. Not a persistence identity. Each family class declares `REGION_CODE` (`nil` for info, `"jp"` for docs/news/help). Locale stays a column inside the family. |
 
 ## Cell records
 

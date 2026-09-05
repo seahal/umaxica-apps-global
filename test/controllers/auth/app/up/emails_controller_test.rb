@@ -5,7 +5,11 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
-  counts_rate_limits!
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   include ActiveSupport::Testing::TimeHelpers
 
   setup do

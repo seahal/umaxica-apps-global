@@ -10,7 +10,11 @@ require "test_helper"
 # limiter that is declared but never fires is the difference between bounded and
 # unbounded probing. Nothing exercised these handlers before.
 class BaseEndpointRateLimitTest < ActionDispatch::IntegrationTest
-  counts_rate_limits!
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   self.fixture_table_names = []
 
   setup { Rails.configuration.x.rate_limit.fetch(:store).clear }

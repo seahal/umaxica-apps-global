@@ -12,6 +12,11 @@ require "test_helper"
 # establish_signed_in_session! machinery downstream is pre-existing and out
 # of scope here.
 class Auth::Org::Omniauth::OmniauthCallbackQueryCountTest < ActionDispatch::IntegrationTest
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   TENANT_ID = "11111111-2222-3333-4444-555555555555"
   CLIENT_ID = "22222222-3333-4444-5555-666666666666"
   OBJECT_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"

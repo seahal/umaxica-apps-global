@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-# require "helpers/global_test_support"
 
 # Solid Queue stays; Solid Cache is gone. Both are Rails "Solid" components, so
 # the two decisions are easy to conflate -- these assertions keep them apart.
@@ -40,8 +39,8 @@ class SolidInfrastructureTest < ActiveSupport::TestCase
 
     store = Rails.configuration.x.rate_limit.fetch(:store)
 
-    assert_instance_of SwappableCacheStore, store
-    assert_instance_of ActiveSupport::Cache::NullStore, store.__getobj__
+    assert_instance_of TestSupport::SwappableCacheStore, store
+    assert_instance_of ActiveSupport::Cache::NullStore, store.backend
   end
 
   test "null cache reads are safe inside reading role" do

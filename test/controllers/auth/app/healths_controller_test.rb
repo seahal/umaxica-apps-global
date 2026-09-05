@@ -15,7 +15,7 @@ class Auth::App::HealthsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal "text/plain", response.media_type
     assert_not_equal "text/html", response.media_type
-    assert_match(/\Astatus: \w+\nstartup: \w+\nliveness: \w+\nreadiness: \w+\n\z/, response.body)
+    assert_match(/\Atitle: Health status\nnamespace: \w+\/\w+\nstatus: \w+\nstartup: \w+\nliveness: \w+\nreadiness: \w+\ntimestamp: [^\n]+Z\n\z/, response.body)
   end
 
   test "GET /health/readiness returns text/plain regardless of Accept" do

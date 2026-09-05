@@ -7,10 +7,13 @@ class PlainTextHealthEndpointsTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     {
-      "/health" => "status: ok\nstartup: ok\nliveness: ok\nreadiness: ok\n",
-      "/health/startup" => "ok\n",
-      "/health/liveness" => "ok\n",
-      "/health/readiness" => "ok\n",
+      "/health" => Regexp.new(
+        "\\Atitle: Health status\\nnamespace: auth/app\\nstatus: ok\\nstartup: ok\\n" \
+        "liveness: ok\\nreadiness: ok\\ntimestamp: [^\\n]+Z\\n\\z",
+      ),
+      "/health/startup" => /\Aok\n\z/,
+      "/health/liveness" => /\Aok\n\z/,
+      "/health/readiness" => /\Aok\n\z/,
     }.each do |path, expected_body|
       get path
 
@@ -18,7 +21,7 @@ class PlainTextHealthEndpointsTest < ActionDispatch::IntegrationTest
       assert_equal "text/plain", response.media_type
       assert_equal "utf-8", response.charset
       assert_equal "no-store", response.headers["Cache-Control"]
-      assert_equal expected_body, response.body
+      assert_match expected_body, response.body
       assert_not_predicate response, :redirect?
       assert_nil response.headers["Location"]
     end

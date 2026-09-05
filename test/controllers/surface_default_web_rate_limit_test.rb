@@ -13,7 +13,11 @@ require "test_helper"
 # Each case sends the full quota and then one more request, so it also pins that
 # the quota is not off by one in either direction.
 class SurfaceDefaultWebRateLimitTest < ActionDispatch::IntegrationTest
-  counts_rate_limits!
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   self.fixture_table_names = []
 
   DEFAULT_WEB_QUOTA = 300

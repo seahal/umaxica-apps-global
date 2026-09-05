@@ -111,13 +111,32 @@ class RiRoutingContractTest < ActiveSupport::TestCase
   ).freeze
 
   # Controllers that render HTML on a participating target and still run without region
-  # enforcement. Each is reached by a token URL sent in an email, not by in-surface navigation: the
-  # page carries a one-click unsubscribe form back to itself and generates no regional link, and a
-  # canonicalization redirect there would rewrite a URL the recipient received out of band.
+  # enforcement.
+  #
+  # Preference email unsubscribe pages are reached by a token URL sent in an email, not by
+  # in-surface navigation: the page carries a one-click form back to itself and generates no
+  # regional link, and a canonicalization redirect there would rewrite a URL the recipient
+  # received out of band.
+  #
+  # Base.Org Publishing CMS pages inherit BareController and do not run the preference
+  # pipeline. Locale is a displayed Edition attribute, not an `ri` path segment. Dashboard
+  # links may pass `ri` as an unused query parameter.
   RI_HTML_EXEMPT_CONTROLLERS = %w(
     base/app/preference/emails
     base/com/preference/emails
     base/org/preference/emails
+    base/org/publishing/docs/app/entries
+    base/org/publishing/docs/com/entries
+    base/org/publishing/docs/org/entries
+    base/org/publishing/help/app/entries
+    base/org/publishing/help/com/entries
+    base/org/publishing/help/org/entries
+    base/org/publishing/info/app/entries
+    base/org/publishing/info/com/entries
+    base/org/publishing/info/org/entries
+    base/org/publishing/news/app/entries
+    base/org/publishing/news/com/entries
+    base/org/publishing/news/org/entries
   ).freeze
 
   SKIP_SET_REGION_PATTERN = /^\s*skip_before_action\s+.*\bset_region\b/

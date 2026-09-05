@@ -5,7 +5,11 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class BaseOauthTokenRateLimitTest < ActionDispatch::IntegrationTest
-  counts_rate_limits!
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   TokenResult =
     Struct.new(:success, :error, :error_description, keyword_init: true) do
       def success?
@@ -16,10 +20,11 @@ class BaseOauthTokenRateLimitTest < ActionDispatch::IntegrationTest
   setup do
     clear_rate_limit_store
 
-    # `counts_rate_limits!` must actually be in force: with the suite default
-    # NullStore behind the wrapper, every assertion below would pass vacuously
-    # because no request would ever be counted.
-    assert_instance_of ActiveSupport::Cache::MemoryStore, rate_limit_store.__getobj__
+    # Guard against silently testing rate limiting against a store that retains
+    # nothing. The configured store is a TestSupport::SwappableCacheStore whose
+    # backend `rate_limit_counters!` has pointed at a MemoryStore; assert the
+    # backend, since that is what actually holds the counters.
+    assert_instance_of ActiveSupport::Cache::MemoryStore, rate_limit_store.backend
   end
 
   teardown do

@@ -87,8 +87,10 @@ services:
     container_name: global-devcontainer-primary
   replica:
     container_name: global-devcontainer-replica
-  valkey:
-    container_name: global-devcontainer-valkey
+  valkey-cache:
+    container_name: global-devcontainer-valkey-cache
+  valkey-rate-limit:
+    container_name: global-devcontainer-valkey-rate-limit
   # kafka needs no devcontainer override: it publishes no host port and its
   # container name is not referenced by tooling.
   loki:

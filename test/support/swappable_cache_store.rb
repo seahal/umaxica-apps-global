@@ -1,25 +1,50 @@
 # typed: false
 # frozen_string_literal: true
 
-require "delegate"
+module TestSupport
+  # Test-only indirection in front of a cache store.
+  #
+  # The default test policy is that neither `Rails.cache` nor the rate-limit
+  # store persists anything (`NullStore`), so ordinary controller and request
+  # tests cannot accumulate rate-limit counters and cannot depend on cached
+  # state. Tests whose *subject* is rate-limit behavior still have to exercise
+  # real counters, which means swapping in a deterministic `MemoryStore`.
+  #
+  # A plain reassignment of `Rails.configuration.x.rate_limit[:store]` does not
+  # reach every consumer: `rate_limit ..., store: rate_limit_store` in a
+  # controller class body captures the object once, at class-load time. This
+  # wrapper is that captured object, so redirecting it here is visible to eager
+  # captures and late lookups alike.
+  #
+  # Not for use outside the test environment.
+  class SwappableCacheStore < SimpleDelegator
+    def initialize(default_backend)
+      @default_backend = default_backend
+      super(default_backend)
+    end
 
-# Indirection for the test environment's `config.x.rate_limit.store`.
-#
-# Rails' `rate_limit` DSL captures its `store:` argument inside the
-# `before_action` closure it builds while the controller class body runs, so
-# reassigning `Rails.configuration.x.rate_limit.store` afterwards never reaches
-# a controller that has already loaded. Controllers therefore capture this
-# wrapper once and keep it; a test changes what the wrapper points at instead of
-# replacing the object controllers hold.
-#
-# This exists only in the test environment. Development and production assign a
-# real `ActiveSupport::Cache::RedisCacheStore` directly, with no indirection.
-class SwappableCacheStore < SimpleDelegator
-  # Points the wrapper at `store` and returns the previous target so a caller can
-  # restore it.
-  def swap(store)
-    previous = __getobj__
-    __setobj__(store)
-    previous
+    attr_reader :default_backend
+
+    def backend
+      __getobj__
+    end
+
+    def backend=(store)
+      __setobj__(store || default_backend)
+    end
+
+    # Run the block with `store` (default: a fresh MemoryStore) in place, then
+    # restore the previous backend. Nesting is safe.
+    def with(store = ActiveSupport::Cache::MemoryStore.new)
+      previous = backend
+      self.backend = store
+      yield store
+    ensure
+      __setobj__(previous)
+    end
+
+    def reset!
+      __setobj__(default_backend)
+    end
   end
 end

@@ -8,6 +8,11 @@ require "test_helper"
 # seam rather than answering nil into something far away. Each seam declared with
 # NotImplementedError is exercised here so the contract cannot quietly disappear.
 class SurfaceSeamContractsTest < ActiveSupport::TestCase
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   self.fixture_table_names = []
 
   # The concerns register callbacks and helpers when included; a plain object has

@@ -93,31 +93,22 @@ FqdnAvailabilityRegistry.flag_names.each { |feature_name| Flipper.enable(feature
 
 # Deterministic development CMS documents so all twelve public content cells have
 # a published entry. Uses the normal draft -> promote -> publish lifecycle.
-AUDIENCES = %w(app com org).freeze
-SURFACES = %w(info docs news help).freeze
 LOCALES = %w(ja en).freeze
-REGIONAL_SURFACES = %w(docs news help).freeze
 
-AUDIENCES.product(SURFACES, LOCALES).each do |audience, surface, locale|
-  edition =
-    Publishing::Edition.find_or_create_by!(audience:, surface:, locale:) do |record|
-      record.region_code = "jp" if REGIONAL_SURFACES.include?(surface)
-    end
+Publishing::ContentFamilies::ENTRY_CLASSES.product(LOCALES).each do |entry_class, locale|
   slug = "welcome"
-  next if Publishing::EntrySlug.exists?(edition:, slug:)
+  next if entry_class.reflect_on_association(:slugs).klass.exists?(locale:, slug:)
 
-  title = "#{surface.capitalize} #{audience} (#{locale})"
-  entry = Publishing::Entry.create!(edition:, locale:)
-  Publishing::EntrySlug.create!(
-    entry:, edition:, locale:, slug:, state: "canonical", canonicalized_at: Time.current,
-  )
-  revision = Publishing::EntryRevision.create!(
-    entry:, locale:, title:, summary: "#{title} summary",
+  title = "#{entry_class::SURFACE.capitalize} #{entry_class::AUDIENCE} (#{locale})"
+  entry = entry_class.create!(locale:)
+  entry.slugs.create!(locale:, slug:, state: "canonical", canonicalized_at: Time.current)
+  revision = entry.revisions.create!(
+    locale:, title:, summary: "#{title} summary",
     body: { "text" => "#{title} body" }, schema_version: 1,
-    content_digest: Digest::SHA256.hexdigest("#{audience}-#{surface}-#{locale}-welcome"),
+    content_digest: Digest::SHA256.hexdigest("#{entry_class::AUDIENCE}-#{entry_class::SURFACE}-#{locale}-welcome"),
     sequence: 1,
   )
   entry.update!(current_revision: revision)
   version = Publishing::PromoteRevisionOperation.call(revision:)
-  Publishing::Publication.create!(entry:, entry_version: version, effective_from: 1.hour.ago)
+  entry.publications.create!(entry_version: version, effective_from: 1.hour.ago)
 end

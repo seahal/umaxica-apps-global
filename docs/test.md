@@ -88,8 +88,9 @@ detailed cases, and acceptance criteria derived from the SRS and HLD.
   cache does not describe the behaviour it claims to, and rate-limit counters are keyed by request IP
   -- identical for every test -- so a shared counting store makes unrelated tests 429 depending on
   suite order. Cache tests stub `Rails.cache` with a `MemoryStore`; rate-limit tests declare
-  `counts_rate_limits!` (`test/support/rate_limit_store_override.rb`), which swaps a `MemoryStore`
-  behind the store controllers captured at class-load time. Neither store reaches an external
+  `rate_limit_counters!` (or wrap an exercise in `with_rate_limit_counters`, both in
+  `test/test_helper.rb`), which points `TestSupport::SwappableCacheStore` at a `MemoryStore` behind
+  the store controllers captured at class-load time. Neither store reaches an external
   Valkey in test or CI.
 - **Performance tests**: Dedicated k6/wrk scenarios are deferred. Add them only when a concrete load
   target and environment are defined.
@@ -140,7 +141,7 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
   returns 404.
 - **TC-ROUTE-004** Rate limit guard: simulate >1,000 requests/hour to sign/help endpoints; expect
   429. Valkey backs the limiter in development and production; the test declares
-  `counts_rate_limits!` and asserts against a deterministic in-process store.
+  `rate_limit_counters!` and asserts against a deterministic in-process store.
 
 ### 7.2 Preferences & Cookies
 
@@ -187,10 +188,9 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
   Base64 email; expect JSON body with `valid`.
 - **TC-API-402** Telephone validation: POST JSON to `/api/app/v1/inquiry/valid_telephone_numbers`;
   expects `valid` key and proper status codes.
-- **TC-API-403** Health JSON: `GET /api/v0/health.json` returns
-  `{"status":"pass|warn|fail","checks":{…}}` with `fail` → 503; a readiness failure must not drop
-  the `liveness` check to `fail`. `GET /api/v0/revision.json` returns `{"revision":"<sha>"}` or
-  `{"revision":null}`.
+- **TC-API-403** Health JSON: `GET /api/v0/health.json` returns status, checks, namespace, and an
+  RFC 3339 UTC timestamp, with `fail` → 503; a readiness failure must not drop the `liveness` check
+  to `fail`. `GET /api/v0/revision.json` returns a nullable revision and the same timestamp format.
 
 ### 7.6 Docs/News/Help health
 

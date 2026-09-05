@@ -7,7 +7,11 @@ require "base64"
 
 module Auth::App::Up
   class TelephonesControllerTest < ActionDispatch::IntegrationTest
-    counts_rate_limits!
+    # Rate-limit counters are a NullStore by default in test so unrelated tests
+    # cannot accumulate them; this file asserts real limiting behavior, so it
+    # opts into a deterministic MemoryStore.
+    rate_limit_counters!
+
     fixtures :app_preference_chronicle_levels, :app_preference_chronicle_events,
              :client_statuses, :client_telephone_statuses,
              :client_chronicle_events, :client_chronicle_levels

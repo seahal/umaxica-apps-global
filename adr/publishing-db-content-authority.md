@@ -40,12 +40,10 @@ database. App/com/org identify the publication **audience**, not database placem
 
 ### 3. Edition Model
 
-`Publishing::Edition` identifies an audience, surface, and locale, with an optional `region_code`.
-Initial scope is global Japanese info and Japanese docs/news/help for JP. Future locales and regions
-will be added through deliberate breaking changes rather than speculative open-ended design.
-
-Do not adopt the former global/regional placement CHECK. Enforce
-`UNIQUE (audience, surface, locale)` and CHECK constraints for the audience and surface domains.
+**Superseded 2026-09-04 by `adr/publishing-twelve-family-encrypted-persistence.md`.**
+`Publishing::Edition` is removed. The twelve cells are physical table families.
+Locale remains a column inside each family. Region is a family constant, not a
+persisted Edition attribute.
 
 ### 4. Keep the `entries` API Noun
 
@@ -96,13 +94,10 @@ models.
 
 ### 9. Models and Naming
 
-Under abstract `PublishingRecord`, define only `Publishing::Edition`, `Entry`, `EntrySlug`,
-`EntryRevision`, `EntryVersion`, `Publication`, `MediaFile`, and `MediaUsage`. Prohibit
-surface-specific or audience-specific concrete models and dynamic model resolution with
-`constantize` or `Object.const_get`.
-
-When a concrete file or model name is necessary, order it as
-`{app,com,org}_{docs,news,help,info}_xxx`: audience first, surface second.
+**Superseded 2026-09-04 by `adr/publishing-twelve-family-encrypted-persistence.md`.**
+Define twelve explicit family model trees under `Publishing::{Surface}::{Audience}` plus
+global `Publishing::MediaFile`. Prohibit `constantize` / `Object.const_get` for runtime
+family selection. Persistence naming is surface first, matching management URLs.
 
 ## Consequences
 

@@ -11,33 +11,6 @@ class IdentityOneTimeReveal
   Result = Struct.new(:token, :expires_at, keyword_init: true)
   Payload = Struct.new(:value, :metadata, keyword_init: true)
 
-  class << self
-    # Rails.cache is :null_store in test, so a reveal issued in one request could
-    # never be consumed in the next. Tests need a store that actually retains the
-    # payload for the redirect; development and production use Rails.cache itself,
-    # which is Valkey.
-    #
-    # The payload is encrypted, single-use, and carries an explicit 15-minute TTL,
-    # and `consume!` fails closed on a miss: an eviction costs the user a redo of
-    # the flow, it does not reveal anything or leave authoritative state wrong.
-    # That is what makes the cache an acceptable home for it.
-    # rubocop:disable ThreadSafety/ClassAndModuleAttributes
-    attr_writer :store
-    # rubocop:enable ThreadSafety/ClassAndModuleAttributes
-
-    def store
-      @store_mutex ||= Mutex.new # rubocop:disable ThreadSafety/ClassInstanceVariable
-      @store_mutex.synchronize { @store ||= default_store } # rubocop:disable ThreadSafety/ClassInstanceVariable
-    end
-
-    def default_store
-      return Rails.cache unless Rails.cache.is_a?(ActiveSupport::Cache::NullStore)
-
-      @null_store_mutex ||= Mutex.new # rubocop:disable ThreadSafety/ClassInstanceVariable
-      @null_store_mutex.synchronize { @null_store ||= ActiveSupport::Cache::MemoryStore.new } # rubocop:disable ThreadSafety/ClassInstanceVariable
-    end
-  end
-
   def self.issue!(actor:, session_nonce:, value:, purpose:, metadata: {}, expires_in: EXPIRES_IN)
     new.issue!(
       actor: actor,
@@ -61,10 +34,14 @@ class IdentityOneTimeReveal
 
     jti = SecureRandom.uuid
     expires_at = Time.current + expires_in
-    self.class.store.write(
-      cache_key(jti),
-      encrypt_payload(value: value, metadata: metadata),
-      expires_in: expires_in,
+    SecurityOneTimeReveal.create!(
+      jti_digest: digest(jti),
+      actor_type: actor.class.name,
+      actor_id: actor.id,
+      session_nonce_digest: digest(session_nonce),
+      purpose: purpose,
+      encrypted_payload: encrypt_payload(value: value, metadata: metadata),
+      expires_at: expires_at,
     )
 
     Result.new(
@@ -81,11 +58,14 @@ class IdentityOneTimeReveal
     payload = verifier.verified(token.to_s, purpose: TOKEN_PURPOSE)
     return nil unless valid_claims?(payload, actor: actor, session_nonce: session_nonce, purpose: purpose)
 
-    key = cache_key(payload.fetch("jti"))
-    encrypted = self.class.store.read(key)
+    encrypted = SecurityOneTimeReveal.consume(
+      jti_digest: digest(payload.fetch("jti")),
+      actor_type: actor.class.name,
+      actor_id: actor.id,
+      session_nonce_digest: digest(session_nonce),
+      purpose: purpose,
+    )
     return nil if encrypted.blank?
-
-    self.class.store.delete(key)
     decrypted = decrypt_payload(encrypted)
     Payload.new(value: decrypted.fetch("value"), metadata: decrypted.fetch("metadata", {}))
   rescue ActiveSupport::MessageVerifier::InvalidSignature, ActiveSupport::MessageEncryptor::InvalidMessage,
@@ -125,8 +105,8 @@ class IdentityOneTimeReveal
     JSON.parse(encryptor.decrypt_and_verify(value, purpose: PURPOSE))
   end
 
-  def cache_key(jti)
-    "identity:one_time_reveal:#{Digest::SHA256.hexdigest(jti)}"
+  def digest(value)
+    Digest::SHA256.hexdigest(value.to_s)
   end
 
   def verifier

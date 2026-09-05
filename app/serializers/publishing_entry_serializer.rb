@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-# Renders a Publishing::Entry's currently published version as public JSON.
+# Renders a family Entry's currently published version as public JSON.
 #
 # Taxonomy is rendered from the published version's frozen snapshots, never
 # from the draft revision or from current term names, so renaming or moving a
@@ -62,12 +62,7 @@ class PublishingEntrySerializer
   # Sorted by key so the JSON key order is stable across requests and
   # deployments rather than following insertion order.
   def vocabularies
-    @vocabularies ||=
-      Publishing::Vocabulary
-        .available
-        .for_scope(audience: entry.edition.audience, surface: entry.edition.surface)
-        .order(:key)
-        .to_a
+    @vocabularies ||= entry.class.module_parent::Vocabulary.available.order(:key).to_a
   end
 
   def published_version

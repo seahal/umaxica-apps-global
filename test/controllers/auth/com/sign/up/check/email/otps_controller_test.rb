@@ -4,7 +4,11 @@
 require "test_helper"
 
 class Auth::Com::Sign::Up::Check::Email::OtpsControllerTest < ActionDispatch::IntegrationTest
-  counts_rate_limits!
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   include ActiveSupport::Testing::TimeHelpers
 
   setup do

@@ -1,5 +1,11 @@
 # Identity's DB responsibility reduction and SolidCache/SolidQueue maintenance
 
+> **Status update (2026-09-05):** Superseded in part by
+> `adr/solid-cache-removal-and-valkey-cache-separation.md`. Solid Cache has been removed from the
+> runtime architecture: `Rails.cache` is Valkey-backed via `CACHE_REDIS_URL`, and the `cache` /
+> `cache_replica` PostgreSQL connections and `db/caches_migrate/` are gone. Solid Queue is
+> unaffected and remains PostgreSQL-backed. Everything below about Solid Cache is historical.
+
 > **Status update (2026-05-19):** Obsolete. This plan was written for the retired identity-app /
 > engine-era layout. Per `adr/split-into-regional-and-global-repos.md`, this repository is a single
 > ordinary Rails app and must use the current surface-owned database naming model instead. Treat the

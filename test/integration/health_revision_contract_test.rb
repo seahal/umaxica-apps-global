@@ -9,15 +9,15 @@ require "test_helper"
 # Two endpoint families:
 #
 #   Text (text/plain; charset=utf-8, Cache-Control: no-store, no redirect, no auth):
-#     GET /health            -> aggregate block: status, startup, liveness, readiness
+#     GET /health            -> aggregate block: title, namespace, status, probes, timestamp
 #     GET /health/startup    -> "ok\n" / HTTP 503
 #     GET /health/liveness   -> "ok\n" / HTTP 503
 #     GET /health/readiness  -> "ok\n" / HTTP 503
-#     GET /revision          -> "<revision>\n"  (nil revision -> "\n")
+#     GET /revision          -> title, revision, and UTC timestamp
 #
 #   Machine JSON (application/json, Cache-Control: no-store, 406 on a non-JSON Accept):
-#     GET /api/v0/health.json   -> {"status":"pass|warn|fail","checks":{startup,liveness,readiness}}
-#     GET /api/v0/revision.json -> {"revision":"<sha>"}  (nil revision -> {"revision":null})
+#     GET /api/v0/health.json   -> status, checks, namespace, and a UTC timestamp
+#     GET /api/v0/revision.json -> revision and UTC timestamp
 class HealthRevisionContractTest < ActionDispatch::IntegrationTest
   REVISION = "0123456789abcdef0123456789abcdef01234567"
 
@@ -78,7 +78,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
   # Text: aggregate /health
   # ----------------------------------------------------------------------------------------------
 
-  test "GET /health is the four-line text aggregate in the fixed order" do
+  test "GET /health is the seven-line text aggregate in the fixed order" do
     SURFACES.each do |host, profile|
       host! host
 
@@ -91,7 +91,15 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
       assert_equal "text/plain", response.media_type
       assert_not_equal "application/json", response.media_type
       assert_not_equal "text/html", response.media_type
-      assert_equal "status: ok\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
+      namespace = Rails.application.routes.recognize_path("http://#{host}/health", method: :get)
+                                   .fetch(:controller).split("/").first(2).join("/")
+      assert_match(
+        Regexp.new(
+          "\\Atitle: Health status\\nnamespace: #{namespace}\\nstatus: ok\\nstartup: ok\\n" \
+          "liveness: ok\\nreadiness: ok\\ntimestamp: [^\\n]+Z\\n\\z",
+        ),
+        response.body,
+      )
       assert_no_match JSON_BRACE, response.body
       assert_no_match HTML_MARKER, response.body
       assert_equal "no-store", response.headers["Cache-Control"]
@@ -102,7 +110,29 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
   # Text: /revision
   # ----------------------------------------------------------------------------------------------
 
-  test "GET /revision is \"<revision>\\n\" as text/plain with no-store and X-Robots-Tag" do
+  test "revision representations include their UTC render timestamp" do
+    host! APP_HOST
+
+    travel_to Time.zone.at(1_725_000_000) do
+      Rails.application.stub(:revision, REVISION) do
+        get "/revision"
+
+        assert_equal(
+          "title: Revision status\nrevision: #{REVISION}\ntimestamp: 2024-08-30T06:40:00Z\n",
+          response.body,
+        )
+
+        get "/api/v0/revision.json", headers: { "Accept" => "application/json" }
+
+        assert_equal(
+          { "revision" => REVISION, "timestamp" => "2024-08-30T06:40:00Z" },
+          response.parsed_body,
+        )
+      end
+    end
+  end
+
+  test "GET /revision is the revision status block as text/plain with no-store and X-Robots-Tag" do
     SURFACES.each_key do |host|
       host! host
 
@@ -115,14 +145,14 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
       assert_equal "text/plain", response.media_type
       assert_not_equal "application/json", response.media_type
       assert_not_equal "text/html", response.media_type
-      assert_equal "#{REVISION}\n", response.body
+      assert_revision_text REVISION
       assert_no_match JSON_BRACE, response.body
       assert_equal "no-store", response.headers["Cache-Control"]
       assert_equal "noindex, nofollow", response.headers["X-Robots-Tag"]
     end
   end
 
-  test "GET /revision with a nil application revision is \"\\n\", a normal 200" do
+  test "GET /revision with a nil application revision has an empty revision value and is a normal 200" do
     host! APP_HOST
 
     Rails.application.stub(:revision, nil) do
@@ -130,7 +160,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_equal "\n", response.body
+    assert_revision_text nil
     assert_equal "text/plain", response.media_type
   end
 
@@ -144,7 +174,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_equal "text/plain", response.media_type, "Accept: #{accept}"
-      assert_equal "#{REVISION}\n", response.body
+      assert_revision_text REVISION
     end
   end
 
@@ -184,7 +214,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
   # Machine JSON: /api/v0/revision.json
   # ----------------------------------------------------------------------------------------------
 
-  test "GET /api/v0/revision.json is {\"revision\":\"<sha>\"} as application/json, never text or HTML" do
+  test "GET /api/v0/revision.json returns revision and timestamp as JSON, never text or HTML" do
     SURFACES.each_key do |host|
       host! host
 
@@ -198,13 +228,12 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
       assert_not_equal "text/plain", response.media_type
       assert_not_equal "text/html", response.media_type
       assert_no_match HTML_MARKER, response.body
-      assert_equal({ "revision" => REVISION }, response.parsed_body)
-      assert_equal %w(revision), response.parsed_body.keys
+      assert_revision_json REVISION
       assert_equal "no-store", response.headers["Cache-Control"]
     end
   end
 
-  test "GET /api/v0/revision.json with a nil application revision is {\"revision\":null}" do
+  test "GET /api/v0/revision.json preserves a nil application revision alongside its timestamp" do
     host! APP_HOST
 
     Rails.application.stub(:revision, nil) do
@@ -212,7 +241,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_equal({ "revision" => nil }, response.parsed_body)
+    assert_revision_json nil
   end
 
   test "GET /api/v0/revision.json returns 406 for a non-JSON Accept, not a text or HTML fallback" do
@@ -262,9 +291,10 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
 
       body = response.parsed_body
 
-      assert_equal %w(checks status), body.keys.sort
+      assert_equal %w(checks namespace status timestamp), body.keys.sort
       assert_equal %w(liveness readiness startup), body.fetch("checks").keys.sort
       assert_includes %w(pass warn fail), body.fetch("status")
+      assert_match(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/, body.fetch("timestamp"))
 
       body.fetch("checks").each_value do |check|
         assert_equal %w(status), check.keys
@@ -371,7 +401,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
 
       assert_response :success, "#{host} revision with no Accept"
       assert_equal "application/json", response.media_type
-      assert_equal({ "revision" => REVISION }, response.parsed_body)
+      assert_revision_json REVISION
       assert_equal "no-store", response.headers["Cache-Control"]
 
       stub_healthy do
@@ -402,7 +432,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
 
       assert_response :success, "Accept: #{accept}"
       assert_equal "application/json", response.media_type, "Accept: #{accept}"
-      assert_equal({ "revision" => REVISION }, response.parsed_body)
+      assert_revision_json REVISION
     end
   end
 
@@ -548,7 +578,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
   end
 
   # `render_snapshot` renders `result.http_status`, but every aggregate test stubbed a healthy
-  # snapshot, so the text aggregate had only ever been observed at 200. The four lines and their
+  # snapshot, so the text aggregate had only ever been observed at 200. The seven lines and their
   # order have to survive the failing case too -- that is the case an operator reads.
   test "the text health aggregate reports the failing probe and answers 503" do
     host! APP_HOST
@@ -564,9 +594,12 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
     assert_response :service_unavailable
     assert_equal "text/plain", response.media_type
     assert_equal "no-store", response.headers["Cache-Control"]
-    assert_equal(
-      ["status: unavailable", "startup: ok", "liveness: ok", "readiness: unavailable", ""],
-      response.body.split("\n", -1),
+    assert_match(
+      Regexp.new(
+        "\\Atitle: Health status\\nnamespace: base/app\\nstatus: unavailable\\nstartup: ok\\n" \
+        "liveness: ok\\nreadiness: unavailable\\ntimestamp: [^\\n]+Z\\n\\z",
+      ),
+      response.body,
     )
   end
 
@@ -594,6 +627,29 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def assert_revision_text(revision)
+    assert_match(
+      Regexp.new(
+        "\\Atitle: Revision status\\nrevision: #{Regexp.escape(revision.to_s)}\\n" \
+        "timestamp: \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z\\n\\z",
+      ),
+      response.body,
+    )
+  end
+
+  def assert_revision_json(revision)
+    if revision.nil?
+      assert_nil response.parsed_body.fetch("revision")
+    else
+      assert_equal revision, response.parsed_body.fetch("revision")
+    end
+    assert_equal %w(revision timestamp), response.parsed_body.keys.sort
+    assert_match(
+      /\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/,
+      response.parsed_body.fetch("timestamp"),
+    )
+  end
 
   def ok_result(check, profile)
     Health::CheckResult.new(check: check, status: :ok, surface: profile.surface_label)

@@ -11,10 +11,6 @@ module Publishing
 
       def ordered? = false
 
-      def revision_assignment_class = Publishing::RevisionSingleTaxonomyAssignment
-
-      def version_assignment_class = Publishing::VersionSingleTaxonomyAssignment
-
       # A single assignment serializes to one object or to null, never to a
       # list, and carries the frozen breadcrumb its version published.
       def serialize(assignments)

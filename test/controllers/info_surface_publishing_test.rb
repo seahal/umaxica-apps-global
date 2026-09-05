@@ -49,25 +49,6 @@ class InfoSurfacePublishingTest < ActionDispatch::IntegrationTest
   private
 
   def create_published_entry(audience:, slug:)
-    edition = Publishing::Edition.find_or_create_by!(audience:, surface: "info", locale: "ja")
-    entry = Publishing::Entry.create!(edition:, locale: "ja")
-    Publishing::EntrySlug.create!(
-      entry:, edition:, locale: "ja", slug:, state: "canonical",
-      canonicalized_at: Time.current,
-    )
-    digest = "f" * 64
-    revision =
-      Publishing::EntryRevision.create!(
-        entry:, locale: "ja", title: "T", summary: "S", body: { "text" => "hello" }, schema_version: 1,
-        content_digest: digest, sequence: 1,
-      )
-    entry.update!(current_revision: revision)
-    version =
-      Publishing::EntryVersion.create!(
-        entry:, entry_revision: revision, locale: "ja", title: "T", summary: "S", body: { "text" => "hello" },
-        schema_version: 1, content_digest: digest, sequence: 1,
-      )
-    Publishing::Publication.create!(entry:, entry_version: version, effective_from: 1.hour.ago)
-    entry
+    publishing_published_entry(audience:, surface: "info", slug:, title: "T")
   end
 end

@@ -86,7 +86,7 @@ order. Tests whose subject is caching or rate limiting opt into a deterministic 
   bounded stale fallback for upstream outages.
 - Rails' `rate_limit` DSL captures its `store:` argument in a `before_action` closure when the
   controller class body runs. Swapping `config.x.rate_limit.store` afterwards does not reach loaded
-  controllers, so the test environment wraps its store in `SwappableCacheStore`
+  controllers, so the test environment wraps its store in `TestSupport::SwappableCacheStore`
   (`test/support/swappable_cache_store.rb`). Development and production assign the real store
   directly, with no indirection.
 - Production needs one more configuration value (`CACHE_REDIS_URL`) and one fewer database.

@@ -173,7 +173,7 @@ Rails.application.configure do
 
   # Use Solid Queue in Development.
   config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :queue, reading: :queue_replica } }
+  config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Enable Gzip compression
   config.middleware.use(Rack::Deflater)

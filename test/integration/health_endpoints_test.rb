@@ -6,7 +6,8 @@ require "test_helper"
 
 # End-to-end contract for the health endpoints on every declared surface.
 #
-#   GET /health            -> text/plain four-line aggregate (status, startup, liveness, readiness)
+#   GET /health            -> text/plain seven-line aggregate
+#                            (title, namespace, status, startup, liveness, readiness, timestamp)
 #   GET /health/{probe}    -> text/plain "ok\n" / HTTP 200 or "unavailable\n" / HTTP 503
 #   GET /api/v0/health.json -> application/json {"status":..,"checks":{..}}, 406 on a non-JSON Accept
 class HealthEndpointsTest < ActionDispatch::IntegrationTest
@@ -276,6 +277,24 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
   PROBES = %w(liveness readiness startup).freeze
 
+  EDGE_NAMESPACE_HOSTS = {
+    "core.app.localhost" => "core/app",
+    "docs.app.localhost" => "docs/app",
+    "help.app.localhost" => "help/app",
+    "info.app.localhost" => "info/app",
+    "news.app.localhost" => "news/app",
+    "core.com.localhost" => "core/com",
+    "docs.com.localhost" => "docs/com",
+    "help.com.localhost" => "help/com",
+    "info.com.localhost" => "info/com",
+    "news.com.localhost" => "news/com",
+    "core.org.localhost" => "core/org",
+    "docs.org.localhost" => "docs/org",
+    "help.org.localhost" => "help/org",
+    "info.org.localhost" => "info/org",
+    "news.org.localhost" => "news/org",
+  }.freeze
+
   test "surface routes resolve to concrete local controllers with exact profiles" do
     SURFACES.each do |surface|
       assert_health_route(surface[:host], "/health", surface[:controller])
@@ -337,7 +356,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "GET /health is a text/plain four-line aggregate, never HTML or JSON, with no polling" do
+  test "GET /health is a text/plain seven-line aggregate, never HTML or JSON, with no polling" do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     get "/health"
@@ -346,7 +365,13 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     assert_equal "text/plain", response.media_type
     assert_not_equal "text/html", response.media_type
     assert_not_equal "application/json", response.media_type
-    assert_match(/\Astatus: \w+\nstartup: \w+\nliveness: \w+\nreadiness: \w+\n\z/, response.body)
+    assert_match(
+      Regexp.new(
+        "\\Atitle: Health status\\nnamespace: auth/app\\nstatus: \\w+\\nstartup: \\w+\\n" \
+        "liveness: \\w+\\nreadiness: \\w+\\ntimestamp: [^\\n]+Z\\n\\z",
+      ),
+      response.body,
+    )
     assert_no_match(/<html|<!doctype/i, response.body)
     assert_no_match(/fetch\s*\(|setInterval|setTimeout|EventSource|WebSocket/i, response.body)
     assert_no_match(/health\.json/i, response.body)
@@ -406,6 +431,10 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     Health::ReadinessCheck.stub(:call, ->(_profile:) { raise RuntimeError, "readiness loaded" }) do
+      # Valkey is not represented here: the removal of the generic REDIS_CLIENT
+      # (adr/solid-cache-removal-and-valkey-cache-separation.md) left liveness
+      # with no Redis-shaped dependency to stub. Rails.cache and the rate-limit
+      # store are Valkey-backed, but liveness reaches neither.
       ActiveRecord::Base.stub(:connection, -> { raise RuntimeError, "database touched" }) do
         get "/health/liveness"
       end
@@ -584,9 +613,11 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
       body = response.parsed_body
 
-      assert_equal %w(checks status), body.keys.sort
+      assert_equal %w(checks namespace status timestamp), body.keys.sort
       assert_equal %w(liveness readiness startup), body.fetch("checks").keys.sort
       assert_includes %w(pass warn fail), body.fetch("status")
+      assert_equal surface[:json_controller].split("/").first(2).join("/"), body.fetch("namespace")
+      assert_match(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/, body.fetch("timestamp"))
 
       body.fetch("checks").each_value do |check|
         assert_equal %w(status), check.keys
@@ -595,6 +626,37 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
       assert_equal "pass", body.fetch("status")
       assert_equal "no-store", response.headers["Cache-Control"]
+    end
+  end
+
+  test "GET /api/v0/health.json identifies the controller namespace selected for every edge host" do
+    namespaces =
+      EDGE_NAMESPACE_HOSTS.map do |host, expected_namespace|
+        host! host
+
+        stub_healthy do
+          get "/api/v0/health.json", headers: { "Accept" => "application/json" }
+        end
+
+        assert_response :success, "#{host} /api/v0/health.json"
+        assert_equal expected_namespace, response.parsed_body.fetch("namespace"), host
+
+        response.parsed_body.fetch("namespace")
+      end
+
+    assert_equal EDGE_NAMESPACE_HOSTS.length, namespaces.uniq.length
+  end
+
+  test "GET /health identifies the controller namespace selected for every edge host" do
+    EDGE_NAMESPACE_HOSTS.each do |host, expected_namespace|
+      host! host
+
+      stub_healthy do
+        get "/health"
+      end
+
+      assert_response :success, "#{host} /health"
+      assert_includes response.body.lines, "namespace: #{expected_namespace}\n", host
     end
   end
 
@@ -692,7 +754,14 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
               assert_response :success
               assert_equal "text/plain", response.media_type
-              assert_equal "status: ok\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
+              namespace = surface[:controller].split("/").first(2).join("/")
+              assert_match(
+                Regexp.new(
+                  "\\Atitle: Health status\\nnamespace: #{namespace}\\nstatus: ok\\nstartup: ok\\n" \
+                  "liveness: ok\\nreadiness: ok\\ntimestamp: [^\\n]+Z\\n\\z",
+                ),
+                response.body,
+              )
 
               PROBES.each do |probe|
                 get "/health/#{probe}"

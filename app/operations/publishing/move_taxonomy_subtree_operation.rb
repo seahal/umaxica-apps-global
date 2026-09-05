@@ -16,7 +16,7 @@ module Publishing
 
     class DepthLimitError < StandardError; end
 
-    MAX_DEPTH = TaxonomyTerm::MAX_DEPTH
+    MAX_DEPTH = Publishing::TaxonomyTermRecord::MAX_DEPTH
 
     # `new_parent: nil` promotes the term to a root.
     def initialize(term:, new_parent:)
@@ -26,7 +26,7 @@ module Publishing
     end
 
     def call
-      TaxonomyTerm.transaction do
+      term.class.transaction do
         # Locking the vocabulary serializes concurrent moves within one tree,
         # so two moves cannot interleave into a cycle that each alone avoids.
         term.vocabulary.lock!
@@ -93,7 +93,7 @@ module Publishing
     def next_position
       return term.position if term.parent_id == new_parent&.id
 
-      TaxonomyTerm.next_sibling_position(
+      term.class.next_sibling_position(
         vocabulary_id: term.vocabulary_id, locale: term.locale, parent_id: new_parent&.id,
       )
     end
