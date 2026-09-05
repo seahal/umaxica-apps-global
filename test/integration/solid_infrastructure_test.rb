@@ -49,16 +49,20 @@ class SolidInfrastructureTest < ActiveSupport::TestCase
     end
   end
 
-  test "solid queue keeps its own PostgreSQL databases" do
+  # Solid Queue writes to its own `queue` database and has no reading replica:
+  # the `queue_replica` connection was removed along with the Solid Cache
+  # connections. Job state is durable workflow state, so it stays in PostgreSQL
+  # and is read from the writer.
+  test "solid queue keeps its own PostgreSQL database" do
     assert_equal(
-      { database: { writing: :queue, reading: :queue_replica } },
+      { database: { writing: :queue } },
       Rails.configuration.solid_queue.connects_to,
     )
 
     names = ActiveRecord::Base.configurations.configs_for(env_name: "test", include_hidden: true).map(&:name)
 
     assert_includes names, "queue"
-    assert_includes names, "queue_replica"
+    assert_not_includes names, "queue_replica"
     assert_predicate Rails.root.join("db/queues_migrate"), :directory?
   end
 end

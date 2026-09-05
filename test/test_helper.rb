@@ -60,7 +60,6 @@ require_relative "support/turnstile_verifier_stub"
 require_relative "support/outbound_http_stub"
 require_relative "support/login_cooldown_helper"
 require_relative "support/inertia_page_object"
-require_relative "support/rate_limit_store_override"
 
 # Inject the Turnstile stub for the whole suite. Application code resolves the verifier
 # through Turnstile::VerifierFactory, so no production class knows about the test suite.
