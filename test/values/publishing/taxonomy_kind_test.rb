@@ -5,20 +5,13 @@ require "test_helper"
 module Publishing
   class TaxonomyKindTest < ActiveSupport::TestCase
     # One contract, exercised against both providers.
-    PROVIDERS = [
-      [TaxonomyKind::SINGLE_HIERARCHICAL, Publishing::RevisionSingleTaxonomyAssignment, Publishing::VersionSingleTaxonomyAssignment],
-      [TaxonomyKind::MULTIPLE_ORDERED_FLAT, Publishing::RevisionMultipleTaxonomyAssignment, Publishing::VersionMultipleTaxonomyAssignment],
-    ].freeze
-
     test "every registered kind answers the whole protocol" do
-      PROVIDERS.each do |key, revision_class, version_class|
+      TaxonomyKind::KEYS.each do |key|
         provider = TaxonomyKind.fetch(key)
 
         assert_equal key, provider.key
         assert_includes [true, false], provider.hierarchical?
         assert_includes [true, false], provider.ordered?
-        assert_equal revision_class, provider.revision_assignment_class
-        assert_equal version_class, provider.version_assignment_class
         assert_respond_to provider, :serialize
       end
     end

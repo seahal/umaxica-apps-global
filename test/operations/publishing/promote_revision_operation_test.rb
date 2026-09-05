@@ -5,7 +5,6 @@ require "test_helper"
 module Publishing
   class PromoteRevisionOperationTest < ActiveSupport::TestCase
     setup do
-      @edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
       @category = publishing_category_vocabulary(audience: "app", surface: "docs")
       @tag = publishing_tag_vocabulary(audience: "app", surface: "docs")
       @guide = publishing_term(vocabulary: @category, locale: "ja", slug: "guide", name: "ガイド")
@@ -15,7 +14,7 @@ module Publishing
     end
 
     test "promotes a revision that carries no taxonomy" do
-      entry = publishing_draft(edition: @edition, slug: "plain", title: "Plain")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "plain", title: "Plain")
 
       version = PromoteRevisionOperation.call(revision: entry.current_revision)
 
@@ -27,7 +26,7 @@ module Publishing
     end
 
     test "snapshots a category with its full breadcrumb path" do
-      entry = publishing_draft(edition: @edition, slug: "with-category", title: "With Category")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "with-category", title: "With Category")
       assign_category(entry.current_revision, @setup_term)
 
       version = PromoteRevisionOperation.call(revision: entry.current_revision)
@@ -41,7 +40,7 @@ module Publishing
     end
 
     test "snapshots ordered tags and preserves their order" do
-      entry = publishing_draft(edition: @edition, slug: "with-tags", title: "With Tags")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "with-tags", title: "With Tags")
       assign_tags(entry.current_revision, [@rails, @ruby])
 
       version = PromoteRevisionOperation.call(revision: entry.current_revision)
@@ -51,7 +50,7 @@ module Publishing
     end
 
     test "renaming or moving a term afterwards does not change what the version published" do
-      entry = publishing_draft(edition: @edition, slug: "frozen", title: "Frozen")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "frozen", title: "Frozen")
       assign_category(entry.current_revision, @setup_term)
       version = PromoteRevisionOperation.call(revision: entry.current_revision)
 
@@ -66,7 +65,7 @@ module Publishing
     end
 
     test "refuses to promote a revision assigning an archived term" do
-      entry = publishing_draft(edition: @edition, slug: "archived-term", title: "Archived Term")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "archived-term", title: "Archived Term")
       assign_category(entry.current_revision, @setup_term)
       @setup_term.update!(archived_at: Time.current, archive_reason: "retired")
 
@@ -80,11 +79,11 @@ module Publishing
       assert_equal "setup", detail.term_slug
       assert_equal @setup_term.public_id, detail.term_public_id
       assert_equal entry.current_revision.public_id, detail.revision_public_id
-      assert_nil EntryVersion.find_by(entry_revision_id: entry.current_revision.id)
+      assert_nil Docs::App::EntryVersion.find_by(entry_revision_id: entry.current_revision.id)
     end
 
     test "refuses to promote a revision assigning an archived vocabulary" do
-      entry = publishing_draft(edition: @edition, slug: "archived-vocabulary", title: "Archived Vocabulary")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "archived-vocabulary", title: "Archived Docs::App::Vocabulary")
       assign_category(entry.current_revision, @setup_term)
       @category.update!(archived_at: Time.current, archive_reason: "retired")
 
@@ -92,7 +91,7 @@ module Publishing
     end
 
     test "promoting twice yields the same version with one complete snapshot set" do
-      entry = publishing_draft(edition: @edition, slug: "idempotent", title: "Idempotent")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "idempotent", title: "Idempotent")
       assign_category(entry.current_revision, @setup_term)
       assign_tags(entry.current_revision, [@ruby])
 
@@ -100,13 +99,13 @@ module Publishing
       second = PromoteRevisionOperation.call(revision: entry.current_revision)
 
       assert_equal first.id, second.id
-      assert_equal 1, EntryVersion.where(entry_revision_id: entry.current_revision.id).count
-      assert_equal 1, VersionSingleTaxonomyAssignment.where(entry_version_id: first.id).count
-      assert_equal 1, VersionMultipleTaxonomyAssignment.where(entry_version_id: first.id).count
+      assert_equal 1, Docs::App::EntryVersion.where(entry_revision_id: entry.current_revision.id).count
+      assert_equal 1, Docs::App::VersionSingleTaxonomyAssignment.where(entry_version_id: first.id).count
+      assert_equal 1, Docs::App::VersionMultipleTaxonomyAssignment.where(entry_version_id: first.id).count
     end
 
     test "a caller that loses the race is handed the winning version, not an arbitrary row" do
-      entry = publishing_draft(edition: @edition, slug: "raced", title: "Raced")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "raced", title: "Raced")
       assign_tags(entry.current_revision, [@ruby])
       winner = PromoteRevisionOperation.call(revision: entry.current_revision)
 
@@ -117,7 +116,7 @@ module Publishing
     end
 
     test "a promoted revision and its assignments are frozen by the database" do
-      entry = publishing_draft(edition: @edition, slug: "frozen-revision", title: "Frozen Revision")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "frozen-revision", title: "Frozen Revision")
       assign_tags(entry.current_revision, [@ruby])
       revision = entry.current_revision
       PromoteRevisionOperation.call(revision:)
@@ -147,7 +146,7 @@ module Publishing
     end
 
     test "a draft revision that was never promoted stays editable" do
-      entry = publishing_draft(edition: @edition, slug: "editable-revision", title: "Editable Revision")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "editable-revision", title: "Editable Revision")
       revision = entry.current_revision
 
       assign_tags(revision, [@ruby])
@@ -158,7 +157,7 @@ module Publishing
     end
 
     test "a version cannot commit without the snapshots its revision requires" do
-      entry = publishing_draft(edition: @edition, slug: "incomplete", title: "Incomplete")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "incomplete", title: "Incomplete")
       revision = entry.current_revision
       assign_category(revision, @setup_term)
       assign_tags(revision, [@ruby])
@@ -167,8 +166,8 @@ module Publishing
       # the surrounding test transaction to be observed.
       assert_raises(ActiveRecord::StatementInvalid) do
         PublishingRecord.transaction(requires_new: true) do
-          EntryVersion.create!(
-            entry:, entry_revision: revision, locale: "ja", title: "Incomplete", body: { "text" => "x" },
+          entry.versions.create!(
+            entry_revision: revision, locale: "ja", title: "Incomplete", body: { "text" => "x" },
             schema_version: 1, content_digest: "f" * 64, sequence: 99,
           )
           PublishingRecord.lease_connection.execute("SET CONSTRAINTS ALL IMMEDIATE")
@@ -177,20 +176,21 @@ module Publishing
     end
 
     test "a failure while copying assignments leaves no version behind" do
-      entry = publishing_draft(edition: @edition, slug: "rollback", title: "Rollback")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "rollback", title: "Rollback")
       assign_category(entry.current_revision, @setup_term)
       revision = entry.current_revision
 
-      VersionSingleTaxonomyAssignment.stub(:new, ->(*) { raise(ActiveRecord::StatementInvalid, "boom") }) do
+      assignment_class = revision.entry.versions.klass.reflect_on_association(:single_taxonomy_assignments).klass
+      assignment_class.stub(:new, ->(*) { raise(ActiveRecord::StatementInvalid, "boom") }) do
         assert_raises(ActiveRecord::StatementInvalid) { PromoteRevisionOperation.call(revision:) }
       end
 
-      assert_nil EntryVersion.find_by(entry_revision_id: revision.id)
-      assert_equal 0, VersionSingleTaxonomyAssignment.where(vocabulary_id: @category.id).count
+      assert_nil entry.versions.find_by(entry_revision_id: revision.id)
+      assert_equal 0, assignment_class.where(vocabulary_id: @category.id).count
     end
 
     test "sequences increment per entry" do
-      entry = publishing_draft(edition: @edition, slug: "sequenced", title: "Sequenced")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "sequenced", title: "Sequenced")
       first = PromoteRevisionOperation.call(revision: entry.current_revision)
       second_revision = publishing_revision(entry:, title: "Sequenced v2", sequence: 2)
 
@@ -203,7 +203,7 @@ module Publishing
     private
 
     def assign_category(revision, term)
-      RevisionSingleTaxonomyAssignment.create!(
+      create_single_assignment(
         entry_revision: revision, vocabulary: @category, vocabulary_kind: @category.kind, taxonomy_term: term,
         locale: "ja",
       )
@@ -211,7 +211,7 @@ module Publishing
 
     def assign_tags(revision, terms)
       terms.each_with_index do |term, position|
-        RevisionMultipleTaxonomyAssignment.create!(
+        create_multiple_assignment(
           entry_revision: revision, vocabulary: @tag, vocabulary_kind: @tag.kind, taxonomy_term: term,
           locale: "ja", position:,
         )

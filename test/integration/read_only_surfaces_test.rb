@@ -214,8 +214,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   # publication the way a draft does.
   def create_publishing_entry(audience:, surface:, slug:, title:, locale: "jp", status: "published",
                               published_at: 1.hour.ago)
-    edition = publishing_edition(audience:, surface:, locale:)
-    entry = publishing_draft(edition:, slug:, title:, locale:)
+    entry = publishing_draft(audience:, surface:, slug:, title:, locale:)
     return entry if status == "draft"
 
     publishing_publish(entry:, published_at:)

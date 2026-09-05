@@ -48,17 +48,19 @@ module Publishing
       foreign = publishing_term(vocabulary: other_vocabulary, locale: "ja", slug: "foreign")
       english = publishing_term(vocabulary: @category, locale: "en", slug: "english")
 
-      assert_raises(MoveTaxonomySubtreeOperation::ScopeMismatchError) { MoveTaxonomySubtreeOperation.call(term: @guide, new_parent: foreign) }
+      assert_raises(MoveTaxonomySubtreeOperation::ScopeMismatchError, ActiveRecord::AssociationTypeMismatch) {
+        MoveTaxonomySubtreeOperation.call(term: @guide, new_parent: foreign)
+      }
       assert_raises(MoveTaxonomySubtreeOperation::ScopeMismatchError) { MoveTaxonomySubtreeOperation.call(term: @guide, new_parent: english) }
     end
 
     test "rejects a move that would push a descendant past the depth limit and leaves the tree unchanged" do
       deepest = @reference
-      (TaxonomyTerm::MAX_DEPTH - 1).times do |level|
+      (Docs::App::TaxonomyTerm::MAX_DEPTH - 1).times do |level|
         deepest = publishing_term(vocabulary: @category, locale: "ja", slug: "chain-#{level}", parent: deepest)
       end
 
-      assert_equal TaxonomyTerm::MAX_DEPTH - 1, deepest.depth
+      assert_equal Docs::App::TaxonomyTerm::MAX_DEPTH - 1, deepest.depth
       assert_raises(MoveTaxonomySubtreeOperation::DepthLimitError) { MoveTaxonomySubtreeOperation.call(term: @guide, new_parent: deepest) }
 
       assert_predicate @guide.reload, :root?

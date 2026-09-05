@@ -89,20 +89,18 @@ module Publishing
     end
 
     test "taxonomy kind remains a homogeneous classification column" do
-      columns = PublishingRecord.connection.columns("publishing_vocabularies").map(&:name)
+      columns = PublishingRecord.connection.columns("publishing_docs_app_vocabularies").map(&:name)
 
       assert_includes columns, "kind"
       assert_not_includes columns, "type"
+      assert_not_includes columns, "audience"
+      assert_not_includes columns, "surface"
     end
 
-    test "edition uniqueness is audience surface locale without region_code" do
-      # Characterization of the unresolved region model: uniqueness ignores
-      # region_code while regional surfaces still require one at the database.
-      indexes = PublishingRecord.connection.indexes("publishing_editions")
-      scope = indexes.find { |index| index.unique && index.columns == %w(audience surface locale) }
-
-      assert_not_nil scope, "expected UNIQUE (audience, surface, locale)"
-      assert_not_includes scope.columns, "region_code"
+    test "generic discriminator entry tables have not returned" do
+      %w(publishing_editions publishing_entries publishing_entry_revisions).each do |table|
+        assert_not PublishingRecord.connection.table_exists?(table)
+      end
     end
 
     private
@@ -112,9 +110,10 @@ module Publishing
     end
 
     def publishing_model_classes
-      Rails.root.glob(PUBLISHING_MODEL_GLOB).map do |path|
+      Rails.root.glob(PUBLISHING_MODEL_GLOB).filter_map do |path|
         relative = path.relative_path_from(Rails.root.join("app/models")).to_s.delete_suffix(".rb")
-        relative.camelize.constantize
+        klass = relative.camelize.constantize
+        klass if klass.is_a?(Class) && klass < PublishingRecord
       end
     end
 

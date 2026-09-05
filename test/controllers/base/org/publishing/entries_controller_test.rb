@@ -9,14 +9,10 @@ class Base::Org::Publishing::EntriesControllerTest < ActionDispatch::Integration
   end
 
   test "unauthenticated index succeeds and lists only the cell across locales" do
-    docs_app_ja = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-    docs_app_en = publishing_edition(audience: "app", surface: "docs", locale: "en")
-    docs_com_ja = publishing_edition(audience: "com", surface: "docs", locale: "ja")
-    news_app_ja = publishing_edition(audience: "app", surface: "news", locale: "ja")
-    ja_entry = publishing_draft(edition: docs_app_ja, slug: "ja-guide", title: "JA Guide")
-    en_entry = publishing_draft(edition: docs_app_en, slug: "en-guide", title: "EN Guide", locale: "en")
-    other_audience = publishing_draft(edition: docs_com_ja, slug: "com-guide", title: "COM Guide")
-    other_surface = publishing_draft(edition: news_app_ja, slug: "news-guide", title: "News Guide")
+    ja_entry = publishing_draft(audience: "app", surface: "docs", slug: "ja-guide", title: "JA Guide")
+    en_entry = publishing_draft(audience: "app", surface: "docs", slug: "en-guide", title: "EN Guide", locale: "en")
+    other_audience = publishing_draft(audience: "com", surface: "docs", slug: "com-guide", title: "COM Guide")
+    other_surface = publishing_draft(audience: "app", surface: "news", slug: "news-guide", title: "News Guide")
 
     get base_org_publishing_docs_app_entries_path
 
@@ -42,10 +38,8 @@ class Base::Org::Publishing::EntriesControllerTest < ActionDispatch::Integration
   end
 
   test "show renders the cell entry and 404s for other cells or unknown ids" do
-    docs_app = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-    docs_com = publishing_edition(audience: "com", surface: "docs", locale: "ja")
-    entry = publishing_draft(edition: docs_app, slug: "shown", title: "Shown")
-    foreign = publishing_draft(edition: docs_com, slug: "foreign", title: "Foreign")
+    entry = publishing_draft(audience: "app", surface: "docs", slug: "shown", title: "Shown")
+    foreign = publishing_draft(audience: "com", surface: "docs", slug: "foreign", title: "Foreign")
 
     get base_org_publishing_docs_app_entry_path(entry.public_id)
 
@@ -73,10 +67,8 @@ class Base::Org::Publishing::EntriesControllerTest < ActionDispatch::Integration
   end
 
   test "edit renders current revision values and 404s for another cell" do
-    docs_app = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-    docs_com = publishing_edition(audience: "com", surface: "docs", locale: "ja")
-    entry = publishing_draft(edition: docs_app, slug: "editable", title: "Editable")
-    foreign = publishing_draft(edition: docs_com, slug: "other", title: "Other")
+    entry = publishing_draft(audience: "app", surface: "docs", slug: "editable", title: "Editable")
+    foreign = publishing_draft(audience: "com", surface: "docs", slug: "other", title: "Other")
 
     get edit_base_org_publishing_docs_app_entry_path(entry.public_id)
 
@@ -94,15 +86,11 @@ class Base::Org::Publishing::EntriesControllerTest < ActionDispatch::Integration
   end
 
   test "successful update creates a new revision and preserves taxonomy and media" do
-    edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
     category = publishing_category_vocabulary(audience: "app", surface: "docs")
     term = publishing_term(vocabulary: category, locale: "ja", slug: "guide", name: "ガイド")
-    entry = publishing_draft(edition:, slug: "updated", title: "Original")
+    entry = publishing_draft(audience: "app", surface: "docs", slug: "updated", title: "Original")
     previous = entry.current_revision
-    Publishing::RevisionSingleTaxonomyAssignment.create!(
-      entry_revision: previous, vocabulary_id: category.id, vocabulary_kind: category.kind,
-      taxonomy_term_id: term.id, locale: "ja",
-    )
+    create_single_assignment(entry_revision: previous, vocabulary: category, taxonomy_term: term, locale: "ja")
     media_file = publishing_media_file
     publishing_revision_media_usage(revision: previous, media_file:)
 
@@ -133,8 +121,7 @@ class Base::Org::Publishing::EntriesControllerTest < ActionDispatch::Integration
   end
 
   test "malformed body json returns 422 and does not create a revision" do
-    edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-    entry = publishing_draft(edition:, slug: "invalid-json", title: "Keep")
+    entry = publishing_draft(audience: "app", surface: "docs", slug: "invalid-json", title: "Keep")
     current = entry.current_revision
 
     patch base_org_publishing_docs_app_entry_path(entry.public_id),
@@ -155,8 +142,7 @@ class Base::Org::Publishing::EntriesControllerTest < ActionDispatch::Integration
   end
 
   test "blank title returns 422 without a partial revision" do
-    edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-    entry = publishing_draft(edition:, slug: "blank-title", title: "Keep")
+    entry = publishing_draft(audience: "app", surface: "docs", slug: "blank-title", title: "Keep")
 
     patch base_org_publishing_docs_app_entry_path(entry.public_id),
           params: {
@@ -173,10 +159,8 @@ class Base::Org::Publishing::EntriesControllerTest < ActionDispatch::Integration
   end
 
   test "update under docs/app does not mutate a docs/com entry" do
-    docs_app = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-    docs_com = publishing_edition(audience: "com", surface: "docs", locale: "ja")
-    app_entry = publishing_draft(edition: docs_app, slug: "app-one", title: "App")
-    com_entry = publishing_draft(edition: docs_com, slug: "com-one", title: "Com")
+    app_entry = publishing_draft(audience: "app", surface: "docs", slug: "app-one", title: "App")
+    com_entry = publishing_draft(audience: "com", surface: "docs", slug: "com-one", title: "Com")
     com_revision = com_entry.current_revision
 
     patch base_org_publishing_docs_app_entry_path(com_entry.public_id),

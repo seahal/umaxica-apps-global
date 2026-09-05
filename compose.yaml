@@ -365,6 +365,11 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
       - "127.0.0.1:3036:3036"
+      # Manual `RAILS_ENV=production bin/rails server -p 3002 -b 0.0.0.0`
+      # inside this same container (see evidence/2026-09-04-neon-production-
+      # schema-imaging.md for the throwaway env it needs) becomes reachable
+      # from the host here. Nothing listens on 3002 by default.
+      - "127.0.0.1:3002:3002"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -421,19 +426,10 @@ services:
           - jp.umaxica.app
           - jp.umaxica.com
           - jp.umaxica.org
-          - jp.umaxica.dev
-          - us.umaxica.app
-          - us.umaxica.com
-          - us.umaxica.org
-          - us.umaxica.dev
           - side-jp.umaxica.app
           - side-jp.umaxica.com
           - side-jp.umaxica.org
-          - side-us.umaxica.app
-          - side-us.umaxica.com
-          - side-us.umaxica.org
           - palm-jp.umaxica.app
-          - palm-us.umaxica.app
       observability: {}
       outer:
         aliases:

@@ -7,10 +7,9 @@ module Publishing
   # is tested through the paths that bypass Active Record callbacks entirely.
   class VersionImmutabilityTest < ActiveSupport::TestCase
     setup do
-      @edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
       @category = publishing_category_vocabulary(audience: "app", surface: "docs")
       @tag = publishing_tag_vocabulary(audience: "app", surface: "docs")
-      entry = publishing_draft(edition: @edition, slug: "immutable-entry", title: "Immutable")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "immutable-entry", title: "Immutable")
       assign_taxonomy(entry.current_revision)
       @version = PromoteRevisionOperation.call(revision: entry.current_revision)
     end
@@ -22,11 +21,11 @@ module Publishing
 
     test "postgresql refuses an update that bypasses active record" do
       assert_database_rejects { @version.update_column(:title, "changed") }
-      assert_database_rejects { EntryVersion.where(id: @version.id).update_all(title: "changed") }
+      assert_database_rejects { Docs::App::EntryVersion.where(id: @version.id).update_all(title: "changed") }
     end
 
     test "postgresql refuses a delete that bypasses active record" do
-      assert_database_rejects { EntryVersion.where(id: @version.id).delete_all }
+      assert_database_rejects { Docs::App::EntryVersion.where(id: @version.id).delete_all }
       assert_database_rejects do
         PublishingRecord.lease_connection.execute("DELETE FROM publishing_entry_versions WHERE id = #{@version.id}")
       end
@@ -66,7 +65,7 @@ module Publishing
     end
 
     test "draft assignments stay editable" do
-      entry = publishing_draft(edition: @edition, slug: "editable-entry", title: "Editable")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "editable-entry", title: "Editable")
       assign_taxonomy(entry.current_revision)
       assignment = entry.current_revision.multiple_taxonomy_assignments.first
 
@@ -79,16 +78,16 @@ module Publishing
     private
 
     def assign_taxonomy(revision)
-      guide = TaxonomyTerm.find_by(vocabulary: @category, locale: "ja", slug: "guide") ||
+      guide = Docs::App::TaxonomyTerm.find_by(vocabulary: @category, locale: "ja", slug: "guide") ||
         publishing_term(vocabulary: @category, locale: "ja", slug: "guide")
-      ruby = TaxonomyTerm.find_by(vocabulary: @tag, locale: "ja", slug: "ruby") ||
+      ruby = Docs::App::TaxonomyTerm.find_by(vocabulary: @tag, locale: "ja", slug: "ruby") ||
         publishing_term(vocabulary: @tag, locale: "ja", slug: "ruby")
 
-      RevisionSingleTaxonomyAssignment.create!(
+      create_single_assignment(
         entry_revision: revision, vocabulary: @category, vocabulary_kind: @category.kind, taxonomy_term: guide,
         locale: "ja",
       )
-      RevisionMultipleTaxonomyAssignment.create!(
+      create_multiple_assignment(
         entry_revision: revision, vocabulary: @tag, vocabulary_kind: @tag.kind, taxonomy_term: ruby, locale: "ja",
         position: 0,
       )

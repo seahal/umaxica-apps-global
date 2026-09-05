@@ -3,9 +3,9 @@
 
 # Staff Publishing CMS HTTP actions for one surface/audience cell.
 #
-# Contract: the including controller declares PUBLISHING_AUDIENCE and
-# PUBLISHING_SURFACE as explicit constants. Those values are never inferred
-# from the class name, request path, params, or host.
+# Contract: the including controller declares PUBLISHING_AUDIENCE,
+# PUBLISHING_SURFACE, and ENTRY_CLASS as explicit constants. Those values are
+# never inferred from the class name, request path, params, or host.
 #
 # A management URL has no locale segment. Index and show therefore cover every
 # Entry whose Edition matches the declared audience and surface, across locales.
@@ -29,6 +29,14 @@ module PublishingManagementEntriesActions
       end
 
       const_get(:PUBLISHING_SURFACE, false)
+    end
+
+    def publishing_entry_class
+      unless const_defined?(:ENTRY_CLASS, false)
+        raise(NameError, "#{name} must declare ENTRY_CLASS")
+      end
+
+      const_get(:ENTRY_CLASS, false)
     end
   end
 
@@ -104,7 +112,7 @@ module PublishingManagementEntriesActions
   end
 
   def publishing_entries_query
-    PublishingManagementEntriesQuery.new(audience: publishing_audience, surface: publishing_surface)
+    PublishingManagementEntriesQuery.new(entry_class: self.class.publishing_entry_class)
   end
 
   def find_management_entry!

@@ -2,11 +2,6 @@
 # frozen_string_literal: true
 
 module Publishing
-  # Creates a new draft EntryRevision from current content, then points
-  # Entry.current_revision at it. The previous revision is left unchanged.
-  #
-  # Taxonomy assignments and media usages on the current revision are copied
-  # onto the new revision. MediaFile rows are not duplicated.
   class ReviseEntryOperation < ApplicationService
     def initialize(entry:, title:, summary:, body:, lock_version:)
       super()
@@ -43,8 +38,7 @@ module Publishing
     end
 
     def create_revision(current)
-      EntryRevision.create!(
-        entry:,
+      entry.revisions.create!(
         locale: current.locale,
         title:,
         summary:,
@@ -68,8 +62,7 @@ module Publishing
 
     def copy_taxonomy_assignments(source, revision)
       source.single_taxonomy_assignments.each do |assignment|
-        RevisionSingleTaxonomyAssignment.create!(
-          entry_revision: revision,
+        revision.single_taxonomy_assignments.create!(
           vocabulary_id: assignment.vocabulary_id,
           vocabulary_kind: assignment.vocabulary_kind,
           taxonomy_term_id: assignment.taxonomy_term_id,
@@ -78,8 +71,7 @@ module Publishing
       end
 
       source.multiple_taxonomy_assignments.ordered.each do |assignment|
-        RevisionMultipleTaxonomyAssignment.create!(
-          entry_revision: revision,
+        revision.multiple_taxonomy_assignments.create!(
           vocabulary_id: assignment.vocabulary_id,
           vocabulary_kind: assignment.vocabulary_kind,
           taxonomy_term_id: assignment.taxonomy_term_id,
@@ -91,9 +83,8 @@ module Publishing
 
     def copy_media_usages(source, revision)
       source.media_usages.find_each do |usage|
-        RevisionMediaUsage.create!(
+        revision.media_usages.create!(
           media_file_id: usage.media_file_id,
-          entry_revision: revision,
           role: usage.role,
           field_path: usage.field_path,
           block_path: usage.block_path,

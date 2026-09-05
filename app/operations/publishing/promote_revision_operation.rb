@@ -2,17 +2,6 @@
 # frozen_string_literal: true
 
 module Publishing
-  # Freezes a draft revision into an immutable version, together with a
-  # complete snapshot of its taxonomy assignments.
-  #
-  # This operation owns the transaction. Promotion is deliberately not a model
-  # callback: a version and its snapshots must commit together or not at all,
-  # and that boundary belongs somewhere a reader can see it.
-  #
-  # Idempotency rests on UNIQUE(entry_revision_id) in
-  # publishing_entry_versions. A concurrent second attempt loses the insert,
-  # then re-reads the winner and verifies it is a complete snapshot of the
-  # same revision rather than returning whatever row it happens to find.
   class PromoteRevisionOperation < ApplicationService
     class RevisionMismatchError < StandardError; end
 
@@ -24,16 +13,12 @@ module Publishing
       @operator_public_id = operator_public_id
     end
 
-    # The unique index that makes promotion idempotent. Any other uniqueness
-    # failure is a real error and must not be swallowed as a lost race.
-    IDEMPOTENCY_INDEX = "index_publishing_entry_versions_on_entry_revision_id"
-
     def call
       entry = revision.entry
       raise(RevisionMismatchError, "revision #{revision.id} has no entry") unless entry
 
       entry.with_lock do
-        existing = EntryVersion.find_by(entry_revision_id: revision.id)
+        existing = entry.versions.find_by(entry_revision_id: revision.id)
         next verify_complete!(existing) if existing
 
         lock_taxonomy!
@@ -48,8 +33,7 @@ module Publishing
 
     def create_version(entry)
       version =
-        EntryVersion.create!(
-          entry:,
+        entry.versions.create!(
           entry_revision: revision,
           locale: revision.locale,
           title: revision.title,
@@ -64,18 +48,12 @@ module Publishing
       copy_media_usages(version)
       version
     rescue ActiveRecord::RecordNotUnique => e
-      # Only a collision on the idempotency index means another promotion of
-      # this same revision won the race. Anything else -- a duplicate sequence,
-      # a duplicate public id -- is a genuine failure.
-      raise unless e.message.include?(IDEMPOTENCY_INDEX)
+      index_name = "uidx_#{entry.class::SURFACE}_#{entry.class::AUDIENCE}_ver_on_revision"
+      raise unless e.message.include?(index_name)
 
-      verify_complete!(EntryVersion.find_by!(entry_revision_id: revision.id))
+      verify_complete!(entry.versions.find_by!(entry_revision_id: revision.id))
     end
 
-    # Locking the assigned vocabularies in a deterministic order stops a
-    # concurrent rename or subtree move from changing a breadcrumb midway
-    # through snapshot generation, and stops two promotions from deadlocking.
-    # MoveTaxonomySubtreeOperation takes the same vocabulary lock, exclusively.
     def lock_taxonomy!
       vocabulary_ids =
         (revision.single_taxonomy_assignments.pluck(:vocabulary_id) +
@@ -83,22 +61,18 @@ module Publishing
       vocabulary_ids.sort!
       return if vocabulary_ids.empty?
 
-      Vocabulary.where(id: vocabulary_ids).order(:id).lock("FOR SHARE").load
+      vocab_class = revision.single_taxonomy_assignments.klass.reflect_on_association(:vocabulary).klass
+      vocab_class.where(id: vocabulary_ids).order(:id).lock("FOR SHARE").load
     end
 
     def next_sequence(entry)
       (entry.versions.maximum(:sequence) || 0) + 1
     end
 
-    # A version may never commit holding a partial snapshot, so the copies run
-    # inside the caller's transaction and any failure rolls the version back.
     def copy_taxonomy_assignments(version)
-      # The vocabulary and term of every assignment are read for the snapshot,
-      # so they are loaded up front rather than one row at a time.
       revision.single_taxonomy_assignments.includes(:vocabulary, :taxonomy_term).find_each do |assignment|
-        VersionSingleTaxonomyAssignment
+        version.single_taxonomy_assignments
           .new(
-            entry_version: version,
             vocabulary_id: assignment.vocabulary_id,
             vocabulary_kind: assignment.vocabulary_kind,
             taxonomy_term_id: assignment.taxonomy_term_id,
@@ -109,9 +83,8 @@ module Publishing
       end
 
       revision.multiple_taxonomy_assignments.includes(:vocabulary, :taxonomy_term).find_each do |assignment|
-        VersionMultipleTaxonomyAssignment
+        version.multiple_taxonomy_assignments
           .new(
-            entry_version: version,
             vocabulary_id: assignment.vocabulary_id,
             vocabulary_kind: assignment.vocabulary_kind,
             taxonomy_term_id: assignment.taxonomy_term_id,
@@ -125,9 +98,8 @@ module Publishing
 
     def copy_media_usages(version)
       revision.media_usages.find_each do |usage|
-        VersionMediaUsage.create!(
+        version.media_usages.create!(
           media_file_id: usage.media_file_id,
-          entry_version: version,
           role: usage.role,
           field_path: usage.field_path,
           block_path: usage.block_path,
@@ -143,8 +115,6 @@ module Publishing
       archived = revision.archived_taxonomy_assignments
       return if archived.empty?
 
-      # Every obsolete term on the breadcrumb is reported, not just the assigned
-      # leaf, so an authoring UI can show everything that needs resolving.
       details =
         archived.flat_map do |assignment|
           obsolete = assignment.taxonomy_term.archived_in_path
@@ -163,8 +133,6 @@ module Publishing
       raise(ArchivedTaxonomyAssignmentError, details)
     end
 
-    # Proves the winning version really is this revision's complete snapshot
-    # before handing it back to a caller that lost the race.
     def verify_complete!(version)
       unless version.entry_revision_id == revision.id
         raise(RevisionMismatchError, "version #{version.id} does not belong to revision #{revision.id}")

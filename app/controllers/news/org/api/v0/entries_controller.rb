@@ -11,6 +11,7 @@ module News
           AUTHENTICATION_MODE = :bare
           PUBLISHING_AUDIENCE = "org"
           PUBLISHING_SURFACE = "news"
+          ENTRY_CLASS = ::Publishing::News::Org::Entry
 
           def index
             render_publishing_entries_index

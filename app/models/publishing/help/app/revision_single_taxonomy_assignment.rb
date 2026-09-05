@@ -1,0 +1,17 @@
+# frozen_string_literal: true
+
+module Publishing
+  module Help
+    module App
+      class RevisionSingleTaxonomyAssignment < PublishingRecord
+        self.table_name = "publishing_help_app_revision_single_taxonomy_assignments"
+        include Publishing::FamilyTaxonomyAssignment
+
+
+        belongs_to :entry_revision, class_name: "Publishing::Help::App::EntryRevision", inverse_of: :single_taxonomy_assignments
+
+        def self.expected_kind = Publishing::TaxonomyKind::SINGLE_HIERARCHICAL
+      end
+    end
+  end
+end

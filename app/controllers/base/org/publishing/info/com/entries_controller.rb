@@ -12,6 +12,7 @@ module Base
             AUTHENTICATION_MODE = :bare
             PUBLISHING_SURFACE = "info"
             PUBLISHING_AUDIENCE = "com"
+            ENTRY_CLASS = ::Publishing::Info::Com::Entry
 
             def index
               super

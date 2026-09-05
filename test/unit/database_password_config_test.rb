@@ -15,11 +15,15 @@ class DatabasePasswordConfigTest < ActiveSupport::TestCase
 
   test "development queue pools can serve every Solid Queue worker thread" do
     configurations = Rails.application.config.database_configuration.fetch("development")
+    configuration = configurations.fetch("queue")
 
-    %w(queue queue_replica).each do |name|
-      configuration = configurations.fetch(name)
+    assert_operator configuration.fetch("pool"), :>=, 5, "queue"
+  end
 
-      assert_operator configuration.fetch("pool"), :>=, 5, name
+  test "Solid Cache and Solid Queue do not define read replicas" do
+    Rails.application.config.database_configuration.each_value do |configurations|
+      refute configurations.key?("cache_replica")
+      refute configurations.key?("queue_replica")
     end
   end
 
@@ -29,11 +33,11 @@ class DatabasePasswordConfigTest < ActiveSupport::TestCase
     assert_equal 21, database_yml.scan(/host: <%= production_value\.call\("NEON_PGHOST"\) %>/).size
     assert_equal 21, database_yml.scan(/username: <%= production_value\.call\("NEON_PGUSER"\) %>/).size
     assert_equal 21, database_yml.scan(/password: <%= production_value\.call\("NEON_PGPASSWORD"\) %>/).size
-    assert_equal 20, database_yml.scan(/host: <%= production_value\.call\("NEON_REPLICA_PGHOST"\) %>/).size
-    assert_equal 20, database_yml.scan(/username: <%= production_value\.call\("NEON_REPLICA_PGUSER"\) %>/).size
-    assert_equal 20, database_yml.scan(/password: <%= production_value\.call\("NEON_REPLICA_PGPASSWORD"\) %>/).size
-    assert_equal 20, database_yml.scan(/sslmode: <%= production_value\.call\("NEON_REPLICA_PGSSLMODE"\) %>/).size
-    assert_equal 20,
+    assert_equal 18, database_yml.scan(/host: <%= production_value\.call\("NEON_REPLICA_PGHOST"\) %>/).size
+    assert_equal 18, database_yml.scan(/username: <%= production_value\.call\("NEON_REPLICA_PGUSER"\) %>/).size
+    assert_equal 18, database_yml.scan(/password: <%= production_value\.call\("NEON_REPLICA_PGPASSWORD"\) %>/).size
+    assert_equal 18, database_yml.scan(/sslmode: <%= production_value\.call\("NEON_REPLICA_PGSSLMODE"\) %>/).size
+    assert_equal 18,
                  database_yml.scan(/channel_binding: <%= production_value\.call\("NEON_REPLICA_PGCHANNELBINDING"\) %>/).size
     assert_includes database_yml, 'sslmode: <%= production_value.call("NEON_PGSSLMODE") %>'
     assert_includes database_yml, 'channel_binding: <%= production_value.call("NEON_PGCHANNELBINDING") %>'

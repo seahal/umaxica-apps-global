@@ -5,8 +5,7 @@ require "test_helper"
 module Publishing
   class ReviseEntryOperationTest < ActiveSupport::TestCase
     test "creates the next revision and leaves the previous revision unchanged" do
-      edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-      entry = publishing_draft(edition:, slug: "guide", title: "Guide")
+      entry = publishing_draft(audience: "app", surface: "info", slug: "guide", title: "Guide")
       previous = entry.current_revision
       previous_title = previous.title
       previous_body = previous.body.deep_dup
@@ -36,25 +35,21 @@ module Publishing
     end
 
     test "copies taxonomy assignments and media usages onto the new revision" do
-      edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
       category = publishing_category_vocabulary(audience: "app", surface: "docs")
       tag = publishing_tag_vocabulary(audience: "app", surface: "docs")
       guide = publishing_term(vocabulary: category, locale: "ja", slug: "guide", name: "ガイド")
       ruby = publishing_term(vocabulary: tag, locale: "ja", slug: "ruby", name: "Ruby")
       rails = publishing_term(vocabulary: tag, locale: "ja", slug: "rails", name: "Rails")
-      entry = publishing_draft(edition:, slug: "assigned", title: "Assigned")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "assigned", title: "Assigned")
       revision = entry.current_revision
-      RevisionSingleTaxonomyAssignment.create!(
-        entry_revision: revision, vocabulary_id: category.id, vocabulary_kind: category.kind,
-        taxonomy_term_id: guide.id, locale: "ja",
+      create_single_assignment(
+        entry_revision: revision, vocabulary: category, taxonomy_term: guide, locale: "ja",
       )
-      RevisionMultipleTaxonomyAssignment.create!(
-        entry_revision: revision, vocabulary_id: tag.id, vocabulary_kind: tag.kind,
-        taxonomy_term_id: rails.id, locale: "ja", position: 0,
+      create_multiple_assignment(
+        entry_revision: revision, vocabulary: tag, taxonomy_term: rails, locale: "ja", position: 0,
       )
-      RevisionMultipleTaxonomyAssignment.create!(
-        entry_revision: revision, vocabulary_id: tag.id, vocabulary_kind: tag.kind,
-        taxonomy_term_id: ruby.id, locale: "ja", position: 1,
+      create_multiple_assignment(
+        entry_revision: revision, vocabulary: tag, taxonomy_term: ruby, locale: "ja", position: 1,
       )
       media_file = publishing_media_file
       publishing_revision_media_usage(revision:, media_file:, role: "hero")
@@ -82,8 +77,7 @@ module Publishing
     end
 
     test "rejects a stale lock_version without creating a revision" do
-      edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-      entry = publishing_draft(edition:, slug: "stale", title: "Stale")
+      entry = publishing_draft(audience: "app", surface: "info", slug: "stale", title: "Stale")
       current = entry.current_revision
 
       result = ReviseEntryOperation.call(

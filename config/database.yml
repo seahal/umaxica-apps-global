@@ -240,24 +240,11 @@ development:
     database: development_cache_db
     host: <%= development_host.call("POSTGRESQL_CACHE_PUB") %>
     migrations_paths: db/caches_migrate
-  cache_replica:
-    !!merge <<: *development_default
-    replica: true
-    database: development_cache_db
-    host: <%= development_host.call("POSTGRESQL_CACHE_SUB") %>
-    migrations_paths: db/caches_migrate
   queue:
     !!merge <<: *development_default
     pool: 5
     database: development_queue_db
     host: <%= development_host.call("POSTGRESQL_QUEUE_PUB") %>
-    migrations_paths: db/queues_migrate
-  queue_replica:
-    !!merge <<: *development_default
-    pool: 5
-    replica: true
-    database: development_queue_db
-    host: <%= development_host.call("POSTGRESQL_QUEUE_SUB") %>
     migrations_paths: db/queues_migrate
   storage:
     !!merge <<: *development_default
@@ -509,25 +496,11 @@ test:
     database: test_cache_db
     host: <%= test_host %>
     migrations_paths: db/caches_migrate
-  cache_replica:
-    !!merge <<: *test_default
-    replica: true
-    database: test_cache_replica_db
-    host: <%= test_host %>
-    migrations_paths: db/caches_migrate
-    schema_dump: cache_structure.sql
   queue:
     !!merge <<: *test_default
     database: test_queue_db
     host: <%= test_host %>
     migrations_paths: db/queues_migrate
-  queue_replica:
-    !!merge <<: *test_default
-    replica: true
-    database: test_queue_replica_db
-    host: <%= test_host %>
-    migrations_paths: db/queues_migrate
-    schema_dump: queue_structure.sql
   storage:
     !!merge <<: *test_default
     database: test_storage_db
@@ -905,17 +878,6 @@ production:
     username: <%= production_value.call("NEON_PGUSER") %>
     password: <%= production_value.call("NEON_PGPASSWORD") %>
     migrations_paths: db/caches_migrate
-  cache_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_cache_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
-    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
-    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
-    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
-    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
-    migrations_paths: db/caches_migrate
   storage:
     !!merge <<: *default
     database: production_storage_db
@@ -942,17 +904,6 @@ production:
     host: <%= production_value.call("NEON_PGHOST") %>
     username: <%= production_value.call("NEON_PGUSER") %>
     password: <%= production_value.call("NEON_PGPASSWORD") %>
-    migrations_paths: db/queues_migrate
-  queue_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_queue_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= production_value.call("NEON_REPLICA_PGHOST") %>
-    username: <%= production_value.call("NEON_REPLICA_PGUSER") %>
-    password: <%= production_value.call("NEON_REPLICA_PGPASSWORD") %>
-    sslmode: <%= production_value.call("NEON_REPLICA_PGSSLMODE") %>
-    channel_binding: <%= production_value.call("NEON_REPLICA_PGCHANNELBINDING") %>
     migrations_paths: db/queues_migrate
   occurrence:
     !!merge <<: *default

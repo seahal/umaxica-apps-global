@@ -11,6 +11,7 @@ module Docs
           AUTHENTICATION_MODE = :bare
           PUBLISHING_AUDIENCE = "app"
           PUBLISHING_SURFACE = "docs"
+          ENTRY_CLASS = ::Publishing::Docs::App::Entry
 
           def index
             render_publishing_entries_index

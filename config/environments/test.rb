@@ -57,7 +57,7 @@ Rails.application.configure do
 
   # Tell Active Job to use the test adapter
   config.active_job.queue_adapter = :test
-  config.solid_queue.connects_to = { database: { writing: :queue, reading: :queue_replica } }
+  config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "example.com" }

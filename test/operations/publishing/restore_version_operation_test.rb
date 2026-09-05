@@ -5,14 +5,13 @@ require "test_helper"
 module Publishing
   class RestoreVersionOperationTest < ActiveSupport::TestCase
     setup do
-      @edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
       @category = publishing_category_vocabulary(audience: "app", surface: "docs")
       @tag = publishing_tag_vocabulary(audience: "app", surface: "docs")
       @guide = publishing_term(vocabulary: @category, locale: "ja", slug: "guide", name: "ガイド")
       @ruby = publishing_term(vocabulary: @tag, locale: "ja", slug: "ruby", name: "Ruby")
       @rails = publishing_term(vocabulary: @tag, locale: "ja", slug: "rails", name: "Rails")
 
-      @entry = publishing_draft(edition: @edition, slug: "restorable", title: "Restorable")
+      @entry = publishing_draft(audience: "app", surface: "docs", slug: "restorable", title: "Restorable")
       assign_category(@entry.current_revision, @guide)
       assign_tags(@entry.current_revision, [@rails, @ruby])
       @version = PromoteRevisionOperation.call(revision: @entry.current_revision)
@@ -91,7 +90,7 @@ module Publishing
     private
 
     def assign_category(revision, term)
-      RevisionSingleTaxonomyAssignment.create!(
+      create_single_assignment(
         entry_revision: revision, vocabulary: @category, vocabulary_kind: @category.kind, taxonomy_term: term,
         locale: "ja",
       )
@@ -99,7 +98,7 @@ module Publishing
 
     def assign_tags(revision, terms)
       terms.each_with_index do |term, position|
-        RevisionMultipleTaxonomyAssignment.create!(
+        create_multiple_assignment(
           entry_revision: revision, vocabulary: @tag, vocabulary_kind: @tag.kind, taxonomy_term: term,
           locale: "ja", position:,
         )

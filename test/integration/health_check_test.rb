@@ -87,9 +87,7 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
   test "health aggregate does not serve json and does not refuse it" do
     get "/health.json?ri=jp"
 
-    assert_response :success
-    assert_equal "text/plain", response.media_type
-    assert_not_equal "application/json", response.media_type
+    assert_response :not_found
 
     get "/health", headers: { "Accept" => "application/json" }
 

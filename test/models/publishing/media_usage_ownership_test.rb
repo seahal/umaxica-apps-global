@@ -5,8 +5,7 @@ require "test_helper"
 module Publishing
   class MediaUsageOwnershipTest < ActiveSupport::TestCase
     setup do
-      @edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-      @entry = publishing_draft(edition: @edition, slug: "media-owner", title: "Media Owner")
+      @entry = publishing_draft(audience: "app", surface: "docs", slug: "media-owner", title: "Media Owner")
       @revision = @entry.current_revision
       @media_file = publishing_media_file
     end
@@ -17,28 +16,28 @@ module Publishing
     end
 
     test "revision media usages have a required revision owner and no derived or version columns" do
-      columns = PublishingRecord.connection.columns("publishing_revision_media_usages").map(&:name)
+      columns = PublishingRecord.connection.columns("publishing_docs_app_revision_media_usages").map(&:name)
 
       assert_includes columns, "entry_revision_id"
       assert_not_includes columns, "entry_version_id"
       assert_not_includes columns, "entry_id"
       assert_not_includes columns, "locale"
       revision_owner =
-        PublishingRecord.connection.columns("publishing_revision_media_usages")
+        PublishingRecord.connection.columns("publishing_docs_app_revision_media_usages")
           .find { |column| column.name == "entry_revision_id" }
 
       assert_not revision_owner.null
     end
 
     test "version media usages have a required version owner and no derived or revision columns" do
-      columns = PublishingRecord.connection.columns("publishing_version_media_usages").map(&:name)
+      columns = PublishingRecord.connection.columns("publishing_docs_app_version_media_usages").map(&:name)
 
       assert_includes columns, "entry_version_id"
       assert_not_includes columns, "entry_revision_id"
       assert_not_includes columns, "entry_id"
       assert_not_includes columns, "locale"
       version_owner =
-        PublishingRecord.connection.columns("publishing_version_media_usages")
+        PublishingRecord.connection.columns("publishing_docs_app_version_media_usages")
           .find { |column| column.name == "entry_version_id" }
 
       assert_not version_owner.null
@@ -95,12 +94,12 @@ module Publishing
       assert_raises(ActiveRecord::ReadOnlyRecord) { usage.destroy! }
       assert_database_rejects do
         PublishingRecord.lease_connection.execute(
-          "UPDATE publishing_version_media_usages SET caption = 'x' WHERE id = #{usage.id}",
+          "UPDATE publishing_docs_app_version_media_usages SET caption = 'x' WHERE id = #{usage.id}",
         )
       end
       assert_database_rejects do
         PublishingRecord.lease_connection.execute(
-          "DELETE FROM publishing_version_media_usages WHERE id = #{usage.id}",
+          "DELETE FROM publishing_docs_app_version_media_usages WHERE id = #{usage.id}",
         )
       end
     end
@@ -136,8 +135,8 @@ module Publishing
       schema = Rails.root.join("db/migration_support/publishing_schema.rb").read
       history = Rails.root.glob("db/publishing_migrate/*.rb").map { |path| path.basename.to_s }
 
-      assert_includes schema, "publishing_revision_media_usages"
-      assert_includes schema, "publishing_version_media_usages"
+      assert_includes schema, "_revision_media_usages"
+      assert_includes schema, "_version_media_usages"
       assert_no_match(/create_table\(?\s*:publishing_media_usages\b/, schema)
       assert_not_includes history, "20260903180000_create_publishing_owner_media_usages.rb"
       assert_not_includes history, "20260903180100_split_publishing_media_usages.rb"
@@ -150,12 +149,12 @@ module Publishing
 
       assert_raises(ActiveRecord::StatementInvalid) do
         PublishingRecord.transaction(requires_new: true) do
-          version = EntryVersion.create!(
+          version = Docs::App::EntryVersion.create!(
             entry: @entry, entry_revision: @revision, locale: @revision.locale, title: @revision.title,
             body: @revision.body, schema_version: @revision.schema_version,
             content_digest: @revision.content_digest, sequence: 99,
           )
-          VersionMediaUsage.create!(
+          Docs::App::VersionMediaUsage.create!(
             entry_version: version, media_file: @media_file, role: "body", field_path: "body.blocks.0",
             block_path: "blocks.0", position: 0, caption: "different caption",
           )

@@ -3,16 +3,15 @@
 
 require "test_helper"
 
-# Object storage resolves to a different backend per environment, and the
-# development environment picks between a local directory and an S3-compatible
-# endpoint depending on whether that endpoint is configured. Production is not
-# exercised here -- it resolves to S3 and is asserted elsewhere -- but the two
-# development branches decide where a developer's uploads actually land, so both
-# are pinned.
+# Object storage resolves to a different backend per environment and deployment
+# tier. Development and production-shaped staging use an S3-compatible endpoint,
+# real production uses AWS S3, and test remains in memory without network I/O.
 class ObjectStorageShrineConfigurationModesTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   DEVELOPMENT = ActiveSupport::StringInquirer.new("development")
+  PRODUCTION = ActiveSupport::StringInquirer.new("production")
+  TEST = ActiveSupport::StringInquirer.new("test")
 
   def with_env(overrides)
     saved = overrides.keys.index_with { |key| ENV[key] }
@@ -39,15 +38,9 @@ class ObjectStorageShrineConfigurationModesTest < ActiveSupport::TestCase
     )
   end
 
-  test "development without an s3-compatible endpoint writes to the local directory" do
+  test "development selects S3-compatible storage even when configuration is missing" do
     without_s3_compatible_configuration do
-      assert_equal :local_filesystem, ObjectStorage::ShrineConfiguration.mode(DEVELOPMENT)
-
-      storage = ObjectStorage::ShrineConfiguration.build_storage(
-        boundary: :avatar, prefix: "store", rails_env: DEVELOPMENT,
-      )
-
-      assert_kind_of Shrine::Storage::FileSystem, storage
+      assert_equal :s3_compatible, ObjectStorage::ShrineConfiguration.mode(DEVELOPMENT)
     end
   end
 
@@ -65,6 +58,43 @@ class ObjectStorageShrineConfigurationModesTest < ActiveSupport::TestCase
         end
 
       assert_match(/unregistered object-storage boundary/, error.message)
+    end
+  end
+
+  test "production staging selects the S3-compatible endpoint" do
+    with_env("DEPLOYMENT_TIER" => "staging") do
+      assert_equal :s3_compatible, ObjectStorage::ShrineConfiguration.mode(PRODUCTION)
+    end
+  end
+
+  test "real production selects AWS S3" do
+    with_env("DEPLOYMENT_TIER" => "production") do
+      assert_equal :s3, ObjectStorage::ShrineConfiguration.mode(PRODUCTION)
+    end
+  end
+
+  test "production requires an explicit deployment tier" do
+    with_env("DEPLOYMENT_TIER" => nil) do
+      error = assert_raises(KeyError) { ObjectStorage::ShrineConfiguration.mode(PRODUCTION) }
+
+      assert_match(/DEPLOYMENT_TIER/, error.message)
+    end
+  end
+
+  test "production refuses an unknown deployment tier" do
+    with_env("DEPLOYMENT_TIER" => "preview") do
+      error = assert_raises(ArgumentError) { ObjectStorage::ShrineConfiguration.mode(PRODUCTION) }
+
+      assert_match(/DEPLOYMENT_TIER/, error.message)
+      assert_match(/preview/, error.message)
+    end
+  end
+
+  test "test remains in memory even when staging S3 variables are present" do
+    with_s3_compatible_configuration do
+      with_env("DEPLOYMENT_TIER" => "staging") do
+        assert_equal :memory, ObjectStorage::ShrineConfiguration.mode(TEST)
+      end
     end
   end
 

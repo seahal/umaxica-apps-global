@@ -352,15 +352,13 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     assert_no_match(/health\.json/i, response.body)
   end
 
-  test "GET /health does not serve JSON and does not refuse it on any declared surface" do
+  test "GET /health refuses a format suffix but ignores Accept on every declared surface" do
     SURFACES.each do |surface|
       host! surface[:host]
 
       get "/health.json"
 
-      assert_response :success
-      assert_equal "text/plain", response.media_type
-      assert_not_equal "application/json", response.media_type
+      assert_response :not_found
 
       get "/health", headers: { "Accept" => "application/json" }
 
@@ -370,7 +368,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "text probes render \"ok\\n\" regardless of Accept header or html suffix" do
+  test "text probes ignore Accept headers and refuse html suffixes" do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     PROBES.each do |probe|
@@ -389,11 +387,11 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
     get "/health/readiness.html", headers: { "Accept" => "text/html" }
 
-    assert_equal "text/plain", response.media_type
+    assert_response :not_found
 
     get "/health/startup.html", headers: { "Accept" => "text/html" }
 
-    assert_equal "text/plain", response.media_type
+    assert_response :not_found
   end
 
   test "liveness remains dependency free" do

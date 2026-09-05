@@ -27,7 +27,6 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("PRIVATE_DOCS_SERVICE_URL")
-    @edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
     @category = publishing_category_vocabulary(audience: "app", surface: "docs")
     @tag = publishing_tag_vocabulary(audience: "app", surface: "docs")
     @guide = publishing_term(vocabulary: @category, locale: "ja", slug: "guide", name: "ガイド")
@@ -139,9 +138,8 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
       audience: "app", surface: "docs", key: "topic", kind: Publishing::TaxonomyKind::SINGLE_HIERARCHICAL,
     )
     term = publishing_term(vocabulary: topic, locale: "ja", slug: "architecture", name: "Architecture")
-    entry = publishing_draft(edition: @edition, slug: "topical", title: "Topical")
-    Publishing::RevisionSingleTaxonomyAssignment.create!(
-      entry_revision: entry.current_revision, vocabulary: topic, vocabulary_kind: topic.kind,
+    entry = publishing_draft(audience: "app", surface: "docs", slug: "topical", title: "Topical")
+    create_single_assignment(entry_revision: entry.current_revision, vocabulary: topic, vocabulary_kind: topic.kind,
       taxonomy_term: term, locale: "ja",
     )
     publishing_publish(entry:)
@@ -152,7 +150,7 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     assert_equal %w(category tag topic), taxonomy.keys
     assert_equal "architecture", taxonomy.fetch("topic").fetch("slug")
     assert_nil taxonomy.fetch("category")
-    assert_equal [entry], PublishingPublishedEntriesQuery.call(edition: @edition, category: nil).to_a
+    assert_equal [entry], publishing_query(audience: "app", surface: "docs").call.to_a
   end
 
   test "a flat vocabulary added at runtime serializes as an ordered array" do
@@ -161,10 +159,9 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     )
     first = publishing_term(vocabulary: channel, locale: "ja", slug: "email", name: "Email")
     second = publishing_term(vocabulary: channel, locale: "ja", slug: "web", name: "Web")
-    entry = publishing_draft(edition: @edition, slug: "channelled", title: "Channelled")
+    entry = publishing_draft(audience: "app", surface: "docs", slug: "channelled", title: "Channelled")
     [second, first].each_with_index do |term, position|
-      Publishing::RevisionMultipleTaxonomyAssignment.create!(
-        entry_revision: entry.current_revision, vocabulary: channel, vocabulary_kind: channel.kind,
+      create_multiple_assignment(entry_revision: entry.current_revision, vocabulary: channel, vocabulary_kind: channel.kind,
         taxonomy_term: term, locale: "ja", position:,
       )
     end
@@ -299,16 +296,14 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
   private
 
   def publish(slug, title, category: nil, tags: [], published_at: 1.hour.ago)
-    entry = publishing_draft(edition: @edition, slug:, title:)
+    entry = publishing_draft(audience: "app", surface: "docs", slug:, title:)
     if category
-      Publishing::RevisionSingleTaxonomyAssignment.create!(
-        entry_revision: entry.current_revision, vocabulary: @category, vocabulary_kind: @category.kind,
+      create_single_assignment(entry_revision: entry.current_revision, vocabulary: @category, vocabulary_kind: @category.kind,
         taxonomy_term: category, locale: "ja",
       )
     end
     tags.each_with_index do |term, position|
-      Publishing::RevisionMultipleTaxonomyAssignment.create!(
-        entry_revision: entry.current_revision, vocabulary: @tag, vocabulary_kind: @tag.kind,
+      create_multiple_assignment(entry_revision: entry.current_revision, vocabulary: @tag, vocabulary_kind: @tag.kind,
         taxonomy_term: term, locale: "ja", position:,
       )
     end
@@ -319,7 +314,7 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
   # (adr/api-collection-contract.md). The API addresses entries by opaque
   # `public_id`; tests still name them by slug for readability and resolve here.
   def public_id_for(slug)
-    Publishing::EntrySlug.find_by!(slug:).entry.public_id
+    Publishing::Docs::App::EntrySlug.find_by!(slug:).entry.public_id
   end
 
   def show(slug)

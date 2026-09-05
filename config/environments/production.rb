@@ -101,7 +101,7 @@ Rails.application.configure do
       url: ENV.fetch("RATE_LIMIT_REDIS_URL"),
       namespace: rate_limit_namespace,
     )
-  config.solid_cache.connects_to = { shards: { cache: { writing: :cache, reading: :cache_replica } } }
+  config.solid_cache.connects_to = { shards: { cache: { writing: :cache } } }
 
   # Replace the default in-process and non-durable queuing backend for Active Job.
   config.active_job.queue_adapter = :solid_queue

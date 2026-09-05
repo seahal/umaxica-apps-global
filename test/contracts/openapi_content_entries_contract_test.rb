@@ -140,7 +140,7 @@ class OpenapiContentEntriesContractTest < ActionDispatch::IntegrationTest
     end
 
     # Its own cell in a locale it was not published in.
-    publishing_edition(audience: "app", surface: "docs", locale: "en")
+    # Locale isolation: the same family has no published row for `en`.
     host!(own_host)
     get "/api/v0/entries/#{entry.public_id}?locale=en", headers: json_headers(service: "docs", surface: "app")
 
@@ -156,7 +156,7 @@ class OpenapiContentEntriesContractTest < ActionDispatch::IntegrationTest
   test "a draft or archived entry is not readable by a known public_id" do
     prepare(service: "docs", surface: "app")
 
-    draft = publishing_draft(edition: @edition, slug: "draft-entry", title: "Draft Entry")
+    draft = publishing_draft(audience: "app", surface: "docs", slug: "draft-entry", title: "Draft Entry")
     get "/api/v0/entries/#{draft.public_id}?locale=ja", headers: json_headers(service: "docs", surface: "app")
 
     assert_response :not_found
@@ -287,14 +287,13 @@ class OpenapiContentEntriesContractTest < ActionDispatch::IntegrationTest
     @service = service
     @audience = surface
     @host = ENV.fetch("PRIVATE_#{service.upcase}_#{HOST_ROLES.fetch(surface)}_URL")
-    @edition = publishing_edition(audience: @audience, surface: @service, locale: "ja")
     host!(@host)
   end
 
   # `summary` is the one nullable column behind the Entry schema, and the shared fixture helper
   # always fills it, so a test that needs the null case has to clear it before promotion.
   def publish(slug, title, published_at: 1.hour.ago, summary: :unset)
-    entry = publishing_draft(edition: @edition, slug:, title:)
+    entry = publishing_draft(audience: @audience, surface: @service, slug:, title:)
     entry.current_revision.update!(summary:) unless summary == :unset
     publishing_publish(entry:, published_at:)
   end
