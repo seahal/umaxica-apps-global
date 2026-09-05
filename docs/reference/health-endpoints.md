@@ -2,13 +2,14 @@
 
 Health endpoints return the shared runtime health contract from the `Health` service layer.
 
-As of the 2026-09-03 text+JSON contract there are two families:
+As of the 2026-09-05 text+JSON contract there are two families:
 
 - **Text probes** (`text/plain; charset=utf-8`, `Cache-Control: no-store`, no redirect, no auth,
   no `.txt` suffix, never JSON or HTML). Each surface mounts:
-  - `GET /health` — aggregate. Body is exactly four lines in a fixed order:
+  - `GET /health` — aggregate. Body is exactly five lines in a fixed order:
     ```
     status: ok
+    namespace: auth/app
     startup: ok
     liveness: ok
     readiness: ok
@@ -19,7 +20,7 @@ As of the 2026-09-03 text+JSON contract there are two families:
   `text/html`, and a non-JSON `Accept` gets `406` rather than a silent fallback). Each surface that
   exposes `/revision` also mounts:
   - `GET /api/v0/health.json` —
-    `{"status":"pass|warn|fail","checks":{"startup":{"status":…},"liveness":{"status":…},"readiness":{"status":…}}}`.
+    `{"status":"pass|warn|fail","checks":{"startup":{"status":…},"liveness":{"status":…},"readiness":{"status":…}},"namespace":"<frame>/<brand>"}`.
     HTTP: `pass`/`warn` → 200, `fail` → 503. A readiness failure never changes the liveness entry;
     liveness stays dependency-free.
   - `GET /api/v0/revision.json` — `{"revision":"<sha>"}`, or `{"revision":null}` when unset.
@@ -48,7 +49,8 @@ separate integrated status page (external service). See
     "startup": { "status": "pass" },
     "liveness": { "status": "pass" },
     "readiness": { "status": "pass" }
-  }
+  },
+  "namespace": "docs/app"
 }
 ```
 
@@ -67,8 +69,8 @@ vocabulary onto the wire vocabulary with an exhaustive `case` (`else → raise`,
 Aggregate `status` is the worst of the three: any `fail` → `fail`; else any `warn` → `warn`; else
 `pass`. Startup, liveness, and readiness are mapped from three independent `Health::*Check.call`
 results, so a readiness outage yields `checks.readiness.status == "fail"` and overall `fail`/503
-while `checks.liveness.status` stays `"pass"`. No hostname, dependency name, exception, path, or
-environment value crosses this boundary — only the two enum-bounded strings.
+while `checks.liveness.status` stays `"pass"`. The controller namespace selected by routing crosses
+this boundary; no dependency name, exception, path, or environment value does.
 
 ## Text probe status codes
 

@@ -9,14 +9,14 @@ require "test_helper"
 # Two endpoint families:
 #
 #   Text (text/plain; charset=utf-8, Cache-Control: no-store, no redirect, no auth):
-#     GET /health            -> aggregate block: status, startup, liveness, readiness
+#     GET /health            -> aggregate block: status, namespace, startup, liveness, readiness
 #     GET /health/startup    -> "ok\n" / HTTP 503
 #     GET /health/liveness   -> "ok\n" / HTTP 503
 #     GET /health/readiness  -> "ok\n" / HTTP 503
 #     GET /revision          -> "<revision>\n"  (nil revision -> "\n")
 #
 #   Machine JSON (application/json, Cache-Control: no-store, 406 on a non-JSON Accept):
-#     GET /api/v0/health.json   -> {"status":"pass|warn|fail","checks":{startup,liveness,readiness}}
+#     GET /api/v0/health.json   -> {"status":"pass|warn|fail","checks":{startup,liveness,readiness},"namespace":"<frame>/<brand>"}
 #     GET /api/v0/revision.json -> {"revision":"<sha>"}  (nil revision -> {"revision":null})
 class HealthRevisionContractTest < ActionDispatch::IntegrationTest
   REVISION = "0123456789abcdef0123456789abcdef01234567"
@@ -548,7 +548,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
   end
 
   # `render_snapshot` renders `result.http_status`, but every aggregate test stubbed a healthy
-  # snapshot, so the text aggregate had only ever been observed at 200. The four lines and their
+  # snapshot, so the text aggregate had only ever been observed at 200. The five lines and their
   # order have to survive the failing case too -- that is the case an operator reads.
   test "the text health aggregate reports the failing probe and answers 503" do
     host! APP_HOST
@@ -565,7 +565,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
     assert_equal "text/plain", response.media_type
     assert_equal "no-store", response.headers["Cache-Control"]
     assert_equal(
-      ["status: unavailable", "namespace: auth/app", "startup: ok", "liveness: ok", "readiness: unavailable", ""],
+      ["status: unavailable", "namespace: base/app", "startup: ok", "liveness: ok", "readiness: unavailable", ""],
       response.body.split("\n", -1),
     )
   end

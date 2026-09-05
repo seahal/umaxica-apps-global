@@ -321,10 +321,10 @@ schemas:
     type: object
     description: >-
       Machine-readable health aggregate for `GET /api/v0/health.json`. See
-      docs/reference/health-endpoints.md. Carries only the two enum-bounded strings `status`
-      and `checks.*.status`; no internal topology, hostname, dependency name, exception, path,
-      or environment value crosses this boundary.
-    required: [status, checks]
+      docs/reference/health-endpoints.md. Identifies the controller namespace selected by routing
+      and carries the enum-bounded strings `status` and `checks.*.status`; no dependency name,
+      exception, path, or environment value crosses this boundary.
+    required: [status, checks, namespace]
     properties:
       status:
         type: string
@@ -344,6 +344,11 @@ schemas:
             $ref: "#/schemas/CheckStatus"
           readiness:
             $ref: "#/schemas/CheckStatus"
+      namespace:
+        type: string
+        pattern: '^[a-z]+/[a-z]+$'
+        description: >-
+          The `<frame>/<brand>` controller namespace that handled the request.
 
   Revision:
     type: object

@@ -6,7 +6,7 @@ require "test_helper"
 
 # End-to-end contract for the health endpoints on every declared surface.
 #
-#   GET /health            -> text/plain four-line aggregate (status, startup, liveness, readiness)
+#   GET /health            -> text/plain five-line aggregate (status, namespace, startup, liveness, readiness)
 #   GET /health/{probe}    -> text/plain "ok\n" / HTTP 200 or "unavailable\n" / HTTP 503
 #   GET /api/v0/health.json -> application/json {"status":..,"checks":{..}}, 406 on a non-JSON Accept
 class HealthEndpointsTest < ActionDispatch::IntegrationTest
@@ -601,6 +601,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       assert_equal %w(checks namespace status), body.keys.sort
       assert_equal %w(liveness readiness startup), body.fetch("checks").keys.sort
       assert_includes %w(pass warn fail), body.fetch("status")
+      assert_equal surface[:json_controller].split("/").first(2).join("/"), body.fetch("namespace")
 
       body.fetch("checks").each_value do |check|
         assert_equal %w(status), check.keys

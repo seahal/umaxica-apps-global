@@ -5,7 +5,7 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 # Probe and aggregate behaviour on a single surface (auth/app). The wire contract is text/plain:
-# a probe is "ok\n" / 200 or "unavailable\n" / 503, and GET /health is the four-line aggregate.
+# a probe is "ok\n" / 200 or "unavailable\n" / 503, and GET /health is the five-line aggregate.
 class HealthCheckTest < ActionDispatch::IntegrationTest
   setup do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")

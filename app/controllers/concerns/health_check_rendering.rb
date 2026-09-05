@@ -9,8 +9,8 @@
 #
 # - `render_probe`         -> text/plain. `"ok\n"` and HTTP 200 when the probe passes; a short
 #   `"unavailable\n"` and HTTP 503 when it does not. `GET /health/{startup,liveness,readiness}`.
-# - `render_snapshot`      -> text/plain aggregate. Four lines, always in the order
-#   `status`, `startup`, `liveness`, `readiness`. `GET /health`.
+# - `render_snapshot`      -> text/plain aggregate. Five lines, always in the order
+#   `status`, `namespace`, `startup`, `liveness`, `readiness`. `GET /health`.
 # - `render_health_status` -> application/json machine aggregate for `/api/v0/health.json`. The
 #   `pass|warn|fail` vocabulary and the HTTP status decision live in `HealthStatusSerializer`.
 #

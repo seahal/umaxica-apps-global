@@ -12,8 +12,8 @@
 # the liveness entry -- liveness is dependency-free and a downstream outage only makes the
 # instance unready.
 #
-# Nothing internal crosses this boundary: no hostname, dependency name, exception, path, or
-# environment value -- only the two enum-bounded strings `status` and `checks.*.status`.
+# The body identifies the routed controller namespace and exposes no dependency name, exception,
+# path, or environment value.
 class HealthStatusSerializer
   Result = Data.define(:body, :http_status)
 
