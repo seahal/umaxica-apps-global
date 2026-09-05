@@ -7,7 +7,7 @@ class PlainTextHealthEndpointsTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     {
-      "/health" => "status: ok\nstartup: ok\nliveness: ok\nreadiness: ok\n",
+      "/health" => "status: ok\nnamespace: auth/app\nstartup: ok\nliveness: ok\nreadiness: ok\n",
       "/health/startup" => "ok\n",
       "/health/liveness" => "ok\n",
       "/health/readiness" => "ok\n",

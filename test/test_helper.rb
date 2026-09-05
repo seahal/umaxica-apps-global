@@ -279,14 +279,20 @@ module ActiveSupport
     ParallelTestDatabaseCloner.install!(workers: parallel_workers)
     parallelize(workers: parallel_workers, parallelize_databases: false)
 
-    # The rate_limit backing store (config.x.rate_limit.store) is a single
-    # MemoryStore instance created once at boot and shared by every test in the
-    # process. Its counters are keyed by request IP (127.0.0.1 for all tests),
-    # so without a reset a rate_limit test's counter leaks into later, unrelated
-    # tests and spuriously 429s them. Clear it before each test for a clean slate
-    # (mutate the same instance with #clear -- replacing it would not reach
-    # controllers that captured the original store at class-load time).
-    setup { Rails.configuration.x.rate_limit.fetch(:store).clear }
+    # The rate-limit store is a NullStore by default in test, so ordinary
+    # controller and request tests accumulate no counters and never receive a
+    # surprise 429 from an unrelated test's traffic. Tests whose subject is rate
+    # limiting call `with_rate_limit_counters` to swap in a deterministic
+    # MemoryStore for the duration of the test.
+    #
+    # The swap goes through TestSupport::SwappableCacheStore rather than reassigning
+    # config.x.rate_limit[:store], because `rate_limit ..., store:
+    # rate_limit_store` in a controller class body captures the object once at
+    # class-load time; only mutating that captured object reaches it.
+    #
+    # Reset (not just clear) before each test: a test that raised before its
+    # ensure ran must not leave a MemoryStore installed for the next one.
+    setup { Rails.configuration.x.rate_limit.fetch(:store).reset! }
 
     # Social ceremony availability is a Flipper kill switch that fails closed, so the suite's
     # baseline is every provider enabled; tests that exercise a disabled provider turn it off
@@ -310,5 +316,39 @@ module ActiveSupport
     # messages where it expects the default locale. Reset to the default after
     # every test so locale never leaks across the shared process.
     teardown { I18n.locale = I18n.default_locale } # rubocop:disable Rails/I18nLocaleAssignment
+
+    # Class-level form of `with_rate_limit_counters`: a test case whose whole
+    # subject is rate limiting declares this once and every test in it runs
+    # against a deterministic MemoryStore. The per-test `setup` in the base
+    # class already reset the store, and installing a fresh MemoryStore here
+    # keeps buckets independent between tests in the same file.
+    def self.rate_limit_counters!
+      setup do
+        Rails.configuration.x.rate_limit.fetch(:store).backend =
+          ActiveSupport::Cache::MemoryStore.new
+      end
+    end
+
+    # Opt a rate-limit-focused test into real, retained counters. The default
+    # store is a NullStore (see config/environments/test.rb), which increments
+    # to nothing; a test that asserts thresholds, 429s, independent buckets or
+    # window expiry must wrap its exercise in this.
+    #
+    # MemoryStore honors expires_in against Time.current, so window resets are
+    # asserted by travelling time rather than sleeping.
+    def with_rate_limit_counters(store = ActiveSupport::Cache::MemoryStore.new, &)
+      Rails.configuration.x.rate_limit.fetch(:store).with(store, &)
+    end
+
+    # Same idea for Rails.cache, which is a NullStore in test. Cache-behavior
+    # tests opt into a deterministic MemoryStore and get the previous store back
+    # even if the block raises, so cache state never leaks between tests.
+    def with_application_cache(store = ActiveSupport::Cache::MemoryStore.new)
+      previous = Rails.cache
+      Rails.cache = store
+      yield store
+    ensure
+      Rails.cache = previous
+    end
   end
 end

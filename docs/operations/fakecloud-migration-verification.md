@@ -56,8 +56,10 @@ podman volume rm umaxica-apps-global-dc_rustfs-data0 \
      container_name: global-devcontainer-primary
    replica:
      container_name: global-devcontainer-replica
-   valkey:
-     container_name: global-devcontainer-valkey
+   valkey-cache:
+     container_name: global-devcontainer-valkey-cache
+   valkey-rate-limit:
+     container_name: global-devcontainer-valkey-rate-limit
 -  # kafka needs no devcontainer override: it publishes no host port and its
 -  # container name is not referenced by tooling.
    loki:
@@ -114,14 +116,14 @@ Run on a machine that can rebuild. Record failures here rather than deleting the
 - [ ] `docker compose config` succeeds — syntax compatibility only, Docker is not a supported engine
 - [ ] `podman compose config` still lists all five observability services (they are no longer
       profile-gated)
-- [ ] plain `podman compose up -d` starts `core`, `primary`, `replica`, `valkey`, `fakecloud`
+- [ ] plain `podman compose up -d` starts `core`, `primary`, `replica`, `valkey-cache`, `valkey-rate-limit`, `fakecloud`
 - [ ] stop, restart, `down`, `up` again all succeed
 
 ### Existing infrastructure (regression)
 
 - [ ] `primary` reaches healthy
 - [ ] `replica` reaches healthy and `pg_stat_wal_receiver.status = 'streaming'`
-- [ ] `valkey` reaches healthy
+- [ ] `valkey-cache` and `valkey-rate-limit` reach healthy
 - [ ] Rails boots in `core`
 
 ### fakecloud

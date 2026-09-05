@@ -1,13 +1,19 @@
 # Cloudflare Private Origin Contract
 
-This repository exposes Rails to Cloudflare Tunnel only through the Podman `frontend` network. The
-same tunnel supports published browser hostnames and a future Workers VPC Service, but those ingress
-paths do not change Rails authentication, authorization, or surface ownership.
+This repository exposes Rails to Cloudflare Tunnel only through the Podman `frontend` network. Two
+route types share that network but not a tunnel: published browser hostnames behind Access run over
+the `Auth` tunnel, and Workers VPC runs over its own dedicated `umaxica-dev-workers-vpc` tunnel.
+Neither ingress path changes Rails authentication, authorization, or surface ownership.
 
-The connector is attached only to this compose project's private `frontend` network. The Edge and
+The tunnels are deliberately separate. Until 2026-09-05 the single VPC Service was bound to the
+`Auth` tunnel, so every Access application, ingress rule, replica and token rotation on the
+published browser path also moved the Edge Worker's only route to Rails. Splitting them means a
+change to one cannot take out the other. See "Workers VPC Traffic" below.
+
+Every connector is attached only to this compose project's private `frontend` network. The Edge and
 Global compose projects must not share a host Podman network. Edge Workers reach Rails through a
-Cloudflare Workers VPC Service bound to this tunnel; they never resolve or dial the Rails container
-over a cross-project container network.
+Cloudflare Workers VPC Service bound to the Workers VPC tunnel; they never resolve or dial the Rails
+container over a cross-project container network.
 
 ## Invariants and Verification Gates
 
@@ -37,10 +43,12 @@ The gates are intentionally independent:
    `frontend` network and no new host port publication. The connector never needs an inbound host
    port and must not be given one; the only publications in the stack are `core`'s loopback-bound
    `3000`/`3036`. See `docs/operations/development-host-port-exposure.md`.
-5. **Workers VPC connector prerequisites**: cloudflared is pinned at the supported `2026.8.2`
-   release, runs with QUIC, authenticates with the remotely managed tunnel token from the gitignored
-   repository `.env`, and requires outbound UDP port 7844. See "Authenticating the Connector"
-   below.
+5. **Workers VPC connector prerequisites**: `cloudflare-tunnel-workers-vpc` is pinned at the
+   supported `2026.8.2` release, runs with QUIC, authenticates with its own tunnel token from the
+   gitignored repository `.env`, and requires outbound UDP port 7844. Its `/ready` must report four
+   `readyConnections` and its log must name tunnel `03a4a67c-2aca-4f2c-9aeb-d1666f18bc87` — any
+   other tunnel id means the Workers VPC path has been re-coupled to a shared tunnel. See
+   "Authenticating the Connector" below.
 6. **Repository regression checks**: run the focused tests first, then the full Rails suite,
    coverage, and lint checks when the test databases are available.
 
@@ -76,15 +84,27 @@ and the tunnel Access options in
 
 ## Workers VPC Traffic
 
-Configure the future VPC Service as HTTP. Its target hostname is a private alias resolvable on the
-Podman `frontend` network. Use port `3000` for this development compose stack and port `8080` for
-the production image. The Worker binding belongs to the Worker repository, not this Rails
-repository.
+The development VPC Service is HTTP, and it targets **`core-workers-vpc.internal`** on port `3000`
+(port `8080` for the production image). The Worker binding belongs to the Worker repository, not
+this Rails repository.
 
-The VPC Service target selects the private route. The hostname in the Worker's `fetch()` URL remains
-the origin Host/SNI, so it must be a narrowly allowlisted Umaxica surface hostname and must match
-the surface route constraint. See Cloudflare's
+That alias is not decoration, and no `*.localhost` name may replace it. RFC 6761 reserves the
+`localhost.` domain, and glibc resolves any name under it to loopback _before_ a container resolver
+is consulted — on the `frontend` network itself, `getent hosts core.app.localhost` answers `::1`,
+not this container. A VPC Service pointed at a `*.localhost` name therefore cannot work, which is
+what drove the service to target the raw Podman address `10.89.2.2` — an address that changes
+whenever the network is recreated. `core-workers-vpc.internal` is a plain Compose alias on `core`'s
+`frontend` network: neither loopback-reserved nor ephemeral.
+
+The VPC Service target selects the private route only. The hostname in the Worker's `fetch()` URL
+remains the origin Host/SNI, so it must still be a narrowly allowlisted Umaxica surface hostname and
+must match the surface route constraint — `core-workers-vpc.internal` never appears as a Host and
+needs no `config.hosts` entry. See Cloudflare's
 [VPC Services configuration](https://developers.cloudflare.com/workers-vpc/configuration/vpc-services/).
+
+This tunnel carries no ingress rules, no public hostname and no Access application, and must not
+gain any. Cloudflare routes Workers VPC traffic from the VPC Service target rather than from tunnel
+ingress, so a locally managed tunnel needs no ingress configuration at all.
 
 Cloudflare documents cloudflared `2025.7.0` or newer, QUIC via `--protocol auto` or `quic`, and
 outbound UDP 7844 for Workers VPC tunnels. This connector uses `auto` so a UDP blip falls back to
@@ -103,10 +123,11 @@ one of them. Compose defines one connector service per tunnel. The primary conne
 default stack so the Dev Container lifecycle starts it. The alternative connector stays behind a
 profile:
 
-| Service                  | Profile                         | Token variable           |
-| :----------------------- | :------------------------------ | :----------------------- |
-| `cloudflare-tunnel`      | none (starts with the stack)    | `CLOUDFLARED_TOKEN`      |
-| `cloudflare-tunnel-edge` | `tunnel-edge`                   | `CLOUDFLARED_EDGE_TOKEN` |
+| Service                         | Profile                      | Token variable                  | Tunnel                               |
+| :------------------------------ | :--------------------------- | :------------------------------ | :----------------------------------- |
+| `cloudflare-tunnel`             | none (starts with the stack) | `CLOUDFLARED_TOKEN`             | `Auth` — published hostnames/Access  |
+| `cloudflare-tunnel-edge`        | `tunnel-edge`                | `CLOUDFLARED_EDGE_TOKEN`        | `Edge`                               |
+| `cloudflare-tunnel-workers-vpc` | none (starts with the stack) | `CLOUDFLARED_WORKERS_VPC_TOKEN` | `umaxica-dev-workers-vpc` — VPC only |
 
 `cloudflare-tunnel-edge` merges `cloudflare-tunnel`'s definition through a YAML anchor, so the two
 differ only in the edge profile and token; the pinned release, the QUIC command, the `frontend`
@@ -129,6 +150,7 @@ Retrieve a token in the Cloudflare dashboard:
 ```dotenv
 CLOUDFLARED_TOKEN=<paste the first tunnel's token here>
 CLOUDFLARED_EDGE_TOKEN=<paste the second tunnel's token here>
+CLOUDFLARED_WORKERS_VPC_TOKEN=<paste the umaxica-dev-workers-vpc token here>
 ```
 
 ```bash
@@ -152,18 +174,18 @@ devcontainer up --workspace-folder .         # starts cloudflare-tunnel
 podman compose --profile tunnel-edge up -d   # alternative tunnel
 ```
 
-Starting both is supported: the two connectors then serve their own tunnels over the same
-private `*.localhost` origins on `frontend`. Nothing in Rails changes with the choice of tunnel —
-the ingress rules and published hostnames live in the Cloudflare account, and Rails Host
-Authorization accepts the same two hostname families either way.
+Starting both is supported: the two connectors then serve their own tunnels over the same private
+`*.localhost` origins on `frontend`. Nothing in Rails changes with the choice of tunnel — the
+ingress rules and published hostnames live in the Cloudflare account, and Rails Host Authorization
+accepts the same two hostname families either way.
 
 Do not leave a standalone `docker run ... tunnel run --token ...` connector running for either
 tunnel at the same time. Inspect `docker ps` and `podman ps` on the host before switching to the
 Compose sidecar.
 
 To rotate or revoke the connector credential, refresh the token in the Cloudflare dashboard, replace
-only that tunnel's token value in `.env`, and recreate its connector. Removing the local value
-alone does not revoke a copied token at Cloudflare:
+only that tunnel's token value in `.env`, and recreate its connector. Removing the local value alone
+does not revoke a copied token at Cloudflare:
 
 ```bash
 podman compose -f compose.yaml \
@@ -223,6 +245,26 @@ done
 ```
 
 Every line must read `200`. Pin the curl tag, or a digest, rather than tracking `latest`.
+
+Observed 2026-09-05: on `umaxica-apps-global-dc_frontend` this loop returns `000`, not `200`, for
+every `*.localhost` alias, and `getent hosts core.app.localhost` in the same container answers
+`::1`. That is glibc applying RFC 6761 — names under the reserved `localhost.` domain resolve to
+loopback without consulting the container resolver — so the probe never reaches Rails through those
+names. It is a property of the probe container's resolver, not evidence about the connector:
+cloudflared uses Go's own resolver and is not known to apply the same special case. Treat a `000`
+here as inconclusive for the Access ingress path and diagnose that path through the connector
+instead.
+
+The Workers VPC alias is unaffected and is the one to probe for that path:
+
+```bash
+podman run --rm --network "$net" docker.io/curlimages/curl:8.16.0 \
+  -sS -o /dev/null --max-time 5 -w "%{http_code}\n" \
+  -H "Host: core.app.localhost" http://core-workers-vpc.internal:3000/health/
+```
+
+`Host:` is set explicitly because `core-workers-vpc.internal` is a routing name only and
+`config.hosts` does not admit it — the same split the Worker's `fetch()` URL relies on.
 
 A `403` is Host Authorization, not transport: the alias resolved and Rails answered, but no
 `config.hosts` entry admits that name. Fix it in `config/environments/development.rb` or remove the

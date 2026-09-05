@@ -109,6 +109,22 @@ class ComposeLocalOverrideOptionalTest < Minitest::Test
     end
   end
 
+  def test_devcontainer_override_names_both_valkey_services_from_the_base_compose
+    base_services = load_compose("compose.yaml").fetch("services")
+    override_services = load_compose(".devcontainer/compose.override.yml").fetch("services")
+
+    refute_includes override_services, "valkey",
+                    "the retired single Valkey service makes devcontainer up look for " \
+                    "global-devcontainer-valkey"
+
+    %w(valkey-cache valkey-rate-limit).each do |service|
+      assert_includes base_services, service
+      assert_includes override_services, service
+      assert_equal base_services.fetch(service).fetch("container_name"),
+                   override_services.fetch(service).fetch("container_name")
+    end
+  end
+
   def test_the_primary_tunnel_connector_starts_with_the_devcontainer_stack
     # The Dev Containers CLI starts every unprofiled service in the merged Compose
     # files. Gating the primary connector behind `profiles: [tunnel]` kept
@@ -180,7 +196,30 @@ class ComposeLocalOverrideOptionalTest < Minitest::Test
     assert_equal({ "TUNNEL_TOKEN" => "${CLOUDFLARED_EDGE_TOKEN:-}" }, edge.fetch("environment"))
   end
 
+  def test_workers_vpc_connector_is_dedicated_and_starts_with_the_devcontainer_stack
+    services = load_compose("compose.yaml").fetch("services")
+    primary = services.fetch("cloudflare-tunnel")
+    workers_vpc = services.fetch("cloudflare-tunnel-workers-vpc")
+
+    assert_equal ["environment"],
+                 (primary.keys | workers_vpc.keys)
+                   .reject { |key| primary[key] == workers_vpc[key] }
+                   .sort,
+                 "the Workers VPC connector must inherit the pinned image, QUIC command, " \
+                 "private network, and bounded restart policy from the primary connector"
+    assert_equal({ "TUNNEL_TOKEN" => "${CLOUDFLARED_WORKERS_VPC_TOKEN:-}" },
+                 workers_vpc.fetch("environment"))
+    refute workers_vpc.key?("profiles"),
+           "the dedicated Workers VPC connector must start with the Dev Container stack"
+    refute workers_vpc.key?("depends_on"),
+           "Podman container dependencies break Dev Containers CLI recreation"
+  end
+
   private
+
+  def load_compose(relative_path)
+    YAML.safe_load_file(File.join(REPOSITORY_ROOT, relative_path), aliases: true)
+  end
 
   def devcontainer_configuration
     source = File.read(File.join(REPOSITORY_ROOT, DEVCONTAINER_CONFIG))

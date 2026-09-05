@@ -58,7 +58,6 @@ class HostAuthorizationContractTest < Minitest::Test
     stdout, stderr, status = Open3.capture3(
       cleared_object_storage_env.merge(
         "RAILS_ENV" => "development",
-        "REDIS_SMOKE_TEST" => "0",
         "HOST_AUTHORIZATION_TEST_HOSTS" => JSON.generate(hosts),
         "PRIVATE_AUTH_CORPORATE_URL" => "http://configured-auth.com.localhost:3000",
         "PRIVATE_AUTH_STAFF_URL" => "http://configured-auth.org.localhost:3000",
@@ -123,6 +122,16 @@ class HostAuthorizationContractTest < Minitest::Test
     assert_equal 403, statuses.fetch("evil.example.com")
   end
 
+  # `frontend` aliases that exist so something can DIAL the Rails container, never so
+  # Rails can accept them as a Host. The Workers VPC Service names its target here; the
+  # Host header on that path still comes from the Worker's `fetch()` URL, so these names
+  # are deliberately absent from `config.hosts` and no `PUBLIC_*_URL` may name them.
+  #
+  # A `*.localhost` name cannot do this job: RFC 6761 makes glibc resolve anything under
+  # `localhost.` to loopback before a container resolver is consulted.
+  # See docs/operations/cloudflare-private-origin.md.
+  ROUTING_ONLY_ALIASES = ["core-workers-vpc.internal"].freeze
+
   def test_development_compose_aliases_only_private_origins_and_configured_public_site_hosts
     compose = File.read(File.expand_path("../../compose.yaml", __dir__))
     aliases_block = compose[/frontend:\n\s+aliases:\n((?:\s+(?:- \S+|#.*)\n)+)/, 1].to_s
@@ -138,11 +147,31 @@ class HostAuthorizationContractTest < Minitest::Test
 
     aliased_hosts.each do |host|
       next if host.end_with?(".localhost")
+      next if ROUTING_ONLY_ALIASES.include?(host)
 
       assert_includes configured_public_hosts,
                       host,
                       "compose.yaml aliases #{host} to core, but no PUBLIC_*_URL names it, " \
                       "so development Host Authorization would reject it"
+    end
+
+    # The exemption above is only sound while these names really are routing-only. A
+    # routing-only alias that also became an accepted Host would be admitting a hostname
+    # no PUBLIC_*_URL declares, which is exactly what this test exists to prevent, so
+    # assert the other half rather than trusting the exemption list.
+    development_config = File.read(File.expand_path("../../config/environments/development.rb", __dir__))
+    ROUTING_ONLY_ALIASES.each do |host|
+      assert_includes aliased_hosts,
+                      host,
+                      "#{host} is exempted as routing-only but is no longer a frontend alias; " \
+                      "drop it from ROUTING_ONLY_ALIASES"
+      # rubocop:disable Rails/RefuteMethods
+      refute_includes development_config,
+                      host,
+                      "#{host} is a Workers VPC routing target, not an origin Host. It must not " \
+                      "appear in config.hosts: Cloudflare uses it only to pick the origin to dial, " \
+                      "and the Host still comes from the Worker's fetch() URL"
+      # rubocop:enable Rails/RefuteMethods
     end
   end
 
@@ -177,7 +206,6 @@ class HostAuthorizationContractTest < Minitest::Test
   def development_published_host_env(unconfigured_site_host)
     cleared_object_storage_env.merge(
       "RAILS_ENV" => "development",
-      "REDIS_SMOKE_TEST" => "0",
       "HOST_AUTHORIZATION_TEST_HOSTS" =>
         JSON.generate(BROWSER_FACING_SITE_HOSTS + [unconfigured_site_host, "evil.example.com"]),
       "PUBLIC_AUTH_SERVICE_URL" => "https://auth.umaxica.app",

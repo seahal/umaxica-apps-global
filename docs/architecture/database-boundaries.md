@@ -68,7 +68,6 @@ The current `notification` connection will split into three surface signal datab
 
 These database names remain independent cross-cutting or infrastructure boundaries:
 
-- `cache`
 - `queue`
 - `storage`
 - `search`

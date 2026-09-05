@@ -355,7 +355,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "GET /health is a text/plain five-line aggregate, never HTML or JSON, with no polling" do
+  test "GET /health is a text/plain four-line aggregate, never HTML or JSON, with no polling" do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     get "/health"
@@ -364,7 +364,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     assert_equal "text/plain", response.media_type
     assert_not_equal "text/html", response.media_type
     assert_not_equal "application/json", response.media_type
-    assert_match(/\Astatus: \w+\nnamespace: auth\/app\nstartup: \w+\nliveness: \w+\nreadiness: \w+\n\z/, response.body)
+    assert_match(/\Astatus: \w+\nstartup: \w+\nliveness: \w+\nreadiness: \w+\n\z/, response.body)
     assert_no_match(/<html|<!doctype/i, response.body)
     assert_no_match(/fetch\s*\(|setInterval|setTimeout|EventSource|WebSocket/i, response.body)
     assert_no_match(/health\.json/i, response.body)
@@ -598,7 +598,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
       body = response.parsed_body
 
-      assert_equal %w(checks namespace status), body.keys.sort
+      assert_equal %w(checks status), body.keys.sort
       assert_equal %w(liveness readiness startup), body.fetch("checks").keys.sort
       assert_includes %w(pass warn fail), body.fetch("status")
 
@@ -609,37 +609,6 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
       assert_equal "pass", body.fetch("status")
       assert_equal "no-store", response.headers["Cache-Control"]
-    end
-  end
-
-  test "GET /api/v0/health.json identifies the controller namespace selected for every edge host" do
-    namespaces =
-      EDGE_NAMESPACE_HOSTS.map do |host, expected_namespace|
-        host! host
-
-        stub_healthy do
-          get "/api/v0/health.json", headers: { "Accept" => "application/json" }
-        end
-
-        assert_response :success, "#{host} /api/v0/health.json"
-        assert_equal expected_namespace, response.parsed_body.fetch("namespace"), host
-
-        response.parsed_body.fetch("namespace")
-      end
-
-    assert_equal EDGE_NAMESPACE_HOSTS.length, namespaces.uniq.length
-  end
-
-  test "GET /health identifies the controller namespace selected for every edge host" do
-    EDGE_NAMESPACE_HOSTS.each do |host, expected_namespace|
-      host! host
-
-      stub_healthy do
-        get "/health"
-      end
-
-      assert_response :success, "#{host} /health"
-      assert_includes response.body.lines, "namespace: #{expected_namespace}\n", host
     end
   end
 
@@ -737,7 +706,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
               assert_response :success
               assert_equal "text/plain", response.media_type
-              assert_equal "status: ok\nnamespace: #{surface[:controller].split("/").first(2).join("/")}\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
+              assert_equal "status: ok\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
 
               PROBES.each do |probe|
                 get "/health/#{probe}"

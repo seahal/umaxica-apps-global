@@ -9,6 +9,11 @@ require "test_helper"
 # an expired session rather than verified, and that repeated attempts from one
 # address are stopped before they become an oracle.
 class SignOperatorTelephoneRegistrableGuardsTest < ActiveSupport::TestCase
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   self.fixture_table_names = []
 
   class Harness

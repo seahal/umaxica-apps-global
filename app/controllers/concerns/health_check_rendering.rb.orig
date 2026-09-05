@@ -44,7 +44,6 @@ module HealthCheckRendering
 
     body = [
       "status: #{snapshot.fetch(:status)}",
-      "namespace: #{health_namespace}",
       "startup: #{probe_line(dependencies, "startup")}",
       "liveness: #{probe_line(dependencies, "liveness")}",
       "readiness: #{probe_line(dependencies, "readiness")}",
@@ -56,12 +55,7 @@ module HealthCheckRendering
   # Machine aggregate (`/api/v0/health.json`): application/json. The three probe results are
   # mapped and aggregated by the serializer, which also owns the HTTP status.
   def render_health_status(liveness:, readiness:, startup:)
-    serialized = HealthStatusSerializer.call(
-      liveness: liveness,
-      namespace: health_namespace,
-      readiness: readiness,
-      startup: startup,
-    )
+    serialized = HealthStatusSerializer.call(liveness: liveness, readiness: readiness, startup: startup)
 
     render json: serialized.body, status: serialized.http_status
   end

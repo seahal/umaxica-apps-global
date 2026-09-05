@@ -14,13 +14,14 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
   test "all probes ok is status pass and HTTP 200" do
     serialized = HealthStatusSerializer.call(
       liveness: result(:liveness, :ok),
+      namespace: "test/app",
       readiness: result(:readiness, :ok),
       startup: result(:startup, :ok),
     )
 
     assert_equal(
       { status: "pass",
-        checks: { startup: { status: "pass" }, liveness: { status: "pass" }, readiness: { status: "pass" } }, },
+        checks: { startup: { status: "pass" }, liveness: { status: "pass" }, readiness: { status: "pass" } }, namespace: "test/app", },
       serialized.body,
     )
     assert_equal 200, serialized.http_status
@@ -29,6 +30,7 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
   test "an unready readiness is fail overall and HTTP 503, and does not change liveness" do
     serialized = HealthStatusSerializer.call(
       liveness: result(:liveness, :ok),
+      namespace: "test/app",
       readiness: result(:readiness, :unready),
       startup: result(:startup, :ok),
     )
@@ -42,6 +44,7 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
   test "degraded but acceptable is warn overall and still HTTP 200" do
     serialized = HealthStatusSerializer.call(
       liveness: result(:liveness, :ok),
+      namespace: "test/app",
       readiness: result(:readiness, :degraded_acceptable),
       startup: result(:startup, :ok),
     )
@@ -54,6 +57,7 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
   test "a starting process warns on liveness but fails on startup" do
     liveness_starting = HealthStatusSerializer.call(
       liveness: result(:liveness, :starting),
+      namespace: "test/app",
       readiness: result(:readiness, :ok),
       startup: result(:startup, :ok),
     )
@@ -64,6 +68,7 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
 
     startup_starting = HealthStatusSerializer.call(
       liveness: result(:liveness, :ok),
+      namespace: "test/app",
       readiness: result(:readiness, :ok),
       startup: result(:startup, :starting),
     )
@@ -76,6 +81,7 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
   test "checks are emitted in startup, liveness, readiness order" do
     serialized = HealthStatusSerializer.call(
       liveness: result(:liveness, :ok),
+      namespace: "test/app",
       readiness: result(:readiness, :ok),
       startup: result(:startup, :ok),
     )

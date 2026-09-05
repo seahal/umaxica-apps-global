@@ -20,13 +20,12 @@ class HealthStatusSerializer
   # Emission order matches docs/reference/health-endpoints.md: startup, liveness, readiness.
   CHECK_ORDER = %i(startup liveness readiness).freeze
 
-  def self.call(liveness:, namespace:, readiness:, startup:)
-    new(liveness: liveness, namespace: namespace, readiness: readiness, startup: startup).call
+  def self.call(liveness:, readiness:, startup:)
+    new(liveness: liveness, readiness: readiness, startup: startup).call
   end
 
-  def initialize(liveness:, namespace:, readiness:, startup:)
+  def initialize(liveness:, readiness:, startup:)
     @results = { startup: startup, liveness: liveness, readiness: readiness }
-    @namespace = namespace
   end
 
   def call
@@ -37,7 +36,6 @@ class HealthStatusSerializer
       body: {
         status: overall,
         checks: mapped.transform_values { |status| { status: status } },
-        namespace: @namespace,
       },
       http_status: (overall == "fail") ? 503 : 200,
     )

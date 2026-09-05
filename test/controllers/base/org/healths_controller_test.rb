@@ -14,7 +14,7 @@ class Base::Org::HealthsControllerTest < ActionDispatch::IntegrationTest
     assert_not_predicate response, :redirect?
     assert_equal "text/plain", response.media_type
     assert_not_equal "text/html", response.media_type
-    assert_match(/\Astatus: \w+\nstartup: \w+\nliveness: \w+\nreadiness: \w+\n\z/, response.body)
+    assert_match(/\Astatus: \w+\nnamespace: \w+\/\w+\nstartup: \w+\nliveness: \w+\nreadiness: \w+\n\z/, response.body)
   end
   private
 

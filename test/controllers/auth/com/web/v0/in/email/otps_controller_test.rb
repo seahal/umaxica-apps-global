@@ -9,6 +9,11 @@ require "test_helper"
 # inside the cooldown must carry the retry window in a header the browser can
 # act on.
 class Auth::Com::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::IntegrationTest
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     host! @host

@@ -155,8 +155,6 @@ services:
       POSTGRESQL_COM_SIGNAL_SUB: replica
       POSTGRESQL_AVATAR_PUB: primary
       POSTGRESQL_AVATAR_SUB: replica
-      POSTGRESQL_CACHE_PUB: primary
-      POSTGRESQL_CACHE_SUB: replica
       POSTGRESQL_CHRONICLE_PUB: primary
       POSTGRESQL_CHRONICLE_SUB: replica
       POSTGRESQL_OCCURRENCE_PUB: primary
@@ -170,16 +168,20 @@ services:
       POSTGRESQL_STORAGE_PUB: primary
       POSTGRESQL_STORAGE_SUB: replica
       POSTGRESQL_PLATFORM_PUB: primary
-      # --- Redis / Valkey ---
-      VALKEY_URL: "redis://valkey:6379/0"
-      RATE_LIMIT_REDIS_URL: "redis://valkey:6379/1"
+      # --- Valkey ---
+      # Two physically separate Valkey services, not two logical DB indexes on
+      # one. Cache and rate-limit state have different semantics, must be
+      # independently flushable and restartable, and cannot collide by key.
+      # Managed providers such as Upstash support only DB 0 anyway, so a logical
+      # index is not a portable isolation boundary.
+      CACHE_REDIS_URL: "redis://valkey-cache:6379/0"
+      RATE_LIMIT_REDIS_URL: "redis://valkey-rate-limit:6379/0"
       # Credentials for the Flipper UI mounted on the developer surface. The mount
       # is wrapped in Rack::Auth::Basic (config/routes/base.rb) and fails closed
       # when these are unset, so local development needs them to reach the UI.
       # Development values only: production supplies them through credentials.
       FLIPPER_UI_USER: "${FLIPPER_UI_USER:-flipper}"
       FLIPPER_UI_PASSWORD: "${FLIPPER_UI_PASSWORD:-development_flipper_password}"
-      REDIS_NORMAL_URL: "redis://valkey:6379/7"
       # --- Observability ---
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4318"
       # --- Mail ---
@@ -376,6 +378,21 @@ services:
       backend: {}
       frontend:
         aliases:
+          # The Workers VPC Service target, and the ONLY alias fit for that job.
+          #
+          # Every `*.localhost` name below is unusable as a VPC Service hostname:
+          # RFC 6761 reserves `localhost.` and glibc resolves any name under it to
+          # loopback before a container resolver is ever consulted, so on this very
+          # network `getent hosts core.app.localhost` answers `::1` rather than this
+          # container. That is what drove the previous VPC Service to target the raw
+          # Podman address `10.89.2.2`, which changes whenever the network is
+          # recreated. This alias is neither loopback-reserved nor ephemeral.
+          #
+          # It carries no Host semantics. Cloudflare uses it only to pick the origin
+          # to dial; the Host header still comes from the Worker's `fetch()` URL, so
+          # `config.hosts` is unaffected and this name needs no entry there.
+          # See docs/operations/cloudflare-private-origin.md.
+          - core-workers-vpc.internal
           # Private pod-internal / tunnel origins (PRIVATE_*_URL). The Cloudflare
           # Tunnel ingress rules resolve their `service:` address on this network,
           # so these names must resolve to `core` here. Without them cloudflared
@@ -439,7 +456,9 @@ services:
         condition: service_healthy
       replica:
         condition: service_started
-      valkey:
+      valkey-cache:
+        condition: service_healthy
+      valkey-rate-limit:
         condition: service_healthy
   # Local AWS emulator. This is the project-common AWS compatibility layer for
   # development: S3 and the MSK control plane are reached here instead of
@@ -627,13 +646,48 @@ services:
       timeout: 3s
       retries: 30
       start_period: 10s
-  valkey:
-    container_name: global-devcontainer-valkey
+  # Disposable, reconstructible application cache (Rails.cache). Every entry
+  # carries an explicit TTL; flushing this service must never change application
+  # correctness, and must not touch rate-limit counters.
+  valkey-cache:
+    container_name: global-devcontainer-valkey-cache
     image: docker.io/valkey/valkey:8.0-alpine3.22
     networks:
       - backend
     volumes:
-      - valkey-volume:/data
+      - valkey-cache-volume:/data
+    # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
+    # exits immediately on a bad configuration is recreated several times a second until
+    # the netns, veth, conmon, and journald churn saturates a CPU. Five attempts ride out
+    # a transient failure and leave a real misconfiguration stopped and visible.
+    restart: on-failure:5
+    # journald enforces no per-container size cap, and a restart loop writes the same
+    # startup failure thousands of times, so a capped json-file driver is what actually
+    # bounds the disk cost of a bad configuration. Container output no longer reaches
+    # `journalctl`; read it with `podman logs`, which serves either driver.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test:
+        - CMD
+        - valkey-cli
+        - ping
+      interval: 3s
+      timeout: 2s
+      retries: 20
+      start_period: 3s
+  # Distributed rate-limit counters, TTL-bound to the rate-limit window. Kept in
+  # its own service so cache maintenance can never reset abuse protection.
+  valkey-rate-limit:
+    container_name: global-devcontainer-valkey-rate-limit
+    image: docker.io/valkey/valkey:8.0-alpine3.22
+    networks:
+      - backend
+    volumes:
+      - valkey-rate-limit-volume:/data
     # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
     # exits immediately on a bad configuration is recreated several times a second until
     # the netns, veth, conmon, and journald churn saturates a CPU. Five attempts ride out
@@ -902,6 +956,29 @@ services:
       - tunnel-edge
     environment:
       TUNNEL_TOKEN: "${CLOUDFLARED_EDGE_TOKEN:-}"
+  # The connector for the dedicated Workers VPC tunnel `umaxica-dev-workers-vpc`
+  # (`03a4a67c-2aca-4f2c-9aeb-d1666f18bc87`). It exists so the Workers VPC path does
+  # not ride on `cloudflare-tunnel`'s tunnel, which also serves the ten published
+  # browser hostnames behind Access: any ingress, replica, or token change there used
+  # to move the Edge Worker's only route to Rails with it.
+  #
+  # Unlike the other two this tunnel carries NO ingress rules, no public hostname and
+  # no Access application. Cloudflare routes Workers VPC traffic from the VPC Service
+  # target rather than from tunnel ingress, so a locally managed tunnel needs no
+  # ingress configuration at all.
+  # https://developers.cloudflare.com/workers-vpc/configuration/tunnel/
+  #
+  # Everything else — the pinned release, `--protocol auto` for QUIC, the `frontend`
+  # attachment that makes `core.app.localhost` resolve to `core`, and the crash-loop
+  # caps — is merged from `cloudflare-tunnel` so it cannot drift.
+  #
+  # No profile: the Workers VPC path is part of the standard development environment,
+  # so `devcontainer up` and a plain `up` both start it. A missing token leaves a
+  # stopped container, exactly as it does for the other two connectors.
+  cloudflare-tunnel-workers-vpc:
+    <<: *cloudflare-connector
+    environment:
+      TUNNEL_TOKEN: "${CLOUDFLARED_WORKERS_VPC_TOKEN:-}"
 networks:
   backend: {}
   frontend: {}
@@ -919,7 +996,8 @@ volumes:
   primary-data: {}
   workspace-podman-storage: {}
   replica-data: {}
-  valkey-volume: {}
+  valkey-cache-volume: {}
+  valkey-rate-limit-volume: {}
   alloy-volume: {}
   loki-volume: {}
   tempo-volume: {}

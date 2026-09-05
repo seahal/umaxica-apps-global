@@ -9,15 +9,15 @@ module OidcClientAssertionJwt
   TTL = 5.minutes
 
   class << self
-    # Replay tracking store. Defaults to Rails.cache in runtime environments.
-    # Tests may inject a real store because Rails.cache is :null_store there.
+    # Tests may inject a deterministic store. Runtime replay prevention is
+    # PostgreSQL-backed because losing a consumed JTI would weaken security.
     # rubocop:disable ThreadSafety/ClassAndModuleAttributes
     attr_writer :replay_store
     # rubocop:enable ThreadSafety/ClassAndModuleAttributes
 
     # rubocop:disable ThreadSafety/ClassInstanceVariable
     def replay_store
-      @replay_store ||= Rails.cache
+      @replay_store ||= SecurityConsumedJti
     end
     # rubocop:enable ThreadSafety/ClassInstanceVariable
   end
@@ -98,12 +98,21 @@ module OidcClientAssertionJwt
     ttl = exp.to_i - now.to_i + AuthenticationJwtConfiguration.leeway_seconds
     return false unless ttl.positive?
 
-    replay_store.write(
-      replay_cache_key(namespace: namespace, client_id: client_id, jti: jti),
-      true,
-      expires_in: ttl.seconds,
-      unless_exist: true,
-    )
+    if replay_store == SecurityConsumedJti
+      replay_store.consume!(
+        purpose: SecurityConsumedJti::PURPOSES.fetch(:oidc_client_assertion),
+        issuer: "#{namespace}:#{client_id}",
+        jti: jti,
+        expires_at: now + ttl.seconds,
+      )
+    else
+      replay_store.write(
+        replay_cache_key(namespace: namespace, client_id: client_id, jti: jti),
+        true,
+        expires_in: ttl.seconds,
+        unless_exist: true,
+      )
+    end
   rescue StandardError => e
     Rails.logger.info(
       JitLogEvent.format(

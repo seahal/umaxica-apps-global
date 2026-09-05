@@ -78,7 +78,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
   # Text: aggregate /health
   # ----------------------------------------------------------------------------------------------
 
-  test "GET /health is the four-line text aggregate in the fixed order" do
+  test "GET /health is the five-line text aggregate in the fixed order" do
     SURFACES.each do |host, profile|
       host! host
 
@@ -91,7 +91,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
       assert_equal "text/plain", response.media_type
       assert_not_equal "application/json", response.media_type
       assert_not_equal "text/html", response.media_type
-      assert_equal "status: ok\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
+      assert_equal "status: ok\nnamespace: #{Rails.application.routes.recognize_path("http://#{host}/health", method: :get).fetch(:controller).split("/").first(2).join("/")}\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
       assert_no_match JSON_BRACE, response.body
       assert_no_match HTML_MARKER, response.body
       assert_equal "no-store", response.headers["Cache-Control"]
@@ -262,7 +262,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
 
       body = response.parsed_body
 
-      assert_equal %w(checks status), body.keys.sort
+      assert_equal %w(checks namespace status), body.keys.sort
       assert_equal %w(liveness readiness startup), body.fetch("checks").keys.sort
       assert_includes %w(pass warn fail), body.fetch("status")
 
@@ -565,7 +565,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
     assert_equal "text/plain", response.media_type
     assert_equal "no-store", response.headers["Cache-Control"]
     assert_equal(
-      ["status: unavailable", "startup: ok", "liveness: ok", "readiness: unavailable", ""],
+      ["status: unavailable", "namespace: auth/app", "startup: ok", "liveness: ok", "readiness: unavailable", ""],
       response.body.split("\n", -1),
     )
   end

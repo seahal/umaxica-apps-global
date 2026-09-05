@@ -61,7 +61,7 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "surface"
   end
 
-  test "health aggregate is text/plain and never names the surface" do
+  test "health aggregate is text/plain and names the controller namespace" do
     result = Health::CheckResult.new(
       check: :health,
       status: :ok,
@@ -79,8 +79,8 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_equal "text/plain", response.media_type
-    assert_equal "status: ok\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
-    assert_no_match(/surface/i, response.body)
+    assert_equal "status: ok\nnamespace: auth/app\nstartup: ok\nliveness: ok\nreadiness: ok\n", response.body
+    assert_includes response.body.lines, "namespace: auth/app\n"
     assert_no_match(/sign app/i, response.body)
   end
 

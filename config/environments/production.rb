@@ -90,7 +90,23 @@ Rails.application.configure do
   # Require --no-sandbox flag to run destructive console operations
   config.sandbox_by_default = true
 
-  config.cache_store = :solid_cache_store
+  # Application cache is Valkey/Redis-compatible and non-authoritative. Losing,
+  # evicting or flushing it must never change application correctness: every
+  # entry is reconstructible and carries an explicit TTL. Accepts redis:// and
+  # rediss:// (managed providers negotiate TLS from the scheme alone). Provider
+  # topology is a deployment concern, not an application-code decision.
+  cache_namespace = [
+    "cache",
+    Rails.env,
+    ENV["CACHE_NAMESPACE_SUFFIX"].presence,
+  ].compact.join(":")
+  config.cache_store = :redis_cache_store, {
+    url: ENV.fetch("CACHE_REDIS_URL"),
+    namespace: cache_namespace,
+  }
+
+  # Distributed rate-limit counters remain a separate application contract
+  # (namespace `rate_limit:<env>:...`) and never fall back to Rails.cache.
   rate_limit_namespace = [
     "rate_limit",
     Rails.env,
@@ -101,7 +117,6 @@ Rails.application.configure do
       url: ENV.fetch("RATE_LIMIT_REDIS_URL"),
       namespace: rate_limit_namespace,
     )
-  config.solid_cache.connects_to = { shards: { cache: { writing: :cache } } }
 
   # Replace the default in-process and non-durable queuing backend for Active Job.
   config.active_job.queue_adapter = :solid_queue
