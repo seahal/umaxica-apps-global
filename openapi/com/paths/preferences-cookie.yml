@@ -1,0 +1,53 @@
+# GET and PATCH /api/v0/preferences/cookie on the com surface.
+servers:
+  - url: https://jp.umaxica.com
+    description: Canonical Core public host for the com (public and corporate) surface.
+get:
+  summary: Cookie-consent banner state
+  description: >-
+    Reports whether the cookie-consent banner should be shown. Open: no session is required.
+  operationId: getPreferencesCookie
+  tags: [Preferences]
+  security: []
+  responses:
+    "200":
+      description: Banner visibility for this caller.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            enum: [no-store]
+      content:
+        application/json:
+          schema:
+            $ref: "../../shared/components.yml#/schemas/CookieBanner"
+    "406":
+      $ref: "../../shared/components.yml#/responses/NotAcceptable"
+    "429":
+      $ref: "../../shared/components.yml#/responses/RateLimited"
+patch:
+  summary: Record cookie consent
+  description: >-
+    Writes cookie-consent flags. Requires the preference access token; absence is 401 with a
+    JSON `error` member (not a problem document). Successful writes have no representation.
+  operationId: patchPreferencesCookie
+  tags: [Preferences]
+  security: []
+  responses:
+    "204":
+      description: Consent recorded. No body (RFC 9110 15.3.5).
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            enum: [no-store]
+    "401":
+      description: Preference write token is missing.
+      content:
+        application/json:
+          schema:
+            $ref: "../../shared/components.yml#/schemas/CookieConsentWriteError"
+    "406":
+      $ref: "../../shared/components.yml#/responses/NotAcceptable"
+    "429":
+      $ref: "../../shared/components.yml#/responses/RateLimited"

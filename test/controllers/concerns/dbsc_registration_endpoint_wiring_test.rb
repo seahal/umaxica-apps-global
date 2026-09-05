@@ -12,7 +12,7 @@ class DbscRegistrationEndpointWiringTest < ActiveSupport::TestCase
 
   # The core realm, not base: `base/*/edge/v0/dbsc` was a rename leftover that no route named, so
   # asserting the wiring against it guarded a class no request could reach. The routed preference
-  # DBSC endpoint is `core/*/edge/v0/dbsc#create`.
+  # DBSC endpoint is `/api/v0/preferences/dbsc`, backed conservatively by the existing Core classes.
   test "core dbsc controllers use shared preference registration endpoint concern" do
     assert_includes Core::App::Edge::V0::DbscController, PreferenceDbscRegistrationEndpoint
     assert_includes Core::Org::Edge::V0::DbscController, PreferenceDbscRegistrationEndpoint

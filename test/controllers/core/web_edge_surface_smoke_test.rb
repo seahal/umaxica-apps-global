@@ -4,32 +4,29 @@
 require "test_helper"
 # require "helpers/global_test_support"
 
-class CoreWebEdgeSurfaceSmokeTest < ActionDispatch::IntegrationTest
+class CorePreferenceApiSurfaceSmokeTest < ActionDispatch::IntegrationTest
   SURFACES = [
     {
       host: ENV.fetch("PUBLIC_CORE_SERVICE_URL"),
-      cookie_path: "/web/v0/cookie",
-      theme_path: "/web/v0/theme",
-      edge_cookie_path: "/edge/v0/cookie",
-      edge_dbsc_path: "/edge/v0/dbsc",
+      cookie_path: "/api/v0/preferences/cookie",
+      theme_path: "/api/v0/preferences/theme",
+      dbsc_path: "/api/v0/preferences/dbsc",
     },
     {
       host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL"),
-      cookie_path: "/web/v0/cookie",
-      theme_path: "/web/v0/theme",
-      edge_cookie_path: "/edge/v0/cookie",
-      edge_dbsc_path: "/edge/v0/dbsc",
+      cookie_path: "/api/v0/preferences/cookie",
+      theme_path: "/api/v0/preferences/theme",
+      dbsc_path: "/api/v0/preferences/dbsc",
     },
     {
       host: ENV.fetch("PUBLIC_CORE_STAFF_URL"),
-      cookie_path: "/web/v0/cookie",
-      theme_path: "/web/v0/theme",
-      edge_cookie_path: "/edge/v0/cookie",
-      edge_dbsc_path: "/edge/v0/dbsc",
+      cookie_path: "/api/v0/preferences/cookie",
+      theme_path: "/api/v0/preferences/theme",
+      dbsc_path: "/api/v0/preferences/dbsc",
     },
   ].freeze
 
-  test "core web and edge compatibility endpoints are executable on every surface" do
+  test "core preference API endpoints are executable on every surface" do
     SURFACES.each do |surface|
       host = surface.fetch(:host)
       host! host
@@ -54,17 +51,7 @@ class CoreWebEdgeSurfaceSmokeTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_equal "application/json", response.media_type
 
-      get "https://#{host}#{surface.fetch(:edge_cookie_path)}", params: { ri: "jp" }
-
-      assert_response :success
-      assert_equal "application/json", response.media_type
-
-      patch "https://#{host}#{surface.fetch(:edge_cookie_path)}", params: { ri: "jp", value: "1" }, as: :json
-
-      assert_response :success
-      assert_equal "application/json", response.media_type
-
-      post "https://#{host}#{surface.fetch(:edge_dbsc_path)}", params: { ri: "jp" }, as: :json
+      post "https://#{host}#{surface.fetch(:dbsc_path)}", params: { ri: "jp" }, as: :json
 
       assert_response :unprocessable_content
       assert_equal "missing_proof", response.parsed_body.fetch("error_code")

@@ -17,9 +17,11 @@ info:
 
     Endpoints whose wire format is fixed by another specification -- OAuth 2.0, OIDC, WebAuthn,
     DBSC, MCP (JSON-RPC 2.0), and `.well-known` resources -- are intentionally absent. They are
-    governed by their own specifications, not by this contract. The `/edge/v0` and `/web/v0`
-    namespaces are absent because they are being converged onto `/api/v0`
-    (adr/api-route-vocabulary-consolidation.md).
+    governed by their own specifications, not by this contract. Core cookie and theme JSON now
+    live at `/api/v0/preferences/{cookie,theme}`. The DBSC registration endpoint is under
+    `/api/v0/preferences/dbsc` but remains undescribed here because DBSC has its own
+    specification. Non-Core `/edge/v0` and `/web/v0` namespaces stay absent until those
+    surfaces converge (adr/api-route-vocabulary-consolidation.md).
 
     The text operational endpoints -- `GET /health`, `GET /health/{startup,liveness,readiness}`,
     and `GET /revision` -- are absent because they are not JSON: they render `text/plain` and do
@@ -51,6 +53,8 @@ tags:
       Machine-readable health aggregate and deployment revision. Blocked at the edge, JSON only.
   - name: Session
     description: Core browser BFF session and token lifecycle, authenticated by first-party cookie.
+  - name: Preferences
+    description: Cookie-consent and color-theme JSON endpoints under `/api/v0/preferences`.
   - name: Profile
     description: Native bearer-token resource endpoints.
   - name: Content
@@ -68,6 +72,13 @@ paths:
 
   /api/v0/token/refresh:
     $ref: "app/paths/token-refresh.yml"
+
+  /api/v0/preferences/cookie:
+    $ref: "app/paths/preferences-cookie.yml"
+
+  /api/v0/preferences/theme:
+    $ref: "app/paths/preferences-theme.yml"
+
   /api/v0/profile:
     $ref: "shared/paths/profile.yml"
 

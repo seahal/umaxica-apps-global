@@ -23,7 +23,7 @@ module Core
           private
 
           def dbsc_url
-            core_org_edge_v0_dbsc_url
+            core_org_api_v0_preferences_dbsc_url
           end
         end
       end

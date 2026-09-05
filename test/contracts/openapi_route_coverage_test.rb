@@ -27,6 +27,10 @@ class OpenapiRouteCoverageTest < ActiveSupport::TestCase
   # `/api/v0/health.json` and `/api/v0/revision.json` are described.
   TEXT_ONLY_PATHS = ["/health", "/health/startup", "/health/liveness", "/health/readiness"].freeze
 
+  # DBSC's wire format is fixed by its own specification, so it is absent from the JSON
+  # descriptions even after the registration endpoint moved under `/api/v0/preferences`.
+  PROTOCOL_EXEMPT_PATHS = ["/api/v0/preferences/dbsc"].freeze
+
   # Surfaces with their own description. `net` and `dev` are internal-only and have none.
   SURFACES = OpenapiContract::SURFACES
 
@@ -82,11 +86,14 @@ class OpenapiRouteCoverageTest < ActiveSupport::TestCase
   def routed_operations(surface)
     Rails.application.routes.routes.filter_map { |route|
       name = route.name.to_s
-      next unless name.include?("_#{surface}_")
+      controller_path = route.defaults[:controller].to_s
+      next unless name.include?("_#{surface}_") ||
+        controller_path.match?(%r{\A(?:core|docs|help|info|news|palm|auth|base|side)/#{Regexp.escape(surface)}(?:/|\z)})
 
       path = route.path.spec.to_s.sub(/\(\.:format\)\z/, "")
       next unless path.match?(DESCRIBED_PREFIXES)
       next if TEXT_ONLY_PATHS.include?(path)
+      next if PROTOCOL_EXEMPT_PATHS.include?(path)
 
       verb = route.verb.to_s
       next if verb.empty?

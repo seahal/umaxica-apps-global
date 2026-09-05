@@ -212,6 +212,30 @@ schemas:
         type: string
         description: Public identifier. Never a database primary key.
 
+  CookieBanner:
+    type: object
+    required: [show_banner]
+    properties:
+      show_banner:
+        type: boolean
+        description: True when the caller has not recorded cookie consent.
+
+  CookieConsentWriteError:
+    type: object
+    required: [error]
+    properties:
+      error:
+        type: string
+        description: Machine-readable refusal. `missing_preference_access_token` when the write token is absent.
+
+  ColorTheme:
+    type: object
+    required: [theme]
+    properties:
+      theme:
+        type: string
+        description: Stored color-theme code (`li`/`dr`/`sy`) or the canonical option (`light`/`dark`/`system`).
+
   Entry:
     type: object
     description: One published entry, rendered from its frozen published version.

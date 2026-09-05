@@ -4,10 +4,10 @@
 require "test_helper"
 # require "helpers/global_test_support"
 
-# The preference DBSC registration endpoint is `core/*/edge/v0/dbsc#create`. This assertion used to
+# The preference DBSC registration endpoint is `/api/v0/preferences/dbsc`. This assertion used to
 # name `base/org/edge/v0/dbsc`, a rename leftover that no route mounted, so it guarded a class no
 # request could reach; it was removed as dead code. Pointing the same guarantee at the routed core
-# controllers makes it hold for the classes that actually serve the endpoint, on every surface.
+# controllers makes it hold for the internally namespaced classes that serve it on every surface.
 module Core
   module Org
     module Edge

@@ -17,9 +17,11 @@ info:
 
     Endpoints whose wire format is fixed by another specification -- OAuth 2.0, OIDC, WebAuthn,
     DBSC, MCP (JSON-RPC 2.0), and `.well-known` resources -- are intentionally absent. They are
-    governed by their own specifications, not by this contract. The `/edge/v0` and `/web/v0`
-    namespaces are absent because they are being converged onto `/api/v0`
-    (adr/api-route-vocabulary-consolidation.md).
+    governed by their own specifications, not by this contract. Core cookie and theme JSON now
+    live at `/api/v0/preferences/{cookie,theme}`. The DBSC registration endpoint is under
+    `/api/v0/preferences/dbsc` but remains undescribed here because DBSC has its own
+    specification. Non-Core `/edge/v0` and `/web/v0` namespaces stay absent until those
+    surfaces converge (adr/api-route-vocabulary-consolidation.md).
 
     The text operational endpoints -- `GET /health`, `GET /health/{startup,liveness,readiness}`,
     and `GET /revision` -- are absent because they are not JSON: they render `text/plain` and do
@@ -49,6 +51,8 @@ tags:
     description: Machine-readable health aggregate and deployment revision. Blocked at the edge, JSON only.
   - name: Session
     description: Core browser BFF session and token lifecycle, authenticated by first-party cookie.
+  - name: Preferences
+    description: Cookie-consent and color-theme JSON endpoints under `/api/v0/preferences`.
   - name: Profile
     description: Native bearer-token resource endpoints.
   - name: Content
@@ -57,7 +61,7 @@ paths:
   /api/v0/health.json:
     get:
       summary: Machine-readable health aggregate
-      description: 'Internal probe for orchestrators and monitoring, not a user-facing availability contract. Aggregates the startup, liveness, and readiness verdicts into the `pass` / `warn` / `fail` vocabulary. A readiness outage never changes the liveness verdict: liveness is dependency-free. `fail` is served as HTTP 503; `pass` and `warn` as HTTP 200. The body carries no host name, dependency name, exception, path, or environment value.'
+      description: 'Internal probe for orchestrators and monitoring, not a user-facing availability contract. Aggregates the startup, liveness, and readiness verdicts into the `pass` / `warn` / `fail` vocabulary. A readiness outage never changes the liveness verdict: liveness is dependency-free. `fail` is served as HTTP 503; `pass` and `warn` as HTTP 200. The body identifies the controller namespace selected by routing and carries no dependency name, exception, path, or environment value.'
       security: []
       operationId: getApiV0Health
       tags:
@@ -98,7 +102,7 @@ paths:
   /api/v0/revision.json:
     get:
       summary: Machine-readable deployment revision
-      description: Returns the deployment revision identifier, or `null` when the deployment has none. Internal endpoint; no authentication, no database access.
+      description: Returns the deployment revision identifier, or `null` when the deployment has none, together with the RFC 3339 UTC render timestamp. Internal endpoint; no authentication, no database access.
       security: []
       operationId: getApiV0Revision
       tags:
@@ -191,6 +195,112 @@ paths:
           $ref: '#/components/responses/RateLimited'
         '503':
           $ref: '#/components/responses/Problem'
+  /api/v0/preferences/cookie:
+    servers:
+      - url: https://jp.umaxica.app
+        description: Canonical Core public host for the app (end-user application) surface.
+    get:
+      summary: Cookie-consent banner state
+      description: 'Reports whether the cookie-consent banner should be shown. Open: no session is required.'
+      operationId: getPreferencesCookie
+      tags:
+        - Preferences
+      security: []
+      responses:
+        '200':
+          description: Banner visibility for this caller.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CookieBanner'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    patch:
+      summary: Record cookie consent
+      description: Writes cookie-consent flags. Requires the preference access token; absence is 401 with a JSON `error` member (not a problem document). Successful writes have no representation.
+      operationId: patchPreferencesCookie
+      tags:
+        - Preferences
+      security: []
+      responses:
+        '204':
+          description: Consent recorded. No body (RFC 9110 15.3.5).
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+        '401':
+          description: Preference write token is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CookieConsentWriteError'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /api/v0/preferences/theme:
+    servers:
+      - url: https://jp.umaxica.app
+        description: Canonical Core public host for the app (end-user application) surface.
+    get:
+      summary: Current color theme
+      description: Reports the caller's color theme. No session is required.
+      operationId: getPreferencesTheme
+      tags:
+        - Preferences
+      security: []
+      responses:
+        '200':
+          description: Current theme code.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ColorTheme'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    patch:
+      summary: Update color theme
+      description: Writes the color theme cookie (and actor record when a preference token is present).
+      operationId: patchPreferencesTheme
+      tags:
+        - Preferences
+      security: []
+      responses:
+        '200':
+          description: Theme after the write.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ColorTheme'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/RateLimited'
   /api/v0/profile:
     get:
       summary: Current native client profile
@@ -403,10 +513,12 @@ components:
             - fail
     HealthReport:
       type: object
-      description: Machine-readable health aggregate for `GET /api/v0/health.json`. See docs/reference/health-endpoints.md. Carries only the two enum-bounded strings `status` and `checks.*.status`; no internal topology, hostname, dependency name, exception, path, or environment value crosses this boundary.
+      description: Machine-readable health aggregate for `GET /api/v0/health.json`. See docs/reference/health-endpoints.md. Identifies the controller namespace selected by routing and carries the enum-bounded strings `status` and `checks.*.status`; no dependency name, exception, path, or environment value crosses this boundary.
       required:
         - status
         - checks
+        - namespace
+        - timestamp
       properties:
         status:
           type: string
@@ -429,16 +541,29 @@ components:
               $ref: '#/components/schemas/CheckStatus'
             readiness:
               $ref: '#/components/schemas/CheckStatus'
+        namespace:
+          type: string
+          pattern: ^[a-z]+/[a-z]+$
+          description: The `<frame>/<brand>` controller namespace that handled the request.
+        timestamp:
+          type: string
+          format: date-time
+          description: UTC time when Rails rendered the health response, formatted as RFC 3339 with `Z`.
     Revision:
       type: object
       description: Machine-readable deployment revision for `GET /api/v0/revision.json`.
       required:
         - revision
+        - timestamp
       properties:
         revision:
           type: string
           nullable: true
           description: The framework-resolved deployment revision (`Rails.application.revision`). Always present as a member; the value is `null` when no revision is configured, which is a normal state. Never a fabricated identifier.
+        timestamp:
+          type: string
+          format: date-time
+          description: UTC time when Rails rendered the revision response, formatted as RFC 3339 with `Z`.
     SessionSummary:
       type: object
       required:
@@ -521,6 +646,30 @@ components:
                 format: uri
               detail:
                 type: string
+    CookieBanner:
+      type: object
+      required:
+        - show_banner
+      properties:
+        show_banner:
+          type: boolean
+          description: True when the caller has not recorded cookie consent.
+    CookieConsentWriteError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Machine-readable refusal. `missing_preference_access_token` when the write token is absent.
+    ColorTheme:
+      type: object
+      required:
+        - theme
+      properties:
+        theme:
+          type: string
+          description: Stored color-theme code (`li`/`dr`/`sy`) or the canonical option (`light`/`dark`/`system`).
     Actor:
       type: object
       required:

@@ -15,27 +15,13 @@ class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
       controller: "base/org/robots",
     },
     {
-      host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"),
-      controller: "core/app/robots",
-    },
-    {
-      host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"),
-      controller: "core/com/robots",
-    },
-    {
-      host: ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"),
-      controller: "core/org/robots",
-    },
-    {
       host: ENV.fetch("PUBLIC_PALM_SERVICE_URL"),
       controller: "palm/app/robots",
     },
   ].freeze
 
-  # Every surface that declares a sitemaps controller belongs here. The Core rows were absent while
-  # `app/views/core/*/sitemaps/show.xml.builder` did not exist, so all three Core realms answered
-  # `/sitemap.xml` with a 500 from `ActionView::MissingTemplate` and no test noticed. Route contract
-  # tests cannot catch that: routing recognised the path, only rendering failed.
+  # Every surface that still declares a sitemaps controller belongs here. Core no longer routes
+  # `/robots.txt` or `/sitemap.xml`; those files are an Edge/Next concern on Core hosts.
   SITEMAP_SURFACES = [
     {
       host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
@@ -60,18 +46,6 @@ class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
     {
       host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
       controller: "base/org/sitemaps",
-    },
-    {
-      host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"),
-      controller: "core/app/sitemaps",
-    },
-    {
-      host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"),
-      controller: "core/com/sitemaps",
-    },
-    {
-      host: ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"),
-      controller: "core/org/sitemaps",
     },
     {
       host: ENV.fetch("PUBLIC_PALM_SERVICE_URL"),
