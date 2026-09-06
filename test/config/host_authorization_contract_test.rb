@@ -137,7 +137,8 @@ class HostAuthorizationContractTest < Minitest::Test
   ROUTING_ONLY_ALIASES = ["core-workers-vpc.internal"].freeze
 
   def test_development_compose_aliases_only_private_origins_and_configured_public_site_hosts
-    compose = File.read(File.expand_path("../../compose.yaml", __dir__))
+    compose = [File.read(File.expand_path("../../compose.yaml", __dir__)),
+               File.read(File.expand_path("../../.devcontainer/compose.yaml", __dir__)),].join("\n")
     aliases_block = compose[/frontend:\n\s+aliases:\n((?:\s+(?:- \S+|#.*)\n)+)/, 1].to_s
 
     # Plain Minitest does not provide Rails' assert_not_empty assertion.

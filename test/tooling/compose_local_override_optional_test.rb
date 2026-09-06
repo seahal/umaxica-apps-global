@@ -7,7 +7,7 @@ require "yaml"
 # The local-override contract.
 #
 #   compose.yaml                       the complete standard environment
-#   .devcontainer/compose.override.yml tracked; the Dev Container's own overlay
+#   .devcontainer/compose.yaml tracked; the Dev Container's own overlay
 #   compose.override.yaml              optional, gitignored, per developer/machine
 #   compose.override.yaml.example      tracked documentation, never required
 #
@@ -31,7 +31,7 @@ class ComposeLocalOverrideOptionalTest < Minitest::Test
   STANDARD_COMPOSE_FILES = %w(
     compose.yaml
     compose.override.yaml.example
-    .devcontainer/compose.override.yml
+    .devcontainer/compose.yaml
   ).freeze
 
   # Files the Dev Container loads, and which therefore must resolve on a clean checkout.

@@ -13,6 +13,7 @@ class ComposeRestartPolicyTest < Minitest::Test
   COMPOSE_FILES = [
     "compose.yaml",
     "compose.override.yaml.example",
+    ".devcontainer/compose.yaml",
     ".devcontainer/compose.override.yml",
   ].freeze
 
@@ -130,7 +131,9 @@ class ComposeRestartPolicyTest < Minitest::Test
 
   def each_recovering_service
     RECOVERING_SERVICES.each do |service|
-      yield "compose.yaml", service, base_compose.fetch("services").fetch(service)
+      compose_file = (service == "core") ? ".devcontainer/compose.yaml" : "compose.yaml"
+      compose = (service == "core") ? load_compose(compose_file) : base_compose
+      yield compose_file, service, compose.fetch("services").fetch(service)
     end
   end
 end

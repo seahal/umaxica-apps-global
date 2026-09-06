@@ -10,7 +10,7 @@
   // That same `-f` suppresses Compose's auto-discovery of the optional
   // `compose.override.yaml`, so a developer's local override applies to a bare
   // `docker compose`, not here.
-  "dockerComposeFile": ["../compose.yaml", "./compose.override.yml"],
+  "dockerComposeFile": ["../compose.yaml", "./compose.yaml"],
   "service": "core",
   "remoteUser": "global",
   "containerUser": "global",

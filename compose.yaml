@@ -560,6 +560,9 @@ services:
       - "./podman/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
     networks:
       - backend
+    # Host-native Rails reaches PostgreSQL through loopback.
+    ports:
+      - "127.0.0.1:${POSTGRESQL_PRIMARY_HOST_PORT:-5432}:5432"
     # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
     # exits immediately on a bad configuration is recreated several times a second until
     # the netns, veth, conmon, and journald churn saturates a CPU. Five attempts ride out
@@ -615,6 +618,9 @@ services:
         condition: service_healthy
     networks:
       - backend
+    # Host-native Rails reaches PostgreSQL through loopback.
+    ports:
+      - "127.0.0.1:${POSTGRESQL_REPLICA_HOST_PORT:-5433}:5432"
     # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
     # exits immediately on a bad configuration is recreated several times a second until
     # the netns, veth, conmon, and journald churn saturates a CPU. Five attempts ride out
@@ -654,6 +660,9 @@ services:
     image: docker.io/valkey/valkey:8.0-alpine3.22
     networks:
       - backend
+    # Host-native Rails reaches cache through loopback.
+    ports:
+      - "127.0.0.1:${VALKEY_CACHE_HOST_PORT:-6379}:6379"
     volumes:
       - valkey-cache-volume:/data
     # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
@@ -686,6 +695,9 @@ services:
     image: docker.io/valkey/valkey:8.0-alpine3.22
     networks:
       - backend
+    # Host-native Rails reaches rate limits through loopback.
+    ports:
+      - "127.0.0.1:${VALKEY_RATE_LIMIT_HOST_PORT:-6380}:6379"
     volumes:
       - valkey-rate-limit-volume:/data
     # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that

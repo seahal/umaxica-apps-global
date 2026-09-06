@@ -80,8 +80,7 @@ rebuilding the container.
 
 Corepack is not used, not installed in the image, and no `corepack enable` step is required.
 
-A fresh clone needs no local file. Start the standard stack, install dependencies, and boot
-the app:
+A fresh clone needs no local file. Start the standard stack, install dependencies, and boot the app:
 
 ```bash
 git clone https://github.com/seahal/umaxica-apps-jit-global.git
@@ -96,15 +95,11 @@ pnpm install
 bin/setup
 ```
 
-`compose.yaml` is the complete standard environment. `compose.override.yaml` is an
-**optional**, gitignored, per-machine override that nothing creates for you — see
-`compose.override.yaml.example` and
-[Dev Containers CLI startup on rootless Podman](docs/operations/devcontainer-cli-podman-startup.md#the-compose-file-contract).
-The preferred way in is `Dev Containers: Reopen in Container`.
-
-`core` runs `sleep infinity` and is the workspace container; start the Rails processes with
-`bin/dev` inside it. The PostgreSQL services use Compose
-environment variables instead of inline fixed credentials:
+`compose.yaml` owns shared infrastructure for both development modes. In Dev Container mode,
+`.devcontainer/compose.yaml` adds `core`; in host-native mode, Rails runs directly on the VM and
+`podman compose up -d` starts only PostgreSQL, Valkey, FakeCloud, and observability services.
+`compose.override.yaml` is an optional, gitignored, per-machine override; see
+`compose.override.yaml.example` and the Dev Container startup documentation.
 
 ```bash
 POSTGRESQL_USER=root
@@ -152,10 +147,10 @@ needed.
 The development container publishes ports `3000` and `3036` to `127.0.0.1` only, so these URLs work
 from the host and from nowhere else. Substituting the host's LAN or Tailscale address will not
 connect, by design; PostgreSQL and Valkey are not published to the host at all. See
-`docs/operations/development-host-port-exposure.md`.
-
-Local hosts follow the `<service>.<surface>.localhost` order, and every surface is served by the
-single Rails process on port `3000`.
+`docs/operations/development-host-port-exposure.md`. The Dev Container publishes Rails ports `3000`
+and `3036` to `127.0.0.1` only. In host-native mode, PostgreSQL writer/reader and Valkey are also
+published only to loopback (`5432`, `5433`, and `6379`) so host Rails can use them; containers
+continue to use Compose DNS names. See `docs/operations/development-host-port-exposure.md`.
 
 | Surface                    | URL                                                                           |
 | :------------------------- | :---------------------------------------------------------------------------- |
