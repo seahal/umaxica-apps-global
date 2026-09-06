@@ -67,8 +67,15 @@ class PromoteRevisionRaceVerificationTest < ActiveSupport::TestCase
   # race; a duplicate sequence or public id is a genuine failure and must not be
   # swallowed as one.
   test "the idempotency index is the only uniqueness failure treated as a lost race" do
-    assert_includes Publishing::PromoteRevisionOperation::IDEMPOTENCY_INDEX, "entry_revision_id"
-    assert_not Publishing::PromoteRevisionOperation::IDEMPOTENCY_INDEX.include?("sequence")
-    assert_not Publishing::PromoteRevisionOperation::IDEMPOTENCY_INDEX.include?("public_id")
+    entry_class = Publishing::Docs::App::Entry
+    version_class = entry_class.reflect_on_association(:versions).klass
+    name = Publishing::PromoteRevisionOperation.idempotency_index_name(entry_class)
+    index = version_class.connection.indexes(version_class.table_name).find { |i| i.name == name }
+
+    assert index, "#{version_class.table_name} has no #{name}; the rescue would swallow nothing"
+    assert_predicate index, :unique
+    # Keyed on the revision alone. Were the sequence or the public id part of it, two promotions
+    # of the same revision would each get a version and the rescue would never fire.
+    assert_equal %w(entry_revision_id), index.columns
   end
 end

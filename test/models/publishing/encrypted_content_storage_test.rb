@@ -44,6 +44,22 @@ module Publishing
       assert_raises(ActiveRecord::ReadOnlyRecord) { version.update!(title: "nope") }
     end
 
+    # `body` is serialized as JSON and encrypted, so anything that is not an object still round
+    # trips through the coder and reaches PostgreSQL as valid ciphertext. Nothing downstream --
+    # the CMS body editor, the public renderer -- can index into a bare string or array, so the
+    # model refuses it before the column does.
+    test "a body that is not a JSON object is refused with a readable error" do
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "enc-shape", title: PLAIN_TITLE)
+      revision = entry.current_revision
+
+      [["text"], "text", 42, nil].each do |body|
+        revision.body = body
+
+        assert_not revision.valid?, body.inspect
+        assert_equal ["must be a JSON object"], revision.errors[:body], body.inspect
+      end
+    end
+
     private
 
     def raw_row(record)

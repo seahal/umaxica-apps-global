@@ -6,10 +6,11 @@ module Base
     module Publishing
       module News
         module App
-          class EntriesController < Base::Org::BareController
+          class EntriesController < Base::Org::ApplicationController
             include ::PublishingManagementEntriesActions
 
-            AUTHENTICATION_MODE = :bare
+            AUTHENTICATION_MODE = :private
+            declare_authentication_mode! :private
             PUBLISHING_SURFACE = "news"
             PUBLISHING_AUDIENCE = "app"
             ENTRY_CLASS = ::Publishing::News::App::Entry
@@ -19,6 +20,14 @@ module Base
             end
 
             def show
+              super
+            end
+
+            def new
+              super
+            end
+
+            def create
               super
             end
 

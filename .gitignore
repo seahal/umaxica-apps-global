@@ -185,3 +185,8 @@ node_modules
 # Not to be confused with `.devcontainer/compose.override.yml`, which IS tracked
 # and IS part of the standard Dev Container configuration.
 /compose.override.yaml
+
+# Merge residue. `git mergetool` and a conflicted `git checkout --merge` write these
+# beside the file they back up, and three `.orig` backups reached a commit that way.
+*.orig
+*.rej

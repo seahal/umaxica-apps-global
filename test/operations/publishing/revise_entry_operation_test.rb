@@ -16,6 +16,7 @@ module Publishing
         summary: "Updated summary",
         body: { "text" => "Updated body" },
         lock_version: entry.lock_version,
+        operator_public_id: "OPERATORPUBLICID1",
       )
 
       assert_predicate result, :ok?
@@ -60,6 +61,7 @@ module Publishing
         summary: revision.summary,
         body: revision.body,
         lock_version: entry.lock_version,
+        operator_public_id: "OPERATORPUBLICID1",
       )
 
       next_revision = result.revision
@@ -86,11 +88,45 @@ module Publishing
         summary: "no",
         body: { "text" => "no" },
         lock_version: entry.lock_version - 1,
+        operator_public_id: "OPERATORPUBLICID1",
       )
 
       assert_not result.ok?
       assert_equal current, entry.reload.current_revision
       assert_equal 1, entry.revisions.count
+    end
+
+    # A form that never rendered the lock_version field, or one whose field was stripped, arrives
+    # here as nil. Treating that as "no concurrent edit" would make every such request overwrite
+    # whatever revision won the race, so an absent lock is as stale as a wrong one.
+    test "rejects a missing lock_version as stale" do
+      entry = publishing_draft(audience: "app", surface: "info", slug: "no-lock", title: "No lock")
+
+      result = ReviseEntryOperation.call(
+        entry:, title: "Should not persist", summary: "no", body: { "text" => "no" }, lock_version: nil,
+        operator_public_id: "OPERATORPUBLICID1",
+      )
+
+      assert_not result.ok?
+      assert_equal "is stale", result.errors.fetch(:lock_version)
+      assert_equal 1, entry.reload.revisions.count
+    end
+
+    # Every field of the new revision is copied from the current one, so without a current
+    # revision there is nothing to revise. Reporting that beats raising NoMethodError deep in
+    # `create_revision`.
+    test "refuses an entry that has no current revision" do
+      entry = publishing_draft(audience: "app", surface: "info", slug: "orphan", title: "Orphan")
+      entry.update!(current_revision: nil)
+
+      result = ReviseEntryOperation.call(
+        entry:, title: "Title", summary: "summary", body: { "text" => "body" },
+        lock_version: entry.reload.lock_version, operator_public_id: "OPERATORPUBLICID1",
+      )
+
+      assert_not result.ok?
+      assert_equal "entry has no current revision", result.errors.fetch(:base)
+      assert_equal 1, entry.reload.revisions.count
     end
   end
 end
