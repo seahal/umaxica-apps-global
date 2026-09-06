@@ -27,11 +27,11 @@ module Base
               super
             end
 
-            def create
+            def edit
               super
             end
 
-            def edit
+            def create
               super
             end
 

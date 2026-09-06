@@ -356,7 +356,9 @@ class Base::Org::Publishing::EntriesControllerTest < ActionDispatch::Integration
   end
 
   test "the index is paged and does not return the whole cell" do
-    27.times { |index| publishing_draft(audience: "app", surface: "docs", slug: "paged-#{index}", title: "Paged #{index}") }
+    27.times { |index|
+      publishing_draft(audience: "app", surface: "docs", slug: "paged-#{index}", title: "Paged #{index}")
+    }
 
     get base_org_publishing_docs_app_entries_path(ri: "jp"), headers: @staff_headers
 

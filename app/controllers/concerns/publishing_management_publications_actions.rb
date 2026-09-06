@@ -39,7 +39,7 @@ module PublishingManagementPublicationsActions
       return
     end
 
-    redirect_to entry_path(entry, action: :show), status: :see_other
+    redirect_to(entry_path(entry, action: :show), status: :see_other)
   end
 
   def destroy
@@ -64,7 +64,7 @@ module PublishingManagementPublicationsActions
       return
     end
 
-    redirect_to entry_path(entry, action: :show), status: :see_other
+    redirect_to(entry_path(entry, action: :show), status: :see_other)
   end
 
   private

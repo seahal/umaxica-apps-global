@@ -22,7 +22,7 @@ class Base::Org::Publishing::EntryArchivesControllerTest < ActionDispatch::Integ
     assert_response :see_other
     entry.reload
 
-    assert entry.archived?
+    assert_predicate entry, :archived?
     assert_equal "duplicate of the migration guide", entry.archive_reason
     assert_equal @staff.public_id, entry.archived_by_operator_public_id
   end
@@ -69,7 +69,7 @@ class Base::Org::Publishing::EntryArchivesControllerTest < ActionDispatch::Integ
          headers: @staff_headers
 
     assert_response :see_other
-    assert entry.reload.archived?
+    assert_predicate entry.reload, :archived?
   end
 
   test "an archived entry cannot be archived a second time" do

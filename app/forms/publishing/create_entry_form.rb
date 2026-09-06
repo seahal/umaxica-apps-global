@@ -17,14 +17,14 @@ module Publishing
     attribute :locale, :string
     attribute :slug, :string
 
-    validates :locale, inclusion: { in: -> (_form) { I18n.available_locales.map(&:to_s) } }
+    validates :locale, inclusion: { in: ->(_form) { I18n.available_locales.map(&:to_s) } }
     validates :slug, presence: true, format: { with: SLUG_FORMAT, allow_blank: true }
 
     private
 
     def message_for(attribute, error)
       if attribute == :locale && error == :inclusion
-        "must be one of #{I18n.available_locales.map(&:to_s).join(', ')}"
+        "must be one of #{I18n.available_locales.map(&:to_s).join(", ")}"
       elsif attribute == :slug && error == :blank
         "can't be blank"
       elsif attribute == :slug && error == :invalid

@@ -8,13 +8,15 @@ module Publishing
   # accepts and the database rejects would surface as a 500 on a staff form.
   class CreateEntryFormTest < ActiveSupport::TestCase
     def form(attributes)
-      CreateEntryForm.new({
-        title: "Title",
-        summary: "Summary",
-        body_text: { "text" => "body" }.to_json,
-        locale: "ja",
-        slug: "a-slug",
-      }.merge(attributes))
+      CreateEntryForm.new(
+        {
+          title: "Title",
+          summary: "Summary",
+          body_text: { "text" => "body" }.to_json,
+          locale: "ja",
+          slug: "a-slug",
+        }.merge(attributes),
+      )
     end
 
     test "a complete submission is valid and exposes the parsed body" do

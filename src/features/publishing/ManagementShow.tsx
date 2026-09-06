@@ -146,7 +146,8 @@ export default function ManagementShow({
               value="delete"
             />
             <p className="text-sm text-fg">
-              Published since {publication.effective_from} from version {publication.version_public_id}.
+              Published since {publication.effective_from} from version{" "}
+              {publication.version_public_id}.
             </p>
             <label className="flex flex-col gap-1 text-sm">
               <span>Reason for unpublishing</span>
