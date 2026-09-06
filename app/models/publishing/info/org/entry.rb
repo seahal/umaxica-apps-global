@@ -5,7 +5,7 @@ module Publishing
     module Org
       class Entry < PublishingRecord
         self.table_name = "publishing_info_org_entries"
-        include Publishing::EntryRecord
+        include PublishingEntryRecord
 
         SURFACE = 'info'
         AUDIENCE = 'org'

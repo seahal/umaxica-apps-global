@@ -22,7 +22,6 @@ class AvatarAuthorityLifecycleConstraintTest < ActiveSupport::TestCase
       moniker: "Constraint Role Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     now = AvatarRecord.lease_connection.quote(Time.current)
 
@@ -45,7 +44,6 @@ class AvatarAuthorityLifecycleConstraintTest < ActiveSupport::TestCase
       moniker: "Constraint Membership Period Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     now = AvatarRecord.lease_connection.quote(Time.current)
     valid_from = AvatarRecord.lease_connection.quote(Time.utc(2026, 7, 3, 12, 0, 0))
@@ -72,7 +70,6 @@ class AvatarAuthorityLifecycleConstraintTest < ActiveSupport::TestCase
       moniker: "Constraint Membership Unique Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     now = AvatarRecord.lease_connection.quote(Time.current)
     valid_from = AvatarRecord.lease_connection.quote(Time.utc(2026, 7, 3, 12, 0, 0))
@@ -105,7 +102,6 @@ class AvatarAuthorityLifecycleConstraintTest < ActiveSupport::TestCase
       moniker: "Constraint Primary Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     now = AvatarRecord.lease_connection.quote(Time.current)
 
@@ -133,7 +129,6 @@ class AvatarAuthorityLifecycleConstraintTest < ActiveSupport::TestCase
       moniker: "Constraint Persona Revoke Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     now = AvatarRecord.lease_connection.quote(Time.current)
     assigned_at = AvatarRecord.lease_connection.quote(Time.utc(2026, 7, 3, 12, 0, 0))
@@ -160,7 +155,6 @@ class AvatarAuthorityLifecycleConstraintTest < ActiveSupport::TestCase
       moniker: "Constraint Agent Revoke Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     now = AvatarRecord.lease_connection.quote(Time.current)
     assigned_at = AvatarRecord.lease_connection.quote(Time.utc(2026, 7, 3, 12, 0, 0))
@@ -187,7 +181,6 @@ class AvatarAuthorityLifecycleConstraintTest < ActiveSupport::TestCase
       moniker: "Constraint Individual Revoke Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     now = AvatarRecord.lease_connection.quote(Time.current)
     assigned_at = AvatarRecord.lease_connection.quote(Time.utc(2026, 7, 3, 12, 0, 0))
@@ -214,7 +207,6 @@ class AvatarAuthorityLifecycleConstraintTest < ActiveSupport::TestCase
       moniker: "Constraint Persona Unique Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     now = AvatarRecord.lease_connection.quote(Time.current)
 
@@ -246,7 +238,6 @@ class AvatarAuthorityLifecycleConstraintTest < ActiveSupport::TestCase
       moniker: "Constraint Lifecycle Key Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     now = AvatarRecord.lease_connection.quote(Time.current)
 
@@ -271,7 +262,6 @@ class AvatarAuthorityLifecycleConstraintTest < ActiveSupport::TestCase
       moniker: "Constraint Lifecycle Same Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     now = AvatarRecord.lease_connection.quote(Time.current)
 

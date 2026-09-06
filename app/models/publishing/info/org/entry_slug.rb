@@ -5,7 +5,7 @@ module Publishing
     module Org
       class EntrySlug < PublishingRecord
         self.table_name = "publishing_info_org_entry_slugs"
-        include Publishing::EntrySlugRecord
+        include PublishingEntrySlugRecord
 
       end
     end

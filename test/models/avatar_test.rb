@@ -8,7 +8,7 @@
 #
 #  id                           :bigint           not null, primary key
 #  discarded_at                 :datetime         default(Infinity), not null
-#  image_data                   :jsonb            not null
+#  image_data                   :jsonb
 #  lock_version                 :integer          default(0), not null
 #  moniker                      :string           not null
 #  purged_at                    :datetime         default(Infinity), not null
@@ -57,7 +57,7 @@ class AvatarTest < ActiveSupport::TestCase
       capability: @capability,
       active_handle: @handle,
       moniker: "Test Client",
-      image_data: { url: "http://example.com/img.png" },
+      image_data: nil,
     )
 
     assert_predicate avatar, :valid?
@@ -86,14 +86,14 @@ class AvatarTest < ActiveSupport::TestCase
     assert_not_empty avatar.errors[:moniker]
   end
 
-  test "default image_data is empty hash" do
+  test "default image_data is nil until an image is attached" do
     avatar = Avatar.create!(
       capability: @capability,
       active_handle: @handle,
       moniker: "Default Image",
     )
 
-    assert_empty(avatar.image_data)
+    assert_nil(avatar.image_data)
   end
 
   test "defaults lifecycle state to active for new avatars" do

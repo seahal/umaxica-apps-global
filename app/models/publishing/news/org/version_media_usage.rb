@@ -5,7 +5,7 @@ module Publishing
     module Org
       class VersionMediaUsage < PublishingRecord
         self.table_name = "publishing_news_org_version_media_usages"
-        include Publishing::VersionMediaUsageRecord
+        include PublishingVersionMediaUsageRecord
 
       end
     end

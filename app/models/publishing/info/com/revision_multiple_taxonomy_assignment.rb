@@ -5,7 +5,7 @@ module Publishing
     module Com
       class RevisionMultipleTaxonomyAssignment < PublishingRecord
         self.table_name = "publishing_info_com_revision_multiple_taxonomy_assignments"
-        include Publishing::FamilyTaxonomyAssignment
+        include PublishingFamilyTaxonomyAssignment
 
 
         belongs_to :entry_revision, class_name: "Publishing::Info::Com::EntryRevision", inverse_of: :multiple_taxonomy_assignments

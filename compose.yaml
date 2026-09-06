@@ -189,10 +189,10 @@ services:
       # --- Object storage (fakecloud S3) ---
       OBJECT_STORAGE_ENDPOINT: "http://fakecloud:4566"
       OBJECT_STORAGE_REGION: "us-east-1"
-      # Fixed development bucket name, like the endpoint and region above. It is
-      # not host-shaped and not a credential, so it belongs in the service
-      # contract rather than in the repository-root .env.
-      OBJECT_STORAGE_BUCKET: umaxica-local
+      # Per-boundary development buckets. Names are not credentials, so they
+      # belong in the service contract rather than in the repository-root .env.
+      OBJECT_STORAGE_BUCKET_AVATAR: umaxica-avatar-development
+      OBJECT_STORAGE_BUCKET_PUBLISHING: umaxica-publishing-development
       # fakecloud validates the shape of a SigV4 signature but never the key
       # material, so these are not secrets and the former Podman-secret machinery
       # bought nothing. Literal, obviously-fake values are the point: a real AWS

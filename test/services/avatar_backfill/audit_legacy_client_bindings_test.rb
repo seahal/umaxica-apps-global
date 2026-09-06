@@ -218,7 +218,6 @@ module AvatarBackfill
         capability_id: AvatarCapability::NORMAL,
         client_id: client&.id || client_id,
         lifecycle_state: lifecycle_state,
-        image_data: {},
       )
     end
   end

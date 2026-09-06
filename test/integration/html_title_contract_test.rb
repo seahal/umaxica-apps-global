@@ -119,7 +119,8 @@ class HtmlTitleContractTest < ActionDispatch::IntegrationTest
 
       assert_response :success, "GET /health on #{entry.fetch(:host)}"
       assert_equal "text/plain", response.media_type, "GET /health on #{entry.fetch(:host)}"
-      assert_match(/\Astatus: /, response.body)
+      assert_equal "title: Health status\n", response.body.lines.first
+      assert_includes response.body.lines, "status: ok\n"
     end
 
     assert_includes non_html_get_paths, "/health"

@@ -5,7 +5,7 @@ module Publishing
     module Com
       class Entry < PublishingRecord
         self.table_name = "publishing_docs_com_entries"
-        include Publishing::EntryRecord
+        include PublishingEntryRecord
 
         SURFACE = 'docs'
         AUDIENCE = 'com'

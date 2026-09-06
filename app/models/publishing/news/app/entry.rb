@@ -5,7 +5,7 @@ module Publishing
     module App
       class Entry < PublishingRecord
         self.table_name = "publishing_news_app_entries"
-        include Publishing::EntryRecord
+        include PublishingEntryRecord
 
         SURFACE = 'news'
         AUDIENCE = 'app'

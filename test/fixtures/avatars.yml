@@ -5,7 +5,7 @@
 #
 #  id                           :bigint           not null, primary key
 #  discarded_at                 :datetime         default(Infinity), not null
-#  image_data                   :jsonb            not null
+#  image_data                   :jsonb
 #  lifecycle_state_id           :bigint           not null
 #  lock_version                 :integer          default(0), not null
 #  moniker                      :string           not null
@@ -43,6 +43,5 @@ one:
   active_handle: one
   capability_id: 1
   lifecycle_state_id: <%= ActiveRecord::FixtureSet.identify(:active) %>
-  image_data: { }
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>

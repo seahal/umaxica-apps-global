@@ -5,7 +5,7 @@ module Publishing
     module App
       class VersionMultipleTaxonomyAssignment < PublishingRecord
         self.table_name = "publishing_help_app_version_multiple_taxonomy_assignments"
-        include Publishing::FamilyTaxonomyAssignment
+        include PublishingFamilyTaxonomyAssignment
         include PublishingTaxonomySnapshot
 
 

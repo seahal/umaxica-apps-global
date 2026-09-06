@@ -67,8 +67,43 @@ class PromoteRevisionRaceVerificationTest < ActiveSupport::TestCase
   # race; a duplicate sequence or public id is a genuine failure and must not be
   # swallowed as one.
   test "the idempotency index is the only uniqueness failure treated as a lost race" do
-    assert_includes Publishing::PromoteRevisionOperation::IDEMPOTENCY_INDEX, "entry_revision_id"
-    assert_not Publishing::PromoteRevisionOperation::IDEMPOTENCY_INDEX.include?("sequence")
-    assert_not Publishing::PromoteRevisionOperation::IDEMPOTENCY_INDEX.include?("public_id")
+    Publishing::ContentFamilies::ENTRY_CLASSES.each do |entry_class|
+      entry = entry_class.create!(locale: "en")
+      revision = entry.revisions.create!(
+        locale: "en", title: "Race", body: { "text" => "Race" },
+        schema_version: 1, content_digest: Digest::SHA256.hexdigest("Race"), sequence: 1,
+      )
+      winner = Publishing::PromoteRevisionOperation.call(revision: revision)
+      versions = revision.entry.versions
+      prefix = "uidx_#{entry_class::SURFACE}_#{entry_class::AUDIENCE}_ver"
+
+      # The database boundary reports the competing insert after the initial
+      # lookup missed it; the operation must recover only a revision collision.
+      versions.stub(:find_by, nil) do
+        collision = ActiveRecord::RecordNotUnique.new("duplicate key violates #{prefix}_on_revision")
+        versions.stub(:create!, ->(*) { raise collision }) do
+          result = Publishing::PromoteRevisionOperation.call(revision: revision)
+
+          assert_equal winner, result
+        end
+
+        other_indexes = versions.klass.lease_connection.indexes(versions.klass.table_name)
+          .select(&:unique).map(&:name) - ["#{prefix}_on_revision"]
+        assert_not_empty other_indexes
+
+        other_indexes.each do |index_name|
+          collision = ActiveRecord::RecordNotUnique.new("duplicate key violates #{index_name}")
+          versions.stub(:create!, ->(*) { raise collision }) do
+            error = assert_raises(ActiveRecord::RecordNotUnique) do
+              Publishing::PromoteRevisionOperation.call(revision: revision)
+            end
+
+            assert_same collision, error
+          end
+        end
+      end
+
+      assert_equal [winner.id], entry.versions.pluck(:id)
+    end
   end
 end

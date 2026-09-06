@@ -5,7 +5,7 @@ module Publishing
     module Com
       class Vocabulary < PublishingRecord
         self.table_name = "publishing_news_com_vocabularies"
-        include Publishing::VocabularyRecord
+        include PublishingVocabularyRecord
 
       end
     end

@@ -5,7 +5,7 @@ module Publishing
     module Com
       class RevisionSingleTaxonomyAssignment < PublishingRecord
         self.table_name = "publishing_news_com_revision_single_taxonomy_assignments"
-        include Publishing::FamilyTaxonomyAssignment
+        include PublishingFamilyTaxonomyAssignment
 
 
         belongs_to :entry_revision, class_name: "Publishing::News::Com::EntryRevision", inverse_of: :single_taxonomy_assignments
