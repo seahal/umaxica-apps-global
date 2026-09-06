@@ -118,25 +118,15 @@ class RiRoutingContractTest < ActiveSupport::TestCase
   # regional link, and a canonicalization redirect there would rewrite a URL the recipient
   # received out of band.
   #
-  # Base.Org Publishing CMS pages inherit BareController and do not run the preference
-  # pipeline. Locale is a displayed Edition attribute, not an `ri` path segment. Dashboard
-  # links may pass `ri` as an unused query parameter.
+  # Base.Org Publishing CMS controllers inherited BareController and skipped the preference
+  # pipeline entirely. They now inherit Base::Org::ApplicationController (`:private`
+  # authentication, `authenticate_operator!`) like every other staff management surface, so
+  # `set_region` runs like it does for `accounts`, `audit`, and the rest -- this exemption no
+  # longer applies to them.
   RI_HTML_EXEMPT_CONTROLLERS = %w(
     base/app/preference/emails
     base/com/preference/emails
     base/org/preference/emails
-    base/org/publishing/docs/app/entries
-    base/org/publishing/docs/com/entries
-    base/org/publishing/docs/org/entries
-    base/org/publishing/help/app/entries
-    base/org/publishing/help/com/entries
-    base/org/publishing/help/org/entries
-    base/org/publishing/info/app/entries
-    base/org/publishing/info/com/entries
-    base/org/publishing/info/org/entries
-    base/org/publishing/news/app/entries
-    base/org/publishing/news/com/entries
-    base/org/publishing/news/org/entries
   ).freeze
 
   SKIP_SET_REGION_PATTERN = /^\s*skip_before_action\s+.*\bset_region\b/
