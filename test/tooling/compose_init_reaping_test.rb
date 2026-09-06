@@ -13,7 +13,7 @@ class ComposeInitReapingTest < Minitest::Test
   COMPOSE_FILES = [
     "compose.yaml",
     "compose.override.yaml.example",
-    ".devcontainer/compose.override.yml",
+    ".devcontainer/compose.yaml",
   ].freeze
 
   # A container's PID 1 inherits every orphaned process and is the only process that can reap

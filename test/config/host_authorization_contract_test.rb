@@ -146,17 +146,27 @@ class HostAuthorizationContractTest < Minitest::Test
   ROUTING_ONLY_ALIASES = ["core-workers-vpc.internal"].freeze
 
   def test_development_compose_aliases_only_private_origins_and_configured_public_site_hosts
-    compose = File.read(File.expand_path("../../compose.yaml", __dir__))
-    aliases_block = compose[/frontend:\n\s+aliases:\n((?:\s+(?:- \S+|#.*)\n)+)/, 1].to_s
+    # The aliases sit on whichever service is fronting Rails, and there are two of them:
+    # `app` in compose.yaml and `core` in .devcontainer/compose.yaml. They must agree, so
+    # check every file that declares a `frontend` aliases block.
+    compose_files = ["../../compose.yaml", "../../.devcontainer/compose.yaml"]
+      .map { |relative| File.read(File.expand_path(relative, __dir__)) }
+    aliases_blocks = compose_files.filter_map do |compose|
+      compose[/frontend:\n\s+aliases:\n((?:\s+(?:- \S+|#.*)\n)+)/, 1]
+    end
 
     # Plain Minitest does not provide Rails' assert_not_empty assertion.
     # rubocop:disable Rails/RefuteMethods
-    refute_empty aliases_block, "expected to find the core service's frontend aliases block"
+    refute_empty aliases_blocks, "expected to find a frontend aliases block fronting Rails"
     # rubocop:enable Rails/RefuteMethods
 
-    aliased_hosts = aliases_block.scan(/^\s+- (\S+)/).flatten
+    aliased_hosts = aliases_blocks.flat_map { |block| block.scan(/^\s+- (\S+)/).flatten }.uniq
+
+    # PUBLIC_*_URL moved to compose.env when `core` and `app` were split across two files:
+    # it is the environment they share, so it is a `KEY=value` file rather than YAML.
+    compose_env = File.read(File.expand_path("../../compose.env", __dir__))
     configured_public_hosts =
-      compose.scan(/^\s+PUBLIC_[A-Z_]+_URL:\s*(\S+)/).flatten.map { |value| value.sub(%r{\Ahttps?://}, "") }
+      compose_env.scan(/^PUBLIC_[A-Z_]+_URL=(\S+)/).flatten.map { |value| value.sub(%r{\Ahttps?://}, "") }
 
     aliased_hosts.each do |host|
       next if host.end_with?(".localhost")
@@ -164,7 +174,8 @@ class HostAuthorizationContractTest < Minitest::Test
 
       assert_includes configured_public_hosts,
                       host,
-                      "compose.yaml aliases #{host} to core, but no PUBLIC_*_URL names it, " \
+                      "#{host} is aliased to the Rails container, but no PUBLIC_*_URL in " \
+                      "compose.env names it, " \
                       "so development Host Authorization would reject it"
     end
 

@@ -102,7 +102,7 @@ the compose file nor sshd can substitute for it.
 
    ```bash
    .devcontainer/remote-access-preflight.sh
-   podman compose -f compose.yaml -f compose.remote-access.yaml up -d
+   podman compose -f compose.yaml -f .devcontainer/compose.yaml -f compose.remote-access.yaml up -d
    ```
 
 5. **Confirm the node registered.**
@@ -156,8 +156,8 @@ workspace bind, not a copy.
 ## Restart behaviour
 
 ```bash
-podman compose -f compose.yaml -f compose.remote-access.yaml down
-podman compose -f compose.yaml -f compose.remote-access.yaml up -d
+podman compose -f compose.yaml -f .devcontainer/compose.yaml -f compose.remote-access.yaml down
+podman compose -f compose.yaml -f .devcontainer/compose.yaml -f compose.remote-access.yaml up -d
 ssh umaxica-global-core hostname
 ```
 
@@ -212,9 +212,10 @@ destroys both volumes, which deregisters the node and forces a fresh enrolment.
   pnpm. A completion checklist that expects `bun --version` is checking for
   something no repository in this group ships.
 
-- **The compose project name is `umaxica-apps-global-dc`,** set in
-  `.devcontainer/compose.override.yml`. Volume names are prefixed with it, which
-  is why the preflight looks for `umaxica-apps-global-dc_tailscale-state`. A bare
-  `podman compose -f compose.yaml -f compose.remote-access.yaml` without the
-  override uses a different project and therefore different, empty volumes —
-  include the override, or expect to enrol a second node.
+- **The compose project name is `umaxica-apps-global-dc`,** set identically in
+  `compose.yaml` and `.devcontainer/compose.yaml`. Volume names are prefixed with
+  it, which is why the preflight looks for
+  `umaxica-apps-global-dc_tailscale-state`. Leaving
+  `.devcontainer/compose.yaml` out of the invocation does not just change the
+  project — `core` is defined there and nowhere else, so the overlay has no
+  service to attach to and Compose fails outright.

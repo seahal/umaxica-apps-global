@@ -80,30 +80,51 @@ rebuilding the container.
 
 Corepack is not used, not installed in the image, and no `corepack enable` step is required.
 
-A fresh clone needs no local file. Start the standard stack, install dependencies, and boot
-the app:
+### The two ways in
+
+A fresh clone needs no local file. There are two supported ways to run this repository, and
+they share every datastore: `compose.yaml` and `.devcontainer/compose.yaml` declare the same
+project name, so both address the same `primary`, the same `primary-data` volume, the same
+`backend` network. Whichever you start first creates the database; the other finds it.
 
 ```bash
 git clone https://github.com/seahal/umaxica-apps-jit-global.git
 cd umaxica-apps-jit-global
 
 # creating a local override is NOT required
-docker compose config     # resolves as-is
-
-docker compose up
-bundle install
-pnpm install
-bin/setup
+podman compose config     # resolves as-is
 ```
 
-`compose.yaml` is the complete standard environment. `compose.override.yaml` is an
-**optional**, gitignored, per-machine override that nothing creates for you — see
-`compose.override.yaml.example` and
-[Dev Containers CLI startup on rootless Podman](docs/operations/devcontainer-cli-podman-startup.md#the-compose-file-contract).
-The preferred way in is `Dev Containers: Reopen in Container`.
+**Dev Container** — the preferred way in. `Dev Containers: Reopen in Container`, or
+`devcontainer up`. You get `core`: the datastores plus a workspace container parked on
+`sleep infinity` for an editor to attach to. Start Rails inside it with `bin/dev`.
 
-`core` runs `sleep infinity` and is the workspace container; start the Rails processes with
-`bin/dev` inside it. The PostgreSQL services use Compose
+**Plain Compose** — no editor involved.
+
+```bash
+podman compose up                   # the datastores and nothing else
+podman compose --profile app up     # the above plus `app`, which runs bin/dev
+```
+
+A bare `up` deliberately starts no application: it is what you want when you are about to run
+`bin/rails`, a test suite, or a Rails server by hand against the stack. `app` is behind the
+`app` profile for the same reason, and because it publishes the same ports and claims the same
+network aliases as `core` — the two are mutually exclusive, so stop the Dev Container before
+`--profile app`, and vice versa.
+
+The file contract:
+
+```text
+compose.yaml                 the shared services, plus the `app` profile
+compose.env                  the environment `core` and `app` both read
+.devcontainer/compose.yaml   `core`, the workspace container. Loaded only by devcontainer.json
+compose.override.yaml        optional, gitignored, per-machine; nothing creates it for you
+```
+
+See `compose.override.yaml.example` and
+[Dev Containers CLI startup on rootless Podman](docs/operations/devcontainer-cli-podman-startup.md#the-compose-file-contract).
+
+The PostgreSQL services use Compose
 environment variables instead of inline fixed credentials:
 
 ```bash

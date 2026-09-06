@@ -138,7 +138,7 @@ first instead, then start it again:
 
 ```sh
 podman compose --project-name umaxicaappsglobaldc \
-  -f compose.yaml -f .devcontainer/compose.override.yml down
+  -f compose.yaml -f .devcontainer/compose.yaml down
 
 devcontainer up \
   --docker-path /usr/bin/podman \
@@ -162,8 +162,9 @@ databases and re-clone the replica afterwards.
 ## The Compose file contract
 
 ```text
-compose.yaml                        = the complete standard environment
-.devcontainer/compose.override.yml  = tracked; the Dev Container's own overlay
+compose.yaml                        = the shared services, plus the `app` profile
+compose.env                         = tracked; the environment core and app share
+.devcontainer/compose.yaml          = tracked; `core`, the workspace container
 compose.override.yaml               = optional, gitignored, per developer/machine
 compose.override.yaml.example       = tracked documentation of the above
 compose.remote-access.yaml          = opt-in, tracked, never in dockerComposeFile

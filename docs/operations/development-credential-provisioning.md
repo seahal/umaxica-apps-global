@@ -214,7 +214,7 @@ State them plainly rather than reading the claim more broadly than it holds.
    This is retained for the convenience of surviving a rebuild without re-authenticating. To remove
    it, drop the Feature and run the upstream installer from `postCreateCommand`
    (`curl -fsSL https://x.ai/cli/install.sh | sh`), then `grok login` inside the container. The MCS
-   level pinned in `.devcontainer/compose.override.yml` exists for this mount; remove them together.
+   level pinned in `.devcontainer/compose.yaml` exists for this mount; remove them together.
 
    The other three Features -- `github-cli`, `anthropics/claude-code`, and `nolanjx/codex` --
    declare no `mounts`. That was verified by reading each cached `devcontainer-feature.json`, not

@@ -14,6 +14,12 @@
 # `podman compose up`. Run `.devcontainer/remote-access-preflight.sh` first, then
 # add `-f compose.remote-access.yaml` to the compose invocation.
 #
+# It overlays `core`, which is defined in `.devcontainer/compose.yaml`, so that
+# file has to be in the invocation too and this one has to come after it:
+#
+#   podman compose -f compose.yaml -f .devcontainer/compose.yaml \
+#                  -f compose.remote-access.yaml up -d
+#
 # It declares no `name:`. The last `-f` wins, so a name here would fork the
 # compose project and strand the volumes created without it.
 #

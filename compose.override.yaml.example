@@ -1,8 +1,8 @@
 ---
 # An EXAMPLE of the optional developer-local Compose override.
 #
-#   compose.yaml                      = the complete standard environment
-#   .devcontainer/compose.override.yml = tracked; the Dev Container's own overlay
+#   compose.yaml                      = the shared services, plus the `app` profile
+#   .devcontainer/compose.yaml        = tracked; `core`, the workspace container
 #   compose.override.yaml             = optional, gitignored, yours
 #   compose.override.yaml.example     = this file; documentation only
 #
@@ -30,8 +30,14 @@
 # PostgreSQL, Valkey, bundle and node_modules would all be orphaned.
 name: umaxica-apps-global-dc
 
+# `app` is the service a bare `podman compose --profile app up` runs, and it is
+# the one to override here: this file is auto-discovered only when no `-f` is
+# given, which is exactly the case the Dev Container is not. Overriding `core`
+# from here has no effect -- the Dev Containers CLI passes `-f` and never loads
+# this file. Machine-specific `core` settings belong in
+# `.devcontainer/compose.yaml`, which is tracked.
 services:
-  core:
+  app:
     # Host devices. The `workspace` build target (CORE_BUILD_TARGET=workspace in
     # `.env`) needs /dev/fuse; it is not in `compose.yaml` because not every host
     # exposes it, and a missing device makes the whole project fail to start.
@@ -40,8 +46,8 @@ services:
     #   - /dev/fuse:/dev/fuse
 
     # Machine-specific extra publications. `ports` is a list and Compose
-    # concatenates it with the base, so do not restate a port `compose.yaml` or
-    # `.devcontainer/compose.override.yml` already publishes. Always bind to
+    # concatenates it with the base, so do not restate a port `compose.yaml`
+    # already publishes. Always bind to
     # loopback: `test/tooling/compose_host_port_exposure_test.rb` is the contract.
     # ports:
     #   - "127.0.0.1:1234:1234"
