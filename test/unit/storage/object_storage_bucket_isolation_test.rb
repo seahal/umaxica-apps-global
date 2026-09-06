@@ -6,7 +6,7 @@ class ObjectStorageBucketIsolationTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   test "development compose buckets are distinct per boundary" do
-    compose = Rails.root.join("compose.yaml").read
+    compose = Rails.root.join(".devcontainer/compose.yaml").read
 
     assert_match(/OBJECT_STORAGE_BUCKET_AVATAR: umaxica-avatar-development/, compose)
     assert_match(/OBJECT_STORAGE_BUCKET_PUBLISHING: umaxica-publishing-development/, compose)

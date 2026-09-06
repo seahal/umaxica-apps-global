@@ -43,9 +43,10 @@ class ComposeHostPortExposureTest < Minitest::Test
   end
 
   def test_datastore_publications_are_loopback_only
-    offenders = each_published_port.select do |entry|
-      DATASTORE_SERVICES.include?(entry.fetch(:service)) && !loopback?(entry.fetch(:published))
-    end
+    offenders =
+      each_published_port.select do |entry|
+        DATASTORE_SERVICES.include?(entry.fetch(:service)) && !loopback?(entry.fetch(:published))
+      end
 
     assert_empty offenders.map { |entry| describe(entry) },
                  "Host-native Rails may use PostgreSQL and Valkey only through explicit loopback publications."

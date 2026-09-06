@@ -163,7 +163,8 @@ services:
       # Fixed development bucket name, like the endpoint and region above. It is
       # not host-shaped and not a credential, so it belongs in the service
       # contract rather than in the repository-root .env.
-      OBJECT_STORAGE_BUCKET: umaxica-local
+      OBJECT_STORAGE_BUCKET_AVATAR: umaxica-avatar-development
+      OBJECT_STORAGE_BUCKET_PUBLISHING: umaxica-publishing-development
       # fakecloud validates the shape of a SigV4 signature but never the key
       # material, so these are not secrets and the former Podman-secret machinery
       # bought nothing. Literal, obviously-fake values are the point: a real AWS
@@ -344,6 +345,7 @@ services:
       backend: {}
       frontend:
         aliases:
+          - core-workers-vpc.internal
           - base.app.localhost
           - base.com.localhost
           - base.org.localhost

@@ -210,6 +210,8 @@ class HostAuthorizationContractTest < Minitest::Test
     "OBJECT_STORAGE_ACCESS_KEY_ID" => "test",
     "OBJECT_STORAGE_SECRET_ACCESS_KEY" => "test",
     "OBJECT_STORAGE_FORCE_PATH_STYLE" => "true",
+    "CACHE_REDIS_URL" => "redis://127.0.0.1:6379/0",
+    "RATE_LIMIT_REDIS_URL" => "redis://127.0.0.1:6380/0",
     # The _FILE variants take precedence over the plain names when set, so unset
     # them (nil) rather than leaving an inherited secret mount to win.
     "OBJECT_STORAGE_ACCESS_KEY_ID_FILE" => nil,

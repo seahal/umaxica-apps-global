@@ -50,17 +50,17 @@ module PublishingTaxonomyTermRecord
   def path = ancestors + [self]
 
   def descendants
-    quoted_table = self.class.lease_connection.quote_table_name(self.class.table_name)
-    self.class.where(<<~SQL.squish, id:)
-      id IN (
-        WITH RECURSIVE subtree(id) AS (
-          SELECT id FROM #{quoted_table} WHERE parent_id = :id
-          UNION ALL
-          SELECT t.id FROM #{quoted_table} t JOIN subtree s ON t.parent_id = s.id
-        )
-        SELECT id FROM subtree
-      )
-    SQL
+    # Walk the tree with parameterized queries only (no identifier interpolation).
+    # Caps recursion at MAX_DEPTH so a cycle cannot fan out unboundedly.
+    next_ids = [id]
+    found_ids = []
+    MAX_DEPTH.times do
+      next_ids = self.class.where(parent_id: next_ids).pluck(:id)
+      break if next_ids.empty?
+
+      found_ids.concat(next_ids)
+    end
+    self.class.where(id: found_ids)
   end
 
   def breadcrumb
