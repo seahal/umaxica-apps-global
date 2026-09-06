@@ -59,13 +59,23 @@ scope(module: :base, as: :base) do
       end
 
       # Deployment identifier endpoint.
-      resource(:revision, only: :show)
+      resource(:revision, only: :show, format: false)
 
-      resource(:health, only: :show)
+      resource(:health, only: :show, format: false)
       namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+        resource(:liveness, only: :show, format: false)
+        resource(:readiness, only: :show, format: false)
+        resource(:startup, only: :show, format: false)
+      end
+
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
+      # format token (`format: false`), mirroring the `.well-known/jwks.json` precedent above.
+      # These are JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace(:api) do
+        namespace(:v0) do
+          resource(:health, only: :show, path: "health.json", format: false)
+          resource(:revision, only: :show, path: "revision.json", format: false)
+        end
       end
 
       resources(:robots, only: :index, path: "robots.txt")
@@ -286,13 +296,23 @@ scope(module: :base, as: :base) do
       end
 
       # Deployment identifier endpoint.
-      resource(:revision, only: :show)
+      resource(:revision, only: :show, format: false)
 
-      resource(:health, only: :show)
+      resource(:health, only: :show, format: false)
       namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+        resource(:liveness, only: :show, format: false)
+        resource(:readiness, only: :show, format: false)
+        resource(:startup, only: :show, format: false)
+      end
+
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
+      # format token (`format: false`), mirroring the `.well-known/jwks.json` precedent above.
+      # These are JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace(:api) do
+        namespace(:v0) do
+          resource(:health, only: :show, path: "health.json", format: false)
+          resource(:revision, only: :show, path: "revision.json", format: false)
+        end
       end
 
       resources(:robots, only: :index, path: "robots.txt")
@@ -456,13 +476,23 @@ scope(module: :base, as: :base) do
       end
 
       # Deployment identifier endpoint.
-      resource(:revision, only: :show)
+      resource(:revision, only: :show, format: false)
 
-      resource(:health, only: :show)
+      resource(:health, only: :show, format: false)
       namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+        resource(:liveness, only: :show, format: false)
+        resource(:readiness, only: :show, format: false)
+        resource(:startup, only: :show, format: false)
+      end
+
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
+      # format token (`format: false`), mirroring the `.well-known/jwks.json` precedent above.
+      # These are JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace(:api) do
+        namespace(:v0) do
+          resource(:health, only: :show, path: "health.json", format: false)
+          resource(:revision, only: :show, path: "revision.json", format: false)
+        end
       end
 
       resources(:robots, only: :index, path: "robots.txt")
@@ -475,6 +505,21 @@ scope(module: :base, as: :base) do
       # `resource`. See adr/pwa-offline-route-exception.md.
       get("service-worker", to: "/rails/pwa#service_worker", as: :pwa_service_worker)
       get("offline", to: "/rails/pwa#offline", as: :pwa_offline)
+
+      # Staff Publishing CMS. The URL is surface and audience only; locale is not a
+      # path segment. Each cell maps to every Edition with that surface and audience.
+      resource :publishing, only: [], module: :publishing do
+        publishing_audiences = %i(app com org)
+        %i(info docs news help).each do |publishing_surface|
+          resource publishing_surface, only: [], module: publishing_surface do
+            publishing_audiences.each do |publishing_audience|
+              resource publishing_audience, only: [], module: publishing_audience do
+                resources :entries, only: %i(index show edit update)
+              end
+            end
+          end
+        end
+      end
 
       # Staff management areas.
       resource :configuration, only: :show
@@ -597,13 +642,23 @@ scope(module: :base, as: :base) do
       root(to: "roots#index")
 
       # Deployment identifier endpoint.
-      resource(:revision, only: :show)
+      resource(:revision, only: :show, format: false)
 
-      resource(:health, only: :show)
+      resource(:health, only: :show, format: false)
       namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+        resource(:liveness, only: :show, format: false)
+        resource(:readiness, only: :show, format: false)
+        resource(:startup, only: :show, format: false)
+      end
+
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
+      # format token (`format: false`), mirroring the `.well-known/jwks.json` precedent above.
+      # These are JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace(:api) do
+        namespace(:v0) do
+          resource(:health, only: :show, path: "health.json", format: false)
+          resource(:revision, only: :show, path: "revision.json", format: false)
+        end
       end
 
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
@@ -642,13 +697,23 @@ scope(module: :base, as: :base) do
       root(to: "roots#index")
 
       # Deployment identifier endpoint.
-      resource(:revision, only: :show)
+      resource(:revision, only: :show, format: false)
 
-      resource(:health, only: :show)
+      resource(:health, only: :show, format: false)
       namespace(:health) do
-        resource(:liveness, only: :show)
-        resource(:readiness, only: :show)
-        resource(:startup, only: :show)
+        resource(:liveness, only: :show, format: false)
+        resource(:readiness, only: :show, format: false)
+        resource(:startup, only: :show, format: false)
+      end
+
+      # Machine-readable health and revision. The literal ".json" is part of the path, not a Rails
+      # format token (`format: false`), mirroring the `.well-known/jwks.json` precedent above.
+      # These are JSON-only; the controllers answer 406 to any other `Accept`.
+      namespace(:api) do
+        namespace(:v0) do
+          resource(:health, only: :show, path: "health.json", format: false)
+          resource(:revision, only: :show, path: "revision.json", format: false)
+        end
       end
 
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")

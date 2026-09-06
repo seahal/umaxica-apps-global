@@ -11,7 +11,6 @@ module Publishing
     self.use_transactional_tests = false
 
     setup do
-      @edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
       @category = publishing_category_vocabulary(audience: "app", surface: "docs")
       @tag = publishing_tag_vocabulary(audience: "app", surface: "docs")
       @guide = publishing_term(vocabulary: @category, locale: "ja", slug: "concurrency-guide", name: "Guide")
@@ -20,12 +19,12 @@ module Publishing
         parent: @guide,
       )
       @ruby = publishing_term(vocabulary: @tag, locale: "ja", slug: "concurrency-ruby", name: "Ruby")
-      @entry = publishing_draft(edition: @edition, slug: "concurrency-entry", title: "Concurrency")
-      RevisionSingleTaxonomyAssignment.create!(
+      @entry = publishing_draft(audience: "app", surface: "docs", slug: "concurrency-entry", title: "Concurrency")
+      create_single_assignment(
         entry_revision: @entry.current_revision, vocabulary: @category, vocabulary_kind: @category.kind,
         taxonomy_term: @leaf, locale: "ja",
       )
-      RevisionMultipleTaxonomyAssignment.create!(
+      create_multiple_assignment(
         entry_revision: @entry.current_revision, vocabulary: @tag, vocabulary_kind: @tag.kind,
         taxonomy_term: @ruby, locale: "ja", position: 0,
       )
@@ -37,12 +36,12 @@ module Publishing
 
     test "two concurrent promotions produce one complete version and both callers see it" do
       revision = @entry.current_revision
-      results = concurrently(2) { PromoteRevisionOperation.call(revision: EntryRevision.find(revision.id)) }
+      results = concurrently(2) { PromoteRevisionOperation.call(revision: Docs::App::EntryRevision.find(revision.id)) }
 
-      assert_equal 1, EntryVersion.where(entry_revision_id: revision.id).count
+      assert_equal 1, Docs::App::EntryVersion.where(entry_revision_id: revision.id).count
       assert_equal 1, results.map(&:id).uniq.size
 
-      version = EntryVersion.find_by!(entry_revision_id: revision.id)
+      version = Docs::App::EntryVersion.find_by!(entry_revision_id: revision.id)
 
       assert_equal 1, version.single_taxonomy_assignments.count
       assert_equal 1, version.multiple_taxonomy_assignments.count
@@ -56,17 +55,17 @@ module Publishing
       results =
         concurrently(2) do |index|
           if index.zero?
-            PromoteRevisionOperation.call(revision: EntryRevision.find(revision.id))
+            PromoteRevisionOperation.call(revision: Docs::App::EntryRevision.find(revision.id))
           else
             MoveTaxonomySubtreeOperation.call(
-              term: TaxonomyTerm.find(@guide.id),
-              new_parent: TaxonomyTerm.find(other_root.id),
+              term: Docs::App::TaxonomyTerm.find(@guide.id),
+              new_parent: Docs::App::TaxonomyTerm.find(other_root.id),
             )
           end
         end
 
       assert_empty results.grep(StandardError), "both operations must succeed"
-      path = EntryVersion.find_by!(entry_revision_id: revision.id).single_taxonomy_assignments.sole.term_path_snapshot
+      path = Docs::App::EntryVersion.find_by!(entry_revision_id: revision.id).single_taxonomy_assignments.sole.term_path_snapshot
       slugs = path.map { |step| step.fetch("slug") }
 
       # Either the pre-move path or the post-move path, never a half-applied mix.
@@ -98,12 +97,7 @@ module Publishing
     def destroy_publishing_fixtures
       connection = PublishingRecord.lease_connection
       connection.execute("SET session_replication_role = replica")
-      %w(
-        publishing_version_multiple_taxonomy_assignments publishing_version_single_taxonomy_assignments
-        publishing_revision_multiple_taxonomy_assignments publishing_revision_single_taxonomy_assignments
-        publishing_publications publishing_entry_versions publishing_entry_revisions publishing_entry_slugs
-        publishing_entries publishing_taxonomy_terms publishing_vocabularies publishing_editions
-      ).each { |table| connection.execute("DELETE FROM #{table}") }
+      connection.tables.grep(/\Apublishing_/).each { |table| connection.execute("DELETE FROM #{table}") }
     ensure
       connection.execute("SET session_replication_role = origin")
     end

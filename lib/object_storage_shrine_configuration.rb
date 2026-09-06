@@ -8,10 +8,9 @@ require_relative "object_storage_boundary"
 module ObjectStorage
   # Builds the Shrine storage set for the current environment.
   #
-  # Production resolves to S3 and nothing else. There is no FileSystem branch on
-  # the production path at all, so uploads cannot be written under `public/` even
-  # if object-storage configuration is broken: a missing bucket or region raises
-  # while this module is loaded, during boot, rather than at first upload.
+  # Development and production-shaped staging resolve to an explicitly configured
+  # S3-compatible service. Real production resolves to AWS S3 through the platform
+  # credential provider, while test stays in memory and performs no network I/O.
   module ShrineConfiguration
     module_function
 
@@ -38,9 +37,17 @@ module ObjectStorage
       if rails_env.test?
         :memory
       elsif rails_env.development?
-        Environment.configured?(S3_COMPATIBLE_VARIABLES) ? :s3_compatible : :local_filesystem
+        :s3_compatible
       elsif rails_env.production?
-        :s3
+        case ENV.fetch("DEPLOYMENT_TIER")
+        when "staging"
+          :s3_compatible
+        when "production"
+          :s3
+        else
+          raise ArgumentError,
+                "DEPLOYMENT_TIER must be exactly staging or production, got #{ENV.fetch("DEPLOYMENT_TIER").inspect}"
+        end
       else
         raise ArgumentError, "unsupported Rails environment for object storage: #{rails_env}"
       end
@@ -70,8 +77,9 @@ module ObjectStorage
     end
 
     # Resolves every registered boundary so missing configuration fails at boot
-    # rather than at the first upload. A no-op while REGISTRY is empty, and real
-    # validation the moment a boundary is registered.
+    # rather than at the first upload. In test this constructs in-memory storages;
+    # under :s3 and :s3_compatible it forces every registered boundary's bucket and
+    # credentials to resolve now.
     def verify_registered_boundaries!(rails_env = Rails.env)
       Boundary.keys.each do |boundary|
         ROLE_PREFIXES.each_key { |role| dynamic(boundary, role, rails_env) }

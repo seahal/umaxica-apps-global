@@ -32,11 +32,23 @@ Rails.application.configure do
     config.action_controller.perform_caching = false
   end
 
-  # SolidCache is intentionally disabled in development. A persistent,
-  # database-backed cache is too easily repurposed as an ad-hoc durable data
-  # store, so the cache is turned off entirely here (matching test). Re-enable
-  # :solid_cache_store deliberately if persistent caching is actually needed.
-  config.cache_store = :null_store
+  # Application cache lives in the dedicated cache Valkey (compose service
+  # `valkey-cache`), never in PostgreSQL. Only disposable, reconstructible,
+  # explicitly-expiring entries belong here; authoritative state stays in
+  # PostgreSQL. Development exercises the real production cache architecture.
+  cache_namespace = [
+    "cache",
+    Rails.env,
+    ENV["CACHE_NAMESPACE_SUFFIX"].presence,
+  ].compact.join(":")
+  config.cache_store = :redis_cache_store, {
+    url: ENV.fetch("CACHE_REDIS_URL"),
+    namespace: cache_namespace,
+  }
+
+  # Rate-limit counters live in a physically separate Valkey (compose service
+  # `valkey-rate-limit`). Never fall back to Rails.cache: flushing one store
+  # must not disturb the other.
   rate_limit_namespace = [
     "rate_limit",
     Rails.env,
@@ -47,8 +59,6 @@ Rails.application.configure do
       url: ENV.fetch("RATE_LIMIT_REDIS_URL"),
       namespace: rate_limit_namespace,
     )
-  # SolidCache shard wiring intentionally left disconnected while :memory_store
-  # is the development cache. See the cache_store note above.
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   # config.active_storage.service = :local
@@ -134,7 +144,7 @@ Rails.application.configure do
 
   # Use Solid Queue in Development.
   config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :queue, reading: :queue_replica } }
+  config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Enable Gzip compression
   config.middleware.use(Rack::Deflater)

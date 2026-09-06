@@ -1,6 +1,11 @@
-output "bucket" {
-  description = "Development S3 bucket name."
-  value       = module.object_storage.bucket
+output "avatar_bucket" {
+  description = "Development Avatar S3 bucket name."
+  value       = module.avatar_object_storage.bucket
+}
+
+output "publishing_bucket" {
+  description = "Development publishing S3 bucket name."
+  value       = module.publishing_object_storage.bucket
 }
 
 output "msk_cluster_arn" {

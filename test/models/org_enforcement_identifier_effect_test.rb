@@ -40,6 +40,24 @@ class OrgEnforcementIdentifierEffectTest < ActiveSupport::TestCase
     assert_includes effect.errors[:base], "Identifier Effect is only legal on permanent_ban or cooldown Cases"
   end
 
+  test "allows a principal effect without a case and rejects method protection cases" do
+    effect_without_case = OrgEnforcementPrincipalEffect.new(
+      principal_public_id: operators(:two).public_id,
+      effective_at: Time.current,
+    )
+    method_protection_case = OrgEnforcementCase.new(kind: "method_protection")
+    protected_effect = OrgEnforcementPrincipalEffect.new(
+      enforcement_case: method_protection_case,
+      principal_public_id: operators(:two).public_id,
+      effective_at: Time.current,
+    )
+
+    effect_without_case.valid?
+    assert_empty effect_without_case.errors[:base]
+    assert_not protected_effect.valid?
+    assert_includes protected_effect.errors[:base], "method_protection Cases may not carry a Principal Effect"
+  end
+
   test "in_force selects only open, currently effective, unexpired identifier effects" do
     enforcement_case = cooldown_case
     open_effect = create_effect(enforcement_case, "in-force-org@example.test", effective_at: 1.hour.ago)

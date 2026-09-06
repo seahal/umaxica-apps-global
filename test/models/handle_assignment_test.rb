@@ -47,7 +47,6 @@ class HandleAssignmentTest < ActiveSupport::TestCase
       capability: @capability,
       moniker: "avatar-#{unique_suffix}",
       active_handle: @system_handle,
-      image_data: {},
     )
   end
 
@@ -80,7 +79,6 @@ class HandleAssignmentTest < ActiveSupport::TestCase
       capability: @capability,
       moniker: "another-#{SecureRandom.hex(4)}",
       active_handle: other_handle,
-      image_data: {},
     )
 
     assert_raises ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique do

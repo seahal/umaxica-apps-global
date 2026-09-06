@@ -4,6 +4,11 @@
 require "test_helper"
 
 class Auth::Org::Social::SessionsControllerTest < ActionDispatch::IntegrationTest
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     host! @host

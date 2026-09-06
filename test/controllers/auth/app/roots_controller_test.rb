@@ -6,6 +6,11 @@ require "test_helper"
 # require "helpers/root_theme_cookie_helper"
 
 class Auth::App::RootsControllerTest < ActionDispatch::IntegrationTest
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   BRAND = ENV.fetch("BRAND_NAME").upcase
 
   fixtures :clients, :client_statuses

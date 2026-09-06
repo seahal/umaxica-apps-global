@@ -68,7 +68,6 @@ token - Session and authentication token
 business - Business logic and entities
 message - Messaging system
 notification - Notification management
-cache - Application cache
 speciality - Domain-specific functionality
 storage - File storage metadata
 ```

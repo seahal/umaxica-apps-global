@@ -1,0 +1,48 @@
+# GET and PATCH /api/v0/preferences/theme on the org surface.
+servers:
+  - url: https://jp.umaxica.org
+    description: Canonical Core public host for the org (staff and organization) surface.
+get:
+  summary: Current color theme
+  description: Reports the caller's color theme. No session is required.
+  operationId: getPreferencesTheme
+  tags: [Preferences]
+  security: []
+  responses:
+    "200":
+      description: Current theme code.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            enum: [no-store]
+      content:
+        application/json:
+          schema:
+            $ref: "../../shared/components.yml#/schemas/ColorTheme"
+    "406":
+      $ref: "../../shared/components.yml#/responses/NotAcceptable"
+    "429":
+      $ref: "../../shared/components.yml#/responses/RateLimited"
+patch:
+  summary: Update color theme
+  description: Writes the color theme cookie (and actor record when a preference token is present).
+  operationId: patchPreferencesTheme
+  tags: [Preferences]
+  security: []
+  responses:
+    "200":
+      description: Theme after the write.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            enum: [no-store]
+      content:
+        application/json:
+          schema:
+            $ref: "../../shared/components.yml#/schemas/ColorTheme"
+    "406":
+      $ref: "../../shared/components.yml#/responses/NotAcceptable"
+    "429":
+      $ref: "../../shared/components.yml#/responses/RateLimited"

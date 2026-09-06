@@ -139,6 +139,25 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
     end
   end
 
+  test "runtime replay protection persists the consumed jti in PostgreSQL" do
+    token_url = "https://log.umaxica.app/oauth/token"
+
+    with_oidc_client_key("CORE_APP") do
+      assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
+
+      assert OidcClientAssertionJwt.valid?(
+        client_id: "core-next-rp",
+        assertion: assertion,
+        token_url: token_url,
+        replay_store: SecurityConsumedJti,
+      )
+      assert SecurityConsumedJti.exists?(
+        purpose: SecurityConsumedJti::PURPOSES.fetch(:oidc_client_assertion),
+        issuer: "CORE_APP:core-next-rp",
+      )
+    end
+  end
+
   test "valid? rejects an expired assertion" do
     token_url = "https://log.umaxica.app/oauth/token"
 

@@ -11,49 +11,30 @@ module Publishing
       @tag = publishing_tag_vocabulary(audience: "app", surface: "docs")
     end
 
-    test "vocabulary key is unique per audience and surface" do
+    test "vocabulary key is unique within a family and independent across families" do
       assert_raises(ActiveRecord::RecordNotUnique) do
-        Vocabulary.new(
-          audience: "app", surface: "docs", key: "category", kind: @category.kind,
-          internal_name: "Dup",
+        Publishing::Docs::App::Vocabulary.new(
+          key: "category", kind: @category.kind, internal_name: "Dup",
         ).save!(validate: false)
       end
 
-      # The same key under a different audience is a different vocabulary, by
-      # design. `category` and `tag` exist in every scope already, so proving
-      # this needs a key the structural migration does not own.
-      Vocabulary.create!(audience: "app", surface: "docs", key: "topic", kind: @category.kind, internal_name: "Topic")
-      other = Vocabulary.create!(
-        audience: "com", surface: "docs", key: "topic", kind: @category.kind,
-        internal_name: "Topic",
+      Publishing::Docs::App::Vocabulary.create!(key: "topic", kind: @category.kind, internal_name: "Topic")
+      other = Publishing::Docs::Com::Vocabulary.create!(
+        key: "topic", kind: @category.kind, internal_name: "Topic",
       )
 
       assert_predicate other, :persisted?
     end
 
-    test "vocabulary rejects an unknown audience, surface, kind, or key format" do
+    test "vocabulary rejects an unknown kind or key format" do
       assert_raises(ActiveRecord::CheckViolation) do
-        Vocabulary.new(
-          audience: "nope", surface: "docs", key: "k", kind: @category.kind,
-          internal_name: "N",
+        Publishing::News::App::Vocabulary.new(
+          key: "k", kind: "sideways", internal_name: "N",
         ).save!(validate: false)
       end
       assert_raises(ActiveRecord::CheckViolation) do
-        Vocabulary.new(
-          audience: "app", surface: "nope", key: "k", kind: @category.kind,
-          internal_name: "N",
-        ).save!(validate: false)
-      end
-      assert_raises(ActiveRecord::CheckViolation) do
-        Vocabulary.new(
-          audience: "app", surface: "news", key: "k", kind: "sideways",
-          internal_name: "N",
-        ).save!(validate: false)
-      end
-      assert_raises(ActiveRecord::CheckViolation) do
-        Vocabulary.new(
-          audience: "app", surface: "news", key: "Bad Key", kind: @category.kind,
-          internal_name: "N",
+        Publishing::News::App::Vocabulary.new(
+          key: "Bad Key", kind: @category.kind, internal_name: "N",
         ).save!(validate: false)
       end
     end
@@ -76,15 +57,15 @@ module Publishing
       other_vocabulary = publishing_category_vocabulary(audience: "com", surface: "docs")
       other_root = publishing_term(vocabulary: other_vocabulary, locale: "ja", slug: "root-other")
 
-      assert_raises(ActiveRecord::InvalidForeignKey) do
-        TaxonomyTerm.new(
+      assert_raises(ActiveRecord::InvalidForeignKey, ActiveRecord::StatementInvalid) do
+        Docs::App::TaxonomyTerm.new(
           vocabulary: @category, vocabulary_kind: @category.kind, locale: "ja", slug: "cross-vocabulary",
           name: "X", parent_id: other_root.id, depth: 1,
         ).save!(validate: false)
       end
 
       assert_raises(ActiveRecord::InvalidForeignKey) do
-        TaxonomyTerm.new(
+        Docs::App::TaxonomyTerm.new(
           vocabulary: @category, vocabulary_kind: @category.kind, locale: "en", slug: "cross-locale",
           name: "X", parent_id: ja_root.id, depth: 1,
         ).save!(validate: false)
@@ -95,7 +76,7 @@ module Publishing
       root = publishing_term(vocabulary: @tag, locale: "ja", slug: "ruby")
 
       assert_raises(ActiveRecord::CheckViolation) do
-        TaxonomyTerm.new(
+        Docs::App::TaxonomyTerm.new(
           vocabulary: @tag, vocabulary_kind: @tag.kind, locale: "ja", slug: "rails", name: "Rails",
           parent_id: root.id, depth: 1,
         ).save!(validate: false)
@@ -104,7 +85,7 @@ module Publishing
 
     test "root and depth must agree" do
       assert_raises(ActiveRecord::CheckViolation) do
-        TaxonomyTerm.new(
+        Docs::App::TaxonomyTerm.new(
           vocabulary: @category, vocabulary_kind: @category.kind, locale: "ja", slug: "deep-root", name: "X", depth: 1,
         ).save!(validate: false)
       end
@@ -114,7 +95,7 @@ module Publishing
       # The hierarchy trigger reaches this row before the CHECK does, so the
       # rejection surfaces as the more general StatementInvalid.
       assert_raises(ActiveRecord::StatementInvalid) do
-        TaxonomyTerm.new(
+        Docs::App::TaxonomyTerm.new(
           vocabulary: @category, vocabulary_kind: @category.kind, locale: "ja", slug: "zero-child", name: "X",
           parent_id: root.id, depth: 0,
         ).save!(validate: false)
@@ -125,7 +106,7 @@ module Publishing
       root = publishing_term(vocabulary: @category, locale: "ja", slug: "trigger-root")
 
       assert_raises(ActiveRecord::StatementInvalid) do
-        TaxonomyTerm.new(
+        Docs::App::TaxonomyTerm.new(
           vocabulary: @category, vocabulary_kind: @category.kind, locale: "ja", slug: "skipped-depth", name: "X",
           parent_id: root.id, depth: 3,
         ).save!(validate: false)
@@ -134,11 +115,11 @@ module Publishing
 
     test "depth beyond the limit is rejected" do
       parent = publishing_term(vocabulary: @category, locale: "ja", slug: "level-0")
-      TaxonomyTerm::MAX_DEPTH.times do |level|
+      Docs::App::TaxonomyTerm::MAX_DEPTH.times do |level|
         parent = publishing_term(vocabulary: @category, locale: "ja", slug: "level-#{level + 1}", parent:)
       end
 
-      assert_equal TaxonomyTerm::MAX_DEPTH, parent.depth
+      assert_equal Docs::App::TaxonomyTerm::MAX_DEPTH, parent.depth
       assert_raises(ActiveRecord::CheckViolation) do
         publishing_term(vocabulary: @category, locale: "ja", slug: "too-deep", parent:)
       end
@@ -155,13 +136,15 @@ module Publishing
     end
 
     test "an assignment cannot use a vocabulary from another audience or surface" do
-      edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-      entry = publishing_draft(edition:, slug: "scope-entry", title: "Scope")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "scope-entry", title: "Scope")
       foreign_vocabulary = publishing_category_vocabulary(audience: "org", surface: "news")
       foreign_term = publishing_term(vocabulary: foreign_vocabulary, locale: "ja", slug: "foreign")
 
-      assert_raises(ActiveRecord::StatementInvalid) do
-        RevisionSingleTaxonomyAssignment.create!(
+      assert_raises(
+        ActiveRecord::AssociationTypeMismatch, ActiveRecord::StatementInvalid,
+        ActiveRecord::RecordInvalid,
+      ) do
+        create_single_assignment(
           entry_revision: entry.current_revision, vocabulary: foreign_vocabulary,
           vocabulary_kind: foreign_vocabulary.kind, taxonomy_term: foreign_term, locale: "ja",
         )
@@ -169,13 +152,12 @@ module Publishing
     end
 
     test "an assignment cannot mix kinds or use a term from another vocabulary" do
-      edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-      entry = publishing_draft(edition:, slug: "kind-entry", title: "Kind")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "kind-entry", title: "Kind")
       tag_term = publishing_term(vocabulary: @tag, locale: "ja", slug: "ruby")
 
       # A tag vocabulary in the single-valued table.
       assert_raises(ActiveRecord::CheckViolation) do
-        RevisionSingleTaxonomyAssignment.new(
+        entry.current_revision.single_taxonomy_assignments.new(
           entry_revision: entry.current_revision, vocabulary: @tag, vocabulary_kind: @tag.kind,
           taxonomy_term: tag_term, locale: "ja",
         ).save!(validate: false)
@@ -185,7 +167,7 @@ module Publishing
       category_term = publishing_term(vocabulary: @category, locale: "ja", slug: "guide")
 
       assert_raises(ActiveRecord::InvalidForeignKey) do
-        RevisionMultipleTaxonomyAssignment.new(
+        entry.current_revision.multiple_taxonomy_assignments.new(
           entry_revision: entry.current_revision, vocabulary: @tag, vocabulary_kind: @tag.kind,
           taxonomy_term: category_term, locale: "ja", position: 0,
         ).save!(validate: false)
@@ -193,12 +175,11 @@ module Publishing
     end
 
     test "an assignment's locale must match its revision and its term" do
-      edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-      entry = publishing_draft(edition:, slug: "locale-entry", title: "Locale")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "locale-entry", title: "Locale")
       english_term = publishing_term(vocabulary: @category, locale: "en", slug: "english-guide")
 
       assert_raises(ActiveRecord::InvalidForeignKey) do
-        RevisionSingleTaxonomyAssignment.new(
+        entry.current_revision.single_taxonomy_assignments.new(
           entry_revision: entry.current_revision, vocabulary: @category, vocabulary_kind: @category.kind,
           taxonomy_term: english_term, locale: "ja",
         ).save!(validate: false)
@@ -206,18 +187,17 @@ module Publishing
     end
 
     test "single assignments are capped at one term per vocabulary" do
-      edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-      entry = publishing_draft(edition:, slug: "single-entry", title: "Single")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "single-entry", title: "Single")
       first = publishing_term(vocabulary: @category, locale: "ja", slug: "first")
       second = publishing_term(vocabulary: @category, locale: "ja", slug: "second")
 
-      RevisionSingleTaxonomyAssignment.create!(
+      create_single_assignment(
         entry_revision: entry.current_revision, vocabulary: @category, vocabulary_kind: @category.kind,
         taxonomy_term: first, locale: "ja",
       )
 
       assert_raises(ActiveRecord::RecordNotUnique) do
-        RevisionSingleTaxonomyAssignment.create!(
+        create_single_assignment(
           entry_revision: entry.current_revision, vocabulary: @category, vocabulary_kind: @category.kind,
           taxonomy_term: second, locale: "ja",
         )
@@ -225,13 +205,12 @@ module Publishing
     end
 
     test "multiple assignments reject duplicate terms and duplicate positions" do
-      edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-      entry = publishing_draft(edition:, slug: "multi-entry", title: "Multi")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "multi-entry", title: "Multi")
       ruby = publishing_term(vocabulary: @tag, locale: "ja", slug: "ruby")
       rails = publishing_term(vocabulary: @tag, locale: "ja", slug: "rails")
       assign =
         lambda do |term, position|
-          RevisionMultipleTaxonomyAssignment.create!(
+          create_multiple_assignment(
             entry_revision: entry.current_revision, vocabulary: @tag, vocabulary_kind: @tag.kind,
             taxonomy_term: term, locale: "ja", position:,
           )
@@ -245,12 +224,11 @@ module Publishing
     end
 
     test "a negative position is rejected" do
-      edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
-      entry = publishing_draft(edition:, slug: "position-entry", title: "Position")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "position-entry", title: "Position")
       ruby = publishing_term(vocabulary: @tag, locale: "ja", slug: "ruby")
 
       assert_raises(ActiveRecord::CheckViolation) do
-        RevisionMultipleTaxonomyAssignment.new(
+        entry.current_revision.multiple_taxonomy_assignments.new(
           entry_revision: entry.current_revision, vocabulary: @tag, vocabulary_kind: @tag.kind,
           taxonomy_term: ruby, locale: "ja", position: -1,
         ).save!(validate: false)

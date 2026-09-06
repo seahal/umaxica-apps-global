@@ -43,7 +43,8 @@ class VisitorTelephone < ComPrincipalRecord
 
   self.filter_attributes += %w(number)
 
-  # FIXME: set telephone max is 2
+  # Matches MAX_TELEPHONES_PER_USER and MAX_TELEPHONES_PER_STAFF: contact-method
+  # caps are four across every principal.
   MAX_TELEPHONES_PER_VISITOR = 4
 
   attribute :visitor_telephone_status_id, default: VisitorTelephoneStatus::UNVERIFIED

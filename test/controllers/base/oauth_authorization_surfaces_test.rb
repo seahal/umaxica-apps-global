@@ -8,6 +8,11 @@ require "test_helper"
 # surface is covered by BaseOauthOidcAuthorityTest; these pin the spec-defined
 # error responses of the corporate and staff surfaces.
 class BaseOauthAuthorizationSurfacesTest < ActionDispatch::IntegrationTest
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   fixtures :operators, :operator_statuses, :operator_token_kinds, :operator_token_statuses,
            :operator_token_binding_methods, :operator_token_dbsc_statuses,
            :visitors, :visitor_statuses, :visitor_token_kinds, :visitor_token_statuses,

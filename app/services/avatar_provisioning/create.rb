@@ -81,7 +81,6 @@ module AvatarProvisioning
         client_id: legacy_compatibility_client_id,
         owner_organization_id: organization_public_id,
         representing_organization_id: organization_public_id,
-        image_data: {},
       )
     end
 

@@ -36,12 +36,16 @@ class ShrineConfigurationTest < ActiveSupport::TestCase
 
   test "production resolves to S3 and never to the file system" do
     production = ActiveSupport::StringInquirer.new("production")
+    saved_deployment_tier = ENV["DEPLOYMENT_TIER"]
+    ENV["DEPLOYMENT_TIER"] = "production"
 
     assert_equal(:s3, ObjectStorage::ShrineConfiguration.mode(production))
     assert_empty(ObjectStorage::ShrineConfiguration.storages(production))
+  ensure
+    saved_deployment_tier.nil? ? ENV.delete("DEPLOYMENT_TIER") : ENV["DEPLOYMENT_TIER"] = saved_deployment_tier
   end
 
-  test "development without S3-compatible configuration stays outside the public web root" do
+  test "development always selects S3-compatible storage and never the public web root" do
     development = ActiveSupport::StringInquirer.new("development")
     # The _FILE variants must go too: credentials arrive as mounted secrets, so
     # deleting only the plain names would leave the set partially configured.
@@ -53,13 +57,11 @@ class ShrineConfigurationTest < ActiveSupport::TestCase
     saved = names.index_with { |name| ENV[name] }
     names.each { |name| ENV.delete(name) }
 
-    assert_equal(:local_filesystem, ObjectStorage::ShrineConfiguration.mode(development))
+    assert_equal(:s3_compatible, ObjectStorage::ShrineConfiguration.mode(development))
 
     storages = ObjectStorage::ShrineConfiguration.storages(development)
-    storages.each_value do |storage|
-      assert_instance_of(Shrine::Storage::FileSystem, storage)
-      assert_not(storage.directory.to_s.start_with?(Rails.public_path.to_s))
-    end
+
+    assert_empty(storages)
   ensure
     saved&.each { |name, value| value.nil? ? ENV.delete(name) : ENV[name] = value }
   end
@@ -74,8 +76,8 @@ class ShrineConfigurationTest < ActiveSupport::TestCase
     assert_not(root.start_with?(Rails.public_path.to_s))
   end
 
-  test "verifying registered boundaries is a no-op while none are registered" do
-    assert_empty(ObjectStorage::Boundary.keys)
+  test "verifying registered boundaries uses in-memory storage in test" do
+    assert_equal(%i(avatar publishing), ObjectStorage::Boundary.keys)
     assert_nothing_raised { ObjectStorage::ShrineConfiguration.verify_registered_boundaries! }
   end
 

@@ -17,14 +17,16 @@ module ObjectStorage
   # delivery contract. Bucket identity is likewise not derived from the database
   # name; it is read from an explicitly named variable per boundary.
   #
-  # REGISTRY is intentionally empty. A boundary is registered only when a model in
-  # that boundary actually declares an attachment, so boundaries without
-  # attachments (cache, queue, search, occurrence, chronicle, ticket, setting,
-  # signal) impose no bucket requirement on any deployment.
+  # A boundary is registered only when a model in that boundary actually
+  # declares an attachment. Databases without attachments (cache, queue, search,
+  # occurrence, chronicle, ticket, setting, signal) impose no bucket requirement.
   module Boundary
     module_function
 
-    REGISTRY = {}.freeze
+    REGISTRY = {
+      avatar: "AVATAR",
+      publishing: "PUBLISHING",
+    }.freeze
 
     def keys
       REGISTRY.keys

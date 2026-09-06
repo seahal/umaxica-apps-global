@@ -5,6 +5,10 @@ require "json"
 require "minitest/autorun"
 require "open3"
 
+# The registry that decides which OBJECT_STORAGE_BUCKET_* variables the development
+# boot requires. Loaded directly because this test runs without the Rails environment.
+require_relative "../../lib/object_storage_boundary"
+
 class HostAuthorizationContractTest < Minitest::Test
   PRIVATE_ORIGIN_HOSTS = %w(
     auth.app.localhost:3000
@@ -56,9 +60,8 @@ class HostAuthorizationContractTest < Minitest::Test
     RUBY
     hosts = PRIVATE_ORIGIN_HOSTS + ["evil.example.com"]
     stdout, stderr, status = Open3.capture3(
-      cleared_object_storage_env.merge(
+      child_object_storage_env.merge(
         "RAILS_ENV" => "development",
-        "REDIS_SMOKE_TEST" => "0",
         "HOST_AUTHORIZATION_TEST_HOSTS" => JSON.generate(hosts),
         "PRIVATE_AUTH_CORPORATE_URL" => "http://configured-auth.com.localhost:3000",
         "PRIVATE_AUTH_STAFF_URL" => "http://configured-auth.org.localhost:3000",
@@ -123,6 +126,16 @@ class HostAuthorizationContractTest < Minitest::Test
     assert_equal 403, statuses.fetch("evil.example.com")
   end
 
+  # `frontend` aliases that exist so something can DIAL the Rails container, never so
+  # Rails can accept them as a Host. The Workers VPC Service names its target here; the
+  # Host header on that path still comes from the Worker's `fetch()` URL, so these names
+  # are deliberately absent from `config.hosts` and no `PUBLIC_*_URL` may name them.
+  #
+  # A `*.localhost` name cannot do this job: RFC 6761 makes glibc resolve anything under
+  # `localhost.` to loopback before a container resolver is consulted.
+  # See docs/operations/cloudflare-private-origin.md.
+  ROUTING_ONLY_ALIASES = ["core-workers-vpc.internal"].freeze
+
   def test_development_compose_aliases_only_private_origins_and_configured_public_site_hosts
     compose = File.read(File.expand_path("../../compose.yaml", __dir__))
     aliases_block = compose[/frontend:\n\s+aliases:\n((?:\s+(?:- \S+|#.*)\n)+)/, 1].to_s
@@ -138,11 +151,31 @@ class HostAuthorizationContractTest < Minitest::Test
 
     aliased_hosts.each do |host|
       next if host.end_with?(".localhost")
+      next if ROUTING_ONLY_ALIASES.include?(host)
 
       assert_includes configured_public_hosts,
                       host,
                       "compose.yaml aliases #{host} to core, but no PUBLIC_*_URL names it, " \
                       "so development Host Authorization would reject it"
+    end
+
+    # The exemption above is only sound while these names really are routing-only. A
+    # routing-only alias that also became an accepted Host would be admitting a hostname
+    # no PUBLIC_*_URL declares, which is exactly what this test exists to prevent, so
+    # assert the other half rather than trusting the exemption list.
+    development_config = File.read(File.expand_path("../../config/environments/development.rb", __dir__))
+    ROUTING_ONLY_ALIASES.each do |host|
+      assert_includes aliased_hosts,
+                      host,
+                      "#{host} is exempted as routing-only but is no longer a frontend alias; " \
+                      "drop it from ROUTING_ONLY_ALIASES"
+      # rubocop:disable Rails/RefuteMethods
+      refute_includes development_config,
+                      host,
+                      "#{host} is a Workers VPC routing target, not an origin Host. It must not " \
+                      "appear in config.hosts: Cloudflare uses it only to pick the origin to dial, " \
+                      "and the Host still comes from the Worker's fetch() URL"
+      # rubocop:enable Rails/RefuteMethods
     end
   end
 
@@ -161,23 +194,53 @@ class HostAuthorizationContractTest < Minitest::Test
 
   # Open3 hands the child our own environment, so whatever object-storage variables happen
   # to be set in this process - by the shell, by a .env, or by another test mid-flight -
-  # decide whether the child boots. A partially configured set makes
-  # `ObjectStorage::Environment.configured?` refuse to boot, by design. Clear the whole set
-  # (nil unsets) so this test measures Host Authorization and nothing else.
-  OBJECT_STORAGE_ENV_NAMES = %w(
-    OBJECT_STORAGE_ENDPOINT OBJECT_STORAGE_REGION OBJECT_STORAGE_ACCESS_KEY_ID
-    OBJECT_STORAGE_SECRET_ACCESS_KEY OBJECT_STORAGE_FORCE_PATH_STYLE
-    OBJECT_STORAGE_ACCESS_KEY_ID_FILE OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE
-  ).freeze
+  # decide whether the child boots. `development` resolves every registered storage
+  # boundary at boot (config/initializers/shrine.rb), and that path is fail-fast: it
+  # needs a complete S3-compatible configuration and refuses a partial one. Clearing the
+  # set is not enough, because a cleared development boot then fails on the first missing
+  # required variable. Supply a complete, self-contained fake configuration instead, so
+  # the child boots deterministically regardless of the parent environment and this test
+  # measures Host Authorization and nothing else. The values never reach the network:
+  # each test only builds the middleware and drives it with Rack::MockRequest, and the
+  # endpoint host is under RFC 2606's reserved .invalid TLD so it cannot resolve.
+  SHARED_OBJECT_STORAGE_ENV = {
+    "OBJECT_STORAGE_ENDPOINT" => "http://object-storage.invalid:4566",
+    "OBJECT_STORAGE_REGION" => "us-east-1",
+    "OBJECT_STORAGE_ACCESS_KEY_ID" => "test",
+    "OBJECT_STORAGE_SECRET_ACCESS_KEY" => "test",
+    "OBJECT_STORAGE_FORCE_PATH_STYLE" => "true",
+    # The _FILE variants take precedence over the plain names when set, so unset
+    # them (nil) rather than leaving an inherited secret mount to win.
+    "OBJECT_STORAGE_ACCESS_KEY_ID_FILE" => nil,
+    "OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE" => nil,
+  }.freeze
 
-  def cleared_object_storage_env
-    OBJECT_STORAGE_ENV_NAMES.index_with(nil)
+  # Helpers, not cases. They must stay private: RuboCop's Minitest/TestMethodName
+  # renames any PUBLIC method whose name contains "test" to a test_ prefix, which
+  # would turn a helper into a silently passing case and break its callers.
+  private
+
+  # Derived from the registry rather than hand-listed. Registering a new boundary
+  # adds a required OBJECT_STORAGE_BUCKET_<NAME> to the development boot, and a
+  # hand-maintained list would go stale silently - the child would just die with a
+  # KeyError that looks nothing like a Host Authorization failure.
+  def child_object_storage_env
+    buckets =
+      ObjectStorage::Boundary.keys.to_h do |boundary|
+        [ObjectStorage::Boundary.bucket_variable(boundary), "umaxica-#{boundary}-test"]
+      end
+
+    # Plain Minitest does not provide Rails' assert_not_empty assertion.
+    # rubocop:disable Rails/RefuteMethods
+    refute_empty buckets, "expected at least one registered object-storage boundary"
+    # rubocop:enable Rails/RefuteMethods
+
+    SHARED_OBJECT_STORAGE_ENV.merge(buckets)
   end
 
   def development_published_host_env(unconfigured_site_host)
-    cleared_object_storage_env.merge(
+    child_object_storage_env.merge(
       "RAILS_ENV" => "development",
-      "REDIS_SMOKE_TEST" => "0",
       "HOST_AUTHORIZATION_TEST_HOSTS" =>
         JSON.generate(BROWSER_FACING_SITE_HOSTS + [unconfigured_site_host, "evil.example.com"]),
       "PUBLIC_AUTH_SERVICE_URL" => "https://auth.umaxica.app",

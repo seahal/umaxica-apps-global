@@ -6,6 +6,8 @@
 # your test database is "scratch space" for the test suite and is wiped
 # and recreated between test runs. Don't rely on the data there!
 
+require Rails.root.join("test/support/swappable_cache_store")
+
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
@@ -29,12 +31,17 @@ Rails.application.configure do
   # Show full error reports.
   config.consider_all_requests_local = true
 
-  # Cache store for test environment. SolidCache is intentionally disabled here:
-  # the cache must not double as a persistent, database-backed store in tests.
+  # Tests persist neither application cache nor rate-limit state by default, and
+  # CI never depends on an external Redis/Valkey service. Ordinary tests must not
+  # accidentally depend on cached state, and must not accumulate rate-limit
+  # counters and receive surprise 429s.
+  #
+  # Tests whose subject *is* cache or rate-limit behavior opt into a
+  # deterministic ActiveSupport::Cache::MemoryStore explicitly, and restore the
+  # previous store in teardown.
   config.cache_store = :null_store
-  config.x.rate_limit.store = ActiveSupport::Cache::MemoryStore.new
-  # SolidCache shard wiring intentionally left disconnected while :null_store is
-  # the test cache.
+  config.x.rate_limit.store =
+    TestSupport::SwappableCacheStore.new(ActiveSupport::Cache::NullStore.new)
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
@@ -57,7 +64,7 @@ Rails.application.configure do
 
   # Tell Active Job to use the test adapter
   config.active_job.queue_adapter = :test
-  config.solid_queue.connects_to = { database: { writing: :queue, reading: :queue_replica } }
+  config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "example.com" }

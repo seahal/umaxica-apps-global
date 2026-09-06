@@ -50,11 +50,11 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ### 2.2 Primary Modules
 
-| Layer          | Components                                                                                |
-| -------------- | ----------------------------------------------------------------------------------------- |
-| Presentation   | Namespaced controllers and Turbo/React views under `src`                                  |
-| Domain Logic   | Concerns in `app/controllers/concerns`, services in `app/services`, models per DB         |
-| Integration    | `app/mailers`, `Outbound::Sms`, OTEL instrumentation                                      |
+| Layer          | Components                                                                                          |
+| -------------- | --------------------------------------------------------------------------------------------------- |
+| Presentation   | Namespaced controllers and Turbo/React views under `src`                                            |
+| Domain Logic   | Concerns in `app/controllers/concerns`, services in `app/services`, models per DB                   |
+| Integration    | `app/mailers`, `Outbound::Sms`, OTEL instrumentation                                                |
 | Infrastructure | Compose services (Postgres, Valkey, optional RustFS, Loki, Tempo, Grafana), pnpm/Tailwind toolchain |
 
 ---
@@ -68,23 +68,25 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
   - Scopes traffic via `constraints host: ENV["<HOST_VAR>"]`
   - Adds nested modules (e.g., `scope module: :com, as: :com`)
   - Defines RESTful resources for health endpoints, preferences, docs, API, etc.
-- All routes expose `/health` (HTML) and `/v1/health` (JSON) courtesy of controllers mixing in the
-  `Health` concern.
+- All surfaces expose `text/plain` health probes (`/health` aggregate,
+  `/health/{startup,liveness,readiness}`) plus machine JSON `/api/v0/health.json` and
+  `/api/v0/revision.json`, via `HealthCheckRendering` / `ApplicationRevisionRendering` delegating to
+  the `Health` service layer. See `docs/reference/health-endpoints.md`.
 
 ### 3.2 Shared Controller Concerns
 
-| Concern               | Key responsibilities                                                                                             |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `Auth::Base`          | JWT (ES384) issuance/verification (`kid` header + keyring), login/logout helpers, refresh/device cookie handling |
-| `RateLimit`           | Configures `ActiveSupport::Cache::RedisCacheStore` with Valkey to enforce per-request throttles                  |
-| `DefaultUrlOptions`   | Reads signed preference cookie to append `lx`, `ri`, `tz` query params                                           |
-| `PreferenceRegions`   | Normalizes locale/timezone inputs, persists to session/cookies, handles errors                                   |
-| `Theme`               | Provides theme editing/updating with shorthand codes and preference cookie syncing                               |
-| `Cookie`              | Stores ePrivacy consent flags in signed cookies                                                                  |
-| `CloudflareTurnstile` | Validates Turnstile tokens via HTTP POST                                                                         |
-| `Redirect`            | Validates allowed redirect hosts and Base64 tokens                                                               |
-| `Memorize`            | Thin Valkey wrapper (encrypted) for per-session ephemeral storage                                                |
-| `Health`              | Implements `show_html`/`show_json` for heartbeat endpoints                                                       |
+| Concern               | Key responsibilities                                                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Auth::Base`          | JWT (ES384) issuance/verification (`kid` header + keyring), login/logout helpers, refresh/device cookie handling                                      |
+| `RateLimit`           | Configures a dedicated `ActiveSupport::Cache::RedisCacheStore` (`RATE_LIMIT_REDIS_URL`, separate from `Rails.cache`) to enforce per-request throttles |
+| `DefaultUrlOptions`   | Reads signed preference cookie to append `lx`, `ri`, `tz` query params                                                                                |
+| `PreferenceRegions`   | Normalizes locale/timezone inputs, persists to session/cookies, handles errors                                                                        |
+| `Theme`               | Provides theme editing/updating with shorthand codes and preference cookie syncing                                                                    |
+| `Cookie`              | Stores ePrivacy consent flags in signed cookies                                                                                                       |
+| `CloudflareTurnstile` | Validates Turnstile tokens via HTTP POST                                                                                                              |
+| `Redirect`            | Validates allowed redirect hosts and Base64 tokens                                                                                                    |
+| `Memorize`            | Thin Valkey wrapper (encrypted) for per-session ephemeral storage                                                                                     |
+| `Health`              | `Health` service layer + `HealthCheckRendering` render text probes and `/api/v0/health.json`                                                          |
 
 ### 3.3 Top Namespace
 
@@ -268,25 +270,34 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 - Session: stores preference drafts, OTP metadata, WebAuthn challenges; `Memorize` offers encrypted
   Valkey storage keyed by host/session.
 
-### 5.3 Redis Usage
+### 5.3 Valkey Usage
 
-- Sessions (if configured) + Rack cache
-- Rate limiting store (Valkey)
-- Memorize key/value store with encryption
-- Potential future cache entries for background work, if introduced later
+Valkey has exactly two application-facing responsibilities, each with its own URL, its own
+environment-qualified namespace, and its own Compose service in development. Neither is
+authoritative: Valkey loss must not invalidate authoritative application state.
+
+1. **Application cache** (`CACHE_REDIS_URL`, namespace `cache:<env>:...`) - disposable,
+   reconstructible, bounded entries only. Every entry carries an explicit TTL. This backs
+   `Rails.cache`, whose live consumers are external JWKS documents and their negative cache.
+2. **Rate-limit counters** (`RATE_LIMIT_REDIS_URL`, namespace `rate_limit:<env>:...`) - distributed
+   counters whose TTL follows the rate-limit window. Never served from `Rails.cache`.
+
+Solid Cache is not part of the runtime architecture; Solid Queue remains PostgreSQL-backed.
+Development isolates the two stores with separate Compose services. Staging and production both
+use logical DB 0. Staging shares `CACHE_REDIS_URL`. Production requires both URLs on `/0`.
 
 ---
 
 ## 6. External Interfaces
 
-| Interface            | Endpoint(s)                                                                                               | Details                                                                                                                                                                         |
-| -------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| HTTP/Turbo           | `/`, `/health`, `/v1/health`, `/preference/*`, `/sign/*`, `/help/contacts`, `/api/v1/inquiry/*`, `/bff/*` | Host-specific responses; `allow_browser` enforces modern clients.                                                                                                               |
-| Cloudflare Turnstile | `https://challenges.cloudflare.com/turnstile/v0/siteverify`                                               | Called server-side with secret key, form response, and client IP.                                                                                                               |
-| ActionMailer         | `Email::{App,Com,Org}::{OtpMailer,AlertMailer,PromotionalMailer}`                                         | OTP, alert, and promotion senders are fixed per surface and purpose, for example `otp@umaxica.app` and `promotion@umaxica.org`. OTP job arguments carry encrypted OTP payloads. |
-| SMS                  | `Outbound::Sms`                                                                                           | Called via `Outbound::Sms.deliver_later` for OTP-related flows; `SMS_PROVIDER` selects the concrete provider. SMS job arguments carry encrypted message bodies.                 |
-| OpenTelemetry        | OTLP exporter                                                                                             | Default endpoint `http://tempo:4318/v1/traces` (configurable).                                                                                                                  |
-| Storage              | RustFS S3-compatible API                                                                                  | Opt-in local `object-storage` Compose profile with `object_storage:prepare`/`object_storage:smoke` rake tasks (`lib/tasks/object_storage.rake`) for manual verification. Not wired into the application: Shrine (`config/initializers/shrine.rb`) uses `Memory` storage in test and local `FileSystem` storage otherwise, and Active Storage (`config/storage.yml`) is `Disk`-only. |
+| Interface            | Endpoint(s)                                                                                                        | Details                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP/Turbo           | `/`, `/health`, `/api/v0/health.json`, `/preference/*`, `/sign/*`, `/help/contacts`, `/api/v1/inquiry/*`, `/bff/*` | Host-specific responses; `allow_browser` enforces modern clients.                                                                                                                                                                                                                                                                                                                   |
+| Cloudflare Turnstile | `https://challenges.cloudflare.com/turnstile/v0/siteverify`                                                        | Called server-side with secret key, form response, and client IP.                                                                                                                                                                                                                                                                                                                   |
+| ActionMailer         | `Email::{App,Com,Org}::{OtpMailer,AlertMailer,PromotionalMailer}`                                                  | OTP, alert, and promotion senders are fixed per surface and purpose, for example `otp@umaxica.app` and `promotion@umaxica.org`. OTP job arguments carry encrypted OTP payloads.                                                                                                                                                                                                     |
+| SMS                  | `Outbound::Sms`                                                                                                    | Called via `Outbound::Sms.deliver_later` for OTP-related flows; `SMS_PROVIDER` selects the concrete provider. SMS job arguments carry encrypted message bodies.                                                                                                                                                                                                                     |
+| OpenTelemetry        | OTLP exporter                                                                                                      | Default endpoint `http://tempo:4318/v1/traces` (configurable).                                                                                                                                                                                                                                                                                                                      |
+| Storage              | RustFS S3-compatible API                                                                                           | Opt-in local `object-storage` Compose profile with `object_storage:prepare`/`object_storage:smoke` rake tasks (`lib/tasks/object_storage.rake`) for manual verification. Not wired into the application: Shrine (`config/initializers/shrine.rb`) uses `Memory` storage in test and local `FileSystem` storage otherwise, and Active Storage (`config/storage.yml`) is `Disk`-only. |
 
 ---
 
@@ -298,8 +309,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
   (`REDIS_RACK_ATTACK_URL`, `REDIS_SESSION_URL`), Cloudflare Turnstile keys, JWT keys, AWS
   credentials, OTLP endpoint.
 - `compose.yaml` launches the normal infrastructure; the `object-storage` profile adds RustFS with
-  four persistent volumes. Other volumes store data per
-  service.
+  four persistent volumes. Other volumes store data per service.
 - `bin/dev` ensures the Rails server, Vite dev server, and background jobs run concurrently via
   `foreman start -f Procfile.dev`.
 - Build/test commands:

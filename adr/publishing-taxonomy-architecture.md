@@ -80,11 +80,12 @@ change to tables, constraints, code, and tests — not a configuration value.
 on the structural kind, never on an individual vocabulary key: no code branches on
 `vocabulary.key == "category"`.
 
-### Vocabulary is scoped by audience and surface
+### Vocabulary is scoped by physical content family
 
-A vocabulary belongs to exactly one `(audience, surface)` pair, so `app/docs/category` and
-`com/docs/category` are independent trees, matching the surface-isolation rule the rest of the
-application follows. `UNIQUE(audience, surface, key)` enforces this.
+**Amended 2026-09-04 by `adr/publishing-twelve-family-encrypted-persistence.md`.**
+A vocabulary belongs to exactly one of the twelve physical families (for example
+`publishing_docs_app_vocabularies`). `UNIQUE(key)` is per family table. There are no
+`audience`/`surface` columns on vocabulary rows.
 
 Locale is *not* part of vocabulary scope. One vocabulary row serves every locale, because locale
 belongs to terms.

@@ -28,6 +28,7 @@ module Security
       PUBLIC_ROBOTS_SITEMAPS
       PUBLIC_PWA_OFFLINE
       PUBLIC_CONTENT_READ_APIS
+      PUBLIC_PUBLISHING_CMS
       PUBLIC_PREFERENCE
       PUBLIC_WEB_EDGE
       PUBLIC_OAUTH_OIDC_SSO
@@ -176,6 +177,7 @@ module Security
         public_well_known?(entry) ||
         public_robots_or_sitemap?(entry) ||
         public_content_read_api?(entry) ||
+        public_publishing_cms?(entry) ||
         public_preference?(entry) ||
         public_web_or_edge?(entry)
     end
@@ -209,9 +211,13 @@ module Security
 
     def public_root?(entry) = get?(entry) && entry.path == "/"
 
-    def public_health?(entry) = get?(entry) && entry.path.start_with?("/health")
+    def public_health?(entry)
+      get?(entry) && (entry.path.start_with?("/health") || entry.path == "/api/v0/health.json")
+    end
 
-    def public_revision?(entry) = get?(entry) && entry.path == "/revision"
+    def public_revision?(entry)
+      get?(entry) && ["/revision", "/api/v0/revision.json"].include?(entry.path)
+    end
 
     def public_csp_report?(entry) = post?(entry) && entry.path == "/csp-violation-report"
 
@@ -226,7 +232,15 @@ module Security
         (entry.path == "/" || entry.path.start_with?("/api/v0/entries"))
     end
 
-    def public_preference?(entry) = entry.path.start_with?("/preference")
+    def public_publishing_cms?(entry)
+      entry.controller_path.start_with?("base/org/publishing/") &&
+        entry.path.start_with?("/publishing/") &&
+        %w(index show edit update).include?(entry.action)
+    end
+
+    def public_preference?(entry)
+      entry.path.start_with?("/preference") || entry.path.start_with?("/api/v0/preferences")
+    end
 
     def public_web_or_edge?(entry) = entry.path.start_with?("/web/v0/", "/edge/v0/")
 

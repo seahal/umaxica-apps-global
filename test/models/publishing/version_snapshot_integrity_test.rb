@@ -8,7 +8,6 @@ module Publishing
   # writes the assignment.
   class VersionSnapshotIntegrityTest < ActiveSupport::TestCase
     setup do
-      @edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
       @category = publishing_category_vocabulary(audience: "app", surface: "docs")
       @tag = publishing_tag_vocabulary(audience: "app", surface: "docs")
       @root = publishing_term(vocabulary: @category, locale: "ja", slug: "root", name: "Root")
@@ -31,19 +30,19 @@ module Publishing
     end
 
     test "a direct insert claiming a different term name, slug, or path is corrected" do
-      entry = publishing_draft(edition: @edition, slug: "forgery", title: "Forgery")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "forgery", title: "Forgery")
       revision = entry.current_revision
-      RevisionSingleTaxonomyAssignment.create!(
+      create_single_assignment(
         entry_revision: revision, vocabulary: @category, vocabulary_kind: @category.kind, taxonomy_term: @leaf,
         locale: "ja",
       )
-      version = EntryVersion.create!(
+      version = Docs::App::EntryVersion.create!(
         entry:, entry_revision: revision, locale: "ja", title: "Forgery", body: { "text" => "x" },
         schema_version: 1, content_digest: "d" * 64, sequence: 1,
       )
 
       @connection.execute(<<~SQL.squish)
-        INSERT INTO publishing_version_single_taxonomy_assignments
+        INSERT INTO publishing_docs_app_version_single_taxonomy_assignments
           (entry_version_id, vocabulary_id, vocabulary_kind, taxonomy_term_id, locale,
            vocabulary_public_id_snapshot, vocabulary_key_snapshot, vocabulary_kind_snapshot,
            term_public_id_snapshot, term_slug_snapshot, term_name_snapshot, term_path_snapshot,
@@ -53,7 +52,7 @@ module Publishing
            '#{"z" * 21}', 'forged-slug', 'Forged Name', '[]'::jsonb, 'ja', now(), now())
       SQL
 
-      stored = VersionSingleTaxonomyAssignment.find_by!(entry_version_id: version.id)
+      stored = Docs::App::VersionSingleTaxonomyAssignment.find_by!(entry_version_id: version.id)
 
       assert_equal "leaf", stored.term_slug_snapshot
       assert_equal "Leaf", stored.term_name_snapshot
@@ -125,7 +124,7 @@ module Publishing
     end
 
     test "revision and version bodies must be JSON objects" do
-      entry = publishing_draft(edition: @edition, slug: "body-shape", title: "Body Shape")
+      entry = publishing_draft(audience: "app", surface: "docs", slug: "body-shape", title: "Body Shape")
 
       %w("a string" [1,2] 12 true null).each do |body|
         assert_database_rejects do
@@ -161,17 +160,17 @@ module Publishing
 
     def promote(category: nil, tags: [])
       entry = publishing_draft(
-        edition: @edition, slug: "snapshot-#{SecureRandom.alphanumeric(6).downcase}",
+        audience: "app", surface: "docs", slug: "snapshot-#{SecureRandom.alphanumeric(6).downcase}",
         title: "Snapshot",
       )
       if category
-        RevisionSingleTaxonomyAssignment.create!(
+        create_single_assignment(
           entry_revision: entry.current_revision, vocabulary: @category, vocabulary_kind: @category.kind,
           taxonomy_term: category, locale: "ja",
         )
       end
       tags.each_with_index do |term, position|
-        RevisionMultipleTaxonomyAssignment.create!(
+        create_multiple_assignment(
           entry_revision: entry.current_revision, vocabulary: @tag, vocabulary_kind: @tag.kind,
           taxonomy_term: term, locale: "ja", position:,
         )

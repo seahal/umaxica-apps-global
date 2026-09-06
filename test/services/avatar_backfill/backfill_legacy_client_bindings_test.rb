@@ -158,7 +158,6 @@ module AvatarBackfill
         capability_id: AvatarCapability::NORMAL,
         client_id: client.id,
         lifecycle_state: AvatarLifecycleState.find_by!(key: "active"),
-        image_data: {},
       )
     end
   end

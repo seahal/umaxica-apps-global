@@ -32,7 +32,6 @@ class LegacyApiNamespaceGuardTest < ActiveSupport::TestCase
     "GET /edge/v0/cookie" => :api,
     "PATCH /edge/v0/cookie" => :api,
     "PUT /edge/v0/cookie" => :api,
-    "POST /edge/v0/dbsc" => :api,
     "GET /edge/v0/token/check" => :api,
     "POST /edge/v0/token/dbsc" => :api,
     "POST /edge/v0/token/refresh" => :api,
@@ -47,10 +46,9 @@ class LegacyApiNamespaceGuardTest < ActiveSupport::TestCase
 
   test "the legacy API namespaces contain exactly the pinned operations" do
     assert_equal LEGACY_OPERATIONS.keys.sort, routed_legacy_operations.to_a.sort,
-                 "the /web/v0 and /edge/v0 surface changed. adr/api-route-vocabulary-consolidation.md " \
-                 "makes /api/v0 canonical and these two transitional, so growth is a decision to move " \
-                 "against the accepted direction and removal needs the compatibility review that ADR " \
-                 "requires. Update LEGACY_OPERATIONS only as part of that decision."
+                 "the non-Core /web/v0 and /edge/v0 surface changed. " \
+                 "adr/api-route-vocabulary-consolidation.md makes /api/v0 canonical and these two " \
+                 "transitional. Update LEGACY_OPERATIONS only as part of a service-specific review."
   end
 
   test "no service serves the same endpoint under both a legacy namespace and /api/v0" do
@@ -72,6 +70,14 @@ class LegacyApiNamespaceGuardTest < ActiveSupport::TestCase
     assert_empty half_migrated,
                  "these endpoints are served under both a legacy namespace and /api/v0 by the same " \
                  "service: #{half_migrated.sort.join(", ")}"
+  end
+
+  test "core exposes no routes under a legacy API namespace" do
+    core_legacy =
+      endpoints { |path| path.start_with?(*LEGACY_PREFIXES) }
+        .select { |service, _surface, _verb, _path| service == "core" }
+
+    assert_empty core_legacy, "Core must expose preference APIs only under /api/v0"
   end
 
   private

@@ -1,5 +1,11 @@
 # Four-App Solid Cache and Solid Queue Adoption (2026-04-23)
 
+> **Status update (2026-09-05):** Superseded in part by
+> `adr/solid-cache-removal-and-valkey-cache-separation.md`. Solid Cache has been removed from the
+> runtime architecture: `Rails.cache` is Valkey-backed via `CACHE_REDIS_URL`, and the `cache` /
+> `cache_replica` PostgreSQL connections and `db/caches_migrate/` are gone. Solid Queue is
+> unaffected and remains PostgreSQL-backed. Everything below about Solid Cache is historical.
+
 > **Status update (2026-04-26):** Obsolete. Per `adr/split-into-regional-and-global-repos.md`
 > (2026-04-25), the 4-app split (`identity` / `foundation` / `zenith` / `distributor`) has been
 > abandoned. This repository is now a single Rails app (the **global** side of the global / regional

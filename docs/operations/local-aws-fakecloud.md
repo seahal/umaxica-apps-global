@@ -10,7 +10,7 @@ former RustFS service (S3) and the former standalone Kafka broker (MSK), so ther
 endpoint rather than one emulator per service.
 
 It is **not** behind a Compose profile. A plain `podman compose up` starts it alongside `core`,
-`primary`, `replica`, and `valkey`, because S3 and MSK are meant to be standing development
+`primary`, `replica`, `valkey-cache`, and `valkey-rate-limit`, because S3 and MSK are meant to be standing development
 infrastructure rather than a special mode.
 
 ## What Is Available
@@ -66,11 +66,37 @@ into `compose.yaml` or `terraform/environments/development` is obvious on sight,
 behind a generated `/run/secrets` file. `development_container_contract_test.rb` asserts these
 values stay literal and uninterpolated.
 
-**Production takes no key from these variables.** `lib/object_storage_shrine_configuration.rb` uses
-the AWS SDK default credential chain in production and raises outright if `OBJECT_STORAGE_ENDPOINT`
-is set there. That is why the application keeps its own variable namespace instead of
-`AWS_ENDPOINT_URL_S3`: an `AWS_*` endpoint variable is consumed _implicitly_ by the SDK, which would
-silently redirect production S3 traffic past that check.
+Production-shaped deployments require an explicit `DEPLOYMENT_TIER`. The `staging` tier uses these
+S3-compatible variables so the production Rails configuration can run against fakecloud. The
+`production` tier takes no key from them, uses the AWS SDK default credential chain, and raises if
+`OBJECT_STORAGE_ENDPOINT` reaches the AWS S3 path. That is why the application keeps its own
+variable namespace instead of `AWS_ENDPOINT_URL_S3`: an `AWS_*` endpoint variable is consumed
+_implicitly_ by the SDK, which would silently redirect real production S3 traffic past that check.
+
+Development buckets are created idempotently with:
+
+```bash
+bin/rails object_storage:prepare
+bin/rails object_storage:verify
+```
+
+`prepare` creates the Avatar and publishing buckets named by
+`OBJECT_STORAGE_BUCKET_AVATAR` and `OBJECT_STORAGE_BUCKET_PUBLISHING`.
+`verify` checks FakeCloud health, those buckets, one Avatar upload, and one
+publishing upload.
+
+The complete storage matrix is:
+
+| Rails environment | Deployment tier | Storage |
+| ----------------- | --------------- | ------- |
+| `test` | not read | In-memory; no S3 network access |
+| `development` | not read | Configured S3-compatible endpoint |
+| `production` | `staging` | Configured S3-compatible endpoint |
+| `production` | `production` | AWS S3 through the platform credential provider |
+
+Missing or unrecognized `DEPLOYMENT_TIER` values fail when production storage configuration is
+resolved. There is no production default because accidentally interpreting staging as real
+production, or the reverse, changes where durable uploads are written.
 
 ### Migrating from RustFS
 
@@ -156,9 +182,9 @@ State is a local backend and is gitignored: it describes a disposable emulator o
 ```bash
 export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1
 aws --endpoint-url http://localhost:4566 s3 ls
-aws --endpoint-url http://localhost:4566 s3 cp ./some-file s3://umaxica-local/probe
-aws --endpoint-url http://localhost:4566 s3 cp s3://umaxica-local/probe -
-aws --endpoint-url http://localhost:4566 s3 rm s3://umaxica-local/probe
+aws --endpoint-url http://localhost:4566 s3 cp ./some-file s3://umaxica-avatar-development/probe
+aws --endpoint-url http://localhost:4566 s3 cp s3://umaxica-avatar-development/probe -
+aws --endpoint-url http://localhost:4566 s3 rm s3://umaxica-avatar-development/probe
 ```
 
 `bin/rails object_storage:prepare` and `bin/rails object_storage:smoke` do the same round trip from

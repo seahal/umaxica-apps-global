@@ -11,6 +11,7 @@ module Help
           AUTHENTICATION_MODE = :bare
           PUBLISHING_AUDIENCE = "com"
           PUBLISHING_SURFACE = "help"
+          ENTRY_CLASS = ::Publishing::Help::Com::Entry
 
           def index
             render_publishing_entries_index

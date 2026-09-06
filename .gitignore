@@ -97,6 +97,10 @@ node_modules
 /config/credentials/*.key
 /*.key
 
+# The production credentials payload is provisioned out of band and never
+# committed, unlike the tracked development.yml.enc / test.yml.enc.
+/config/credentials/production.yml.enc
+
 # misc
 /.crush/
 /.dbclient/

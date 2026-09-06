@@ -8,6 +8,11 @@ require "test_helper"
 # The switch is only worth having if it fails closed and if it runs before everything it is supposed
 # to protect, so both properties are asserted directly rather than inferred from a status code.
 class FqdnAvailabilityGateTest < ActionDispatch::IntegrationTest
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   setup do
     @host = configured_host(:base_service)
     @slot = FqdnAvailabilityRegistry.slot_for(@host)

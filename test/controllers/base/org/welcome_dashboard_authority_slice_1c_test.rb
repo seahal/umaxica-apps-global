@@ -33,7 +33,16 @@ class Base::Org::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     assert_equal "Dashboard", inertia_props.fetch("title")
     assert_no_match(/id\.umaxica/, response.body)
 
-    links = inertia_props.fetch("sections").flat_map { |section| section.fetch("items") }
+    links =
+      inertia_props.fetch("sections").flat_map { |section|
+        if section["items"]
+          section.fetch("items")
+        elsif section["groups"]
+          section.fetch("groups").flat_map { |group| group.fetch("items") }
+        else
+          []
+        end
+      }
     hrefs = links.map { |link| link.fetch("href") }
     labelled = links.to_h { |link| [link.fetch("label"), link.fetch("href")] }
 
@@ -49,6 +58,35 @@ class Base::Org::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     assert_includes labelled.keys, "OIDC discovery"
     assert_includes labelled.keys, "JWKS"
     assert_includes labelled.keys, "UserInfo"
+
+    publishing = inertia_props.fetch("sections").find { |section| section.fetch("heading") == "Publishing" }
+
+    assert publishing
+    surfaces = publishing.fetch("groups").map { |group| group.fetch("heading") }
+
+    assert_equal %w(info docs news help), surfaces
+    hrefs_by_cell =
+      publishing.fetch("groups").flat_map { |group|
+        group.fetch("items").map { |item| [group.fetch("heading"), item.fetch("label"), item.fetch("href")] }
+      }
+
+    assert_equal(
+      [
+        ["info", "app", base_org_publishing_info_app_entries_path(ri: "jp")],
+        ["info", "com", base_org_publishing_info_com_entries_path(ri: "jp")],
+        ["info", "org", base_org_publishing_info_org_entries_path(ri: "jp")],
+        ["docs", "app", base_org_publishing_docs_app_entries_path(ri: "jp")],
+        ["docs", "com", base_org_publishing_docs_com_entries_path(ri: "jp")],
+        ["docs", "org", base_org_publishing_docs_org_entries_path(ri: "jp")],
+        ["news", "app", base_org_publishing_news_app_entries_path(ri: "jp")],
+        ["news", "com", base_org_publishing_news_com_entries_path(ri: "jp")],
+        ["news", "org", base_org_publishing_news_org_entries_path(ri: "jp")],
+        ["help", "app", base_org_publishing_help_app_entries_path(ri: "jp")],
+        ["help", "com", base_org_publishing_help_com_entries_path(ri: "jp")],
+        ["help", "org", base_org_publishing_help_org_entries_path(ri: "jp")],
+      ],
+      hrefs_by_cell,
+    )
     assert_no_match(%r{//example|umaxica\.example|evil\.example}, response.body)
   end
 

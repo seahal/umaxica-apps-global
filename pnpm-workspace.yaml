@@ -35,13 +35,13 @@ pmOnFail: error
 strictDepBuilds: true
 trustPolicy: no-downgrade
 catalog:
-  "@types/node": 26.4.0
+  "@types/node": 26.4.1
   vite: 8.2.2
-  vitest: 4.1.11
-  "@vitest/coverage-v8": 4.1.11
+  vitest: 5.0.0
+  "@vitest/coverage-v8": 5.0.0
   lefthook: 2.1.12
-  oxfmt: 0.65.0
-  oxlint: 1.80.0
+  oxfmt: 0.66.0
+  oxlint: 1.81.0
   oxlint-tsgolint: 7.0.2001
 peerDependencyRules:
   allowAny:

@@ -13,6 +13,11 @@ require "test_helper"
 # Each case sends the full quota and then one more request, so it also pins that
 # the quota is not off by one in either direction.
 class SurfaceDefaultWebRateLimitTest < ActionDispatch::IntegrationTest
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   self.fixture_table_names = []
 
   DEFAULT_WEB_QUOTA = 300
@@ -25,9 +30,9 @@ class SurfaceDefaultWebRateLimitTest < ActionDispatch::IntegrationTest
     "auth app" => ["PUBLIC_AUTH_SERVICE_URL", :auth_app_dashboard_path],
     "auth com" => ["PUBLIC_AUTH_CORPORATE_URL", :auth_com_dashboard_path],
     "auth org" => ["PUBLIC_AUTH_STAFF_URL", :auth_org_dashboard_path],
-    "core app" => ["PUBLIC_CORE_SERVICE_URL", :core_app_web_v0_theme_path],
-    "core com" => ["PUBLIC_CORE_CORPORATE_URL", :core_com_web_v0_theme_path],
-    "core org" => ["PUBLIC_CORE_STAFF_URL", :core_org_web_v0_theme_path],
+    "core app" => ["PUBLIC_CORE_SERVICE_URL", :core_app_api_v0_preferences_theme_path],
+    "core com" => ["PUBLIC_CORE_CORPORATE_URL", :core_com_api_v0_preferences_theme_path],
+    "core org" => ["PUBLIC_CORE_STAFF_URL", :core_org_api_v0_preferences_theme_path],
     "side app" => ["PUBLIC_SIDE_SERVICE_URL", :side_app_dashboard_path],
     "side com" => ["PUBLIC_SIDE_CORPORATE_URL", :side_com_dashboard_path],
     "side org" => ["PUBLIC_SIDE_STAFF_URL", :side_org_dashboard_path],

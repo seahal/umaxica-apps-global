@@ -11,10 +11,6 @@ module Publishing
 
       def ordered? = true
 
-      def revision_assignment_class = Publishing::RevisionMultipleTaxonomyAssignment
-
-      def version_assignment_class = Publishing::VersionMultipleTaxonomyAssignment
-
       # A multiple assignment always serializes to a list, empty when
       # unassigned, ordered by the position frozen at promotion.
       def serialize(assignments)

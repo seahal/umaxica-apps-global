@@ -116,53 +116,33 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/app/robots", action: "index" },
-      { path: "http://#{CORE_APP_HOST}/robots.txt", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "core/app/sitemaps", action: "show" },
-      { path: "http://#{CORE_APP_HOST}/sitemap.xml", method: :get },
-    )
-
-    assert_recognizes(
       { controller: "core/app/csp_violation_reports", action: "create" },
       { path: "http://#{CORE_APP_HOST}/csp-violation-report", method: :post },
     )
 
     assert_recognizes(
       { controller: "core/app/web/v0/cookies", action: "show" },
-      { path: "http://#{CORE_APP_HOST}/web/v0/cookie", method: :get },
+      { path: "http://#{CORE_APP_HOST}/api/v0/preferences/cookie", method: :get },
     )
 
     assert_recognizes(
       { controller: "core/app/web/v0/cookies", action: "update" },
-      { path: "http://#{CORE_APP_HOST}/web/v0/cookie", method: :patch },
+      { path: "http://#{CORE_APP_HOST}/api/v0/preferences/cookie", method: :patch },
     )
 
     assert_recognizes(
       { controller: "core/app/web/v0/themes", action: "show" },
-      { path: "http://#{CORE_APP_HOST}/web/v0/theme", method: :get },
+      { path: "http://#{CORE_APP_HOST}/api/v0/preferences/theme", method: :get },
     )
 
     assert_recognizes(
       { controller: "core/app/web/v0/themes", action: "update" },
-      { path: "http://#{CORE_APP_HOST}/web/v0/theme", method: :patch },
-    )
-
-    assert_recognizes(
-      { controller: "core/app/edge/v0/cookies", action: "show" },
-      { path: "http://#{CORE_APP_HOST}/edge/v0/cookie", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "core/app/edge/v0/cookies", action: "update" },
-      { path: "http://#{CORE_APP_HOST}/edge/v0/cookie", method: :patch },
+      { path: "http://#{CORE_APP_HOST}/api/v0/preferences/theme", method: :patch },
     )
 
     assert_recognizes(
       { controller: "core/app/edge/v0/dbsc", action: "create" },
-      { path: "http://#{CORE_APP_HOST}/edge/v0/dbsc", method: :post },
+      { path: "http://#{CORE_APP_HOST}/api/v0/preferences/dbsc", method: :post },
     )
 
     assert_recognizes(
@@ -263,53 +243,33 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/com/robots", action: "index" },
-      { path: "http://#{CORE_COM_HOST}/robots.txt", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "core/com/sitemaps", action: "show" },
-      { path: "http://#{CORE_COM_HOST}/sitemap.xml", method: :get },
-    )
-
-    assert_recognizes(
       { controller: "core/com/csp_violation_reports", action: "create" },
       { path: "http://#{CORE_COM_HOST}/csp-violation-report", method: :post },
     )
 
     assert_recognizes(
       { controller: "core/com/web/v0/cookies", action: "show" },
-      { path: "http://#{CORE_COM_HOST}/web/v0/cookie", method: :get },
+      { path: "http://#{CORE_COM_HOST}/api/v0/preferences/cookie", method: :get },
     )
 
     assert_recognizes(
       { controller: "core/com/web/v0/cookies", action: "update" },
-      { path: "http://#{CORE_COM_HOST}/web/v0/cookie", method: :patch },
+      { path: "http://#{CORE_COM_HOST}/api/v0/preferences/cookie", method: :patch },
     )
 
     assert_recognizes(
       { controller: "core/com/web/v0/themes", action: "show" },
-      { path: "http://#{CORE_COM_HOST}/web/v0/theme", method: :get },
+      { path: "http://#{CORE_COM_HOST}/api/v0/preferences/theme", method: :get },
     )
 
     assert_recognizes(
       { controller: "core/com/web/v0/themes", action: "update" },
-      { path: "http://#{CORE_COM_HOST}/web/v0/theme", method: :patch },
-    )
-
-    assert_recognizes(
-      { controller: "core/com/edge/v0/cookies", action: "show" },
-      { path: "http://#{CORE_COM_HOST}/edge/v0/cookie", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "core/com/edge/v0/cookies", action: "update" },
-      { path: "http://#{CORE_COM_HOST}/edge/v0/cookie", method: :patch },
+      { path: "http://#{CORE_COM_HOST}/api/v0/preferences/theme", method: :patch },
     )
 
     assert_recognizes(
       { controller: "core/com/edge/v0/dbsc", action: "create" },
-      { path: "http://#{CORE_COM_HOST}/edge/v0/dbsc", method: :post },
+      { path: "http://#{CORE_COM_HOST}/api/v0/preferences/dbsc", method: :post },
     )
 
     assert_recognizes(
@@ -411,58 +371,33 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/org/robots", action: "index" },
-      { path: "http://#{CORE_ORG_HOST}/robots.txt", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "core/org/sitemaps", action: "show" },
-      { path: "http://#{CORE_ORG_HOST}/sitemap.xml", method: :get },
-    )
-
-    assert_recognizes(
       { controller: "core/org/csp_violation_reports", action: "create" },
       { path: "http://#{CORE_ORG_HOST}/csp-violation-report", method: :post },
     )
 
     assert_recognizes(
-      { controller: "core/org/configurations", action: "show" },
-      { path: "http://#{CORE_ORG_HOST}/configuration", method: :get },
-    )
-
-    assert_recognizes(
       { controller: "core/org/web/v0/cookies", action: "show" },
-      { path: "http://#{CORE_ORG_HOST}/web/v0/cookie", method: :get },
+      { path: "http://#{CORE_ORG_HOST}/api/v0/preferences/cookie", method: :get },
     )
 
     assert_recognizes(
       { controller: "core/org/web/v0/cookies", action: "update" },
-      { path: "http://#{CORE_ORG_HOST}/web/v0/cookie", method: :patch },
+      { path: "http://#{CORE_ORG_HOST}/api/v0/preferences/cookie", method: :patch },
     )
 
     assert_recognizes(
       { controller: "core/org/web/v0/themes", action: "show" },
-      { path: "http://#{CORE_ORG_HOST}/web/v0/theme", method: :get },
+      { path: "http://#{CORE_ORG_HOST}/api/v0/preferences/theme", method: :get },
     )
 
     assert_recognizes(
       { controller: "core/org/web/v0/themes", action: "update" },
-      { path: "http://#{CORE_ORG_HOST}/web/v0/theme", method: :patch },
-    )
-
-    assert_recognizes(
-      { controller: "core/org/edge/v0/cookies", action: "show" },
-      { path: "http://#{CORE_ORG_HOST}/edge/v0/cookie", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "core/org/edge/v0/cookies", action: "update" },
-      { path: "http://#{CORE_ORG_HOST}/edge/v0/cookie", method: :patch },
+      { path: "http://#{CORE_ORG_HOST}/api/v0/preferences/theme", method: :patch },
     )
 
     assert_recognizes(
       { controller: "core/org/edge/v0/dbsc", action: "create" },
-      { path: "http://#{CORE_ORG_HOST}/edge/v0/dbsc", method: :post },
+      { path: "http://#{CORE_ORG_HOST}/api/v0/preferences/dbsc", method: :post },
     )
 
     assert_recognizes(
@@ -633,6 +568,33 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
   end
 
   test "core retired routes do not resolve" do
+    [CORE_APP_HOST, CORE_COM_HOST, CORE_ORG_HOST].each do |host|
+      {
+        get: %w(/web/v0/cookie /web/v0/theme /edge/v0/cookie /robots.txt /sitemap.xml),
+        patch: %w(/web/v0/cookie /web/v0/theme /edge/v0/cookie),
+        post: %w(/edge/v0/dbsc),
+      }.each do |method, paths|
+        paths.each do |path|
+          assert_raises(ActionController::RoutingError) do
+            Rails.application.routes.recognize_path("http://#{host}#{path}", method: method)
+          end
+        end
+      end
+
+      %w(cookie theme).each do |preference|
+        assert_raises(ActionController::RoutingError) do
+          Rails.application.routes.recognize_path(
+            "http://#{host}/api/v0/preferences/#{preference}",
+            method: :put,
+          )
+        end
+      end
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_ORG_HOST}/configuration", method: :get)
+    end
+
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
         "http://#{CORE_APP_HOST}/oidc/backchannel_logout",

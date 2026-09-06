@@ -64,6 +64,21 @@ class DbscCanonicalUrlTest < ActiveSupport::TestCase
 
     assert_equal "https://log.umaxica.app/edge/v0/token/dbsc", controller.send(:token_dbsc_url)
   end
+
+  test "core preference dbsc controllers use the canonical API audience" do
+    {
+      Core::App::Edge::V0::DbscController => :core_app_api_v0_preferences_dbsc_url,
+      Core::Com::Edge::V0::DbscController => :core_com_api_v0_preferences_dbsc_url,
+      Core::Org::Edge::V0::DbscController => :core_org_api_v0_preferences_dbsc_url,
+    }.each do |controller_class, helper|
+      controller = controller_class.new
+      controller.define_singleton_method(helper) do
+        "https://core.example/api/v0/preferences/dbsc"
+      end
+
+      assert_equal "https://core.example/api/v0/preferences/dbsc", controller.send(:dbsc_url)
+    end
+  end
 end
 
 # DAMP local route helper aliases for former shared test support.

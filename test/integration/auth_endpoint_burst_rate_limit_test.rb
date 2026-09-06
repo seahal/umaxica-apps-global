@@ -9,6 +9,11 @@ require "test_helper"
 # stack so a limiter that is declared but never wired is a failing test rather
 # than silent absence of protection.
 class AuthEndpointBurstRateLimitTest < ActionDispatch::IntegrationTest
+  # Rate-limit counters are a NullStore by default in test so unrelated tests
+  # cannot accumulate them; this file asserts real limiting behavior, so it
+  # opts into a deterministic MemoryStore.
+  rate_limit_counters!
+
   include ActiveSupport::Testing::TimeHelpers
 
   BURST_ALLOWANCE = 5

@@ -18,13 +18,15 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
 
   openapi_surface :app
 
-  ENTRY_KEYS = %w(namespace surface slug locale title summary body published_at taxonomy).freeze
+  ENTRY_KEYS = %w(
+    public_id namespace surface slug locale title summary body published_at updated_at
+    snapshot_public_id taxonomy
+  ).freeze
   TAXONOMY_KEYS = %w(category tag).freeze
   TERM_KEYS = %w(public_id slug name).freeze
 
   setup do
     @host = ENV.fetch("PRIVATE_DOCS_SERVICE_URL")
-    @edition = publishing_edition(audience: "app", surface: "docs", locale: "ja")
     @category = publishing_category_vocabulary(audience: "app", surface: "docs")
     @tag = publishing_tag_vocabulary(audience: "app", surface: "docs")
     @guide = publishing_term(vocabulary: @category, locale: "ja", slug: "guide", name: "ガイド")
@@ -136,8 +138,8 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
       audience: "app", surface: "docs", key: "topic", kind: Publishing::TaxonomyKind::SINGLE_HIERARCHICAL,
     )
     term = publishing_term(vocabulary: topic, locale: "ja", slug: "architecture", name: "Architecture")
-    entry = publishing_draft(edition: @edition, slug: "topical", title: "Topical")
-    Publishing::RevisionSingleTaxonomyAssignment.create!(
+    entry = publishing_draft(audience: "app", surface: "docs", slug: "topical", title: "Topical")
+    create_single_assignment(
       entry_revision: entry.current_revision, vocabulary: topic, vocabulary_kind: topic.kind,
       taxonomy_term: term, locale: "ja",
     )
@@ -149,7 +151,7 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     assert_equal %w(category tag topic), taxonomy.keys
     assert_equal "architecture", taxonomy.fetch("topic").fetch("slug")
     assert_nil taxonomy.fetch("category")
-    assert_equal [entry], PublishingPublishedEntriesQuery.call(edition: @edition, category: nil).to_a
+    assert_equal [entry], publishing_query(audience: "app", surface: "docs").call.to_a
   end
 
   test "a flat vocabulary added at runtime serializes as an ordered array" do
@@ -158,9 +160,9 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     )
     first = publishing_term(vocabulary: channel, locale: "ja", slug: "email", name: "Email")
     second = publishing_term(vocabulary: channel, locale: "ja", slug: "web", name: "Web")
-    entry = publishing_draft(edition: @edition, slug: "channelled", title: "Channelled")
+    entry = publishing_draft(audience: "app", surface: "docs", slug: "channelled", title: "Channelled")
     [second, first].each_with_index do |term, position|
-      Publishing::RevisionMultipleTaxonomyAssignment.create!(
+      create_multiple_assignment(
         entry_revision: entry.current_revision, vocabulary: channel, vocabulary_kind: channel.kind,
         taxonomy_term: term, locale: "ja", position:,
       )
@@ -187,7 +189,7 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     publish("cacheable", "Cacheable")
 
     host! @host
-    get docs_app_api_v0_entry_url(slug: "cacheable", locale: "ja", host: @host)
+    get docs_app_api_v0_entry_url(public_id: public_id_for("cacheable"), locale: "ja", host: @host)
 
     assert_response :success
     assert_includes response.headers["Cache-Control"], "public"
@@ -199,12 +201,13 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
   test "a matching validator answers 304 with no body" do
     publish("revalidated", "Revalidated")
     host! @host
-    get docs_app_api_v0_entry_url(slug: "revalidated", locale: "ja", host: @host)
+    public_id = public_id_for("revalidated")
+    get docs_app_api_v0_entry_url(public_id:, locale: "ja", host: @host)
 
     assert_response :success
     etag = response.headers.fetch("ETag")
 
-    get docs_app_api_v0_entry_url(slug: "revalidated", locale: "ja", host: @host),
+    get docs_app_api_v0_entry_url(public_id:, locale: "ja", host: @host),
         headers: { "If-None-Match" => etag }
 
     assert_response :not_modified
@@ -234,9 +237,9 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     assert_not_equal etag, response.headers.fetch("ETag")
   end
 
-  test "an unknown slug returns an RFC 9457 problem document" do
+  test "an unknown public_id returns an RFC 9457 problem document" do
     host! @host
-    get docs_app_api_v0_entry_url(slug: "missing", locale: "ja", host: @host)
+    get docs_app_api_v0_entry_url(public_id: "unknownpublicid0000001", locale: "ja", host: @host)
 
     assert_response :not_found
     assert_equal "application/problem+json", response.media_type
@@ -249,13 +252,32 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     assert_openapi_conform 404
   end
 
+  test "the database primary key is not accepted as a public_id" do
+    entry = publish("pk-guard", "PK Guard")
+
+    host! @host
+    get docs_app_api_v0_entry_url(public_id: entry.id.to_s, locale: "ja", host: @host)
+
+    assert_response :not_found
+    assert_equal "application/problem+json", response.media_type
+  end
+
+  test "a slug is not accepted as a public_id" do
+    publish("slug-guard", "Slug Guard")
+
+    host! @host
+    get docs_app_api_v0_entry_url(public_id: "slug-guard", locale: "ja", host: @host)
+
+    assert_response :not_found
+  end
+
   # PublishingContentRendering used to merge a string-valued `error` member into every problem
   # document on these paths -- a second legacy shape alongside the nested object the other
   # boundaries carried. Both were removed on 2026-08-22 once an audit established that no consumer
   # read either.
   test "no transitional error member remains in the problem document" do
     host! @host
-    get docs_app_api_v0_entry_url(slug: "missing", locale: "ja", host: @host)
+    get docs_app_api_v0_entry_url(public_id: "unknownpublicid0000001", locale: "ja", host: @host)
 
     body = response.parsed_body
 
@@ -276,15 +298,15 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
   private
 
   def publish(slug, title, category: nil, tags: [], published_at: 1.hour.ago)
-    entry = publishing_draft(edition: @edition, slug:, title:)
+    entry = publishing_draft(audience: "app", surface: "docs", slug:, title:)
     if category
-      Publishing::RevisionSingleTaxonomyAssignment.create!(
+      create_single_assignment(
         entry_revision: entry.current_revision, vocabulary: @category, vocabulary_kind: @category.kind,
         taxonomy_term: category, locale: "ja",
       )
     end
     tags.each_with_index do |term, position|
-      Publishing::RevisionMultipleTaxonomyAssignment.create!(
+      create_multiple_assignment(
         entry_revision: entry.current_revision, vocabulary: @tag, vocabulary_kind: @tag.kind,
         taxonomy_term: term, locale: "ja", position:,
       )
@@ -293,10 +315,15 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
   end
 
   # A single resource is returned at the top level, with no wrapper key
-  # (adr/api-collection-contract.md).
+  # (adr/api-collection-contract.md). The API addresses entries by opaque
+  # `public_id`; tests still name them by slug for readability and resolve here.
+  def public_id_for(slug)
+    Publishing::Docs::App::EntrySlug.find_by!(slug:).entry.public_id
+  end
+
   def show(slug)
     host!(@host)
-    get(docs_app_api_v0_entry_url(slug:, locale: "ja", host: @host))
+    get(docs_app_api_v0_entry_url(public_id: public_id_for(slug), locale: "ja", host: @host))
 
     assert_response :success
     response.parsed_body
