@@ -7,8 +7,8 @@ module Publishing
         self.table_name = "publishing_info_org_revision_single_taxonomy_assignments"
         include PublishingFamilyTaxonomyAssignment
 
-
-        belongs_to :entry_revision, class_name: "Publishing::Info::Org::EntryRevision", inverse_of: :single_taxonomy_assignments
+        belongs_to :entry_revision, class_name: "Publishing::Info::Org::EntryRevision",
+                                    inverse_of: :single_taxonomy_assignments
 
         def self.expected_kind = Publishing::TaxonomyKind::SINGLE_HIERARCHICAL
       end

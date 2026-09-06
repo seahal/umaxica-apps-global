@@ -56,6 +56,15 @@ class OrgPreference < OrgSettingRecord
 
   self.belongs_to_required_by_default = false
 
+  # A preference token is "expired" exactly when it has been discarded, so the
+  # generic token vocabulary reads expires_at while Retainable owns the column.
+  #
+  # The alias leaks Retainable::SENTINEL (Float::INFINITY) for a record that has
+  # never been discarded, because that is the column default. It is a Float, not
+  # a Time, so every reader must reject it before treating the value as an
+  # expiry -- see PreferenceWebCookieEndpoint#refresh_token_expires_at and
+  # #consented_buffer_expires_at, which both guard with `!expires_at.is_a?(Float)`.
+  # A new caller that forgets this guard writes an infinite cookie lifetime.
   alias_attribute :expires_at, :discarded_at
 
   DBSC_BINDING_METHOD_CLASS = OrgPreferenceBindingMethod

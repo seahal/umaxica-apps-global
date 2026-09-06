@@ -25,7 +25,8 @@ class Base::Org::Publishing::ManagementMatrixTest < ActiveSupport::TestCase
       assert_includes controller.ancestors, PublishingManagementEntriesActions, controller.name
       assert_equal audience, controller.publishing_audience, controller.name
       assert_equal surface, controller.publishing_surface, controller.name
-      assert_equal Publishing::ContentFamilies.entry_class(surface:, audience:), controller::ENTRY_CLASS, controller.name
+      assert_equal Publishing::ContentFamilies.entry_class(surface:, audience:), controller::ENTRY_CLASS,
+                   controller.name
       assert_operator controller, :<, Base::Org::BareController
       assert_equal :bare, controller::AUTHENTICATION_MODE
     end

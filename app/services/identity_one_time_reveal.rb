@@ -66,6 +66,7 @@ class IdentityOneTimeReveal
       purpose: purpose,
     )
     return nil if encrypted.blank?
+
     decrypted = decrypt_payload(encrypted)
     Payload.new(value: decrypted.fetch("value"), metadata: decrypted.fetch("metadata", {}))
   rescue ActiveSupport::MessageVerifier::InvalidSignature, ActiveSupport::MessageEncryptor::InvalidMessage,

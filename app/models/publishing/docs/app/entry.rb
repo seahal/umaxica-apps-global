@@ -7,10 +7,9 @@ module Publishing
         self.table_name = "publishing_docs_app_entries"
         include PublishingEntryRecord
 
-        SURFACE = 'docs'
-        AUDIENCE = 'app'
+        SURFACE = "docs"
+        AUDIENCE = "app"
         REGION_CODE = "jp"
-
       end
     end
   end

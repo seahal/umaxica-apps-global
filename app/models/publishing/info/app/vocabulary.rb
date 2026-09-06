@@ -6,7 +6,6 @@ module Publishing
       class Vocabulary < PublishingRecord
         self.table_name = "publishing_info_app_vocabularies"
         include PublishingVocabularyRecord
-
       end
     end
   end

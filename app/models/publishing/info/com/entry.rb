@@ -7,10 +7,9 @@ module Publishing
         self.table_name = "publishing_info_com_entries"
         include PublishingEntryRecord
 
-        SURFACE = 'info'
-        AUDIENCE = 'com'
+        SURFACE = "info"
+        AUDIENCE = "com"
         REGION_CODE = nil
-
       end
     end
   end

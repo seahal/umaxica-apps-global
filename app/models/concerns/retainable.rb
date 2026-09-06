@@ -88,11 +88,7 @@ module Retainable
 
     return unless time_after?(discarded_at, purged_at)
 
-    Rails.logger.debug {
-      "DEBUG: #{self.class.name} discarded_at: #{discarded_at.inspect}, purged_at: #{purged_at.inspect}"
-    }
     errors.add(:discarded_at, "must be <= purged_at")
-
   end
 
   def retention_times_not_before_created_at

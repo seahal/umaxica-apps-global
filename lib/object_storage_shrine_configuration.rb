@@ -77,8 +77,9 @@ module ObjectStorage
     end
 
     # Resolves every registered boundary so missing configuration fails at boot
-    # rather than at the first upload. A no-op while REGISTRY is empty, and real
-    # validation the moment a boundary is registered.
+    # rather than at the first upload. In test this constructs in-memory storages;
+    # under :s3 and :s3_compatible it forces every registered boundary's bucket and
+    # credentials to resolve now.
     def verify_registered_boundaries!(rails_env = Rails.env)
       Boundary.keys.each do |boundary|
         ROLE_PREFIXES.each_key { |role| dynamic(boundary, role, rails_env) }

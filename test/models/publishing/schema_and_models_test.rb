@@ -34,6 +34,7 @@ module Publishing
           revision_media_usages version_media_usages
         ).each do |suffix|
           table = "#{prefix}_#{suffix}"
+
           assert PublishingRecord.connection.table_exists?(table), "expected #{table}"
         end
       end
@@ -46,6 +47,7 @@ module Publishing
         publishing_docs_app_vocabularies
       ).each do |table|
         names = PublishingRecord.connection.columns(table).map(&:name)
+
         assert_not_includes names, "audience"
         assert_not_includes names, "surface"
       end

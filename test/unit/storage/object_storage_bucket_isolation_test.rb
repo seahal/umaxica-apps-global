@@ -37,7 +37,8 @@ class ObjectStorageBucketIsolationTest < ActiveSupport::TestCase
     assert_not_equal ObjectStorage::Boundary.bucket(:avatar), ObjectStorage::Boundary.bucket(:publishing)
   ensure
     saved_avatar.nil? ? ENV.delete("OBJECT_STORAGE_BUCKET_AVATAR") : ENV["OBJECT_STORAGE_BUCKET_AVATAR"] = saved_avatar
-    saved_publishing.nil? ? ENV.delete("OBJECT_STORAGE_BUCKET_PUBLISHING") : ENV["OBJECT_STORAGE_BUCKET_PUBLISHING"] = saved_publishing
+    saved_publishing.nil? ? ENV.delete("OBJECT_STORAGE_BUCKET_PUBLISHING") : ENV["OBJECT_STORAGE_BUCKET_PUBLISHING"] =
+                                                                               saved_publishing
   end
 
   test "production S3 storage refuses a FakeCloud endpoint" do
@@ -46,9 +47,10 @@ class ObjectStorageBucketIsolationTest < ActiveSupport::TestCase
     ENV["OBJECT_STORAGE_ENDPOINT"] = "http://fakecloud:4566"
     ENV["OBJECT_STORAGE_REGION"] = "us-east-1"
 
-    error = assert_raises(ArgumentError) do
-      ObjectStorage::ShrineConfiguration.s3_storage(bucket: "umaxica-avatar", prefix: "store")
-    end
+    error =
+      assert_raises(ArgumentError) do
+        ObjectStorage::ShrineConfiguration.s3_storage(bucket: "umaxica-avatar", prefix: "store")
+      end
 
     assert_match("OBJECT_STORAGE_ENDPOINT", error.message)
   ensure

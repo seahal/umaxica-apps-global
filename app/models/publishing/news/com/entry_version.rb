@@ -6,7 +6,6 @@ module Publishing
       class EntryVersion < PublishingRecord
         self.table_name = "publishing_news_com_entry_versions"
         include PublishingEntryVersionRecord
-
       end
     end
   end

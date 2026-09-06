@@ -207,8 +207,10 @@ class ComposeLocalOverrideOptionalTest < Minitest::Test
                    .sort,
                  "the Workers VPC connector must inherit the pinned image, QUIC command, " \
                  "private network, and bounded restart policy from the primary connector"
-    assert_equal({ "TUNNEL_TOKEN" => "${CLOUDFLARED_WORKERS_VPC_TOKEN:-}" },
-                 workers_vpc.fetch("environment"))
+    assert_equal(
+      { "TUNNEL_TOKEN" => "${CLOUDFLARED_WORKERS_VPC_TOKEN:-}" },
+      workers_vpc.fetch("environment"),
+    )
     refute workers_vpc.key?("profiles"),
            "the dedicated Workers VPC connector must start with the Dev Container stack"
     refute workers_vpc.key?("depends_on"),

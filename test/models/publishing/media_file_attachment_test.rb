@@ -11,7 +11,7 @@ module Publishing
       media.file = StringIO.new(PNG)
       media.save!
 
-      assert media.file.present?
+      assert_predicate media.file, :present?
       assert_equal :publishing_store, media.file.storage_key
       assert_equal "image/png", media.content_type
       assert_equal media.file.id, media.storage_key
@@ -23,6 +23,7 @@ module Publishing
           ["SELECT file_data FROM publishing_media_files WHERE id = ?", media.id],
         ),
       )
+
       assert_not_nil persisted
       assert_not media.file_data.key?("url")
       assert_equal 0, Avatar.lease_connection.select_value(

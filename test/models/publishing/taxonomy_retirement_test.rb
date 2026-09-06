@@ -54,6 +54,7 @@ module Publishing
       end
 
       @term.update!(archived_at: nil, archive_reason: nil)
+
       assert_not @term.reload.archived?
     end
   end

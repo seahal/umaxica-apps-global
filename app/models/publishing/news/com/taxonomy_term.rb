@@ -6,7 +6,6 @@ module Publishing
       class TaxonomyTerm < PublishingRecord
         self.table_name = "publishing_news_com_taxonomy_terms"
         include PublishingTaxonomyTermRecord
-
       end
     end
   end

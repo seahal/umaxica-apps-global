@@ -6,7 +6,6 @@ module Publishing
       class EntryRevision < PublishingRecord
         self.table_name = "publishing_news_app_entry_revisions"
         include PublishingEntryRevisionRecord
-
       end
     end
   end

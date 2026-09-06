@@ -42,8 +42,8 @@ module ObjectStorageTasks
   end
 
   def boundary_buckets
-    ObjectStorage::Boundary.keys.to_h do |boundary|
-      [boundary, ObjectStorage::Boundary.bucket(boundary)]
+    ObjectStorage::Boundary.keys.index_with do |boundary|
+      ObjectStorage::Boundary.bucket(boundary)
     end
   end
 
@@ -111,7 +111,7 @@ module ObjectStorageTasks
     status = body.fetch("status")
     raise RuntimeError, "FakeCloud health status was #{status.inspect}" unless status == "ok"
 
-    puts "FakeCloud reachable: #{health} version=#{body['version']}"
+    puts "FakeCloud reachable: #{health} version=#{body["version"]}"
   end
 end
 
@@ -145,7 +145,7 @@ namespace :object_storage do
 
     png = ["89504e470d0a1a0a0000000d4948445200000001000000010802000000907753de0000000c4944415408d763f80f00000101000518d84e0000000049454e44ae426082"].pack("H*")
 
-    avatar_capability = AvatarCapability.find_by!(id: AvatarCapability::NORMAL)
+    avatar_capability = AvatarCapability.find(AvatarCapability::NORMAL)
     handle = Handle.create!(handle: "verify-#{SecureRandom.hex(6)}", cooldown_until: Time.current)
     avatar = Avatar.create!(
       capability: avatar_capability,
@@ -160,6 +160,7 @@ namespace :object_storage do
       Avatar.sanitize_sql_array(["SELECT image_data FROM avatars WHERE id = ?", avatar.id]),
     )
     raise RuntimeError, "Avatar image_data missing in avatar database" if avatar_row["image_data"].blank?
+
     leaked = PublishingRecord.lease_connection.select_value(
       "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'avatars' AND column_name = 'image_data'",
     )

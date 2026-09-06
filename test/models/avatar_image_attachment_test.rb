@@ -22,7 +22,7 @@ class AvatarImageAttachmentTest < ActiveSupport::TestCase
     @avatar.image = StringIO.new(PNG)
     @avatar.save!
 
-    assert @avatar.image.present?
+    assert_predicate @avatar.image, :present?
     assert_equal :avatar_store, @avatar.image.storage_key
     assert_equal "image/png", @avatar.image.mime_type
     assert_not_nil @avatar.image_data
@@ -32,6 +32,7 @@ class AvatarImageAttachmentTest < ActiveSupport::TestCase
     persisted = Avatar.lease_connection.select_value(
       Avatar.sanitize_sql_array(["SELECT image_data FROM avatars WHERE id = ?", @avatar.id]),
     )
+
     assert_not_nil persisted
     assert_equal 0, PublishingRecord.lease_connection.select_value(
       "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'avatars'",

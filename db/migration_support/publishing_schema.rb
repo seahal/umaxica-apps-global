@@ -61,7 +61,7 @@ module PublishingSchema
     create_owner_media_usages(m, ver_media, owner: :entry_version, owner_table: versions, short: s, kind: "ver")
     attach_family_triggers(
       m, s:, terms:, vocabs:, revisions:, versions:,
-      rev_single:, rev_multi:, ver_single:, ver_multi:, rev_media:, ver_media:
+         rev_single:, rev_multi:, ver_single:, ver_multi:, rev_media:, ver_media:,
     )
   end
 
@@ -295,26 +295,27 @@ module PublishingSchema
   def create_revision_assignments(m, single, multiple, revisions, vocabs, terms, s)
     create_assignment_table(
       m, single, owner: :entry_revision, owner_table: revisions, vocabs:, terms:, s:,
-      kind: SINGLE_KIND, ordered: false, prefix: "rs"
+                 kind: SINGLE_KIND, ordered: false, prefix: "rs",
     )
     create_assignment_table(
       m, multiple, owner: :entry_revision, owner_table: revisions, vocabs:, terms:, s:,
-      kind: MULTIPLE_KIND, ordered: true, prefix: "rm"
+                   kind: MULTIPLE_KIND, ordered: true, prefix: "rm",
     )
   end
 
   def create_version_assignments(m, single, multiple, versions, vocabs, terms, s)
     create_assignment_table(
       m, single, owner: :entry_version, owner_table: versions, vocabs:, terms:, s:,
-      kind: SINGLE_KIND, ordered: false, prefix: "vs", snapshot: true
+                 kind: SINGLE_KIND, ordered: false, prefix: "vs", snapshot: true,
     )
     create_assignment_table(
       m, multiple, owner: :entry_version, owner_table: versions, vocabs:, terms:, s:,
-      kind: MULTIPLE_KIND, ordered: true, prefix: "vm", snapshot: true
+                   kind: MULTIPLE_KIND, ordered: true, prefix: "vm", snapshot: true,
     )
   end
 
-  def create_assignment_table(m, table, owner:, owner_table:, vocabs:, terms:, s:, kind:, ordered:, prefix:, snapshot: false)
+  def create_assignment_table(m, table, owner:, owner_table:, vocabs:, terms:, s:, kind:, ordered:, prefix:,
+                              snapshot: false)
     m.create_table(table) do |t|
       t.references(owner, null: false, index: false)
       t.references(:vocabulary, null: false, index: false)
@@ -734,7 +735,8 @@ module PublishingSchema
     SQL
   end
 
-  def attach_family_triggers(m, s:, terms:, vocabs:, revisions:, versions:, rev_single:, rev_multi:, ver_single:, ver_multi:, rev_media:, ver_media:)
+  def attach_family_triggers(m, s:, terms:, vocabs:, revisions:, versions:, rev_single:, rev_multi:, ver_single:,
+                             ver_multi:, rev_media:, ver_media:)
     m.execute(<<~SQL.squish)
       CREATE TRIGGER trg_#{s}_terms_hierarchy
       BEFORE INSERT OR UPDATE ON #{terms}
@@ -780,7 +782,7 @@ module PublishingSchema
       SQL
     end
     [versions, ver_media].each do |table|
-      tag = table == versions ? "ver" : "vmedia"
+      tag = (table == versions) ? "ver" : "vmedia"
       m.execute(<<~SQL.squish)
         CREATE CONSTRAINT TRIGGER trg_#{s}_#{tag}_media_c
         AFTER INSERT ON public.#{table}
@@ -840,7 +842,7 @@ module PublishingSchema
 
   def finish_public_id(m, table)
     m.add_index(table, :public_id, unique: true)
-    ident = table.to_s.sub(/\Apublishing_/, "").gsub("taxonomy_", "").gsub("assignments", "asg")
+    ident = table.to_s.delete_prefix('publishing_').gsub("taxonomy_", "").gsub("assignments", "asg")
     name = "chk_#{ident}_pid"
     name = "chk_#{ident[0, 55]}_pid" if name.length > 63
     m.add_check_constraint(table, PUBLIC_ID, name:)

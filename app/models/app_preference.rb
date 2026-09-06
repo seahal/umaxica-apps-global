@@ -56,27 +56,33 @@ class AppPreference < AppSettingRecord
 
   self.belongs_to_required_by_default = false
 
-  # FIXME: this is a hack.
+  # A preference token is "expired" exactly when it has been discarded, so the
+  # generic token vocabulary reads expires_at while Retainable owns the column.
+  #
+  # The alias leaks Retainable::SENTINEL (Float::INFINITY) for a record that has
+  # never been discarded, because that is the column default. It is a Float, not
+  # a Time, so every reader must reject it before treating the value as an
+  # expiry -- see PreferenceWebCookieEndpoint#refresh_token_expires_at and
+  # #consented_buffer_expires_at, which both guard with `!expires_at.is_a?(Float)`.
+  # A new caller that forgets this guard writes an infinite cookie lifetime.
   alias_attribute :expires_at, :discarded_at
 
   DBSC_BINDING_METHOD_CLASS = AppPreferenceBindingMethod
   DBSC_STATUS_CLASS = AppPreferenceDbscStatus
 
-  # FIXME: this attribute should be set by the migration.
+  # Mirrors the app_preferences.status_id database default so an unsaved record
+  # reports the same status the row would receive on insert.
   attribute :status_id, default: AppPreferenceStatus::NOTHING
 
   belongs_to :app_preference_status,
              foreign_key: :status_id,
              inverse_of: :app_preferences
-  # TODO: what is this relation?
   belongs_to :app_preference_binding_method,
              foreign_key: :binding_method_id,
              inverse_of: :app_preferences
-  # TODO: what is this relation?
   belongs_to :app_preference_dbsc_status,
              foreign_key: :dbsc_status_id,
              inverse_of: :app_preferences
-  # TODO: what is this relation?
   belongs_to :replaced_by,
              class_name: "AppPreference"
 
@@ -124,17 +130,14 @@ class AppPreference < AppSettingRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  # FIXME: too nasty name is this.
   has_one :app_preference_adult_content_gate,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  # TODO: what is this relation?
   has_many :app_preference_chronicles,
            foreign_key: :subject_id,
            inverse_of: :app_preference,
            dependent: :destroy
-  # TODO: what is this relation?
   has_many :replacements,
            class_name: "AppPreference",
            foreign_key: :replaced_by_id,

@@ -6,7 +6,6 @@ module Publishing
       class Publication < PublishingRecord
         self.table_name = "publishing_help_app_publications"
         include PublishingPublicationRecord
-
       end
     end
   end

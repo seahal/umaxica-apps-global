@@ -92,7 +92,8 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
       assert_not_equal "application/json", response.media_type
       assert_not_equal "text/html", response.media_type
       namespace = Rails.application.routes.recognize_path("http://#{host}/health", method: :get)
-                                   .fetch(:controller).split("/").first(2).join("/")
+        .fetch(:controller).split("/").first(2).join("/")
+
       assert_match(
         Regexp.new(
           "\\Atitle: Health status\\nnamespace: #{namespace}\\nstatus: ok\\nstartup: ok\\n" \
@@ -644,6 +645,7 @@ class HealthRevisionContractTest < ActionDispatch::IntegrationTest
     else
       assert_equal revision, response.parsed_body.fetch("revision")
     end
+
     assert_equal %w(revision timestamp), response.parsed_body.keys.sort
     assert_match(
       /\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/,
