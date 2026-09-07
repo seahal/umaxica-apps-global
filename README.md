@@ -62,7 +62,10 @@ application cannot boot and `bin/rails test` cannot run. Credentials for AWS, Cl
 and other providers — staging, production, or an individual environment — are also requested from
 the development lead and are never committed.
 
-See `docs/operations/development-credential-provisioning.md` for the full procedure.
+See `docs/operations/development-credential-provisioning.md` for the full procedure. For the
+complete portable configuration contract, see `docs/operations/global-portability.md`.
+`.env.example` contains only non-secret local defaults; `.env.devcontainer.example` contains the
+Compose-DNS variant.
 
 ### The Bun toolchain
 
@@ -155,14 +158,10 @@ continue to use Compose DNS names. See `docs/operations/development-host-port-ex
 | Side / Palm                | `http://side.{app,com,org}.localhost:3000` / `http://palm.app.localhost:3000` |
 | Info / Help / Docs / News  | `http://{info,help,docs,news}.{app,com,org}.localhost:3000`                   |
 
-Compose injects the `PUBLIC_*_URL` variables (`compose.yaml`), and each route's host constraint
-lists the configured host alongside the `*.localhost` literal. **Development is published through
-Cloudflare Tunnel behind Cloudflare Access**, and cloudflared leaves `Host` unmodified, so Rails
-receives either family: the private `*.localhost` alias on a direct `frontend` network request, or
-the published site name on a request the connector forwards. Development Host Authorization
-therefore accepts the union of both and nothing else — `www.umaxica.com` and `auth.umaxica.app` are
-served, while an Umaxica hostname that no `PUBLIC_*_URL` names is still rejected. Access, not Host
-Authorization, is what keeps the development listener non-public. See
+The application contract supplies PUBLIC and PRIVATE URL values in both supported modes; Compose
+supplies only service topology. Each route host constraint lists the configured host alongside its
+localhost literal. Development is published through Cloudflare Tunnel behind Cloudflare Access;
+Access, not Host Authorization, keeps the development listener non-public. See
 `docs/architecture/cloudflare-request-paths.md` for the trust boundaries and
 `notes/implementation/2026-08-10-development-tunnel-access-verification.md` for the measured
 end-to-end evidence.
@@ -236,11 +235,11 @@ bundle exec rubocop
 bundle exec rubocop -a
 bundle exec erb_lint .
 bundle exec erb_lint -a .
-pnpm check
-pnpm fix
+bun run check
+bun run fix
 ```
 
-Use `rubocop -a`, `erb_lint -a .`, and `pnpm fix` to apply auto-fixes where available.
+Use `rubocop -a`, `erb_lint -a .`, and `bun run fix` to apply auto-fixes where available.
 
 ## Testing
 
@@ -259,9 +258,9 @@ coverage run takes considerably longer than an ordinary parallel run.
 Run JavaScript tests with Vitest:
 
 ```bash
-pnpm test
-pnpm test:watch                            # Watch mode
-pnpm test:coverage
+bun run test
+bun run test:watch                            # Watch mode
+bun run test:coverage
 ```
 
 JavaScript tests are located in `spec/` and use Vitest. Coverage reports are written under
@@ -273,7 +272,7 @@ JavaScript tests are located in `spec/` and use Vitest. Coverage reports are wri
 bundle exec brakeman --no-pager
 bundle exec bundler-audit check --update
 bundle exec database_consistency
-pnpm audit
+bun audit
 bin/debride
 ```
 

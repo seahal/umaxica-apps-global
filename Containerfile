@@ -343,6 +343,7 @@ RUN if [ -z "${GITHUB_ACTIONS}" ]; then \
 # same ownership semantics across the Global, Edge, and portal images.
 RUN mkdir -p "${HOME}/workspace" \
     "${HOME}/.cache" \
+    "${HOME}/.bun/install/cache" \
     "${HOME}/.config" \
     "${HOME}/.local/bin" \
     "${HOME}/.local/share" \
