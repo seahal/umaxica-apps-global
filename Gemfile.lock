@@ -1194,6 +1194,7 @@ DEPENDENCIES
   hotwire-spark
   i18n-tasks
   image_processing
+  importmap-rails
   inertia_rails
   jbuilder
   json-canonicalization

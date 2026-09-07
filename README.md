@@ -21,7 +21,7 @@ host-constrained, so domain and subdomain matter in both development and product
 - Vite Rails + Stimulus + Turbo
 - Tailwind CSS via Vite
 - Propshaft
-- Vite and `pnpm` for JavaScript build, linting, formatting, and tests
+- Vite and Bun for JavaScript build, linting, formatting, and tests
 
 ## Frontend and Assets
 
@@ -52,7 +52,7 @@ bin/rails assets:clobber        # Remove compiled assets
 - Ruby `4.0.x`
 - Bundler
 - Node.js `24.19.0` (Active LTS)
-- `pnpm@12.0.0`
+- Bun `1.4.0`
 
 ### Credentials and secrets
 
@@ -64,21 +64,15 @@ the development lead and are never committed.
 
 See `docs/operations/development-credential-provisioning.md` for the full procedure.
 
-### The pnpm toolchain
+### The Bun toolchain
 
-The development image installs pnpm from the npm registry at the `PNPM_VERSION` build argument in
-`Containerfile`, and that is the only pnpm the container provides: `/usr/local/bin/pnpm`. Do not
-install pnpm separately inside the container — a second copy on `PATH` makes which pnpm ran depend
-on shell state.
+The development image provides the pinned Bun runtime declared by `package.json#packageManager`. Do
+not install a second JavaScript package manager inside the container — a second copy on `PATH` makes
+which tool ran depend on shell state.
 
-`package.json#packageManager` declares the version the project expects. This is pnpm's own pin, read
-by pnpm and by the CI setup action; it is not a Corepack setting. `pnpm-workspace.yaml` sets
-`pmOnFail: error`, so a pnpm whose version differs from that declaration fails and names the
-mismatch rather than downloading a second pnpm behind your back. Changing the pinned version means
-changing `package.json#packageManager` and `Containerfile`'s `ARG PNPM_VERSION` together, then
-rebuilding the container.
-
-Corepack is not used, not installed in the image, and no `corepack enable` step is required.
+`package.json#packageManager` declares the Bun version expected by the project and CI. Keep that pin
+aligned with the Bun toolchain copied into the development and asset images. Corepack is not used,
+and no `corepack enable` step is required.
 
 A fresh clone needs no local file. Start the standard stack, install dependencies, and boot the app:
 
@@ -91,7 +85,7 @@ docker compose config     # resolves as-is
 
 docker compose up
 bundle install
-pnpm install
+bun install --frozen-lockfile
 bin/setup
 ```
 
@@ -124,7 +118,7 @@ PUBLIC_AUTH_STAFF_URL=auth.umaxica.org
 `TRUSTED_ORIGINS` remains available only for additional explicit origins.
 
 `bin/setup` installs Ruby gems, runs `bin/rails db:prepare`, clears logs and temp files, then starts
-`bin/dev`. It does not install JavaScript packages, so run `pnpm install` first.
+`bin/dev`. It does not install JavaScript packages, so run `bun install --frozen-lockfile` first.
 
 If dependencies are already installed, you can start development directly:
 
