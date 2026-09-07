@@ -2,11 +2,13 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
+require "active_support"
+require "active_support/test_case"
 require "json"
 require "pathname"
 require "yaml"
 
-class FrontendStackIsolationTest < Minitest::Test
+class FrontendStackIsolationTest < ActiveSupport::TestCase
   ROOT = Pathname.new(__dir__).join("../..").expand_path
   MAPPING = YAML.load_file(ROOT.join("config/frontend_stacks.yml"), aliases: false)
 
@@ -59,5 +61,22 @@ class FrontendStackIsolationTest < Minitest::Test
     }
     assert_predicate ROOT.join("app/assets/stylesheets/application.css"), :exist?
     assert_predicate ROOT.join("src/styles/surfaces"), :directory?
+  end
+
+  def test_frontend_toolchain_has_one_portable_package_manager
+    package = JSON.parse(ROOT.join("package.json").read)
+    containerfile = ROOT.join("Containerfile").read
+    workflow = ROOT.join(".github/workflows/ci.yml").read
+    hook = ROOT.join("lefthook.yml").read
+
+    assert_match(/\Abun@/, package.fetch("packageManager"))
+    assert_operator package.fetch("engines").fetch("bun"), :start_with?, ">="
+    assert_predicate ROOT.join("bun.lock"), :file?
+    assert_includes containerfile, "ARG BUN_VERSION"
+    assert_includes containerfile, "FROM oven/bun:${BUN_VERSION} AS bun-toolchain"
+    assert_includes containerfile, "bun install --frozen-lockfile"
+    assert_includes workflow, "oven-sh/setup-bun@v2"
+    assert_includes workflow, "bun install --frozen-lockfile"
+    assert_includes hook, "bun run ci"
   end
 end
