@@ -28,7 +28,7 @@
 # LAST file that sets one, so a different value forks the project: a second set
 # of containers and, worse, a second set of named volumes -- the development
 # PostgreSQL, Valkey, bundle and node_modules would all be orphaned.
-name: umaxica-apps-global-dc
+name: umaxicaappsglobaldc
 
 # `app` is the service a bare `podman compose --profile app up` runs, and it is
 # the one to override here: this file is auto-discovered only when no `-f` is
@@ -37,7 +37,9 @@ name: umaxica-apps-global-dc
 # this file. Machine-specific `core` settings belong in
 # `.devcontainer/compose.yaml`, which is tracked.
 services:
-  app:
+  # `{}` keeps the service key valid while every setting below is commented out:
+  # podman-compose rejects a null service body. Drop it once you uncomment one.
+  app: {}
     # Host devices. The `workspace` build target (CORE_BUILD_TARGET=workspace in
     # `.env`) needs /dev/fuse; it is not in `compose.yaml` because not every host
     # exposes it, and a missing device makes the whole project fail to start.

@@ -48,12 +48,20 @@
 # which is the directory holding the first `-f` file — this one, the repository
 # root — never against `.devcontainer/`.
 #
-# The `-dc` suffix is historical and is kept deliberately: the project name is the
+# The `dc` suffix is historical and is kept deliberately: the project name is the
 # prefix of every named volume, so changing it would orphan the development
 # PostgreSQL, Valkey, bundle, and node_modules volumes. It must stay identical
 # in `.devcontainer/compose.yaml`, which is what makes both entry points address
 # the same volumes and the same networks.
-name: umaxica-apps-global-dc
+#
+# The name is written WITHOUT separators on purpose. The Dev Containers CLI does
+# not read this key: it derives its own project name from `devcontainer.json`'s
+# `name` by removing every non-alphanumeric character, and passes the result as
+# an explicit `--project-name`. A bare `podman compose` uses this key verbatim.
+# Any separator here therefore splits the repository into two Compose projects
+# that fight over the hardcoded `global-devcontainer-*` container names and the
+# same host ports, so whichever entry point starts second fails.
+name: umaxicaappsglobaldc
 services:
   # The Rails stack, run WITHOUT the Dev Container.
   #
