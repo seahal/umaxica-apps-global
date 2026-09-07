@@ -13,11 +13,17 @@ module Base
         # actions raise NoMethodError. The com and org secret credential controllers already
         # include it; this keeps the three surfaces on the same seam.
         include ::SignSettingsSecretCredentialRegistration
+        # `new` renders the freshly generated plaintext recovery secret as an Inertia prop, which
+        # inertia_rails serializes into the initial document. Without `no-store` a Back navigation
+        # or a restored tab re-renders that plaintext from the browser cache after the ceremony
+        # finished. The com and org secret credential controllers already carry this concern.
+        include ::SignSettingsSecretCredentialCacheControl
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
 
         before_action :authenticate_client!
+        before_action :set_no_store_for_secret_credential_pages
         before_action :authorize_secret_credentials!, only: %i(index show new edit create update destroy)
         step_up only: %i(new create), bootstrap: true
         def index

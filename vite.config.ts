@@ -15,4 +15,17 @@ export default defineConfig({
     // spelling for a path TypeScript and Vite must both agree on, so they are kept to one.
     alias: { "@": srcRoot },
   },
+  build: {
+    // `vite-plugin-ruby` sets `sourcemap: !isLocal`, so every non-development build emitted a
+    // `//# sourceMappingURL=` comment next to the chunk. The built assets are served from a
+    // separate asset host (`config.asset_host`, production.rb), so that comment publishes the
+    // original TypeScript — file paths, comments, and the reasoning in them — to anyone who loads
+    // a page. `hidden` keeps the `.map` files, which an error monitor still needs, and drops only
+    // the pointer that advertises them to the browser.
+    //
+    // The maps are a build artifact, not a browser-public asset: whatever uploads `public/vite`
+    // to the asset host must exclude `*.map`. `vite-plugin-ruby` spreads `...userConfig.build`
+    // after its own defaults, so this wins.
+    sourcemap: "hidden",
+  },
 });
