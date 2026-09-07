@@ -19,8 +19,14 @@ variable "region" {
   default     = "us-east-1"
 }
 
-variable "object_storage_bucket" {
-  description = "Development bucket name. Must match OBJECT_STORAGE_BUCKET in compose.yaml."
+variable "avatar_bucket" {
+  description = "Avatar development bucket. Must match OBJECT_STORAGE_BUCKET_AVATAR in compose.yaml."
   type        = string
-  default     = "umaxica-local"
+  default     = "umaxica-avatar-development"
+}
+
+variable "publishing_bucket" {
+  description = "Publishing development bucket. Must match OBJECT_STORAGE_BUCKET_PUBLISHING in compose.yaml."
+  type        = string
+  default     = "umaxica-publishing-development"
 }

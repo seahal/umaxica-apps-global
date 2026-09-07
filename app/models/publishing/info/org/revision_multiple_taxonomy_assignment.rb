@@ -5,10 +5,10 @@ module Publishing
     module Org
       class RevisionMultipleTaxonomyAssignment < PublishingRecord
         self.table_name = "publishing_info_org_revision_multiple_taxonomy_assignments"
-        include Publishing::FamilyTaxonomyAssignment
+        include PublishingFamilyTaxonomyAssignment
 
-
-        belongs_to :entry_revision, class_name: "Publishing::Info::Org::EntryRevision", inverse_of: :multiple_taxonomy_assignments
+        belongs_to :entry_revision, class_name: "Publishing::Info::Org::EntryRevision",
+                                    inverse_of: :multiple_taxonomy_assignments
         scope :ordered, -> { order(:position) }
 
         def self.expected_kind = Publishing::TaxonomyKind::MULTIPLE_ORDERED_FLAT

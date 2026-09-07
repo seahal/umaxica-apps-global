@@ -8,13 +8,13 @@ pre-commit:
         # ERB-templated Rails config; oxfmt's YAML parser cannot handle the
         # embedded <% %> tags and misreads them as YAML syntax errors.
         - "config/database.yml"
-      run: pnpm exec oxfmt {staged_files}
+      run: bunx oxfmt {staged_files}
       stage_fixed: true
 
     - name: oxlint
       glob:
         - "*.{js,jsx,ts,tsx}"
-      run: pnpm exec oxlint --fix {staged_files}
+      run: bunx oxlint --fix {staged_files}
       stage_fixed: true
 
     - name: rubocop
@@ -35,4 +35,4 @@ pre-push:
   parallel: false
   jobs:
     - name: frontend-check
-      run: pnpm --loglevel silent run ci
+      run: bun run ci

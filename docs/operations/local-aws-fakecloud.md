@@ -74,6 +74,18 @@ S3-compatible variables so the production Rails configuration can run against fa
 variable namespace instead of `AWS_ENDPOINT_URL_S3`: an `AWS_*` endpoint variable is consumed
 _implicitly_ by the SDK, which would silently redirect real production S3 traffic past that check.
 
+Development buckets are created idempotently with:
+
+```bash
+bin/rails object_storage:prepare
+bin/rails object_storage:verify
+```
+
+`prepare` creates the Avatar and publishing buckets named by
+`OBJECT_STORAGE_BUCKET_AVATAR` and `OBJECT_STORAGE_BUCKET_PUBLISHING`.
+`verify` checks FakeCloud health, those buckets, one Avatar upload, and one
+publishing upload.
+
 The complete storage matrix is:
 
 | Rails environment | Deployment tier | Storage |
@@ -171,9 +183,9 @@ State is a local backend and is gitignored: it describes a disposable emulator o
 ```bash
 export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1
 aws --endpoint-url http://localhost:4566 s3 ls
-aws --endpoint-url http://localhost:4566 s3 cp ./some-file s3://umaxica-local/probe
-aws --endpoint-url http://localhost:4566 s3 cp s3://umaxica-local/probe -
-aws --endpoint-url http://localhost:4566 s3 rm s3://umaxica-local/probe
+aws --endpoint-url http://localhost:4566 s3 cp ./some-file s3://umaxica-avatar-development/probe
+aws --endpoint-url http://localhost:4566 s3 cp s3://umaxica-avatar-development/probe -
+aws --endpoint-url http://localhost:4566 s3 rm s3://umaxica-avatar-development/probe
 ```
 
 `bin/rails object_storage:prepare` and `bin/rails object_storage:smoke` do the same round trip from

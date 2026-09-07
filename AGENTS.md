@@ -114,7 +114,7 @@ Follow `docs/reference/repository-language-policy.md`.
 bin/rails test                              # all Ruby tests (Minitest)
 bin/rails test test/path/to/file_test.rb    # one file
 bin/rails test test/path/to/file_test.rb:LINE
-pnpm test                                   # JavaScript tests (Vitest)
+bun run test                                  # JavaScript tests (Vitest)
 ```
 
 Meaningful behavior changes need risk-appropriate tests covering success, failure, authorization,
@@ -128,18 +128,17 @@ execution outweighs re-establishing context.
 
 ## Evidence
 
-Completed tests, validations, verifications, audits, security checks and
-performance checks leave a short record in `evidence/` when retaining the result
-is useful. Records describe work that was actually performed — never plans,
-intentions, or unverified claims. A check that could not be completed is
-recorded as such, with the reason and whatever was observed.
+Completed tests, validations, verifications, audits, security checks and performance checks leave a
+short record in `evidence/` when retaining the result is useful. Records describe work that was
+actually performed — never plans, intentions, or unverified claims. A check that could not be
+completed is recorded as such, with the reason and whatever was observed.
 
 - `evidence/` is flat; no subdirectories.
 - Only `.md` files.
 - `YYYY-MM-DD-<topic>.md`, ISO date, lowercase hyphenated topic.
-- No raw logs, screenshots, binaries, archives, dumps, generated reports or
-  other large artifacts. Summarize them, and cite the commands, identifiers,
-  hashes, measurements and excerpts that carry the result.
+- No raw logs, screenshots, binaries, archives, dumps, generated reports or other large artifacts.
+  Summarize them, and cite the commands, identifiers, hashes, measurements and excerpts that carry
+  the result.
 - Enforced by `bin/rails test test/tooling/evidence_layout_test.rb`.
 
 ## Tool Compatibility

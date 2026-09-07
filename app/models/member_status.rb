@@ -17,7 +17,7 @@ class MemberStatus < AppPrincipalRecord
   INACTIVE = 2
   PENDING = 3
   DELETED = 4
-  NOTHING = 5 # FIXME: i want to set nothing as 0.
+  NOTHING = 5
   DEFAULTS = [ACTIVE, INACTIVE, PENDING, DELETED, NOTHING].freeze
 
   validates :created_at, :updated_at, presence: true

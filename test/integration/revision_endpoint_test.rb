@@ -101,7 +101,6 @@ class RevisionEndpointTest < ActionDispatch::IntegrationTest
       assert_no_match HTML_MARKER, response.body
       assert_equal "no-store", response.headers["Cache-Control"]
       assert_equal "noindex, nofollow", response.headers["X-Robots-Tag"]
-
     end
   end
 
@@ -288,6 +287,7 @@ class RevisionEndpointTest < ActionDispatch::IntegrationTest
     else
       assert_equal revision, response.parsed_body.fetch("revision")
     end
+
     assert_equal %w(revision timestamp), response.parsed_body.keys.sort
     assert_match(
       /\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/,

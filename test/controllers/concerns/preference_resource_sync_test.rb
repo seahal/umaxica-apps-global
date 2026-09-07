@@ -313,3 +313,21 @@ class PreferenceResourceSyncTest < ActiveSupport::TestCase
     assert_equal 1, resource_owner.writes
   end
 end
+
+class PreferenceResourceSyncTest
+  test "resource sync guards reject blank mirrors and unsupported collaborators" do
+    h = Harness.new
+    h.resource = nil
+
+    assert_nil h.invoke(:sync_to_resource_preference!)
+    source = Object.new
+
+    assert_equal [nil, source, "Object"], h.invoke(:sync_resource_preference_children!, source)
+    assert_nil h.invoke(:write_resource_preference_option!, nil, :language, 1)
+    assert_nil h.invoke(:write_resource_preference_option!, Object.new, :language, nil)
+    assert_nil h.invoke(:write_resource_preference_cookie!, nil, {})
+    assert_nil h.invoke(:write_resource_preference_cookie!, Object.new, { unrelated: true })
+    assert_nil h.invoke(:load_or_create_resource_preference_child!, Object.new, "Client", :language)
+    assert_nil h.invoke(:resource_preference_value_for_option, "Client", :unsupported, 1)
+  end
+end

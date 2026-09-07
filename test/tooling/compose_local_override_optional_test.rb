@@ -6,8 +6,8 @@ require "yaml"
 
 # The local-override contract.
 #
-#   compose.yaml                       the shared services, plus the `app` profile
-#   .devcontainer/compose.yaml         tracked; `core`, the workspace container
+#   compose.yaml                       the complete standard environment
+#   .devcontainer/compose.yaml tracked; the Dev Container's own overlay
 #   compose.override.yaml              optional, gitignored, per developer/machine
 #   compose.override.yaml.example      tracked documentation, never required
 #
@@ -109,78 +109,19 @@ class ComposeLocalOverrideOptionalTest < Minitest::Test
     end
   end
 
-  # `core` and `app` are the same image with a different PID 1, and they are split across
-  # two files so that a bare `podman compose up` starts neither. That split is the whole
-  # contract, and it is invisible in either file on its own.
-  def test_core_lives_only_in_the_devcontainer_file
-    base = load_compose("compose.yaml").fetch("services")
-    devcontainer = load_compose(".devcontainer/compose.yaml").fetch("services")
-
-    refute_includes base, "core",
-                    "core is the workspace container; leaving it in compose.yaml makes a bare " \
-                    "`podman compose up` start a container nobody asked for"
-    assert_equal %w(core), devcontainer.keys,
-                 ".devcontainer/compose.yaml holds core and nothing else; a shared service " \
-                 "there is invisible to `podman compose up`"
-  end
-
-  def test_the_two_compose_files_name_the_same_project
-    # Compose keys networks and named volumes by project name. A divergence here gives the
-    # Dev Container its own `primary-data`, and the database silently forks in two.
-    assert_equal load_compose("compose.yaml").fetch("name"),
-                 load_compose(".devcontainer/compose.yaml").fetch("name"),
-                 "core and the datastores must resolve to one project, or they stop sharing volumes"
-  end
-
-  def test_the_application_service_is_behind_a_profile
-    app = load_compose("compose.yaml").fetch("services").fetch("app")
-
-    assert_includes app.fetch("profiles"), "app",
-                    "a bare `podman compose up` must bring up the datastores only; the Dev " \
-                    "Container would otherwise race an unwanted second Rails on port 3000"
-  end
-
-  # `env_file` performs no `${VAR:-default}` interpolation, which is why a handful of
-  # values stay in `environment:` instead of moving to `compose.env`. They are declared
-  # twice, in two files, and nothing but this guard keeps the two lists in step.
-  def test_core_and_app_declare_the_same_interpolated_environment
-    core = load_compose(".devcontainer/compose.yaml").fetch("services").fetch("core")
-    app = load_compose("compose.yaml").fetch("services").fetch("app")
-
-    interpolated = lambda do |service|
-      service.fetch("environment").reject { |_key, value| value.to_s !~ /\$\{/ }
-    end
-
-    assert_equal interpolated.call(core), interpolated.call(app),
-                 "core and app must offer the same host overrides, or a value silently " \
-                 "changes depending on which entry point started the stack"
-  end
-
-  def test_both_services_read_the_shared_environment_file
-    %w(compose.yaml .devcontainer/compose.yaml).zip(%w(app core)).each do |file, service|
-      definition = load_compose(file).fetch("services").fetch(service)
-
-      assert_equal ["./compose.env"], definition.fetch("env_file"),
-                   "#{file}: #{service} must read compose.env, which is where everything the " \
-                   "two entry points share now lives"
-    end
-
-    assert_path_exists File.join(REPOSITORY_ROOT, "compose.env")
-  end
-
-  def test_both_valkey_services_are_named_by_the_base_compose
-    # The retired single `valkey` service outlived its removal in the Dev Container's
-    # overlay, which kept `devcontainer up` looking for global-devcontainer-valkey. The
-    # overlay is gone and every container_name is declared once, here.
+  def test_devcontainer_override_names_both_valkey_services_from_the_base_compose
     base_services = load_compose("compose.yaml").fetch("services")
+    override_services = load_compose(".devcontainer/compose.override.yml").fetch("services")
 
-    refute_includes base_services, "valkey",
-                    "the retired single Valkey service must not come back"
+    refute_includes override_services, "valkey",
+                    "the retired single Valkey service makes devcontainer up look for " \
+                    "global-devcontainer-valkey"
 
     %w(valkey-cache valkey-rate-limit).each do |service|
       assert_includes base_services, service
-      assert_equal "global-devcontainer-#{service}",
-                   base_services.fetch(service).fetch("container_name")
+      assert_includes override_services, service
+      assert_equal base_services.fetch(service).fetch("container_name"),
+                   override_services.fetch(service).fetch("container_name")
     end
   end
 
@@ -266,8 +207,10 @@ class ComposeLocalOverrideOptionalTest < Minitest::Test
                    .sort,
                  "the Workers VPC connector must inherit the pinned image, QUIC command, " \
                  "private network, and bounded restart policy from the primary connector"
-    assert_equal({ "TUNNEL_TOKEN" => "${CLOUDFLARED_WORKERS_VPC_TOKEN:-}" },
-                 workers_vpc.fetch("environment"))
+    assert_equal(
+      { "TUNNEL_TOKEN" => "${CLOUDFLARED_WORKERS_VPC_TOKEN:-}" },
+      workers_vpc.fetch("environment"),
+    )
     refute workers_vpc.key?("profiles"),
            "the dedicated Workers VPC connector must start with the Dev Container stack"
     refute workers_vpc.key?("depends_on"),

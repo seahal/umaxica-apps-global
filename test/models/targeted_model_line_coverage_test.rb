@@ -179,6 +179,20 @@ class TargetedModelLineCoverageTest < ActiveSupport::TestCase
     assert_predicate ClientPrivacyRequest.new(status_id: blocking_id), :recovery_blocking?
   end
 
+  test "retention hold is inactive when released or expired" do
+    released = ClientRetentionHold.new(
+      status_id: ClientRetentionHold.status_id_for("RELEASED"),
+      expires_at: nil,
+    )
+    expired = ClientRetentionHold.new(
+      status_id: ClientRetentionHold.status_id_for("ACTIVE"),
+      expires_at: 1.minute.ago,
+    )
+
+    assert_not_predicate released, :active_at?
+    assert_not_predicate expired, :active_at?
+  end
+
   test "simple public model mappings return their public ids and fallback owners" do
     assert_equal "passkey-id", ClientPasskey.new(public_id: "passkey-id").to_param
     assert_equal "request-id", OperatorLifecycleRequest.new(public_id: "request-id").to_param

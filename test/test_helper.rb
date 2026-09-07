@@ -45,7 +45,7 @@ unless ViteRuby.commands.build
   abort <<~MESSAGE
     Vite test-mode build failed, so public/vite-test has no usable manifest and every test that
     renders a layout would fail on a missing entrypoint. See the Vite output above; the same build
-    runs standalone as `pnpm exec vite build --mode test`.
+    runs standalone as `bunx vite build --mode test`.
   MESSAGE
   # rubocop:enable I18n/RailsI18n/DecorateString
 end

@@ -96,10 +96,12 @@ development lead when you do not have dashboard access.** Only the tunnel you ac
 token; a connector started without one exits immediately and stays stopped after three bounded
 restart attempts. There is no anonymous fallback.
 
-There is no committed `.env.example` template. Do not add one — a template invites secret values to
-be filled in next to tracked defaults. Restrict the file after creating it:
+The committed `.env.example` and `.env.devcontainer.example` files are non-secret development
+contracts only. They contain obvious local placeholders, never provider credentials or Rails keys.
+Copy `.env.example` to the ignored `.env` only when host-specific overrides are needed:
 
 ```bash
+cp .env.example .env
 chmod 600 .env
 ```
 
@@ -128,14 +130,15 @@ is no longer needed, or may have been exposed, tell the development lead so it c
 
 ## Development service passwords: fixed literals
 
-The development PostgreSQL passwords are fixed literals declared inline in `compose.yaml`. They are
-not generated, not rotated, and not secret:
+The development PostgreSQL passwords are fixed, development-only values represented in the local
+environment contract and consumed by the infrastructure services. They are not generated, not
+rotated, and not secret:
 
-| Variable                        | Value         | Set on               |
-| :------------------------------ | :------------ | :------------------- |
-| `POSTGRESQL_PASSWORD`           | `development` | `core`               |
-| `POSTGRES_PASSWORD`             | `development` | `primary`, `replica` |
-| `POSTGRES_REPLICATION_PASSWORD` | `replication` | `primary`, `replica` |
+| Variable                        | Value         | Set on                 |
+| :------------------------------ | :------------ | :--------------------- |
+| `POSTGRESQL_PASSWORD`           | `development` | `.env.example`, `core` |
+| `POSTGRES_PASSWORD`             | `development` | `primary`, `replica`   |
+| `POSTGRES_REPLICATION_PASSWORD` | `replication` | `primary`, `replica`   |
 
 This is deliberate. The stack is development-only, every database it serves is disposable, no port
 is published for `primary` or `replica`, and the values guard nothing reachable off the host. A
@@ -148,10 +151,8 @@ password into `primary-data` at initdb time, so changing a literal without also 
 `primary-data` and `replica-data` volumes locks the stack out of its own database. Recreate both
 volumes together after any change.
 
-There is no host-side bootstrap command, no Podman Secret registration, and no credential volume: a
-fresh clone only needs `.env` (for `UID` and `GID`) and the Rails credential keys. This covers
-development service passwords only; it does not supply Rails credential keys or any provider
-credential, so it will not resolve a decryption failure or a missing `CLOUDFLARED_TOKEN`.
+There is no host-side secret bootstrap command or credential volume. A fresh clone needs the tracked
+non-secret environment contract and Rails credential keys; provider credentials remain out of band.
 
 ## GitHub authentication inside the development container
 

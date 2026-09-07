@@ -5,8 +5,7 @@ module Publishing
     module Org
       class Vocabulary < PublishingRecord
         self.table_name = "publishing_help_org_vocabularies"
-        include Publishing::VocabularyRecord
-
+        include PublishingVocabularyRecord
       end
     end
   end

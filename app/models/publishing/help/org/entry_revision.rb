@@ -5,8 +5,7 @@ module Publishing
     module Org
       class EntryRevision < PublishingRecord
         self.table_name = "publishing_help_org_entry_revisions"
-        include Publishing::EntryRevisionRecord
-
+        include PublishingEntryRevisionRecord
       end
     end
   end

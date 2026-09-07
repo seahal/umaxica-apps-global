@@ -18,14 +18,17 @@ ARG REVISION=""
 # Node.js Active LTS (v24 "Krypton"; maintenance starts 2026-10-20). Pinned to an
 # exact patch so Global and Edge cannot drift to different Node builds.
 ARG NODE_VERSION=24.20.0
-# pnpm is pinned for the same reason; `pnpm@latest` made every rebuild irreproducible.
-ARG PNPM_VERSION=12.0.0
+# Bun is pinned for reproducible builds across local containers and CI.
+ARG BUN_VERSION=1.4.0
 
 # ============================================================================
 # Node.js toolchain (binaries copied into the development and asset images)
 # ============================================================================
 FROM node:${NODE_VERSION}-trixie-slim AS node-toolchain
 
+# Bun toolchain (standalone binary copied into development and asset images)
+# ============================================================================
+FROM oven/bun:${BUN_VERSION} AS bun-toolchain
 # ============================================================================
 # Production base — runtime-only dependencies
 # ============================================================================
@@ -84,14 +87,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Production assets — Vite/Inertia client bundles
 #
 # Runs on the pinned Node image rather than inside the Ruby build stage: vite-plugin-ruby reads
-# config/vite.json directly, so compiling the bundles needs Node and pnpm but no Ruby.
+# config/vite.json directly, so compiling the bundles needs Node, Bun, and no Ruby.
 #
 # NODE_ENV is set to production here and nowhere else in the build. @vitejs/plugin-react keys the
 # JSX runtime off it, so a build inheriting the development compose environment ships the React
 # development runtime (jsx-dev-runtime) and its warning machinery to end users.
 # ============================================================================
 FROM node:${NODE_VERSION}-trixie-slim AS production-assets
-ARG PNPM_VERSION
 ENV NODE_ENV=production \
     VITE_RUBY_MODE=production \
     CI=true \
@@ -99,23 +101,14 @@ ENV NODE_ENV=production \
 
 WORKDIR /assets
 
-# The npm registry install is pnpm's single installation source in every image
-# target; npm verifies the tarball against the integrity the registry publishes.
-# The assertion makes the resulting version a build-time fact instead of an
-# assumption — `npm install -g pnpm@X` resolving to anything but X fails here
-# rather than surfacing later as a lockfile or engine mismatch.
-RUN npm install -g "pnpm@${PNPM_VERSION}" \
-    && test "$(pnpm --version)" = "${PNPM_VERSION}"
+# Copy the pinned Bun binary from the official release image; package resolution below is lockfile-only.
+COPY --from=bun-toolchain /usr/local/bin/bun /usr/local/bin/bun
 
-# Dependencies resolve from the lockfile alone, so this layer is reused until a dependency
-# changes. No `--prod` flag here: Vite and its plugins are devDependencies, and pnpm 12 installs
-# them regardless of NODE_ENV -- only an explicit `--prod` skips them, and `--prod=false` (pnpm 11's
-# way of countering NODE_ENV=production) is rejected outright as `--prod` no longer takes a value.
-# The cache target is the store path pnpm-workspace.yaml pins (`storeDir`), which wins over any
-# store configured here; mounting anywhere else would leave the cache unused.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+# Dependencies resolve from the Bun lockfile alone, so this layer is reused until a dependency
+# changes. Dev dependencies remain installed because Vite and its plugins are required to build assets.
+COPY package.json bun.lock ./
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile
 
 COPY config/vite.json ./config/vite.json
 COPY vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json ./
@@ -124,7 +117,7 @@ COPY src ./src
 # The manifest check catches a build that produced no entrypoints; the runtime resolves every
 # `vite_typescript_tag` through it. The React-runtime check is the tripwire for a lost NODE_ENV:
 # the build still succeeds in that case, it just ships the development bundle.
-RUN pnpm exec vite build --mode production \
+RUN bunx vite build --mode production \
     && test -f public/vite/.vite/manifest.json \
     && if grep -rql "jsx-dev-runtime\|jsxDEV" public/vite/assets; then \
     echo "Production bundle contains the React development JSX runtime" >&2; \
@@ -271,7 +264,7 @@ ARG DOCKER_GID
 ARG DOCKER_USER
 ARG DOCKER_GROUP
 ARG GITHUB_ACTIONS
-ARG PNPM_VERSION
+ARG BUN_VERSION
 ENV HOME=/home/${DOCKER_USER} \
     CORE_WORKLOAD_USER=${DOCKER_USER} \
     CORE_WORKLOAD_GROUP=${DOCKER_GROUP}
@@ -279,13 +272,8 @@ WORKDIR ${HOME}/workspace
 
 COPY --from=node-toolchain /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-toolchain /usr/local/lib/node_modules /usr/local/lib/node_modules
-# Only npm and npx are wired up. Corepack is deliberately not linked: nothing in
-# this repository invokes it, and pnpm is installed directly below. Node.js
-# bundles Corepack only up to (not including) v25, so a link here would become a
-# dangling symlink the moment NODE_VERSION moves to a newer major — `ln -sf`
-# does not fail on a missing target, so that breakage would be silent.
-RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
-    && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+# Node remains available for runtime compatibility; Bun is the sole JavaScript package manager.
+COPY --from=bun-toolchain /usr/local/bin/bun /usr/local/bin/bun
 
 # hadolint ignore=DL3008
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -343,55 +331,19 @@ RUN if [ -z "${GITHUB_ACTIONS}" ]; then \
     mkdir -p "${HOME}"; \
     fi
 
-# Install pnpm for development use only (available by default on PATH). This npm
-# registry install is the single installation source for pnpm; nothing else in
-# the image, compose stack, or Dev Container features provides one, so
-# /usr/local/bin/pnpm is the only pnpm on PATH.
-#
-# PNPM_VERSION and package.json#packageManager declare the same version but are
-# separate concerns: this ARG decides what the image ships, while
-# `packageManager` is pnpm's own pin (pnpm 12 reads it through `pmOnFail`, which
-# pnpm-workspace.yaml sets to `error`) and is what CI reads. It is not a Corepack
-# artefact. The assertion below keeps the image side honest; `pmOnFail: error`
-# catches the two declarations drifting apart.
-RUN npm install -g "pnpm@${PNPM_VERSION}" \
-    && test "$(pnpm --version)" = "${PNPM_VERSION}" \
-    && rm -rf "${HOME}/.cache" "${HOME}/.local"
-
-# `pn` is the project's short form of `pnpm`. Declaring it here rather than
-# leaning on pnpm's own bin map keeps it under repository control and makes it
-# work in non-interactive shells, where a bashrc alias would not. Development
-# only; the production target ships no Node toolchain.
-#
-# The `rm -f` is load-bearing: pnpm's own bin map already claims `pn`, so
-# `npm install -g pnpm` above leaves /usr/local/bin/pn as a symlink to
-# lib/node_modules/pnpm/bin/pnpm.mjs. Redirecting into the symlink would
-# overwrite pnpm's real entry point with this two-line shim, and because the
-# shim re-invokes `pnpm` through PATH, every pnpm call would then exec itself
-# forever at 100% CPU.
-RUN rm -f /usr/local/bin/pn \
-    && printf '%s\n' '#!/bin/sh' 'exec pnpm "$@"' > /usr/local/bin/pn \
-    && chmod 0555 /usr/local/bin/pn
+# Bun is copied from the pinned toolchain stage above; no second package manager is installed.
 
 # Final ownership fix for the home directory, workspace, and bundler's own
 # GEM_HOME (gem install bundler above runs as root; production handles this
 # via COPY --chown, development has no equivalent step).
 #
-# The XDG directories are load-bearing, not cosmetic. `npm install -g pnpm`
-# above deletes ${HOME}/.cache and ${HOME}/.local, and compose mounts named
-# volumes at .cache and .local/share. Podman creates any missing mount-point
-# *parent* as root:root, so an absent ${HOME}/.local reappears root-owned and
-# every tool that writes ${HOME}/.local/state (opencode, among others) fails
-# with EACCES until someone chowns it by hand — once per container recreate.
-# Materializing the full XDG tree here means Podman never has to invent a
-# parent, and the chown below stamps the workload owner on all of it.
-# The two remote-sshd paths below serve the opt-in `compose.remote-access.yaml`
-# overlay. They are created here, owned by the workload user, so Podman's copy-up
-# gives the host-key volume and the read-only authorized_keys bind the right
-# ownership instead of inventing a root-owned parent that sshd's StrictModes then
-# rejects. Same paths in umaxica-apps-edge and portal.
+# The XDG directories are load-bearing, not cosmetic. Compose mounts named volumes
+# at .cache and .local/share, so materialize their parents before the ownership
+# fix below. The remote-sshd paths serve the opt-in access overlay and retain the
+# same ownership semantics across the Global, Edge, and portal images.
 RUN mkdir -p "${HOME}/workspace" \
     "${HOME}/.cache" \
+    "${HOME}/.bun/install/cache" \
     "${HOME}/.config" \
     "${HOME}/.local/bin" \
     "${HOME}/.local/share" \

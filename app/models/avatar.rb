@@ -8,7 +8,7 @@
 #
 #  id                           :bigint           not null, primary key
 #  discarded_at                 :datetime         default(Infinity), not null
-#  image_data                   :jsonb            not null
+#  image_data                   :jsonb
 #  lifecycle_state_id           :bigint           not null
 #  lock_version                 :integer          default(0), not null
 #  moniker                      :string           not null
@@ -44,6 +44,7 @@
 class Avatar < AvatarRecord
   include Retainable
   include PublicId
+  include AvatarImageUploader::Attachment[:image]
 
   self.belongs_to_required_by_default = false
 

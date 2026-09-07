@@ -108,12 +108,13 @@ class PublishingPublishedEntriesQuery
 
     kind = vocabulary.structural_kind
     version_class = entry_class.reflect_on_association(:versions).klass
+    publication_class = entry_class.reflect_on_association(:publications).klass
     association = kind.ordered? ? :multiple_taxonomy_assignments : :single_taxonomy_assignments
     assignment_class = version_class.reflect_on_association(association).klass
 
     scope.where(
       version_class
-        .where("#{quote(versions_table)}.id = #{quote(publications_table)}.entry_version_id")
+        .where(version_class.arel_table[:id].eq(publication_class.arel_table[:entry_version_id]))
         .joins(association)
         .merge(matching_snapshots(assignment_class, key:, slug:))
         .arel.exists,

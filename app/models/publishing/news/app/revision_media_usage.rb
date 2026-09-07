@@ -5,8 +5,7 @@ module Publishing
     module App
       class RevisionMediaUsage < PublishingRecord
         self.table_name = "publishing_news_app_revision_media_usages"
-        include Publishing::RevisionMediaUsageRecord
-
+        include PublishingRevisionMediaUsageRecord
       end
     end
   end

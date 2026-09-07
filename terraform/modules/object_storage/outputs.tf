@@ -1,5 +1,5 @@
 output "bucket" {
-  description = "Bucket name, for wiring into the application's OBJECT_STORAGE_BUCKET."
+  description = "Bucket name, for wiring into the application's OBJECT_STORAGE_BUCKET_* variable."
   value       = aws_s3_bucket.this.bucket
 }
 

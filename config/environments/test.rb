@@ -30,6 +30,10 @@ Rails.application.configure do
   # Configure public file server for tests with cache-control for performance.
   config.public_file_server.headers = { "cache-control" => "public, max-age=3600" }
 
+  # Keep development and production precompile manifests from forcing Propshaft's static
+  # resolver during tests. Test renders must resolve the current source assets.
+  config.assets.output_path = Rails.root.join("tmp/test-assets")
+
   # Show full error reports.
   config.consider_all_requests_local = true
 
@@ -143,12 +147,6 @@ Rails.application.configure do
   config.logger =
     ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(test_log_device))
   config.log_tags = [:request_id]
-
-  # ci seed up.
-  if ENV["CI"]
-    config.assets.compile = false
-    config.assets.gzip = false
-  end
 
   # SMS Provider Configuration - Use test provider in test environment
   config.sms_provider = "test"

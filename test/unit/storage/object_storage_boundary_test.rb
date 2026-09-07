@@ -6,12 +6,8 @@ require "test_helper"
 class ObjectStorageBoundaryTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
-  test "no boundary is registered until a model declares an attachment" do
-    assert_empty(
-      ObjectStorage::Boundary.keys,
-      "registering a boundary imposes a bucket requirement on every deployment, " \
-      "so it must happen only when an attachment actually exists",
-    )
+  test "registered boundaries match the attachment-owning domains" do
+    assert_equal(%i(avatar publishing), ObjectStorage::Boundary.keys)
   end
 
   test "an unregistered boundary raises and names the boundary" do

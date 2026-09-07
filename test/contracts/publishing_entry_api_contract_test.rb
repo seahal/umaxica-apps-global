@@ -139,7 +139,8 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     )
     term = publishing_term(vocabulary: topic, locale: "ja", slug: "architecture", name: "Architecture")
     entry = publishing_draft(audience: "app", surface: "docs", slug: "topical", title: "Topical")
-    create_single_assignment(entry_revision: entry.current_revision, vocabulary: topic, vocabulary_kind: topic.kind,
+    create_single_assignment(
+      entry_revision: entry.current_revision, vocabulary: topic, vocabulary_kind: topic.kind,
       taxonomy_term: term, locale: "ja",
     )
     publishing_publish(entry:)
@@ -161,7 +162,8 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
     second = publishing_term(vocabulary: channel, locale: "ja", slug: "web", name: "Web")
     entry = publishing_draft(audience: "app", surface: "docs", slug: "channelled", title: "Channelled")
     [second, first].each_with_index do |term, position|
-      create_multiple_assignment(entry_revision: entry.current_revision, vocabulary: channel, vocabulary_kind: channel.kind,
+      create_multiple_assignment(
+        entry_revision: entry.current_revision, vocabulary: channel, vocabulary_kind: channel.kind,
         taxonomy_term: term, locale: "ja", position:,
       )
     end
@@ -298,12 +300,14 @@ class PublishingEntryApiContractTest < ActionDispatch::IntegrationTest
   def publish(slug, title, category: nil, tags: [], published_at: 1.hour.ago)
     entry = publishing_draft(audience: "app", surface: "docs", slug:, title:)
     if category
-      create_single_assignment(entry_revision: entry.current_revision, vocabulary: @category, vocabulary_kind: @category.kind,
+      create_single_assignment(
+        entry_revision: entry.current_revision, vocabulary: @category, vocabulary_kind: @category.kind,
         taxonomy_term: category, locale: "ja",
       )
     end
     tags.each_with_index do |term, position|
-      create_multiple_assignment(entry_revision: entry.current_revision, vocabulary: @tag, vocabulary_kind: @tag.kind,
+      create_multiple_assignment(
+        entry_revision: entry.current_revision, vocabulary: @tag, vocabulary_kind: @tag.kind,
         taxonomy_term: term, locale: "ja", position:,
       )
     end

@@ -123,6 +123,7 @@ class HtmlTitleContractTest < ActionDispatch::IntegrationTest
       # opens with a `title:` field. That field is a plain-text line, not an HTML <title>, which
       # is exactly why this path is excluded from the title contracts above.
       assert_match(/\Atitle: Health status\nnamespace: \S+\nstatus: \w+\n/, response.body)
+      assert_includes response.body.lines, "status: ok\n"
     end
 
     assert_includes non_html_get_paths, "/health"

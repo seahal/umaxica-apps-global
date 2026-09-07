@@ -36,6 +36,7 @@ class SurfaceHookMappingTest < ActiveSupport::TestCase
     reached
   ensure
     owner.send(:define_method, name, original)
+    owner.send(:private, name)
   end
 
   test "the com verification base controller answers every seam with visitor models" do

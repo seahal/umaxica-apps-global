@@ -10,14 +10,15 @@ particular service, and a host firewall is not an acceptable substitute for it.
 
 1. **Prefer no publication at all.** If a service is only consumed by other containers, it gets no
    `ports:` entry. Containers reach it by Compose service name over the shared network
-   (`primary:5432`, `valkey-cache:6379`, `valkey-rate-limit:6379`, `kafka:29092`, `tempo:3200`).
+   (`primary:5432`, `valkey-cache:6379`, `valkey-rate-limit:6379`, `kafka:29092`,
+   `tempo:3200`).
 2. **If the host genuinely needs it, publish to loopback only.** Write the bind address explicitly:
    `127.0.0.1:3000:3000`, never `3000:3000`. A `ports:` entry with no host address makes Podman bind
    `0.0.0.0`, which places the service on every host interface — LAN, Wi-Fi, Ethernet, and Tailscale
    included.
-3. **Never publish a datastore.** PostgreSQL (`primary`, `replica`), Valkey, and Kafka are
-   container-only. Convenience is not a reason to add `5432:5432`, `6379:6379`, or `9092:9092`; use
-   `podman compose exec` for a shell against them.
+3. **Host-native datastore access is loopback-only.** PostgreSQL (`primary`, `replica`) and Valkey
+   publish only explicit `127.0.0.1` mappings for host-native Rails (`5432`/`5433`, `6379`, and `6380`).
+   Containers continue to use Compose DNS names; Kafka remains container-only.
 
 ## Container Bind and Host Publication Are Separate Decisions
 
@@ -31,7 +32,7 @@ ports: 127.0.0.1:3000:3000  ->  the host reaches it only from the host itself.
 ports: 3000:3000            ->  every machine on the LAN reaches it.  <- not allowed
 ```
 
-`compose.yaml` therefore keeps `BINDING: "0.0.0.0"` and `VITE_RUBY_HOST: "0.0.0.0"`. Do not "harden"
+`.devcontainer/compose.yaml` therefore keeps `BINDING: "0.0.0.0"` and `VITE_RUBY_HOST: "0.0.0.0"`. Do not "harden"
 those to `127.0.0.1`: that would break `cloudflare-tunnel`, the transport probe in
 `docs/operations/cloudflare-private-origin.md`, and every container-to-container call, while
 changing nothing about host exposure.
@@ -42,9 +43,10 @@ changing nothing about host exposure.
 | -------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `core` (Rails, 3000)                   | `127.0.0.1:3000`           | The browser opens the documented `http://<service>.<surface>.localhost:3000` origins, which resolve to `127.0.0.1`. |
 | `core` (Vite, 3036)                    | `127.0.0.1:3036`           | `@vite/client` opens its HMR socket to the dev server from the browser.                                             |
-| `primary`, `replica`                   | none                       | Reached as `primary:5432` / `replica:5432`.                                                                         |
-| `valkey-cache`                         | none                       | Reached as `valkey-cache:6379`.                                                                                     |
-| `valkey-rate-limit`                    | none                       | Reached as `valkey-rate-limit:6379`.                                                                                |
+| `primary` (writer)                     | `127.0.0.1:5432`           | Host-native Rails writer; containers use `primary:5432`.                                                            |
+| `replica` (reader)                     | `127.0.0.1:5433`           | Host-native Rails reader; containers use `replica:5432`.                                                            |
+| `valkey-cache`                         | `127.0.0.1:6379`           | Host-native Rails cache; containers use `valkey-cache:6379`.                                                        |
+| `valkey-rate-limit`                     | `127.0.0.1:6380`           | Host-native Rails rate limits; containers use `valkey-rate-limit:6379`.                                            |
 | `loki`, `tempo`, `prometheus`, `alloy` | none                       | Reached only by each other and by Grafana on the `observability` network.                                           |
 | `grafana`                              | none                       | See "Grafana has no host publication" below.                                                                        |
 | `cloudflare-tunnel`                    | none, and none is possible | The connector is outbound-only.                                                                                     |
@@ -101,13 +103,14 @@ Run on the **host**, not inside a container:
 
 ```sh
 podman ps --format 'table {{.Names}}\t{{.Ports}}'
-sudo ss -lntup | grep -E ':(3000|3036|9092|5432|6379)\b'
+sudo ss -lntup | grep -E ':(3000|3036|9092|5432|5433|6379|6380)\b'
 ```
 
-Expected: `primary`, `replica`, `valkey-cache`, `valkey-rate-limit`, and `kafka` show a bare
-container port with no `->`
-mapping. `core` shows `127.0.0.1:3000->3000/tcp` and `127.0.0.1:3036->3036/tcp`. No line anywhere
-contains `0.0.0.0:3000`, `0.0.0.0:3036`, `0.0.0.0:9092`, `*:3000`, `*:3036`, or `*:9092`.
+Expected: `primary` shows `127.0.0.1:5432->5432/tcp`, `replica` shows `127.0.0.1:5433->5432/tcp`,
+`valkey-cache` shows `127.0.0.1:6379->6379/tcp`, and `valkey-rate-limit` shows
+`127.0.0.1:6380->6379/tcp`. The Dev Container `core` service shows loopback-only Rails
+publications when the combined config is used. No line anywhere contains `0.0.0.0`, `*`, or a LAN address
+for these services.
 
 From a second machine on the same LAN, both of these must fail to connect:
 
@@ -132,6 +135,7 @@ data — and the addresses are runner-local. This contract governs Compose files
 Reject a change that adds any of the following without an entry in the table above:
 
 - a `ports:` value with no explicit host address
-- any publication of 5432, 6379, or 9092
+- a datastore publication that is not bound to `127.0.0.1`
+- any publication of Kafka 9092
 - a `network_mode: host` service
 - a `--publish`/`-p` flag in a script that omits the bind address

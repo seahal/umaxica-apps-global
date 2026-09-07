@@ -46,3 +46,21 @@ class ExternalAuthenticationAppleClientSecretProviderTest < ActiveSupport::TestC
     assert_equal "ttl must not exceed 180 days", error.message
   end
 end
+
+class ExternalAuthenticationAppleClientSecretProviderTest
+  test "builds a provider from application credentials" do
+    key = OpenSSL::PKey::EC.generate("prime256v1")
+    values = {
+      OMNI_AUTH_APPLE_CLIENT_ID: "com.example.web",
+      OMNI_AUTH_APPLE_TEAM_ID: "TEAMID1234",
+      OMNI_AUTH_APPLE_KEY_ID: "KEYID12345",
+      OMNI_AUTH_APPLE_PRIVATE_KEY: key.to_pem,
+    }
+    creds = Rails.app.creds
+    creds.stub(:option, ->(name) { values.fetch(name) }) do
+      provider = ExternalAuthentication::AppleClientSecretProvider.from_credentials
+
+      assert_predicate provider, :private_key_configured?
+    end
+  end
+end

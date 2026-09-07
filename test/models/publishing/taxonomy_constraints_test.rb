@@ -146,7 +146,10 @@ module Publishing
       foreign_vocabulary = publishing_category_vocabulary(audience: "org", surface: "news")
       foreign_term = publishing_term(vocabulary: foreign_vocabulary, locale: "ja", slug: "foreign")
 
-      assert_raises(ActiveRecord::AssociationTypeMismatch, ActiveRecord::StatementInvalid, ActiveRecord::RecordInvalid) do
+      assert_raises(
+        ActiveRecord::AssociationTypeMismatch, ActiveRecord::StatementInvalid,
+        ActiveRecord::RecordInvalid,
+      ) do
         create_single_assignment(
           entry_revision: entry.current_revision, vocabulary: foreign_vocabulary,
           vocabulary_kind: foreign_vocabulary.kind, taxonomy_term: foreign_term, locale: "ja",
