@@ -167,6 +167,8 @@ class CoverageThresholdBaseEdgesTest
       :load_session_record, :record, model, validation,
     )
 
+    record.otp_expired = true
+
     assert_nil @harness.send(:load_session_record, :record, model, check_otp_expiry: true)
     record.otp_expired = false
 
@@ -197,5 +199,249 @@ class CoverageThresholdBaseEdgesTest
     actor.define_singleton_method(:lock!) { true }
 
     assert_equal :done, @harness.send(:with_actor_session_lock, actor) { :done }
+  end
+end
+
+class CoverageThresholdBaseEdgesTest
+  test "authentication guard helpers exercise blank and alternate request paths" do
+    assert_equal :unlocked, @harness.send(:with_actor_session_lock, nil) { :unlocked }
+
+    @harness.define_singleton_method(:request) { nil }
+
+    assert_nil @harness.send(:request_ip_address)
+    assert_nil @harness.send(:load_current_resource)
+    assert_nil @harness.send(:load_from_token)
+    assert_not @harness.send(:transparent_refresh_allowed?)
+
+    @harness.define_singleton_method(:request) { @request_obj }
+    @harness.request_obj.host = ""
+
+    assert_nil @harness.send(:load_from_token)
+    assert_equal "/", @harness.send(:default_after_login_path)
+  end
+
+  test "inertia redirect conversion replaces redirect with conflict location" do
+    @harness.request_obj.define_singleton_method(:inertia?) { true }
+    @harness.response.status = 302
+    @harness.response.headers["Location"] = "/sign/in"
+
+    @harness.send(:convert_redirect_to_inertia_location!)
+
+    assert_equal 409, @harness.response.status
+    assert_equal "/sign/in", @harness.response.headers["X-Inertia-Location"]
+    assert_nil @harness.response.headers["Location"]
+  end
+
+  test "refresh predicates reject absent and suspended resources deliberately" do
+    assert_not @harness.send(:refreshable_resource?, nil, allow_suspended: true)
+    suspended = Object.new
+    suspended.define_singleton_method(:active?) { false }
+    suspended.define_singleton_method(:suspended?) { true }
+
+    assert @harness.send(:refreshable_resource?, suspended, allow_suspended: true)
+    assert_not @harness.send(:refreshable_resource?, suspended, allow_suspended: false)
+
+    token = Object.new
+    token.define_singleton_method(:binding_method_nothing?) { false }
+    token.define_singleton_method(:binding_method_legacy?) { false }
+
+    assert_not @harness.send(:legacy_unbound_refresh_allowed?, token)
+    token.define_singleton_method(:binding_method_nothing?) { true }
+    token.define_singleton_method(:dbsc_status_nothing?) { true }
+
+    assert @harness.send(:legacy_unbound_refresh_allowed?, token)
+  end
+
+  test "refresh binding guards cover revoked, verified, and missing proof sessions" do
+    assert @harness.send(:device_session_refresh_allowed?, nil)
+    session =
+      Struct.new(:revoked, :bound) do
+        def revoked? = revoked
+
+        def dbsc_bound? = bound
+      end
+    record = Struct.new(:device_session).new(session.new(true, true))
+
+    assert_not @harness.send(:device_session_refresh_allowed?, record)
+
+    record.device_session = session.new(false, true)
+    @harness.instance_variable_set(:@refresh_dbsc_verified, true)
+
+    assert @harness.send(:device_session_refresh_allowed?, record)
+    @harness.instance_variable_set(:@refresh_dbsc_verified, false)
+
+    assert_not @harness.send(:device_session_refresh_allowed?, record)
+    assert_equal "missing_proof", @harness.instance_variable_get(:@refresh_dbsc_reason)
+
+    @harness.define_singleton_method(:device_session_refresh_allowed?) { |_token| true }
+    @harness.define_singleton_method(:refresh_dbsc_allowed?) { |_token| false }
+    @harness.define_singleton_method(:legacy_unbound_refresh_allowed?) { |_token| true }
+    dbsc = Object.new
+    dbsc.define_singleton_method(:binding_method_dbsc?) { true }
+
+    assert_not @harness.send(:refresh_binding_allowed?, dbsc)
+    legacy = Object.new
+    legacy.define_singleton_method(:binding_method_dbsc?) { false }
+
+    assert @harness.send(:refresh_binding_allowed?, legacy)
+  end
+
+  test "session and token helper fallbacks cover nil and non-string values" do
+    assert_equal 123, @harness.send(:resolve_token_kind_id, 123)
+    assert_nil @harness.send(:ensure_token_kind_exists!, nil)
+    assert_in_delta 15.minutes, @harness.send(:restricted_session_expires_at) - Time.current, 2.seconds
+    assert_nil @harness.send(:pending_mfa_user)
+    @harness.session[:pending_mfa] = { expires_at: 1.minute.from_now.to_i }
+
+    assert_nil @harness.send(:pending_mfa_user)
+  end
+end
+
+class CoverageThresholdBaseEdgesTest
+  test "authentication side-effect guards and redirect surface fallbacks are explicit" do
+    model =
+      Class.new do
+        define_singleton_method(:find_by) { |**| nil }
+      end
+    @harness.session[:missing] = 1
+
+    assert_nil @harness.send(:load_session_record, :missing, model)
+    assert_nil @harness.send(:record_audit, nil, resource: nil)
+    @harness.define_singleton_method(:occurrence_model_class) { nil }
+
+    assert_nil @harness.send(
+      :write_refresh_occurrence,
+      event_type: "refresh_failed", token_record: nil, reason: "test", device_source: "none",
+    )
+    assert_nil @harness.send(:populate_current_attributes!, nil, nil)
+
+    @harness.request_obj.define_singleton_method(:inertia?) { true }
+    @harness.response.status = 200
+
+    assert_nil @harness.send(:convert_redirect_to_inertia_location!)
+
+    %w(base/app/thing base/com/thing auth/app/thing auth/com/thing other).each do |path|
+      @harness.define_singleton_method(:controller_path) { path }
+      @harness.define_singleton_method(:new_base_app_identity_withdrawal_session_path) { |**options| ["app", options] }
+      @harness.define_singleton_method(:new_base_com_identity_withdrawal_session_path) { |**options| ["com", options] }
+
+      assert_equal(path.include?("com") ? "com" : "app", @harness.send(:withdrawal_required_session_entry_path).first)
+    end
+  end
+
+  test "authentication token guards return before persistence for rejected inputs" do
+    @harness.define_singleton_method(:session_limit_state_for) { |_resource| :within_limit }
+    @harness.define_singleton_method(:validate_login_dpop_proof) { { status: :invalid, error: "bad_proof" } }
+    result = @harness.send(
+      :issue_login_tokens_within_lock,
+      Object.new,
+      record_login_audit: false,
+      token_kind_id: "BROWSER_WEB",
+      audit_context: {},
+      bootstrap_actor: false,
+    )
+
+    assert_equal :invalid, result[:status]
+
+    @harness.define_singleton_method(:token_class) { Class.new { def self.parse_refresh_token(_); ["r-1"] end } }
+    restricted = Object.new
+    restricted.define_singleton_method(:restricted?) { true }
+    @harness.define_singleton_method(:find_refresh_token_record) { |_id| restricted }
+    @harness.define_singleton_method(:handle_restricted_refresh_rejected) { |*| :restricted }
+
+    assert_equal :restricted, @harness.send(:refresh_access_token, "refresh")
+
+    record = Object.new
+    record.define_singleton_method(:restricted?) { false }
+    @harness.define_singleton_method(:find_refresh_token_record) { |_id| record }
+    @harness.define_singleton_method(:refresh_dpop_allowed?) { |_record| true }
+    @harness.define_singleton_method(:refresh_binding_allowed?) { |_record| true }
+    @harness.define_singleton_method(:refresh_idle_allowed?) { |_record| false }
+    @harness.define_singleton_method(:handle_refresh_idle_timeout) { |*| :idle }
+
+    assert_equal :idle, @harness.send(:refresh_access_token, "refresh")
+  end
+end
+
+class CoverageThresholdBaseEdgesTest
+  test "authentication mode and current-resource fallback branches are exercised" do
+    klass = Class.new(CoverageThresholdBaseEdgeHarness)
+    klass.define_singleton_method(:name) { "CoverageThresholdModeHarness" }
+    assert_raises(AuthenticationBase::InvalidPolicyError) { klass.declare_authentication_mode!(:invalid) }
+    klass.declare_authentication_mode!(:guest, except: :blocked)
+
+    assert_equal :guest, klass.authentication_mode_for(:open)
+
+    current = Object.new
+    @harness.define_singleton_method(:load_from_token) { nil }
+    @harness.define_singleton_method(:authentication_credentials_invalid?) { false }
+    @harness.instance_variable_set(:@current_resource, current)
+
+    assert_same current, @harness.send(:load_current_resource)
+
+    @harness.instance_variable_set(:@current_resource, nil)
+    @harness.define_singleton_method(:resource_withdrawn?) { |resource| resource.nil? }
+
+    assert_nil @harness.send(:load_current_resource)
+
+    user = Object.new
+    @harness.define_singleton_method(:resource_withdrawn?) { |resource| resource.equal?(user) }
+    @harness.define_singleton_method(:controller_path) { "auth/app/sign/in" }
+    @harness.define_singleton_method(:transparent_refresh_allowed?) { true }
+    @harness.define_singleton_method(:cookies) { { AuthenticationBase::REFRESH_COOKIE_KEY => "refresh" } }
+    @harness.define_singleton_method(:attempt_transparent_refresh!) { |_plain| { user: user } }
+
+    assert_nil @harness.send(:load_current_resource)
+  end
+end
+
+class CoverageThresholdBaseEdgesTest
+  test "authentication fallback helpers cover cookie, session, and MFA edges" do
+    @harness.define_singleton_method(:cookies) { {} }
+
+    assert_nil @harness.send(:destroy_refresh_token_from_cookie)
+    @harness.define_singleton_method(:cookies) { { AuthenticationBase::REFRESH_COOKIE_KEY => "raw" } }
+    token_class = Class.new
+    token_class.define_singleton_method(:parse_refresh_token) { |_value| [nil] }
+    @harness.define_singleton_method(:token_class) { token_class }
+
+    assert_nil @harness.send(:destroy_refresh_token_from_cookie)
+
+    @harness.define_singleton_method(:respond_to?) do |name, include_private = false|
+      return false if %i(auth_app_root_path auth_org_root_path).include?(name.to_sym)
+
+      super(name, include_private)
+    end
+
+    assert_equal "/", @harness.send(:default_after_login_path)
+
+    %w(visitor operator client unknown).each do |type|
+      @harness.define_singleton_method(:resource_type) { type }
+      attrs = @harness.send(:scheduled_login_token_attributes, now: Time.current)
+      if %w(visitor operator).include?(type)
+        assert_includes attrs.keys, :discarded_at
+      else
+        assert_empty attrs
+      end
+    end
+
+    client = Client.allocate
+    client.define_singleton_method(:mfa_level_required?) { false }
+
+    assert_not @harness.send(:mfa_required_for?, client)
+    client.define_singleton_method(:mfa_level_required?) { true }
+
+    assert @harness.send(:mfa_required_for?, client)
+    operator = Operator.allocate
+    operator.define_singleton_method(:mfa_level_required?) { true }
+    operator.define_singleton_method(:mfa_level_enabled?) { true }
+
+    assert @harness.send(:mfa_required_for?, operator)
+
+    assert_nil @harness.send(:issue_dbsc_registration_header_for, nil)
+    bound = Object.new
+    bound.define_singleton_method(:binding_method_dbsc?) { true }
+
+    assert_nil @harness.send(:issue_dbsc_registration_header_for, bound)
   end
 end

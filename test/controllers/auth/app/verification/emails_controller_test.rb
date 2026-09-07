@@ -1088,3 +1088,86 @@ class Auth::App::Verification::EmailsControllerTest
       )
   end
 end
+
+class AuthAppVerificationEmailsBranchTest < ActiveSupport::TestCase
+  def build_controller
+    Auth::App::Verification::EmailsController.new.tap do |controller|
+      controller.define_singleton_method(:render) { |**options| @rendered = options }
+      controller.define_singleton_method(:redirect_to) { |*args| @redirected = args }
+      controller.define_singleton_method(:new_page_props) { {} }
+      controller.define_singleton_method(:edit_page_props) { {} }
+      controller.define_singleton_method(:ensure_email_nonce!) { "nonce" }
+      controller.define_singleton_method(:current_step_up_scope) { "scope" }
+      controller.define_singleton_method(:current_step_up_pt_param) { "pt" }
+      controller.define_singleton_method(:params) { { ri: "jp" } }
+      controller.define_singleton_method(:auth_app_verification_emails_path) { |**| "/emails" }
+      controller.define_singleton_method(:edit_auth_app_verification_email_path) { |*args, **|
+        "/emails/#{args.first}/edit"
+      }
+    end
+  end
+
+  test "email verification actions cover guard, delivery, and invalid-code branches" do
+    controller = build_controller
+    controller.define_singleton_method(:require_step_up_session!) { false }
+
+    assert_nil controller.new
+    assert_nil controller.edit
+    assert_nil controller.create
+    assert_nil controller.update
+
+    controller.define_singleton_method(:require_step_up_session!) { true }
+    controller.define_singleton_method(:redirect_if_recent_verification_for_get!) { true }
+
+    assert_nil controller.new
+    assert_nil controller.edit
+    controller.define_singleton_method(:redirect_if_recent_verification_for_get!) { false }
+    controller.define_singleton_method(:redirect_if_recent_verification_for_post!) { true }
+
+    assert_nil controller.create
+    assert_nil controller.update
+    controller.define_singleton_method(:redirect_if_recent_verification_for_post!) { false }
+
+    controller.define_singleton_method(:require_method_available!) { |_method| false }
+
+    assert_nil controller.new
+    assert_nil controller.create
+    controller.define_singleton_method(:require_method_available!) { |_method| true }
+    controller.define_singleton_method(:send_email_otp!) { false }
+
+    assert_nil controller.new
+    assert_nil controller.create
+
+    controller.define_singleton_method(:send_email_otp!) { true }
+    controller.new
+
+    assert_equal ["/emails/nonce/edit"], controller.instance_variable_get(:@redirected)
+
+    controller.define_singleton_method(:require_email_nonce!) { false }
+
+    assert_nil controller.edit
+    controller.define_singleton_method(:require_email_nonce!) { true }
+    controller.define_singleton_method(:email_otp_session_active?) { true }
+
+    assert_nil controller.edit
+    controller.define_singleton_method(:email_otp_session_active?) { false }
+    controller.define_singleton_method(:send_email_otp!) { false }
+
+    assert_nil controller.edit
+    controller.define_singleton_method(:send_email_otp!) { true }
+
+    assert_equal({ inertia: "auth/app/verification/emails/edit", props: {} }, controller.edit)
+
+    controller.define_singleton_method(:require_method_available!) { |_method| true }
+    controller.define_singleton_method(:verify_email_otp!) { true }
+    controller.define_singleton_method(:consume_step_up_session!) { |**| @consumed = true }
+    controller.update
+
+    assert controller.instance_variable_get(:@consumed)
+    controller.define_singleton_method(:verify_email_otp!) { false }
+    controller.define_singleton_method(:record_failed_step_up_attempt!) { |_method| @failed = true }
+    controller.update
+
+    assert controller.instance_variable_get(:@failed)
+  end
+end

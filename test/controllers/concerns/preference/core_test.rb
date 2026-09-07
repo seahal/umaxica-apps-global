@@ -619,3 +619,43 @@ class PreferenceCoreHarness
     nil
   end
 end
+
+class PreferenceCoreTest
+  test "preference core guards handle blank children and tokens" do
+    h = PreferenceCoreHarness.new
+    h.define_singleton_method(:option_id_to_language) { |_id, _prefix| nil }
+    h.send(:pin_locale_to_saved_language, nil)
+    h.send(:pin_locale_to_saved_language, PreferenceCoreTest::FakeAssociation.new(nil, nil))
+
+    h.define_singleton_method(:refresh_token_value) { nil }
+
+    assert_nil h.send(:find_preference_for_delete)
+    h.define_singleton_method(:refresh_token_value) { "refresh" }
+    h.define_singleton_method(:refresh_token_lookup_digest) { |_token| nil }
+
+    assert_nil h.send(:find_preference_for_delete)
+
+    h.instance_variable_set(:@preferences, nil)
+
+    assert_nil h.send(:reset_preference_by_rebootstrap!)
+    h.define_singleton_method(:current_resource) { nil }
+
+    assert_nil h.send(:existing_resource_preference_for_reset)
+    assert_nil h.send(:destroy_resource_preference_for_reset!, nil)
+    assert_nil h.send(:reset_current_resource_preference_association, Object.new)
+  end
+
+  test "preference core update endpoints short circuit when records are empty" do
+    h = PreferenceCoreHarness.new
+    blank_child = PreferenceCoreTest::FakeAssociation.new(nil, nil)
+    h.define_singleton_method(:load_or_refresh_preference_child) { |_suffix, **_| blank_child }
+    h.define_singleton_method(:update_preference_child_dual_write!) { |*| nil }
+    h.define_singleton_method(:preference_language_params) { {} }
+    h.send(:set_language_preferences_update)
+    h.define_singleton_method(:preference_theme_params) { {} }
+    h.define_singleton_method(:load_or_refresh_preference_child) { |_suffix, **_| blank_child }
+    h.send(:set_theme_preferences_update)
+    h.define_singleton_method(:ensure_preferences_record) { nil }
+    assert_raises(PreferenceOperationError) { h.send(:set_timezone_preferences_update) }
+  end
+end

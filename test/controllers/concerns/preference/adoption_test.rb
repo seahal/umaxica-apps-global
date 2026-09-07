@@ -472,3 +472,45 @@ module Preference
     end
   end
 end
+
+module Preference
+  class AdoptionTest
+    test "adoption guards and fallback resolvers reject incomplete collaborators" do
+      assert_nothing_raised { @adoption.send(:adopt_preference_for!, nil) }
+      assert_nil @adoption.send(:preference_child_for, nil, :language, "App")
+      assert_nil @adoption.send(:preference_child_for, Object.new, :language, "App")
+      @adoption.define_singleton_method(:preference_class) { Class.new }
+
+      assert_nil @adoption.send(:create_resource_preference!, Object.new)
+      assert_nil @adoption.send(:preference_consent_snapshot, nil)
+      assert_nil @adoption.send(:preference_consent_snapshot, Object.new)
+      assert_nothing_raised { @adoption.send(:sync_explicit_state!, Object.new, :language, true) }
+      assert_nothing_raised { @adoption.send(:force_underage_r18_stopper!, Object.new) }
+    end
+
+    test "adoption option resolution preserves source ids when metadata is absent" do
+      child = Object.new
+      child.define_singleton_method(:option_id) { 42 }
+      child.define_singleton_method(:option) { nil }
+
+      assert_equal 42, @adoption.send(:resolve_cross_db_option_id, child, Object)
+
+      option = Object.new
+      option.define_singleton_method(:name) { nil }
+      child.define_singleton_method(:option) { option }
+
+      assert_equal 42, @adoption.send(:resolve_cross_db_option_id, child, Object)
+
+      target = Object.new
+      assert_nothing_raised { @adoption.send(:copy_flat_preference_values!, Object.new, target) }
+      assert_nothing_raised { @adoption.send(:apply_consent_snapshot!, target, {}) }
+    end
+
+    test "adoption reconciliation handles a blank consent snapshot" do
+      @adoption.define_singleton_method(:preference_consent_snapshot) { |_preference| nil }
+      assert_nothing_raised { @adoption.send(:reconcile_cookie_consent!, Object.new) }
+      @adoption.define_singleton_method(:preference_resource_for) { |_preference| nil }
+      assert_nothing_raised { @adoption.send(:force_underage_r18_stopper!, Object.new) }
+    end
+  end
+end

@@ -89,3 +89,59 @@ class SignUpSequenceControllerSupportThresholdTest < ActiveSupport::TestCase
     assert_equal :forbidden, h.rendered.last[:status]
   end
 end
+
+class SignUpSequenceControllerSupportThresholdTest
+  test "sign-up ticket and checkpoint helpers reject stale or terminal state" do
+    h = harness
+
+    assert h.send(:validate_sign_up_checkpoint_version!)
+    assert h.send(:validate_sign_up_checkpoint_contact!)
+    assert_equal "2001-02-03", begin
+      h.params_hash = { birthdate_year: "2001", birthdate_month: "2", birthdate_day: "3" }
+      h.send(:sign_up_birthdate_param)
+    end
+
+    ticket_class =
+      Class.new do
+        define_singleton_method(:find_by) { @ticket }
+        define_singleton_method(:ticket=) { |value| @ticket = value }
+      end
+    h.define_singleton_method(:sign_up_ticket_class) { ticket_class }
+    h.session[:auth_app_up_sequence_id] = "cycle-1"
+
+    ticket_class.ticket = nil
+
+    assert_nil h.send(:sign_up_ticket_from_sequence_id)
+    ticket =
+      Struct.new(:expired, :lapsed, :terminal) do
+        def expired? = expired
+
+        def lapsed? = lapsed
+
+        def sign_up_terminal? = terminal
+      end
+    ticket_class.ticket = ticket.new(true, false, false)
+
+    assert_nil h.send(:sign_up_ticket_from_sequence_id)
+    ticket_class.ticket = ticket.new(false, false, true)
+
+    assert_nil h.send(:sign_up_ticket_from_sequence_id)
+  end
+
+  test "sign-up checkpoint contact and finalization guards cover early exits" do
+    h = harness
+    h.performed_value = true
+
+    assert_nil h.send(:clear_sign_up_birthdate_requirement)
+    h.performed_value = false
+
+    assert_equal :failed, h.send(:finalize_sign_up_side_effect!)
+    assert_equal :user_telephone_registration, h.send(:sign_up_telephone_registration_session_key)
+    h.surface_value = :com
+
+    assert_equal :visitor_telephone_registration, h.send(:sign_up_telephone_registration_session_key)
+    h.surface_value = :org
+
+    assert_nil h.send(:sign_up_telephone_registration_session_key)
+  end
+end
