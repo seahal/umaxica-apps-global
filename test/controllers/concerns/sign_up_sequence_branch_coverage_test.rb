@@ -34,7 +34,7 @@ class SignUpSequenceBranchCoverageTest < ActiveSupport::TestCase
 
     def sign_up_session_state = state_value || State.new
 
-    def current_sign_up_flow_ticket = ticket_value
+    def current_sign_up_flow_ticket = @ticket_value
 
     def sign_up_pending_actor = actor_value
 

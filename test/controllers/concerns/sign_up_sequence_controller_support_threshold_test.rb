@@ -103,7 +103,7 @@ class SignUpSequenceControllerSupportThresholdTest
 
     ticket_class =
       Class.new do
-        define_singleton_method(:find_by) { @ticket }
+        define_singleton_method(:find_by) { |**| @ticket }
         define_singleton_method(:ticket=) { |value| @ticket = value }
       end
     h.define_singleton_method(:sign_up_ticket_class) { ticket_class }

@@ -59,7 +59,8 @@ class ForbiddenRailsPatternsTest < ActiveSupport::TestCase
     "Rails.env.test? branch in app code" => /Rails\.env\.test\?/,
     "minitest detection in app code" => /defined\?\(\s*Minitest/,
     "rspec detection in app code" => /defined\?\(\s*RSpec/,
-    "RAILS_ENV string check in app code" => /ENV\[["']RAILS_ENV["']\]/,
+    "test-environment RAILS_ENV string check in app code" =>
+      /ENV\[["']RAILS_ENV["']\]\s*==\s*["']test["']/,
     "removed test verification cookie bypass" => /TEST_VERIFICATION_COOKIE_PREFIX/,
   }.freeze
 

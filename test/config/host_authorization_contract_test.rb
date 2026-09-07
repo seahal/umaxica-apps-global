@@ -147,8 +147,14 @@ class HostAuthorizationContractTest < Minitest::Test
     # rubocop:enable Rails/RefuteMethods
 
     aliased_hosts = aliases_block.scan(/^\s+- (\S+)/).flatten
+    env_files =
+      compose.scan(/^\s+- (\.env[^\s]*)$/).flatten.map do |relative_path|
+        File.read(File.expand_path("../../#{relative_path}", __dir__))
+      end
     configured_public_hosts =
-      compose.scan(/^\s+PUBLIC_[A-Z_]+_URL:\s*(\S+)/).flatten.map { |value| value.sub(%r{\Ahttps?://}, "") }
+      ([compose] + env_files).flat_map do |configuration|
+        configuration.scan(/^\s*PUBLIC_[A-Z_]+_URL[:=]\s*(\S+)/).flatten
+      end.map { |value| value.sub(%r{\Ahttps?://}, "") }
 
     aliased_hosts.each do |host|
       next if host.end_with?(".localhost")
