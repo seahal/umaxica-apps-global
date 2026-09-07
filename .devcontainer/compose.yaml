@@ -212,9 +212,3 @@ services:
         condition: service_healthy
       valkey-rate-limit:
         condition: service_healthy
-volumes:
-  umaxica-home-cache: {}
-  umaxica-home-share: {}
-  umaxica-node-modules: {}
-  umaxica-bundle: {}
-  workspace-podman-storage: {}
