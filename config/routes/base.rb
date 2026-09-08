@@ -514,7 +514,16 @@ scope(module: :base, as: :base) do
           resource publishing_surface, only: [], module: publishing_surface do
             publishing_audiences.each do |publishing_audience|
               resource publishing_audience, only: [], module: publishing_audience do
-                resources :entries, only: %i(index show edit update)
+                # Publishing and archiving change a different row than a
+                # revision does, so each is its own nested resource rather
+                # than a verb on the entry: a publication window is created
+                # and ended, and an entry's archive state is set and cleared.
+                resources :entries, only: %i(index new create show edit update) do
+                  scope module: :entries do
+                    resources :publications, only: %i(create destroy)
+                    resource :archive, only: %i(create destroy)
+                  end
+                end
               end
             end
           end

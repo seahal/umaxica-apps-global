@@ -59,7 +59,7 @@ class AppleNotificationJwksCacheTest < ActiveSupport::TestCase
     stubs = stub_apple_jwks { [200, {}, '{"keys":[{"kid":"apple","kty":"RSA"}]}'] }
 
     stub_outbound_http(stubs) do
-      jwks = ExternalAuthentication::AppleNotificationJwksCache.new.send(:fetch_jwks)
+      jwks = ExternalAuthentication::AppleNotificationJwksCache.new.loader.call({})
 
       assert_equal([{ "kid" => "apple", "kty" => "RSA" }], jwks["keys"])
     end
@@ -80,7 +80,7 @@ class AppleNotificationJwksCacheTest < ActiveSupport::TestCase
 
     stub_outbound_http(stubs) do
       assert_raises(ExternalAuthentication::AppleNotificationJwksCache::FetchError) do
-        ExternalAuthentication::AppleNotificationJwksCache.new.send(:fetch_jwks)
+        ExternalAuthentication::AppleNotificationJwksCache.new.loader.call({})
       end
     end
 

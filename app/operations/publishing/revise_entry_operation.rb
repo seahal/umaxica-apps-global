@@ -3,22 +3,27 @@
 
 module Publishing
   class ReviseEntryOperation < ApplicationService
-    def initialize(entry:, title:, summary:, body:, lock_version:)
+    def initialize(entry:, title:, summary:, body:, lock_version:, operator_public_id:)
       super()
       @entry = entry
       @title = title
       @summary = summary
       @body = body
       @lock_version = lock_version
+      @operator_public_id = operator_public_id
     end
 
+    # Failure messages are single strings, not arrays. They reach the edit view through the same
+    # `errors` prop as `ReviseEntryForm#message_hash`, and `ManagementEdit` types that prop as
+    # `Record<string, string>` and renders each value directly; an array rendered there is React
+    # concatenating its elements, which reads as a message only by accident.
     def call
       entry.with_lock do
-        return PublishingReviseEntryResult.failure(lock_version: ["is stale"]) if stale_lock?
+        return PublishingReviseEntryResult.failure(lock_version: "is stale") if stale_lock?
 
         current = entry.current_revision
         if current.blank?
-          return PublishingReviseEntryResult.failure(base: ["entry has no current revision"])
+          return PublishingReviseEntryResult.failure(base: "entry has no current revision")
         end
 
         revision = create_revision(current)
@@ -31,7 +36,7 @@ module Publishing
 
     private
 
-    attr_reader :entry, :title, :summary, :body, :lock_version
+    attr_reader :entry, :title, :summary, :body, :lock_version, :operator_public_id
 
     def stale_lock?
       lock_version.nil? || entry.lock_version != lock_version.to_i
@@ -52,6 +57,7 @@ module Publishing
           body:,
         ),
         restored_from_revision_id: current.id,
+        created_by_operator_public_id: operator_public_id,
         sequence: next_sequence,
       )
     end

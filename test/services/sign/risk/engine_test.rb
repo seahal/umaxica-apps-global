@@ -14,6 +14,8 @@ module Sign
       end
 
       test "refresh_reuse_detected returns 100" do
+        # SignRiskEngine scores from the occurrence tables in PostgreSQL, so the
+        # events are seeded through the emitter rather than through a store double.
         SignRiskEmitter.send(:persist, SignRiskEvent.new("refresh_reuse_detected", payload: { user_id: @user.id }))
 
         assert_equal 100, SignRiskEngine.score(user_id: @user.id)

@@ -54,16 +54,27 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     hover:
   ).freeze
 
-  test "target layouts use Vite and avoid stylesheet_link_tag" do
-    APPLICATION_LAYOUTS.merge(INERTIA_LAYOUTS).each do |path, entrypoint|
+  test "application layouts stay Importmap-owned and Inertia layouts stay Vite-owned" do
+    APPLICATION_LAYOUTS.each_key do |path|
+      contents = Rails.root.join(path).read
+
+      assert_includes contents, "javascript_importmap_tags", "missing Importmap tags in #{path}"
+      assert_includes contents, "stylesheet_link_tag", "missing Propshaft stylesheet in #{path}"
+      assert_not_includes contents, "vite_", "application layout must not load Vite: #{path}"
+    end
+
+    INERTIA_LAYOUTS.each do |path, entrypoint|
+      contents = Rails.root.join(path).read
+
+      assert_includes contents, %(vite_typescript_tag "#{entrypoint}"), "missing Vite entrypoint in #{path}"
+      assert_not_includes contents, "javascript_importmap_tags", "Inertia layout must not load Importmap: #{path}"
+    end
+
+    (APPLICATION_LAYOUTS.merge(INERTIA_LAYOUTS)).each_key do |path|
       contents = Rails.root.join(path).read
 
       assert_includes contents, "<meta charset=\"utf-8\">", "missing charset meta tag in #{path}"
       assert_includes contents, "display_meta_tags", "missing title metadata helper in #{path}"
-      assert_includes contents, %(vite_typescript_tag "#{entrypoint}"),
-                      "missing Vite entrypoint in #{path}"
-      assert_not_includes contents, "stylesheet_link_tag",
-                          "layout #{path} must reach Vite CSS through vite_stylesheet_tag, not Sprockets"
       assert_not_includes contents, "content_for", "layout #{path} must not use content_for"
       assert_not_includes contents, "yield :head", "layout #{path} must not use named head yields"
       assert_not_includes contents, "yield :nav_links", "layout #{path} must not use named nav yields"
@@ -73,7 +84,11 @@ class StylesheetTagsTest < ActiveSupport::TestCase
       assert_not_includes contents, "surface =", "layout #{path} must not define a surface variable"
       assert_not_includes contents, "tld =", "layout #{path} must not define a tld variable"
       assert_not_includes contents, "vite_entrypoint =", "layout #{path} must not define a vite entrypoint variable"
-      assert_no_match(/\b\w+_path\s*=/, contents, "layout #{path} must not precompute route helpers")
+      assert_no_match(
+        /\b\w+_path\s*=\s*/,
+        contents,
+        "layout #{path} must not precompute route helpers",
+      )
       assert_no_match(
         /class="[^"]*(?:#{FORBIDDEN_TAILWIND_FRAGMENTS.join("|")})[^"]*"/,
         contents,
@@ -110,13 +125,13 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     end
   end
 
-  test "application-owned importmap entrypoints are retired" do
-    assert_not Rails.root.join("config/importmap.rb").exist?, "config/importmap.rb must not be restored"
-    assert_not Rails.root.join("bin/importmap").exist?, "bin/importmap must not be restored"
+  test "application-owned importmap entrypoints remain available" do
+    assert_predicate Rails.root.join("config/importmap.rb"), :file?
+    assert_not Rails.root.join("bin/importmap").exist?, "legacy bin/importmap must not be restored"
 
     gemfile = Rails.root.join("Gemfile").read
 
-    assert_no_match(/^\s*gem\s+["']importmap-rails["']/, gemfile)
+    assert_match(/^\s*gem\s+["']importmap-rails["']/, gemfile)
   end
 
   test "application layouts keep the turbo refresh contract" do

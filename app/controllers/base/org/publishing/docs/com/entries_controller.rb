@@ -6,10 +6,11 @@ module Base
     module Publishing
       module Docs
         module Com
-          class EntriesController < Base::Org::BareController
+          class EntriesController < Base::Org::ApplicationController
             include ::PublishingManagementEntriesActions
 
-            AUTHENTICATION_MODE = :bare
+            AUTHENTICATION_MODE = :private
+            declare_authentication_mode! :private
             PUBLISHING_SURFACE = "docs"
             PUBLISHING_AUDIENCE = "com"
             ENTRY_CLASS = ::Publishing::Docs::Com::Entry
@@ -22,7 +23,15 @@ module Base
               super
             end
 
+            def new
+              super
+            end
+
             def edit
+              super
+            end
+
+            def create
               super
             end
 

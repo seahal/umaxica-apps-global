@@ -5,21 +5,6 @@ require "test_helper"
 require "base64"
 
 class OidcClientAssertionJwtTest < ActiveSupport::TestCase
-  class RaisingReplayStore
-    def write(*)
-      raise StandardError, "cache unavailable"
-    end
-  end
-
-  setup do
-    @previous_replay_store = OidcClientAssertionJwt.replay_store
-    OidcClientAssertionJwt.replay_store = ActiveSupport::Cache::MemoryStore.new
-  end
-
-  teardown do
-    OidcClientAssertionJwt.replay_store = @previous_replay_store
-  end
-
   test "issue returns nil when the client is not registered" do
     assert_nil OidcClientAssertionJwt.issue(client_id: "missing_client", token_url: "https://id.example/token")
   end
@@ -149,11 +134,10 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
         client_id: "core-next-rp",
         assertion: assertion,
         token_url: token_url,
-        replay_store: SecurityConsumedJti,
       )
       assert SecurityConsumedJti.exists?(
         purpose: SecurityConsumedJti::PURPOSES.fetch(:oidc_client_assertion),
-        issuer: "CORE_APP:core-next-rp",
+        issuer: "core-next-rp",
       )
     end
   end
@@ -205,18 +189,41 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
     end
   end
 
-  test "valid? fails closed when the replay store is unavailable" do
+  test "valid? fails closed when the replay record cannot be written" do
+    token_url = "https://log.umaxica.app/oauth/token"
+
+    with_oidc_client_key("CORE_APP") do
+      assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
+      raising = ->(**) { raise ActiveRecord::StatementInvalid, "replay table unavailable" }
+
+      SecurityConsumedJti.stub(:consume!, raising) do
+        assert_not OidcClientAssertionJwt.valid?(
+          client_id: "core-next-rp",
+          assertion: assertion,
+          token_url: token_url,
+        )
+      end
+    end
+  end
+
+  test "valid? records the consumed jti in PostgreSQL rather than in Rails.cache" do
     token_url = "https://log.umaxica.app/oauth/token"
 
     with_oidc_client_key("CORE_APP") do
       assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
 
-      assert_not OidcClientAssertionJwt.valid?(
-        client_id: "core-next-rp",
-        assertion: assertion,
-        token_url: token_url,
-        replay_store: RaisingReplayStore.new,
-      )
+      assert_difference -> { SecurityConsumedJti.count }, 1 do
+        assert OidcClientAssertionJwt.valid?(
+          client_id: "core-next-rp",
+          assertion: assertion,
+          token_url: token_url,
+        )
+      end
+
+      record = SecurityConsumedJti.order(:created_at).last
+
+      assert_equal "oidc_client_assertion", record.purpose
+      assert_equal "core-next-rp", record.issuer
     end
   end
 

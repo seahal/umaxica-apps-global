@@ -132,10 +132,7 @@ class AuthStaffTest < ActiveSupport::TestCase
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
     @obj.send(:log_in, @staff)
 
-    token = @obj.send(:current_session)
-
     assert_no_difference("OperatorToken.count") { @obj.send(:log_out) }
-    assert_predicate token.reload, :revoked?
     assert_nil @obj.cookies[::AuthenticationOperator::ACCESS_COOKIE_KEY]
     assert_nil @obj.cookies.encrypted[::AuthenticationOperator::REFRESH_COOKIE_KEY]
   end

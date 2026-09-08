@@ -42,7 +42,8 @@ cross-cutting concerns.
 ```
 Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
     ├─ PostgreSQL (identity, guest, universal, token, etc.)
-    ├─ Valkey (sessions, rate limit, Memorize)
+    ├─ Valkey cache (Rails.cache, TTL-bound)
+    ├─ Valkey rate limit (distributed counters)
     ├─ ActionMailer + SMTP
     ├─ Outbound::Sms
     └─ OpenTelemetry exporter → Tempo / Logs → Loki / Dashboards → Grafana
@@ -75,18 +76,17 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ### 3.2 Shared Controller Concerns
 
-| Concern               | Key responsibilities                                                                                                                                  |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Auth::Base`          | JWT (ES384) issuance/verification (`kid` header + keyring), login/logout helpers, refresh/device cookie handling                                      |
-| `RateLimit`           | Configures a dedicated `ActiveSupport::Cache::RedisCacheStore` (`RATE_LIMIT_REDIS_URL`, separate from `Rails.cache`) to enforce per-request throttles |
-| `DefaultUrlOptions`   | Reads signed preference cookie to append `lx`, `ri`, `tz` query params                                                                                |
-| `PreferenceRegions`   | Normalizes locale/timezone inputs, persists to session/cookies, handles errors                                                                        |
-| `Theme`               | Provides theme editing/updating with shorthand codes and preference cookie syncing                                                                    |
-| `Cookie`              | Stores ePrivacy consent flags in signed cookies                                                                                                       |
-| `CloudflareTurnstile` | Validates Turnstile tokens via HTTP POST                                                                                                              |
-| `Redirect`            | Validates allowed redirect hosts and Base64 tokens                                                                                                    |
-| `Memorize`            | Thin Valkey wrapper (encrypted) for per-session ephemeral storage                                                                                     |
-| `Health`              | `Health` service layer + `HealthCheckRendering` render text probes and `/api/v0/health.json`                                                          |
+| Concern               | Key responsibilities                                                                                             |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `Auth::Base`          | JWT (ES384) issuance/verification (`kid` header + keyring), login/logout helpers, refresh/device cookie handling |
+| `RateLimit`           | Exposes `config.x.rate_limit.store` (a Valkey-backed `ActiveSupport::Cache::RedisCacheStore`) to the `rate_limit` DSL |
+| `DefaultUrlOptions`   | Reads signed preference cookie to append `lx`, `ri`, `tz` query params                                           |
+| `PreferenceRegions`   | Normalizes locale/timezone inputs, persists to session/cookies, handles errors                                   |
+| `Theme`               | Provides theme editing/updating with shorthand codes and preference cookie syncing                               |
+| `Cookie`              | Stores ePrivacy consent flags in signed cookies                                                                  |
+| `CloudflareTurnstile` | Validates Turnstile tokens via HTTP POST                                                                         |
+| `Redirect`            | Validates allowed redirect hosts and Base64 tokens                                                               |
+| `Health`              | `Health` service layer + `HealthCheckRendering` render text probes and `/api/v0/health.json`                     |
 
 ### 3.3 Top Namespace
 
@@ -180,8 +180,6 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 - `Outbound::Sms` handles SMS dispatch for OTP-related flows.
 - Other service placeholders (`AccountService`, `CoreService`, `EntityService`) mark future
   boundaries (business/customer mgmt, tokens).
-- `RedisMemorize` (inside `Memorize`) encrypts values using `ActiveSupport::MessageEncryptor`
-  (derived from `secret_key_base`).
 
 ### 3.11 Background Work
 
@@ -267,24 +265,33 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 - Auth cookies: access + refresh + device cookies (same security options; environment-dependent
   names).
 - HOTP private key: `cookies.encrypted[:htop_private_key]`.
-- Session: stores preference drafts, OTP metadata, WebAuthn challenges; `Memorize` offers encrypted
-  Valkey storage keyed by host/session.
+- Session: stores preference drafts, OTP metadata, WebAuthn challenges. The session is a Rails
+  cookie store; no session state lives in Valkey.
 
 ### 5.3 Valkey Usage
 
-Valkey has exactly two application-facing responsibilities, each with its own URL, its own
-environment-qualified namespace, and its own Compose service in development. Neither is
-authoritative: Valkey loss must not invalidate authoritative application state.
+Valkey backs two responsibilities, on two physically separate services, under two independent
+configuration contracts. Neither is authoritative.
 
-1. **Application cache** (`CACHE_REDIS_URL`, namespace `cache:<env>:...`) - disposable,
-   reconstructible, bounded entries only. Every entry carries an explicit TTL. This backs
-   `Rails.cache`, whose live consumers are external JWKS documents and their negative cache.
-2. **Rate-limit counters** (`RATE_LIMIT_REDIS_URL`, namespace `rate_limit:<env>:...`) - distributed
-   counters whose TTL follows the rate-limit window. Never served from `Rails.cache`.
+| Contract               | Store                       | Purpose                           |
+| ---------------------- | --------------------------- | --------------------------------- |
+| `CACHE_REDIS_URL`      | `Rails.cache`               | reconstructible application cache |
+| `RATE_LIMIT_REDIS_URL` | `config.x.rate_limit.store` | distributed rate-limit counters   |
 
-Solid Cache is not part of the runtime architecture; Solid Queue remains PostgreSQL-backed.
-Development isolates the two stores with separate Compose services. Staging and production both
-use logical DB 0. Staging shares `CACHE_REDIS_URL`. Production requires both URLs on `/0`.
+| Property                  | Value                            |
+| ------------------------- | -------------------------------- |
+| Authority                 | none                             |
+| Durable application state | none                             |
+| Loss of the cache         | cache miss, refetch from source  |
+| Loss of the counters      | current rate-limit windows reset |
+
+Every application cache entry carries an explicit TTL; rate-limit entries expire with their window.
+The two stores are separated by service rather than by Redis logical database index, so either can
+be flushed or restarted without touching the other.
+
+Sessions are cookie-backed, Active Job is Solid Queue (PostgreSQL), Flipper flags are
+PostgreSQL-backed, consumed JTIs and risk events are PostgreSQL-backed. Solid Cache is not part of
+the runtime architecture. Adding a third Valkey use case requires an ADR.
 
 ---
 
@@ -305,9 +312,9 @@ use logical DB 0. Staging shares `CACHE_REDIS_URL`. Production requires both URL
 
 - `.env` / credentials must define hostnames (`TOP_*`, `AUTH_*`, `DOCS_*`, `NEWS_*`, `HELP_*`,
   `BFF_*`, `API_*`, `EDGE_*`, `PEAK_*`), DB hosts (`POSTGRESQL_*`, including the
-  `POSTGRESQL_ACTIVITY_PUB/SUB` pair and `POSTGRESQL_BEHAVIOR_PUB`), Redis URLs
-  (`REDIS_RACK_ATTACK_URL`, `REDIS_SESSION_URL`), Cloudflare Turnstile keys, JWT keys, AWS
-  credentials, OTLP endpoint.
+  `POSTGRESQL_ACTIVITY_PUB/SUB` pair and `POSTGRESQL_BEHAVIOR_PUB`), the Valkey store URLs
+  (`CACHE_REDIS_URL`, `RATE_LIMIT_REDIS_URL`), Cloudflare Turnstile keys, JWT keys, AWS credentials,
+  OTLP endpoint.
 - `compose.yaml` launches the normal infrastructure; the `object-storage` profile adds RustFS with
   four persistent volumes. Other volumes store data per service.
 - `bin/dev` ensures the Rails server, Vite dev server, and background jobs run concurrently via
@@ -328,7 +335,7 @@ use logical DB 0. Staging shares `CACHE_REDIS_URL`. Production requires both URL
 - **Authorization**: Action Policy is included; settings controllers call `authorize!`.
 - **Bot mitigation**: Cloudflare Turnstile required for registration/contact forms; server logs
   failures.
-- **Rate limiting**: Configured via `RateLimit` concern (Valkey backend).
+- **Rate limiting**: Rails' `rate_limit` DSL against the Valkey-backed `config.x.rate_limit.store`.
 - **Data encryption**: Active Record encryption for PII (emails, phones, private keys, titles,
   descriptions). `ServiceSiteContact` ensures deterministic encryption for lookups where needed.
 - **Passkeys & OTP**: WebAuthn for passkeys, ROTP for HOTP/TOTP, RQRCode for QR codes,
@@ -351,7 +358,8 @@ use logical DB 0. Staging shares `CACHE_REDIS_URL`. Production requires both URL
 - Turnstile failures are logged at warn/error level with context.
 - `ServiceSiteContact` `before_create` raises if required content missing to prevent blank
   submissions.
-- OTEL instrumentation emits spans for HTTP requests, Redis calls, and ActionMailer deliveries (once
+- OTEL instrumentation emits spans for HTTP requests, rate-limit store calls, and ActionMailer
+  deliveries (once
   instrumentation enabled).
 - Logs stream to STDOUT → Loki (when Compose stack used) or platform logging (Cloud Run).
 

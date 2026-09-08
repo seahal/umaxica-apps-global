@@ -3,35 +3,66 @@
 
 require "test_helper"
 
-# Solid Cache is no longer part of the runtime architecture: application cache
-# is Valkey-backed via CACHE_REDIS_URL, and PostgreSQL keeps only authoritative,
-# durable and security-sensitive state. Solid Queue is deliberately unaffected
-# and remains PostgreSQL-backed.
+# Solid Queue stays; Solid Cache is gone. Both are Rails "Solid" components, so
+# the two decisions are easy to conflate -- these assertions keep them apart.
+#
+# Solid Cache was removed because a database-backed cache is indistinguishable at
+# the call site from durable storage, which is what let replay-prevention state
+# and one-shot secrets accumulate in `Rails.cache`. The cache now lives in Valkey,
+# where eviction is visible and expected. Solid Queue is not a cache: job state is
+# durable workflow state and stays in PostgreSQL.
 class SolidInfrastructureTest < ActiveSupport::TestCase
-  test "test environment persists no application cache" do
-    assert_instance_of ActiveSupport::Cache::NullStore, Rails.cache
-  end
-
-  test "solid cache is not loaded" do
-    assert_not defined?(SolidCache), "Solid Cache must not be part of the runtime architecture"
+  test "solid cache is not loadable" do
+    assert_not defined?(SolidCache),
+               "SolidCache is loaded; the gem and its configuration were meant to be removed"
   end
 
   test "no database connection is configured for a solid cache store" do
-    configured = ActiveRecord::Base.configurations.configs_for(env_name: Rails.env).map(&:name)
+    offenders =
+      # include_hidden: replicas are hidden by default, and `cache_replica` is
+      # exactly the connection this asserts is gone.
+      ActiveRecord::Base.configurations
+        .configs_for(env_name: "test", include_hidden: true)
+        .filter_map { |config| config.name if config.name.match?(/\Acache(_replica)?\z/) }
 
-    assert_not_includes configured, "cache"
-    assert_not_includes configured, "cache_replica"
+    assert_empty offenders, "cache-only database connections must not exist: #{offenders.join(", ")}"
   end
 
-  test "solid queue remains configured and postgresql-backed" do
-    configured = ActiveRecord::Base.configurations.configs_for(env_name: Rails.env).map(&:name)
+  test "solid cache configuration and migrations are deleted" do
+    %w(config/cache.yml db/caches_migrate db/cache_structure.sql).each do |path|
+      assert_not Rails.root.join(path).exist?, "#{path} is a Solid Cache leftover and must not exist"
+    end
+  end
 
-    assert_includes configured, "queue"
+  test "test environment persists neither cache nor rate limit state" do
+    assert_instance_of ActiveSupport::Cache::NullStore, Rails.cache
+
+    store = Rails.configuration.x.rate_limit.fetch(:store)
+
+    assert_instance_of TestSupport::SwappableCacheStore, store
+    assert_instance_of ActiveSupport::Cache::NullStore, store.backend
   end
 
   test "null cache reads are safe inside reading role" do
     ActiveRecord::Base.connected_to(role: :reading, prevent_writes: true) do
       assert_nil Rails.cache.read("reading_role_test_key")
     end
+  end
+
+  # Solid Queue writes to its own `queue` database and has no reading replica:
+  # the `queue_replica` connection was removed along with the Solid Cache
+  # connections. Job state is durable workflow state, so it stays in PostgreSQL
+  # and is read from the writer.
+  test "solid queue keeps its own PostgreSQL database" do
+    assert_equal(
+      { database: { writing: :queue } },
+      Rails.configuration.solid_queue.connects_to,
+    )
+
+    names = ActiveRecord::Base.configurations.configs_for(env_name: "test", include_hidden: true).map(&:name)
+
+    assert_includes names, "queue"
+    assert_not_includes names, "queue_replica"
+    assert_predicate Rails.root.join("db/queues_migrate"), :directory?
   end
 end

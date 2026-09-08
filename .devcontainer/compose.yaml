@@ -1,0 +1,222 @@
+---
+# Dev Container application layer; shared infrastructure is in ../compose.yaml.
+# Must match `compose.yaml`'s `name:` exactly, separators included -- see the
+# comment there for why the Dev Containers CLI forces the unseparated form.
+name: umaxicaappsglobaldc
+services:
+  core:
+    container_name: global-devcontainer-core
+    build:
+      context: "."
+      dockerfile: "./Containerfile"
+      # `development` is the normal image. Set CORE_BUILD_TARGET=workspace in the
+      # repository-local `.env` to build the nested-rootless-Podman `workspace`
+      # stage instead; that stage additionally needs a `/dev/fuse` device entry,
+      # which is host-shaped and therefore belongs in your own, optional
+      # `compose.override.yaml` (see `compose.override.yaml.example`).
+      # See docs/operations/development-container-targets.md.
+      target: "${CORE_BUILD_TARGET:-development}"
+      args:
+        COMMIT_HASH: abcdef
+        # Host-shaped, but parameterized, so they stay project-common. `$UID`/`$GID`
+        # are bash builtins rather than exported variables, so Compose sees real
+        # values only when the gitignored repository-root `.env` carries `UID=`
+        # and `GID=` lines. Write them by hand once per machine; see
+        # docs/operations/development-credential-provisioning.md.
+        DOCKER_UID: "${UID:-1000}"
+        DOCKER_GID: "${GID:-1000}"
+    # `keep-id` maps the host user directly to the workload UID/GID baked into the
+    # image (DOCKER_UID/DOCKER_GID above), so bind-mounted repo files keep host
+    # ownership. No `user:` key: rootless Podman's keep-id handling silently
+    # overrides an explicit `user:` anyway, and core-entrypoint runs the workload
+    # directly (no chown, no setpriv drop) when it is already started as the
+    # keep-id-mapped workload UID.
+    userns_mode: keep-id
+    security_opt:
+      - label=level:s0:c101,c202
+    tty: true
+    stdin_open: true
+    # core-entrypoint `exec`s the command, so without this PID 1 is `sleep infinity`, which
+    # never calls wait(). Every process orphaned inside the container -- editor servers, agent
+    # processes, `git`, test runs killed mid-flight -- then stays a zombie for the life of the
+    # container, and this one is deliberately long-lived. Measured on 2026-08-30: 80 zombies
+    # after 22 hours of uptime, accumulating at ~3.7/hour against a 2048 pids limit. `init: true`
+    # puts a reaping init (catatonit under Podman) at PID 1 and leaves the entrypoint its child.
+    init: true
+    entrypoint:
+      - "/usr/local/bin/core-entrypoint"
+    # The container stays up idle; start the Rails/Vite/jobs stack manually
+    # with `bin/dev` inside the container when it is wanted.
+    command:
+      - sleep
+      - infinity
+    # Rails loads the ignored repository .env via config/boot.rb. Compose only
+    # supplies the process environment; it does not own application configuration.
+    env_file:
+      - .env.devcontainer.example
+    # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
+    # exits immediately on a bad configuration is recreated several times a second until
+    # the netns, veth, conmon, and journald churn saturates a CPU; the attempt count is
+    # the only bound Compose can express. `core` ran unbounded `always` until the budget
+    # was made uniform. The trade-off: `on-failure` containers are not restored after a
+    # host reboot or logout, because podman-restart.service starts only containers whose
+    # policy is `always` or `unless-stopped`. Reopening the Dev Container brings the stack
+    # back, so what is lost is a convenience rather than a data path.
+    restart: on-failure:5
+    # journald enforces no per-container size cap, and a restart loop writes the same
+    # startup failure thousands of times, so a capped json-file driver is what actually
+    # bounds the disk cost of a bad configuration. Container output no longer reaches
+    # `journalctl`; read it with `podman logs`, which serves either driver.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Named volumes for high-write paths prevent rootless podman UID-mapping
+    # from rewriting host file ownership on the bind-mounted workspace:
+    #   - umaxica-home-cache  → Bun / Vite / YJIT scratch
+    #   - umaxica-home-share  → Bun install cache
+    #   - umaxica-node-modules → workspace node_modules (off the repo tree)
+    #   - umaxica-bundle       → vendor/bundle (off the repo tree)
+    # Discard any of these with `podman volume rm <name>` to recover from
+    # a corrupted cache without affecting credentials or workspace state.
+    volumes:
+      # Relative paths in Compose files resolve against the project directory (the
+      # directory holding the first `-f` file), so `.` is the repository root.
+      # `:Z` adds an SELinux private label on Fedora/RHEL hosts and is harmless on
+      # non-SELinux hosts (Arch, Ubuntu).
+      - type: bind
+        source: "."
+        target: "/home/global/workspace"
+        bind:
+          selinux: Z
+      # The Dev Container string-form `readonly` mounts are writable with the
+      # current rootless Podman provider. Keep host configuration and guarded
+      # workspace paths in Compose long syntax so the effective mount flags stay
+      # inspectable. The host SSH directory is intentionally absent: nothing in
+      # this container needs host private keys.
+      - type: bind
+        source: "./.github"
+        target: "/home/global/workspace/.github"
+        read_only: true
+        bind:
+          selinux: Z
+      - type: bind
+        source: "./bin"
+        target: "/home/global/workspace/bin"
+        read_only: true
+        bind:
+          selinux: Z
+      - type: bind
+        source: "./.devcontainer"
+        target: "/home/global/workspace/.devcontainer"
+        read_only: true
+        bind:
+          selinux: Z
+      - type: volume
+        source: umaxica-home-cache
+        target: "/home/global/.cache"
+      # Bun cache is isolated from the workspace and from the shared editor feature data.
+      - type: volume
+        source: umaxica-home-share
+        target: "/home/global/.bun"
+      - type: volume
+        source: umaxica-node-modules
+        target: "/home/global/workspace/node_modules"
+      - type: volume
+        source: umaxica-bundle
+        target: "/home/global/workspace/vendor/bundle"
+      # Storage for the nested rootless Podman of the workspace build target.
+      - type: volume
+        source: workspace-podman-storage
+        target: "/home/global/.local/share/containers"
+    # Loopback-only host publication. `BINDING: 0.0.0.0` above is the
+    # *container-side* listener and must stay: cloudflare-tunnel and the probe
+    # containers reach Rails over the `frontend` network, not through the host.
+    # The two are separate decisions
+    # (docs/operations/development-host-port-exposure.md).
+    ports:
+      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3036:3036"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      backend: {}
+      frontend:
+        aliases:
+          - core-workers-vpc.internal
+          - base.app.localhost
+          - base.com.localhost
+          - base.org.localhost
+          - base.net.localhost
+          - base.dev.localhost
+          - auth.app.localhost
+          - auth.com.localhost
+          - auth.org.localhost
+          - core.app.localhost
+          - core.com.localhost
+          - core.org.localhost
+          - docs.app.localhost
+          - docs.com.localhost
+          - docs.org.localhost
+          - help.app.localhost
+          - help.com.localhost
+          - help.org.localhost
+          - news.app.localhost
+          - news.com.localhost
+          - news.org.localhost
+          - palm.app.localhost
+          - side.app.localhost
+          - side.com.localhost
+          - side.org.localhost
+          - edge.app.localhost
+          - edge.com.localhost
+          - edge.org.localhost
+          - info.app.localhost
+          - info.com.localhost
+          - info.org.localhost
+          # Browser-facing site names (PUBLIC_*_URL). Development is published through
+          # Cloudflare Tunnel behind Cloudflare Access, and a Tunnel ingress rule resolves
+          # its `service:` address on this network, so the published names have to resolve
+          # to `core` here. Only Umaxica-owned names belong in this list.
+          # See docs/architecture/cloudflare-request-paths.md.
+          - auth.umaxica.app
+          - auth.umaxica.com
+          - auth.umaxica.org
+          - www.umaxica.app
+          - www.umaxica.com
+          - www.umaxica.org
+          - www.umaxica.dev
+          - side-jp.umaxica.app
+          - side-jp.umaxica.com
+          - side-jp.umaxica.org
+          - info.umaxica.app
+          - info.umaxica.com
+          - info.umaxica.org
+          # Canonical Core family per adr/core-canonical-public-host.md. The legacy
+          # core-jp.*, docs-jp.*, help-jp.*, and news-jp.* aliases are gone: PUBLIC_CORE_*
+          # now names jp.umaxica.*, and PUBLIC_DOCS_* names a private *.localhost origin, so
+          # those hostnames are no longer configured anywhere and Rails would reject them.
+          - jp.umaxica.app
+          - jp.umaxica.com
+          - jp.umaxica.org
+          - palm-jp.umaxica.app
+      observability: {}
+      outer:
+        aliases:
+          - global
+    depends_on:
+      primary:
+        condition: service_healthy
+      replica:
+        condition: service_started
+      valkey-cache:
+        condition: service_healthy
+      valkey-rate-limit:
+        condition: service_healthy
+volumes:
+  umaxica-home-cache: {}
+  umaxica-home-share: {}
+  umaxica-node-modules: {}
+  umaxica-bundle: {}
+  workspace-podman-storage: {}

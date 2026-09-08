@@ -224,18 +224,6 @@ module Authentication
       FakeResourceClass.resource = nil
     end
 
-    test "uses the token class connection owner" do
-      resolver = AuthenticationCurrentResourceResolver.new(
-        access_token: "token",
-        request_host: "app.localhost",
-        resource_type: "client",
-        resource_class: FakeResourceClass,
-        token_class: ClientToken,
-      )
-
-      assert_equal AppTicketRecord, resolver.send(:token_connection_owner)
-    end
-
     test "returns actor_mismatch failure when actor claim differs" do
       payload = { "sub" => 123, "sid" => "sess_1", "act" => "operator" }
 

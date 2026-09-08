@@ -6,12 +6,12 @@ class ObjectStorageBucketIsolationTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   test "development compose buckets are distinct per boundary" do
-    compose = Rails.root.join("compose.yaml").read
+    contract = Rails.root.join(".env.devcontainer.example").read
 
-    assert_match(/OBJECT_STORAGE_BUCKET_AVATAR: umaxica-avatar-development/, compose)
-    assert_match(/OBJECT_STORAGE_BUCKET_PUBLISHING: umaxica-publishing-development/, compose)
-    assert_match(%r{OBJECT_STORAGE_ENDPOINT: "http://fakecloud:4566"}, compose)
-    assert_no_match(/OBJECT_STORAGE_BUCKET: umaxica-local/, compose)
+    assert_match(/OBJECT_STORAGE_BUCKET_AVATAR=umaxica-avatar-development/, contract)
+    assert_match(/OBJECT_STORAGE_BUCKET_PUBLISHING=umaxica-publishing-development/, contract)
+    assert_match(%r{OBJECT_STORAGE_ENDPOINT=http://fakecloud:4566}, contract)
+    assert_no_match(/OBJECT_STORAGE_BUCKET=umaxica-local/, contract)
   end
 
   test "staging-development terraform buckets never share development names" do

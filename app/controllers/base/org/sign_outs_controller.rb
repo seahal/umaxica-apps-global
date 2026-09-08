@@ -55,7 +55,8 @@ module Base
         @sign_out_notice = consume_sign_out_notice
         render inertia: "base/org/sign_outs/complete",
                props: sign_out_complete_page_props,
-               status: :ok
+               status: :ok,
+               clear_history: true
       end
 
       def sign_out_edit_page_props

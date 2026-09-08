@@ -1,3 +1,4 @@
+import ButtonLink from "@/components/ui/ButtonLink";
 import Page from "@/components/ui/Page";
 import TextLink from "@/components/ui/TextLink";
 
@@ -14,20 +15,44 @@ export type ManagementIndexEntry = {
   edit_href: string;
 };
 
+export type ManagementIndexPage = {
+  number: number;
+  per_page: number;
+  total: number;
+  previous_href: string | null;
+  next_href: string | null;
+};
+
 export type ManagementIndexProps = {
   title: string;
   description: string;
   surface: string;
   audience: string;
+  new_href: string;
   entries: ManagementIndexEntry[];
+  page: ManagementIndexPage;
 };
 
-export default function ManagementIndex({ title, description, entries }: ManagementIndexProps) {
+export default function ManagementIndex({
+  title,
+  description,
+  new_href,
+  entries,
+  page,
+}: ManagementIndexProps) {
   return (
     <Page
       title={title}
       description={description}
       width="wide"
+      actions={
+        <ButtonLink
+          href={new_href}
+          inertia
+        >
+          New entry
+        </ButtonLink>
+      }
     >
       {entries.length === 0 ? (
         <p className="text-sm text-fg-muted">No entries in this cell.</p>
@@ -70,6 +95,30 @@ export default function ManagementIndex({ title, description, entries }: Managem
           </tbody>
         </table>
       )}
+      <nav
+        aria-label="Pagination"
+        className="flex items-center gap-3 text-sm"
+      >
+        <span className="text-fg-muted">
+          {page.total} entries · page {page.number}
+        </span>
+        {page.previous_href ? (
+          <TextLink
+            href={page.previous_href}
+            inertia
+          >
+            Previous
+          </TextLink>
+        ) : null}
+        {page.next_href ? (
+          <TextLink
+            href={page.next_href}
+            inertia
+          >
+            Next
+          </TextLink>
+        ) : null}
+      </nav>
     </Page>
   );
 }

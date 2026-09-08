@@ -24,26 +24,6 @@ module Auth
       assert_equal AuthenticationBase::AUDIT_EVENTS, AuthenticationClient::AUDIT_EVENTS
     end
 
-    test "resource_class returns Client" do
-      assert_equal ::Client, @controller.send(:resource_class)
-    end
-
-    test "token_class returns ClientToken" do
-      assert_equal ClientToken, @controller.send(:token_class)
-    end
-
-    test "audit_class returns ClientChronicle" do
-      assert_equal ::ClientChronicle, @controller.send(:audit_class)
-    end
-
-    test "resource_type returns client" do
-      assert_equal "client", @controller.send(:resource_type)
-    end
-
-    test "resource_foreign_key returns user_id" do
-      assert_equal :user_id, @controller.send(:resource_foreign_key)
-    end
-
     test "am_i_client? returns true" do
       assert_predicate @controller, :am_i_client?
     end

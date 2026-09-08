@@ -10,7 +10,8 @@ former RustFS service (S3) and the former standalone Kafka broker (MSK), so ther
 endpoint rather than one emulator per service.
 
 It is **not** behind a Compose profile. A plain `podman compose up` starts it alongside `core`,
-`primary`, `replica`, `valkey-cache`, and `valkey-rate-limit`, because S3 and MSK are meant to be standing development
+`primary`, `replica`, `valkey-cache`, and `valkey-rate-limit`, because S3 and MSK are meant to be
+standing development
 infrastructure rather than a special mode.
 
 ## What Is Available
@@ -108,10 +109,10 @@ once:
 ```bash
 rm -f .secrets/rustfs-access-key .secrets/rustfs-secret-key .secrets/rustfs-rpc-secret
 podman secret rm dev_rustfs_access_key dev_rustfs_secret_key dev_rustfs_rpc_secret
-podman volume rm umaxica-apps-global-dc_rustfs-data0 \
-                 umaxica-apps-global-dc_rustfs-data1 \
-                 umaxica-apps-global-dc_rustfs-data2 \
-                 umaxica-apps-global-dc_rustfs-data3
+podman volume rm umaxicaappsglobaldc_rustfs-data0 \
+                 umaxicaappsglobaldc_rustfs-data1 \
+                 umaxicaappsglobaldc_rustfs-data2 \
+                 umaxicaappsglobaldc_rustfs-data3
 ```
 
 ## Persistence

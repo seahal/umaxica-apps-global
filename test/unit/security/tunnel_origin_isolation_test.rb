@@ -15,17 +15,18 @@ module Security
   # network isolation: `core` must never be reachable from off the host except
   # through the tunnel. See docs/architecture/cloudflare-request-paths.md.
   #
-  # The developer's own browser needs `core`, so `compose.yaml` does publish it -
-  # but every entry must carry an explicit loopback bind address. A bare
-  # `3000:3000` makes Podman bind 0.0.0.0, which puts Rails on the LAN, Wi-Fi, and
-  # Tailscale interfaces and hands any neighbour an unimpeded
-  # X-Forwarded-For/CF-Connecting-IP forgery path.
+  # The developer's own browser needs `core`, so `.devcontainer/compose.yaml` publishes it -
+  # but every entry must carry an explicit loopback bind address. A bare `3000:3000` makes
+  # Podman bind 0.0.0.0, putting Rails on the LAN, Wi-Fi, and Tailscale interfaces.
   class TunnelOriginIsolationTest < ActiveSupport::TestCase
     LOOPBACK_PUBLICATION = /\A(?:127\.0\.0\.1|\[::1\]):\d+:\d+(?:\/\w+)?\z/
 
     test "the compose definition publishes core only on loopback" do
-      compose = YAML.unsafe_load_file(Rails.root.join("compose.yaml"))
+      compose = YAML.unsafe_load_file(Rails.root.join(".devcontainer/compose.yaml"))
       core_service = compose.fetch("services").fetch("core")
+
+      assert_predicate Array(core_service["ports"]), :any?,
+                       "core publishes nothing, so this guard is vacuous"
 
       Array(core_service["ports"]).each do |publication|
         assert_match LOOPBACK_PUBLICATION, publication,

@@ -1,0 +1,54 @@
+# Authoritative frontend ownership. A Rails application layout is Importmap/Propshaft;
+# an Inertia layout or a documented Vite-only content page is Vite Rails.
+version: 1
+stacks:
+  importmap:
+    - auth/app/application
+    - auth/com/application
+    - auth/org/application
+    - base/app/application
+    - base/com/application
+    - base/org/application
+    - core/app/application
+    - core/com/application
+    - core/org/application
+    - jump/app/application
+    - jump/com/application
+    - jump/org/application
+    - palm/app/application
+    - side/app/application
+    - side/com/application
+    - side/org/application
+  vite:
+    - auth/app/inertia
+    - auth/com/inertia
+    - auth/org/inertia
+    - base/app/inertia
+    - base/com/inertia
+    - base/org/inertia
+    - core/app/inertia
+    - core/com/inertia
+    - core/dev/inertia
+    - core/org/inertia
+    - palm/app/inertia
+    - side/app/inertia
+    - side/com/inertia
+    - side/org/inertia
+    # Public content keeps its Vite-owned surface styles and has no Importmap entry.
+    - docs/app/root
+    - docs/com/root
+    - docs/org/root
+    - help/app/root
+    - help/com/root
+    - help/org/root
+    - info/app/root
+    - info/com/root
+    - info/org/root
+    - news/app/root
+    - news/com/root
+    - news/org/root
+  excluded:
+    - email/application
+rules:
+  importmap: [erb, turbo, stimulus, propshaft]
+  vite: [vite, typescript, react, inertia]

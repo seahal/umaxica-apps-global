@@ -54,7 +54,13 @@ module Publishing
 
     test "a term's parent must share its vocabulary and locale" do
       ja_root = publishing_term(vocabulary: @category, locale: "ja", slug: "root-ja")
-      other_vocabulary = publishing_category_vocabulary(audience: "com", surface: "docs")
+      # `fk_docs_app_term_parent_scope` points at this family's own term table, so the
+      # cross-vocabulary parent has to be another docs/app vocabulary. A term borrowed from
+      # docs/com addresses a different physical table whose ids run on their own sequence, and
+      # the same id in docs/app is usually a legitimate parent, so the constraint never fired.
+      other_vocabulary = publishing_vocabulary(
+        audience: "app", surface: "docs", key: "topic", kind: @category.kind,
+      )
       other_root = publishing_term(vocabulary: other_vocabulary, locale: "ja", slug: "root-other")
 
       assert_raises(ActiveRecord::InvalidForeignKey, ActiveRecord::StatementInvalid) do

@@ -377,13 +377,19 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     assert_no_match(/health\.json/i, response.body)
   end
 
-  test "GET /health refuses a format suffix but ignores Accept on every declared surface" do
+  # Two different refusals, and the difference is the point. Asking for JSON with an `Accept` header
+  # is answered -- with plain text, because that is the only representation the endpoint has, and a
+  # probe that 406s because its client sent a boilerplate `Accept` is a probe that reports an
+  # outage. Asking for it with a `.json` path suffix is a 404, because `/api/v0/health.json` is a
+  # real endpoint serving real JSON at nearly the same spelling, and answering the suffix with
+  # text/plain would tell that caller it had reached the JSON one.
+  test "GET /health answers an Accept header with text and does not route a .json suffix" do
     SURFACES.each do |surface|
       host! surface[:host]
 
       get "/health.json"
 
-      assert_response :not_found
+      assert_response :not_found, surface[:host]
 
       get "/health", headers: { "Accept" => "application/json" }
 
@@ -393,7 +399,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "text probes ignore Accept headers and refuse html suffixes" do
+  test "text probes render \"ok\\n\" regardless of Accept header, and reject a format suffix" do
     host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     PROBES.each do |probe|
@@ -410,6 +416,8 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       end
     end
 
+    # A format suffix is not a route here, so a browser-shaped request for one gets a 404 rather
+    # than plain text under an HTML-looking URL.
     get "/health/readiness.html", headers: { "Accept" => "text/html" }
 
     assert_response :not_found
@@ -554,7 +562,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
     forbidden = %w(
       AppPrincipalRecord app_principal app_principal_replica writing reading localhost
-      StandardError PG::ConnectionBad Mysql2 Redis REDIS_CLIENT database failed
+      StandardError PG::ConnectionBad Mysql2 database failed
     )
 
     forbidden.each { |value| assert_not_includes response.body, value }

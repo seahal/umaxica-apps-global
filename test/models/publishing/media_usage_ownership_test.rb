@@ -53,6 +53,30 @@ module Publishing
       assert_nothing_raised { usage.destroy! }
     end
 
+    # A usage records where in the document the media appears. With neither a field_path nor a
+    # block_path it names no location, so a renderer has nowhere to place it and an editor has
+    # nothing to point at. Refused with a message rather than persisted as an orphan.
+    test "a usage that names no location in the document is refused" do
+      usage = @revision.media_usages.new(
+        media_file: @media_file, role: "body", position: 0, field_path: nil, block_path: nil,
+      )
+
+      assert_not usage.valid?
+      assert_equal ["must have a field_path or block_path"], usage.errors[:base]
+    end
+
+    test "either path alone is enough to locate the usage" do
+      field_only = @revision.media_usages.new(
+        media_file: @media_file, role: "body", position: 0, field_path: "body.blocks.0", block_path: nil,
+      )
+      block_only = @revision.media_usages.new(
+        media_file: @media_file, role: "body", position: 1, field_path: nil, block_path: "blocks.0",
+      )
+
+      assert_predicate field_only, :valid?
+      assert_predicate block_only, :valid?
+    end
+
     test "duplicate revision media positions are rejected" do
       publishing_revision_media_usage(revision: @revision, media_file: @media_file, position: 0)
 

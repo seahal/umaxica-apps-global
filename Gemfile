@@ -113,6 +113,8 @@ gem "solid_queue"
 gem "turbo-rails"
 # Stimulus Rails integration.
 gem "stimulus-rails"
+# Rails-first surfaces use Importmap without changing the Vite Rails stack.
+gem "importmap-rails"
 # Inertia Rails adapter.
 gem "inertia_rails"
 # Vite Rails integration.

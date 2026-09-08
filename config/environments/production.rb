@@ -90,23 +90,50 @@ Rails.application.configure do
   # Require --no-sandbox flag to run destructive console operations
   config.sandbox_by_default = true
 
-  # Application cache is Valkey/Redis-compatible and non-authoritative. Losing,
-  # evicting or flushing it must never change application correctness: every
-  # entry is reconstructible and carries an explicit TTL. Accepts redis:// and
-  # rediss:// (managed providers negotiate TLS from the scheme alone). Provider
-  # topology is a deployment concern, not an application-code decision.
-  cache_namespace = [
-    "cache",
-    Rails.env,
-    ENV["CACHE_NAMESPACE_SUFFIX"].presence,
-  ].compact.join(":")
+  # Rails.cache and the rate-limit store are separate application contracts even
+  # though both speak the Redis protocol. CACHE_REDIS_URL and
+  # RATE_LIMIT_REDIS_URL are resolved independently so a deployment can point
+  # them at separate services, separate managed databases, or the same provider,
+  # without the application knowing which. Both use one-argument ENV.fetch: a
+  # missing URL must stop the boot rather than silently degrade to an in-process
+  # store that makes cache and rate-limit state per-process.
+  #
+  # Nothing authoritative lives in either. Cache entries are reconstructible and
+  # carry an explicit TTL; rate-limit counters expire with their window.
+
+  # `RedisCacheStore` swallows a connection error and returns nil. For the cache
+  # that is correct -- a miss reconstructs from source. For rate limiting it is
+  # not: Rails' `rate_limit` reads `count = store.increment(...)` and acts only
+  # `if count && count > to`, so a nil turns every limit off. A Valkey outage
+  # therefore drops abuse protection fleet-wide and, without this, does it
+  # silently -- indistinguishable from ordinary traffic under the limit.
+  #
+  # Whether rate limiting should instead fail closed is a real question, but it
+  # is an availability decision and not one to make implicitly here. What is not
+  # in question is that the degradation must be visible. The exception message is
+  # omitted on purpose: it can carry the store URL, and these URLs may embed
+  # credentials.
+  valkey_store_error_handler =
+    lambda do |store|
+      lambda do |method:, exception:, returning:|
+        Rails.logger.error(
+          JitLogEvent.format(
+            "valkey.store.unavailable",
+            store: store,
+            op: method.to_s,
+            error_class: exception.class.name,
+            degraded_to: returning.inspect,
+          ),
+        )
+      end
+    end
+
+  cache_namespace = ["cache", Rails.env, ENV["CACHE_NAMESPACE_SUFFIX"].presence].compact.join(":")
   config.cache_store = :redis_cache_store, {
     url: ENV.fetch("CACHE_REDIS_URL"),
     namespace: cache_namespace,
+    error_handler: valkey_store_error_handler.call("cache"),
   }
-
-  # Distributed rate-limit counters remain a separate application contract
-  # (namespace `rate_limit:<env>:...`) and never fall back to Rails.cache.
   rate_limit_namespace = [
     "rate_limit",
     Rails.env,
@@ -116,6 +143,7 @@ Rails.application.configure do
     ActiveSupport::Cache::RedisCacheStore.new(
       url: ENV.fetch("RATE_LIMIT_REDIS_URL"),
       namespace: rate_limit_namespace,
+      error_handler: valkey_store_error_handler.call("rate_limit"),
     )
 
   # Replace the default in-process and non-durable queuing backend for Active Job.

@@ -13,21 +13,22 @@ class ComposeHostPortExposureTest < Minitest::Test
   REPOSITORY_ROOT = File.expand_path("../..", __dir__)
 
   # Every tracked Compose file that participates in a development `up`, plus the opt-in
-  # overlays. `.devcontainer/compose.override.yml` is where the Dev Container's own
-  # publications live, so it belongs here too. The gitignored `compose.override.yaml` is
+  # overlays. `.devcontainer/compose.yaml` defines `core`, whose publications the
+  # Dev Container relies on, so it belongs here too. The gitignored `compose.override.yaml` is
   # deliberately absent: it is optional, per-machine, and not present on a fresh clone.
   COMPOSE_FILES = %w(
     compose.yaml
+    .devcontainer/compose.yaml
     compose.override.yaml.example
     compose.remote-access.yaml
-    .devcontainer/compose.override.yml
+    .devcontainer/compose.yaml
     podman/fdw-poc/compose.fdw-poc.yml
     docker/fdw-poc/compose.fdw-poc.yml
   ).freeze
 
   # Services that must never be reachable from the host, at any bind address. Each is consumed
   # only over a Compose network, by service name.
-  NEVER_PUBLISHED_SERVICES = %w(primary replica valkey-cache valkey-rate-limit).freeze
+  DATASTORE_SERVICES = %w(primary replica valkey-cache valkey-rate-limit).freeze
 
   # An IPv4 or IPv6 loopback host address is the only accepted publication target.
   LOOPBACK_HOST_ADDRESSES = ["127.0.0.1", "::1"].freeze
@@ -41,15 +42,14 @@ class ComposeHostPortExposureTest < Minitest::Test
                  "service to the LAN."
   end
 
-  def test_datastore_services_publish_no_host_port
+  def test_datastore_publications_are_loopback_only
     offenders =
       each_published_port.select do |entry|
-        NEVER_PUBLISHED_SERVICES.include?(entry.fetch(:service))
+        DATASTORE_SERVICES.include?(entry.fetch(:service)) && !loopback?(entry.fetch(:published))
       end
 
     assert_empty offenders.map { |entry| describe(entry) },
-                 "PostgreSQL and Valkey are container-only. Reach them as " \
-                 "primary:5432, replica:5432, valkey-cache:6379, and valkey-rate-limit:6379."
+                 "Host-native Rails may use PostgreSQL and Valkey only through explicit loopback publications."
   end
 
   def test_no_service_uses_host_networking

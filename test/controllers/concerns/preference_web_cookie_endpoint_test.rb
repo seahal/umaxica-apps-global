@@ -86,3 +86,29 @@ class PreferenceWebCookieEndpointTest < ActiveSupport::TestCase
     )
   end
 end
+
+class PreferenceWebCookieEndpointTest
+  test "cookie endpoint rejects malformed payloads and cookie parameters" do
+    h = Harness.new
+
+    assert_not h.invoke(:extract_cookie_consented, nil)
+    assert_not h.invoke(:extract_cookie_consented, {})
+    assert_not h.invoke(:extract_cookie_consented, { "preferences" => [] })
+    h.params_value = { cookie: "not-a-hash" }
+
+    assert_nil h.invoke(:requested_cookie_consent_attrs)
+    assert_nil h.invoke(:find_preference_by_public_id, nil)
+    assert_in_delta PreferenceBase::REFRESH_TOKEN_TTL.from_now, h.invoke(:consented_buffer_expires_at, nil), 2.seconds
+    float_preference = Struct.new(:expires_at).new(1.5)
+
+    assert_in_delta PreferenceBase::REFRESH_TOKEN_TTL.from_now,
+                    h.invoke(:consented_buffer_expires_at, float_preference), 2.seconds
+  end
+
+  test "invalid decoded access token is logged and ignored" do
+    h = Harness.new
+    h.define_singleton_method(:decode_matching_access_token) { |_jwt| "not-a-payload" }
+
+    assert_nil h.invoke(:decode_and_verify_preference_jwt, "jwt")
+  end
+end

@@ -53,6 +53,7 @@ class OrgEnforcementIdentifierEffectTest < ActiveSupport::TestCase
     )
 
     effect_without_case.valid?
+
     assert_empty effect_without_case.errors[:base]
     assert_not protected_effect.valid?
     assert_includes protected_effect.errors[:base], "method_protection Cases may not carry a Principal Effect"

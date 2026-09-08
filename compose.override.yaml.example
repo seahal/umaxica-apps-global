@@ -2,7 +2,7 @@
 # An EXAMPLE of the optional developer-local Compose override.
 #
 #   compose.yaml                      = the complete standard environment
-#   .devcontainer/compose.override.yml = tracked; the Dev Container's own overlay
+#   .devcontainer/compose.yaml = tracked; the Dev Container's own overlay
 #   compose.override.yaml             = optional, gitignored, yours
 #   compose.override.yaml.example     = this file; documentation only
 #
@@ -28,28 +28,15 @@
 # LAST file that sets one, so a different value forks the project: a second set
 # of containers and, worse, a second set of named volumes -- the development
 # PostgreSQL, Valkey, bundle and node_modules would all be orphaned.
-name: umaxica-apps-global-dc
+# Must match `compose.yaml`'s `name:` exactly, separators included -- see the
+# comment there for why the Dev Containers CLI forces the unseparated form.
+name: umaxicaappsglobaldc
 
-services:
-  core:
-    # Host devices. The `workspace` build target (CORE_BUILD_TARGET=workspace in
-    # `.env`) needs /dev/fuse; it is not in `compose.yaml` because not every host
-    # exposes it, and a missing device makes the whole project fail to start.
-    # See docs/operations/development-container-targets.md.
-    # devices:
-    #   - /dev/fuse:/dev/fuse
+services: {}
 
-    # Machine-specific extra publications. `ports` is a list and Compose
-    # concatenates it with the base, so do not restate a port `compose.yaml` or
-    # `.devcontainer/compose.override.yml` already publishes. Always bind to
-    # loopback: `test/tooling/compose_host_port_exposure_test.rb` is the contract.
-    # ports:
-    #   - "127.0.0.1:1234:1234"
-
-    # Personal tooling, extra environment. `environment` is a mapping, so Compose
-    # merges it with the base per key.
-    # environment:
-    #   MY_LOCAL_FLAG: "1"
+# Root Compose intentionally has no Rails service. To customize Dev Container core,
+# create a separate local overlay in the Dev Containers UI or edit the tracked
+# .devcontainer/compose.yaml; do not add core back to this root override.
 
 # The Cloudflare Tunnel connectors are NOT here. They live in `compose.yaml`.
 # The primary connector (`cloudflare-tunnel`) starts with the stack and reads

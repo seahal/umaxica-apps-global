@@ -32,23 +32,51 @@ Rails.application.configure do
     config.action_controller.perform_caching = false
   end
 
-  # Application cache lives in the dedicated cache Valkey (compose service
-  # `valkey-cache`), never in PostgreSQL. Only disposable, reconstructible,
-  # explicitly-expiring entries belong here; authoritative state stays in
-  # PostgreSQL. Development exercises the real production cache architecture.
-  cache_namespace = [
-    "cache",
-    Rails.env,
-    ENV["CACHE_NAMESPACE_SUFFIX"].presence,
-  ].compact.join(":")
+  # Two physically separate Valkey services back two unrelated responsibilities.
+  # Cache and rate-limit state have different lifetimes and different blast
+  # radiuses, and either one has to be independently flushable without touching
+  # the other, so the isolation boundary is the service -- not a logical Redis
+  # database index on a shared one. Development runs the same shape as
+  # production so the split is exercised rather than assumed.
+  #
+  # Neither store is authoritative. Losing the cache costs a refetch; losing the
+  # rate-limit counters resets the current windows. Neither can corrupt
+  # application state, which is what makes Valkey the right substrate for both
+  # and the wrong one for anything in PostgreSQL.
+
+  # `RedisCacheStore` swallows a connection error and returns nil. For the cache
+  # that is correct -- a miss reconstructs from source. For rate limiting it is
+  # not: Rails' `rate_limit` reads `count = store.increment(...)` and acts only
+  # `if count && count > to`, so a nil turns every limit off. A Valkey outage
+  # therefore drops abuse protection fleet-wide and, without this, does it
+  # silently -- indistinguishable from ordinary traffic under the limit.
+  #
+  # Whether rate limiting should instead fail closed is a real question, but it
+  # is an availability decision and not one to make implicitly here. What is not
+  # in question is that the degradation must be visible. The exception message is
+  # omitted on purpose: it can carry the store URL, and these URLs may embed
+  # credentials.
+  valkey_store_error_handler =
+    lambda do |store|
+      lambda do |method:, exception:, returning:|
+        Rails.logger.error(
+          JitLogEvent.format(
+            "valkey.store.unavailable",
+            store: store,
+            op: method.to_s,
+            error_class: exception.class.name,
+            degraded_to: returning.inspect,
+          ),
+        )
+      end
+    end
+
+  cache_namespace = ["cache", Rails.env, ENV["CACHE_NAMESPACE_SUFFIX"].presence].compact.join(":")
   config.cache_store = :redis_cache_store, {
     url: ENV.fetch("CACHE_REDIS_URL"),
     namespace: cache_namespace,
+    error_handler: valkey_store_error_handler.call("cache"),
   }
-
-  # Rate-limit counters live in a physically separate Valkey (compose service
-  # `valkey-rate-limit`). Never fall back to Rails.cache: flushing one store
-  # must not disturb the other.
   rate_limit_namespace = [
     "rate_limit",
     Rails.env,
@@ -58,6 +86,7 @@ Rails.application.configure do
     ActiveSupport::Cache::RedisCacheStore.new(
       url: ENV.fetch("RATE_LIMIT_REDIS_URL"),
       namespace: rate_limit_namespace,
+      error_handler: valkey_store_error_handler.call("rate_limit"),
     )
 
   # Store uploaded files on the local file system (see config/storage.yml for options).

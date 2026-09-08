@@ -21,7 +21,7 @@ host-constrained, so domain and subdomain matter in both development and product
 - Vite Rails + Stimulus + Turbo
 - Tailwind CSS via Vite
 - Propshaft
-- Vite and `pnpm` for JavaScript build, linting, formatting, and tests
+- Vite and Bun for JavaScript build, linting, formatting, and tests
 
 ## Frontend and Assets
 
@@ -52,7 +52,7 @@ bin/rails assets:clobber        # Remove compiled assets
 - Ruby `4.0.x`
 - Bundler
 - Node.js `24.19.0` (Active LTS)
-- `pnpm@12.0.0`
+- Bun `1.4.0`
 
 ### Credentials and secrets
 
@@ -62,26 +62,22 @@ application cannot boot and `bin/rails test` cannot run. Credentials for AWS, Cl
 and other providers — staging, production, or an individual environment — are also requested from
 the development lead and are never committed.
 
-See `docs/operations/development-credential-provisioning.md` for the full procedure.
+See `docs/operations/development-credential-provisioning.md` for the full procedure. For the
+complete portable configuration contract, see `docs/operations/global-portability.md`.
+`.env.example` contains only non-secret local defaults; `.env.devcontainer.example` contains the
+Compose-DNS variant.
 
-### The pnpm toolchain
+### The Bun toolchain
 
-The development image installs pnpm from the npm registry at the `PNPM_VERSION` build argument in
-`Containerfile`, and that is the only pnpm the container provides: `/usr/local/bin/pnpm`. Do not
-install pnpm separately inside the container — a second copy on `PATH` makes which pnpm ran depend
-on shell state.
+The development image provides the pinned Bun runtime declared by `package.json#packageManager`. Do
+not install a second JavaScript package manager inside the container — a second copy on `PATH` makes
+which tool ran depend on shell state.
 
-`package.json#packageManager` declares the version the project expects. This is pnpm's own pin, read
-by pnpm and by the CI setup action; it is not a Corepack setting. `pnpm-workspace.yaml` sets
-`pmOnFail: error`, so a pnpm whose version differs from that declaration fails and names the
-mismatch rather than downloading a second pnpm behind your back. Changing the pinned version means
-changing `package.json#packageManager` and `Containerfile`'s `ARG PNPM_VERSION` together, then
-rebuilding the container.
+`package.json#packageManager` declares the Bun version expected by the project and CI. Keep that pin
+aligned with the Bun toolchain copied into the development and asset images. Corepack is not used,
+and no `corepack enable` step is required.
 
-Corepack is not used, not installed in the image, and no `corepack enable` step is required.
-
-A fresh clone needs no local file. Start the standard stack, install dependencies, and boot
-the app:
+A fresh clone needs no local file. Start the standard stack, install dependencies, and boot the app:
 
 ```bash
 git clone https://github.com/seahal/umaxica-apps-jit-global.git
@@ -92,19 +88,15 @@ docker compose config     # resolves as-is
 
 docker compose up
 bundle install
-pnpm install
+bun install --frozen-lockfile
 bin/setup
 ```
 
-`compose.yaml` is the complete standard environment. `compose.override.yaml` is an
-**optional**, gitignored, per-machine override that nothing creates for you — see
-`compose.override.yaml.example` and
-[Dev Containers CLI startup on rootless Podman](docs/operations/devcontainer-cli-podman-startup.md#the-compose-file-contract).
-The preferred way in is `Dev Containers: Reopen in Container`.
-
-`core` runs `sleep infinity` and is the workspace container; start the Rails processes with
-`bin/dev` inside it. The PostgreSQL services use Compose
-environment variables instead of inline fixed credentials:
+`compose.yaml` owns shared infrastructure for both development modes. In Dev Container mode,
+`.devcontainer/compose.yaml` adds `core`; in host-native mode, Rails runs directly on the VM and
+`podman compose up -d` starts only PostgreSQL, Valkey, FakeCloud, and observability services.
+`compose.override.yaml` is an optional, gitignored, per-machine override; see
+`compose.override.yaml.example` and the Dev Container startup documentation.
 
 ```bash
 POSTGRESQL_USER=root
@@ -129,7 +121,7 @@ PUBLIC_AUTH_STAFF_URL=auth.umaxica.org
 `TRUSTED_ORIGINS` remains available only for additional explicit origins.
 
 `bin/setup` installs Ruby gems, runs `bin/rails db:prepare`, clears logs and temp files, then starts
-`bin/dev`. It does not install JavaScript packages, so run `pnpm install` first.
+`bin/dev`. It does not install JavaScript packages, so run `bun install --frozen-lockfile` first.
 
 If dependencies are already installed, you can start development directly:
 
@@ -152,10 +144,10 @@ needed.
 The development container publishes ports `3000` and `3036` to `127.0.0.1` only, so these URLs work
 from the host and from nowhere else. Substituting the host's LAN or Tailscale address will not
 connect, by design; PostgreSQL and Valkey are not published to the host at all. See
-`docs/operations/development-host-port-exposure.md`.
-
-Local hosts follow the `<service>.<surface>.localhost` order, and every surface is served by the
-single Rails process on port `3000`.
+`docs/operations/development-host-port-exposure.md`. The Dev Container publishes Rails ports `3000`
+and `3036` to `127.0.0.1` only. In host-native mode, PostgreSQL writer/reader and Valkey are also
+published only to loopback (`5432`, `5433`, and `6379`) so host Rails can use them; containers
+continue to use Compose DNS names. See `docs/operations/development-host-port-exposure.md`.
 
 | Surface                    | URL                                                                           |
 | :------------------------- | :---------------------------------------------------------------------------- |
@@ -166,14 +158,10 @@ single Rails process on port `3000`.
 | Side / Palm                | `http://side.{app,com,org}.localhost:3000` / `http://palm.app.localhost:3000` |
 | Info / Help / Docs / News  | `http://{info,help,docs,news}.{app,com,org}.localhost:3000`                   |
 
-Compose injects the `PUBLIC_*_URL` variables (`compose.yaml`), and each route's host constraint
-lists the configured host alongside the `*.localhost` literal. **Development is published through
-Cloudflare Tunnel behind Cloudflare Access**, and cloudflared leaves `Host` unmodified, so Rails
-receives either family: the private `*.localhost` alias on a direct `frontend` network request, or
-the published site name on a request the connector forwards. Development Host Authorization
-therefore accepts the union of both and nothing else — `www.umaxica.com` and `auth.umaxica.app` are
-served, while an Umaxica hostname that no `PUBLIC_*_URL` names is still rejected. Access, not Host
-Authorization, is what keeps the development listener non-public. See
+The application contract supplies PUBLIC and PRIVATE URL values in both supported modes; Compose
+supplies only service topology. Each route host constraint lists the configured host alongside its
+localhost literal. Development is published through Cloudflare Tunnel behind Cloudflare Access;
+Access, not Host Authorization, keeps the development listener non-public. See
 `docs/architecture/cloudflare-request-paths.md` for the trust boundaries and
 `notes/implementation/2026-08-10-development-tunnel-access-verification.md` for the measured
 end-to-end evidence.
@@ -247,11 +235,11 @@ bundle exec rubocop
 bundle exec rubocop -a
 bundle exec erb_lint .
 bundle exec erb_lint -a .
-pnpm check
-pnpm fix
+bun run check
+bun run fix
 ```
 
-Use `rubocop -a`, `erb_lint -a .`, and `pnpm fix` to apply auto-fixes where available.
+Use `rubocop -a`, `erb_lint -a .`, and `bun run fix` to apply auto-fixes where available.
 
 ## Testing
 
@@ -270,9 +258,9 @@ coverage run takes considerably longer than an ordinary parallel run.
 Run JavaScript tests with Vitest:
 
 ```bash
-pnpm test
-pnpm test:watch                            # Watch mode
-pnpm test:coverage
+bun run test
+bun run test:watch                            # Watch mode
+bun run test:coverage
 ```
 
 JavaScript tests are located in `spec/` and use Vitest. Coverage reports are written under
@@ -284,7 +272,7 @@ JavaScript tests are located in `spec/` and use Vitest. Coverage reports are wri
 bundle exec brakeman --no-pager
 bundle exec bundler-audit check --update
 bundle exec database_consistency
-pnpm audit
+bun audit
 bin/debride
 ```
 

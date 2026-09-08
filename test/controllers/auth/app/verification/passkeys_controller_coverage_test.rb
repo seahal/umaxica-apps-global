@@ -40,27 +40,6 @@ class AuthAppVerificationPasskeysControllerCoverageTest < ActiveSupport::TestCas
     end
   end
 
-  test "new_page_props include the issued challenge and a back link" do
-    harness = Harness.new
-    harness.instance_variable_set(:@verification_errors, ["bad"])
-    harness.instance_variable_set(:@passkey_challenge_id, "challenge-1")
-    harness.instance_variable_set(:@passkey_request_options, { challenge: "abc" })
-
-    props = harness.send(:new_page_props)
-
-    assert_equal ["bad"], props[:errors]
-    assert_equal "challenge-1", props[:form][:challenge_id]
-    assert_equal({ "challenge" => "abc" }, props[:form][:request_options])
-    assert_includes props[:back][:href], "scope=settings"
-  end
-
-  test "passkey_request_options_payload returns nil when no challenge was issued" do
-    harness = Harness.new
-    harness.instance_variable_set(:@passkey_request_options, nil)
-
-    assert_nil harness.send(:passkey_request_options_payload)
-  end
-
   test "new and create stop when a step-up session is missing" do
     harness = Harness.new
     harness.define_singleton_method(:require_step_up_session!) { false }

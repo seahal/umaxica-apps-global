@@ -13,6 +13,7 @@ class ComposeInitReapingTest < Minitest::Test
   COMPOSE_FILES = [
     "compose.yaml",
     "compose.override.yaml.example",
+    ".devcontainer/compose.yaml",
     ".devcontainer/compose.override.yml",
   ].freeze
 

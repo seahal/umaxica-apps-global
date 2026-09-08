@@ -3,11 +3,14 @@
 
 module Side
   module App
-    class SettingsController < Side::App::BareController
-      AUTHENTICATION_MODE = :bare
+    class SettingsController < Side::App::ApplicationController
+      include ::SideSettingsPage
+
+      # Reachable from the anonymous Side landing, which links here before the visitor signs in.
+      AUTHENTICATION_MODE = :open
 
       def show
-        render plain: "Settings"
+        render inertia: true, props: settings_page_props
       end
     end
   end
