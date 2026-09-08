@@ -156,7 +156,7 @@ class HostAuthorizationContractTest < Minitest::Test
 
     # Plain Minitest does not provide Rails' assert_not_empty assertion.
     # rubocop:disable Rails/RefuteMethods
-    refute_empty aliases_blocks, "expected to find a frontend aliases block fronting Rails"
+    refute_empty aliases_block, "expected to find a frontend aliases block fronting Rails"
     # rubocop:enable Rails/RefuteMethods
 
     aliased_hosts = aliases_block.scan(/^\s+- (\S+)/).flatten
