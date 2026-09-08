@@ -4,8 +4,8 @@ Health endpoints return the shared runtime health contract from the `Health` ser
 
 As of the 2026-09-05 text+JSON contract there are two families:
 
-- **Text probes** (`text/plain; charset=utf-8`, `Cache-Control: no-store`, no redirect, no auth,
-  no `.txt` suffix, never JSON or HTML). Each surface mounts:
+- **Text probes** (`text/plain; charset=utf-8`, `Cache-Control: no-store`, no redirect, no auth, no
+  `.txt` suffix, never JSON or HTML). Each surface mounts:
   - `GET /health` — aggregate. Body is exactly seven lines in a fixed order:
     ```
     title: Health status
@@ -16,8 +16,8 @@ As of the 2026-09-05 text+JSON contract there are two families:
     readiness: ok
     timestamp: 2026-09-05T12:00:00Z
     ```
-  - `GET /health/startup`, `GET /health/liveness`, `GET /health/readiness` — body `"ok\n"` and
-    HTTP 200 when healthy, HTTP 503 when not.
+  - `GET /health/startup`, `GET /health/liveness`, `GET /health/readiness` — body `"ok\n"` and HTTP
+    200 when healthy, HTTP 503 when not.
 - **Machine JSON** (`application/json`, `Cache-Control: no-store`, never `text/plain` or
   `text/html`, and a non-JSON `Accept` gets `406` rather than a silent fallback). Each surface that
   exposes `/revision` also mounts:
@@ -65,13 +65,13 @@ separate integrated status page (external service). See
 vocabulary onto the wire vocabulary with an exhaustive `case` (`else → raise`, per
 `generic/no-silent-fallback.mdc`):
 
-| `Health::CheckResult#status` | wire | notes |
-| --- | --- | --- |
-| `:ok` | `pass` | |
-| `:degraded_acceptable` | `warn` | serving degraded; HTTP stays 200 |
-| `:starting` + probe tolerates it (liveness) | `warn` | HTTP 200 |
-| `:starting` + probe does not (startup, readiness) | `fail` | HTTP 503 |
-| `:unready` | `fail` | |
+| `Health::CheckResult#status`                      | wire   | notes                            |
+| ------------------------------------------------- | ------ | -------------------------------- |
+| `:ok`                                             | `pass` |                                  |
+| `:degraded_acceptable`                            | `warn` | serving degraded; HTTP stays 200 |
+| `:starting` + probe tolerates it (liveness)       | `warn` | HTTP 200                         |
+| `:starting` + probe does not (startup, readiness) | `fail` | HTTP 503                         |
+| `:unready`                                        | `fail` |                                  |
 
 Aggregate `status` is the worst of the three: any `fail` → `fail`; else any `warn` → `warn`; else
 `pass`. Startup, liveness, and readiness are mapped from three independent `Health::*Check.call`
@@ -101,8 +101,8 @@ renders `"revision": null`. Both timestamps use RFC 3339 UTC with the `Z` design
 
 Every health and revision response carries `Cache-Control: no-store`, set as a `before_action`
 (`HealthCheckRendering#disable_health_response_cache`, and `MachineJsonNegotiation` for the JSON
-endpoints) so it also covers the `406` returned for a non-JSON `Accept` on the machine endpoints.
-A health response is a verdict about one instance at one instant: a stored `200` keeps an
-orchestrator sending traffic to an instance that has since failed readiness, and a stored `503`
-keeps traffic away from one that has recovered. Rails would otherwise default these to
+endpoints) so it also covers the `406` returned for a non-JSON `Accept` on the machine endpoints. A
+health response is a verdict about one instance at one instant: a stored `200` keeps an orchestrator
+sending traffic to an instance that has since failed readiness, and a stored `503` keeps traffic
+away from one that has recovered. Rails would otherwise default these to
 `max-age=0, private, must-revalidate`, which permits storage.

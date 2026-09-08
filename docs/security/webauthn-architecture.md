@@ -6,30 +6,30 @@ invariants are in `docs/security/webauthn-security-invariants.md`; RP boundaries
 
 ## Components
 
-| Layer | Implementation |
-|---|---|
-| Surface enum | `app/values/webauthn/surface.rb`, a closed registry for app/com/org |
-| RP configuration | `app/values/webauthn/relying_party_config.rb` and `app/resolvers/webauthn/relying_party_config_resolver.rb` |
-| UV policy | `app/values/webauthn/uv_policy.rb`, a purpose-specific closed registry currently requiring UV for every purpose |
-| Verifiers | `app/services/webauthn/registration_verifier.rb` and `assertion_verifier.rb` |
-| Ceremony result | `app/values/webauthn/authentication_context.rb`, containing user verification, backup flags, AAGUID, transports, and attachment |
-| Metadata | `app/values/webauthn/authenticator_metadata.rb`, `app/services/webauthn/authenticator_name_resolver.rb`, and `config/webauthn/aaguid_catalog.yml` |
-| Challenge | `app/services/webauthn/challenge_store.rb`, with a ten-minute TTL, purpose/surface/RP/origin/actor binding, and one-time consumption |
-| Cross-boundary ceremony | `*PasskeyCeremonyTransaction` tickets plus grant/result JWTs in `IdentityPasskeyCeremony*` |
-| Shared controller concerns | `PasskeyCeremonyContext`, `PasskeyRegistrationFlow`, `PasskeySignInFlow`, and `SignVerificationPasskeyChecks` |
+| Layer                      | Implementation                                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Surface enum               | `app/values/webauthn/surface.rb`, a closed registry for app/com/org                                                                               |
+| RP configuration           | `app/values/webauthn/relying_party_config.rb` and `app/resolvers/webauthn/relying_party_config_resolver.rb`                                       |
+| UV policy                  | `app/values/webauthn/uv_policy.rb`, a purpose-specific closed registry currently requiring UV for every purpose                                   |
+| Verifiers                  | `app/services/webauthn/registration_verifier.rb` and `assertion_verifier.rb`                                                                      |
+| Ceremony result            | `app/values/webauthn/authentication_context.rb`, containing user verification, backup flags, AAGUID, transports, and attachment                   |
+| Metadata                   | `app/values/webauthn/authenticator_metadata.rb`, `app/services/webauthn/authenticator_name_resolver.rb`, and `config/webauthn/aaguid_catalog.yml` |
+| Challenge                  | `app/services/webauthn/challenge_store.rb`, with a ten-minute TTL, purpose/surface/RP/origin/actor binding, and one-time consumption              |
+| Cross-boundary ceremony    | `*PasskeyCeremonyTransaction` tickets plus grant/result JWTs in `IdentityPasskeyCeremony*`                                                        |
+| Shared controller concerns | `PasskeyCeremonyContext`, `PasskeyRegistrationFlow`, `PasskeySignInFlow`, and `SignVerificationPasskeyChecks`                                     |
 
 ## Ceremonies Across All Surfaces
 
-| Operation | Challenge purpose | UV policy purpose | Allow/exclude set | Persistence |
-|---|---|---|---|---|
-| Sign-up registration (`app` only) | registration | registration (required) | Exclude every passkey, including revoked | New row and metadata |
-| Settings registration (all surfaces) | registration | registration (required) | Exclude every passkey | New row, metadata, and app/org audit |
-| Direct sign-in (all surfaces) | authentication | direct_sign_in (required) | ACTIVE only | `sign_count`, `last_used_at` |
-| MFA challenge (all surfaces) | authentication | mfa_challenge (required) | ACTIVE only | `sign_count`, `last_used_at` |
-| Step-up (all surfaces) | step_up | ordinary_step_up (required) | ACTIVE only | `sign_count` |
+| Operation                            | Challenge purpose | UV policy purpose           | Allow/exclude set                        | Persistence                          |
+| ------------------------------------ | ----------------- | --------------------------- | ---------------------------------------- | ------------------------------------ |
+| Sign-up registration (`app` only)    | registration      | registration (required)     | Exclude every passkey, including revoked | New row and metadata                 |
+| Settings registration (all surfaces) | registration      | registration (required)     | Exclude every passkey                    | New row, metadata, and app/org audit |
+| Direct sign-in (all surfaces)        | authentication    | direct_sign_in (required)   | ACTIVE only                              | `sign_count`, `last_used_at`         |
+| MFA challenge (all surfaces)         | authentication    | mfa_challenge (required)    | ACTIVE only                              | `sign_count`, `last_used_at`         |
+| Step-up (all surfaces)               | step_up           | ordinary_step_up (required) | ACTIVE only                              | `sign_count`                         |
 
-- Registration uses `resident_key: "discouraged"` and `attestation: "none"` for an
-  identifier-first, non-discoverable flow.
+- Registration uses `resident_key: "discouraged"` and `attestation: "none"` for an identifier-first,
+  non-discoverable flow.
 - `user.id` is the actor's opaque, immutable `webauthn_user_handle`.
 - The display name is `passkey_resource_display_name`, derived from email or `public_id`.
 

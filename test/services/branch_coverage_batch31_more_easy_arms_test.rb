@@ -18,26 +18,19 @@ class BranchCoverageBatch31MoreEasyArmsTest < ActiveSupport::TestCase
   end
 
   test "JitSecurityTurnstileVerifier blank token arms" do
-    assert_raises(StandardError) do
-      JitSecurityTurnstileVerifier.verify!(token: "", remote_ip: "127.0.0.1")
-    end
-  rescue NoMethodError
-    begin
-      JitSecurityTurnstileVerifier.verify!(token: nil, remote_ip: "127.0.0.1")
-    rescue StandardError
-      assert true
-    end
+    blank_token = JitSecurityTurnstileVerifier.verify(token: "", remote_ip: "127.0.0.1")
+
+    assert_equal "missing cf-turnstile-response", blank_token["error"]
+    nil_token = JitSecurityTurnstileVerifier.verify(token: nil, remote_ip: "127.0.0.1")
+
+    assert_equal "missing cf-turnstile-response", nil_token["error"]
   end
 
   test "ExternalAuthentication LinkResult and LoginResult rejection arms" do
     assert_raises(ArgumentError) { ExternalAuthentication::LinkResult.new(status: :other, user: Object.new, identity: Object.new) }
     assert_raises(ArgumentError) { ExternalAuthentication::LinkResult.new(status: :linked, user: nil, identity: Object.new) }
     if defined?(ExternalAuthentication::LoginResult)
-      begin
-        ExternalAuthentication::LoginResult.new(status: :other, user: Object.new)
-      rescue ArgumentError, TypeError
-        assert true
-      end
+      assert_raises(ArgumentError) { ExternalAuthentication::LoginResult.new(status: :other, user: Object.new) }
     end
   end
 
@@ -66,41 +59,28 @@ class BranchCoverageBatch31MoreEasyArmsTest < ActiveSupport::TestCase
 
   test "Palm and OIDC access token authenticators blank tokens" do
     [PalmAccessTokenAuthenticator, OidcAccessTokenAuthenticator].each do |klass|
-      next unless defined?(klass)
-      begin
-        klass.new(token: nil).call
-      rescue StandardError
-      end
-      begin
-        klass.new(token: " ").call
-      rescue StandardError
-      end
+      assert_raises(ArgumentError) { klass.new(token: nil) }
+      assert_raises(ArgumentError) { klass.new(token: " ") }
     end
-    assert true
   end
 
   test "DbscVerificationService blank proof" do
-    return unless defined?(DbscVerificationService)
-
-    begin
-      DbscVerificationService.new(proof: nil, challenge: "c", challenge_issued_at: Time.current, expected_audience: "a").call
-    rescue StandardError
+    assert_raises(ArgumentError) do
+      DbscVerificationService.new(
+        proof: nil, challenge: "c", challenge_issued_at: Time.current,
+        expected_audience: "a",
+      )
     end
-    begin
-      DbscVerificationService.new(proof: "", challenge: "c", challenge_issued_at: Time.current, expected_audience: "a").call
-    rescue StandardError
+    assert_raises(ArgumentError) do
+      DbscVerificationService.new(
+        proof: "", challenge: "c", challenge_issued_at: Time.current,
+        expected_audience: "a",
+      )
     end
-    assert true
   end
 
   test "CredentialSecurityTransition blank actor" do
-    return unless defined?(CredentialSecurityTransition)
-
-    begin
-      CredentialSecurityTransition.new(actor: nil, event: :rotate).call
-    rescue StandardError
-    end
-    assert true
+    assert_raises(ArgumentError) { CredentialSecurityTransition.new(actor: nil, event: :rotate) }
   end
 
   test "SignTelephoneOtpDelivery assign writes otp fields" do
@@ -109,38 +89,35 @@ class BranchCoverageBatch31MoreEasyArmsTest < ActiveSupport::TestCase
     telephone.define_singleton_method(:otp_counter=) { |v| @c = v }
     telephone.define_singleton_method(:otp_expires_at=) { |v| @e = v }
     telephone.define_singleton_method(:otp_last_sent_at=) { |v| @s = v }
-    telephone.define_singleton_method(:respond_to?) { |m, *| %i[otp_private_key= otp_counter= otp_expires_at= otp_last_sent_at=].include?(m) || super(m) }
+    telephone.define_singleton_method(:respond_to?) { |m, *|
+      %i(otp_private_key= otp_counter= otp_expires_at= otp_last_sent_at=).include?(m) || super(m)
+    }
 
     code = SignTelephoneOtpDelivery.assign(telephone)
+
     assert_match(/\A\d+\z/, code)
   end
 
   test "AuthMethodGuard and single-use token easy rejects" do
-    if defined?(AuthMethodGuard)
-      begin
-        AuthMethodGuard.allow?(actor: nil, method: :password)
-      rescue StandardError
-      end
-    end
-    if defined?(SingleUseToken)
-      # concern methods via a throwaway including class when possible
-      assert true
-    end
-    assert true
+    assert_not AuthMethodGuard.respond_to?(:allow?)
   end
 
   test "ConfigValues OriginValue to_s default and explicit ports" do
     https = ConfigValues.build("https://example.test")
+
     assert_equal "https://example.test", https.to_s
     http = ConfigValues.build("http://localhost", allow_localhost: true)
+
     assert_equal "http://localhost", http.to_s
     custom = ConfigValues.build("https://example.test:8443")
+
     assert_includes custom.to_s, ":8443"
   end
 
   test "JitSecurityJwtJtiGenerator generate produces strings" do
     a = JitSecurityJwtJtiGenerator.generate
     b = JitSecurityJwtJtiGenerator.generate
+
     assert_kind_of String, a
     assert_kind_of String, b
     assert_not_equal a, b
@@ -148,9 +125,11 @@ class BranchCoverageBatch31MoreEasyArmsTest < ActiveSupport::TestCase
 
   test "SecurityJwtOidcIdTokenCodec normalize_time and decode_options" do
     t = SecurityJwtOidcIdTokenCodec.send(:normalize_time!, Time.current)
+
     assert_kind_of Time, t
     assert_kind_of Time, SecurityJwtOidcIdTokenCodec.send(:normalize_time!, Time.current.to_i)
     opts = SecurityJwtOidcIdTokenCodec.send(:decode_options, client_id: "c", resource_type: "client", issuer: "iss")
+
     assert_equal "iss", opts[:iss]
     assert_equal "c", opts[:aud]
   end

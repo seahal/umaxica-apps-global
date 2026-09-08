@@ -37,12 +37,8 @@ class BranchCoverageBatch39EasyMissesTest < ActiveSupport::TestCase
   end
 
   test "RedirectsJumpGatewayUrl origin validation arms" do
-    result = RedirectsJumpGatewayUrl.call(gateway_origin: "://bad")
-    assert_predicate result, :failure? if result.respond_to?(:failure?)
-    result = RedirectsJumpGatewayUrl.call(gateway_origin: "http://example.com")
-    assert_predicate result, :failure? if result.respond_to?(:failure?)
-  rescue URI::InvalidURIError, ArgumentError
-    assert true
+    assert_raises(ArgumentError) { RedirectsJumpGatewayUrl.call(gateway_origin: "://bad") }
+    assert_raises(ArgumentError) { RedirectsJumpGatewayUrl.call(gateway_origin: "http://example.com") }
   end
 
   test "Webauthn ChallengeStore discard blank and unknown purpose" do
@@ -211,18 +207,12 @@ class BranchCoverageBatch39EasyMissesTest < ActiveSupport::TestCase
       Base::Org::Publishing::Info::App::EntriesController,
     ]
     controllers.each do |klass|
-      klass.allocate
       %i(index show new create edit update).each do |action|
         next unless klass.method_defined?(action)
 
-        begin
-          # Cover the method by invoking UnboundMethod with stubs for heavy deps.
-          klass.instance_method(action)
+        unbound = klass.instance_method(action)
 
-          assert klass.instance_method(action)
-        rescue StandardError
-          assert true
-        end
+        assert_kind_of UnboundMethod, unbound
       end
     end
   end

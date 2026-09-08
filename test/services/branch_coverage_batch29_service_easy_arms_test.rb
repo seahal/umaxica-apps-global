@@ -14,7 +14,7 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
     ) rescue SignSecretVerify.allocate
 
     begin
-      result = if service.respond_to?(:call)
+      if service.respond_to?(:call)
         service.define_singleton_method(:stored_digest) { nil } if service.respond_to?(:stored_digest) || true
         # Prefer private helper
         if service.respond_to?(:digest_matches?, true)
@@ -22,6 +22,7 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
         end
         service
       end
+
       assert true
     rescue StandardError
       assert true
@@ -39,6 +40,7 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -53,27 +55,34 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
   test "OidcEndSessionRequest blank params helpers" do
     request = OidcEndSessionRequest.new(params: {}, request: ActionDispatch::TestRequest.create)
     request.define_singleton_method(:actor) { nil }
+
     assert_nil request.send(:current_subject)
 
     unauth = Object.new
     unauth.define_singleton_method(:unauthenticated?) { true }
     request.define_singleton_method(:actor) { unauth }
+
     assert_nil request.send(:current_actor)
   end
 
   test "DbscVerificationService blank proof arms" do
     if defined?(DbscVerificationService)
       begin
-        DbscVerificationService.new(proof: nil, challenge: "c", challenge_issued_at: Time.current, expected_audience: "a").call
+        DbscVerificationService.new(
+          proof: nil, challenge: "c", challenge_issued_at: Time.current,
+          expected_audience: "a",
+        ).call
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -84,6 +93,7 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -97,6 +107,7 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
         end
       end
     end
+
     assert true
   end
 
@@ -113,6 +124,7 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -125,6 +137,7 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -141,6 +154,7 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -157,6 +171,7 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -173,6 +188,7 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -186,6 +202,7 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
     if defined?(LocalEnvironment)
       LocalEnvironment.enabled? if LocalEnvironment.respond_to?(:enabled?)
     end
+
     assert true
   end
 
@@ -196,24 +213,26 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
       token.currently_usable?
     rescue StandardError
     end
+
     assert true
   end
-
 
   test "AcmeSelectableContext inactive membership next [] arm" do
     helper = Class.new do
       include AcmeSelectableContext
 
       def config
-        @config ||= begin
-          c = Object.new
-          c.define_singleton_method(:requires_avatar) { false }
-          c.define_singleton_method(:account_class) { Client }
-          c
-        end
+        @config ||=
+          begin
+            c = Object.new
+            c.define_singleton_method(:requires_avatar) { false }
+            c.define_singleton_method(:account_class) { Client }
+            c
+          end
       end
 
       def principal = nil
+
       def session = nil
 
       def accounts
@@ -227,5 +246,4 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
 
     assert_equal [], helper.selectable_candidates
   end
-
 end

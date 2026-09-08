@@ -102,5 +102,4 @@ class BranchCoverageBatch26DepthEasyArmsTest < ActiveSupport::TestCase
 
     assert_not controller.send(:palm_logout_state_matches?)
   end
-
 end

@@ -292,14 +292,14 @@ class BranchCoverageBatch38ThresholdPushTest < ActiveSupport::TestCase
 
   test "OidcLogoutRequest verify rejects blank client_id and blank jti" do
     verifier = Object.new
-    verifier.define_singleton_method(:verified) { |_token, purpose:| { "client_id" => "", "jti" => "abc" } }
+    verifier.define_singleton_method(:verified) { |_token, **_| { "client_id" => "", "jti" => "abc" } }
 
     OidcLogoutRequest.stub(:verifier, verifier) do
       assert_nil OidcLogoutRequest.verify("token")
     end
 
     verifier = Object.new
-    verifier.define_singleton_method(:verified) { |_token, purpose:| { "client_id" => "cid", "jti" => "" } }
+    verifier.define_singleton_method(:verified) { |_token, **_| { "client_id" => "cid", "jti" => "" } }
 
     OidcLogoutRequest.stub(:verifier, verifier) do
       assert_nil OidcLogoutRequest.verify("token")

@@ -8,6 +8,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
 
   test "AuthenticationSelectedSessionRevoker missing token" do
     result = AuthenticationSelectedSessionRevoker.call(owner: Client.new, token: nil)
+
     assert_equal :failure, result.status
   end
 
@@ -30,9 +31,11 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
   end
 
   test "DbscRegistrationService record missing and blank jwk path" do
-    assert_equal "record_missing", DbscRegistrationService.new(record: nil, proof: "p").call.error_code rescue assert true
+    assert_equal "record_missing",
+                 DbscRegistrationService.new(record: nil, proof: "p").call.error_code rescue assert true
     begin
       result = DbscRegistrationService.new(record: nil, proof: "p").call
+
       assert_includes [result.error, result.error_code].compact.map(&:to_s), "record_missing"
     rescue StandardError
       assert true
@@ -47,6 +50,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
       request_method: "GET",
       request_uri: "https://example.test/",
     ).call
+
     assert_equal "missing_dpop_proof", r1.error
 
     # proof present but token lacks cnf.jkt — needs valid proof path; force via stubbed proof verifier
@@ -57,7 +61,8 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
       request_method: "GET",
       request_uri: "https://example.test/",
     ).call
-    assert r2.valid?
+
+    assert_predicate r2, :valid?
   end
 
   test "CollectiveMembership TransferUnit inactive membership" do
@@ -72,6 +77,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
   test "OidcBackchannelLogoutNotifier blank identifiers" do
     begin
       count = OidcBackchannelLogoutNotifier.new(sid: nil, subject: nil).call
+
       assert_equal 0, count
     rescue ArgumentError, NoMethodError
       begin
@@ -84,6 +90,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
 
   test "AcmeSelectableContext authorization helpers" do
     ctx = AcmeSelectableContext.allocate
+
     assert_not ctx.send(:account_authorized?, nil)
     assert_not ctx.send(:membership_authorized?, nil)
   rescue NoMethodError
@@ -107,6 +114,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
         end
       end
     end
+
     assert true
   end
 
@@ -125,6 +133,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
         end
       end
     end
+
     assert true
   end
 
@@ -139,6 +148,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
         assert true
       end
     end
+
     assert true
   end
 
@@ -147,6 +157,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
       svc = IdentifierHmacEmergencyRotation.allocate
       begin
         svc.define_singleton_method(:target_columns_present?) { |_t| false }
+
         assert_equal({ updated: 0, failed: 0 }, svc.send(:rotate_target, Object.new))
       rescue StandardError
       end
@@ -155,11 +166,13 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
   test "JitSecurityJwtAnomalyReporter preference namespaces" do
     reporter = JitSecurityJwtAnomalyReporter.allocate
+
     assert_equal "COM_PREFERENCE", reporter.send(:preference_namespace_for_host, "x.com.y")
     assert_equal "ORG_PREFERENCE", reporter.send(:preference_namespace_for_host, "org.y")
   rescue NoMethodError
@@ -181,6 +194,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -199,6 +213,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
         end
       end
     end
+
     assert true
   end
 
@@ -223,6 +238,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -241,6 +257,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -258,6 +275,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
         end
       end
     end
+
     assert true
   end
 
@@ -289,6 +307,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -302,6 +321,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
         assert true
       end
     end
+
     assert true
   end
 
@@ -317,6 +337,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -333,6 +354,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
         end
       end
     end
+
     assert true
   end
 
@@ -351,6 +373,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -358,6 +381,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
     ENV["UMAXICA_ENV_FILE"] = "/tmp/does-not-exist-umaxica-env"
     begin
       LocalEnvironment.load!
+
       assert true
     ensure
       ENV.delete("UMAXICA_ENV_FILE")

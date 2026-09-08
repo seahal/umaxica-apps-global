@@ -48,6 +48,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
       resource_type: "client",
       expected_nonce: "n",
     ).call
+
     assert_equal "missing_id_token", missing_token.error
 
     missing_nonce = OidcIdTokenVerifier.new(
@@ -56,6 +57,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
       resource_type: "client",
       expected_nonce: "",
     ).call
+
     assert_equal "missing_nonce", missing_nonce.error
 
     assert_not OidcIdTokenVerifier.new(
@@ -135,11 +137,13 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
     blank.define_singleton_method(:authorization) { nil }
     blank.define_singleton_method(:respond_to?) { |m, *| m == :authorization || m == :headers || super(m) }
     blank.define_singleton_method(:headers) { {} }
+
     assert_nil AuthAuthorizationHeader.bearer_token(blank)
     assert_nil AuthAuthorizationHeader.access_token(blank)
     assert_nil AuthAuthorizationHeader.token_and_options(blank)
 
     bare = Object.new
+
     assert_nil AuthAuthorizationHeader.send(:authorization_value_for, bare)
   end
 
@@ -151,10 +155,12 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
       [Client.new, Object.new],
     ].each do |user, record|
       policy = OrganizationPolicy.new(record: record, user: user)
+
       assert_not policy.send(:organization_has_current_principal_membership?)
     rescue ArgumentError, ActionPolicy::Unauthorized
       policy = OrganizationPolicy.new(record)
       policy.define_singleton_method(:user) { user }
+
       assert_not policy.send(:organization_has_current_principal_membership?)
     end
   end
@@ -190,9 +196,12 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
     machine = SignUpStateMachine.new(ticket: ticket, event: :clear_requirement, actor_context: {}, payload: {})
     machine.define_singleton_method(:status?) { |s| s == "CHECKPOINT_PENDING" }
     machine.define_singleton_method(:checkpoint_version_matches?) { true }
-    machine.define_singleton_method(:invalid) { |msg| Struct.new(:success?, :error, keyword_init: true).new(success?: false, error: msg) }
+    machine.define_singleton_method(:invalid) { |msg|
+      Struct.new(:success?, :error, keyword_init: true).new(success?: false, error: msg)
+    }
     begin
       result = machine.send(:clear_requirement)
+
       assert result
     rescue StandardError
       assert true
@@ -204,8 +213,10 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
     svc.define_singleton_method(:registered_session_id) { "" }
     svc.define_singleton_method(:session_id) { "s" }
     svc.define_singleton_method(:record) { Object.new }
-    svc.define_singleton_method(:failure) { |code, **| Struct.new(:ok, :error, keyword_init: true).new(ok: false, error: code) }
-    result = svc.send(:verify_registration!, "s") rescue nil
+    svc.define_singleton_method(:failure) { |code, **|
+      Struct.new(:ok, :error, keyword_init: true).new(ok: false, error: code)
+    }
+    svc.send(:verify_registration!, "s") rescue nil
     # Prefer call path with stubs
     begin
       DbscVerificationService.new(
@@ -226,6 +237,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -233,6 +245,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
     req = OidcEndSessionRequest.new(params: { "client_id" => "missing" }, request: ActionDispatch::TestRequest.create)
     begin
       result = req.call
+
       assert result
     rescue StandardError
     end
@@ -241,6 +254,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
     unauth = Object.new
     unauth.define_singleton_method(:unauthenticated?) { true }
     req2.define_singleton_method(:actor) { unauth }
+
     assert_nil req2.send(:current_actor)
   end
 
@@ -251,6 +265,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
     inactive.define_singleton_method(:active?) { false }
     inactive.define_singleton_method(:admin_locked?) { false }
     result = auth.send(:validate_resource!, inactive) rescue auth.send(:failure, "invalid_token")
+
     assert result
 
     locked = Object.new
@@ -261,6 +276,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
       auth.send(:validate_resource!, locked)
     rescue StandardError
     end
+
     assert true
   end
 
@@ -278,6 +294,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
       JitSecurityJwtRegistry.send(:preference_hosts_from_boot_config)
     rescue StandardError
     end
+
     assert true
   end
 
@@ -291,7 +308,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
         IdentityAudit.send(:level_class_for, Operator.new)
         IdentityAudit.send(:level_class_for, Client.new)
       rescue NoMethodError
-        %i[chronicle_for event_for level_for].each do |m|
+        %i(chronicle_for event_for level_for).each do |m|
           begin
             IdentityAudit.send(m, Operator.new) if IdentityAudit.respond_to?(m, true)
           rescue StandardError
@@ -299,6 +316,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
         end
       end
     end
+
     assert true
   end
 
@@ -313,6 +331,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
         end
       end
     end
+
     assert true
   end
 
@@ -325,6 +344,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -332,6 +352,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
     if defined?(AvatarFollowPolicy)
       begin
         policy = AvatarFollowPolicy.new(record: Object.new, user: Client.new)
+
         assert_not policy.show?
       rescue StandardError
         begin
@@ -341,6 +362,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
         end
       end
     end
+
     assert true
   end
 
@@ -356,6 +378,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
       SignRiskEnforcer.call(resource: nil) if defined?(SignRiskEnforcer)
     rescue StandardError
     end
+
     assert true
   end
 
@@ -373,6 +396,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
       verifier.send(:log_failure, "x")
     rescue StandardError
     end
+
     assert true
   end
 
@@ -380,6 +404,7 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
     assert_equal "https://example.test", ConfigValues.send(:normalize_origin, "example.test")
     uri = URI.parse("https://user:pass@example.test/path?q=1#frag")
     ConfigValues.send(:sanitize_origin_uri!, uri)
+
     assert_equal "/", uri.path
     assert_nil uri.query
     assert_nil uri.fragment

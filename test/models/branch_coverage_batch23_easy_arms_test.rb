@@ -28,7 +28,10 @@ class BranchCoverageBatch23EasyArmsTest < ActiveSupport::TestCase
     assert_equal "missing_htm", verifier.send(:verify_request_binding, {}).error
     assert_equal "missing_htu", verifier.send(:verify_request_binding, { "htm" => "POST" }).error
     assert_equal "missing_iat",
-                 verifier.send(:verify_request_binding, { "htm" => "POST", "htu" => "https://example.test/resource" }).error
+                 verifier.send(
+                   :verify_request_binding,
+                   { "htm" => "POST", "htu" => "https://example.test/resource" },
+                 ).error
     assert_equal "iat_out_of_window",
                  verifier.send(
                    :verify_request_binding,
@@ -54,9 +57,11 @@ class BranchCoverageBatch23EasyArmsTest < ActiveSupport::TestCase
 
   test "RedirectsExternalTargetResolver refuses unknown keys and relative targets" do
     unknown = RedirectsExternalTargetResolver.call(:not_a_registry_key)
+
     assert_equal "unknown_key", unknown.failure_reason
 
     blank_host = RedirectsExternalTargetResolver.url("/relative", allowed_urls: ["https://example.test"])
+
     assert_equal "invalid_uri", blank_host.failure_reason
 
     # A parseable absolute URL that still carries a control character hits the dedicated arm.
@@ -64,6 +69,7 @@ class BranchCoverageBatch23EasyArmsTest < ActiveSupport::TestCase
       "https://example.test/?q=" + 1.chr,
       allowed_urls: ["https://example.test"],
     )
+
     assert_includes %w(control_char invalid_uri origin_denied), control.failure_reason
   end
 end

@@ -28,18 +28,18 @@ identifier.
 All routes are constrained to the EID host and handled under the independent `Eid::Net` controller
 namespace.
 
-| Method | Path | Contract |
-| --- | --- | --- |
-| `GET` | `/` | Minimal HTML service identification page. |
-| `GET` | `/health` | Shared text health aggregate. Internal-only at the public edge. |
-| `GET` | `/health/liveness` | Shared dependency-free text liveness probe. Internal-only at the public edge. |
-| `GET` | `/health/readiness` | Shared text readiness probe. It has no storage dependency until an authoritative EID store exists. |
-| `GET` | `/health/startup` | Shared text startup probe. Internal-only at the public edge. |
-| `GET` | `/revision` | Shared text deployment revision response. |
-| `GET` | `/api/v0/health.json` | Shared JSON health aggregate and negotiation behavior. |
-| `GET` | `/api/v0/revision.json` | Shared JSON deployment revision response. |
-| `GET` | `/api/v0/resources/:eid` | Initial EID-to-resource resolution boundary. |
-| `POST` | `/csp-violation-report` | Existing bounded CSP report intake used by the page security policy. |
+| Method | Path                     | Contract                                                                                           |
+| ------ | ------------------------ | -------------------------------------------------------------------------------------------------- |
+| `GET`  | `/`                      | Minimal HTML service identification page.                                                          |
+| `GET`  | `/health`                | Shared text health aggregate. Internal-only at the public edge.                                    |
+| `GET`  | `/health/liveness`       | Shared dependency-free text liveness probe. Internal-only at the public edge.                      |
+| `GET`  | `/health/readiness`      | Shared text readiness probe. It has no storage dependency until an authoritative EID store exists. |
+| `GET`  | `/health/startup`        | Shared text startup probe. Internal-only at the public edge.                                       |
+| `GET`  | `/revision`              | Shared text deployment revision response.                                                          |
+| `GET`  | `/api/v0/health.json`    | Shared JSON health aggregate and negotiation behavior.                                             |
+| `GET`  | `/api/v0/revision.json`  | Shared JSON deployment revision response.                                                          |
+| `GET`  | `/api/v0/resources/:eid` | Initial EID-to-resource resolution boundary.                                                       |
+| `POST` | `/csp-violation-report`  | Existing bounded CSP report intake used by the page security policy.                               |
 
 The resolver accepts an EID only as untrusted opaque path input. Its transport boundary rejects an
 empty value, whitespace or control characters, invalid encoding, and values over 255 bytes. These
@@ -54,9 +54,9 @@ controlled target.
 Production sets `PUBLIC_EID_SERVICE_URL=eid.umaxica.net` (or the explicit compatibility input
 `EID_SERVICE_URL`) before Rails boots. Development may additionally set
 `PRIVATE_EID_SERVICE_URL=eid.net.localhost`; the checked-in Compose environment supplies both names.
-Host Authorization, route constraints, and the FQDN availability registry all list this surface.
-The corresponding `fqdn_available_eid_service` availability flag therefore fails closed under the
-same policy as other public surfaces.
+Host Authorization, route constraints, and the FQDN availability registry all list this surface. The
+corresponding `fqdn_available_eid_service` availability flag therefore fails closed under the same
+policy as other public surfaces.
 
 The Cloudflare edge must route `eid.umaxica.net` to the Rails origin and must block public access to
 `/health`, `/health/*`, `/api/v0/health.json`, and `/api/v0/revision.json` under the existing health

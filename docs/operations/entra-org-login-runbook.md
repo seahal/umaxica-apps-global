@@ -40,10 +40,10 @@ administrator-consent evidence are recorded.
 from an email address, UPN, domain, or display name: all of them are mutable in Entra, and none of
 them are read by the sign-in path.
 
-1. Read the operator's Entra **Object ID** in the Entra admin center under Users → the user →
-   Object ID. It is a UUID and is stable for the lifetime of that user object in the tenant. The
-   tenant is not an input: it comes from `OMNI_AUTH_ENTRA_ORG_TENANT_ID` so that no administrator
-   can bind an operator to a tenant this deployment does not federate.
+1. Read the operator's Entra **Object ID** in the Entra admin center under Users → the user → Object
+   ID. It is a UUID and is stable for the lifetime of that user object in the tenant. The tenant is
+   not an input: it comes from `OMNI_AUTH_ENTRA_ORG_TENANT_ID` so that no administrator can bind an
+   operator to a tenant this deployment does not federate.
 2. Read the UMAXICA operator's `public_id` from the operator record. Hyphenated and lower-case forms
    are accepted.
 3. Create the mapping. It is created **inactive**, and creating it does not permit sign-in:
@@ -65,8 +65,8 @@ them are read by the sign-in path.
    ```
 
 To stop an operator's Entra sign-in without losing the mapping or its audit evidence, use
-`entra_identity:suspend`; use `entra_identity:revoke` to withdraw it permanently. Both take effect on
-the next sign-in attempt. Neither task deletes a record, and no task prints a credential.
+`entra_identity:suspend`; use `entra_identity:revoke` to withdraw it permanently. Both take effect
+on the next sign-in attempt. Neither task deletes a record, and no task prints a credential.
 
 ## Joiners and leavers
 
@@ -77,8 +77,8 @@ tasks are for one-off changes, not for routine staff movement:
   or a disciplinary suspension, with no deletion at all) both set the mapping to suspended;
   `terminate` sets it to revoked. All three are logical deletes: the row keeps its `(tid, oid)`,
   protocol evidence, and `last_authenticated_at` so the mapping stays auditable.
-- `restore` deliberately does **not** re-grant Entra sign-in. Restoring an operator returns their own
-  credentials; a federated sign-in is a separate decision and needs an explicit
+- `restore` deliberately does **not** re-grant Entra sign-in. Restoring an operator returns their
+  own credentials; a federated sign-in is a separate decision and needs an explicit
   `entra_identity:activate`.
 - The row is deleted for real when the operator's retention window expires and the purge removes
   them (`RetentionCrossDatabaseChildPurge`).
@@ -125,8 +125,8 @@ The ordinary test suite never contacts Microsoft. This procedure does, and is ru
 
    `last_authenticated_at` for that identity must no longer be `never`.
 
-5. Run the negative cases, each of which must fail closed and reach `/social/entra/failure`:
-   an account that is not provisioned; a suspended identity (`entra_identity:suspend`, retry, then
+5. Run the negative cases, each of which must fail closed and reach `/social/entra/failure`: an
+   account that is not provisioned; a suspended identity (`entra_identity:suspend`, retry, then
    `entra_identity:activate`); cancelling at the Microsoft consent screen; and re-issuing an already
    used callback URL, which must be rejected as `csrf_detected` because state is single use.
 

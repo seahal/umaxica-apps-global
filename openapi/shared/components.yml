@@ -226,7 +226,9 @@ schemas:
     properties:
       error:
         type: string
-        description: Machine-readable refusal. `missing_preference_access_token` when the write token is absent.
+        description:
+          Machine-readable refusal. `missing_preference_access_token` when the write token is
+          absent.
 
   ColorTheme:
     type: object
@@ -234,7 +236,9 @@ schemas:
     properties:
       theme:
         type: string
-        description: Stored color-theme code (`li`/`dr`/`sy`) or the canonical option (`light`/`dark`/`system`).
+        description:
+          Stored color-theme code (`li`/`dr`/`sy`) or the canonical option
+          (`light`/`dark`/`system`).
 
   Entry:
     type: object
@@ -258,10 +262,9 @@ schemas:
       public_id:
         type: string
         description: >-
-          Opaque entry identifier and the resource identity for
-          `GET /api/v0/entries/{public_id}`. Never a database primary key and not
-          the slug. Treat as an opaque string; its generation scheme is not part
-          of the contract.
+          Opaque entry identifier and the resource identity for `GET /api/v0/entries/{public_id}`.
+          Never a database primary key and not the slug. Treat as an opaque string; its generation
+          scheme is not part of the contract.
       namespace:
         type: string
         description: Content service.
@@ -370,7 +373,7 @@ schemas:
             $ref: "#/schemas/CheckStatus"
       namespace:
         type: string
-        pattern: '^[a-z]+/[a-z]+$'
+        pattern: "^[a-z]+/[a-z]+$"
         description: >-
           The `<frame>/<brand>` controller namespace that handled the request.
       timestamp:
@@ -389,9 +392,9 @@ schemas:
         type: string
         nullable: true
         description: >-
-          The framework-resolved deployment revision (`Rails.application.revision`). Always
-          present as a member; the value is `null` when no revision is configured, which is a
-          normal state. Never a fabricated identifier.
+          The framework-resolved deployment revision (`Rails.application.revision`). Always present
+          as a member; the value is `null` when no revision is configured, which is a normal state.
+          Never a fabricated identifier.
       timestamp:
         type: string
         format: date-time

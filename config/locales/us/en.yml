@@ -920,14 +920,17 @@ en:
     app:
       identity:
         credential_warning:
-          body: Adding another sign-in method helps you access your account if Apple sign-in is unavailable.
+          body:
+            Adding another sign-in method helps you access your account if Apple sign-in is
+            unavailable.
           google: Link Google
           heading: Add another sign-in method
           passkey: Add a passkey
         emails:
           registrations:
             edit:
-              delivery_help: The code expires after a short time. Request a new one if it does not arrive.
+              delivery_help:
+                The code expires after a short time. Request a new one if it does not arrive.
               description: Enter the verification code that was sent to the address you added.
           show:
             page_title: Email address
@@ -963,7 +966,8 @@ en:
             page_title: Telephone removed
           registrations:
             edit:
-              delivery_help: The code expires after a short time. Request a new one if it does not arrive.
+              delivery_help:
+                The code expires after a short time. Request a new one if it does not arrive.
           show:
             page_title: Telephone
           update:
@@ -1030,9 +1034,15 @@ en:
           erasures:
             new:
               paragraphs:
-                privacy_request: This is a privacy request for personal data deletion or restriction. It is separate from normal withdrawal.
-                records: Messages, posts, audit logs, billing records, and similar records may follow separate retention policies.
-                retention: After processing, recovery may no longer be available. Some data may be retained for legal, safety, audit, billing, or dispute handling reasons.
+                privacy_request:
+                  This is a privacy request for personal data deletion or restriction. It is
+                  separate from normal withdrawal.
+                records:
+                  Messages, posts, audit logs, billing records, and similar records may follow
+                  separate retention policies.
+                retention:
+                  After processing, recovery may no longer be available. Some data may be retained
+                  for legal, safety, audit, billing, or dispute handling reasons.
         recoveries:
           show:
             description: Complete verification to restore access.

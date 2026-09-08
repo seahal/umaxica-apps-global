@@ -79,6 +79,7 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
   test "ExternalAuthentication ProviderRegistry audience without credential key" do
     entry = Object.new
     entry.define_singleton_method(:audience_credential_key) { nil }
+
     ExternalAuthentication::ProviderRegistry.stub(:fetch, entry) do
       assert_raises(ArgumentError) { ExternalAuthentication::ProviderRegistry.audience("apple") }
     end
@@ -99,6 +100,7 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
   test "IdentityStepUpCeremonyGrant allowed_methods arms" do
     grant = IdentityStepUpCeremonyGrant.allocate
     grant.instance_variable_set(:@payload, { "allowed_methods" => [] })
+
     assert_nil grant.send(:validate_allowed_methods!)
 
     grant.instance_variable_set(:@payload, { "allowed_methods" => ["not-a-method"] })
@@ -141,6 +143,7 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
 
   test "OidcClientRegistry authenticate_assertion and filter_logout_uris arms" do
     registry = OidcClientRegistry
+
     assert_not registry.authenticate_assertion("missing-client", "assertion", token_url: "https://example.test/token")
     assert_equal ["https://a"], registry.send(:filter_logout_uris, ["https://a"], nil)
     assert_equal ["https://a"], registry.send(:filter_logout_uris, ["https://a"], "")
@@ -170,12 +173,14 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
 
   test "SecurityJwtAuthAccessTokenCodec act and surface blank arms" do
     codec = SecurityJwtAuthAccessTokenCodec
+
     assert_nil codec.send(:extract_act, {})
     assert_nil codec.send(:inferred_surface_jwt_issuer_id, host: "", resource_type: "app")
   end
 
   test "SecurityJwtPreferenceTokenCodec validate and diagnostic arms" do
     codec = SecurityJwtPreferenceTokenCodec
+
     assert_nil codec.send(:validate_payload, "not-a-hash", "host")
     assert_equal({}, codec.send(:unverified_diagnostic_claims, "not.a.jwt"))
     # OTHER classification
@@ -187,6 +192,7 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
 
   test "SignInResult token_payload prefers tokens key" do
     tokens = { access_token: "a" }
+
     assert_equal tokens, SignInResult.send(:token_payload, { tokens: tokens })
   end
 
@@ -219,7 +225,6 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
 
   test "CoreCookieDomain match and normalize blank arms" do
     # configured domain that matches host
-    request_host = "www.example.test"
     CoreCookieDomain.stub(:normalize_configured, ".example.test") do
       CoreCookieDomain.stub(:domain_matches_host?, true) do
         # force configured path by stubbing ENV/config read via resolve internals if needed
@@ -245,6 +250,7 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
         "consented_at" => Time.current.iso8601,
       },
     )
+
     assert cookie.consented
   end
 
@@ -272,10 +278,11 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
   end
 
   test "SingleUseToken consume_once blank digest" do
-    klass = Class.new(ApplicationRecord) do
-      self.table_name = "client_tokens"
-      include SingleUseToken
-    end
+    klass =
+      Class.new(ApplicationRecord) do
+        self.table_name = "client_tokens"
+        include SingleUseToken
+      end
 
     assert_nil klass.consume_once_by_digest!(digest: "")
     assert_nil klass.consume_once_by_digest!(digest: nil)
@@ -285,11 +292,13 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
     token = ClientToken.new
     if token.has_attribute?(:discarded_at)
       token.discarded_at = 1.minute.ago
+
       assert_not token.currently_usable?
     end
 
     if ClientToken.column_names.include?("discarded_at")
       scope = ClientToken.currently_valid_at
+
       assert_kind_of ActiveRecord::Relation, scope
     end
   end
@@ -301,6 +310,7 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
 
     if flow.has_attribute?(:state)
       flow.status_id = nil
+
       assert_nil flow.send(:sync_legacy_state_from_status)
     end
   end
@@ -314,7 +324,9 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
     # Build a chainable fake relation
     relation = Class.new do
       def where(*) = self
+
       def not(*) = self
+
       def count = 0
     end.new
 
@@ -332,6 +344,7 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
       # Use public API if any; otherwise send private
       begin
         count = guard.send(:count_verified_emails, actor, excluding: excluding)
+
         assert_kind_of Integer, count
       rescue NoMethodError, ArgumentError
         assert_kind_of Minitest::Test, self
@@ -340,64 +353,42 @@ class BranchCoverageBatch27ValuesLibEasyArmsTest < ActiveSupport::TestCase
   end
 
   test "lib ChainSeal and ObservabilityRedactor easy arms" do
-    if defined?(ChainSeal)
-      begin
-        ChainSeal.send(:ensure_ready!) if ChainSeal.respond_to?(:ensure_ready!, true)
-      rescue StandardError
-        # cover raise/return arms if any
-      end
-    end
-    if defined?(ObservabilityRedactor)
-      redacted = ObservabilityRedactor.redact({ password: "secret", ok: 1 }) rescue nil
-      assert true
-    end
+    assert_not ChainSeal.respond_to?(:ensure_ready!, true)
+    assert_equal "[FILTERED]", ObservabilityRedactor.scrub(password: "secret")[:password]
   end
 
   test "lib LocalEnvironment and ConfigValuesOriginValue arms" do
-    if defined?(LocalEnvironment)
-      LocalEnvironment.respond_to?(:enabled?) && LocalEnvironment.enabled?
-    end
-    if defined?(ConfigValuesOriginValue)
-      begin
-        ConfigValuesOriginValue.resolve("missing-key-for-coverage")
-      rescue StandardError
-        assert true
-      end
-    end
-    assert true
+    assert_not LocalEnvironment.respond_to?(:enabled?)
+    assert_equal "https://example.com", ConfigValues.build("example.com").to_s
+    assert_raises(ArgumentError) { ConfigValues.build("") }
   end
 
   test "JitSecurityTurnstileVerifier blank and error arms" do
-    if defined?(JitSecurityTurnstileVerifier)
-      begin
-        JitSecurityTurnstileVerifier.verify!(token: "", remote_ip: "127.0.0.1")
-      rescue StandardError
-        assert true
-      end
-    else
-      assert true
-    end
+    result = JitSecurityTurnstileVerifier.verify(token: "", remote_ip: "127.0.0.1")
+
+    assert_equal "missing cf-turnstile-response", result["error"]
   end
 
   test "Publishing form validation blank arms" do
-    [Publishing::PublishEntryForm, Publishing::ArchiveEntryForm, Publishing::EndPublicationForm].each do |form_class|
+    assert_predicate Publishing::PublishEntryForm.new, :valid?
+
+    [Publishing::ArchiveEntryForm, Publishing::EndPublicationForm].each do |form_class|
       form = form_class.new
-      form.valid?
-    rescue StandardError
-      # still exercises initialize branches
+      outcome =
+        begin
+          form.valid? ? :valid : :invalid
+        rescue I18n::MissingTranslationData
+          :translation_missing
+        end
+
+      assert_not_equal :valid, outcome
     end
-    assert true
   end
 
   test "BlindIndexUniquenessValidator and AssociatedRecordLimitValidator edges" do
-    if defined?(BlindIndexUniquenessValidator)
-      validator = BlindIndexUniquenessValidator.new(attributes: [:email])
-      record = ClientEmail.new
-      begin
-        validator.validate_each(record, :email, nil)
-      rescue StandardError
-      end
-    end
-    assert true
+    validator = BlindIndexUniquenessValidator.new(attributes: [:email])
+    record = ClientEmail.new
+
+    assert_nil validator.validate_each(record, :email, nil)
   end
 end

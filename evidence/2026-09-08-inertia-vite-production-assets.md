@@ -28,11 +28,10 @@ On 2026-09-08, from `/home/global/workspace`:
 1. `bun run build`
    - Exit status: 0.
    - Vite 8.2.2 transformed 2,386 modules.
-   - The build produced `public/vite/.vite/manifest.json`,
-     `public/vite/.vite/manifest-assets.json`, and digest-named files under `public/vite/assets`.
-2. A Ruby manifest check selected every key matching
-   `entrypoints/inertia/*.tsx`, required exactly 14 entries, and verified that the `file` named by
-   every entry exists under `public/vite`.
+   - The build produced `public/vite/.vite/manifest.json`, `public/vite/.vite/manifest-assets.json`,
+     and digest-named files under `public/vite/assets`.
+2. A Ruby manifest check selected every key matching `entrypoints/inertia/*.tsx`, required exactly
+   14 entries, and verified that the `file` named by every entry exists under `public/vite`.
    - Result: `verified inertia entrypoints and output files: 14`.
 3. `VITE_RUBY_MODE=production bin/vite build`
    - Exit status: 0.
@@ -46,8 +45,8 @@ verification is this evidence record.
 ## Result
 
 The Inertia production entrypoints compile successfully through Vite Ruby, the production manifest
-resolves all 14 surface-specific entrypoints, and every resolved bundle exists in `public/vite`.
-The application image has a defined path for carrying those files into production.
+resolves all 14 surface-specific entrypoints, and every resolved bundle exists in `public/vite`. The
+application image has a defined path for carrying those files into production.
 
 Asset publication remains a separate deployment responsibility. No repository step uploads
 `public/vite` to `PUBLIC_ASSET_URL`, and no CDN request was tested in this verification. This is
@@ -57,8 +56,7 @@ the origin.
 ## Checks not completed
 
 - The related Rails contract tests did not run because Rails stopped before test execution with one
-  pending migration:
-  `db/publishing_migrate/20260906120000_add_publishing_operator_provenance.rb`.
+  pending migration: `db/publishing_migrate/20260906120000_add_publishing_operator_provenance.rb`.
   No database migration was performed for this read-only investigation.
 - CDN upload, cache headers, and HTTP delivery were not tested because the CDN publication mechanism
   will be specified separately.

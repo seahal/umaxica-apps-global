@@ -30,13 +30,14 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
 
   test "CredentialSecurityTransition chronicle event for operator" do
     svc = credential_transition(actor: Operator.new)
+
     assert_equal OperatorChronicleEvent::CREDENTIAL_SECURITY_TRANSITION, svc.send(:audit_event_id)
   rescue NoMethodError, NameError
     begin
       assert_equal OperatorChronicleEvent::CREDENTIAL_SECURITY_TRANSITION, svc.send(:chronicle_event_id)
     rescue StandardError
       # method name variance
-      assert svc.send(:actor).is_a?(Operator)
+      assert_kind_of Operator, svc.send(:actor)
     end
   end
 
@@ -47,20 +48,25 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
 
     p1 = OrganizationPolicy.new(enterprise)
     p1.define_singleton_method(:user) { Visitor.new }
+
     assert_not p1.send(:organization_has_current_principal_membership?)
 
     p2 = OrganizationPolicy.new(company)
     p2.define_singleton_method(:user) { Client.new }
+
     assert_not p2.send(:organization_has_current_principal_membership?)
 
     p3 = OrganizationPolicy.new(bureau)
     p3.define_singleton_method(:user) { Client.new }
+
     assert_not p3.send(:organization_has_current_principal_membership?)
   end
 
   test "ConfigValues scheme and ipv6 host validation arms" do
     # L44: unless uri.is_a?(URI::HTTP) — ftp is URI::Generic
-    assert_raises(ArgumentError) { ConfigValues.send(:validate_origin_uri!, URI.parse("ftp://x"), allow_localhost: false) }
+    assert_raises(ArgumentError) {
+      ConfigValues.send(:validate_origin_uri!, URI.parse("ftp://x"), allow_localhost: false)
+    }
     # non-http scheme already covered; force scheme check with custom object
     weird = URI.parse("https://example.test")
     weird.define_singleton_method(:scheme) { "ftp" }
@@ -120,8 +126,16 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
   end
 
   test "many service blank-input failure arms" do
-    assert_equal "missing_id_token", OidcIdTokenVerifier.new(id_token: nil, client_id: "c", resource_type: "client", expected_nonce: "n").call.error
-    assert_equal "missing_nonce", OidcIdTokenVerifier.new(id_token: "t", client_id: "c", resource_type: "client", expected_nonce: nil).call.error
+    assert_equal "missing_id_token",
+                 OidcIdTokenVerifier.new(
+                   id_token: nil, client_id: "c", resource_type: "client",
+                   expected_nonce: "n",
+                 ).call.error
+    assert_equal "missing_nonce",
+                 OidcIdTokenVerifier.new(
+                   id_token: "t", client_id: "c", resource_type: "client",
+                   expected_nonce: nil,
+                 ).call.error
 
     assert_raises(ArgumentError) { OutboundSensitivePayload.send(:encrypt, nil, purpose: :x) }
     assert_raises(ArgumentError) { OutboundSensitivePayload.send(:decrypt, nil, purpose: :x) }
@@ -129,6 +143,7 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
     # Auth header scheme helpers
     req = ActionDispatch::TestRequest.create
     req.headers["Authorization"] = "Bearer abc"
+
     assert_equal "abc", AuthAuthorizationHeader.bearer_token(req)
     assert_equal "Bearer", AuthAuthorizationHeader.scheme(req)
     assert AuthAuthorizationHeader.scheme?(req, "bearer")
@@ -164,6 +179,7 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -183,6 +199,7 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -196,6 +213,7 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -209,13 +227,14 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
         t.define_singleton_method(:respond_to?) { |m, *| m == :infinite? || super(m) }
         t
       end
-      cred.define_singleton_method(:respond_to?) { |m, *| true }
+      cred.define_singleton_method(:respond_to?) { |_m, *| true }
       inst.instance_variable_set(:@secret_credential, cred)
       begin
         inst.send(:usable_secret_credential?)
       rescue StandardError
       end
     end
+
     assert true
   end
 
@@ -223,6 +242,7 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
     if defined?(JitSecurityJwtAnomalyReporter)
       begin
         reporter = JitSecurityJwtAnomalyReporter.allocate
+
         assert_equal "COM_PREFERENCE", reporter.send(:preference_namespace_for_host, "www.com.example")
         assert_equal "ORG_PREFERENCE", reporter.send(:preference_namespace_for_host, "org.example")
       rescue StandardError
@@ -234,6 +254,7 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
       rescue StandardError
       end
     end
+
     assert true
   end
 end

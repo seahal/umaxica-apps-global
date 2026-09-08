@@ -21,19 +21,34 @@ class BranchCoverageBatch24MassEasyArmsTest < ActiveSupport::TestCase
     reason = AdministrativeAccessLockable::ADMIN_LOCK_REASON_CODES.first
 
     assert_raises(ArgumentError) do
-      AdministrativeAccessLock.new(account: Object.new, operator: Operator.new, reason_code: reason, metadata: {}).send(:validate_inputs!)
+      AdministrativeAccessLock.new(
+        account: Object.new, operator: Operator.new, reason_code: reason,
+        metadata: {},
+      ).send(:validate_inputs!)
     end
     assert_raises(ArgumentError) do
-      AdministrativeAccessLock.new(account: Client.new, operator: Client.new, reason_code: reason, metadata: {}).send(:validate_inputs!)
+      AdministrativeAccessLock.new(
+        account: Client.new, operator: Client.new, reason_code: reason,
+        metadata: {},
+      ).send(:validate_inputs!)
     end
     assert_raises(ArgumentError) do
-      AdministrativeAccessLock.new(account: Client.new, operator: Operator.new, reason_code: "not-a-reason", metadata: {}).send(:validate_inputs!)
+      AdministrativeAccessLock.new(
+        account: Client.new, operator: Operator.new, reason_code: "not-a-reason",
+        metadata: {},
+      ).send(:validate_inputs!)
     end
     assert_raises(ArgumentError) do
-      AdministrativeAccessLock.new(account: Client.new, operator: Operator.new, reason_code: reason, metadata: []).send(:validate_inputs!)
+      AdministrativeAccessLock.new(
+        account: Client.new, operator: Operator.new, reason_code: reason,
+        metadata: [],
+      ).send(:validate_inputs!)
     end
 
-    service = AdministrativeAccessLock.new(account: Operator.new, operator: Operator.new, reason_code: reason, metadata: {})
+    service = AdministrativeAccessLock.new(
+      account: Operator.new, operator: Operator.new, reason_code: reason,
+      metadata: {},
+    )
     locked = Operator.new
     locked.define_singleton_method(:access_enabled?) { false }
     service.define_singleton_method(:account) { locked }
@@ -61,7 +76,7 @@ class BranchCoverageBatch24MassEasyArmsTest < ActiveSupport::TestCase
   test "Withdrawable recovery and early-termination blank arms" do
     client = Client.new
     client.define_singleton_method(:deactivated_at) { nil }
-    client.define_singleton_method(:recovery_deadline) { Time.current + 1.day }
+    client.define_singleton_method(:recovery_deadline) { 1.day.from_now }
     client.define_singleton_method(:recovery_available_at) { nil }
     client.define_singleton_method(:suspended?) { true }
     client.define_singleton_method(:early_termination_available_at) { nil }
@@ -87,7 +102,7 @@ class BranchCoverageBatch24MassEasyArmsTest < ActiveSupport::TestCase
                    {
                      "aud" => "https://example.test/x",
                      "jti" => "challenge",
-                     "iat" => (Time.current + 1.hour).to_i,
+                     "iat" => (1.hour.from_now).to_i,
                    },
                    header,
                  ).error_code
@@ -97,7 +112,7 @@ class BranchCoverageBatch24MassEasyArmsTest < ActiveSupport::TestCase
                    {
                      "aud" => "https://example.test/x",
                      "jti" => "challenge",
-                     "iat" => (Time.current - 2.days).to_i,
+                     "iat" => (2.days.ago).to_i,
                    },
                    header,
                  ).error_code
@@ -134,14 +149,17 @@ class BranchCoverageBatch24MassEasyArmsTest < ActiveSupport::TestCase
     end.new
 
     helper.define_singleton_method(:detect_identifier_type) { |_| :email }
+
     assert_nil helper.send(:find_user_by_identifier, "a@b.c")
 
     helper.define_singleton_method(:validate_and_normalize_email) { |_| "a@b.c" }
+
     IdentifierBlindIndex.stub(:bidx_for_email, nil) do
       assert_nil helper.send(:find_user_by_identifier, "a@b.c")
     end
 
     helper.define_singleton_method(:detect_identifier_type) { |_| :telephone }
+
     TelephoneNormalization.stub(:normalize_to_e164, nil) do
       assert_nil helper.send(:find_user_by_identifier, "+10000000000")
     end
@@ -195,19 +213,25 @@ class BranchCoverageBatch24MassEasyArmsTest < ActiveSupport::TestCase
     end
 
     assert_raises(JWT::InvalidSubError) do
-      helper.send(:verify_google_claims!,
-                  { "sub" => "", "nonce" => "n", "iat" => Time.now.to_i, "exp" => Time.now.to_i + 60 },
-                  expected_nonce: "n")
+      helper.send(
+        :verify_google_claims!,
+        { "sub" => "", "nonce" => "n", "iat" => Time.now.to_i, "exp" => Time.now.to_i + 60 },
+        expected_nonce: "n",
+      )
     end
     assert_raises(JWT::DecodeError) do
-      helper.send(:verify_google_claims!,
-                  { "sub" => "sub", "nonce" => "wrong", "iat" => Time.now.to_i, "exp" => Time.now.to_i + 60 },
-                  expected_nonce: "n")
+      helper.send(
+        :verify_google_claims!,
+        { "sub" => "sub", "nonce" => "wrong", "iat" => Time.now.to_i, "exp" => Time.now.to_i + 60 },
+        expected_nonce: "n",
+      )
     end
     assert_raises(JWT::ExpiredSignature) do
-      helper.send(:verify_google_claims!,
-                  { "sub" => "sub", "nonce" => "n", "iat" => Time.now.to_i - 100, "exp" => Time.now.to_i - 120 },
-                  expected_nonce: "n")
+      helper.send(
+        :verify_google_claims!,
+        { "sub" => "sub", "nonce" => "n", "iat" => Time.now.to_i - 100, "exp" => Time.now.to_i - 120 },
+        expected_nonce: "n",
+      )
     end
     assert_not helper.send(:secure_compare, "ab", "abc")
   end

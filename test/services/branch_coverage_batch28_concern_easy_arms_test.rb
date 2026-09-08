@@ -11,25 +11,13 @@ class BranchCoverageBatch28ConcernEasyArmsTest < ActiveSupport::TestCase
     helper.set_request!(ActionDispatch::TestRequest.create)
     helper.set_response!(ActionDispatch::TestResponse.new)
 
-    uri = URI.parse("https://user:pass@example.test/path")
-    assert_nil helper.send(:safe_signed_redirect_path, uri) if helper.respond_to?(:safe_signed_redirect_path, true)
-
-    # Direct private helpers if named differently
-    %i(sanitize_redirect_uri safe_path_from_uri signed_target_path).each do |meth|
-      next unless helper.respond_to?(meth, true)
-
-      begin
-        helper.send(meth, uri)
-      rescue StandardError
-      end
-    end
-
-    # Path guards via common private API used in the concern
-    meth = helper.private_methods.find { |m| m.to_s.include?("signed") || m.to_s.include?("redirect") }
-    assert true
+    assert_nil helper.send(:signed_target_internal_path, "")
+    assert_nil helper.send(:signed_target_internal_path, "https://user:pass@example.test/path")
+    assert_nil helper.send(:signed_target_internal_path, "//example.test/path")
+    assert_equal "/ok", helper.send(:signed_target_internal_path, "/ok")
   end
 
-  test "RestrictedSessionGuard short-circuits without current_session_restricted?" do
+  test "RestrictedSessionGuard short-circuits when guard predicate is missing" do
     helper = Class.new(ApplicationController) { include RestrictedSessionGuard }.new
     helper.set_request!(ActionDispatch::TestRequest.create)
     helper.set_response!(ActionDispatch::TestResponse.new)
@@ -69,20 +57,12 @@ class BranchCoverageBatch28ConcernEasyArmsTest < ActiveSupport::TestCase
     helper.set_response!(ActionDispatch::TestResponse.new)
 
     payload = {}
-    helper.send(:apply_step_up_claim!, payload, step_up_until: Time.current) if helper.respond_to?(:apply_step_up_claim!, true)
-
-    if helper.respond_to?(:timestamp_value, true)
-      assert_equal 42, helper.send(:timestamp_value, 42)
+    if helper.respond_to?(:apply_step_up_claim!, true)
+      helper.send(:apply_step_up_claim!, payload, step_up_until: Time.current)
     end
 
-    # Build claims hash path
-    if helper.respond_to?(:authorization_token_claims, true)
-      begin
-        helper.send(:authorization_token_claims, actor: Client.new, step_up_until: Time.current)
-      rescue StandardError
-      end
-    end
-    assert true
+    assert_equal 42, helper.send(:timestamp_value, 42)
+    assert_not helper.respond_to?(:authorization_token_claims, true)
   end
 
   test "PreferenceWebThemeEndpoint blank raw theme value" do
@@ -90,14 +70,8 @@ class BranchCoverageBatch28ConcernEasyArmsTest < ActiveSupport::TestCase
     helper.set_request!(ActionDispatch::TestRequest.create)
     helper.set_response!(ActionDispatch::TestResponse.new)
 
-    if helper.respond_to?(:normalize_theme_value, true)
-      assert_nil helper.send(:normalize_theme_value, "")
-      assert_nil helper.send(:normalize_theme_value, nil)
-    elsif helper.respond_to?(:parsed_theme_option, true)
-      assert_nil helper.send(:parsed_theme_option, "")
-    else
-      assert true
-    end
+    assert_not helper.respond_to?(:normalize_theme_value, true)
+    assert_not helper.respond_to?(:parsed_theme_option, true)
   end
 
   test "PreferenceWebCookieEndpoint missing token and infinite expires arms" do
@@ -113,6 +87,7 @@ class BranchCoverageBatch28ConcernEasyArmsTest < ActiveSupport::TestCase
 
     preference = Object.new
     preference.define_singleton_method(:expires_at) { Float::INFINITY }
+
     assert_kind_of ActiveSupport::TimeWithZone, helper.send(:consented_buffer_expires_at, preference)
   end
 
@@ -121,12 +96,11 @@ class BranchCoverageBatch28ConcernEasyArmsTest < ActiveSupport::TestCase
     helper.set_request!(ActionDispatch::TestRequest.create)
     helper.set_response!(ActionDispatch::TestResponse.new)
 
-    if helper.respond_to?(:find_rp_subject!, true)
-      assert_raises(ActiveRecord::RecordNotFound) { helper.send(:find_rp_subject!, "") }
-    elsif helper.respond_to?(:resolve_rp_subject!, true)
-      assert_raises(ActiveRecord::RecordNotFound) { helper.send(:resolve_rp_subject!, "") }
-    else
-      assert true
+    assert_raises(ArgumentError) do
+      helper.send(
+        :rp_identity_claims, { "aud" => "not-an-array", "iss" => "iss", "sub" => "sub" },
+        expected_audience: "aud",
+      )
     end
   end
 
@@ -135,13 +109,7 @@ class BranchCoverageBatch28ConcernEasyArmsTest < ActiveSupport::TestCase
     helper.set_request!(ActionDispatch::TestRequest.create)
     helper.set_response!(ActionDispatch::TestResponse.new)
 
-    if helper.respond_to?(:current_step_up, true)
-      begin
-        helper.send(:current_step_up)
-      rescue StandardError
-      end
-    end
-    assert true
+    assert_not helper.respond_to?(:current_step_up, true)
   end
 
   test "AuthenticationJwtTokens blank host returns nil" do
@@ -151,13 +119,7 @@ class BranchCoverageBatch28ConcernEasyArmsTest < ActiveSupport::TestCase
     helper.set_request!(request)
     helper.set_response!(ActionDispatch::TestResponse.new)
 
-    if helper.respond_to?(:jwt_issuer_host, true)
-      assert_nil helper.send(:jwt_issuer_host)
-    elsif helper.respond_to?(:token_host, true)
-      assert_nil helper.send(:token_host)
-    else
-      assert true
-    end
+    assert_nil helper.send(:jwt_issuer_host) if helper.respond_to?(:jwt_issuer_host, true)
   end
 
   test "CoreBrowserApiBoundary blank sid and subject" do
@@ -165,16 +127,9 @@ class BranchCoverageBatch28ConcernEasyArmsTest < ActiveSupport::TestCase
     helper.set_request!(ActionDispatch::TestRequest.create)
     helper.set_response!(ActionDispatch::TestResponse.new)
 
-    %i(session_from_sid subject_from_token find_session_by_sid).each do |meth|
-      next unless helper.respond_to?(meth, true)
-
-      begin
-        helper.send(meth, "")
-        helper.send(meth, nil)
-      rescue ArgumentError
-      end
-    end
-    assert true
+    assert_not helper.respond_to?(:session_from_sid, true)
+    assert_not helper.respond_to?(:subject_from_token, true)
+    assert_not helper.respond_to?(:find_session_by_sid, true)
   end
 
   test "SignErrorResponses null Origin classification" do
@@ -184,16 +139,8 @@ class BranchCoverageBatch28ConcernEasyArmsTest < ActiveSupport::TestCase
     helper.set_request!(request)
     helper.set_response!(ActionDispatch::TestResponse.new)
 
-    if helper.respond_to?(:csrf_failure_reason, true)
-      assert_equal "null_origin", helper.send(:csrf_failure_reason)
-    elsif helper.respond_to?(:reject_csrf!, true)
-      begin
-        helper.send(:reject_csrf!)
-      rescue StandardError
-      end
-    else
-      assert true
-    end
+    assert_not helper.respond_to?(:csrf_failure_reason, true)
+    assert_not helper.respond_to?(:reject_csrf!, true)
   end
 
   test "PreferenceResourceSync write arms with blank option ids" do
@@ -209,7 +156,9 @@ class BranchCoverageBatch28ConcernEasyArmsTest < ActiveSupport::TestCase
       include PreferenceSignOutRotation
 
       def preference_class = Actor::Preference
+
       def persist_new_preference_record!(*) = Object.new
+
       def issue_new_preference_transport!(*) = true
     end.new
     helper.set_request!(ActionDispatch::TestRequest.create)
@@ -226,17 +175,12 @@ class BranchCoverageBatch28ConcernEasyArmsTest < ActiveSupport::TestCase
   end
 
   test "PublishingManagementCell class methods raise without constants on concrete controller" do
-    # Use an existing publishing controller constant path if available; otherwise hit helpers via send on the module.
-    mod = PublishingManagementCell
-    anon = Class.new do
-      def self.name = "Anon/Publishing/EntriesController"
-      extend PublishingManagementCell::ClassMethods if defined?(PublishingManagementCell::ClassMethods)
-    end
-    begin
-      anon.publishing_audience
-    rescue NameError, NoMethodError
-      assert true
-    end
-  end
+    anon =
+      Class.new do
+        def self.name = "Anon/Publishing/EntriesController"
+        extend PublishingManagementCell::ClassMethods
+      end
 
+    assert_raises(NameError) { anon.publishing_audience }
+  end
 end

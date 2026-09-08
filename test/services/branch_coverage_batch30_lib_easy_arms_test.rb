@@ -33,7 +33,9 @@ class BranchCoverageBatch30LibEasyArmsTest < ActiveSupport::TestCase
   end
 
   test "ConfigValues validate_origin_uri arms" do
-    assert_raises(ArgumentError) { ConfigValues.send(:validate_origin_uri!, URI.parse("ftp://x"), allow_localhost: false) }
+    assert_raises(ArgumentError) {
+      ConfigValues.send(:validate_origin_uri!, URI.parse("ftp://x"), allow_localhost: false)
+    }
     assert_raises(ArgumentError) { ConfigValues.send(:validate_origin_uri!, URI.parse("http://user:pass@x"), allow_localhost: false) }
     assert_raises(ArgumentError) { ConfigValues.send(:validate_origin_uri!, URI.parse("http://example.test/?q=1"), allow_localhost: false) }
     assert_raises(ArgumentError) { ConfigValues.send(:validate_origin_uri!, URI.parse("http://example.test/#frag"), allow_localhost: false) }
@@ -147,12 +149,15 @@ class BranchCoverageBatch30LibEasyArmsTest < ActiveSupport::TestCase
       auth_time: now,
       step_up_until: now + 30,
     )
+
     assert_equal ["pwd"], payload["amr"]
     assert payload.key?("auth_time")
     assert payload.key?("step_up_until")
     assert_equal "client", SecurityJwtOidcIdTokenCodec.resource_type_for_client(client)
-    assert_equal "operator", SecurityJwtOidcIdTokenCodec.resource_type_for_client(Struct.new(:resource_type).new("staff"))
-    assert_equal "visitor", SecurityJwtOidcIdTokenCodec.resource_type_for_client(Struct.new(:resource_type).new("customer"))
+    assert_equal "operator",
+                 SecurityJwtOidcIdTokenCodec.resource_type_for_client(Struct.new(:resource_type).new("staff"))
+    assert_equal "visitor",
+                 SecurityJwtOidcIdTokenCodec.resource_type_for_client(Struct.new(:resource_type).new("customer"))
     assert_equal "operator", SecurityJwtOidcIdTokenCodec.resource_type_for_resource(Operator.new)
     assert_equal "visitor", SecurityJwtOidcIdTokenCodec.resource_type_for_resource(Visitor.new)
   end
@@ -166,6 +171,7 @@ class BranchCoverageBatch30LibEasyArmsTest < ActiveSupport::TestCase
     assert_equal "a'b", LocalEnvironment.send(:unquote, "'a\\'b'")
     assert_equal "plain", LocalEnvironment.send(:unquote, "plain # comment")
     name, value = LocalEnvironment.send(:parse, "export FOO=bar")
+
     assert_equal "FOO", name
     assert_equal "bar", value
     assert_equal [nil, nil], LocalEnvironment.send(:parse, "# comment")
@@ -174,6 +180,7 @@ class BranchCoverageBatch30LibEasyArmsTest < ActiveSupport::TestCase
 
   test "SignInSequence expired blank expires_at is expired" do
     seq = SignInSequence.new(id: "1", expires_at: nil)
+
     assert_predicate seq, :expired?
   end
 

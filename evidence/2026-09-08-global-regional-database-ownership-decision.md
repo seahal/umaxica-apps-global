@@ -70,8 +70,8 @@ ownership decision were added to:
   doc is the delivery boundary.
 - `docs/architecture/database-boundaries.md` — banner; `*_principal` regional-ready role retired,
   `search` / `storage` are deletion candidates.
-- `docs/identity/authority-boundary.md` — banner; the databases backing acme authority
-  (`*_zenith`, `*_ticket`, `*_setting`) are Global-only and never Regional-owned.
+- `docs/identity/authority-boundary.md` — banner; the databases backing acme authority (`*_zenith`,
+  `*_ticket`, `*_setting`) are Global-only and never Regional-owned.
 - `docs/operations/db-workflow.md` — new "Global / Regional Split (planned)" section: which
   databases stay, which are duplicated-but-independent, independent migration history after the
   split, deletion candidates.
@@ -82,8 +82,8 @@ consequence. The same information was not copied verbatim into every file.
 
 `adr/principal-zenith-physical-consolidation.md` — in-file "Partially superseded (2026-09-08)"
 banner added: the migration-history consolidation and semantic base classes stand; the reserved
-`*_principal` regional-ready role is retired; the investigation also found the reserved
-directories / connection keys were never created.
+`*_principal` regional-ready role is retired; the investigation also found the reserved directories
+/ connection keys were never created.
 
 ## C. M1 resolution
 
@@ -133,14 +133,14 @@ db/audit_schema.rb   (orphan stub for a non-existent connection)
 ## E. Contradictions fixed
 
 1. **`app/models/app_rp_record.rb` and `app/models/com_rp_record.rb`** header comments read
-   `# Deployment scope: Local` / `# Region-specific. Each region ... has its own isolated database
-   instance.` — a direct contradiction of the now-accepted decision and of the sibling
-   `app/models/org_rp_record.rb` which already read `# Deployment scope: Global`. Changed to the
-   Global wording plus a one-line pointer to `adr/global-regional-database-ownership.md`.
-   **Comment-only change. `connects_to database: { writing: :app_zenith, reading:
-   :app_zenith_replica }` (and the com equivalent) is untouched; no behavior, connection, or
-   migration path changed.** No test asserts on these comment lines
-   (`grep -rn "Deployment scope\|Region-specific" test/` → no matches).
+   `# Deployment scope: Local` /
+   `# Region-specific. Each region ... has its own isolated database instance.` — a direct
+   contradiction of the now-accepted decision and of the sibling `app/models/org_rp_record.rb` which
+   already read `# Deployment scope: Global`. Changed to the Global wording plus a one-line pointer
+   to `adr/global-regional-database-ownership.md`. **Comment-only change.
+   `connects_to database: { writing: :app_zenith, reading: :app_zenith_replica }` (and the com
+   equivalent) is untouched; no behavior, connection, or migration path changed.** No test asserts
+   on these comment lines (`grep -rn "Deployment scope\|Region-specific" test/` → no matches).
 
 2. **`adr/principal-zenith-physical-consolidation.md`** stated the reserved empty `*_principal`
    databases "are available for a future regional-ready application-data role." Superseded in-file
@@ -170,8 +170,8 @@ db/audit_schema.rb   (orphan stub for a non-existent connection)
 
 ## F. Remaining ambiguous domains
 
-- **Regional application database — name and full domain.** The ADR fixes that it exists and that
-  it is Regional-only and never a second writer of Global data; it does not fix its name or its
+- **Regional application database — name and full domain.** The ADR fixes that it exists and that it
+  is Regional-only and never a second writer of Global data; it does not fix its name or its
   complete table set. To be decided in the implementation phase against
   `adr/surface-database-connection-naming.md` / `adr/actor-db-naming-policy.md`.
 - **Cross-boundary contract protocol design** — downstream token claims, JWKS distribution and
@@ -195,11 +195,11 @@ db/audit_schema.rb   (orphan stub for a non-existent connection)
   `common database`, `regionaliz`, `per-region (identity|account|zenith)`,
   `each region.*isolated.*database`: no remaining Global/Regional shared-database language and no
   remaining "zenith is Local/Regional" claim except the two items in section E that were
-  deliberately left (`search_record.rb` comment; the `ClientMembership` decomposition options
-  under the new banner). The `token-symbol-mark-database-boundary.md` "one shared database"
-  reference is about the historical single token/symbol/mark database, not a Global/Regional claim.
-- No test asserts on `Deployment scope` / `Region-specific` comment text
-  (`grep -rn` over `test/` → no matches), so the two comment-only edits are safe.
+  deliberately left (`search_record.rb` comment; the `ClientMembership` decomposition options under
+  the new banner). The `token-symbol-mark-database-boundary.md` "one shared database" reference is
+  about the historical single token/symbol/mark database, not a Global/Regional claim.
+- No test asserts on `Deployment scope` / `Region-specific` comment text (`grep -rn` over `test/` →
+  no matches), so the two comment-only edits are safe.
 - No schema, migration, `database.yml`, Compose, CI, or runtime-config file was modified.
 
 ## Final note
