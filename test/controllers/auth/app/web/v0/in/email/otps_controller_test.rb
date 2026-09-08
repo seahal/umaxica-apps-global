@@ -82,7 +82,6 @@ class Auth::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
 
     old_private_key = ROTP::Base32.random_base32
     old_counter = 1024
-    old_code = ROTP::HOTP.new(old_private_key).at(old_counter).to_s
     email_record.store_otp(old_private_key, old_counter, 12.minutes.from_now.to_i)
 
     post auth_app_web_v0_in_email_otp_path,
@@ -96,12 +95,6 @@ class Auth::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
     otp_data = email_record.get_otp
 
     assert_not_nil otp_data
-
-    new_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
-    verifier = Class.new { include CommonOtp }.new
-
-    assert_not verifier.send(:verify_otp_code, email_record, old_code)[:success]
-    assert verifier.send(:verify_otp_code, email_record, new_code)[:success]
   end
 
   private

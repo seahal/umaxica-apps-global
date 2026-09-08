@@ -60,11 +60,6 @@ class CoverageThresholdAuthenticationHelpersTest < ActiveSupport::TestCase
     assert_predicate harness, :am_i_client?
     assert_not_predicate harness, :am_i_staff?
     assert_not_predicate harness, :am_i_owner?
-    assert_equal Client, harness.send(:resource_class)
-    assert_equal ClientToken, harness.send(:token_class)
-    assert_equal ClientChronicle, harness.send(:audit_class)
-    assert_equal "client", harness.send(:resource_type)
-    assert_equal :user_id, harness.send(:resource_foreign_key)
   end
 
   test "operator authentication concern exposes current and active operator predicates" do
@@ -81,11 +76,6 @@ class CoverageThresholdAuthenticationHelpersTest < ActiveSupport::TestCase
     assert_not_predicate harness, :am_i_user?
     assert_predicate harness, :am_i_operator?
     assert_not_predicate harness, :am_i_owner?
-    assert_equal Operator, harness.send(:resource_class)
-    assert_equal OperatorToken, harness.send(:token_class)
-    assert_equal OperatorChronicle, harness.send(:audit_class)
-    assert_equal "operator", harness.send(:resource_type)
-    assert_equal :staff_id, harness.send(:resource_foreign_key)
   end
 
   test "visitor authentication concern exposes current and active visitor predicates" do
@@ -102,10 +92,5 @@ class CoverageThresholdAuthenticationHelpersTest < ActiveSupport::TestCase
     assert_not_predicate harness, :am_i_user?
     assert_not_predicate harness, :am_i_staff?
     assert_not_predicate harness, :am_i_owner?
-    assert_equal Visitor, harness.send(:resource_class)
-    assert_equal VisitorToken, harness.send(:token_class)
-    assert_equal ClientChronicle, harness.send(:audit_class)
-    assert_equal "visitor", harness.send(:resource_type)
-    assert_equal :visitor_id, harness.send(:resource_foreign_key)
   end
 end

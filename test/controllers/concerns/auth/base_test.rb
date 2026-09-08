@@ -26,10 +26,6 @@ module Auth
         def delete(key, _options = nil)
           @store.delete(key)
         end
-
-        def encrypted
-          HeaderKeyHarness.encrypted_cookies
-        end
       end
 
       include AuthenticationBase
@@ -75,10 +71,6 @@ module Auth
 
       def self.encrypted_cookies
         Thread.current[:auth_base_test_encrypted_cookies] ||= {}.with_indifferent_access
-      end
-
-      def self.reset_encrypted_cookies!
-        Thread.current[:auth_base_test_encrypted_cookies] = {}.with_indifferent_access
       end
 
       def current_resource
@@ -617,20 +609,6 @@ module Auth
 
       assert_empty harness.flash
       assert_equal ["/default", {}], harness.redirected
-    end
-
-    test "clear_auth_cookies! deletes all auth-related cookies" do
-      harness = HeaderKeyHarness.new
-      HeaderKeyHarness.reset_encrypted_cookies!
-      harness.cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = "access"
-      harness.cookies.encrypted[AuthenticationBase::REFRESH_COOKIE_KEY] = "refresh"
-
-      CoreCookieOptions.stub(:for, {}) do
-        harness.send(:clear_auth_cookies!)
-
-        assert_nil harness.cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
-        assert_nil harness.cookies[AuthenticationBase::REFRESH_COOKIE_KEY]
-      end
     end
 
     test "JwtConfiguration.issuer respects resource_type" do

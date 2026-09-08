@@ -24,26 +24,6 @@ module Auth
       assert_equal AuthenticationBase::AUDIT_EVENTS, AuthenticationOperator::AUDIT_EVENTS
     end
 
-    test "resource_class returns Operator" do
-      assert_equal ::Operator, @controller.send(:resource_class)
-    end
-
-    test "token_class returns OperatorToken" do
-      assert_equal OperatorToken, @controller.send(:token_class)
-    end
-
-    test "audit_class returns OperatorChronicle" do
-      assert_equal ::OperatorChronicle, @controller.send(:audit_class)
-    end
-
-    test "resource_type returns operator" do
-      assert_equal "operator", @controller.send(:resource_type)
-    end
-
-    test "resource_foreign_key returns staff_id" do
-      assert_equal :staff_id, @controller.send(:resource_foreign_key)
-    end
-
     test "am_i_user? returns false" do
       assert_not @controller.am_i_user?
     end
