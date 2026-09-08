@@ -1,6 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
+require "digest"
 require "securerandom"
 
 # Base class for every Shrine uploader in this application.
@@ -56,6 +57,18 @@ class ApplicationUploader < Shrine
          cache: -> { :"#{shrine_class.storage_boundary!}_cache" },
          store: -> { :"#{shrine_class.storage_boundary!}_store" }
 
+  plugin :add_metadata
+
+  add_metadata :sha256 do |io, **|
+    digest = Digest::SHA256.new
+    io.binmode if io.respond_to?(:binmode)
+    while (chunk = io.read(16 * 1024))
+      digest.update(chunk)
+    end
+    io.rewind if io.respond_to?(:rewind)
+    digest.hexdigest
+  end
+
   # Object key layout. This is an internal implementation detail and NOT a public
   # URL contract: it may change, and nothing may treat a generated key as a
   # permanent address. Public delivery URLs are a separate, still-undecided layer.
@@ -70,6 +83,10 @@ class ApplicationUploader < Shrine
   # content type is recorded in metadata instead.
   def generate_location(_io, record: nil, name: nil, **)
     raise ArgumentError, "cannot generate an attachment location without a record" if record.nil?
+
+    if record.public_id.blank? && record.respond_to?(:generate_public_id, true)
+      record.send(:generate_public_id)
+    end
 
     public_id = record.try(:public_id)
     if public_id.blank?

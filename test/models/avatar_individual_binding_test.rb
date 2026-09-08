@@ -34,7 +34,6 @@ class AvatarIndividualBindingTest < ActiveSupport::TestCase
       moniker: "Default Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
 
     binding = AvatarIndividualBinding.create!(avatar: avatar, individual: individual)
@@ -82,13 +81,11 @@ class AvatarIndividualBindingTest < ActiveSupport::TestCase
       moniker: "Individual Avatar One",
       active_handle: first_handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     second_avatar = Avatar.create!(
       moniker: "Individual Avatar Two",
       active_handle: second_handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     binding = AvatarIndividualBinding.create!(avatar: first_avatar, individual: first_individual)
     original_public_id = binding.public_id
@@ -127,7 +124,6 @@ class AvatarIndividualBindingTest < ActiveSupport::TestCase
       moniker: "Ordering Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     binding = AvatarIndividualBinding.create!(avatar: avatar, individual: individual)
 
@@ -182,13 +178,11 @@ class AvatarIndividualBindingTest < ActiveSupport::TestCase
       moniker: "DB Avatar One",
       active_handle: first_handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     second_avatar = Avatar.create!(
       moniker: "DB Avatar Two",
       active_handle: second_handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     original = AvatarIndividualBinding.create!(avatar: first_avatar, individual: first_individual)
 

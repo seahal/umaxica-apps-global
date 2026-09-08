@@ -5,8 +5,7 @@ module Publishing
     module App
       class Publication < PublishingRecord
         self.table_name = "publishing_news_app_publications"
-        include Publishing::PublicationRecord
-
+        include PublishingPublicationRecord
       end
     end
   end

@@ -48,12 +48,10 @@ class ObjectStorageShrineConfigurationModesTest < ActiveSupport::TestCase
     with_s3_compatible_configuration do
       assert_equal :s3_compatible, ObjectStorage::ShrineConfiguration.mode(DEVELOPMENT)
 
-      # No boundary is registered, so every bucket lookup is refused by name --
-      # a deployment is never asked for a bucket it has not declared.
       error =
         assert_raises(ArgumentError) do
           ObjectStorage::ShrineConfiguration.build_storage(
-            boundary: :avatar, prefix: "store", rails_env: DEVELOPMENT,
+            boundary: :queue, prefix: "store", rails_env: DEVELOPMENT,
           )
         end
 

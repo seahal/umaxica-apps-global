@@ -30,6 +30,5 @@ end
 
 # Boundary storages are otherwise resolved lazily, which would defer a missing
 # bucket or region to the first upload. Resolving every registered boundary now
-# moves that failure to boot. No boundary is registered yet, so this is currently
-# a no-op; it starts validating as soon as one is.
+# moves that failure to boot.
 ObjectStorage::ShrineConfiguration.verify_registered_boundaries!

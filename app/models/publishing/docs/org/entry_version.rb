@@ -5,8 +5,7 @@ module Publishing
     module Org
       class EntryVersion < PublishingRecord
         self.table_name = "publishing_docs_org_entry_versions"
-        include Publishing::EntryVersionRecord
-
+        include PublishingEntryVersionRecord
       end
     end
   end

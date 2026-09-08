@@ -119,10 +119,8 @@ class HtmlTitleContractTest < ActionDispatch::IntegrationTest
 
       assert_response :success, "GET /health on #{entry.fetch(:host)}"
       assert_equal "text/plain", response.media_type, "GET /health on #{entry.fetch(:host)}"
-      # `HealthCheckRendering#render_snapshot` emits a fixed seven-line text/plain block that
-      # opens with a `title:` field. That field is a plain-text line, not an HTML <title>, which
-      # is exactly why this path is excluded from the title contracts above.
-      assert_match(/\Atitle: Health status\nnamespace: \S+\nstatus: \w+\n/, response.body)
+      assert_equal "title: Health status\n", response.body.lines.first
+      assert_includes response.body.lines, "status: ok\n"
     end
 
     assert_includes non_html_get_paths, "/health"

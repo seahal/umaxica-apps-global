@@ -1,12 +1,17 @@
-# The development bucket the Rails `core` service reads through
-# OBJECT_STORAGE_BUCKET. Keeping it here rather than in a Compose init script is
-# the point of this directory: bucket lifecycle is Terraform's responsibility in
-# every environment, so development exercises the same declarations production
-# will.
-module "object_storage" {
+# Per-boundary development buckets the Rails `core` service reads through
+# OBJECT_STORAGE_BUCKET_AVATAR and OBJECT_STORAGE_BUCKET_PUBLISHING. Keeping
+# them here rather than in a Compose init script is the point of this directory:
+# bucket lifecycle is Terraform's responsibility in every environment.
+module "avatar_object_storage" {
   source = "../../modules/object_storage"
 
-  bucket_name = var.object_storage_bucket
+  bucket_name = var.avatar_bucket
+}
+
+module "publishing_object_storage" {
+  source = "../../modules/object_storage"
+
+  bucket_name = var.publishing_bucket
 }
 
 # Minimal network for the MSK cluster. Real Amazon MSK requires client subnets in

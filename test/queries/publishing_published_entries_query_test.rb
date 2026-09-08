@@ -10,8 +10,12 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
   EXPECTED_INDEX_QUERIES = 7
 
   test "returns only entries with an active publication" do
-
-    published_entry = publishing_publish(entry: publishing_draft(audience: "app", surface: "info", slug: "published-one", title: "Published"))
+    published_entry = publishing_publish(
+      entry: publishing_draft(
+        audience: "app", surface: "info",
+        slug: "published-one", title: "Published",
+      ),
+    )
     draft_entry = publishing_draft(audience: "app", surface: "info", slug: "draft-one", title: "Draft")
 
     result = publishing_query(audience: "app", surface: "info").call
@@ -21,7 +25,12 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
   end
 
   test "excludes an archived entry even while its publication window is open" do
-    entry = publishing_publish(entry: publishing_draft(audience: "app", surface: "info", slug: "archived-one", title: "Archived"))
+    entry = publishing_publish(
+      entry: publishing_draft(
+        audience: "app", surface: "info", slug: "archived-one",
+        title: "Archived",
+      ),
+    )
 
     assert_includes publishing_query(audience: "app", surface: "info").call, entry
 
@@ -55,13 +64,23 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
   end
 
   test "find_published resolves a published entry by its public_id" do
-    entry = publishing_publish(entry: publishing_draft(audience: "app", surface: "info", slug: "canonical-one", title: "Canonical"))
+    entry = publishing_publish(
+      entry: publishing_draft(
+        audience: "app", surface: "info", slug: "canonical-one",
+        title: "Canonical",
+      ),
+    )
 
     assert_equal entry, publishing_query(audience: "app", surface: "info").find_published(public_id: entry.public_id)
   end
 
   test "find_published does not accept the database primary key or the slug" do
-    entry = publishing_publish(entry: publishing_draft(audience: "app", surface: "info", slug: "identity-guard", title: "Identity Guard"))
+    entry = publishing_publish(
+      entry: publishing_draft(
+        audience: "app", surface: "info", slug: "identity-guard",
+        title: "Identity Guard",
+      ),
+    )
     query = publishing_query(audience: "app", surface: "info")
 
     assert_nil query.find_published(public_id: entry.id.to_s)
@@ -69,14 +88,24 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
   end
 
   test "find_published will not resolve an entry from another edition" do
-    entry = publishing_publish(entry: publishing_draft(audience: "app", surface: "info", slug: "cell-bound", title: "Cell Bound"))
+    entry = publishing_publish(
+      entry: publishing_draft(
+        audience: "app", surface: "info", slug: "cell-bound",
+        title: "Cell Bound",
+      ),
+    )
 
     assert_nil publishing_query(audience: "com", surface: "info").find_published(public_id: entry.public_id)
   end
 
   test "find_published returns nil for a draft or an archived entry" do
     draft = publishing_draft(audience: "app", surface: "info", slug: "no-publication", title: "No Publication")
-    archived = publishing_publish(entry: publishing_draft(audience: "app", surface: "info", slug: "was-published", title: "Was Published"))
+    archived = publishing_publish(
+      entry: publishing_draft(
+        audience: "app", surface: "info", slug: "was-published",
+        title: "Was Published",
+      ),
+    )
     archived.update!(archived_at: Time.current, archive_reason: "withdrawn")
     query = publishing_query(audience: "app", surface: "info")
 
@@ -91,14 +120,21 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
     ruby = publishing_term(vocabulary: tag, locale: "ja", slug: "ruby")
 
     tagged = publishing_draft(audience: "app", surface: "info", slug: "tagged-entry", title: "Tagged")
-    create_single_assignment(entry_revision: tagged.current_revision, vocabulary: category, vocabulary_kind: category.kind,
+    create_single_assignment(
+      entry_revision: tagged.current_revision, vocabulary: category, vocabulary_kind: category.kind,
       taxonomy_term: guide, locale: "ja",
     )
-    create_multiple_assignment(entry_revision: tagged.current_revision, vocabulary: tag, vocabulary_kind: tag.kind,
+    create_multiple_assignment(
+      entry_revision: tagged.current_revision, vocabulary: tag, vocabulary_kind: tag.kind,
       taxonomy_term: ruby, locale: "ja", position: 0,
     )
     publishing_publish(entry: tagged)
-    plain = publishing_publish(entry: publishing_draft(audience: "app", surface: "info", slug: "plain-entry", title: "Plain"))
+    plain = publishing_publish(
+      entry: publishing_draft(
+        audience: "app", surface: "info", slug: "plain-entry",
+        title: "Plain",
+      ),
+    )
 
     assert_equal [tagged], publishing_query(audience: "app", surface: "info", category: "guide").call.to_a
     assert_equal [tagged], publishing_query(audience: "app", surface: "info", tag: "ruby").call.to_a
@@ -117,7 +153,8 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
     term = publishing_term(vocabulary: category, locale: "ja", slug: "old-name")
 
     entry = publishing_draft(audience: "app", surface: "info", slug: "renamed-entry", title: "Renamed")
-    create_single_assignment(entry_revision: entry.current_revision, vocabulary: category, vocabulary_kind: category.kind,
+    create_single_assignment(
+      entry_revision: entry.current_revision, vocabulary: category, vocabulary_kind: category.kind,
       taxonomy_term: term, locale: "ja",
     )
     publishing_publish(entry:)
@@ -142,7 +179,8 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
     child = publishing_term(vocabulary: category, locale: "ja", slug: "child", parent:)
 
     entry = publishing_draft(audience: "app", surface: "info", slug: "child-entry", title: "Child")
-    create_single_assignment(entry_revision: entry.current_revision, vocabulary: category, vocabulary_kind: category.kind,
+    create_single_assignment(
+      entry_revision: entry.current_revision, vocabulary: category, vocabulary_kind: category.kind,
       taxonomy_term: child, locale: "ja",
     )
     publishing_publish(entry:)
@@ -155,9 +193,16 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
     category = publishing_category_vocabulary(audience: "app", surface: "info")
     term = publishing_term(vocabulary: category, locale: "ja", slug: "draft-only")
 
-    entry = publishing_publish(entry: publishing_draft(audience: "app", surface: "info", slug: "later-tagged", title: "Later Tagged"))
+    entry = publishing_publish(
+      entry: publishing_draft(
+        audience: "app", surface: "info", slug: "later-tagged",
+        title: "Later Tagged",
+      ),
+    )
     revision = publishing_revision(entry:, title: "Later Tagged v2", sequence: 2)
-    create_single_assignment(entry_revision: revision, vocabulary: category, vocabulary_kind: category.kind, taxonomy_term: term, locale: "ja",
+    create_single_assignment(
+      entry_revision: revision, vocabulary: category, vocabulary_kind: category.kind,
+      taxonomy_term: term, locale: "ja",
     )
     entry.update!(current_revision: revision)
 
@@ -165,9 +210,13 @@ class PublishingPublishedEntriesQueryTest < ActiveSupport::TestCase
   end
 
   test "serializing a published index uses a fixed number of queries" do
-
     3.times { |index|
-      publishing_publish(entry: publishing_draft(audience: "app", surface: "info", slug: "query-count-#{index}", title: "Title #{index}"))
+      publishing_publish(
+        entry: publishing_draft(
+          audience: "app", surface: "info", slug: "query-count-#{index}",
+          title: "Title #{index}",
+        ),
+      )
     }
 
     queries = []

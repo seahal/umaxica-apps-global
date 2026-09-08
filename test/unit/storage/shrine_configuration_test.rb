@@ -76,8 +76,8 @@ class ShrineConfigurationTest < ActiveSupport::TestCase
     assert_not(root.start_with?(Rails.public_path.to_s))
   end
 
-  test "verifying registered boundaries is a no-op while none are registered" do
-    assert_empty(ObjectStorage::Boundary.keys)
+  test "verifying registered boundaries uses in-memory storage in test" do
+    assert_equal(%i(avatar publishing), ObjectStorage::Boundary.keys)
     assert_nothing_raised { ObjectStorage::ShrineConfiguration.verify_registered_boundaries! }
   end
 

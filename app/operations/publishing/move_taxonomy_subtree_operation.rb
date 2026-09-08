@@ -16,7 +16,7 @@ module Publishing
 
     class DepthLimitError < StandardError; end
 
-    MAX_DEPTH = Publishing::TaxonomyTermRecord::MAX_DEPTH
+    MAX_DEPTH = PublishingTaxonomyTermRecord::MAX_DEPTH
 
     # `new_parent: nil` promotes the term to a root.
     def initialize(term:, new_parent:)

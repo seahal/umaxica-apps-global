@@ -1,0 +1,19 @@
+---
+# Compatibility overlay for callers that still load this tracked file explicitly.
+# The Rails core service belongs to .devcontainer/compose.yaml now.
+name: umaxica-apps-global-dc
+services:
+  primary:
+    container_name: global-devcontainer-primary
+  replica:
+    container_name: global-devcontainer-replica
+  valkey-cache:
+    container_name: global-devcontainer-valkey-cache
+  valkey-rate-limit:
+    container_name: global-devcontainer-valkey-rate-limit
+  loki:
+    container_name: global-devcontainer-loki
+  tempo:
+    container_name: global-devcontainer-tempo
+  grafana:
+    container_name: global-devcontainer-grafana

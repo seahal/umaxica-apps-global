@@ -23,7 +23,8 @@ class HealthStatusSerializerTest < ActiveSupport::TestCase
     assert_equal(
       { status: "pass",
         checks: { startup: { status: "pass" }, liveness: { status: "pass" }, readiness: { status: "pass" } },
-        namespace: "test/app", timestamp: "2024-08-30T06:40:00Z", },
+        namespace: "test/app",
+        timestamp: "2024-08-30T06:40:00Z", },
       serialized.body,
     )
     assert_equal 200, serialized.http_status

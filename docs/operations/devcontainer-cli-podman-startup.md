@@ -37,7 +37,7 @@ Containers CLI can invoke `podman compose`, and Podman otherwise prefers an inst
 2. Run **Dev Containers: Rebuild and Reopen in Container** from the Command Palette.
 3. After the first successful build, use **Dev Containers: Reopen in Container** for routine starts.
 
-VS Code reads `.devcontainer/devcontainer.json`, combines the three declared Compose files,
+VS Code reads `.devcontainer/devcontainer.json`, combines the shared infrastructure and core Compose files,
 provisions the configured features, runs the lifecycle commands, and opens `/home/global/workspace`
 as user `global`.
 
@@ -162,9 +162,9 @@ databases and re-clone the replica afterwards.
 ## The Compose file contract
 
 ```text
-compose.yaml                        = the shared services, plus the `app` profile
-compose.env                         = tracked; the environment core and app share
-.devcontainer/compose.yaml          = tracked; `core`, the workspace container
+compose.yaml                        = shared infrastructure and host-native publications
+.devcontainer/compose.yaml          = tracked; the Dev Container's core service overlay
+.devcontainer/compose.override.yml  = tracked compatibility container-name overlay
 compose.override.yaml               = optional, gitignored, per developer/machine
 compose.override.yaml.example       = tracked documentation of the above
 compose.remote-access.yaml          = opt-in, tracked, never in dockerComposeFile

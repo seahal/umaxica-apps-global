@@ -183,7 +183,6 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
       client_id: nil,
       owner_organization_id: "ORG1",
       representing_organization_id: "ORG1",
-      image_data: {},
     )
   end
 end

@@ -5,6 +5,10 @@ require "json"
 require "minitest/autorun"
 require "open3"
 
+# The registry that decides which OBJECT_STORAGE_BUCKET_* variables the development
+# boot requires. Loaded directly because this test runs without the Rails environment.
+require_relative "../../lib/object_storage_boundary"
+
 class HostAuthorizationContractTest < Minitest::Test
   PRIVATE_ORIGIN_HOSTS = %w(
     auth.app.localhost:3000
@@ -36,19 +40,6 @@ class HostAuthorizationContractTest < Minitest::Test
     palm-jp.umaxica.app
   ).freeze
 
-  # The subprocess below boots RAILS_ENV=development, which resolves both Valkey
-  # stores through a one-argument ENV.fetch. Neither is ever connected -- the
-  # subprocess only drives ActionDispatch::HostAuthorization against a stub Rack
-  # endpoint, and RedisCacheStore connects lazily -- but both names must be
-  # present or the boot aborts before Host Authorization is built. Supplying them
-  # here keeps the test from depending on whatever the surrounding shell or CI job
-  # happens to export.
-  DEVELOPMENT_BOOT_ENV = {
-    "RAILS_ENV" => "development",
-    "CACHE_REDIS_URL" => "redis://valkey-cache.invalid:6379/0",
-    "RATE_LIMIT_REDIS_URL" => "redis://valkey-rate-limit.invalid:6379/0",
-  }.freeze
-
   def test_effective_development_middleware_accepts_private_origins_and_rejects_an_unknown_host
     runner = <<~'RUBY'
       require "json"
@@ -69,8 +60,8 @@ class HostAuthorizationContractTest < Minitest::Test
     RUBY
     hosts = PRIVATE_ORIGIN_HOSTS + ["evil.example.com"]
     stdout, stderr, status = Open3.capture3(
-      cleared_object_storage_env.merge(
-        DEVELOPMENT_BOOT_ENV,
+      child_object_storage_env.merge(
+        "RAILS_ENV" => "development",
         "HOST_AUTHORIZATION_TEST_HOSTS" => JSON.generate(hosts),
         "PRIVATE_AUTH_CORPORATE_URL" => "http://configured-auth.com.localhost:3000",
         "PRIVATE_AUTH_STAFF_URL" => "http://configured-auth.org.localhost:3000",
@@ -146,27 +137,24 @@ class HostAuthorizationContractTest < Minitest::Test
   ROUTING_ONLY_ALIASES = ["core-workers-vpc.internal"].freeze
 
   def test_development_compose_aliases_only_private_origins_and_configured_public_site_hosts
-    # The aliases sit on whichever service is fronting Rails, and there are two of them:
-    # `app` in compose.yaml and `core` in .devcontainer/compose.yaml. They must agree, so
-    # check every file that declares a `frontend` aliases block.
-    compose_files = ["../../compose.yaml", "../../.devcontainer/compose.yaml"]
-      .map { |relative| File.read(File.expand_path(relative, __dir__)) }
-    aliases_blocks = compose_files.filter_map do |compose|
-      compose[/frontend:\n\s+aliases:\n((?:\s+(?:- \S+|#.*)\n)+)/, 1]
-    end
+    compose = [File.read(File.expand_path("../../compose.yaml", __dir__)),
+               File.read(File.expand_path("../../.devcontainer/compose.yaml", __dir__)),].join("\n")
+    aliases_block = compose[/frontend:\n\s+aliases:\n((?:\s+(?:- \S+|#.*)\n)+)/, 1].to_s
 
     # Plain Minitest does not provide Rails' assert_not_empty assertion.
     # rubocop:disable Rails/RefuteMethods
-    refute_empty aliases_blocks, "expected to find a frontend aliases block fronting Rails"
+    refute_empty aliases_block, "expected to find the core service's frontend aliases block"
     # rubocop:enable Rails/RefuteMethods
 
-    aliased_hosts = aliases_blocks.flat_map { |block| block.scan(/^\s+- (\S+)/).flatten }.uniq
-
-    # PUBLIC_*_URL moved to compose.env when `core` and `app` were split across two files:
-    # it is the environment they share, so it is a `KEY=value` file rather than YAML.
-    compose_env = File.read(File.expand_path("../../compose.env", __dir__))
+    aliased_hosts = aliases_block.scan(/^\s+- (\S+)/).flatten
+    env_files =
+      compose.scan(/^\s+- (\.env[^\s]*)$/).flatten.map do |relative_path|
+        File.read(File.expand_path("../../#{relative_path}", __dir__))
+      end
     configured_public_hosts =
-      compose_env.scan(/^PUBLIC_[A-Z_]+_URL=(\S+)/).flatten.map { |value| value.sub(%r{\Ahttps?://}, "") }
+      ([compose] + env_files).flat_map do |configuration|
+        configuration.scan(/^\s*PUBLIC_[A-Z_]+_URL[:=]\s*(\S+)/).flatten
+      end.map { |value| value.sub(%r{\Ahttps?://}, "") }
 
     aliased_hosts.each do |host|
       next if host.end_with?(".localhost")
@@ -174,8 +162,7 @@ class HostAuthorizationContractTest < Minitest::Test
 
       assert_includes configured_public_hosts,
                       host,
-                      "#{host} is aliased to the Rails container, but no PUBLIC_*_URL in " \
-                      "compose.env names it, " \
+                      "compose.yaml aliases #{host} to core, but no PUBLIC_*_URL names it, " \
                       "so development Host Authorization would reject it"
     end
 
@@ -214,22 +201,55 @@ class HostAuthorizationContractTest < Minitest::Test
 
   # Open3 hands the child our own environment, so whatever object-storage variables happen
   # to be set in this process - by the shell, by a .env, or by another test mid-flight -
-  # decide whether the child boots. A partially configured set makes
-  # `ObjectStorage::Environment.configured?` refuse to boot, by design. Clear the whole set
-  # (nil unsets) so this test measures Host Authorization and nothing else.
-  OBJECT_STORAGE_ENV_NAMES = %w(
-    OBJECT_STORAGE_ENDPOINT OBJECT_STORAGE_REGION OBJECT_STORAGE_ACCESS_KEY_ID
-    OBJECT_STORAGE_SECRET_ACCESS_KEY OBJECT_STORAGE_FORCE_PATH_STYLE
-    OBJECT_STORAGE_ACCESS_KEY_ID_FILE OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE
-  ).freeze
+  # decide whether the child boots. `development` resolves every registered storage
+  # boundary at boot (config/initializers/shrine.rb), and that path is fail-fast: it
+  # needs a complete S3-compatible configuration and refuses a partial one. Clearing the
+  # set is not enough, because a cleared development boot then fails on the first missing
+  # required variable. Supply a complete, self-contained fake configuration instead, so
+  # the child boots deterministically regardless of the parent environment and this test
+  # measures Host Authorization and nothing else. The values never reach the network:
+  # each test only builds the middleware and drives it with Rack::MockRequest, and the
+  # endpoint host is under RFC 2606's reserved .invalid TLD so it cannot resolve.
+  SHARED_OBJECT_STORAGE_ENV = {
+    "OBJECT_STORAGE_ENDPOINT" => "http://object-storage.invalid:4566",
+    "OBJECT_STORAGE_REGION" => "us-east-1",
+    "OBJECT_STORAGE_ACCESS_KEY_ID" => "test",
+    "OBJECT_STORAGE_SECRET_ACCESS_KEY" => "test",
+    "OBJECT_STORAGE_FORCE_PATH_STYLE" => "true",
+    "CACHE_REDIS_URL" => "redis://127.0.0.1:6379/0",
+    "RATE_LIMIT_REDIS_URL" => "redis://127.0.0.1:6380/0",
+    # The _FILE variants take precedence over the plain names when set, so unset
+    # them (nil) rather than leaving an inherited secret mount to win.
+    "OBJECT_STORAGE_ACCESS_KEY_ID_FILE" => nil,
+    "OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE" => nil,
+  }.freeze
 
-  def cleared_object_storage_env
-    OBJECT_STORAGE_ENV_NAMES.index_with(nil)
+  # Helpers, not cases. They must stay private: RuboCop's Minitest/TestMethodName
+  # renames any PUBLIC method whose name contains "test" to a test_ prefix, which
+  # would turn a helper into a silently passing case and break its callers.
+  private
+
+  # Derived from the registry rather than hand-listed. Registering a new boundary
+  # adds a required OBJECT_STORAGE_BUCKET_<NAME> to the development boot, and a
+  # hand-maintained list would go stale silently - the child would just die with a
+  # KeyError that looks nothing like a Host Authorization failure.
+  def child_object_storage_env
+    buckets =
+      ObjectStorage::Boundary.keys.to_h do |boundary|
+        [ObjectStorage::Boundary.bucket_variable(boundary), "umaxica-#{boundary}-test"]
+      end
+
+    # Plain Minitest does not provide Rails' assert_not_empty assertion.
+    # rubocop:disable Rails/RefuteMethods
+    refute_empty buckets, "expected at least one registered object-storage boundary"
+    # rubocop:enable Rails/RefuteMethods
+
+    SHARED_OBJECT_STORAGE_ENV.merge(buckets)
   end
 
   def development_published_host_env(unconfigured_site_host)
-    cleared_object_storage_env.merge(
-      DEVELOPMENT_BOOT_ENV,
+    child_object_storage_env.merge(
+      "RAILS_ENV" => "development",
       "HOST_AUTHORIZATION_TEST_HOSTS" =>
         JSON.generate(BROWSER_FACING_SITE_HOSTS + [unconfigured_site_host, "evil.example.com"]),
       "PUBLIC_AUTH_SERVICE_URL" => "https://auth.umaxica.app",

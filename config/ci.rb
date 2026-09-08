@@ -6,16 +6,16 @@
 CI.run do
   step "Setup: test database", "env RAILS_ENV=test bin/rails db:prepare"
 
-  step "Style: JavaScript", "pnpm -s check"
+  step "Style: JavaScript", "bun run check"
   step "Style: Ruby", "bin/rubocop"
   step "Style: ERB", "bundle exec erb_lint --lint-all"
 
   step "Security: Gem audit", "bin/bundler-audit"
-  step "Security: JavaScript audit", "pnpm audit"
+  step "Security: JavaScript audit", "bun audit"
   step "Security: Brakeman code analysis", "bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error"
 
   step "Report: Ruby outdated dependencies", "bundle outdated || true"
-  step "Report: JavaScript outdated dependencies", "pnpm outdated || true"
+  step "Report: JavaScript outdated dependencies", "bun outdated || true"
 
   step "Smoke: Rails server boot", <<~SH
     set -euo pipefail
@@ -63,7 +63,7 @@ CI.run do
     exit 1
   SH
 
-  step "Tests: JavaScript", "pnpm -s test:coverage"
+  step "Tests: JavaScript", "bun run test:coverage"
 
   if ENV["COVERAGE"] == "true"
     step "Tests: Rails with coverage", "env COVERAGE=true bin/rails test test/"

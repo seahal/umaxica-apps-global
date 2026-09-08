@@ -181,6 +181,7 @@ module Publishing
       revision = entry.current_revision
 
       assignment_class = revision.entry.versions.klass.reflect_on_association(:single_taxonomy_assignments).klass
+
       assignment_class.stub(:new, ->(*) { raise(ActiveRecord::StatementInvalid, "boom") }) do
         assert_raises(ActiveRecord::StatementInvalid) { PromoteRevisionOperation.call(revision:) }
       end

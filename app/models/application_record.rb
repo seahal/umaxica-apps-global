@@ -1,7 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-# TODO: Find out why needs this code
 class ApplicationRecord < ActiveRecord::Base
   primary_abstract_class
 
@@ -12,12 +11,25 @@ class ApplicationRecord < ActiveRecord::Base
     FIXED_ID_SEED_CACHE.clear
   end
 
-  # FIXME: i want to remove these lines.
+  # Guarantees the fixed-id rows a reference table depends on (its DEFAULTS /
+  # enum constants) exist, without duplicating any that are already present.
+  # Called from db/seeds.rb and config/initializers/preference_reference_defaults.rb
+  # (and, as a fallback, from the request path when a reference table is found
+  # empty after db:reset). Re-running it inserts nothing new.
+  #
+  # Caveat worth knowing before relying on it: the per-id fallback below rescues
+  # StatementInvalid and moves on, so a row that cannot be inserted for a real
+  # reason -- a NOT NULL column with no default, a failing check constraint --
+  # is skipped silently and the reference table is left incomplete. That
+  # swallow predates this comment and conflicts with
+  # generic/no-silent-fallback.mdc; it is recorded here rather than changed,
+  # because narrowing it needs its own change and regression tests.
   def self.insert_missing_fixed_ids!(ids)
     return if ids.blank?
 
-    # Gracefully skip if database is not ready or table is missing
-    # Use lease_connection for Rails 8 compatibility
+    # The boot initializer can run before migrations on a fresh database, so a
+    # missing table is an expected state here, not an error. lease_connection is
+    # the Rails 8 accessor for a connection outside a checked-out block.
     return unless lease_connection.data_source_exists?(table_name)
 
     fixed_ids = ids.uniq

@@ -103,7 +103,8 @@ class OperatorPreference < OrgPrincipalRecord
     self.public_id = Nanoid.generate(size: 21) if public_id.blank?
   end
 
-  # FIXME: i want to remove these lines.
+  # New records get explicit non-consent defaults so a nil never reaches a
+  # boolean consent column.
   def set_defaults
     return unless new_record?
 

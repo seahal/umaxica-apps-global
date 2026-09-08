@@ -2,7 +2,8 @@
   "all": {
     "sourceCodeDir": "src",
     "watchAdditionalPaths": [],
-    "additionalEntrypoints": ["~/{assets,fonts,icons,images}/**/*", "~/styles/surfaces/*.css"]
+    "additionalEntrypoints": ["~/{assets,fonts,icons,images}/**/*", "~/styles/surfaces/*.css"],
+    "package_manager": "bun"
   },
   "development": {
     "autoBuild": true,

@@ -22,4 +22,8 @@ class AppleOnlyCredentialStatusTest < ActiveSupport::TestCase
 
     assert_not AppleOnlyCredentialStatus.call(client)
   end
+
+  test "does not warn when there is no client" do
+    assert_not AppleOnlyCredentialStatus.call(nil)
+  end
 end

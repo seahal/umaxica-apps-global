@@ -67,3 +67,48 @@ class SignOidcLogoutCompletionTest < ActiveSupport::TestCase
     assert_equal "https://auth.example/done", subject.invoke(:oidc_logout_completion_redirect_url, transaction)
   end
 end
+
+class SignOidcLogoutCompletionTest
+  test "OIDC logout pending and token helpers reject stale or absent records" do
+    subject = harness
+    session_hash = {}
+    subject.define_singleton_method(:session) { session_hash }
+    subject.params_hash = {}
+
+    assert_not subject.invoke(:oidc_logout_pending_request_present?)
+    assert_nil subject.invoke(:oidc_logout_pending_request)
+    subject.params_hash = { logout_challenge: "challenge-1" }
+
+    assert subject.invoke(:oidc_logout_pending_request_present?)
+    assert_equal "challenge-1", subject.invoke(:oidc_logout_pending_request).logout_challenge
+    subject.params_hash = {}
+    session_hash[SignOidcLogout::OIDC_LOGOUT_REQUEST_SESSION_KEY] = { "expires_at" => 1.minute.ago.iso8601 }
+
+    assert_nil subject.invoke(:oidc_logout_pending_request)
+    session_hash[SignOidcLogout::OIDC_LOGOUT_REQUEST_SESSION_KEY] = { "expires_at" => 1.minute.from_now.iso8601 }
+
+    assert_instance_of SignOidcLogout::OidcLogoutPendingRequest, subject.invoke(:oidc_logout_pending_request)
+
+    assert_nil subject.invoke(:oidc_current_session_token, nil)
+    assert_nil subject.invoke(:revoke_oidc_current_session_token!, nil)
+  end
+
+  test "logout redirect and service host helpers cover no-state and each surface" do
+    subject = harness
+    result = Struct.new(:post_logout_redirect_uri, :state).new("https://client.example/done", nil)
+
+    assert_equal result.post_logout_redirect_uri, subject.invoke(:post_logout_redirect_uri_with_state, result)
+    subject.define_singleton_method(:controller_path) { "auth/app/sign/out" }
+
+    assert_equal ENV.fetch("PUBLIC_AUTH_SERVICE_URL"), subject.invoke(:sign_service_host)
+    subject.define_singleton_method(:controller_path) { "auth/com/sign/out" }
+
+    assert_equal ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"), subject.invoke(:sign_service_host)
+    subject.define_singleton_method(:controller_path) { "auth/org/sign/out" }
+
+    assert_equal ENV.fetch("PRIVATE_AUTH_STAFF_URL"), subject.invoke(:sign_service_host)
+    subject.define_singleton_method(:params) { ActionController::Parameters.new({}) }
+
+    assert_nil subject.invoke(:logout_transaction_for_challenge)
+  end
+end

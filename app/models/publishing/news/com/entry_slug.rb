@@ -5,8 +5,7 @@ module Publishing
     module Com
       class EntrySlug < PublishingRecord
         self.table_name = "publishing_news_com_entry_slugs"
-        include Publishing::EntrySlugRecord
-
+        include PublishingEntrySlugRecord
       end
     end
   end

@@ -43,7 +43,7 @@ class ApplicationUploaderTest < ActiveSupport::TestCase
 
   test "a record without a public_id raises instead of sharing a namespace" do
     uploader = Class.new(ApplicationUploader) { def self.storage_boundary = :demo }
-    record = Avatar.new(public_id: nil)
+    record = Struct.new(:public_id).new(nil)
 
     assert_raises(ApplicationUploader::MissingPublicIdError) do
       uploader.new(:store).generate_location(nil, record: record, name: :image)

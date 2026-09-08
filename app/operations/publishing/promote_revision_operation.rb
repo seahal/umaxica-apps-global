@@ -7,15 +7,6 @@ module Publishing
 
     class IncompleteVersionError < StandardError; end
 
-    # The single unique index that makes promotion idempotent: at most one version per
-    # revision. A collision on it means another promotion won the race and its version can be
-    # handed back. A collision on any other unique index of the same table -- the per-entry
-    # sequence, the public id -- is a genuine failure and must not be swallowed as a lost race,
-    # so the rescue below matches this name rather than any `RecordNotUnique`.
-    def self.idempotency_index_name(entry_class)
-      "uidx_#{entry_class::SURFACE}_#{entry_class::AUDIENCE}_ver_on_revision"
-    end
-
     def initialize(revision:, operator_public_id: nil)
       super()
       @revision = revision
@@ -57,9 +48,39 @@ module Publishing
       copy_media_usages(version)
       version
     rescue ActiveRecord::RecordNotUnique => e
-      raise unless e.message.include?(self.class.idempotency_index_name(entry.class))
+      idempotency_index = "uidx_#{entry.class::SURFACE}_#{entry.class::AUDIENCE}_ver_on_revision"
+      raise unless idempotency_violation?(e, idempotency_index)
 
       verify_complete!(entry.versions.find_by!(entry_revision_id: revision.id))
+    end
+
+    # Only a collision on the revision idempotency index means another promotion
+    # won the race. A duplicate sequence, public id, or any other unique
+    # violation is a genuine failure and must propagate unswallowed.
+    #
+    # PostgreSQL reports the violated index in PG_DIAG_CONSTRAINT_NAME, which is
+    # an exact identifier rather than prose, so an index whose name merely
+    # contains another's cannot be confused for it. When that field is absent
+    # (a non-pg adapter, or an error carrying no PG::Result) fall back to
+    # searching the message for the index name. That fallback deliberately does
+    # NOT parse the "unique constraint \"...\"" phrasing: PostgreSQL translates
+    # that prose under a non-English lc_messages, while the index name itself is
+    # always embedded verbatim.
+    def idempotency_violation?(error, index_name)
+      reported = violated_constraint(error)
+      return reported == index_name if reported
+
+      error.message.include?(index_name)
+    end
+
+    def violated_constraint(error)
+      cause = error.cause
+      return nil unless cause.respond_to?(:result)
+
+      result = cause.result
+      return nil if result.nil?
+
+      result.error_field(PG::Result::PG_DIAG_CONSTRAINT_NAME).presence
     end
 
     def lock_taxonomy!

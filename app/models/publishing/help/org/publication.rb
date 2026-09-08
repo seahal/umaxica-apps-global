@@ -5,8 +5,7 @@ module Publishing
     module Org
       class Publication < PublishingRecord
         self.table_name = "publishing_help_org_publications"
-        include Publishing::PublicationRecord
-
+        include PublishingPublicationRecord
       end
     end
   end

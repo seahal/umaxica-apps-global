@@ -632,10 +632,10 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   test "GET /api/v0/health.json identifies the controller namespace selected for every edge host" do
     namespaces =
       EDGE_NAMESPACE_HOSTS.map do |host, expected_namespace|
-        host! host
+        host!(host)
 
         stub_healthy do
-          get "/api/v0/health.json", headers: { "Accept" => "application/json" }
+          get("/api/v0/health.json", headers: { "Accept" => "application/json" })
         end
 
         assert_response :success, "#{host} /api/v0/health.json"
@@ -755,6 +755,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
               assert_response :success
               assert_equal "text/plain", response.media_type
               namespace = surface[:controller].split("/").first(2).join("/")
+
               assert_match(
                 Regexp.new(
                   "\\Atitle: Health status\\nnamespace: #{namespace}\\nstatus: ok\\nstartup: ok\\n" \

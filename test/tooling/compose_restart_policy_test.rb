@@ -14,6 +14,7 @@ class ComposeRestartPolicyTest < Minitest::Test
     "compose.yaml",
     "compose.override.yaml.example",
     ".devcontainer/compose.yaml",
+    ".devcontainer/compose.override.yml",
   ].freeze
 
   # The services a developer runs every session, and the only ones expected to
@@ -106,23 +107,6 @@ class ComposeRestartPolicyTest < Minitest::Test
   # Rails is started by hand, so any port probe would report unhealthy for most of a
   # session. Nothing here asserts one either way.
 
-  # `app` is deliberately NOT in RECOVERING_SERVICES. It runs `bin/dev` in the foreground,
-  # so the failures it actually hits -- a bad migration, a syntax error, a missing gem --
-  # are ones a restart repeats rather than rides out. It stays stopped and visible instead.
-  # Its log still has to be capped: `bin/dev` is the noisiest process in the project.
-  def test_the_application_service_stays_down_and_caps_its_log
-    app = base_compose.fetch("services").fetch("app")
-
-    assert_equal "no", app.fetch("restart").to_s,
-                 "app must not self-restart; a failing bin/dev is a thing to read, not to retry"
-
-    options = app.fetch("logging").fetch("options")
-
-    %w(max-size max-file).each do |option|
-      refute_nil options[option], "compose.yaml: app sets no #{option}"
-    end
-  end
-
   private
 
   def base_compose
@@ -145,20 +129,11 @@ class ComposeRestartPolicyTest < Minitest::Test
     end
   end
 
-  # `core` lives in `.devcontainer/compose.yaml` and every other recovering service in
-  # `compose.yaml`, so resolve each one against whichever tracked file defines it rather
-  # than assuming a single file holds them all.
   def each_recovering_service
     RECOVERING_SERVICES.each do |service|
-      compose_file = COMPOSE_FILES.find do |candidate|
-        next false unless File.exist?(File.join(REPOSITORY_ROOT, candidate))
-
-        load_compose(candidate).fetch("services", {}).key?(service)
-      end
-
-      refute_nil compose_file, "no tracked Compose file defines #{service}"
-
-      yield compose_file, service, load_compose(compose_file).fetch("services").fetch(service)
+      compose_file = (service == "core") ? ".devcontainer/compose.yaml" : "compose.yaml"
+      compose = (service == "core") ? load_compose(compose_file) : base_compose
+      yield compose_file, service, compose.fetch("services").fetch(service)
     end
   end
 end

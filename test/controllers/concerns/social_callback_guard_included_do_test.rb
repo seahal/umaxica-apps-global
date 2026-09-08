@@ -258,3 +258,84 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
     logged
   end
 end
+
+class SocialCallbackGuardIncludedDoTest
+  test "callback state detector reports each rejection reason" do
+    h = GuardHarness.new
+    expected = { callback: nil, expected: "state", stored_provider: "google", used_at: nil, started_at: 0 }
+
+    assert_equal "missing_callback_state", h.send(:detect_callback_state_error, expected, "google")
+    expected[:callback] = "state"
+    expected[:expected] = nil
+
+    assert_equal "missing_expected_state", h.send(:detect_callback_state_error, expected, "google")
+    expected[:expected] = "state"
+    expected[:stored_provider] = "apple"
+
+    assert_equal "provider_mismatch", h.send(:detect_callback_state_error, expected, "google")
+    expected[:stored_provider] = "google"
+    expected[:used_at] = Time.current.to_i
+
+    assert_equal "state_reused", h.send(:detect_callback_state_error, expected, "google")
+    expected[:used_at] = nil
+    expected[:callback] = "different"
+
+    assert_equal "state_mismatch", h.send(:detect_callback_state_error, expected, "google")
+  end
+
+  test "callback guard caches verification and logs optional sources" do
+    h = GuardHarness.new
+    h.request.env["social_callback_guard.verified"] = true
+
+    assert h.send(:verified_social_callback_request?)
+    h.request.env.delete("social_callback_guard.verified")
+    h.define_singleton_method(:evaluate_social_callback_request) { true }
+
+    assert h.send(:verified_social_callback_request?)
+    h.request.headers["Origin"] = "https://id.example.test"
+    h.request.headers["Referer"] = "https://id.example.test/callback"
+    assert_nothing_raised { h.send(:log_callback_source, "google") }
+    h.request.env["social_callback_guard.verified"] = false
+    h.send(:verify_social_callback_request!)
+
+    assert_equal :forbidden, h.redirects.last.last[:status]
+  end
+end
+
+class SocialCallbackGuardIncludedDoTest
+  test "request and capture phases reject unmatched, bad, blank, and duplicate inputs" do
+    unmatched = Rack::MockRequest.env_for("/other", method: "POST")
+    unmatched["rack.session"] = {}
+
+    assert_nil SocialCallbackGuard.verify_request_phase!(unmatched)
+    assert_nil SocialCallbackGuard.capture_request_state!(unmatched)
+
+    bad_method = Rack::MockRequest.env_for("/social/google", method: "GET")
+    bad_method["rack.session"] = {}
+    result = SocialCallbackGuard.verify_request_phase!(bad_method)
+
+    assert_equal 403, result.first
+
+    blank = Rack::MockRequest.env_for("/social/google", method: "POST")
+    blank["rack.session"] = {}
+
+    assert_nil SocialCallbackGuard.capture_request_state!(blank)
+
+    duplicate = Rack::MockRequest.env_for("/social/google?state=state", method: "POST")
+    duplicate["rack.session"] = {
+      SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY => "state",
+      SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY => "google",
+    }
+
+    assert_nil SocialCallbackGuard.capture_request_state!(duplicate)
+    assert_equal "google", duplicate["rack.session"][SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY]
+  end
+
+  test "social source and method helpers cover unknown providers and ports" do
+    assert_not SocialCallbackGuard.allowed_request_method?("unknown", "POST")
+    assert_not SocialCallbackGuard.allowed_callback_method?("unknown", "GET")
+    assert_equal "example.test:8443", SocialCallbackGuard.normalize_host_port("https://EXAMPLE.TEST:8443")
+    assert_nil SocialCallbackGuard.normalize_host_port("http://[")
+    assert_equal "https://example.test:8443", SocialCallbackGuard.normalize_origin("https://EXAMPLE.TEST:8443/path")
+  end
+end

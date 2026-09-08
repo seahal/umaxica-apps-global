@@ -221,7 +221,6 @@ class AvatarAssignmentTest < ActiveSupport::TestCase
       moniker: "Assignment Test Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
   end
 

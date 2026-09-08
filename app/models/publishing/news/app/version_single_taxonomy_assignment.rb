@@ -5,11 +5,11 @@ module Publishing
     module App
       class VersionSingleTaxonomyAssignment < PublishingRecord
         self.table_name = "publishing_news_app_version_single_taxonomy_assignments"
-        include Publishing::FamilyTaxonomyAssignment
+        include PublishingFamilyTaxonomyAssignment
         include PublishingTaxonomySnapshot
 
-
-        belongs_to :entry_version, class_name: "Publishing::News::App::EntryVersion", inverse_of: :single_taxonomy_assignments
+        belongs_to :entry_version, class_name: "Publishing::News::App::EntryVersion",
+                                   inverse_of: :single_taxonomy_assignments
 
         def self.expected_kind = Publishing::TaxonomyKind::SINGLE_HIERARCHICAL
       end

@@ -5,12 +5,11 @@ module Publishing
     module App
       class Entry < PublishingRecord
         self.table_name = "publishing_docs_app_entries"
-        include Publishing::EntryRecord
+        include PublishingEntryRecord
 
-        SURFACE = 'docs'
-        AUDIENCE = 'app'
+        SURFACE = "docs"
+        AUDIENCE = "app"
         REGION_CODE = "jp"
-
       end
     end
   end

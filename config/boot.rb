@@ -3,6 +3,12 @@
 
 ENV["BUNDLE_GEMFILE"] ||= File.expand_path("../Gemfile", __dir__)
 
+# Load the repository's non-secret local contract before Rails configuration is evaluated.
+# Compose may provide topology, but the application reads the same contract on bare metal and
+# in a Dev Container; it never needs Compose to decide its own configuration.
+require_relative "../lib/local_environment"
+LocalEnvironment.load!
+
 require "bundler/setup" # Set up gems listed in the Gemfile.
 
 # In the devcontainer the workspace (including tmp/cache) is a ZFS bind mount;

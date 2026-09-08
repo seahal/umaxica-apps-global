@@ -27,7 +27,7 @@ GIT
 
 GIT
   remote: https://github.com/rails/rails.git
-  revision: 44cf1d3c59d97fda529977d1756e5eb04d8564a2
+  revision: a21cbefc0469f2fb7f45332ba86ef2f047b4b1cd
   branch: main
   specs:
     actioncable (8.2.0.alpha)
@@ -132,7 +132,7 @@ GIT
 GEM
   remote: https://rubygems.org/
   specs:
-    action_policy (0.7.6)
+    action_policy (0.7.7)
       ruby-next-core (>= 1.0)
     action_push_native (0.3.1)
       activejob (>= 8.0)
@@ -1040,15 +1040,15 @@ GEM
       fugit (~> 1.11)
       railties (>= 7.1)
       thor (>= 1.3.1)
-    sorbet (0.6.13466)
-      sorbet-static (= 0.6.13466)
-    sorbet-runtime (0.6.13466)
-    sorbet-static (0.6.13466-aarch64-linux)
-    sorbet-static (0.6.13466-universal-darwin)
-    sorbet-static (0.6.13466-x86_64-linux)
-    sorbet-static-and-runtime (0.6.13466)
-      sorbet (= 0.6.13466)
-      sorbet-runtime (= 0.6.13466)
+    sorbet (0.6.13471)
+      sorbet-static (= 0.6.13471)
+    sorbet-runtime (0.6.13471)
+    sorbet-static (0.6.13471-aarch64-linux)
+    sorbet-static (0.6.13471-universal-darwin)
+    sorbet-static (0.6.13471-x86_64-linux)
+    sorbet-static-and-runtime (0.6.13471)
+      sorbet (= 0.6.13471)
+      sorbet-runtime (= 0.6.13471)
     spoom (1.8.7)
       erubi (>= 1.10.0)
       prism (>= 0.28.0)
@@ -1070,7 +1070,7 @@ GEM
       logger
     strong_migrations (2.8.0)
       activerecord (>= 7.2)
-    svix (2.2.0)
+    svix (2.3.0)
       base64 (~> 0.3.0)
       logger (~> 1.0)
     swd (2.0.3)
@@ -1194,6 +1194,7 @@ DEPENDENCIES
   hotwire-spark
   i18n-tasks
   image_processing
+  importmap-rails
   inertia_rails
   jbuilder
   json-canonicalization
@@ -1285,7 +1286,7 @@ DEPENDENCIES
   yard
 
 CHECKSUMS
-  action_policy (0.7.6) sha256=a80156671e6b7784a2f1fa3a5f347da27c7e13abe7b1c9aab81772839794002d
+  action_policy (0.7.7) sha256=e17a708d2a6bcc80a7fe3fcd5461138c284d1ef19553533b1eeaf58c0fadaf33
   action_push_native (0.3.1) sha256=77a234b6da6fdc8f45357662485044a81b1c6d0e3285b88c307fdf8095fda0cc
   action_text-trix (2.1.19) sha256=7012f59421009cf284aa651294896414d653a61a2417c9b8714c8476d2f74009
   actioncable (8.2.0.alpha)
@@ -1636,12 +1637,12 @@ CHECKSUMS
   smart_properties (1.17.0) sha256=f9323f8122e932341756ddec8e0ac9ec6e238408a7661508be99439ca6d6384b
   snaky_hash (2.0.7) sha256=7d02c70012a3f932e48860cd024577908300c9aa615e0cb9b450aaa749cbcb4d
   solid_queue (1.7.0) sha256=6566b70b801d1c317c81bba7bcdd5677c019afac584a30374b4164002ca356d3
-  sorbet (0.6.13466) sha256=c0f56bc370d9bd88dcb479b3eebcaa531cac38b270e1b15daf7573cef652f2bb
-  sorbet-runtime (0.6.13466) sha256=65ee78a81e678d302d94fd1179c0cf4f3882654c9d26c331947ce7a302c53036
-  sorbet-static (0.6.13466-aarch64-linux) sha256=4c18a29fe08a167ba14f0b8ac8211b7f6bb521fbc5209c4aaec9f1c66ce171f8
-  sorbet-static (0.6.13466-universal-darwin) sha256=51a265cc8f1d391b1e79a440985d2a46ac948c54a943e40f38d3eb82c18073f4
-  sorbet-static (0.6.13466-x86_64-linux) sha256=4730d97f3c25a826304036798ec893671f2c4e9ffd5dbbacd30d27639c1a569e
-  sorbet-static-and-runtime (0.6.13466) sha256=da4221d511364fb82b2b75226be478071491d74acdd284c3aa8d738ae3d4a20f
+  sorbet (0.6.13471) sha256=989e18a4382ae2da1c2aafc0a2f9491f865717c1d0f726b8746e8de13f057536
+  sorbet-runtime (0.6.13471) sha256=7ffbfc63282796120bb58b58504f38053ab11297d4a41744dd27d1b7e5d21277
+  sorbet-static (0.6.13471-aarch64-linux) sha256=9f51f22f7bc84da1fda633b81c39bb0b9f82beee5f09c280f1abdfe56d2cf88c
+  sorbet-static (0.6.13471-universal-darwin) sha256=f8ab547ad97bfaf6f356bc4271e63c38e1e2aad16b12ddda7458a86bf3a05a10
+  sorbet-static (0.6.13471-x86_64-linux) sha256=3cb7145dfd09761c233c72ab18f72fd3aa7d6e1f7f78815ce86311e2681cfe7b
+  sorbet-static-and-runtime (0.6.13471) sha256=184d25c96d0a47f05ce26e305956f7d065c91232263f8eb2cd88a561a843f081
   spoom (1.8.7) sha256=81960502cdf23aa991f015988aa5dd43325e23ae4318b8e00d541299cbdb70f6
   stackprof (0.2.28) sha256=4ec2ace02f386012b40ca20ef80c030ad711831f59511da12e83b34efb0f9a04
   stimulus-rails (1.3.4) sha256=765676ffa1f33af64ce026d26b48e8ffb2e0b94e0f50e9119e11d6107d67cb06
@@ -1650,7 +1651,7 @@ CHECKSUMS
   stringio (3.2.0) sha256=c37cb2e58b4ffbd33fe5cd948c05934af997b36e0b6ca6fdf43afa234cf222e1
   stripe (19.6.1) sha256=086c3bdedbe00dad7ed7ffb683f92c2af8582cac075a2f5ffe1e2baf614bdece
   strong_migrations (2.8.0) sha256=cb9c0f8160e60f3e9c0e76098d57a6f61825b9618e8eb41cebbd1c1079874439
-  svix (2.2.0) sha256=5ab482f10825cb28098d2b82c9655c790f8d029f0c039453379f2d5e26c00123
+  svix (2.3.0) sha256=fa68554aa03c771935cf8d438a9e33fb88b8b0776524e1536667c4705f497ebd
   swd (2.0.3) sha256=4cdbe2a4246c19f093fce22e967ec3ebdd4657d37673672e621bf0c7eb770655
   tapioca (0.19.2) sha256=938731b07811aee8d23871b1aee8861d464fbaf2cfffbf79a62b0c869a5120ec
   terminal-table (4.0.0) sha256=f504793203f8251b2ea7c7068333053f0beeea26093ec9962e62ea79f94301d2

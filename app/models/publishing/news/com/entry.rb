@@ -5,12 +5,11 @@ module Publishing
     module Com
       class Entry < PublishingRecord
         self.table_name = "publishing_news_com_entries"
-        include Publishing::EntryRecord
+        include PublishingEntryRecord
 
-        SURFACE = 'news'
-        AUDIENCE = 'com'
+        SURFACE = "news"
+        AUDIENCE = "com"
         REGION_CODE = "jp"
-
       end
     end
   end

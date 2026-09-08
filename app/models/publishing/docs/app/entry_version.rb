@@ -5,8 +5,7 @@ module Publishing
     module App
       class EntryVersion < PublishingRecord
         self.table_name = "publishing_docs_app_entry_versions"
-        include Publishing::EntryVersionRecord
-
+        include PublishingEntryVersionRecord
       end
     end
   end

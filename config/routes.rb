@@ -29,6 +29,7 @@ Rails.application.routes.draw do
   # News owns the public news content surface.
   draw :news
 
-  # FIXME: I WANT remove this line!
+  # Any host that reached the app without matching a surface above is unknown;
+  # answer it here rather than leaking a routing error.
   get "/", to: "unknown_hosts#show"
 end

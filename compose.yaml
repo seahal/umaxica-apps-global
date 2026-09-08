@@ -1,288 +1,32 @@
 ---
-# The shared development environment: the datastores, the local AWS emulator,
-# the observability stack, and the Cloudflare Tunnel connectors. A fresh
-# `git clone` plus a container engine must be enough to resolve this
-# configuration -- no local file has to be created first. Nothing here may use a
-# required `${VAR:?}` interpolation: Compose interpolates the whole file
-# whichever service is named, so one would stop every machine that has not set
-# the variable, even for a service it never starts.
-#
-# There are two supported ways to run this repository, and they share every
-# service in this file:
-#
-#   podman compose up                  the datastores and nothing else. Run
-#                                      Rails from wherever you like against
-#                                      them.
-#   podman compose --profile app up    the above plus `app`, which runs
-#                                      `bin/dev` in a container. No editor, no
-#                                      Dev Container.
-#   Open in Dev Container              the above minus `app`, plus `core` from
-#                                      `.devcontainer/compose.yaml` -- a
-#                                      workspace container to attach to.
-#
-# `core` and `app` are the same image with a different PID 1. They publish the
-# same ports and claim the same aliases, so at most one of them runs at a time.
+# Shared development infrastructure. The Dev Container application layer lives in
+# `.devcontainer/compose.yaml`; this file deliberately contains no `core` service.
+# Datastore and emulator publications are loopback-only so host-native Rails and
+# OpenTofu can reach them without exposing development services to the LAN.
 #
 # The file layout:
 #
-#   compose.yaml                  — this file. The services both entry points
-#                                   share, plus the `app` profile.
-#   compose.env                   — TRACKED. The environment `core` and `app`
-#                                   both need. Read with `env_file:` because a
-#                                   YAML anchor cannot cross a file boundary.
-#   .devcontainer/compose.yaml    — TRACKED. `core`, the workspace container.
-#                                   Loaded only by `devcontainer.json`, which is
-#                                   what keeps it out of a bare `up`.
+#   compose.yaml                  — infrastructure services and loopback host ports.
+#   .devcontainer/compose.yaml    — the Dev Container `core` application service.
+#   .devcontainer/compose.override.yml
+#                                 — TRACKED. The Dev Container's own overlay
+#                                   (container names, SELinux labels, ports). Part
+#                                   of the standard environment, not a local file.
 #   compose.override.yaml         — OPTIONAL, gitignored, per developer/machine.
 #                                   Never created automatically; documented by
 #                                   `compose.override.yaml.example`.
 #   compose.remote-access.yaml    — opt-in, tracked, never in `dockerComposeFile`.
 #
-# `.devcontainer/devcontainer.json` loads this file and then
-# `.devcontainer/compose.yaml`, in that order. The Dev Containers CLI passes
-# each entry to Compose as `-f`, which also suppresses Compose's auto-discovery
-# of `compose.override.yaml` — so a local override applies to a bare
-# `docker compose`, not to the editor.
-#
-# Relative paths anywhere in either file resolve against the project directory,
-# which is the directory holding the first `-f` file — this one, the repository
-# root — never against `.devcontainer/`.
+# `.devcontainer/devcontainer.json` loads the first two, in that order. The Dev
+# Containers CLI passes each entry to Compose as `-f`, which also suppresses
+# Compose's auto-discovery of `compose.override.yaml` — so a local override
+# applies to a bare `docker compose`, not to the editor.
 #
 # The `-dc` suffix is historical and is kept deliberately: the project name is the
 # prefix of every named volume, so changing it would orphan the development
-# PostgreSQL, Valkey, bundle, and node_modules volumes. It must stay identical
-# in `.devcontainer/compose.yaml`, which is what makes both entry points address
-# the same volumes and the same networks.
+# PostgreSQL, Valkey, bundle, and node_modules volumes.
 name: umaxica-apps-global-dc
 services:
-  # The Rails stack, run WITHOUT the Dev Container.
-  #
-  # `core` (.devcontainer/compose.yaml) and this service are the same image and
-  # the same mounts; they differ only in what PID 1 does. `core` sleeps and waits
-  # for an editor to attach. `app` runs `bin/dev` -- `rails server`, `vite dev`
-  # and `bin/jobs` under foreman -- so that
-  #
-  #     podman compose --profile app up
-  #
-  # is a complete, editor-free development stack.
-  #
-  # It is behind the `app` profile because a bare `podman compose up` should
-  # bring up the datastores and leave the application alone: that is the shape
-  # the Dev Container needs, and it is also what you want when you are about to
-  # run `bin/rails` or a test suite by hand. Nothing starts this service
-  # implicitly.
-  #
-  # `core` and `app` publish the same host ports and claim the same network
-  # aliases, so they are mutually exclusive. Running the Dev Container and
-  # `--profile app` at once fails at bind time on 3000; stop one first.
-  app:
-    profiles:
-      - app
-    container_name: global-app
-    build:
-      context: "."
-      dockerfile: "./Containerfile"
-      target: "${CORE_BUILD_TARGET:-development}"
-      args:
-        COMMIT_HASH: abcdef
-        DOCKER_UID: "${UID:-1000}"
-        DOCKER_GID: "${GID:-1000}"
-    userns_mode: keep-id
-    init: true
-    working_dir: "/home/global/workspace"
-    entrypoint:
-      - "/usr/local/bin/core-entrypoint"
-    # `bin/dev` runs `bin/rails db:prepare` first (set SKIP_DB_PREPARE to skip
-    # it) and then `foreman start -f Procfile.dev`. Dependencies are installed
-    # first because, unlike the Dev Container, nothing here runs
-    # `postCreateCommand`: `umaxica-bundle` and `umaxica-node-modules` are empty
-    # on a fresh clone, and both are shared with `core`, so whichever entry point
-    # runs first populates them for the other.
-    command:
-      - "sh"
-      - "-lc"
-      - "{ bundle check || bundle install; } && pnpm install --frozen-lockfile && exec bin/dev"
-    # Shared with `core`. See compose.env's header.
-    env_file:
-      - "./compose.env"
-    environment:
-      # Repeated from .devcontainer/compose.yaml: `env_file` performs no
-      # `${VAR:-default}` interpolation, so these cannot live in `compose.env`
-      # without losing the host override. Keep the two lists identical.
-      EMAIL_ADDRESS_HMAC_SALT: "${EMAIL_ADDRESS_HMAC_SALT:-development_email_address_hmac_salt}"
-      TELEPHONE_NUMBER_HMAC_SALT: "${TELEPHONE_NUMBER_HMAC_SALT:-development_telephone_number_hmac_salt}"
-      ENFORCEMENT_APP_IDENTIFIER_HMAC_KEY: "${ENFORCEMENT_APP_IDENTIFIER_HMAC_KEY:-development_enforcement_app_identifier_hmac_key}"
-      ENFORCEMENT_COM_IDENTIFIER_HMAC_KEY: "${ENFORCEMENT_COM_IDENTIFIER_HMAC_KEY:-development_enforcement_com_identifier_hmac_key}"
-      ENFORCEMENT_ORG_IDENTIFIER_HMAC_KEY: "${ENFORCEMENT_ORG_IDENTIFIER_HMAC_KEY:-development_enforcement_org_identifier_hmac_key}"
-      FLIPPER_UI_USER: "${FLIPPER_UI_USER:-flipper}"
-      FLIPPER_UI_PASSWORD: "${FLIPPER_UI_PASSWORD:-development_flipper_password}"
-    restart: "no"
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    volumes:
-      # Relative paths in Compose files resolve against the project directory (the
-      # directory holding the first `-f` file), so `.` is the repository root.
-      # `:Z` adds an SELinux private label on Fedora/RHEL hosts and is harmless on
-      # non-SELinux hosts (Arch, Ubuntu).
-      - type: bind
-        source: "."
-        target: "/home/global/workspace"
-        bind:
-          selinux: Z
-      # The Dev Container string-form `readonly` mounts are writable with the
-      # current rootless Podman provider. Keep host configuration and guarded
-      # workspace paths in Compose long syntax so the effective mount flags stay
-      # inspectable. The host SSH directory is intentionally absent: nothing in
-      # this container needs host private keys.
-      - type: bind
-        source: "./.github"
-        target: "/home/global/workspace/.github"
-        read_only: true
-        bind:
-          selinux: Z
-      - type: bind
-        source: "./bin"
-        target: "/home/global/workspace/bin"
-        read_only: true
-        bind:
-          selinux: Z
-      - type: bind
-        source: "./.devcontainer"
-        target: "/home/global/workspace/.devcontainer"
-        read_only: true
-        bind:
-          selinux: Z
-      - type: volume
-        source: umaxica-home-cache
-        target: "/home/global/.cache"
-      # Mounted at the pnpm subdirectory, not at .local/share itself. The
-      # Claude Code devcontainer feature installs through claude.ai/install.sh,
-      # which lands its versions under ~/.local/share/claude at *build* time; a
-      # volume over the whole .local/share shadows that at run time and leaves
-      # ~/.local/bin/claude a dangling symlink.
-      - type: volume
-        source: umaxica-home-share
-        target: "/home/global/.local/share/pnpm"
-      - type: volume
-        source: umaxica-node-modules
-        target: "/home/global/workspace/node_modules"
-      - type: volume
-        source: umaxica-bundle
-        target: "/home/global/workspace/vendor/bundle"
-      # Storage for the nested rootless Podman of the `workspace` build target.
-      # Inert on the `development` target, which has no inner Podman; keeping the
-      # mount here means CORE_BUILD_TARGET=workspace needs no extra volume wiring.
-      - type: volume
-        source: workspace-podman-storage
-        target: "/home/global/.local/share/containers"
-    # Loopback-only host publication, the same two ports `core` publishes.
-    # `BINDING: 0.0.0.0` in compose.env is the *container-side* listener and is
-    # a separate decision (docs/operations/development-host-port-exposure.md).
-    ports:
-      - "127.0.0.1:3000:3000"
-      - "127.0.0.1:3036:3036"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      backend: {}
-      frontend:
-        aliases:
-          # The Workers VPC Service target, and the ONLY alias fit for that job.
-          #
-          # Every `*.localhost` name below is unusable as a VPC Service hostname:
-          # RFC 6761 reserves `localhost.` and glibc resolves any name under it to
-          # loopback before a container resolver is ever consulted, so on this very
-          # network `getent hosts core.app.localhost` answers `::1` rather than this
-          # container. That is what drove the previous VPC Service to target the raw
-          # Podman address `10.89.2.2`, which changes whenever the network is
-          # recreated. This alias is neither loopback-reserved nor ephemeral.
-          #
-          # It carries no Host semantics. Cloudflare uses it only to pick the origin
-          # to dial; the Host header still comes from the Worker's `fetch()` URL, so
-          # `config.hosts` is unaffected and this name needs no entry there.
-          # See docs/operations/cloudflare-private-origin.md.
-          - core-workers-vpc.internal
-          # Private pod-internal / tunnel origins (PRIVATE_*_URL). The Cloudflare
-          # Tunnel ingress rules resolve their `service:` address on this network,
-          # so these names must resolve to `core` here. Without them cloudflared
-          # falls back to loopback and every proxied request fails with
-          # `dial tcp [::1]:3000: connect: connection refused`.
-          - base.app.localhost
-          - base.com.localhost
-          - base.org.localhost
-          - base.net.localhost
-          - base.dev.localhost
-          - auth.app.localhost
-          - auth.com.localhost
-          - auth.org.localhost
-          - core.app.localhost
-          - core.com.localhost
-          - core.org.localhost
-          - docs.app.localhost
-          - docs.com.localhost
-          - docs.org.localhost
-          - help.app.localhost
-          - help.com.localhost
-          - help.org.localhost
-          - news.app.localhost
-          - news.com.localhost
-          - news.org.localhost
-          - palm.app.localhost
-          - side.app.localhost
-          - side.com.localhost
-          - side.org.localhost
-          - edge.app.localhost
-          - edge.com.localhost
-          - edge.org.localhost
-          - info.app.localhost
-          - info.com.localhost
-          - info.org.localhost
-          # Browser-facing site names (PUBLIC_*_URL). Development is published through
-          # Cloudflare Tunnel behind Cloudflare Access, and a Tunnel ingress rule resolves
-          # its `service:` address on this network, so the published names have to resolve
-          # to `core` here. Only Umaxica-owned names belong in this list.
-          # See docs/architecture/cloudflare-request-paths.md.
-          - auth.umaxica.com
-          - auth.umaxica.org
-          - auth.umaxica.app
-          - www.umaxica.app
-          - www.umaxica.com
-          - www.umaxica.org
-          - www.umaxica.dev
-          - jp.umaxica.app
-          - jp.umaxica.com
-          - jp.umaxica.org
-          - side-jp.umaxica.app
-          - side-jp.umaxica.com
-          - side-jp.umaxica.org
-          - palm-jp.umaxica.app
-      observability: {}
-      outer:
-        aliases:
-          - global
-    depends_on:
-      primary:
-        condition: service_healthy
-      replica:
-        condition: service_started
-      valkey-cache:
-        condition: service_healthy
-      valkey-rate-limit:
-        condition: service_healthy
-  # Local AWS emulator. This is the project-common AWS compatibility layer for
-  # development: S3 and the MSK control plane are reached here instead of
-  # through a per-service emulator. It is deliberately not profile-gated, so a
-  # plain `up` gives every developer the same AWS surface without extra flags.
-  #
-  # No container socket is mounted. fakecloud can back a provisioned MSK cluster
-  # with a real sibling Kafka broker, but only if it is handed a Docker/Podman
-  # socket, which would grant this container full container-management rights
-  # under the invoking user. Without one it serves the MSK control plane with the
-  # same response shapes, which is what the Terraform resources exercise. Kafka produce/consume
-  # is therefore out of scope; see docs/operations/local-aws-fakecloud.md.
   fakecloud:
     # Pinned by digest, not by version: the upstream registry publishes only
     # `latest`, `main`, and `sha-<commit>` tags, so there is no semver tag to
@@ -372,6 +116,9 @@ services:
       - "./podman/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
     networks:
       - backend
+    # Host-native Rails reaches PostgreSQL through loopback.
+    ports:
+      - "127.0.0.1:${POSTGRESQL_PRIMARY_HOST_PORT:-5432}:5432"
     # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
     # exits immediately on a bad configuration is recreated several times a second until
     # the netns, veth, conmon, and journald churn saturates a CPU. Five attempts ride out
@@ -427,6 +174,9 @@ services:
         condition: service_healthy
     networks:
       - backend
+    # Host-native Rails reaches PostgreSQL through loopback.
+    ports:
+      - "127.0.0.1:${POSTGRESQL_REPLICA_HOST_PORT:-5433}:5432"
     # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
     # exits immediately on a bad configuration is recreated several times a second until
     # the netns, veth, conmon, and journald churn saturates a CPU. Five attempts ride out
@@ -464,10 +214,11 @@ services:
   valkey-cache:
     container_name: global-devcontainer-valkey-cache
     image: docker.io/valkey/valkey:8.0-alpine3.22
-    # Rails.cache (CACHE_REDIS_URL). Reconstructible entries with explicit TTLs;
-    # safe to flush at any time -- every entry refetches from its source.
     networks:
       - backend
+    # Host-native Rails reaches cache through loopback.
+    ports:
+      - "127.0.0.1:${VALKEY_CACHE_HOST_PORT:-6379}:6379"
     volumes:
       - valkey-cache-volume:/data
     # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
@@ -493,13 +244,16 @@ services:
       timeout: 2s
       retries: 20
       start_period: 3s
+  # Distributed rate-limit counters, TTL-bound to the rate-limit window. Kept in
+  # its own service so cache maintenance can never reset abuse protection.
   valkey-rate-limit:
     container_name: global-devcontainer-valkey-rate-limit
     image: docker.io/valkey/valkey:8.0-alpine3.22
-    # config.x.rate_limit.store (RATE_LIMIT_REDIS_URL). Counters keyed by client,
-    # expiring with their window. Flushing resets windows, nothing else.
     networks:
       - backend
+    # Host-native Rails reaches rate limits through loopback.
+    ports:
+      - "127.0.0.1:${VALKEY_RATE_LIMIT_HOST_PORT:-6380}:6379"
     volumes:
       - valkey-rate-limit-volume:/data
     # Bounded on purpose. Podman applies no backoff to a restart policy, so a service that
@@ -808,7 +562,6 @@ networks:
 volumes:
   fakecloud-data: {}
   primary-data: {}
-  workspace-podman-storage: {}
   replica-data: {}
   valkey-cache-volume: {}
   valkey-rate-limit-volume: {}
@@ -817,7 +570,3 @@ volumes:
   tempo-volume: {}
   grafana-volume: {}
   prometheus-volume: {}
-  umaxica-home-cache: {}
-  umaxica-home-share: {}
-  umaxica-node-modules: {}
-  umaxica-bundle: {}

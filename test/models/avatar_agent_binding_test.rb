@@ -34,7 +34,6 @@ class AvatarAgentBindingTest < ActiveSupport::TestCase
       moniker: "Default Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
 
     binding = AvatarAgentBinding.create!(avatar: avatar, agent: agent)
@@ -79,13 +78,11 @@ class AvatarAgentBindingTest < ActiveSupport::TestCase
       moniker: "Agent Avatar One",
       active_handle: first_handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     second_avatar = Avatar.create!(
       moniker: "Agent Avatar Two",
       active_handle: second_handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     binding = AvatarAgentBinding.create!(avatar: first_avatar, agent: first_agent)
     original_public_id = binding.public_id
@@ -120,7 +117,6 @@ class AvatarAgentBindingTest < ActiveSupport::TestCase
       moniker: "Ordering Avatar",
       active_handle: handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     binding = AvatarAgentBinding.create!(avatar: avatar, agent: agent)
 
@@ -169,13 +165,11 @@ class AvatarAgentBindingTest < ActiveSupport::TestCase
       moniker: "DB Avatar One",
       active_handle: first_handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     second_avatar = Avatar.create!(
       moniker: "DB Avatar Two",
       active_handle: second_handle,
       capability_id: AvatarCapability::NORMAL,
-      image_data: {},
     )
     original = AvatarAgentBinding.create!(avatar: first_avatar, agent: first_agent)
 
