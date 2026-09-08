@@ -10,6 +10,15 @@
   // That same `-f` suppresses Compose's auto-discovery of the optional
   // `compose.override.yaml`, so a developer's local override applies to a bare
   // `docker compose`, not here.
+<<<<<<< HEAD
+  // `../compose.yaml` carries every shared service; `./compose.yaml` adds
+  // `core`, the workspace container, which lives there precisely so that a
+  // bare `podman compose up` in the repository root does not start it.
+  // Order matters twice: Compose merges later files over earlier ones, and it
+  // takes the project directory from the FIRST entry, which is what keeps
+  // every relative path in both files anchored at the repository root.
+=======
+>>>>>>> feature
   "dockerComposeFile": ["../compose.yaml", "./compose.yaml"],
   "service": "core",
   "remoteUser": "global",
