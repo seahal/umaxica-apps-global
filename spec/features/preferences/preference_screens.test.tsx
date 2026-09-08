@@ -29,7 +29,7 @@ const backLink = { label: "もどる", href: "/preference?ri=jp" };
 describe("preference select screen", () => {
   const props = {
     screen: "region",
-    title: "地域と言語の設定",
+    title: "地域設定",
     description: "地域を選びます。",
     back_link: backLink,
     form: {
@@ -53,7 +53,7 @@ describe("preference select screen", () => {
   it("renders every choice and preselects the saved one", () => {
     const html = renderToStaticMarkup(<PreferenceSelect {...props} />);
 
-    expect(html).toContain("地域と言語の設定");
+    expect(html).toContain("地域設定");
     expect(html).toContain('name="preference_region[option_id]"');
     expect(html).toContain("日本");
     expect(html).toContain("アメリカ合衆国 (USA)");

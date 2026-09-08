@@ -68,7 +68,7 @@ describe("PreferenceSelect interaction", () => {
   const backLink = { label: "もどる", href: "/preference?ri=jp" };
   const props = {
     screen: "region",
-    title: "地域と言語の設定",
+    title: "地域設定",
     description: "地域を選びます。",
     back_link: backLink,
     form: {

@@ -135,7 +135,9 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_select "html[lang='en']"
-      assert_equal "Region & Language Settings", inertia_props.fetch("title")
+      # The region screen is not the language settings UI -- language has its own
+      # page -- so its heading names only the region.
+      assert_equal "Region Settings", inertia_props.fetch("title")
       assert_equal ["Japan - 日本", "United States - USA"], inertia_choice_labels.sort
     end
   end

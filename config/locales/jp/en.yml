@@ -93,7 +93,7 @@ en:
         region:
           edit:
             description: Change the region used for regional defaults such as currency and formats.
-            heading: Region & Language Settings
+            heading: Region Settings
             region_label: Region
         resets:
           back: Back to preferences
@@ -143,7 +143,7 @@ en:
             link: Time Format
           timezone:
             link: Timezone Settings
-        region_settings: Region & Language Settings
+        region_settings: Region Settings
         regions:
           back_link: Back
           region_section: Region Settings
@@ -154,7 +154,7 @@ en:
             JP: Japan - 日本
             US: United States - USA
             USA: United States - USA
-          title: Region & Language Settings
+          title: Region Settings
         reset_settings: Reset Settings
         submitting: Submitting...
         theme:
@@ -245,7 +245,7 @@ en:
         region:
           edit:
             description: Change the region used for regional defaults such as currency and formats.
-            heading: Region & Language Settings
+            heading: Region Settings
             region_label: Region
         resets:
           back: Back to preferences
@@ -308,7 +308,7 @@ en:
             link: Time Format
           timezone:
             link: Timezone Settings
-        region_settings: Region & Language Settings
+        region_settings: Region Settings
         regions:
           back_link: Back
           cancel: Cancel
@@ -332,7 +332,7 @@ en:
             JST: Japan Standard Time (Asia/Tokyo)
             UTC: Coordinated Universal Time (UTC)
           timezone_section: Timezone Settings
-          title: Region & Language Settings
+          title: Region Settings
           update_settings: Update Settings
         reset_settings: Reset Settings
         submitting: Submitting...
@@ -435,7 +435,7 @@ en:
         region:
           edit:
             description: Change the region used for regional defaults such as currency and formats.
-            heading: Region & Language Settings
+            heading: Region Settings
             region_label: Region
         resets:
           back: Back to preferences
@@ -508,7 +508,7 @@ en:
             link: Time Format
           timezone:
             link: Timezone Settings
-        region_settings: Region & Language Settings
+        region_settings: Region Settings
         regions:
           back_link: Back
           cancel: Cancel
@@ -532,7 +532,7 @@ en:
             JST: Japan Standard Time (Asia/Tokyo)
             UTC: Coordinated Universal Time (UTC)
           timezone_section: Timezone Settings
-          title: Region & Language Settings
+          title: Region Settings
           update_settings: Update Settings
         reset_settings: Reset Settings
         submitting: Submitting...
@@ -1084,7 +1084,7 @@ en:
         language_settings: Language Settings
         motion_settings: Motion Settings
         pagination_settings: Page Size
-        region_settings: Region & Language Settings
+        region_settings: Region Settings
         regions:
           back_link: Back
         reset_settings: Reset Settings
@@ -1228,7 +1228,7 @@ en:
         language_settings: Language Settings
         motion_settings: Motion Settings
         pagination_settings: Page Size
-        region_settings: Region & Language Settings
+        region_settings: Region Settings
         regions:
           back_link: Back
         reset_settings: Reset Settings
@@ -1394,7 +1394,7 @@ en:
         language_settings: Language Settings
         motion_settings: Motion Settings
         pagination_settings: Page Size
-        region_settings: Region & Language Settings
+        region_settings: Region Settings
         regions:
           back_link: Back
         reset_settings: Reset Settings
@@ -1524,7 +1524,7 @@ en:
             link: Time Format
           timezone:
             link: Timezone Settings
-        region_settings: Region & Language Settings
+        region_settings: Region Settings
         regions:
           region_section: Region Settings
           select_language_selector:
@@ -1542,7 +1542,7 @@ en:
             ETC_UTC: Coordinated Universal Time (UTC)
             JST: Japan Standard Time (Asia/Tokyo)
             UTC: Coordinated Universal Time (UTC)
-          title: Region & Language Settings
+          title: Region Settings
         submitting: Submitting...
         timezone_settings: Timezone Settings
         update_settings: Update Settings
