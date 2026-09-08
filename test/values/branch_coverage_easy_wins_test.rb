@@ -250,13 +250,6 @@ class BranchCoverageEasyWinsTest < ActiveSupport::TestCase
                    expected_audience: "https://other.host/x",
                  ).error_code
 
-    JWT.encode!(
-      { "jti" => "c", "aud" => "https://test.host/x", "iat" => now.to_i },
-      key,
-      "ES256",
-      { typ: "dbsc+jwt", jwk: public_jwk },
-    )
-
     proof = JWT.encode(
       { "jti" => "other", "aud" => "https://test.host/x", "iat" => now.to_i },
       key,

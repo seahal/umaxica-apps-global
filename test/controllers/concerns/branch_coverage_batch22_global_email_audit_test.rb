@@ -41,7 +41,7 @@ class BranchCoverageBatch22GlobalEmailAuditTest < ActiveSupport::TestCase
     assert_nil h.ensure_required_ri! # same as current
 
     # request_context_value unknown key
-    assert_nil h.request_context_value(:not_public)
+    assert_nil h.send(:request_context_value, :not_public)
 
     # build urls with blank and non-blank query
     h.request.path = "/prefs"
@@ -65,8 +65,8 @@ class BranchCoverageBatch22GlobalEmailAuditTest < ActiveSupport::TestCase
       h.define_singleton_method(:effective_context) { { tz: nil, lx: nil } }
       h.define_singleton_method(:write_preference_cookie) { |*| true }
       h.define_singleton_method(:normalized_locale) { |_| nil }
-      h.set_timezone
-      h.set_locale
+      h.send(:set_timezone)
+      h.send(:set_locale)
     end
   end
 
