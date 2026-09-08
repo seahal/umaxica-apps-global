@@ -12,6 +12,12 @@ Accepted on 2026-04-07.
 > `explicit_fields` marker, dynamic `?ri` seeding (`jp` -> `ja`, `us` -> `en`) for unset users, then
 > the default `ja`.
 
+> **Regional-bundle reset (2026-09-09):** A `/preference/region` write rewrites all region-owned
+> locale defaults — language, date format, and clock format — to the region's values in one
+> transaction and marks each explicit (`jp` → `ja` / ISO / 24h, `us` → `en` / US / 12h). This
+> extends the region → language force-update that already existed. Each value stays overridable on
+> its own screen. See `docs/architecture/preference.md` "Region is a regional-bundle reset".
+
 ## Context
 
 GitHub issue `#631` tracked completion of the localization preference flow across the sign surfaces.

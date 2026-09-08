@@ -298,6 +298,20 @@ Actor.preferences: language=en, theme=sy, timezone=Asia/Tokyo
 The page renders in English for that request. The database and Preference JWT remain Japanese until
 an explicit preference write path changes them and reissues a token.
 
+### Region is a regional-bundle reset
+
+A `/preference/region` write is not a single-field write. It rewrites the region-owned locale
+defaults to the region's values in one transaction and marks each one explicit:
+
+| Region | language | date format         | clock  |
+| ------ | -------- | ------------------- | ------ |
+| `jp`   | `ja`     | `iso` (YYYY-MM-DD)  | 24h    |
+| `us`   | `en`     | `us` (MM/DD/YYYY)   | 12h    |
+
+The individual language / calendar / clock screens still let a person override any of these
+afterwards; the override is then explicit and survives a later `?ri` change. If any of the four
+child writes fails, the whole change rolls back — a half-applied bundle is never persisted.
+
 Do not reverse this flow.
 
 - Do not issue preference JWTs from `Actor.preferences`.
