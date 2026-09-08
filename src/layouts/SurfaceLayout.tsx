@@ -65,25 +65,6 @@ export default function SurfaceLayout({ children }: { children: ReactNode }) {
             ) : null}
             <span className="text-sm font-normal text-fg-muted">({chrome.surface})</span>
           </p>
-
-          {chrome.primary_navigation ? (
-            <nav aria-label="Primary">
-              <ul className="flex flex-wrap items-center gap-x-5 gap-y-1">
-                {chrome.primary_navigation.map((link) => (
-                  <li key={link.href}>
-                    {/* Cross-host and full-page destinations, so a document visit rather than
-                        an Inertia visit. */}
-                    <a
-                      href={link.href}
-                      className={NAV_LINK}
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          ) : null}
         </div>
       </header>
 

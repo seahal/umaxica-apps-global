@@ -51,7 +51,6 @@ const minimalChrome: SurfaceChrome = {
   surface: "app",
   brand: { name: "Umaxica", href: "https://umaxica.app/" },
   banner: null,
-  primary_navigation: null,
   footer_navigation: null,
   cookie_controls: cookieControls,
   theme_controls: themeControls,
@@ -118,12 +117,13 @@ describe("SurfaceLayout", () => {
     expect(screen.getByRole("complementary", { name: "Preferences" })).toBeTruthy();
   });
 
-  test("omits the banner, primary navigation and footer navigation when absent", () => {
+  test("omits the banner and footer navigation when absent", () => {
     render(minimalChrome);
 
     expect(screen.queryByRole("region", { name: "banner" })).toBeNull();
-    expect(screen.queryByRole("navigation", { name: "Primary" })).toBeNull();
     expect(screen.queryByRole("navigation", { name: "Footer" })).toBeNull();
+    // The surface layout carries no primary/header navigation at all.
+    expect(screen.queryByRole("navigation", { name: "Primary" })).toBeNull();
   });
 
   test("renders the banner with its title", () => {
@@ -145,36 +145,31 @@ describe("SurfaceLayout", () => {
     expect(within(banner).queryByRole("heading")).toBeNull();
   });
 
-  // Navigation targets cross hosts, so they stay document visits rather than Inertia visits.
-  test("renders navigation links as plain anchors", () => {
+  // Footer navigation targets cross hosts, so the links stay document visits rather than Inertia
+  // visits.
+  test("renders footer navigation links as plain anchors", () => {
     render({
       ...minimalChrome,
-      primary_navigation: [{ label: "ホーム", href: "https://umaxica.app/" }],
       footer_navigation: [{ label: "会社概要", href: "https://umaxica.com/about" }],
     });
 
-    const primary = screen.getByRole("navigation", { name: "Primary" });
-    const home = within(primary).getByRole("link", { name: "ホーム" });
-    expect(home.getAttribute("href")).toBe("https://umaxica.app/");
-    // A document visit, so no Inertia interception marker.
-    expect(Object.hasOwn(home.dataset, "inertia")).toBe(false);
-
     const footer = screen.getByRole("navigation", { name: "Footer" });
-    expect(within(footer).getByRole("link", { name: "会社概要" }).getAttribute("href")).toBe(
-      "https://umaxica.com/about",
-    );
+    const about = within(footer).getByRole("link", { name: "会社概要" });
+    expect(about.getAttribute("href")).toBe("https://umaxica.com/about");
+    // A document visit, so no Inertia interception marker.
+    expect(Object.hasOwn(about.dataset, "inertia")).toBe(false);
   });
 
-  test("keeps the navigation links inside lists so they can be counted", () => {
+  test("keeps the footer navigation links inside lists so they can be counted", () => {
     render({
       ...minimalChrome,
-      primary_navigation: [
+      footer_navigation: [
         { label: "ホーム", href: "https://umaxica.app/" },
         { label: "設定", href: "https://umaxica.app/settings" },
       ],
     });
 
-    const primary = screen.getByRole("navigation", { name: "Primary" });
-    expect(within(primary).getAllByRole("listitem")).toHaveLength(2);
+    const footer = screen.getByRole("navigation", { name: "Footer" });
+    expect(within(footer).getAllByRole("listitem")).toHaveLength(2);
   });
 });

@@ -41,7 +41,6 @@ export type SurfaceChrome = {
   surface: string;
   brand: { name: string; href: string };
   banner: ChromeBanner | null;
-  primary_navigation: ChromeLink[] | null;
   footer_navigation: ChromeLink[] | null;
   /** Absent on the operational surfaces, which have no preference authority to link to. */
   cookie_controls: ChromeCookieControls | null;

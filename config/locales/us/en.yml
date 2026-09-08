@@ -2980,12 +2980,6 @@ en:
           cannot_revoke_current: The current session cannot be revoked.
           session_revoked: Session revoked.
           sessions_revoked: Sessions revoked.
-      layout:
-        nav:
-          log_in: Log In
-          logout: Log Out
-          settings: Settings
-          sign_up: Sign Up
       outs:
         destroy:
           success: You have been signed out.
@@ -3444,12 +3438,6 @@ en:
         checkpoints:
           show:
             title: Sign-in check
-      layout:
-        nav:
-          log_in: Log In
-          logout: Log Out
-          settings: Settings
-          sign_up: Sign Up
       preference:
         cookie:
           edit:
@@ -3722,12 +3710,6 @@ en:
           promoted: Session promoted.
           session_revoked: Session revoked.
           sessions_revoked: Sessions revoked.
-      layout:
-        nav:
-          log_in: Log In
-          logout: Log Out
-          settings: Settings
-          sign_up: Sign Up
       outs:
         destroy:
           success: You have been signed out.

@@ -2650,12 +2650,6 @@ ja:
           session_revoked: セッションを無効化しました。
           sessions_revoked: 選択したセッションを無効化しました。
           title: セッション管理
-      layout:
-        nav:
-          log_in: ログイン
-          logout: ログアウト
-          settings: 設定
-          sign_up: 新規登録
       outs:
         destroy:
           success: ログアウトしました
@@ -3309,12 +3303,6 @@ ja:
           restricted_notice: セッション数が上限に達しています。既存セッションを管理してください。
           session_revoked: セッションを無効化しました。
           sessions_revoked: セッションを無効化しました。
-      layout:
-        nav:
-          log_in: ログイン
-          logout: ログアウト
-          settings: 設定
-          sign_up: 新規登録
       preferences:
         footer:
           dashboard: ダッシュボード

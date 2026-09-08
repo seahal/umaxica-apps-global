@@ -23,7 +23,7 @@ module SurfaceChrome
   # repeated by every Inertia controller. `banner_domain` selects the banner stream the family
   # answers with (`auth` reads `sign`, `base` reads `acme`); nil opts out of the banner, which is
   # what the families without a banner region do. `footer_navigation` marks the families whose
-  # layout also carries the sign navigation and the cross-host footer links.
+  # layout carries the cross-host footer links (dashboard/home, preference, settings).
   FAMILY_CHROME = {
     "base" => { family_label: "BASE", banner_domain: :acme, footer_navigation: false },
     "auth" => { family_label: nil, banner_domain: :sign, footer_navigation: true },
@@ -70,7 +70,6 @@ module SurfaceChrome
       surface: configuration.fetch(:surface),
       brand: chrome_brand,
       banner: chrome_banner(configuration.fetch(:banner_domain)),
-      primary_navigation: chrome_primary_navigation,
       footer_navigation: configuration.fetch(:footer_navigation) ? chrome_footer_navigation : nil,
       cookie_controls: chrome_preference_surface? ? chrome_cookie_controls : nil,
       theme_controls: chrome_preference_surface? ? chrome_theme_controls : nil,
@@ -106,28 +105,6 @@ module SurfaceChrome
     return nil if banner.blank?
 
     { title: banner.title.presence, body: banner.body }
-  end
-
-  # Navigation is an authorization-shaped decision, so the server decides which links exist rather
-  # than sending every link and letting React hide some. `@hide_auth_navigation` keeps its existing
-  # meaning: ceremonies that must not offer an escape hatch suppress the primary navigation.
-  def chrome_primary_navigation
-    return nil unless chrome_configuration.fetch(:footer_navigation)
-    return nil if @hide_auth_navigation
-
-    family = chrome_configuration.fetch(:family)
-    surface = chrome_configuration.fetch(:surface)
-
-    if chrome_logged_in?
-      [{ label: chrome_t("sign.#{surface}.layout.nav.logout"),
-         href: chrome_url("new_#{family}_#{surface}_sign_out_path"), }]
-    else
-      [
-        { label: chrome_t("sign.#{surface}.layout.nav.sign_up"),
-          href: chrome_url("#{family}_#{surface}_sign_up_path"), },
-        { label: chrome_t("sign.#{surface}.layout.nav.log_in"), href: chrome_url("#{family}_#{surface}_sign_in_path") },
-      ]
-    end
   end
 
   def chrome_footer_navigation
