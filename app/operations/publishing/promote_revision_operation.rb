@@ -7,6 +7,15 @@ module Publishing
 
     class IncompleteVersionError < StandardError; end
 
+    # The single unique index that makes promotion idempotent: at most one version per
+    # revision. A collision on it means another promotion won the race and its version can be
+    # handed back. A collision on any other unique index of the same table -- the per-entry
+    # sequence, the public id -- is a genuine failure and must not be swallowed as a lost race,
+    # so the rescue below matches this name rather than any `RecordNotUnique`.
+    def self.idempotency_index_name(entry_class)
+      "uidx_#{entry_class::SURFACE}_#{entry_class::AUDIENCE}_ver_on_revision"
+    end
+
     def initialize(revision:, operator_public_id: nil)
       super()
       @revision = revision
@@ -48,8 +57,7 @@ module Publishing
       copy_media_usages(version)
       version
     rescue ActiveRecord::RecordNotUnique => e
-      idempotency_index = "uidx_#{entry.class::SURFACE}_#{entry.class::AUDIENCE}_ver_on_revision"
-      raise unless idempotency_violation?(e, idempotency_index)
+      raise unless idempotency_violation?(e, self.class.idempotency_index_name(entry.class))
 
       verify_complete!(entry.versions.find_by!(entry_revision_id: revision.id))
     end

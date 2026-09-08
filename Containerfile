@@ -28,7 +28,7 @@ FROM node:${NODE_VERSION}-trixie-slim AS node-toolchain
 
 # Bun toolchain (standalone binary copied into development and asset images)
 # ============================================================================
-FROM oven/bun:${BUN_VERSION} AS bun-toolchain
+FROM docker.io/oven/bun:${BUN_VERSION} AS bun-toolchain
 # ============================================================================
 # Production base — runtime-only dependencies
 # ============================================================================
@@ -280,6 +280,12 @@ COPY --from=node-toolchain /usr/local/lib/node_modules /usr/local/lib/node_modul
 # Node remains available for runtime compatibility; Bun is the sole JavaScript package manager.
 COPY --from=bun-toolchain /usr/local/bin/bun /usr/local/bin/bun
 
+# The lib* packages below are Chromium's shared-library closure, for the Vitest
+# `component` project, which runs against a real browser rather than jsdom (see
+# vitest.config.ts). Playwright downloads the browser binary itself but never its
+# system dependencies, so without these `chrome-headless-shell` exits 127 on
+# libatk-1.0.so.0 and the whole project fails to start before any test runs.
+# Trixie carries the 64-bit-time_t (`t64`) names.
 # hadolint ignore=DL3008
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -303,6 +309,22 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     iproute2 \
     jq \
     lefthook \
+    libasound2t64 \
+    libatk-bridge2.0-0t64 \
+    libatk1.0-0t64 \
+    libatspi2.0-0t64 \
+    libcairo2 \
+    libcups2t64 \
+    libdrm2 \
+    libgbm1 \
+    libnspr4 \
+    libnss3 \
+    libpango-1.0-0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrandr2 \
     lsb-release \
     ncdu \
     netcat-openbsd \

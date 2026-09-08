@@ -36,10 +36,10 @@ Stale local state from the RustFS era is inert but worth clearing once per devel
 ```bash
 rm -f .secrets/rustfs-access-key .secrets/rustfs-secret-key .secrets/rustfs-rpc-secret
 podman secret rm dev_rustfs_access_key dev_rustfs_secret_key dev_rustfs_rpc_secret
-podman volume rm umaxica-apps-global-dc_rustfs-data0 \
-                 umaxica-apps-global-dc_rustfs-data1 \
-                 umaxica-apps-global-dc_rustfs-data2 \
-                 umaxica-apps-global-dc_rustfs-data3
+podman volume rm umaxicaappsglobaldc_rustfs-data0 \
+                 umaxicaappsglobaldc_rustfs-data1 \
+                 umaxicaappsglobaldc_rustfs-data2 \
+                 umaxicaappsglobaldc_rustfs-data3
 ```
 
 ### 1.2 `.devcontainer/compose.override.yml`

@@ -64,6 +64,18 @@ class Auth::Com::Sign::Up::Check::Telephone::CheckpointFlowTest < ActionDispatch
     assert_response :success
   end
 
+  # The page serializes the plaintext recovery passcode into the Inertia page object, so the
+  # response must never be reusable from a cache. The checkpoint concern sets `no-store` only on
+  # its age-restricted branch, which does not cover this reveal.
+  test "the passcode checkpoint forbids caching the page that reveals the passcode" do
+    advance_to_passcode_checkpoint!("+819022220004", "com_checkpoint_4")
+
+    get auth_com_sign_up_check_telephone_passcode_url(ri: "jp"), headers: default_headers
+
+    assert_response :success
+    assert_includes response.headers["Cache-Control"], "no-store"
+  end
+
   test "the passcode checkpoint clears its requirement and advances to the birthdate step" do
     cycle = advance_to_passcode_checkpoint!("+819022220003", "com_checkpoint_3")
 

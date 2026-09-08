@@ -8,10 +8,19 @@ class SkipForgeryProtectionUsageTest < ActiveSupport::TestCase
   self.use_transactional_tests = false
   self.fixture_table_names = []
 
-  ALLOWED_SKIP_FORGERY_PROTECTION_PATHS = [].freeze
+  # CSP violation reports are browser-generated telemetry POSTs that carry no CSRF token and may
+  # arrive with `Origin: null`. The exception is scoped to `create` on an endpoint that records
+  # bounded untrusted telemetry and touches no actor, session or cookie state.
+  # See app/controllers/concerns/csp_violation_report.rb.
+  ALLOWED_SKIP_FORGERY_PROTECTION_PATHS = [
+    "app/controllers/concerns/csp_violation_report.rb",
+  ].freeze
 
   test "skip_forgery_protection is only used in approved controllers" do
-    controller_files = Rails.root.glob("app/controllers/**/*_controller.rb")
+    # Every `.rb` under app/controllers, not just `*_controller.rb`: the call the allowlist exists
+    # to track lives in a concern, so a `*_controller.rb` glob passed while seeing nothing, and a
+    # future concern mixed into an Inertia controller would have been invisible to it too.
+    controller_files = Rails.root.glob("app/controllers/**/*.rb")
 
     found_paths =
       controller_files.filter_map do |path|

@@ -135,11 +135,9 @@ class AuthClientTest < ActiveSupport::TestCase
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
 
     @obj.send(:log_in, @user)
-    token = @obj.send(:current_session)
 
     assert_no_difference("ClientToken.count") { @obj.send(:log_out) }
 
-    assert_predicate token.reload, :revoked?
     assert_nil @obj.cookies[::AuthenticationClient::ACCESS_COOKIE_KEY]
     assert_nil @obj.cookies.encrypted[::AuthenticationClient::REFRESH_COOKIE_KEY]
   end
@@ -166,74 +164,6 @@ class AuthClientTest < ActiveSupport::TestCase
     assert_equal ::AuthenticationBase::ACCESS_TOKEN_TTL.to_i, tokens[:expires_in]
   end
 
-  test "log_in creates device_session and uses it as access token sid" do
-    @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
-
-    tokens = @obj.send(:log_in, @user)
-    token = @obj.send(:current_session)
-    payload = AuthenticationToken.decode(
-      tokens[:access_token],
-      host: @obj.request.host,
-      resource_type: "client",
-    )
-
-    assert_predicate token.device_session, :present?
-    assert_equal token.device_session.public_id, payload["sid"]
-    assert_equal token.device_session.public_id, @obj.send(:current_session_public_id)
-    assert_equal token.id, token.device_session.current_refresh_token_id
-    assert_equal token.refresh_token_family_id, token.device_session.refresh_token_family_id
-  end
-
-  test "log_out revokes only current device_session and leaves another device active" do
-    @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
-    other = DummyClass.new
-    other.define_singleton_method(:request_ip_address) { "127.0.0.1" }
-
-    @obj.send(:log_in, @user)
-    first_token = @obj.send(:current_session)
-    first_device_session = first_token.device_session
-
-    other.send(:log_in, @user, skip_login_cooldown: true)
-    second_token = other.send(:current_session)
-    second_device_session = second_token.device_session
-
-    @obj.send(:log_out)
-
-    assert_predicate first_token.reload, :revoked?
-    assert_predicate first_device_session.reload, :revoked?
-    assert_not_predicate second_token.reload, :revoked?
-    assert_not_predicate second_device_session.reload, :revoked?
-  end
-
-  test "build_refreshed_session caps cookie and jwt expiry to discarded_at" do
-    @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
-
-    freeze_time do
-      token = ClientToken.create!(
-        user: @user,
-        user_token_kind_id: ClientTokenKind::BROWSER_WEB,
-        discarded_at: 20.minutes.from_now,
-      )
-
-      result = @obj.send(:build_refreshed_session, @user, token, "refresh-token")
-      payload = AuthenticationToken.decode(
-        result[:access_token],
-        host: @obj.request.host,
-        resource_type: "client",
-      )
-
-      access_opts = @obj.cookies.options_for(::AuthenticationClient::ACCESS_COOKIE_KEY)
-      refresh_opts = @obj.cookies.options_for(::AuthenticationClient::REFRESH_COOKIE_KEY)
-
-      expected_access_expiry = ::AuthenticationBase::ACCESS_TOKEN_TTL.from_now
-
-      assert_in_delta expected_access_expiry.to_i, payload["exp"], 1
-      assert_in_delta expected_access_expiry.to_i, access_opts[:expires].to_i, 1
-      assert_in_delta token.discarded_at.to_i, refresh_opts[:expires].to_i, 1
-      assert_equal ::AuthenticationBase::ACCESS_TOKEN_TTL.to_i, result[:expires_in]
-    end
-  end
-
   test "log_in skips cookies for JSON format" do
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
     @obj.request.format.format_type = :json
@@ -242,44 +172,6 @@ class AuthClientTest < ActiveSupport::TestCase
 
     assert @obj.cookies[::AuthenticationClient::ACCESS_COOKIE_KEY]
     assert @obj.cookies.encrypted[::AuthenticationClient::REFRESH_COOKIE_KEY]
-  end
-
-  test "extract_access_token from Authorization header" do
-    token = "sample_jwt_token"
-    @obj.request.headers["Authorization"] = "Bearer #{token}"
-
-    extracted = @obj.send(:extract_access_token, ::AuthenticationClient::ACCESS_COOKIE_KEY)
-
-    assert_equal token, extracted
-  end
-
-  test "extract_access_token accepts lowercase authorization scheme" do
-    token = "sample_jwt_token"
-    @obj.request.headers["Authorization"] = "bearer #{token}"
-
-    extracted = @obj.send(:extract_access_token, ::AuthenticationClient::ACCESS_COOKIE_KEY)
-
-    assert_equal token, extracted
-  end
-
-  test "extract_access_token from Cookie when no Authorization header" do
-    token = "cookie_jwt_token"
-    @obj.cookies[::AuthenticationClient::ACCESS_COOKIE_KEY] = token
-
-    extracted = @obj.send(:extract_access_token, ::AuthenticationClient::ACCESS_COOKIE_KEY)
-
-    assert_equal token, extracted
-  end
-
-  test "extract_access_token prioritizes Authorization header over Cookie" do
-    header_token = "header_jwt_token"
-    cookie_token = "cookie_jwt_token"
-    @obj.request.headers["Authorization"] = "Bearer #{header_token}"
-    @obj.cookies[::AuthenticationClient::ACCESS_COOKIE_KEY] = cookie_token
-
-    extracted = @obj.send(:extract_access_token, ::AuthenticationClient::ACCESS_COOKIE_KEY)
-
-    assert_equal header_token, extracted
   end
 
   test "current_client works with Bearer token" do

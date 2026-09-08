@@ -25,6 +25,9 @@ module Security
       compose = YAML.unsafe_load_file(Rails.root.join(".devcontainer/compose.yaml"))
       core_service = compose.fetch("services").fetch("core")
 
+      assert_predicate Array(core_service["ports"]), :any?,
+                       "core publishes nothing, so this guard is vacuous"
+
       Array(core_service["ports"]).each do |publication|
         assert_match LOOPBACK_PUBLICATION, publication,
                      "core publishes #{publication.inspect} without an explicit loopback bind " \

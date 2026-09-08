@@ -40,6 +40,18 @@ class Base::App::Identity::SecretsControllerTest < ActionDispatch::IntegrationTe
     assert_equal 0, @client.client_secret_credentials.reload.count
   end
 
+  # `new` serializes the plaintext recovery secret into the Inertia page object, so the response
+  # must never be reusable from a cache. The com and org surfaces carry the same guarantee.
+  test "new forbids caching the page that reveals the plaintext recovery secret" do
+    get new_base_app_identity_secret_url(ri: "jp", host: @host), headers: step_up_headers
+
+    assert_response :success
+    # Rails rebuilds Cache-Control from its own directive set on the way out, so the concern's
+    # literal string is not what ships; `no-store` is the directive that carries the guarantee.
+    assert_includes response.headers["Cache-Control"], "no-store"
+    assert_includes response.headers["Cache-Control"], "private"
+  end
+
   test "show renders a secret the client owns" do
     secret = create_secret_credential
 

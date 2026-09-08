@@ -20,8 +20,8 @@ tailnet hostname and the toolchain differ. **Fix something here, fix it in all t
 | sshd config          | `/etc/ssh/remote-sshd_config` (baked, 0444 root)                                             |
 | sshd wrapper         | `/usr/local/bin/remote-sshd-entrypoint` (baked, 0555 root)                                   |
 | authorized keys      | `.secrets/codex_authorized_keys` → `/home/global/.config/umaxica/authorized_keys`, read-only |
-| sshd host key        | volume `umaxica-apps-global-dc_sshd-host-keys` → `/home/global/.local/state/remote-sshd`     |
-| Tailscale node state | volume `umaxica-apps-global-dc_tailscale-state` → `/home/global/.local/state/tailscale`      |
+| sshd host key        | volume `umaxicaappsglobaldc_sshd-host-keys` → `/home/global/.local/state/remote-sshd`     |
+| Tailscale node state | volume `umaxicaappsglobaldc_tailscale-state` → `/home/global/.local/state/tailscale`      |
 | tailnet hostname     | `umaxica-global-core`                                                                        |
 | tailnet tag          | `tag:umaxica-devcontainer`                                                                   |
 
@@ -105,7 +105,7 @@ substitute for it.
 5. **Confirm the node registered.**
 
    ```bash
-   podman exec umaxica-apps-global-dc_core_1 tailscale status
+   podman exec umaxicaappsglobaldc_core_1 tailscale status
    ```
 
    `umaxica-global-core` should appear, tagged, and not marked ephemeral.
@@ -118,7 +118,7 @@ substitute for it.
 
    Revocation in the admin console is the half that matters — deleting the line only stops it being
    handed to the container again. From here on the node starts from
-   `umaxica-apps-global-dc_tailscale-state` alone.
+   `umaxicaappsglobaldc_tailscale-state` alone.
 
    The preflight **refuses to start** while a `TS_AUTHKEY` is still set on an already-enrolled node,
    so this step cannot be quietly skipped.
@@ -136,7 +136,7 @@ Host umaxica-global-core
 ```
 
 The container prints its host key fingerprint at every start
-(`podman logs umaxica-apps-global-dc_core_1`), so `known_hosts` can be verified rather than accepted
+(`podman logs umaxicaappsglobaldc_core_1`), so `known_hosts` can be verified rather than accepted
 blind. The fingerprint is stable across recreates because the key lives on a volume; it changes only
 if that volume is deleted.
 
@@ -204,9 +204,13 @@ volumes, which deregisters the node and forces a fresh enrolment.
   checklist that expects `bun --version` is checking for something no repository in this group
   ships.
 
-- **The compose project name is `umaxica-apps-global-dc`,** set in `.devcontainer/compose.yaml`.
-  Volume names are prefixed with it, which is why the preflight looks for
-  `umaxica-apps-global-dc_tailscale-state`. A bare
+- **The compose project name is `umaxicaappsglobaldc`,** set in `.devcontainer/compose.yaml`.
+  It carries no separators because the Dev Containers CLI derives its own project name from
+  `devcontainer.json`'s `name` by stripping every non-alphanumeric character and passes it as
+  `--project-name`; a separated value in the Compose files would put a bare `podman compose` in a
+  second project that collides with the Dev Container over the `global-devcontainer-*` container
+  names and the published ports. Volume names are prefixed with the project name, which is why the
+   preflight looks for `umaxicaappsglobaldc_tailscale-state`. A bare
   `podman compose -f compose.yaml -f compose.remote-access.yaml` without the override uses a
   different project and therefore different, empty volumes — include the override, or expect to
   enrol a second node.

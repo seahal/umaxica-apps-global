@@ -28,7 +28,9 @@
 # LAST file that sets one, so a different value forks the project: a second set
 # of containers and, worse, a second set of named volumes -- the development
 # PostgreSQL, Valkey, bundle and node_modules would all be orphaned.
-name: umaxica-apps-global-dc
+# Must match `compose.yaml`'s `name:` exactly, separators included -- see the
+# comment there for why the Dev Containers CLI forces the unseparated form.
+name: umaxicaappsglobaldc
 
 services: {}
 

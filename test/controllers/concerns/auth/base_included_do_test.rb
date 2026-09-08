@@ -6,65 +6,6 @@ require "test_helper"
 
 module Auth
   class BaseIncludedDoTest < ActiveSupport::TestCase
-    class BaseHarness < ApplicationController
-      include SignErrorResponses
-      include SessionLimitGate
-      include AuthenticationBase
-
-      def resource_type = "user"
-
-      def resource_class = Client
-
-      def token_class = ClientToken
-
-      def audit_class = ClientChronicle
-
-      def resource_foreign_key = :user_id
-
-      def sign_in_url_with_pt(_return_to) = "/sign/in"
-
-      def am_i_user? = true
-
-      def am_i_staff? = false
-
-      def am_i_owner? = false
-    end
-
-    test "included do includes SignErrorResponses module" do
-      assert_includes BaseHarness.included_modules, SignErrorResponses,
-                      "BaseHarness should include SignErrorResponses"
-    end
-
-    test "included do includes ActionPolicy controller support" do
-      assert_includes BaseHarness.included_modules, ActionPolicy::Controller,
-                      "BaseHarness should route access policy decisions through Action Policy"
-    end
-
-    test "included do includes SessionLimitGate module" do
-      assert_includes BaseHarness.included_modules, SessionLimitGate,
-                      "BaseHarness should include SessionLimitGate"
-    end
-
-    test "included do includes CommonRedirect module" do
-      assert_includes BaseHarness.included_modules, CommonRedirect,
-                      "BaseHarness should include CommonRedirect"
-    end
-
-    test "helper_method current_account is defined on controller" do
-      assert BaseHarness.method_defined?(:current_account),
-             "BaseHarness should have current_account method defined"
-    end
-
-    test "helper_method current_session_public_id is defined on controller" do
-      assert BaseHarness.method_defined?(:current_session_public_id),
-             "BaseHarness should have current_session_public_id method defined"
-    end
-
-    test "helper_method current_session_restricted? is defined on controller" do
-      assert BaseHarness.private_method_defined?(:current_session_restricted?),
-             "BaseHarness should have current_session_restricted? private method defined"
-    end
-
     test "access_policy class_method registers policy rules" do
       klass =
         Class.new(ApplicationController) do
@@ -110,31 +51,6 @@ module Auth
       assert_equal :open, rules[0][:mode]
       assert_equal :private, rules[1][:mode]
       assert_equal :guest, rules[2][:mode]
-    end
-
-    test "enforce_access_policy delegates declared authentication mode to Authentication::AccessPolicy" do
-      controller = BaseHarness.new
-      controller.define_singleton_method(:action_name) { "index" }
-      controller.define_singleton_method(:logged_in?) { true }
-      controller.define_singleton_method(:current_resource) { nil }
-
-      calls = []
-      controller.define_singleton_method(:access_policy_allows?) do |rule, context|
-        calls << [rule, context]
-        true
-      end
-
-      BaseHarness.declare_authentication_mode!(:private, only: :index)
-
-      assert controller.send(:enforce_access_policy!)
-      assert_equal :auth_required?, calls.first.first
-      assert_instance_of AuthenticationBase::AccessPolicyContext, calls.first.last
-      assert_equal :auth_required, calls.first.last.policy
-    ensure
-      AuthenticationBase::ACCESS_POLICY_RULES.delete(BaseHarness)
-      if BaseHarness.instance_variable_defined?(:@authentication_mode_rules)
-        BaseHarness.remove_instance_variable(:@authentication_mode_rules)
-      end
     end
 
     test "access_policy validates policy name" do

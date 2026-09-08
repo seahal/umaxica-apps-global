@@ -43,7 +43,10 @@ module Base
 
         def render_oidc_logout_completion
           @sign_out_notice = consume_sign_out_notice
-          render inertia: "base/com/oidc/logouts/show", props: sign_out_edit_page_props, status: :ok
+          render inertia: "base/com/oidc/logouts/show",
+                 props: sign_out_edit_page_props,
+                 status: :ok,
+                 clear_history: true
         end
 
         def sign_out_edit_page_props

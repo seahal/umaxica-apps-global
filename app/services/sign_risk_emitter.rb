@@ -2,6 +2,8 @@
 # frozen_string_literal: true
 
 class SignRiskEmitter
+  # Risk events are audit-grade data and stay in PostgreSQL; they are not moved to
+  # the rate-limit Valkey store, which holds no durable application state.
   # Persistence is synchronous: a risk event that is not written before the auth
   # decision returns is a risk event that can be lost. Move to an async writer
   # only if a measured p99 regression on these endpoints justifies it.

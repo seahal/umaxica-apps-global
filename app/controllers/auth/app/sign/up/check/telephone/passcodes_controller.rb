@@ -14,9 +14,15 @@ module Auth
               include SignUpExplicitStepControllerSupport
               include ::SurfaceInertiaPage
               include AppSignUpCheckpointPage
+              # `show` and the failed-submit re-render of `update` both put the plaintext recovery
+              # secret in the `secret` prop, which inertia_rails serializes into the document. The
+              # checkpoint concern sets `no-store` only on its age-restricted branch, so without
+              # this the reveal itself was cacheable and Back could resurrect the plaintext.
+              include ::SignSettingsSecretCredentialCacheControl
 
               AUTHENTICATION_MODE = :guest
 
+              before_action :set_no_store_for_secret_credential_pages
               before_action :hide_sign_up_auth_navigation
               before_action :load_sign_up_ticket
               before_action :load_sign_up_actor

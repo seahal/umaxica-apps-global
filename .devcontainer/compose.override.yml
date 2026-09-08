@@ -1,7 +1,9 @@
 ---
 # Compatibility overlay for callers that still load this tracked file explicitly.
 # The Rails core service belongs to .devcontainer/compose.yaml now.
-name: umaxica-apps-global-dc
+# Must match `compose.yaml`'s `name:` exactly, separators included -- see the
+# comment there for why the Dev Containers CLI forces the unseparated form.
+name: umaxicaappsglobaldc
 services:
   primary:
     container_name: global-devcontainer-primary
