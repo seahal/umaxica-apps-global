@@ -1,11 +1,11 @@
 import { fileURLToPath, URL } from "node:url";
 
-import { defineConfig } from "vitest/config";
+import { defaultExclude, defineConfig } from "vitest/config";
 
 const srcRoot = fileURLToPath(new URL("./src", import.meta.url));
 
 // Files whose behavior does not depend on a DOM: pure logic, and React components exercised only
-// through `renderToStaticMarkup`. DOM-dependent component specs remain outside the unit suite.
+// through `renderToStaticMarkup`. Kept as an explicit list so the unit project stays DOM-free.
 const nodeSpecs = [
   "spec/lib/payload.test.ts",
   "spec/entrypoints/application.test.ts",
@@ -31,6 +31,20 @@ const nodeSpecs = [
   "spec/features/auth/verification/verification_screens.test.tsx",
 ].map((path) => fileURLToPath(new URL(`./${path}`, import.meta.url)));
 
+const sharedProjectDefaults = {
+  allowOnly: false,
+  retry: 0,
+  isolate: true,
+  fileParallelism: true,
+  mockReset: true,
+  restoreMocks: true,
+  unstubEnvs: true,
+  unstubGlobals: true,
+  globals: true,
+  testTimeout: 5_000,
+  hookTimeout: 5_000,
+} as const;
+
 export default defineConfig({
   resolve: {
     // Must stay identical to the alias in vite.config.ts and to `paths` in tsconfig.app.json.
@@ -45,24 +59,38 @@ export default defineConfig({
     //   an assertion fails the run instead of being swallowed.
     // - teardownTimeout -- a hook that never resolves fails fast and names itself, instead of
     //   hanging until CI's own outer timeout kills the whole job with nothing attributed.
-    allowOnly: false,
     passWithNoTests: false,
     dangerouslyIgnoreUnhandledErrors: false,
     teardownTimeout: 5_000,
     slowTestThreshold: 1_000,
     fileParallelism: true,
-    environment: "node",
-    globals: true,
-    hookTimeout: 5_000,
-    include: nodeSpecs,
-    isolate: true,
-    mockReset: true,
-    restoreMocks: true,
-    retry: 0,
-    setupFiles: [],
-    testTimeout: 5_000,
-    unstubEnvs: true,
-    unstubGlobals: true,
+    // Two projects: Node for pure/static-markup specs, jsdom for DOM-dependent specs. jsdom is
+    // used instead of Vitest Browser Mode because several specs stub `window`/`location`, which
+    // are non-configurable in a real Chromium tab. Cookie Store / matchMedia / scrollTo gaps are
+    // filled by spec/setup.ts.
+    projects: [
+      {
+        extends: true,
+        test: {
+          ...sharedProjectDefaults,
+          name: "unit",
+          environment: "node",
+          include: nodeSpecs,
+          setupFiles: [],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          ...sharedProjectDefaults,
+          name: "component",
+          environment: "jsdom",
+          include: ["spec/**/*.{test,spec}.{ts,tsx,js,jsx}"],
+          exclude: [...defaultExclude, ...nodeSpecs],
+          setupFiles: ["./spec/setup.ts"],
+        },
+      },
+    ],
     coverage: {
       provider: "v8",
       reportsDirectory: "coverage/vite",
@@ -84,6 +112,12 @@ export default defineConfig({
         "**/coverage/**",
         "public/vite/**",
       ],
+      thresholds: {
+        statements: 90,
+        branches: 90,
+        functions: 90,
+        lines: 90,
+      },
     },
   },
 });
