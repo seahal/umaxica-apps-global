@@ -8,11 +8,11 @@ module Security
     self.fixture_table_names = []
 
     APP_CONTROLLER_PREFIXES = %w(
-      auth base core side docs eid help info news palm
+      auth base core side docs guid help info news palm
     ).freeze
 
     APPLICATION_CLASS_PREFIXES = %w(
-      Auth:: Base:: Core:: Side:: Docs:: Eid:: Help:: Info:: News:: Palm::
+      Auth:: Base:: Core:: Side:: Docs:: Guid:: Help:: Info:: News:: Palm::
     ).freeze
 
     PUBLIC_MODES = %i(bare open guest).freeze
@@ -44,7 +44,7 @@ module Security
       PUBLIC_SIDE_SETTINGS
       PUBLIC_APPLE_NOTIFICATIONS
       PUBLIC_MCP
-      PUBLIC_EID_RESOLUTION
+      PUBLIC_GUID_RESOLUTION
     ).freeze
 
     RouteEntry = Struct.new(:verb, :path, :controller_path, :action, :controller_class, :mode, keyword_init: true)
@@ -199,7 +199,7 @@ module Security
         public_side_settings?(entry) ||
         public_apple_notification?(entry) ||
         public_mcp?(entry) ||
-        public_eid_resolution?(entry)
+        public_guid_resolution?(entry)
     end
 
     # Base and Side only. Auth and the content surfaces do not serve MCP, so an MCP route appearing
@@ -209,8 +209,8 @@ module Security
         entry.controller_path.match?(%r{\A(base|side)/(app|com|org)/mcps\z})
     end
 
-    def public_eid_resolution?(entry)
-      get?(entry) && entry.controller_path == "eid/net/api/v0/resources" &&
+    def public_guid_resolution?(entry)
+      get?(entry) && entry.controller_path == "guid/net/api/v0/resources" &&
         entry.path.start_with?("/api/v0/resources/")
     end
 

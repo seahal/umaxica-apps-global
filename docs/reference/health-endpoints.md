@@ -37,7 +37,7 @@ object owns serialization (`as_public_json`) and the 200/503 decision (`http_sta
 controllers (`HealthCheckRendering`, `app/controllers/concerns/health_check_rendering.rb`) only
 render it.
 
-The bootstrap EID profile deliberately declares no database dependency because no authoritative EID
+The bootstrap GUID profile deliberately declares no database dependency because no authoritative GUID
 store exists yet. Its readiness check remains process-local until the persistence boundary is
 specified; adding that store also requires adding its bounded readiness dependency here.
 

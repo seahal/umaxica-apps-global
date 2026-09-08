@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-module Eid
+module Guid
   module Net
     class CspViolationReportsController < BareController
       include CspViolationReport

@@ -52,8 +52,8 @@ module FqdnAvailabilityRegistry
     info_service: ->(hosts) { [hosts.info_service.host, "info.app.localhost", "info.umaxica.app"] },
     info_corporate: ->(hosts) { [hosts.info_corporate.host, "info.com.localhost", "info.umaxica.com"] },
     info_staff: ->(hosts) { [hosts.info_staff.host, "info.org.localhost", "info.umaxica.org"] },
-    eid_service: lambda { |hosts|
-      [hosts.eid_service.host, ENV["PRIVATE_EID_SERVICE_URL"], "eid.umaxica.net", "eid.net.localhost"]
+    guid_service: lambda { |hosts|
+      [hosts.guid_service.host, ENV["PRIVATE_GUID_SERVICE_URL"], "guid.umaxica.id", "guid.net.localhost"]
     },
     side_service: ->(hosts) { [hosts.side_service.host, "side.app.localhost"] },
     side_corporate: ->(hosts) { [hosts.side_corporate.host, "side.com.localhost"] },

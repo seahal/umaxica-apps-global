@@ -1,11 +1,11 @@
 # typed: false
 # frozen_string_literal: true
 
-module Eid
+module Guid
   module Net
     module Api
       module V0
-        class RevisionsController < Eid::Net::BareController
+        class RevisionsController < Guid::Net::BareController
           include ::ApplicationRevisionRendering
           include ::MachineJsonNegotiation
 

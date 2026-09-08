@@ -1,10 +1,11 @@
 # typed: false
 # frozen_string_literal: true
 
-# EID owns the dedicated Entity Identifier service boundary.
-scope module: :eid, as: :eid do
-  constraints host: [ENV["PUBLIC_EID_SERVICE_URL"], ENV["EID_SERVICE_URL"], ENV["PRIVATE_EID_SERVICE_URL"],
-                     "eid.umaxica.net", "eid.net.localhost",].compact do
+# GUID owns the dedicated globally-unique-identifier service boundary.
+# Public canonical host: guid.umaxica.id. Development host: guid.net.localhost.
+scope module: :guid, as: :guid do
+  constraints host: [ENV["PUBLIC_GUID_SERVICE_URL"], ENV["GUID_SERVICE_URL"], ENV["PRIVATE_GUID_SERVICE_URL"],
+                     "guid.umaxica.id", "guid.net.localhost",].compact do
     scope module: :net, as: :net do
       root to: "roots#index"
 
@@ -21,7 +22,7 @@ scope module: :eid, as: :eid do
 
       namespace :api do
         namespace :v0 do
-          resources :resources, only: :show, param: :eid
+          resources :resources, only: :show, param: :guid
           resource :health, only: :show, path: "health.json", format: false
           resource :revision, only: :show, path: "revision.json", format: false
         end

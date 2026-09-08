@@ -1,14 +1,14 @@
 # typed: false
 # frozen_string_literal: true
 
-module Eid
+module Guid
   module Net
     module Health
       class StartupsController < BareController
         include ::HealthCheckRendering
 
         AUTHENTICATION_MODE = :bare
-        HEALTH_PROFILE = ::Health::Profiles::Eid
+        HEALTH_PROFILE = ::Health::Profiles::Guid
 
         def show
           render_probe(::Health::StartupCheck.call(profile: health_profile))

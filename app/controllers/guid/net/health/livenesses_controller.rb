@@ -1,17 +1,17 @@
 # typed: false
 # frozen_string_literal: true
 
-module Eid
+module Guid
   module Net
     module Health
-      class ReadinessesController < BareController
+      class LivenessesController < BareController
         include ::HealthCheckRendering
 
         AUTHENTICATION_MODE = :bare
-        HEALTH_PROFILE = ::Health::Profiles::Eid
+        HEALTH_PROFILE = ::Health::Profiles::Guid
 
         def show
-          render_probe(::Health::ReadinessCheck.call(profile: health_profile))
+          render_probe(::Health::LivenessCheck.call(profile: health_profile))
         end
       end
     end

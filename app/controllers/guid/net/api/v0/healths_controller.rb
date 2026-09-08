@@ -1,16 +1,16 @@
 # typed: false
 # frozen_string_literal: true
 
-module Eid
+module Guid
   module Net
     module Api
       module V0
-        class HealthsController < Eid::Net::BareController
+        class HealthsController < Guid::Net::BareController
           include ::HealthCheckRendering
           include ::MachineJsonNegotiation
 
           AUTHENTICATION_MODE = :bare
-          HEALTH_PROFILE = ::Health::Profiles::Eid
+          HEALTH_PROFILE = ::Health::Profiles::Guid
 
           before_action :refuse_unless_machine_json_acceptable
 
