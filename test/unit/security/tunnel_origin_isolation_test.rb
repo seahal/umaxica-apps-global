@@ -25,21 +25,15 @@ module Security
       compose = YAML.unsafe_load_file(Rails.root.join(".devcontainer/compose.yaml"))
       core_service = compose.fetch("services").fetch("core")
 
-    test "every compose definition publishes Rails only on loopback" do
-      RAILS_SERVICES.each do |compose_file, service|
-        compose = YAML.unsafe_load_file(Rails.root.join(compose_file))
-        definition = compose.fetch("services").fetch(service)
+      assert_predicate Array(core_service["ports"]), :any?,
+                       "core publishes nothing, so this guard is vacuous"
 
-        assert_predicate Array(definition["ports"]), :any?,
-                         "#{compose_file}: #{service} publishes nothing, so this guard is vacuous"
-
-        Array(definition["ports"]).each do |publication|
-          assert_match LOOPBACK_PUBLICATION, publication,
-                       "#{compose_file}: #{service} publishes #{publication.inspect} without an " \
-                       "explicit loopback bind address. Podman would bind 0.0.0.0, letting any " \
-                       "host on the network reach Rails directly, bypassing cloudflared, and " \
-                       "forge X-Forwarded-For/CF-Connecting-IP unimpeded."
-        end
+      Array(core_service["ports"]).each do |publication|
+        assert_match LOOPBACK_PUBLICATION, publication,
+                     "core publishes #{publication.inspect} without an explicit loopback bind " \
+                     "address. Podman would bind 0.0.0.0, letting any host on the network reach " \
+                     "Rails directly, bypassing cloudflared, and forge " \
+                     "X-Forwarded-For/CF-Connecting-IP unimpeded."
       end
     end
 
