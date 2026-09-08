@@ -51,13 +51,13 @@ class BranchCoverageBatch14CommittersAndCoreTest < ActiveSupport::TestCase
     assert_raises(IdentitySocialCeremonyContract::Error) { committer.send(:validate_candidate!, candidate) }
   end
 
-  test "preference core language blank raises PreferenceOperationError" do
+  test "preference core regional defaults blank raises PreferenceOperationError" do
     require_relative "../controllers/concerns/preference/core_test"
     c = PreferenceCoreHarness.new
     c.define_singleton_method(:sanitize_option_id) { |*_args, **| { PreferenceIoKeys::Params::OPTION_ID => 1 } }
     c.define_singleton_method(:preference_region_params) { {} }
-    c.define_singleton_method(:language_option_id_for_region_option) { |_| nil }
-    assert_raises(PreferenceOperationError) { c.send(:update_region_and_language_preferences!) }
+    c.define_singleton_method(:regional_default_option_ids) { |_| nil }
+    assert_raises(PreferenceOperationError) { c.send(:update_region_and_regional_defaults!) }
   end
 
   test "sign up artifact cleanup blank arms" do
