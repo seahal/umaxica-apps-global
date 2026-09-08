@@ -27,8 +27,8 @@ class Base::Org::Publishing::ManagementMatrixTest < ActiveSupport::TestCase
       assert_equal surface, controller.publishing_surface, controller.name
       assert_equal Publishing::ContentFamilies.entry_class(surface:, audience:), controller::ENTRY_CLASS,
                    controller.name
-      assert_operator controller, :<, Base::Org::BareController
-      assert_equal :bare, controller::AUTHENTICATION_MODE
+      assert_operator controller, :<, Base::Org::ApplicationController
+      assert_equal :private, controller::AUTHENTICATION_MODE
     end
   end
 end

@@ -93,22 +93,26 @@ FqdnAvailabilityRegistry.flag_names.each { |feature_name| Flipper.enable(feature
 
 # Deterministic development CMS documents so all twelve public content cells have
 # a published entry. Uses the normal draft -> promote -> publish lifecycle.
-LOCALES = %w(ja en).freeze
+# Keep this out of test: `db:prepare` seeds newly created test databases, and the
+# welcome rows then leak into every worker clone and break empty-table assertions.
+if Rails.env.development?
+  locales = %w(ja en)
 
-Publishing::ContentFamilies::ENTRY_CLASSES.product(LOCALES).each do |entry_class, locale|
-  slug = "welcome"
-  next if entry_class.reflect_on_association(:slugs).klass.exists?(locale:, slug:)
+  Publishing::ContentFamilies::ENTRY_CLASSES.product(locales).each do |entry_class, locale|
+    slug = "welcome"
+    next if entry_class.reflect_on_association(:slugs).klass.exists?(locale:, slug:)
 
-  title = "#{entry_class::SURFACE.capitalize} #{entry_class::AUDIENCE} (#{locale})"
-  entry = entry_class.create!(locale:)
-  entry.slugs.create!(locale:, slug:, state: "canonical", canonicalized_at: Time.current)
-  revision = entry.revisions.create!(
-    locale:, title:, summary: "#{title} summary",
-    body: { "text" => "#{title} body" }, schema_version: 1,
-    content_digest: Digest::SHA256.hexdigest("#{entry_class::AUDIENCE}-#{entry_class::SURFACE}-#{locale}-welcome"),
-    sequence: 1,
-  )
-  entry.update!(current_revision: revision)
-  version = Publishing::PromoteRevisionOperation.call(revision:)
-  entry.publications.create!(entry_version: version, effective_from: 1.hour.ago)
+    title = "#{entry_class::SURFACE.capitalize} #{entry_class::AUDIENCE} (#{locale})"
+    entry = entry_class.create!(locale:)
+    entry.slugs.create!(locale:, slug:, state: "canonical", canonicalized_at: Time.current)
+    revision = entry.revisions.create!(
+      locale:, title:, summary: "#{title} summary",
+      body: { "text" => "#{title} body" }, schema_version: 1,
+      content_digest: Digest::SHA256.hexdigest("#{entry_class::AUDIENCE}-#{entry_class::SURFACE}-#{locale}-welcome"),
+      sequence: 1,
+    )
+    entry.update!(current_revision: revision)
+    version = Publishing::PromoteRevisionOperation.call(revision:)
+    entry.publications.create!(entry_version: version, effective_from: 1.hour.ago)
+  end
 end

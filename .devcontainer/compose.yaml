@@ -1,29 +1,5 @@
 ---
-<<<<<<< HEAD
-# The Dev Container's own half of the development environment.
-#
-# This file holds `core` -- and nothing else. `core` is the workspace container:
-# it exists to be attached to by an editor, it runs `sleep infinity`, and it is
-# useless to anyone who is not opening the Dev Container. Keeping it here rather
-# than in `compose.yaml` is what makes a bare `podman compose up` in the
-# repository root start the datastores and nothing else.
-#
-# `name:` matches `compose.yaml` on purpose. Compose keys its networks and its
-# named volumes by project name, so both entry points -- the Dev Container and
-# `podman compose up` -- address the *same* `primary`, the same `primary-data`,
-# the same `backend` network. The database is created once, by whichever one
-# runs first.
-#
-# Relative paths still resolve against the repository root, not against this
-# directory: Compose resolves them against the project directory, which is the
-# directory holding the FIRST `-f` file, and `devcontainer.json` lists
-# `../compose.yaml` first. This file is therefore not usable on its own.
-#
-# Everything `core` shares with the `app` service of `compose.yaml` lives in
-# `compose.env`. Only what is genuinely Dev-Container-shaped is repeated below.
-=======
 # Dev Container application layer; shared infrastructure is in ../compose.yaml.
->>>>>>> feature
 name: umaxica-apps-global-dc
 services:
   core:
@@ -54,11 +30,8 @@ services:
     # directly (no chown, no setpriv drop) when it is already started as the
     # keep-id-mapped workload UID.
     userns_mode: keep-id
-<<<<<<< HEAD
-=======
     security_opt:
       - label=level:s0:c101,c202
->>>>>>> feature
     tty: true
     stdin_open: true
     # core-entrypoint `exec`s the command, so without this PID 1 is `sleep infinity`, which
@@ -74,36 +47,6 @@ services:
     # with `bin/dev` inside the container when it is wanted.
     command:
       - sleep
-<<<<<<< HEAD
-      - infinity    # SELinux MCS level pinned for the workspace container specifically. The
-    # `:Z` binds below relabel the working tree to this level, so it has to stay
-    # stable across recreates or every recreate rewrites the labels of the repo.
-    security_opt:
-      - "label=level:s0:c101,c202"
-    # Shared with the `app` service in `compose.yaml`. See that file's header.
-    env_file:
-      - "./compose.env"
-    environment:
-      # Marks the workspace container for anything that needs to know it is
-      # being driven by an editor rather than by `podman compose up`.
-      DEVCONTAINER: "1"
-      # --- Identifier HMAC salts (dev-only fixed values; differ from production) ---
-      # These stay here, and are repeated in `compose.yaml`'s `app` service,
-      # because `env_file` performs no `${VAR:-default}` interpolation: moving
-      # them to `compose.env` would silently drop the host override.
-      EMAIL_ADDRESS_HMAC_SALT: "${EMAIL_ADDRESS_HMAC_SALT:-development_email_address_hmac_salt}"
-      TELEPHONE_NUMBER_HMAC_SALT: "${TELEPHONE_NUMBER_HMAC_SALT:-development_telephone_number_hmac_salt}"
-      # --- Unified Enforcement identifier HMAC keys (adr/unified-enforcement.md,
-      #     D6) -- dedicated per-realm keys, deliberately distinct from the
-      #     credential-lookup salts above; dev-only fixed values, differ from
-      #     production. ---
-      ENFORCEMENT_APP_IDENTIFIER_HMAC_KEY: "${ENFORCEMENT_APP_IDENTIFIER_HMAC_KEY:-development_enforcement_app_identifier_hmac_key}"
-      ENFORCEMENT_COM_IDENTIFIER_HMAC_KEY: "${ENFORCEMENT_COM_IDENTIFIER_HMAC_KEY:-development_enforcement_com_identifier_hmac_key}"
-      ENFORCEMENT_ORG_IDENTIFIER_HMAC_KEY: "${ENFORCEMENT_ORG_IDENTIFIER_HMAC_KEY:-development_enforcement_org_identifier_hmac_key}"
-      # --- Flipper UI basic auth (dev-only) ---
-      FLIPPER_UI_USER: "${FLIPPER_UI_USER:-flipper}"
-      FLIPPER_UI_PASSWORD: "${FLIPPER_UI_PASSWORD:-development_flipper_password}"
-=======
       - infinity
     # Rails loads the ignored repository .env via config/boot.rb. Compose only
     # supplies the process environment; it does not own application configuration.
@@ -117,7 +60,6 @@ services:
     # host reboot or logout, because podman-restart.service starts only containers whose
     # policy is `always` or `unless-stopped`. Reopening the Dev Container brings the stack
     # back, so what is lost is a convenience rather than a data path.
->>>>>>> feature
     restart: on-failure:5
     # journald enforces no per-container size cap, and a restart loop writes the same
     # startup failure thousands of times, so a capped json-file driver is what actually
@@ -130,13 +72,8 @@ services:
         max-file: "3"
     # Named volumes for high-write paths prevent rootless podman UID-mapping
     # from rewriting host file ownership on the bind-mounted workspace:
-<<<<<<< HEAD
-    #   - umaxica-home-cache  → pnpm / Vite / YJIT scratch
-    #   - umaxica-home-share  → pnpm store (~/.local/share/pnpm only)
-=======
     #   - umaxica-home-cache  → Bun / Vite / YJIT scratch
     #   - umaxica-home-share  → Bun install cache
->>>>>>> feature
     #   - umaxica-node-modules → workspace node_modules (off the repo tree)
     #   - umaxica-bundle       → vendor/bundle (off the repo tree)
     # Discard any of these with `podman volume rm <name>` to recover from
@@ -177,34 +114,17 @@ services:
       - type: volume
         source: umaxica-home-cache
         target: "/home/global/.cache"
-<<<<<<< HEAD
-      # Mounted at the pnpm subdirectory, not at .local/share itself. The
-      # Claude Code devcontainer feature installs through claude.ai/install.sh,
-      # which lands its versions under ~/.local/share/claude at *build* time; a
-      # volume over the whole .local/share shadows that at run time and leaves
-      # ~/.local/bin/claude a dangling symlink.
-      - type: volume
-        source: umaxica-home-share
-        target: "/home/global/.local/share/pnpm"
-=======
       # Bun cache is isolated from the workspace and from the shared editor feature data.
       - type: volume
         source: umaxica-home-share
         target: "/home/global/.bun"
->>>>>>> feature
       - type: volume
         source: umaxica-node-modules
         target: "/home/global/workspace/node_modules"
       - type: volume
         source: umaxica-bundle
         target: "/home/global/workspace/vendor/bundle"
-<<<<<<< HEAD
-      # Storage for the nested rootless Podman of the `workspace` build target.
-      # Inert on the `development` target, which has no inner Podman; keeping the
-      # mount here means CORE_BUILD_TARGET=workspace needs no extra volume wiring.
-=======
       # Storage for the nested rootless Podman of the workspace build target.
->>>>>>> feature
       - type: volume
         source: workspace-podman-storage
         target: "/home/global/.local/share/containers"
@@ -216,44 +136,13 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
       - "127.0.0.1:3036:3036"
-<<<<<<< HEAD
-      # Manual `RAILS_ENV=production bin/rails server -p 3002 -b 0.0.0.0`
-      # inside this same container (see evidence/2026-09-04-neon-production-
-      # schema-imaging.md for the throwaway env it needs) becomes reachable
-      # from the host here. Nothing listens on 3002 by default.
-      - "127.0.0.1:3002:3002"
-=======
->>>>>>> feature
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       backend: {}
       frontend:
         aliases:
-<<<<<<< HEAD
-          # The Workers VPC Service target, and the ONLY alias fit for that job.
-          #
-          # Every `*.localhost` name below is unusable as a VPC Service hostname:
-          # RFC 6761 reserves `localhost.` and glibc resolves any name under it to
-          # loopback before a container resolver is ever consulted, so on this very
-          # network `getent hosts core.app.localhost` answers `::1` rather than this
-          # container. That is what drove the previous VPC Service to target the raw
-          # Podman address `10.89.2.2`, which changes whenever the network is
-          # recreated. This alias is neither loopback-reserved nor ephemeral.
-          #
-          # It carries no Host semantics. Cloudflare uses it only to pick the origin
-          # to dial; the Host header still comes from the Worker's `fetch()` URL, so
-          # `config.hosts` is unaffected and this name needs no entry there.
-          # See docs/operations/cloudflare-private-origin.md.
           - core-workers-vpc.internal
-          # Private pod-internal / tunnel origins (PRIVATE_*_URL). The Cloudflare
-          # Tunnel ingress rules resolve their `service:` address on this network,
-          # so these names must resolve to `core` here. Without them cloudflared
-          # falls back to loopback and every proxied request fails with
-          # `dial tcp [::1]:3000: connect: connection refused`.
-=======
-          - core-workers-vpc.internal
->>>>>>> feature
           - base.app.localhost
           - base.com.localhost
           - base.org.localhost
@@ -289,27 +178,13 @@ services:
           # its `service:` address on this network, so the published names have to resolve
           # to `core` here. Only Umaxica-owned names belong in this list.
           # See docs/architecture/cloudflare-request-paths.md.
-<<<<<<< HEAD
-          - auth.umaxica.com
-          - auth.umaxica.org
-          - auth.umaxica.app
-=======
           - auth.umaxica.app
           - auth.umaxica.com
           - auth.umaxica.org
->>>>>>> feature
           - www.umaxica.app
           - www.umaxica.com
           - www.umaxica.org
           - www.umaxica.dev
-<<<<<<< HEAD
-          - jp.umaxica.app
-          - jp.umaxica.com
-          - jp.umaxica.org
-          - side-jp.umaxica.app
-          - side-jp.umaxica.com
-          - side-jp.umaxica.org
-=======
           - side-jp.umaxica.app
           - side-jp.umaxica.com
           - side-jp.umaxica.org
@@ -323,7 +198,6 @@ services:
           - jp.umaxica.app
           - jp.umaxica.com
           - jp.umaxica.org
->>>>>>> feature
           - palm-jp.umaxica.app
       observability: {}
       outer:
@@ -338,12 +212,9 @@ services:
         condition: service_healthy
       valkey-rate-limit:
         condition: service_healthy
-<<<<<<< HEAD
-=======
 volumes:
   umaxica-home-cache: {}
   umaxica-home-share: {}
   umaxica-node-modules: {}
   umaxica-bundle: {}
   workspace-podman-storage: {}
->>>>>>> feature
