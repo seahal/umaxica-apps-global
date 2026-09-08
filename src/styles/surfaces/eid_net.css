@@ -1,0 +1,10 @@
+/* Stylesheet owned by the independent eid/net trust boundary. */
+@import "tailwindcss" source(none);
+@import "../theme.css";
+@import "../base.css";
+
+@source "../../../app/views/eid/net";
+
+:root {
+  --ui-tint: var(--color-blue-500);
+}

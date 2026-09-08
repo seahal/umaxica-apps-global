@@ -187,6 +187,7 @@ Rails.application.configure do
     boot_hosts.palm_origins,
     [boot_hosts.help_service, boot_hosts.help_corporate, boot_hosts.help_staff],
     boot_hosts.info_origins,
+    boot_hosts.eid_service,
   ].flatten
   boot_config_hosts.map!(&:host)
 
@@ -229,6 +230,7 @@ Rails.application.configure do
     side.org.localhost:3000
     side.app.localhost:3000
     palm.app.localhost:3000
+    eid.net.localhost:3000
   )
 
   # Both families, deliberately. Per adr/public-private-url-boundaries.md, `PUBLIC_*` names
@@ -254,6 +256,7 @@ Rails.application.configure do
     PRIVATE_INFO_SERVICE_URL
     PRIVATE_INFO_STAFF_URL
     PRIVATE_INFO_CORPORATE_URL
+    PRIVATE_EID_SERVICE_URL
     PRIVATE_DOCS_SERVICE_URL
     PRIVATE_DOCS_STAFF_URL
     PRIVATE_DOCS_CORPORATE_URL
@@ -280,6 +283,7 @@ Rails.application.configure do
     PUBLIC_INFO_SERVICE_URL
     PUBLIC_INFO_CORPORATE_URL
     PUBLIC_INFO_STAFF_URL
+    PUBLIC_EID_SERVICE_URL
     PUBLIC_DOCS_SERVICE_URL
     PUBLIC_DOCS_CORPORATE_URL
     PUBLIC_DOCS_STAFF_URL

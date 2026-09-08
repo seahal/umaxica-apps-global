@@ -95,6 +95,13 @@ Current API design decisions:
 
 Current database naming decisions:
 
+- `adr/global-regional-database-ownership.md` — accepted Global / Regional database ownership map:
+  `*_zenith`, `*_ticket`, `*_setting`, `*_signal`, `avatar`, and `publishing` are Global-only;
+  `chronicle`, `occurrence`, `platform`, and `queue` exist as independent (never shared) databases
+  in both repositories; Regional gets one new application database. Resolves the `M1` question in
+  `evidence/2026-09-08-global-regional-database-split-assessment.md` — `*_zenith` is Global canonical
+  Account / Identity / Organization authority. Retires the reserved-`*_principal` "regional-ready
+  storage" role.
 - `adr/umaxica-v1-core-resource-architecture.md` — accepted v1 core resource architecture: Identity
   / Account / Organization / Unit are core-side resources, Identity is not Account-owned, Avatar /
   Group stay in Avatar DB, and relationships use authority/lifecycle tables rather than direct
@@ -112,8 +119,10 @@ Current database naming decisions:
 - `adr/actor-db-naming-policy.md`
 - `adr/surface-database-connection-naming.md`
 - `adr/principal-zenith-physical-consolidation.md` — accepted decision to apply each surface's
-  principal migration history through the matching zenith database, keep semantic principal base
-  classes, and reserve empty `*_principal` databases for future regional-ready application data.
+  principal migration history through the matching zenith database and keep semantic principal base
+  classes. Its reserved-empty `*_principal` "future regional-ready application data" role is
+  superseded by `adr/global-regional-database-ownership.md`: `*_zenith` is Global authority and
+  regional-ready data lives in the Regional repository's own application database.
 - `adr/member-client-membership-organization-decomposition-before-placement.md`
 - `adr/read-only-content-surfaces-in-rails.md` — current decision for v1 read-only docs/news/help
   content delivery in this Rails repository, including temporary placement in the existing surface
@@ -276,8 +285,10 @@ Current retention / deletion decisions:
 
 Repository / application boundary decisions:
 
-- `adr/split-into-regional-and-global-repos.md` — superseded where it treats `sign/id` as IdP and
-  `acme/www` as RP.
+- `adr/split-into-regional-and-global-repos.md` — the two-repository structure (Global vs Regional)
+  remains in force; superseded where it treats `sign/id` as IdP and `acme/www` as RP. Database
+  ownership between the two repositories is now fixed by
+  `adr/global-regional-database-ownership.md`.
 - `adr/acme-rp-boundary-naming.md` — superseded where it treats `acme/www` as an RP boundary instead
   of the identity authority boundary.
 

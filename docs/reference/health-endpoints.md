@@ -37,6 +37,10 @@ object owns serialization (`as_public_json`) and the 200/503 decision (`http_sta
 controllers (`HealthCheckRendering`, `app/controllers/concerns/health_check_rendering.rb`) only
 render it.
 
+The bootstrap EID profile deliberately declares no database dependency because no authoritative EID
+store exists yet. Its readiness check remains process-local until the persistence boundary is
+specified; adding that store also requires adding its bounded readiness dependency here.
+
 These endpoints are internal-only checkpoints for orchestrators and monitoring, not a user-facing
 contract; public traffic to them is blocked at the edge. User-facing availability is served by a
 separate integrated status page (external service). See

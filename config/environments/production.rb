@@ -227,6 +227,7 @@ Rails.application.configure do
     boot_hosts.info_service.host,
     boot_hosts.info_corporate.host,
     boot_hosts.info_staff.host,
+    boot_hosts.eid_service.host,
   ]
   # The docs and news surfaces have no host entry. Their only entries here were
   # `docs.*.localhost` and `news.*.localhost` -- private development ingress names, which

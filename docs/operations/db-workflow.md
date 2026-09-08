@@ -21,6 +21,22 @@ stubs, that task does not prove object-level reconstruction. Use
 `test/tooling/database_reconstruction_authority_test.rb` and
 `test/tooling/database_migration_path_ownership_test.rb` for the current invariant.
 
+## Global / Regional Split (planned)
+
+`adr/global-regional-database-ownership.md` fixes which databases this repository keeps and which
+are duplicated into the future `umaxica-apps-regional` repository. After that repository is created:
+
+- Global keeps every currently-populated database (`*_zenith`, `*_ticket`, `*_setting`, `*_signal`,
+  `avatar`, `publishing`) plus its own `chronicle`, `occurrence`, `platform`, and `queue`.
+- `chronicle`, `occurrence`, `platform`, and `queue` exist independently on both sides — same
+  starting schema, **separate databases, separate data, separate migration history**. The two
+  histories are not synchronized after the split.
+- Regional gets a new application database and does not run any Global-only migration path.
+- `search` and `storage` (zero migrations) and `db/audit_schema.rb` (orphan) are deletion
+  candidates for the split; no deletion has been performed yet.
+
+Until the split happens, this repository still prepares the full fleet as one unit.
+
 ## Principles
 
 1. **Do not use incremental `bin/rails db:migrate` on a branch with in-progress table-rename

@@ -1,5 +1,15 @@
 # Model Database Inventory
 
+> **Global / Regional ownership settled (2026-09-08):** per
+> `adr/global-regional-database-ownership.md`, every currently-populated database in this inventory
+> — `*_zenith`, `*_ticket`, `*_setting`, `*_signal`, `avatar`, `publishing`, `chronicle`,
+> `occurrence` — is **Global**. `chronicle`, `occurrence`, `platform`, and `queue` additionally
+> exist as independent (never shared) databases in the future Regional repository. `search` and
+> `storage` (zero migrations) and `db/audit_schema.rb` (orphan stub) are deletion candidates for the
+> split. The "target authority" and "future regional-ready" columns below predate that decision and
+> must be read against it: `zenith` is Global authority, and there is no `*_principal` regional-ready
+> database.
+
 ## Purpose
 
 This document is a current-state inventory of model and database placement in Project Umaxica. It

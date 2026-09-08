@@ -12,6 +12,12 @@
 > supersede the older compatibility-route language below. Retired non-exception Auth settings routes
 > must be removed without redirect, alias, or `410 Gone` compatibility shims.
 
+> **Global / Regional database ownership (2026-09-08):** `adr/global-regional-database-ownership.md`
+> confirms that the databases backing this authority — `*_zenith` (Account / Identity /
+> Organization), `*_ticket` (Session / Token / OIDC), `*_setting` (Preference) — are **Global-only**
+> and are never owned or written by the future Regional repository. Regional trusts acme-issued
+> downstream tokens; it does not read a Global database directly.
+
 ## Current Boundary
 
 `acme/www` is the Session, Token, Account, Preference, Authorization, and downstream-token

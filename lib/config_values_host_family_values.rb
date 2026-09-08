@@ -27,6 +27,7 @@ module ConfigValues
       :info_service,
       :info_corporate,
       :info_staff,
+      :eid_service,
     ) do
       def acme_origins
         [acme_service, acme_corporate, acme_staff]
@@ -170,6 +171,9 @@ class << ConfigValues::HostFamilyValues
         env, "INFO_STAFF_URL", development_host(production, "info.org.localhost"),
         production: production,
       ),
+      eid_service: origin(
+        env, eid_key(env), development_host(production, "eid.net.localhost"), production: production,
+      ),
     }
   end
 
@@ -221,6 +225,10 @@ class << ConfigValues::HostFamilyValues
     else
       "CORE_#{surface}_URL"
     end
+  end
+
+  def eid_key(env)
+    env.key?("EID_SERVICE_URL") ? "EID_SERVICE_URL" : "PUBLIC_EID_SERVICE_URL"
   end
 
   def origin(env, key, fallback, production:)
