@@ -542,13 +542,13 @@ module PreferenceCore
     with_dual_write_transaction(resource_pref) do
       write_regional_bundle_field!(
         resource_pref, :region, @preference_region,
-        region_attributes[PreferenceIoKeys::Params::OPTION_ID], "UPDATE_PREFERENCE_REGION"
+        region_attributes[PreferenceIoKeys::Params::OPTION_ID], "UPDATE_PREFERENCE_REGION",
       )
 
       derived_option_ids.each do |field, option_id|
         write_regional_bundle_field!(
           resource_pref, field, instance_variable_get(:"@preference_#{field}"),
-          option_id, REGIONAL_DEFAULT_AUDIT_EVENTS.fetch(field)
+          option_id, REGIONAL_DEFAULT_AUDIT_EVENTS.fetch(field),
         )
       end
     end
