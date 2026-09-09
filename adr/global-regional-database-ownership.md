@@ -129,7 +129,7 @@ help × app / com / org families (`adr/publishing-db-content-authority.md`,
 Global read API (`GET /api/v0/entries`, `GET /api/v0/entries/:slug`) and never reads the
 `publishing` database directly.
 
-### 7. `chronicle`, `occurrence`, `platform`, `queue` exist independently in both repositories
+### 7. `chronicle`, `occurrence`, `primary`, `queue` exist independently in both repositories
 
 These four subsystems run in **both** Global and Regional. "Both" here has a strict meaning and
 never means a shared database:
@@ -154,11 +154,14 @@ Global and Regional each have their own `occurrence` database for abuse telemetr
 telemetry, security-related occurrence data, and rate / behavioural observations. Regional operation
 must not depend on Global `occurrence` database availability.
 
-#### 7.3 Platform (Flipper)
+#### 7.3 Primary (Flipper and other application-wide durable configuration)
 
-Global and Regional each have their own `platform` database. Flag state is independent: the same
-feature name may exist on both sides with different state. Global flag state is not Regional flag
-state.
+Global and Regional each have their own Rails `primary` database. This is the conventional default
+database (`db/migrate`) for durable, low-frequency, application-wide configuration or metadata that
+does not justify a dedicated domain database. Flipper currently stores feature flags here. Flag
+state is independent: the same feature name may exist on both sides with different state. Global
+flag state is not Regional flag state. `primary` is not a catch-all for domain data that already
+has a dedicated database.
 
 #### 7.4 Queue (Solid Queue)
 
@@ -202,7 +205,7 @@ BOTH, BUT COMPLETELY INDEPENDENT (never a shared database)
 ---------------------------------------------------------
 chronicle
 occurrence
-platform
+primary
 queue
 
 REGIONAL ONLY
@@ -222,7 +225,7 @@ Between Global and Regional, the following are architecture invariants:
 ```text
 NO shared application database
 NO shared queue database
-NO shared platform database
+NO shared primary database
 NO shared chronicle database
 NO shared occurrence database
 NO shared schema
@@ -259,7 +262,7 @@ implementation-phase work and is out of scope here.
 
 - The clone-and-prune work has a documented authority: Regional deletes `avatar`, `publishing`, and
   the Global `*_zenith` / `*_ticket` / `*_setting` / `*_signal` data and migrations; keeps `queue`
-  and `platform` (and gets its own `chronicle` and `occurrence`); and stands up a new regional
+  and `primary` (and gets its own `chronicle` and `occurrence`); and stands up a new regional
   application database. Global keeps every currently-populated database.
 - Because `*_zenith` stays Global, none of the cross-database transactions, cascades, uniqueness
   constraints, authorization joins, or multi-database jobs identified in the Phase 1.5 assessment
@@ -308,7 +311,7 @@ that trusts acme-issued tokens.
 - Migration lifecycle separates at the split. For a duplicated subsystem such as `queue`, both
   repositories may keep `db/queues_migrate` and start from the same history; after the split each
   owns its history and the two are not synchronized. The same applies to `chronicle`, `occurrence`,
-  `platform`, and `queue`.
+  `primary`, and `queue`.
 - Because `db/*_structure.sql` are stubs and migrations are the reconstruction authority
   (`docs/operations/db-workflow.md`), each side can prune its own `db/*_migrate/` history and
   rebuild from migrations.

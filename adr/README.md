@@ -97,7 +97,7 @@ Current database naming decisions:
 
 - `adr/global-regional-database-ownership.md` — accepted Global / Regional database ownership map:
   `*_zenith`, `*_ticket`, `*_setting`, `*_signal`, `avatar`, and `publishing` are Global-only;
-  `chronicle`, `occurrence`, `platform`, and `queue` exist as independent (never shared) databases
+  `chronicle`, `occurrence`, `primary`, and `queue` exist as independent (never shared) databases
   in both repositories; Regional gets one new application database. Resolves the `M1` question in
   `evidence/2026-09-08-global-regional-database-split-assessment.md` — `*_zenith` is Global
   canonical Account / Identity / Organization authority. Retires the reserved-`*_principal`

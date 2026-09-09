@@ -3,7 +3,7 @@
 > **Database ownership settled (2026-09-08):** `adr/global-regional-database-ownership.md` is the
 > normative decision for which repository owns which database. All currently-populated databases
 > (`*_zenith`, `*_ticket`, `*_setting`, `*_signal`, `avatar`, `publishing`) are **Global-only**.
-> `chronicle`, `occurrence`, `platform`, and `queue` exist independently — never shared — in both
+> `chronicle`, `occurrence`, `primary`, and `queue` exist independently — never shared — in both
 > Global and Regional. Regional owns a new application database and reads Global content only
 > through `GET /api/v0/entries(/:slug)`. This document describes the _delivery_ boundary; the
 > database ownership map is in the ADR.

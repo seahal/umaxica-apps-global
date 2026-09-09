@@ -73,7 +73,7 @@ staff_secret.staff_identity_secret_status_id = OperatorSecretCredentialStatus::A
 staff_secret.password = sample_staff_secret
 staff_secret.save!
 
-# Flipper stores nothing until a feature is written, so a fresh platform database shows an
+# Flipper stores nothing until a feature is written, so a fresh primary database shows an
 # empty feature list and every external authentication ceremony reads as disabled. Register
 # the ceremony kill switches so they appear in the Flipper UI and local sign-in works.
 #
@@ -85,7 +85,7 @@ ExternalAuthentication::FlipperProviderAvailabilityAdapter::PROVIDER_FEATURE_NAM
   .each_value { |feature_name| Flipper.enable(feature_name) }
 
 # `fqdn_available_*` carries the same `:availability` polarity, so an unwritten flag closes the
-# FQDN: a fresh platform database answers every request with 503 `fqdn_unavailable` before routing.
+# FQDN: a fresh primary database answers every request with 503 `fqdn_unavailable` before routing.
 # Every slot the router serves is opened here so a freshly seeded development environment serves the
 # hosts its own routes declare. Production is untouched (this file returns above) -- switching a
 # public FQDN on stays an explicit operator decision made through the Flipper UI.

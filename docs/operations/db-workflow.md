@@ -27,8 +27,8 @@ stubs, that task does not prove object-level reconstruction. Use
 are duplicated into the future `umaxica-apps-regional` repository. After that repository is created:
 
 - Global keeps every currently-populated database (`*_zenith`, `*_ticket`, `*_setting`, `*_signal`,
-  `avatar`, `publishing`) plus its own `chronicle`, `occurrence`, `platform`, and `queue`.
-- `chronicle`, `occurrence`, `platform`, and `queue` exist independently on both sides — same
+  `avatar`, `publishing`) plus its own `chronicle`, `occurrence`, `primary`, and `queue`.
+- `chronicle`, `occurrence`, `primary`, and `queue` exist independently on both sides — same
   starting schema, **separate databases, separate data, separate migration history**. The two
   histories are not synchronized after the split.
 - Regional gets a new application database and does not run any Global-only migration path.
