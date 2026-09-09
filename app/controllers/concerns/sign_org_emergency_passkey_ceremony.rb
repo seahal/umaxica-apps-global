@@ -19,6 +19,7 @@ module SignOrgEmergencyPasskeyCeremony
   extend ActiveSupport::Concern
 
   include ::PasskeySignInFlow
+  include ::AuthenticationModeSwitchGuard
   include ::SessionLimitGate
 
   included do

@@ -154,7 +154,7 @@ module Auth
         private
 
         def reject_social_sign_in_callback_while_authenticated!
-          return if %w(link step_up).include?(current_social_auth_intent.to_s)
+          return if current_social_auth_intent.to_s == "link"
 
           reject_new_sign_in_if_authenticated!
         end

@@ -236,16 +236,6 @@ module Auth
             record&.errors&.map(&:full_message) || []
           end
 
-          def handle_guest_only_with_status_checks(options)
-            if options[:no_redirect]
-              status = options[:status] || :forbidden
-              message = options[:message] || I18n.t("errors.messages.already_authenticated")
-              return render plain: message, status: status
-            end
-
-            super
-          end
-
           def load_user_email
             state = email_authentication_state
             return redirect_to_email_session_expired if state.nil?

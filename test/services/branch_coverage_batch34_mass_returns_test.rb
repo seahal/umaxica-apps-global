@@ -146,10 +146,10 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
   end
 
   test "JitSecurityJwtAnomalyReporter preference namespaces" do
-    assert_equal "COM_PREFERENCE", JitSecurityJwtAnomalyReporter.preference_context("x.com.y")
-    assert_equal "ORG_PREFERENCE", JitSecurityJwtAnomalyReporter.preference_context("org.y")
-    assert_equal "APP_PREFERENCE", JitSecurityJwtAnomalyReporter.preference_context("app.y")
-    assert_nil JitSecurityJwtAnomalyReporter.preference_context("example.test")
+    assert_equal "COM_PREFERENCE", JitSecurityJwtAnomalyReporter.send(:preference_context, "x.com.y")
+    assert_equal "ORG_PREFERENCE", JitSecurityJwtAnomalyReporter.send(:preference_context, "org.y")
+    assert_equal "APP_PREFERENCE", JitSecurityJwtAnomalyReporter.send(:preference_context, "app.y")
+    assert_nil JitSecurityJwtAnomalyReporter.send(:preference_context, "example.test")
   end
 
   test "OidcLogoutRequest blank client and jti" do

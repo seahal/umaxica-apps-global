@@ -26,6 +26,8 @@ module Auth
 
           AUTHENTICATION_MODE = :guest
 
+          before_action :start_minimum_response_budget
+          after_action :enforce_minimum_response_budget
           before_action :require_org_normal_sign_in_transaction!
 
           def new

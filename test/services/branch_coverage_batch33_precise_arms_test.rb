@@ -203,9 +203,9 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
   test "Health and JitSecurityJwtAnomalyReporter host classification" do
     ok = Health::CheckResult.new(check: :liveness, status: :ok, surface: "app")
 
-    assert_equal "COM_PREFERENCE", JitSecurityJwtAnomalyReporter.preference_context("www.com.example")
-    assert_equal "ORG_PREFERENCE", JitSecurityJwtAnomalyReporter.preference_context("org.example")
-    assert_nil JitSecurityJwtAnomalyReporter.preference_context("example.test")
+    assert_equal "COM_PREFERENCE", JitSecurityJwtAnomalyReporter.send(:preference_context, "www.com.example")
+    assert_equal "ORG_PREFERENCE", JitSecurityJwtAnomalyReporter.send(:preference_context, "org.example")
+    assert_nil JitSecurityJwtAnomalyReporter.send(:preference_context, "example.test")
     assert_predicate ok, :ok?
   end
 end

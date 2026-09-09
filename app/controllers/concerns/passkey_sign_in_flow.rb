@@ -10,8 +10,6 @@
 module PasskeySignInFlow
   extend ActiveSupport::Concern
 
-  include AuthenticationModeSwitchGuard
-
   ANONYMIZED_ALLOW_CREDENTIALS_COUNT = 4
 
   include PasskeyCeremonyContext

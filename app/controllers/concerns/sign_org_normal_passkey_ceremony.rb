@@ -28,10 +28,6 @@ module SignOrgNormalPasskeyCeremony
     # A shared counter would let one endpoint's retries exhaust the other's.
     endpoint = name.demodulize.underscore.delete_suffix("_controller")
 
-    before_action :require_org_normal_sign_in_transaction!
-    before_action :start_minimum_response_budget
-    after_action :enforce_minimum_response_budget
-
     rate_limit(
       to: 5,
       within: 1.minute,
@@ -50,6 +46,10 @@ module SignOrgNormalPasskeyCeremony
       store: rate_limit_store,
       with: -> { render_rate_limited(retry_after: 900) },
     )
+
+    before_action :require_org_normal_sign_in_transaction!
+    before_action :start_minimum_response_budget
+    after_action :enforce_minimum_response_budget
   end
 
   private

@@ -32,7 +32,7 @@ module Auth
         private
 
         def reject_sign_in_intent_while_authenticated!
-          return if %w(link step_up).include?(params[:intent].to_s)
+          return if params[:intent].to_s == "link"
 
           reject_new_sign_in_if_authenticated!
         end
