@@ -1,7 +1,9 @@
 # GUID Identifier Surface
 
-Accepted: 2026-09-08. Supersedes the "EID Entity Identifier Surface" revision of the same date,
-which named the service `EID` on `eid.umaxica.net`.
+## Status
+
+Accepted (2026-09-09). Supersedes the 2026-09-08 revision of this ADR, which named the public host
+`guid.umaxica.id`. That hostname is retired; do not admit it.
 
 ## Context
 
@@ -12,13 +14,21 @@ Choosing an identifier encoding or fabricating storage during a surface bootstra
 unreviewed implementation detail into a difficult-to-reverse public compatibility obligation.
 
 The service was first bootstrapped as `EID` ("Entity Identifier") on `eid.umaxica.net`. Its
-responsibility is to name and resolve globally unique identifiers, so it is renamed `GUID` and moves
-to a `.id` canonical host that says what it does.
+responsibility is to name and resolve globally unique identifiers, so it is named `GUID`. A later
+revision placed the public host on `guid.umaxica.id` so the TLD would "say what the service does."
+That host was never the name the edge and tunnel actually present: requests arrive as
+`guid.umaxica.net`, and Host Authorization therefore rejected them. The published host is the
+contract the origin must answer.
+
+`guid.umaxica.net` sits in the same public `.net` family as other infrastructure names
+(`jump.umaxica.net`, `asset.umaxica.net`) and matches the former EID TLD. The development label
+`guid.net.localhost` already uses `.net` as the internal surface-family token; the public host now
+uses the same TLD rather than mixing `.id` and `.net`.
 
 ## Decision
 
-Adopt **GUID = globally unique identifier** and establish `guid.umaxica.id` as the dedicated public
-surface. The canonical development host is `guid.net.localhost` (port `3000`).
+Adopt **GUID = globally unique identifier** and establish **`guid.umaxica.net`** as the dedicated
+public surface. The canonical development host remains `guid.net.localhost` (port `3000`).
 
 A GUID is an opaque domain-level identifier. It identifies exactly one entity or resource, must not
 be reused for another, and has no consumer-visible semantics in its display formatting. It is not
@@ -36,43 +46,43 @@ profile has no database readiness check until GUID persistence exists.
 
 ### Hostname migration
 
-`eid.umaxica.net` and `eid.net.localhost` are retired in the same change, not kept for a
-compatibility period: nothing outside this repository consumed them (the edge route table is derived
-from `config/routes/*.rb`, and there is no external registration against the EID host). The
-environment keys move with the host:
+`eid.umaxica.net`, `eid.net.localhost`, and `guid.umaxica.id` are retired in the same change, not
+kept for a compatibility period: nothing outside this repository consumed them (the edge route table
+is derived from `config/routes/*.rb`, and there is no external registration against the retired
+hosts). The environment keys remain:
 
-| Before                    | After                      |
-| ------------------------- | -------------------------- |
-| `PUBLIC_EID_SERVICE_URL`  | `PUBLIC_GUID_SERVICE_URL`  |
-| `PRIVATE_EID_SERVICE_URL` | `PRIVATE_GUID_SERVICE_URL` |
-| `EID_SERVICE_URL` (compat) | `GUID_SERVICE_URL` (compat) |
-| boot host key `eid_service` | `guid_service`            |
+| Name                      | Role                                      |
+| ------------------------- | ----------------------------------------- |
+| `PUBLIC_GUID_SERVICE_URL` | Browser-facing site: `guid.umaxica.net`   |
+| `PRIVATE_GUID_SERVICE_URL` | Development ingress: `guid.net.localhost` |
+| `GUID_SERVICE_URL`        | Explicit compatibility input for boot     |
+| boot host key `guid_service` | Host family member                     |
 
-`config.hosts` admits `guid.umaxica.id` in production and `guid.net.localhost:3000` in development;
-the retired `eid.*` names are removed from every environment, so a request to them is rejected. The
-`.id` public host and the `.net` development label are the deliberate, matched pair — `.net` here is
-the internal surface-family label used by every localhost origin (`base.net.localhost`,
-`core.net.localhost`), not a public TLD, so the two do not mix accidentally.
+`config.hosts` admits `guid.umaxica.net` in production and `guid.net.localhost:3000` in development.
+A request whose `Host` is `guid.umaxica.id` or `eid.umaxica.net` is rejected.
 
 ## Consequences
 
 Positive consequences:
 
 - Public identifiers are decoupled from storage implementation and internal primary keys.
-- The canonical host names the service's job.
+- The origin answers on the hostname the tunnel and DNS actually present.
+- The public TLD and the development surface-family label are both `.net`; they no longer disagree.
 - Resolution and future identifier functionality have a dedicated host and controller boundary.
 - The bootstrap reuses existing health, revision, error, CSP, host-gating, and security-header
   conventions.
 
 Costs and risks:
 
-- A public surface must be deployed, monitored, secured, and kept available on a new host.
+- A public surface must be deployed, monitored, secured, and kept available on this host.
 - Identifier lifecycle and permanence become explicit compatibility obligations.
 - Careless changes to identifier meaning or reuse rules may be impossible to reverse.
 - A resolver returning only `404` is intentionally incomplete and must not be represented as an
   issuance or persistence service.
 - Issuance, revocation or tombstones, canonical resolution, and persistence policy require later
   decisions.
+- The `.id` TLD no longer signals "identifier" in the hostname; the service name `GUID` carries that
+  meaning.
 
 ## Deferred Decisions
 

@@ -2,10 +2,10 @@
 # frozen_string_literal: true
 
 # GUID owns the dedicated globally-unique-identifier service boundary.
-# Public canonical host: guid.umaxica.id. Development host: guid.net.localhost.
+# Public canonical host: guid.umaxica.net. Development host: guid.net.localhost.
 scope module: :guid, as: :guid do
   constraints host: [ENV["PUBLIC_GUID_SERVICE_URL"], ENV["GUID_SERVICE_URL"], ENV["PRIVATE_GUID_SERVICE_URL"],
-                     "guid.umaxica.id", "guid.net.localhost",].compact do
+                     "guid.umaxica.net", "guid.net.localhost",].compact do
     scope module: :net, as: :net do
       root to: "roots#index"
 

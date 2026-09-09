@@ -194,8 +194,7 @@ services:
           - info.umaxica.app
           - info.umaxica.com
           - info.umaxica.org
-          # GUID service canonical public host, per adr/guid-identifier-surface.md.
-          - guid.umaxica.id
+          - guid.umaxica.net
           # Canonical Core family per adr/core-canonical-public-host.md. The legacy
           # core-jp.*, docs-jp.*, help-jp.*, and news-jp.* aliases are gone: PUBLIC_CORE_*
           # now names jp.umaxica.*, and PUBLIC_DOCS_* names a private *.localhost origin, so

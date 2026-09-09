@@ -1390,15 +1390,16 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.define_singleton_method(:reset_session) { reset_count += 1 }
 
     assert_no_difference("ClientSignInFlow.count") do
-      error = assert_raises(AlreadyAuthenticatedError) do
-        @controller.send(
-          :establish_signed_in_session!,
-          attempted_user,
-          pt: nil,
-          ri: "jp",
-          auth_method: "passkey",
-        )
-      end
+      error =
+        assert_raises(AlreadyAuthenticatedError) do
+          @controller.send(
+            :establish_signed_in_session!,
+            attempted_user,
+            pt: nil,
+            ri: "jp",
+            auth_method: "passkey",
+          )
+        end
 
       assert_equal :conflict, error.status_code
       assert_equal "Sign-in is unavailable while authenticated.", error.message

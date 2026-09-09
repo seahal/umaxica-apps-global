@@ -38,7 +38,7 @@ class HostAuthorizationContractTest < Minitest::Test
     side-jp.umaxica.app
     info.umaxica.app
     palm-jp.umaxica.app
-    guid.umaxica.id
+    guid.umaxica.net
   ).freeze
 
   # The subprocess below boots RAILS_ENV=development, which resolves both Valkey
@@ -284,7 +284,7 @@ class HostAuthorizationContractTest < Minitest::Test
       "PUBLIC_SIDE_SERVICE_URL" => "https://side-jp.umaxica.app",
       "PUBLIC_INFO_SERVICE_URL" => "https://info.umaxica.app",
       "PUBLIC_PALM_SERVICE_URL" => "https://palm-jp.umaxica.app",
-      "PUBLIC_GUID_SERVICE_URL" => "https://guid.umaxica.id",
+      "PUBLIC_GUID_SERVICE_URL" => "https://guid.umaxica.net",
     )
   end
 end

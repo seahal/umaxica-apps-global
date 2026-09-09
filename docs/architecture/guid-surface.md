@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`guid.umaxica.id` is the dedicated UMAXICA globally-unique-identifier service surface. A GUID is a
+`guid.umaxica.net` is the dedicated UMAXICA globally-unique-identifier service surface. A GUID is a
 domain-level identifier for one entity or resource in the UMAXICA ecosystem. The surface exists so
 consumers can eventually resolve that stable identifier without depending on a database primary key
 or a particular storage model.
@@ -51,14 +51,14 @@ controlled target.
 
 ## Host and Deployment Contract
 
-Production sets `PUBLIC_GUID_SERVICE_URL=guid.umaxica.id` (or the explicit compatibility input
+Production sets `PUBLIC_GUID_SERVICE_URL=guid.umaxica.net` (or the explicit compatibility input
 `GUID_SERVICE_URL`) before Rails boots. Development may additionally set
 `PRIVATE_GUID_SERVICE_URL=guid.net.localhost`; the checked-in Compose environment supplies both names.
 Host Authorization, route constraints, and the FQDN availability registry all list this surface. The
 corresponding `fqdn_available_guid_service` availability flag therefore fails closed under the same
 policy as other public surfaces.
 
-The Cloudflare edge must route `guid.umaxica.id` to the Rails origin and must block public access to
+The Cloudflare edge must route `guid.umaxica.net` to the Rails origin and must block public access to
 `/health`, `/health/*`, `/api/v0/health.json`, and `/api/v0/revision.json` under the existing health
 isolation policy. Edge configuration is external to this repository and must be completed before
 launch.
