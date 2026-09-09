@@ -116,3 +116,20 @@ authorization, or freshness state.
 - `plans/identity-authority-inversion-implementation.md`
 - `docs/security/credential-gateway.md`
 - `docs/security/session-token-authority.md`
+
+## Org Emergency Access
+
+Org Emergency Access (`docs/security/org-emergency-access.md`) adds no Sign-owned session or token
+authority. It reuses the same shared session-establishment path as normal org sign-in, and the
+authentication context it records is produced by the shared claim builder
+(`AuthorizationTokenClaims`) that the authority side already owns, from a column on the session row.
+
+Two compatibility seams are stated explicitly rather than left implicit:
+
+- The org credential-gateway controllers still call `establish_signed_in_session!` directly. That is
+  pre-existing bounded legacy from the migration, not something Emergency Access introduced or
+  widened; the Emergency ceremony was deliberately implemented on the same path rather than given
+  one of its own.
+- Step-up freshness continues to be committed on the authority side by
+  `IdentityStepUpCeremonyFreshnessCommitter`. The Emergency prohibition is enforced there as well as
+  at the ceremony entry, so the refusal lives with the authority that owns the decision.

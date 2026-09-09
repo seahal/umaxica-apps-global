@@ -6,12 +6,18 @@ module AuthorizationTokenClaims
 
   def build(resource:, session_id: nil, session_public_id: nil, oidc_sid: nil, oidc_jti: nil, resource_type:,
             issued_at:, access_token_ttl:, expires_at: nil, scopes: nil, acr: nil, amr: nil, dpop_jkt: nil,
-            issuer: nil, audiences: nil, subject: nil, auth_time: nil, step_up_until: nil, client_id: nil)
+            issuer: nil, audiences: nil, subject: nil, auth_time: nil, step_up_until: nil, client_id: nil,
+            authentication_context: nil)
     sid = oidc_sid.presence || session_public_id || session_id
     issued_at_seconds = timestamp_value(issued_at)
     expires_at_seconds = timestamp_value(expires_at || (issued_at + access_token_ttl))
     token_type = AuthenticationJwtConfiguration.token_type(resource_type)
-    scopes_value = scopes || resolve_scopes(resource_type, resource)
+    context = AuthenticationContextValue.for(authentication_context.presence || AuthenticationContextValue::NORMAL_KEY)
+    # Session capabilities narrow the token's authorization scopes; they never
+    # add one. An Emergency session therefore carries a subset of what the same
+    # Operator would receive normally, and DB role membership stays the
+    # authority for everything the subset still permits.
+    scopes_value = context.constrain_scopes(scopes || resolve_scopes(resource_type, resource))
 
     payload = {
       "iat" => issued_at_seconds,
@@ -25,6 +31,10 @@ module AuthorizationTokenClaims
       "aud" => audiences.presence || AuthenticationJwtConfiguration.audiences(resource_type),
       "scp" => scopes_value,
       "acr" => normalize_acr(acr),
+      # Always present, so a downstream consumer distinguishes "this build does
+      # not mint the claim" from "this session is Normal" by the token's age
+      # alone, never by guessing.
+      AuthenticationContextValue::CLAIM => context.to_s,
     }
     payload["amr"] = Array(amr) if amr.present?
     payload["sid"] = sid if sid.present?
@@ -59,6 +69,14 @@ module AuthorizationTokenClaims
 
   def scopes(payload)
     payload&.dig("scp") || []
+  end
+
+  # The trusted authentication context of a decoded access token. A payload
+  # with no claim is a session minted before Emergency Access existed, which
+  # was Normal; an unrecognised value resolves to the capability-less UNKNOWN
+  # context rather than to Normal.
+  def authentication_context(payload)
+    AuthenticationContextValue.from_claims(payload)
   end
 
   def audiences(payload)

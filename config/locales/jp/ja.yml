@@ -1061,6 +1061,9 @@ ja:
     step_up:
       canceled: 認証をキャンセル
       completed: 続行
+      emergency_unavailable:
+        このセッションは緊急アクセスで確立されたため、段階的認証を行えません。サインアウトして通常モードで
+        サインインし直してください。
       invalid_request: 無効な認証リクエストです。
       method_unavailable: 選択した認証方法は利用できません。
       register_methods_required: 利用可能なステップアップ認証がありません。パスキー・メール・TOTPを登録してください。
@@ -2139,6 +2142,8 @@ ja:
         オリジン '%{origin}' は信頼されていません。TRUSTED_ORIGINS 環境変数を設定してください。
       pii_required: メールアドレスまたは電話番号を入力してください
       sign_count_mismatch: パスキーのセキュリティカウンターに問題があります。
+      sign_in_transaction_required:
+        サインインの手続きが期限切れであるか、Microsoft サインインから開始されていません。最初からやり直してください。
       verification_failed: パスキーの検証に失敗しました。
       verification_required: パスキーの登録は WebAuthn 認証で完了する必要があります。
   hello: やぁ、せかい
@@ -2372,6 +2377,10 @@ ja:
           light: ライト
           system: システム設定に従う
         title: テーマ設定
+      restricted_mode:
+        description: 段階的認証とそれを必要とする操作は利用できません。
+        label: 制限モード — Emergency Access
+        sign_out: サインアウトして通常モードでサインインし直す
   mail:
     common:
       cta: 詳細を見る
@@ -3649,6 +3658,17 @@ ja:
             page_title: email で登録します
             registration: 登録しますか？
             you_have_already_logged_in: あなたはログインしています
+        emergency:
+          passkey:
+            new:
+              description: スタッフIDと登録済みのパスキーでサインインします。Microsoft サインインは使用しません。
+              identifier_label: ID
+              identifier_placeholder: スタッフIDを入力してください
+              page_title: 緊急アクセス
+              restricted_mode_notice:
+                このサインインでは制限モードのセッションになります。サインアウトして通常モードでサインインし直すまで、
+                段階的認証とそれを必要とする操作は利用できません。
+              submit: パスキーでサインイン
         entra:
           errors:
             authentication_method_locked:
@@ -3698,6 +3718,9 @@ ja:
             description: SMSで届くワンタイムコードで本人確認を行います。
             title: 携帯電話番号
           title: 登録方法を選ぶ
+        mode_switch:
+          sign_out_required:
+            すでにサインインしています。モードを変更するには、いったんサインアウトしてください（%{sign_out_url}）。
         new:
           back: 他の方法を選びますか？
           back_link: もどる
@@ -3706,6 +3729,7 @@ ja:
           links:
             apple: Apple
             email: メールアドレス
+            emergency: 緊急アクセス（制限モード）
             entra: Microsoft でサインイン
             google: Google
             passkey: パスキー
@@ -3721,6 +3745,7 @@ ja:
             identifier_label: ID
             identifier_placeholder: staff の ID を入力
             page_title: パスキーでログイン
+            secret_credential: パスキーを紛失した場合はシークレットを使用します
             submit: パスキーでログイン
         recovery:
           new:

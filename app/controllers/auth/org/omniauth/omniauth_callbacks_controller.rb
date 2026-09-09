@@ -18,14 +18,20 @@ module Auth
       #
       # This controller is Rails glue only: it normalizes the AuthHash through
       # the same ExternalAuthentication adapter interface the app surface uses
-      # for Google and Apple, delegates identity lookup to
-      # ExternalSignIn::OrgEntraResolver (no JIT provisioning), and routes
-      # through the same session-establishment, MFA, session-limit, and audit
-      # path as the passkey and secret-credential ceremonies.
+      # for Google and Apple and delegates identity lookup to
+      # ExternalSignIn::OrgEntraResolver (no JIT provisioning).
       # See adr/org-entra-id-sign-in-boundary.md.
+      #
+      # Entra is the first stage of Normal org sign-in, not the whole of it. A
+      # successful callback establishes no session: it records which Operator
+      # Entra selected in a short-lived, purpose-bound pending transaction and
+      # hands the browser to the passkey stage, which (or, for a lost passkey,
+      # the secret stage) completes the ceremony. See
+      # docs/security/org-emergency-access.md and OrgNormalSignInTransaction.
       class OmniauthCallbacksController < ::Auth::Org::ApplicationController
         include SessionLimitGate
         include ExternalAuthenticationEndpoint
+        include ::OrgNormalSignInTransaction
 
         AUTHENTICATION_MODE = :guest
 
@@ -78,21 +84,12 @@ module Auth
           return if reject_locked_authentication_method!(identity: identity, operator: operator)
 
           # The callback is a GET (Entra redirects back with `code`/`state`);
-          # establish_signed_in_session! and its session-limit/status-enum
-          # bootstrap writes must not run against a read replica.
-          sign_in_result, pt =
-            ActiveRecord::Base.connected_to(role: :writing) do
-            result = establish_signed_in_session!(
-              operator,
-              pt: consume_pt!,
-              ri: current_region_identifier,
-              auth_method: "entra_id",
-            )
-            resolved_sign_in_result = sign_in_result_from_session_result(result, actor: operator)
-            record_authentication_timestamp(identity, resolved_sign_in_result)
-            [resolved_sign_in_result, consume_pt!]
+          # the identity timestamp write must not run against a read replica.
+          ActiveRecord::Base.connected_to(role: :writing) do
+            identity.update!(last_authenticated_at: Time.current)
           end
-          handle_sign_in_result(sign_in_result, pt: pt)
+
+          start_normal_sign_in_second_stage!(operator: operator, identity: identity)
         rescue ExternalSignIn::IdentityNotFoundError
           render_entra_error(:identity_not_found)
         rescue StandardError => e
@@ -161,24 +158,22 @@ module Auth
           true
         end
 
-        def record_authentication_timestamp(identity, sign_in_result)
-          identity.update!(last_authenticated_at: Time.current) if sign_in_result.success?
-        end
+        # Entra identifies the Operator; it does not authenticate the session.
+        # The pending transaction is what binds the second stage to this
+        # Operator, and it is the only place the second stage will look.
+        def start_normal_sign_in_second_stage!(operator:, identity:)
+          pt = consume_pt!
+          issue_org_normal_sign_in_transaction!(
+            operator: operator,
+            entra_identity_id: identity.id,
+            pt: pt,
+            ri: current_region_identifier,
+          )
 
-        def handle_sign_in_result(sign_in_result, pt:)
-          if sign_in_result.mfa_required? || sign_in_result.session_limit_pending?
-            redirect_to(sign_in_result.redirect_to)
-          elsif sign_in_result.terminal?
-            render_session_limit_hard_reject(
-              message: sign_in_result.message,
-              http_status: sign_in_result.response_status,
-            )
-          elsif sign_in_result.success?
-            redirect_to_sign_in_sequence!(pt: pt)
-          else
-            log_entra_failure("sign_in_failed", status: sign_in_result.status)
-            render_entra_error(:sign_in_failed)
-          end
+          redirect_to(
+            new_auth_org_sign_in_passkey_path(pt: pt, ri: current_region_identifier),
+            status: :see_other,
+          )
         end
       end
     end

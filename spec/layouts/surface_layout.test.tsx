@@ -51,6 +51,7 @@ const minimalChrome: SurfaceChrome = {
   surface: "app",
   brand: { name: "Umaxica", href: "https://umaxica.app/" },
   banner: null,
+  restricted_mode: null,
   footer_navigation: null,
   cookie_controls: cookieControls,
   theme_controls: themeControls,
@@ -124,6 +125,35 @@ describe("SurfaceLayout", () => {
     expect(screen.queryByRole("navigation", { name: "Footer" })).toBeNull();
     // The surface layout carries no primary/header navigation at all.
     expect(screen.queryByRole("navigation", { name: "Primary" })).toBeNull();
+  });
+
+  // Restricted Mode is session state, published once by the server and rendered here for the whole
+  // life of the session. A page cannot supply it and therefore cannot drop it.
+  test("renders no restricted mode indicator for an ordinary session", () => {
+    render(minimalChrome);
+
+    expect(screen.queryByRole("region", { name: "制限モード — Emergency Access" })).toBeNull();
+  });
+
+  test("renders the restricted mode indicator above everything else in the header", () => {
+    render({
+      ...minimalChrome,
+      restricted_mode: {
+        label: "制限モード — Emergency Access",
+        description: "段階的認証は利用できません。",
+        sign_out: { label: "サインアウトして通常モードでサインインし直す", href: "/sign/out/new" },
+      },
+    });
+
+    const indicator = screen.getByRole("region", { name: "制限モード — Emergency Access" });
+    expect(within(indicator).getByText("段階的認証は利用できません。")).toBeTruthy();
+
+    // The only way back to a normal session is to end this one; there is no in-place switch.
+    const signOut = within(indicator).getByRole("link", {
+      name: "サインアウトして通常モードでサインインし直す",
+    });
+    expect(signOut.getAttribute("href")).toBe("/sign/out/new");
+    expect(indicator.textContent).not.toContain("解除");
   });
 
   test("renders the banner with its title", () => {
