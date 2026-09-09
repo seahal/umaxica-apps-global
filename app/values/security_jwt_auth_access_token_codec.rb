@@ -14,7 +14,8 @@ class SecurityJwtAuthAccessTokenCodec
                session_public_id: nil, session_id: nil, oidc_sid: nil, oidc_jti: nil, scopes: nil, acr: nil,
                amr: nil, access_token_ttl: SecurityTokenLifetimes::AUTH_ACCESS_JWT_TTL,
                jwt_issuer_id: nil, issuer: nil, audiences: nil,
-               subject: nil, auth_time: nil, step_up_until: nil, client_id: nil)
+               subject: nil, auth_time: nil, step_up_until: nil, client_id: nil,
+               authentication_context: nil)
       resource_type ||=
         case resource
         when ::Client then "client"
@@ -47,6 +48,7 @@ class SecurityJwtAuthAccessTokenCodec
         auth_time: auth_time,
         step_up_until: step_up_until,
         client_id: client_id,
+        authentication_context: authentication_context,
       )
 
       token_issuer_id = resolve_jwt_issuer_id(

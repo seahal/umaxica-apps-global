@@ -1382,6 +1382,33 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
                  "clear_previous_login_cookies! must run exactly once at the privilege transition"
   end
 
+  test "session establishment rejects an authenticated principal before flow mutation or session reset" do
+    reset_count = 0
+    existing_user = clients(:one)
+    attempted_user = clients(:two)
+    @controller.instance_variable_set(:@current_resource, existing_user)
+    @controller.define_singleton_method(:reset_session) { reset_count += 1 }
+
+    assert_no_difference("ClientSignInFlow.count") do
+      error =
+        assert_raises(AlreadyAuthenticatedError) do
+          @controller.send(
+            :establish_signed_in_session!,
+            attempted_user,
+            pt: nil,
+            ri: "jp",
+            auth_method: "passkey",
+          )
+        end
+
+      assert_equal :conflict, error.status_code
+      assert_equal "Sign-in is unavailable while authenticated.", error.message
+    end
+
+    assert_equal 0, reset_count
+    assert_equal existing_user, @controller.current_resource
+  end
+
   test "log_in preserves pending oidc rp callback state across session rotation" do
     @session_hash[:oidc_code_verifier] = "verifier"
     @session_hash[:oidc_state] = "state"

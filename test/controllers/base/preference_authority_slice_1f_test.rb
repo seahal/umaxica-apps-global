@@ -135,7 +135,9 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_select "html[lang='en']"
-      assert_equal "Region & Language Settings", inertia_props.fetch("title")
+      # The region screen is not the language settings UI -- language has its own
+      # page -- so its heading names only the region.
+      assert_equal "Region Settings", inertia_props.fetch("title")
       assert_equal ["Japan - 日本", "United States - USA"], inertia_choice_labels.sort
     end
   end
@@ -173,6 +175,23 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
     assert_select "html[lang='en']"
     assert_includes inertia_choice_labels, "Coordinated Universal Time (UTC)"
     assert_includes inertia_choice_labels, "Japan Standard Time (Asia/Tokyo)"
+  end
+
+  test "base preference timezone choices are ordered by ascending UTC offset" do
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    host! host
+
+    get edit_base_app_preference_timezone_url(ri: "jp", host: host)
+
+    assert_response :success
+
+    # Option row ids: 1 Etc/UTC, 2 Asia/Tokyo, 3 New_York, 4 Chicago, 5 Denver, 6 Los_Angeles,
+    # 7 Anchorage, 8 Honolulu. Standard offsets ascending run Honolulu (UTC-10) -> ... -> New_York
+    # (UTC-05) -> UTC (UTC+00) -> Tokyo (UTC+09), which is deliberately not the id order.
+    assert_equal(
+      [8, 7, 6, 5, 4, 3, 1, 2],
+      inertia_choice_pairs.map(&:last),
+    )
   end
 
   test "base preference write updates app user preference" do

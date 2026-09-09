@@ -38,6 +38,7 @@ class HostAuthorizationContractTest < Minitest::Test
     side-jp.umaxica.app
     info.umaxica.app
     palm-jp.umaxica.app
+    guid.umaxica.net
   ).freeze
 
   # The subprocess below boots RAILS_ENV=development, which resolves both Valkey
@@ -49,6 +50,7 @@ class HostAuthorizationContractTest < Minitest::Test
   # happens to export.
   DEVELOPMENT_BOOT_ENV = {
     "RAILS_ENV" => "development",
+    "UMAXICA_ENV_FILE" => File.expand_path("../../.env.example", __dir__),
     "CACHE_REDIS_URL" => "redis://valkey-cache.invalid:6379/0",
     "RATE_LIMIT_REDIS_URL" => "redis://valkey-rate-limit.invalid:6379/0",
   }.freeze
@@ -160,9 +162,13 @@ class HostAuthorizationContractTest < Minitest::Test
     # rubocop:enable Rails/RefuteMethods
 
     aliased_hosts = aliases_block.scan(/^\s+- (\S+)/).flatten
+    env_file_paths =
+      (compose.scan(/^\s+- (\.env[^\s]*)$/).flatten +
+        %w(.env.devcontainer.example .env.example)).uniq
     env_files =
-      compose.scan(/^\s+- (\.env[^\s]*)$/).flatten.map do |relative_path|
-        File.read(File.expand_path("../../#{relative_path}", __dir__))
+      env_file_paths.filter_map do |relative_path|
+        path = File.expand_path(relative_path, File.expand_path("../..", __dir__))
+        File.read(path) if File.file?(path)
       end
     configured_public_hosts =
       ([compose] + env_files).flat_map do |configuration|
@@ -278,6 +284,7 @@ class HostAuthorizationContractTest < Minitest::Test
       "PUBLIC_SIDE_SERVICE_URL" => "https://side-jp.umaxica.app",
       "PUBLIC_INFO_SERVICE_URL" => "https://info.umaxica.app",
       "PUBLIC_PALM_SERVICE_URL" => "https://palm-jp.umaxica.app",
+      "PUBLIC_GUID_SERVICE_URL" => "https://guid.umaxica.net",
     )
   end
 end

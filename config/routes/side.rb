@@ -52,6 +52,17 @@ scope module: :side, as: :side do
       # Control-plane settings index.
       resource :settings, only: :show
 
+      # Web preference JSON authority for this surface's own chrome controls (theme, cookie
+      # consent). Mirrors auth and core; base still owns the full HTML preference screens. Without
+      # it the theme/cookie controls rendered in the Side chrome POST to a route that does not
+      # exist, so a choice changes the page but is never persisted.
+      namespace :web do
+        namespace :v0 do
+          resource :theme, only: %i(show update)
+          resource :cookie, only: %i(show update)
+        end
+      end
+
       # Signed-in dashboard.
       resource :dashboard, only: :show
 
@@ -130,6 +141,17 @@ scope module: :side, as: :side do
       # Control-plane settings index.
       resource :settings, only: :show
 
+      # Web preference JSON authority for this surface's own chrome controls (theme, cookie
+      # consent). Mirrors auth and core; base still owns the full HTML preference screens. Without
+      # it the theme/cookie controls rendered in the Side chrome POST to a route that does not
+      # exist, so a choice changes the page but is never persisted.
+      namespace :web do
+        namespace :v0 do
+          resource :theme, only: %i(show update)
+          resource :cookie, only: %i(show update)
+        end
+      end
+
       # Signed-in dashboard.
       resource :dashboard, only: :show
 
@@ -206,6 +228,17 @@ scope module: :side, as: :side do
 
       # Control-plane settings index.
       resource :settings, only: :show
+
+      # Web preference JSON authority for this surface's own chrome controls (theme, cookie
+      # consent). Mirrors auth and core; base still owns the full HTML preference screens. Without
+      # it the theme/cookie controls rendered in the Side chrome POST to a route that does not
+      # exist, so a choice changes the page but is never persisted.
+      namespace :web do
+        namespace :v0 do
+          resource :theme, only: %i(show update)
+          resource :cookie, only: %i(show update)
+        end
+      end
 
       # Signed-in dashboard.
       resource :dashboard, only: :show

@@ -17,6 +17,7 @@ module AuthenticationJwtTokens
       acr: "aal1",
       amr: normalize_amr(token_kind_id, token_record: token_record),
       jwt_issuer_id: auth_jwt_issuer_id,
+      authentication_context: token_record_authentication_context(token_record),
     )
   end
 
@@ -35,6 +36,7 @@ module AuthenticationJwtTokens
       acr: "aal1",
       amr: nil,
       jwt_issuer_id: auth_jwt_issuer_id,
+      authentication_context: token_record_authentication_context(token_record),
     )
   end
 
@@ -49,6 +51,17 @@ module AuthenticationJwtTokens
       resource_type: resource_type,
       jwt_issuer_id: auth_jwt_issuer_id,
     )
+  end
+
+  # The session row is the single authority for the authentication context, and
+  # every access token -- first issue, refresh rotation, and mid-session
+  # reissue -- reads it from here. A continuation therefore cannot mint a Normal
+  # token for an Emergency session: there is nowhere else for the value to come
+  # from. See docs/security/org-emergency-access.md.
+  def token_record_authentication_context(token_record)
+    return nil unless token_record.respond_to?(:authentication_context_value)
+
+    token_record.authentication_context_value.to_s
   end
 
   def token_record_oidc_sid(token_record)
@@ -100,6 +113,7 @@ module AuthenticationJwtTokens
       dpop_jkt: token_record_attribute(current_session, :dpop_jkt),
       expires_at: access_expires_at,
       jwt_issuer_id: auth_jwt_issuer_id,
+      authentication_context: token_record_authentication_context(current_session),
     )
     return unless new_access_token
 

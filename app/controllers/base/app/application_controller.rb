@@ -97,7 +97,7 @@ module Base
                            ),
                            with: :exception
 
-      public
+      private
 
       def oidc_client_id
         # Historical name for Base's own browser/local-session RP client; Base does not own this callback.

@@ -106,7 +106,7 @@ ja:
             link: 時刻形式
           timezone:
             link: タイムゾーン設定
-        region_settings: 地域と言語の設定
+        region_settings: 地域設定
         regions:
           back_link: もどる
           cancel: キャンセル
@@ -132,7 +132,7 @@ ja:
             JST: 日本標準時 (Asia/Tokyo)
             UTC: 協定世界時 (UTC)
           timezone_section: タイムゾーン設定
-          title: 地域・言語の設定
+          title: 地域設定
           update_settings: 設定を更新
         reset_settings: 設定のリセット
         submitting: 送信中...
@@ -263,7 +263,7 @@ ja:
             link: 時刻形式
           timezone:
             link: タイムゾーン設定
-        region_settings: 地域と言語の設定
+        region_settings: 地域設定
         regions:
           back_link: もどる
           cancel: キャンセル
@@ -289,7 +289,7 @@ ja:
             JST: 日本標準時 (Asia/Tokyo)
             UTC: 協定世界時 (UTC)
           timezone_section: タイムゾーン設定
-          title: 地域・言語の設定
+          title: 地域設定
           update_settings: 設定を更新
         reset_settings: 設定のリセット
         submitting: 送信中...
@@ -432,7 +432,7 @@ ja:
             link: 時刻形式
           timezone:
             link: タイムゾーン設定
-        region_settings: 地域と言語の設定
+        region_settings: 地域設定
         regions:
           back_link: もどる
           cancel: キャンセル
@@ -458,7 +458,7 @@ ja:
             JST: 日本標準時 (Asia/Tokyo)
             UTC: 協定世界時 (UTC)
           timezone_section: タイムゾーン設定
-          title: 地域・言語の設定
+          title: 地域設定
           update_settings: 設定を更新
         reset_settings: 設定のリセット
         submitting: 送信中...
@@ -892,7 +892,9 @@ ja:
     app:
       identity:
         credential_warning:
-          body: 別のサインイン方法を追加すると、Apple サインインを利用できないときもアカウントにアクセスできます。
+          body:
+            別のサインイン方法を追加すると、Apple
+            サインインを利用できないときもアカウントにアクセスできます。
           google: Google と連携する
           heading: 別のサインイン方法を追加
           passkey: パスキーを追加
@@ -1008,7 +1010,7 @@ ja:
         language_settings: 言語設定
         motion_settings: モーション設定
         pagination_settings: 1ページあたりの表示件数
-        region_settings: 地域と言語の設定
+        region_settings: 地域設定
         regions:
           back_link: もどる
         reset_settings: 設定のリセット
@@ -1169,7 +1171,7 @@ ja:
         language_settings: 言語設定
         motion_settings: モーション設定
         pagination_settings: 1ページあたりの表示件数
-        region_settings: 地域と言語の設定
+        region_settings: 地域設定
         regions:
           back_link: もどる
         reset_settings: 設定のリセット
@@ -1494,7 +1496,7 @@ ja:
             JST: 日本標準時 (Asia/Tokyo)
             UTC: 協定世界時 (UTC)
           timezone_section: タイムゾーンの設定
-          title: 地域・言語の設定
+          title: 地域設定
           update_settings: 設定を更新
         theme_settings: テーマ設定
         themes:
@@ -2402,7 +2404,7 @@ ja:
         languages:
           unsupported: 対応していない言語が選択されました
         locale_settings: 言語の設定
-        region_settings: 地域と言語の設定
+        region_settings: 地域設定
         regions:
           cancel: キャンセル
           language_section: 言語の設定
@@ -2429,7 +2431,7 @@ ja:
             JST: 日本標準時 (Asia/Tokyo)
             UTC: 協定世界時 (UTC)
           timezone_section: タイムゾーンの設定
-          title: 地域・言語の設定
+          title: 地域設定
           update_settings: 設定を更新
         theme_settings: テーマ設定
         themes:
@@ -2648,12 +2650,6 @@ ja:
           session_revoked: セッションを無効化しました。
           sessions_revoked: 選択したセッションを無効化しました。
           title: セッション管理
-      layout:
-        nav:
-          log_in: ログイン
-          logout: ログアウト
-          settings: 設定
-          sign_up: 新規登録
       outs:
         destroy:
           success: ログアウトしました
@@ -3307,12 +3303,6 @@ ja:
           restricted_notice: セッション数が上限に達しています。既存セッションを管理してください。
           session_revoked: セッションを無効化しました。
           sessions_revoked: セッションを無効化しました。
-      layout:
-        nav:
-          log_in: ログイン
-          logout: ログアウト
-          settings: 設定
-          sign_up: 新規登録
       preferences:
         footer:
           dashboard: ダッシュボード

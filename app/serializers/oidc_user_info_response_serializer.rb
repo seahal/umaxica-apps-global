@@ -25,4 +25,5 @@ module OidcUserInfoResponseSerializer
     claims[:email] = resource.email if resource.respond_to?(:email) && resource.email.present?
     claims[:email_verified] = true if claims[:email].present?
   end
+  private_class_method :attach_profile_claims
 end

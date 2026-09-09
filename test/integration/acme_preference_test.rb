@@ -106,10 +106,20 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       )
 
       pref.reload
+      prefix = domain[:name].camelize
 
       assert_equal 1, pref.try("#{domain[:name]}_preference_region").option_id
-      assert_equal PreferenceClassRegistry.option_class(domain[:name].camelize, :language)::EN,
+      # The US regional bundle: English, US month/day/year dates, 12-hour clock.
+      assert_equal PreferenceClassRegistry.option_class(prefix, :language)::EN,
                    pref.try("#{domain[:name]}_preference_language").option_id
+      assert_equal PreferenceClassRegistry.option_class(prefix, :date_format)::US,
+                   pref.try("#{domain[:name]}_preference_date_format").option_id
+      assert_equal PreferenceClassRegistry.option_class(prefix, :time_format)::HOUR_12,
+                   pref.try("#{domain[:name]}_preference_time_format").option_id
+      # Each regional default is recorded as an explicit choice so later ?ri seeding cannot
+      # silently revert it.
+      assert_equal %w(date_format language region time_format).sort,
+                   pref.reload.explicit_field_names.sort
     end
 
     test "#{domain[:name]} domain keeps request region context when saved region changes to Japan" do
@@ -134,11 +144,47 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       assert_not query.key?("lx")
 
       pref.reload
+      prefix = domain[:name].camelize
 
-      assert_equal PreferenceClassRegistry.option_class(domain[:name].camelize, :region)::JP,
+      assert_equal PreferenceClassRegistry.option_class(prefix, :region)::JP,
                    pref.try("#{domain[:name]}_preference_region").option_id
-      assert_equal PreferenceClassRegistry.option_class(domain[:name].camelize, :language)::JA,
+      # The JP regional bundle: Japanese, ISO year-month-day dates, 24-hour clock.
+      assert_equal PreferenceClassRegistry.option_class(prefix, :language)::JA,
                    pref.try("#{domain[:name]}_preference_language").option_id
+      assert_equal PreferenceClassRegistry.option_class(prefix, :date_format)::ISO,
+                   pref.try("#{domain[:name]}_preference_date_format").option_id
+      assert_equal PreferenceClassRegistry.option_class(prefix, :time_format)::HOUR_24,
+                   pref.try("#{domain[:name]}_preference_time_format").option_id
+    end
+
+    test "#{domain[:name]} domain region change updates the regional bundle atomically" do
+      host!(domain[:host])
+      pref, = assert_preference_created(domain, ri: "us")
+      prefix = domain[:name].camelize
+
+      # A prior explicit 24-hour clock choice: a US region change is a bundle reset, so it is
+      # expected to move to 12-hour along with the rest.
+      get public_send("edit_base_#{domain[:name]}_preference_clock_url", ri: "us")
+      patch public_send("base_#{domain[:name]}_preference_clock_url", ri: "us"),
+            params: { preference_time_format: { option_id: PreferenceClassRegistry.option_class(
+              prefix,
+              :time_format,
+            )::HOUR_24.to_s } }
+
+      get public_send("edit_base_#{domain[:name]}_preference_region_url", ri: "us")
+      patch public_send("base_#{domain[:name]}_preference_region_url", ri: "us"),
+            params: { preference_region: { option_id: "US" } }
+
+      assert_response :redirect
+
+      pref.reload
+
+      assert_equal PreferenceClassRegistry.option_class(prefix, :language)::EN,
+                   pref.try("#{domain[:name]}_preference_language").option_id
+      assert_equal PreferenceClassRegistry.option_class(prefix, :date_format)::US,
+                   pref.try("#{domain[:name]}_preference_date_format").option_id
+      assert_equal PreferenceClassRegistry.option_class(prefix, :time_format)::HOUR_12,
+                   pref.try("#{domain[:name]}_preference_time_format").option_id
     end
 
     test "#{domain[:name]} domain region edit and update do not change preference count" do

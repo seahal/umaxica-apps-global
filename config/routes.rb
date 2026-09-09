@@ -11,6 +11,9 @@ Rails.application.routes.draw do
   # Info owns public informational content.
   draw :info
 
+  # GUID owns domain-level globally-unique-identifier resolution.
+  draw :guid
+
   # Core owns the regional BFF surface.
   draw :core
 

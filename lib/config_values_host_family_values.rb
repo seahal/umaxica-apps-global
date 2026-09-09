@@ -27,6 +27,7 @@ module ConfigValues
       :info_service,
       :info_corporate,
       :info_staff,
+      :guid_service,
     ) do
       def acme_origins
         [acme_service, acme_corporate, acme_staff]
@@ -170,6 +171,9 @@ class << ConfigValues::HostFamilyValues
         env, "INFO_STAFF_URL", development_host(production, "info.org.localhost"),
         production: production,
       ),
+      guid_service: origin(
+        env, guid_key(env), development_host(production, "guid.net.localhost"), production: production,
+      ),
     }
   end
 
@@ -221,6 +225,10 @@ class << ConfigValues::HostFamilyValues
     else
       "CORE_#{surface}_URL"
     end
+  end
+
+  def guid_key(env)
+    env.key?("GUID_SERVICE_URL") ? "GUID_SERVICE_URL" : "PUBLIC_GUID_SERVICE_URL"
   end
 
   def origin(env, key, fallback, production:)

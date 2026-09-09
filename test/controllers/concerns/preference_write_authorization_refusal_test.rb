@@ -94,12 +94,12 @@ class PreferenceWriteAuthorizationRefusalTest < ActiveSupport::TestCase
     assert ClientPreference.exists?(@resource_pref.id), "the mirror must survive an unauthorized reset"
   end
 
-  test "the region and language write for someone else's mirror is refused" do
+  test "the region and regional-defaults write for someone else's mirror is refused" do
     ctx = build_context(preference_region: { option_id: PreferenceClassRegistry.option_class("App", :region)::US.to_s })
     ctx.instance_variable_set(:@preference_region, @browser_pref.app_preference_region)
     ctx.instance_variable_set(:@preference_language, @browser_pref.app_preference_language)
 
-    assert_raises(PreferenceOperationError) { ctx.send(:update_region_and_language_preferences!) }
+    assert_raises(PreferenceOperationError) { ctx.send(:update_region_and_regional_defaults!) }
 
     assert_equal PreferenceLifecycleSurfaces::JA, @browser_pref.app_preference_language.reload.option_id
   end

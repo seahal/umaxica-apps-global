@@ -314,6 +314,62 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
     assert_jwks_decode_error { raise Faraday::ConnectionFailed, "connection refused" }
   end
 
+  test "valid_payload? rejects blank url future iat and inverted nbf/exp" do
+    verifier = build_verifier
+    now = @now
+    base = {
+      "url" => "https://www.umaxica.app/path",
+      "iat" => now.to_i,
+      "nbf" => now.to_i,
+      "exp" => now.to_i + 60,
+      "jti" => "jti",
+    }
+
+    assert_not verifier.send(:valid_payload?, base.merge("url" => ""))
+    assert_not verifier.send(:valid_payload?, base.merge("iat" => now.to_i + JumpRtReturnVerifier::LEEWAY + 120))
+    assert_not verifier.send(:valid_payload?, base.merge("nbf" => now.to_i + 120, "exp" => now.to_i + 60))
+  end
+
+  test "consume_jti! rejects already-expired claims and normalize_url requires HTTP" do
+    verifier = build_verifier
+
+    assert_not verifier.send(:consume_jti!, { "jti" => "x", "exp" => 1.hour.ago.to_i })
+    assert_nil verifier.send(:normalize_url_without_rt, "mailto:x@y.z")
+  end
+
+  test "cached_jwks raises when fetch fails and stale cache missing" do
+    verifier = JumpRtReturnVerifier.new(
+      token: "dummy",
+      request_url: "https://www.umaxica.app/path",
+      request_base_url: "https://www.umaxica.app",
+      fetcher: -> { raise JWT::DecodeError, "boom" },
+      now: @now,
+    )
+    Rails.cache.stub(:read, nil) do
+      Rails.cache.stub(:delete, true) do
+        Rails.cache.stub(:write, true) do
+          assert_raises(JWT::DecodeError) { verifier.send(:cached_jwks, force: true) }
+        end
+      end
+    end
+  end
+
+  test "call rejects invalid header" do
+    verifier = JumpRtReturnVerifier.new(
+      token: "a.b.c",
+      request_url: "https://www.umaxica.app/path",
+      request_base_url: "https://www.umaxica.app",
+      fetcher: -> { { "keys" => [] } },
+      now: @now,
+    )
+    verifier.stub(:parse_header, { "alg" => "none", "typ" => "JWT", "kid" => "x" }) do
+      result = verifier.call
+
+      assert_not result.success?
+      assert_equal "invalid_header", result.error
+    end
+  end
+
   private
 
   def build_verifier
