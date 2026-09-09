@@ -15,6 +15,7 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     get auth_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
+    assert_includes response.headers["Cache-Control"], "no-store"
     assert_nil session[:oidc_authorization_login_challenge]
     assert_equal "auth/org/sign/ins/show", inertia_component
     assert_includes method_hrefs, auth_org_social_entra_session_path(ri: "jp")
@@ -133,22 +134,15 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
                  inertia_props.fetch("back_to_root").fetch("href")
   end
 
-  # An authenticated operator is told to sign out rather than sent onward: there
-  # is no transition between authentication contexts inside a session, so
-  # starting a sign-in from a signed-in browser has exactly one answer.
-  test "rejects direct entry when logged in and names the sign-out ceremony" do
+  test "rejects direct entry when logged in without account-switching guidance" do
     staff = operators(:one)
 
     get auth_org_sign_in_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
-    assert_response :forbidden
-    assert_equal(
-      I18n.t(
-        "sign.org.authentication.mode_switch.sign_out_required",
-        sign_out_url: new_auth_org_sign_out_path(ri: "jp"),
-      ),
-      response.body,
-    )
+    assert_response :conflict
+    assert_equal "text/plain; charset=utf-8", response.headers["Content-Type"]
+    assert_equal "Sign-in is unavailable while authenticated.", response.body
+    assert_includes response.headers["Cache-Control"], "no-store"
   end
 
   private

@@ -32,6 +32,7 @@ module Auth
         include SessionLimitGate
         include ExternalAuthenticationEndpoint
         include ::OrgNormalSignInTransaction
+        include ::AuthenticationModeSwitchGuard
 
         AUTHENTICATION_MODE = :guest
 

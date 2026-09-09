@@ -7,6 +7,7 @@ module Auth
       module In
         class EmailsController < ::Auth::App::ApplicationController
           include ::SurfaceInertiaPage
+          include ::AuthenticationModeSwitchGuard
 
           include ::TurnstilePageProps
 

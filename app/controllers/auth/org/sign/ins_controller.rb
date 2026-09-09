@@ -36,12 +36,8 @@ module Auth
 
         private
 
-        # There is no transition between the Normal and Emergency
-        # authentication contexts inside a session, so an authenticated
-        # operator is told to sign out rather than sent anywhere that might read
-        # as a mode switch.
         def reject_logged_in_direct_entry!
-          render plain: authentication_mode_switch_message, status: :forbidden
+          render_sign_in_unavailable_while_authenticated
         end
 
         # Direct entry without an authorization transaction renders this surface's entry page instead

@@ -177,20 +177,15 @@ class Auth::Org::Sign::In::Emergency::PasskeysControllerTest < ActionDispatch::I
     assert_equal 0, OperatorToken.where(staff_id: @staff.id).count
   end
 
-  test "an authenticated operator cannot enter emergency access and is told to sign out" do
+  test "an authenticated operator cannot enter emergency access" do
     staff = operators(:one)
 
     get new_auth_org_sign_in_emergency_passkey_url(ri: "jp"),
         headers: as_staff_headers(staff, host: ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost"))
 
-    assert_response :forbidden
-    assert_equal(
-      I18n.t(
-        "sign.org.authentication.mode_switch.sign_out_required",
-        sign_out_url: new_auth_org_sign_out_path(ri: "jp"),
-      ),
-      response.body,
-    )
+    assert_response :conflict
+    assert_equal "Sign-in is unavailable while authenticated.", response.body
+    assert_includes response.headers["Cache-Control"], "no-store"
   end
 
   test "an authenticated operator cannot run the emergency ceremony endpoints" do
@@ -200,7 +195,9 @@ class Auth::Org::Sign::In::Emergency::PasskeysControllerTest < ActionDispatch::I
     post auth_org_sign_in_emergency_passkey_options_url(ri: "jp"),
          params: { identifier: staff.public_id }, headers: headers
 
-    assert_response :forbidden
+    assert_response :conflict
+    assert_equal "Sign-in is unavailable while authenticated.", response.body
+    assert_includes response.headers["Cache-Control"], "no-store"
     assert_nil session[:passkey_challenges]
   end
 

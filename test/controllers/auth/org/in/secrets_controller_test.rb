@@ -161,7 +161,9 @@ class Auth::Org::Sign::In::SecretsControllerTest < ActionDispatch::IntegrationTe
            "cf-turnstile-response": "test_token",
          }
 
-    assert_response :forbidden
+    assert_response :conflict
+    assert_equal "Sign-in is unavailable while authenticated.", response.body
+    assert_includes response.headers["Cache-Control"], "no-store"
     assert_equal OperatorSecretCredentialStatus::ACTIVE, @secret_credential.reload.staff_secret_status_id
   end
 

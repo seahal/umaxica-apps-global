@@ -209,6 +209,11 @@ module AuthenticationBase
     render plain: I18n.t("errors.messages.already_authenticated"), status: :unauthorized
   end
 
+  def render_sign_in_unavailable_while_authenticated(_exception = nil)
+    response.set_header("Cache-Control", "no-store")
+    render plain: AlreadyAuthenticatedError::MESSAGE, status: :conflict
+  end
+
   # ======================================================================
   # 3) Redirect/checkpoint session flows (Session/params I/O boundary)
   # - Reads/writes params, flash, session
@@ -2427,6 +2432,8 @@ module AuthenticationBase
   def establish_signed_in_session!(resource, pt:, ri:, auth_method:, token_kind_id: "BROWSER_WEB",
                                    record_login_audit: true, audit_context: {}, bootstrap_actor: false,
                                    established_authentication_method: nil, authentication_context: nil)
+    raise AlreadyAuthenticatedError if logged_in?
+
     auth_method = auth_method.to_s
     # `auth_method:` alone is sometimes ambiguous (e.g. "social" cannot express
     # google vs apple) -- callers with better information pass the resolved

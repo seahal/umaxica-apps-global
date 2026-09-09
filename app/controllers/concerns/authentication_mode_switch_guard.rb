@@ -1,8 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
-# Refuses to start a sign-in ceremony for a browser that is already
-# authenticated, and says why.
+# Refuses to start or complete a new sign-in ceremony for a browser that is
+# already authenticated.
 #
 # There is no supported transition between the Normal and Emergency
 # authentication contexts inside a session. A Normal session cannot be
@@ -11,44 +11,47 @@
 # Passkey or Secret ceremony, not by Step-Up, and not by any token rotation or
 # session renewal. Changing mode means signing out and signing in again.
 #
-# The refusal itself is the surface's ordinary guest-only rejection: this
-# concern only replaces the response so that it names the sign-out ceremony
-# instead of bouncing the operator to the dashboard, where nothing would
-# explain why their request did nothing. It installs no callbacks -- it
-# overrides the guest-only response hooks the authentication layer already
-# calls.
+# The guest-only access-policy pipeline remains the primary entry guard. This
+# concern gives every sign-in surface the same deliberately minimal response
+# and prevents both successful pages and refusals from being cached.
 module AuthenticationModeSwitchGuard
   extend ActiveSupport::Concern
+
+  SIGN_IN_UNAVAILABLE_MESSAGE = AlreadyAuthenticatedError::MESSAGE
+
+  included do
+    before_action :prevent_sign_in_response_storage!
+  end
 
   private
 
   def handle_guest_only_json(_options)
-    render json: {
-      error: authentication_mode_switch_message,
-      sign_out_url: authentication_mode_switch_sign_out_url,
-    }, status: :forbidden
+    render_sign_in_unavailable_while_authenticated
   end
 
   def handle_guest_only_html(_options)
-    render plain: authentication_mode_switch_message, status: :forbidden
+    render_sign_in_unavailable_while_authenticated
   end
 
   # Reached for non-GET, non-JSON guest-only rejections. Same answer: the
   # request is refused, and the way forward is sign-out.
   def handle_guest_only_with_status_checks(options)
-    return handle_guest_only_json(options) if request.format.json?
-
-    handle_guest_only_html(options)
+    _ = options
+    render_sign_in_unavailable_while_authenticated
   end
 
-  def authentication_mode_switch_message
-    I18n.t(
-      "sign.org.authentication.mode_switch.sign_out_required",
-      sign_out_url: authentication_mode_switch_sign_out_url,
-    )
+  def reject_new_sign_in_if_authenticated!
+    return unless logged_in?
+
+    render_sign_in_unavailable_while_authenticated
   end
 
-  def authentication_mode_switch_sign_out_url
-    new_auth_org_sign_out_path(ri: current_region_identifier)
+  def render_sign_in_unavailable_while_authenticated(_exception = nil)
+    prevent_sign_in_response_storage!
+    render plain: SIGN_IN_UNAVAILABLE_MESSAGE, status: :conflict
+  end
+
+  def prevent_sign_in_response_storage!
+    response.set_header("Cache-Control", "no-store")
   end
 end
