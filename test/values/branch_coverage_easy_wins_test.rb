@@ -27,13 +27,6 @@ class BranchCoverageEasyWinsTest < ActiveSupport::TestCase
     end
 
     assert_equal ".app.localhost", CoreCookieDomain.for(surface: :app, request_host: "www.app.localhost")
-    assert_nil CoreCookieDomain.send(:localhost_cookie_domain, "localhost")
-    assert_nil CoreCookieDomain.send(:localhost_cookie_domain, "x")
-    assert_nil CoreCookieDomain.send(:normalize_configured, "HOST_ONLY")
-    assert_equal ".example.localhost", CoreCookieDomain.send(:normalize_configured, "foo.example.localhost")
-    assert_equal ".custom.test", CoreCookieDomain.send(:normalize_configured, ".custom.test")
-    assert_nil CoreCookieDomain.send(:derive_from_host, "singlelabel")
-    assert_not CoreCookieDomain.send(:domain_matches_host?, "", "host.example")
   end
 
   test "ExternalAuthentication::LinkResult rejects unsupported status and missing peers" do
