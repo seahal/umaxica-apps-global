@@ -31,15 +31,10 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
   end
 
   test "DbscRegistrationService record missing and blank jwk path" do
-    assert_equal "record_missing",
-                 DbscRegistrationService.new(record: nil, proof: "p").call.error_code rescue assert true
-    begin
-      result = DbscRegistrationService.new(record: nil, proof: "p").call
+    result = DbscRegistrationService.new(record: nil, proof: "p").call
 
-      assert_includes [result.error, result.error_code].compact.map(&:to_s), "record_missing"
-    rescue StandardError
-      assert true
-    end
+    assert_equal "record_missing", result[:error_code]
+    assert_not result[:ok]
   end
 
   test "DpopRequestVerifier missing proof and missing cnf arms" do
@@ -53,7 +48,7 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
 
     assert_equal "missing_dpop_proof", r1.error
 
-    # proof present but token lacks cnf.jkt — needs valid proof path; force via stubbed proof verifier
+    # proof present but token lacks cnf.jkt - needs valid proof path; force via stubbed proof verifier
     # At least exercise blank token_jkt with blank proof acceptance
     r2 = DpopRequestVerifier.new(
       access_token_payload: {},
@@ -75,316 +70,186 @@ class BranchCoverageBatch34MassReturnsTest < ActiveSupport::TestCase
   end
 
   test "OidcBackchannelLogoutNotifier blank identifiers" do
-    begin
-      count = OidcBackchannelLogoutNotifier.new(sid: nil, subject: nil).call
+    count = OidcBackchannelLogoutNotifier.new(resource_type: "client", subject: nil, sid: nil).call
 
-      assert_equal 0, count
-    rescue ArgumentError, NoMethodError
-      begin
-        assert_equal 0, OidcBackchannelLogoutNotifier.call(sid: "", subject: "")
-      rescue StandardError
-        assert true
-      end
-    end
+    assert_equal 0, count
   end
 
   test "AcmeSelectableContext authorization helpers" do
-    ctx = AcmeSelectableContext.allocate
+    helper = Class.new do
+      include AcmeSelectableContext
 
-    assert_not ctx.send(:account_authorized?, nil)
-    assert_not ctx.send(:membership_authorized?, nil)
-  rescue NoMethodError
-    begin
-      assert_not ctx.send(:candidate_still_authorized?, {})
-    rescue StandardError
-      assert true
-    end
+      def config
+        @config ||=
+          begin
+            c = Object.new
+            c.define_singleton_method(:requires_avatar) { false }
+            c.define_singleton_method(:account_class) { Client }
+            c
+          end
+      end
+
+      def principal = nil
+
+      def session = nil
+
+      def accounts = []
+    end.new
+
+    assert_equal [], helper.selectable_candidates
   end
 
   test "BaseSwitcherAuthority blank session" do
-    if defined?(BaseSwitcherAuthority)
-      auth = BaseSwitcherAuthority.allocate
-      begin
-        assert_nil auth.send(:session_from, nil)
-      rescue NoMethodError
-        begin
-          assert_nil auth.send(:find_session, nil)
-        rescue StandardError
-          assert true
-        end
-      end
-    end
+    auth = BaseSwitcherAuthority.allocate
+    auth.define_singleton_method(:available_accounts) { [] }
+    auth.define_singleton_method(:available_organizations) { [] }
 
-    assert true
+    assert_nil auth.find_account(nil)
+    assert_not auth.find_account("")
+    assert_nil auth.find_account("missing")
+    assert_nil auth.find_organization(nil)
   end
 
   test "IdentifierBlindIndexBackfill missing column" do
-    if defined?(IdentifierBlindIndexBackfill)
-      svc = IdentifierBlindIndexBackfill.allocate
-      model = Object.new
-      model.define_singleton_method(:column_names) { [] }
-      begin
-        assert_equal 0, svc.send(:backfill_model, model, digest_column: :x)
-      rescue NoMethodError, ArgumentError
-        begin
-          assert_equal 0, svc.send(:process_model, model)
-        rescue StandardError
-          assert true
-        end
-      end
-    end
+    model = Object.new
+    model.define_singleton_method(:column_names) { [] }
+    svc = IdentifierBlindIndexBackfill.new
 
-    assert true
+    assert_equal 0, svc.send(
+      :backfill_records,
+      model: model,
+      digest_column: :x,
+      bidx_column: :y,
+      identifier_method: :bidx_for_email,
+      identifier_method_argument: :address,
+    )
   end
 
   test "IdentifierEncryptionReencrypt empty columns" do
-    if defined?(IdentifierEncryptionReencrypt)
-      svc = IdentifierEncryptionReencrypt.allocate
-      model = Object.new
-      model.define_singleton_method(:column_names) { [] }
-      begin
-        assert_equal 0, svc.send(:reencrypt_model, model)
-      rescue StandardError
-        assert true
-      end
-    end
+    model = Object.new
+    model.define_singleton_method(:column_names) { [] }
+    svc = IdentifierEncryptionReencrypt.new
 
-    assert true
+    assert_equal 0, svc.send(:reencrypt_records, model)
   end
 
   test "IdentifierHmacEmergencyRotation missing columns and blank digest" do
-    if defined?(IdentifierHmacEmergencyRotation)
-      svc = IdentifierHmacEmergencyRotation.allocate
-      begin
-        svc.define_singleton_method(:target_columns_present?) { |_t| false }
+    svc = IdentifierHmacEmergencyRotation.new
+    missing = {
+      model: Object.new.tap { |model| model.define_singleton_method(:column_names) { [] } },
+      digest_column: :x,
+      identifier_column: :y,
+    }
 
-        assert_equal({ updated: 0, failed: 0 }, svc.send(:rotate_target, Object.new))
-      rescue StandardError
-      end
-      begin
-        assert svc.send(:digest_unchanged?, "")
-      rescue StandardError
-      end
-    end
-
-    assert true
+    assert_not svc.send(:target_columns_present?, missing)
+    assert_equal({ updated: 0, failed: 0 }, svc.send(:overwrite_target, missing))
   end
 
   test "JitSecurityJwtAnomalyReporter preference namespaces" do
-    reporter = JitSecurityJwtAnomalyReporter.allocate
-
-    assert_equal "COM_PREFERENCE", reporter.send(:preference_namespace_for_host, "x.com.y")
-    assert_equal "ORG_PREFERENCE", reporter.send(:preference_namespace_for_host, "org.y")
-  rescue NoMethodError
-    begin
-      assert_equal "COM_PREFERENCE", JitSecurityJwtAnomalyReporter.send(:preference_namespace_for_host, "com.y")
-    rescue StandardError
-      assert true
-    end
+    assert_equal "COM_PREFERENCE", JitSecurityJwtAnomalyReporter.preference_context("x.com.y")
+    assert_equal "ORG_PREFERENCE", JitSecurityJwtAnomalyReporter.preference_context("org.y")
+    assert_equal "APP_PREFERENCE", JitSecurityJwtAnomalyReporter.preference_context("app.y")
+    assert_nil JitSecurityJwtAnomalyReporter.preference_context("example.test")
   end
 
   test "OidcLogoutRequest blank client and jti" do
-    if defined?(OidcLogoutRequest)
-      begin
-        OidcLogoutRequest.send(:validate_client_id!, nil)
-      rescue StandardError
-      end
-      begin
-        OidcLogoutRequest.send(:validate_jti!, nil)
-      rescue StandardError
-      end
-    end
-
-    assert true
+    assert_nil OidcLogoutRequest.verify(nil)
+    assert_nil OidcLogoutRequest.verify("")
   end
 
   test "SignInCyclePolicy terminal and binding arms" do
-    if defined?(SignIn::CyclePolicy)
-      policy = SignIn::CyclePolicy.new(Object.new)
-      policy.define_singleton_method(:terminal?) { true }
-      policy.define_singleton_method(:actor_bound?) { false }
-      policy.define_singleton_method(:token_bound?) { false }
-      begin
-        assert_not policy.send(:advanceable?)
-      rescue NoMethodError
-        begin
-          assert_not policy.show?
-        rescue StandardError
-        end
-      end
-    end
+    record = Object.new
+    record.define_singleton_method(:respond_to?) { |_name, *| false }
+    policy = SignIn::CyclePolicy.new(record)
 
-    assert true
+    assert_not policy.fail?
+    assert_not policy.send(:sign_in_flow?)
   end
 
   test "SignUp base policy actor and ticket arms" do
-    if defined?(SignUp::BasePolicy)
-      policy = SignUp::BasePolicy.new(Object.new)
-      policy.define_singleton_method(:actor_authentication) { Object.new }
-      policy.define_singleton_method(:valid_ticket?) { false }
-      ticket = Object.new
-      ticket.define_singleton_method(:principal_id) { nil }
-      policy.define_singleton_method(:ticket) { ticket }
-      begin
-        assert_not policy.send(:actor_signed_in?)
-      rescue StandardError
-      end
-      begin
-        assert_not policy.send(:ticket_usable?)
-      rescue StandardError
-      end
-      begin
-        assert policy.send(:principal_unbound?)
-      rescue StandardError
-      end
-    end
+    record = Object.new
+    record.define_singleton_method(:respond_to?) { |_name, *| false }
+    policy = SignUp::BasePolicy.new(record)
 
-    assert true
+    assert_not policy.send(:signed_in?)
+    assert_not policy.send(:valid_ticket?)
   end
 
   test "SignUpStepGate blank and terminal cycle" do
-    if defined?(SignUpStepGate)
-      gate = SignUpStepGate.allocate
-      begin
-        gate.send(:ensure_cycle!, nil)
-      rescue StandardError
-      end
-      cycle = Object.new
-      cycle.define_singleton_method(:respond_to?) { |m, *| m == :sign_up_terminal? || super(m) }
-      cycle.define_singleton_method(:sign_up_terminal?) { true }
-      begin
-        gate.send(:ensure_cycle!, cycle)
-      rescue StandardError
-      end
-    end
+    controller = Object.new
+    controller.define_singleton_method(:current_sign_up_flow_ticket) { nil }
+    controller.define_singleton_method(:session) { {} }
+    missing_ticket = SignUpStepGate.new(
+      controller: controller, surface: :app, family: "email", step: :otp, mode: :show,
+    ).call
+    unsupported = SignUpStepGate.new(
+      controller: controller, surface: :app, family: "nope", step: :otp, mode: :show,
+    ).call
 
-    assert true
+    assert_equal :invalid, missing_ticket.status
+    assert_includes missing_ticket.errors, "ticket is required"
+    assert_equal :invalid, unsupported.status
+    assert_includes unsupported.errors, "unsupported sign-up route"
   end
 
   test "AvatarFollowPolicy non-avatar pair" do
-    if defined?(AvatarFollowPolicy)
-      policy = AvatarFollowPolicy.new(Object.new)
-      policy.define_singleton_method(:actor_avatar) { Client.new }
-      policy.define_singleton_method(:target_avatar) { Client.new }
-      begin
-        assert_not policy.create?
-      rescue StandardError
-        begin
-          assert_not policy.send(:followable?, Client.new, Client.new)
-        rescue StandardError
-        end
-      end
-    end
+    policy = AvatarFollowPolicy.new(Object.new)
+    policy.define_singleton_method(:user) { Client.new }
 
-    assert true
+    assert_not policy.create?
   end
 
   test "Publishing promote revision missing entry" do
-    if defined?(Publishing::PromoteRevisionOperation)
-      revision = Object.new
-      revision.define_singleton_method(:id) { 1 }
-      revision.define_singleton_method(:entry) { nil }
-      assert_raises(Publishing::PromoteRevisionOperation::RevisionMismatchError) do
-        Publishing::PromoteRevisionOperation.new(revision: revision).call
-      end
+    revision = Object.new
+    revision.define_singleton_method(:id) { 1 }
+    revision.define_singleton_method(:entry) { nil }
+
+    assert_raises(Publishing::PromoteRevisionOperation::RevisionMismatchError) do
+      Publishing::PromoteRevisionOperation.new(revision: revision).call
     end
-  rescue NameError
-    assert true
   end
 
   test "OidcTokenRevoker digest and client mismatch" do
-    if defined?(OidcTokenRevoker)
-      revoker = OidcTokenRevoker.allocate
-      token = Object.new
-      token.define_singleton_method(:refresh_token_digest_matches?) { |_v| false }
-      token.define_singleton_method(:oidc_client_id) { "other" }
-      begin
-        assert_not revoker.send(:digest_matches?, token, "v")
-      rescue StandardError
-      end
-      begin
-        assert_not revoker.send(:client_matches?, token, "client")
-      rescue StandardError
-      end
-    end
+    result = OidcTokenRevoker.new(token: "t", client_id: "c", client_secret: "s").call
 
-    assert true
+    assert_equal "invalid_client", result.error
+    assert_not result.success?
   end
 
   test "ChronicleIntentWriter visibility context passthrough" do
-    if defined?(ChronicleIntentWriter) && defined?(ChronicleVisibilityContext)
-      ctx = ChronicleVisibilityContext.allocate rescue Object.new
-      writer = ChronicleIntentWriter.allocate
-      begin
-        assert_equal ctx, writer.send(:coerce_visibility_context, ctx)
-      rescue StandardError
-        assert true
-      end
-    end
+    ctx = ChronicleVisibilityContext.allocate
+    writer = ChronicleIntentWriter.allocate
 
-    assert true
+    assert_equal ctx, writer.send(:resolve_visibility_context, ctx)
   end
 
   test "EnforcementCaseEndOperation blank principal operator" do
-    if defined?(EnforcementCaseEndOperation)
-      op = EnforcementCaseEndOperation.allocate
-      begin
-        op.send(:lock_principal!, nil)
-      rescue StandardError
+    error =
+      assert_raises(ArgumentError) do
+        EnforcementCaseEndOperation.call(enforcement_case: Object.new, reason: "not-a-reason")
       end
-      begin
-        op.send(:lock_operator!, nil)
-      rescue StandardError
-      end
-    end
 
-    assert true
+    assert_match(/reason must be one of/, error.message)
   end
 
   test "AcmeLogoutTransactionCoordinator local host scheme" do
-    if defined?(AcmeLogoutTransactionCoordinator)
-      coord = AcmeLogoutTransactionCoordinator.allocate
-      begin
-        assert_equal "http", coord.send(:scheme_for_host, "localhost")
-      rescue StandardError
-        begin
-          assert_equal "http", coord.send(:scheme_for, "127.0.0.1")
-        rescue StandardError
-          assert true
-        end
-      end
-    end
-
-    assert true
+    assert_equal "http", AcmeLogoutTransactionCoordinator.http_or_https("localhost")
+    assert_equal "https", AcmeLogoutTransactionCoordinator.http_or_https("example.test")
+    assert AcmeLogoutTransactionCoordinator.local_host?("app.localhost")
+    assert_not AcmeLogoutTransactionCoordinator.local_host?("example.test")
   end
 
   test "AuthMethodGuard excluding record scopes" do
-    if defined?(AuthMethodGuard)
-      begin
-        AuthMethodGuard.email_available?(actor: Client.new, excluding: VisitorEmail.new)
-      rescue StandardError
-      end
-      begin
-        AuthMethodGuard.telephone_available?(actor: Client.new, excluding: ClientTelephone.new)
-      rescue StandardError
-      end
-      begin
-        AuthMethodGuard.passkey_available?(actor: Client.new, excluding: ClientPasskey.new)
-      rescue StandardError
-      end
-    end
-
-    assert true
+    assert_equal 0, AuthMethodGuard.send(:verified_emails_count, Object.new)
+    assert_equal 0, AuthMethodGuard.send(:verified_telephones_count, Object.new)
+    assert_equal 0, AuthMethodGuard.send(:active_passkeys_count, Object.new)
+    assert_not AuthMethodGuard.send(:excluding_record?, nil, "VisitorEmail")
+    assert AuthMethodGuard.send(:excluding_record?, VisitorEmail.new, "VisitorEmail")
   end
 
   test "LocalEnvironment load fallbacks with missing UMAXICA_ENV_FILE" do
-    ENV["UMAXICA_ENV_FILE"] = "/tmp/does-not-exist-umaxica-env"
-    begin
-      LocalEnvironment.load!
-
-      assert true
-    ensure
-      ENV.delete("UMAXICA_ENV_FILE")
-    end
+    assert_nil LocalEnvironment.parse("# comment")[0]
+    assert_nil LocalEnvironment.parse("")[0]
+    assert_equal %w(FOO bar), LocalEnvironment.parse("FOO=bar")
   end
 end

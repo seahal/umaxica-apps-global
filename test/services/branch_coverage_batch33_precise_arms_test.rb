@@ -29,16 +29,11 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
   end
 
   test "CredentialSecurityTransition chronicle event for operator" do
-    svc = credential_transition(actor: Operator.new)
+    operator_svc = credential_transition(actor: Operator.new)
+    client_svc = credential_transition(actor: Client.new)
 
-    assert_equal OperatorChronicleEvent::CREDENTIAL_SECURITY_TRANSITION, svc.send(:audit_event_id)
-  rescue NoMethodError, NameError
-    begin
-      assert_equal OperatorChronicleEvent::CREDENTIAL_SECURITY_TRANSITION, svc.send(:chronicle_event_id)
-    rescue StandardError
-      # method name variance
-      assert_kind_of Operator, svc.send(:actor)
-    end
+    assert_equal OperatorChronicleEvent::CREDENTIAL_SECURITY_TRANSITION, operator_svc.send(:audit_event_id)
+    assert_equal ClientChronicleEvent::CREDENTIAL_SECURITY_TRANSITION, client_svc.send(:audit_event_id)
   end
 
   test "OrganizationPolicy early returns for mismatched principals" do
@@ -63,7 +58,7 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
   end
 
   test "ConfigValues scheme and ipv6 host validation arms" do
-    # L44: unless uri.is_a?(URI::HTTP) — ftp is URI::Generic
+    # L44: unless uri.is_a?(URI::HTTP) - ftp is URI::Generic
     assert_raises(ArgumentError) {
       ConfigValues.send(:validate_origin_uri!, URI.parse("ftp://x"), allow_localhost: false)
     }
@@ -72,13 +67,11 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
     weird.define_singleton_method(:scheme) { "ftp" }
     assert_raises(ArgumentError) { ConfigValues.send(:validate_origin_uri!, weird, allow_localhost: false) }
 
-    # L50: host includes ":" and port blank — rare; simulate
+    # L50: host includes ":" and port blank - rare; simulate
     ipv6 = URI.parse("http://[::1]")
     ipv6.define_singleton_method(:port) { nil }
     ipv6.define_singleton_method(:host) { "::1" }
     assert_raises(ArgumentError) { ConfigValues.send(:validate_origin_uri!, ipv6, allow_localhost: true) }
-  rescue StandardError
-    assert_raises(ArgumentError) { ConfigValues.build("https://example.test/path") }
   end
 
   test "OidcIdTokenVerifier audience mismatch raise arm" do
@@ -115,13 +108,6 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
     ClientSignInFlow.stub(:transaction, ->(&b) { b.call }) do
       cycle.define_singleton_method(:lock!) { true }
       assert_raises(SignInSelectorParticipant::InvalidCycle) { participant.auto_commit_single! }
-    end
-  rescue StandardError
-    # Fallback: call ensure path already covered; force candidates.one? false via private
-    begin
-      raise SignInSelectorParticipant::InvalidCycle, "selector candidate is required" unless [].one?
-    rescue SignInSelectorParticipant::InvalidCycle
-      assert true
     end
   end
 
@@ -173,88 +159,53 @@ class BranchCoverageBatch33PreciseArmsTest < ActiveSupport::TestCase
   end
 
   test "Publishing create entry operation easy guard" do
-    if defined?(Publishing::CreateEntryOperation)
-      begin
-        Publishing::CreateEntryOperation.new(entry: nil).call
-      rescue StandardError
-      end
-    end
+    error = assert_raises(ArgumentError) { Publishing::CreateEntryOperation.new }
 
-    assert true
+    assert_match(/missing keyword/, error.message)
   end
 
   test "Identity ceremony final committer blank audit early returns" do
-    [IdentityEmailCeremonyFinalCommitter, IdentityTelephoneCeremonyFinalCommitter].each do |klass|
-      next unless defined?(klass)
+    email = IdentityEmailCeremonyFinalCommitter.allocate
+    email.define_singleton_method(:config) { { audit_event_id: "" } }
+    telephone = IdentityTelephoneCeremonyFinalCommitter.allocate
+    telephone.define_singleton_method(:config) { { audit_event_id: nil } }
 
-      inst = klass.allocate
-      begin
-        inst.define_singleton_method(:config) { { audit_event_id: "" } }
-        inst.send(:record_audit!)
-      rescue StandardError
-      end
-      begin
-        inst.define_singleton_method(:config) { { audit_event_id: nil } }
-        inst.send(:write_audit!)
-      rescue StandardError
-      end
-    end
-
-    assert true
+    assert_nil email.send(:record_audit!, Object.new)
+    assert_nil telephone.send(:record_audit!, Object.new)
   end
 
   test "Oidc refresh token issuer failure helpers" do
-    if defined?(OidcRefreshTokenIssuer)
-      inst = OidcRefreshTokenIssuer.allocate
-      begin
-        inst.send(:failure, :invalid_format)
-        inst.send(:failure, :token_not_found)
-        inst.send(:failure, :inactive_token, token: nil)
-      rescue StandardError
-      end
-    end
+    issuer = OidcRefreshTokenIssuer.allocate
+    invalid_format = issuer.send(:failure, :invalid_format)
+    token_not_found = issuer.send(:failure, :token_not_found)
+    inactive = issuer.send(:failure, :inactive_token, token: nil)
 
-    assert true
+    assert_equal :invalid_format, invalid_format.reason
+    assert_not invalid_format.success?
+    assert_equal :token_not_found, token_not_found.reason
+    assert_equal :inactive_token, inactive.reason
+    assert_nil inactive.token
   end
 
   test "Sign secret verify discarded and kind arms" do
-    if defined?(SignSecretVerify)
-      inst = SignSecretVerify.allocate
-      cred = Object.new
-      cred.define_singleton_method(:discarded_at) do
-        t = Object.new
-        t.define_singleton_method(:infinite?) { true }
-        t.define_singleton_method(:respond_to?) { |m, *| m == :infinite? || super(m) }
-        t
-      end
-      cred.define_singleton_method(:respond_to?) { |_m, *| true }
-      inst.instance_variable_set(:@secret_credential, cred)
-      begin
-        inst.send(:usable_secret_credential?)
-      rescue StandardError
-      end
-    end
+    blank = SignSecretVerify.call(secret_credential: nil, raw_secret_credential: "secret")
+    inst = SignSecretVerify.allocate
+    inst.instance_variable_set(:@now, Time.current)
+    infinite = Object.new
+    infinite.define_singleton_method(:infinite?) { true }
+    infinite.define_singleton_method(:blank?) { false }
+    inst.instance_variable_set(:@secret_credential, Struct.new(:discarded_at).new(infinite))
 
-    assert true
+    assert_equal :secret_credential_mismatch, blank.reason
+    assert_not inst.send(:lapsed?)
   end
 
   test "Health and JitSecurityJwtAnomalyReporter host classification" do
-    if defined?(JitSecurityJwtAnomalyReporter)
-      begin
-        reporter = JitSecurityJwtAnomalyReporter.allocate
+    ok = Health::CheckResult.new(check: :liveness, status: :ok, surface: "app")
 
-        assert_equal "COM_PREFERENCE", reporter.send(:preference_namespace_for_host, "www.com.example")
-        assert_equal "ORG_PREFERENCE", reporter.send(:preference_namespace_for_host, "org.example")
-      rescue StandardError
-      end
-    end
-    if defined?(Health)
-      begin
-        Health.new.status
-      rescue StandardError
-      end
-    end
-
-    assert true
+    assert_equal "COM_PREFERENCE", JitSecurityJwtAnomalyReporter.preference_context("www.com.example")
+    assert_equal "ORG_PREFERENCE", JitSecurityJwtAnomalyReporter.preference_context("org.example")
+    assert_nil JitSecurityJwtAnomalyReporter.preference_context("example.test")
+    assert_predicate ok, :ok?
   end
 end

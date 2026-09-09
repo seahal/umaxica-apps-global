@@ -88,7 +88,7 @@ class OutboundHttpConnectionTest < ActiveSupport::TestCase
 
     assert_equal "provider.example", connection.url_prefix.host
     assert_equal "/turnstile/v0/siteverify", endpoint.path, "the caller's URI was mutated"
-    assert endpoint.frozen?
+    assert_predicate endpoint, :frozen?
   end
 
   test "a shared mutable URI constant is left unchanged so it is safe to reuse across threads" do

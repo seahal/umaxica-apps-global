@@ -166,7 +166,10 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       # expected to move to 12-hour along with the rest.
       get public_send("edit_base_#{domain[:name]}_preference_clock_url", ri: "us")
       patch public_send("base_#{domain[:name]}_preference_clock_url", ri: "us"),
-            params: { preference_time_format: { option_id: PreferenceClassRegistry.option_class(prefix, :time_format)::HOUR_24.to_s } }
+            params: { preference_time_format: { option_id: PreferenceClassRegistry.option_class(
+              prefix,
+              :time_format,
+            )::HOUR_24.to_s } }
 
       get public_send("edit_base_#{domain[:name]}_preference_region_url", ri: "us")
       patch public_send("base_#{domain[:name]}_preference_region_url", ri: "us"),

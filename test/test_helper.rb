@@ -51,7 +51,7 @@ unless ViteRuby.commands.build
 end
 
 require "rails/test_help"
-Minitest.load :test_prof
+Minitest.load(:test_prof)
 require "test_prof/recipes/minitest/sample"
 require_relative "support/parallel_test_database_cloner"
 require_relative "support/external_identity_test_helper"

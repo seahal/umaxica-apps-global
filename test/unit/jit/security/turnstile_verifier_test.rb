@@ -352,11 +352,13 @@ module Jit
         fake_response = Struct.new(:body).new('{"success": true}')
         real_build = OutboundHttp::Connection.method(:build)
 
-        OutboundHttp::Connection.stub(:build, lambda { |**kwargs|
-          connection = real_build.call(**kwargs)
-          connection.define_singleton_method(:post) { |*| fake_response }
-          connection
-        }) do
+        OutboundHttp::Connection.stub(
+          :build, lambda { |**kwargs|
+                    connection = real_build.call(**kwargs)
+                    connection.define_singleton_method(:post) { |*| fake_response }
+                    connection
+                  },
+        ) do
           2.times do
             result = JitSecurityTurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4", secret_key: "secret")
 
@@ -365,7 +367,7 @@ module Jit
           end
         end
 
-        assert JitSecurityTurnstileVerifier::VERIFY_URI.frozen?
+        assert_predicate JitSecurityTurnstileVerifier::VERIFY_URI, :frozen?
         assert_equal uri_before.to_s, JitSecurityTurnstileVerifier::VERIFY_URI.to_s
       end
 

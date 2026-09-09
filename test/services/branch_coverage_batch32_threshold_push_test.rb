@@ -189,66 +189,35 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
   end
 
   test "SignUpStateMachine clear requirement validation arms" do
-    ticket = Object.new
-    ticket.define_singleton_method(:status) { "CHECKPOINT_PENDING" }
-    ticket.define_singleton_method(:completed_requirements) { {} }
-    ticket.define_singleton_method(:checkpoint_version) { 1 }
-    machine = SignUpStateMachine.new(ticket: ticket, event: :clear_requirement, actor_context: {}, payload: {})
-    machine.define_singleton_method(:status?) { |s| s == "CHECKPOINT_PENDING" }
-    machine.define_singleton_method(:checkpoint_version_matches?) { true }
-    machine.define_singleton_method(:invalid) { |msg|
-      Struct.new(:success?, :error, keyword_init: true).new(success?: false, error: msg)
-    }
-    begin
-      result = machine.send(:clear_requirement)
+    result = SignUpStateMachine.call(ticket: nil, event: :clear_requirement, actor_context: {}, payload: {})
 
-      assert result
-    rescue StandardError
-      assert true
-    end
+    assert_equal :invalid_transition, result.status
+    assert_includes result.errors, "ticket is required"
   end
 
   test "DbscVerificationService early failure arms" do
-    svc = DbscVerificationService.allocate
-    svc.define_singleton_method(:registered_session_id) { "" }
-    svc.define_singleton_method(:session_id) { "s" }
-    svc.define_singleton_method(:record) { Object.new }
-    svc.define_singleton_method(:failure) { |code, **|
-      Struct.new(:ok, :error, keyword_init: true).new(ok: false, error: code)
-    }
-    svc.send(:verify_registration!, "s") rescue nil
-    # Prefer call path with stubs
-    begin
-      DbscVerificationService.new(
-        proof: "p",
-        challenge: "c",
-        challenge_issued_at: Time.current,
-        expected_audience: "a",
-        registered_session_id: "",
-        session_id: "s",
-        record: Struct.new(:dbsc_public_key).new(nil),
-      ).call
-    rescue ArgumentError, NoMethodError
-      begin
-        inst = DbscVerificationService.allocate
-        inst.send(:failure, "registration_incomplete")
-        inst.send(:failure, "session_id_mismatch")
-        inst.send(:failure, "missing_public_key")
-      rescue StandardError
-      end
-    end
+    incomplete = Struct.new(:dbsc_session_id, :dbsc_public_key, :dbsc_challenge, :dbsc_challenge_issued_at)
+      .new("", nil, "c", Time.current)
+    mismatched = Struct.new(:dbsc_session_id, :dbsc_public_key, :dbsc_challenge, :dbsc_challenge_issued_at)
+      .new("other", "k", "c", Time.current)
+    missing_key = Struct.new(:dbsc_session_id, :dbsc_public_key, :dbsc_challenge, :dbsc_challenge_issued_at)
+      .new("s", nil, "c", Time.current)
 
-    assert true
+    assert_equal "registration_incomplete",
+                 DbscVerificationService.new(record: incomplete, session_id: "s", proof: "p").call[:error_code]
+    assert_equal "session_id_mismatch",
+                 DbscVerificationService.new(record: mismatched, session_id: "s", proof: "p").call[:error_code]
+    assert_equal "missing_public_key",
+                 DbscVerificationService.new(record: missing_key, session_id: "s", proof: "p").call[:error_code]
   end
 
   test "OidcEndSessionRequest unknown client and actor arms" do
     req = OidcEndSessionRequest.new(params: { "client_id" => "missing" }, request: ActionDispatch::TestRequest.create)
-    begin
-      result = req.call
+    result = req.call
 
-      assert result
-    rescue StandardError
-    end
+    assert_predicate result, :success?
+    assert_equal :no_hint, result.source
+    assert_predicate result, :requires_confirmation?
 
     req2 = OidcEndSessionRequest.new(params: {}, request: ActionDispatch::TestRequest.create)
     unauth = Object.new
@@ -259,145 +228,88 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
   end
 
   test "PalmAccessTokenAuthenticator inactive and locked resource arms" do
-    auth = PalmAccessTokenAuthenticator.allocate
-    auth.define_singleton_method(:failure) { |code| Struct.new(:error).new(code) }
-    inactive = Object.new
-    inactive.define_singleton_method(:active?) { false }
-    inactive.define_singleton_method(:admin_locked?) { false }
-    result = auth.send(:validate_resource!, inactive) rescue auth.send(:failure, "invalid_token")
+    blank = PalmAccessTokenAuthenticator.new(
+      access_token: "", host: "example.test", authorization_scheme: "Bearer",
+    ).call
+    wrong_scheme = PalmAccessTokenAuthenticator.new(
+      access_token: "tok", host: "example.test", authorization_scheme: "Basic",
+    ).call
 
-    assert result
-
-    locked = Object.new
-    locked.define_singleton_method(:active?) { true }
-    locked.define_singleton_method(:admin_locked?) { true }
-    locked.define_singleton_method(:respond_to?) { |m, *| m == :admin_locked? || m == :active? || super(m) }
-    begin
-      auth.send(:validate_resource!, locked)
-    rescue StandardError
-    end
-
-    assert true
+    assert_equal "invalid_token", blank.error
+    assert_not blank.success?
+    assert_equal "invalid_token", wrong_scheme.error
   end
 
   test "JitSecurityJwtRegistry validation raise arms" do
     record = Struct.new(:id, :current_kid, :keys, keyword_init: true).new(id: "r", current_kid: "", keys: [])
-    begin
-      JitSecurityJwtRegistry.send(:validate_record!, record)
-    rescue NoMethodError, StandardError
-    end
-    begin
-      JitSecurityJwtRegistry.send(:validate_active_kid!, record)
-    rescue NoMethodError, StandardError
-    end
-    begin
-      JitSecurityJwtRegistry.send(:preference_hosts_from_boot_config)
-    rescue StandardError
-    end
+    hosts = JitSecurityJwtRegistry.send(:preference_hosts_from_boot_config)
 
-    assert true
+    assert_nil JitSecurityJwtRegistry.send(:validate_record!, record)
+    assert_kind_of Array, hosts
   end
 
   test "IdentityAudit chronicle class selection arms" do
-    if defined?(IdentityAudit)
-      begin
-        IdentityAudit.send(:chronicle_class_for, Operator.new)
-        IdentityAudit.send(:chronicle_class_for, Client.new)
-        IdentityAudit.send(:event_class_for, Operator.new)
-        IdentityAudit.send(:event_class_for, Client.new)
-        IdentityAudit.send(:level_class_for, Operator.new)
-        IdentityAudit.send(:level_class_for, Client.new)
-      rescue NoMethodError
-        %i(chronicle_for event_for level_for).each do |m|
-          begin
-            IdentityAudit.send(m, Operator.new) if IdentityAudit.respond_to?(m, true)
-          rescue StandardError
-          end
-        end
-      end
-    end
+    operator_audit = IdentityAudit.new(
+      actor: Operator.new, event_id: "e", subject: nil, action: nil,
+      ip_address: nil, user_agent: nil, metadata: {}, occurred_at: Time.current,
+    )
+    client_audit = IdentityAudit.new(
+      actor: Client.new, event_id: "e", subject: nil, action: nil,
+      ip_address: nil, user_agent: nil, metadata: {}, occurred_at: Time.current,
+    )
 
-    assert true
+    assert_equal OperatorChronicle, operator_audit.send(:chronicle_class)
+    assert_equal OperatorChronicleEvent, operator_audit.send(:event_class)
+    assert_equal OperatorChronicleLevel, operator_audit.send(:level_class)
+    assert_equal ClientChronicle, client_audit.send(:chronicle_class)
+    assert_equal ClientChronicleEvent, client_audit.send(:event_class)
+    assert_equal ClientChronicleLevel, client_audit.send(:level_class)
   end
 
   test "OidcBackchannelLogoutNotifier blank sid subject early return" do
-    if defined?(OidcBackchannelLogoutNotifier)
-      begin
-        assert_equal 0, OidcBackchannelLogoutNotifier.new(sid: nil, subject: nil).call
-      rescue ArgumentError, NoMethodError
-        begin
-          OidcBackchannelLogoutNotifier.call(sid: "", subject: "")
-        rescue StandardError
-        end
-      end
-    end
+    count = OidcBackchannelLogoutNotifier.new(resource_type: "client", subject: nil, sid: nil).call
 
-    assert true
+    assert_equal 0, count
   end
 
   test "Health ok? status string arms" do
-    if defined?(Health)
-      begin
-        h = Health.new
-        h.respond_to?(:ok?) && h.ok?
-        h.send(:status_label) if h.respond_to?(:status_label, true)
-      rescue StandardError
-      end
-    end
+    ok = Health::CheckResult.new(check: :liveness, status: :ok, surface: "app")
+    unready = Health::CheckResult.new(check: :liveness, status: :unready, surface: "app")
 
-    assert true
+    assert_predicate ok, :ok?
+    assert_not unready.ok?
+    assert_equal "ok", ok.as_public_json[:status]
+    assert_equal "unavailable", unready.as_public_json[:status]
   end
 
   test "Avatar follow policy wrong types" do
-    if defined?(AvatarFollowPolicy)
-      begin
-        policy = AvatarFollowPolicy.new(record: Object.new, user: Client.new)
+    policy = AvatarFollowPolicy.new(Object.new)
+    policy.define_singleton_method(:user) { Client.new }
 
-        assert_not policy.show?
-      rescue StandardError
-        begin
-          policy = AvatarFollowPolicy.new(Object.new)
-          assert_not policy.send(:active_avatar?, Object.new) if policy.respond_to?(:active_avatar?, true)
-        rescue StandardError
-        end
-      end
-    end
-
-    assert true
+    assert_not policy.create?
+    assert_not policy.send(:active_avatar?, Object.new)
   end
 
   test "SignRiskEnforcer disabled env and blank resource" do
     ENV["RISK_ENFORCEMENT_DISABLED"] = "true"
     begin
-      SignRiskEnforcer.call(resource: nil) if defined?(SignRiskEnforcer)
-    rescue StandardError
+      assert_nil SignRiskEnforcer.call(Client.new)
+      assert_nil SignRiskEmitter.emit("test")
     ensure
       ENV.delete("RISK_ENFORCEMENT_DISABLED")
     end
-    begin
-      SignRiskEnforcer.call(resource: nil) if defined?(SignRiskEnforcer)
-    rescue StandardError
-    end
 
-    assert true
+    assert_nil SignRiskEnforcer.call(nil)
   end
 
   test "JitSecurityTurnstileVerifier response helper arms" do
-    verifier = JitSecurityTurnstileVerifier.allocate
-    begin
-      verifier.send(:apply_success_guards!, { "success" => false })
-    rescue StandardError
-    end
-    begin
-      verifier.send(:remember_replay!, "not-a-hash")
-    rescue StandardError
-    end
-    begin
-      verifier.send(:log_failure, "x")
-    rescue StandardError
-    end
+    missing_token = JitSecurityTurnstileVerifier.verify(token: nil, remote_ip: "1.2.3.4", secret_key: "secret")
+    missing_secret = JitSecurityTurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4", secret_key: "")
 
-    assert true
+    assert_not missing_token["success"]
+    assert_equal "missing cf-turnstile-response", missing_token["error"]
+    assert_not missing_secret["success"]
+    assert_equal "missing turnstile secret", missing_secret["error"]
   end
 
   test "ConfigValues normalize and sanitize origin arms" do
@@ -411,10 +323,8 @@ class BranchCoverageBatch32ThresholdPushTest < ActiveSupport::TestCase
   end
 
   test "ChainSeal verify rescue ArgumentError path via bad public key type" do
-    begin
+    assert_raises(ChainSeal::FormatError, ChainSeal::VerificationError) do
       ChainSeal.verify(payload: { a: 1 }, compact: "not-a-seal", public_key: "nope")
-    rescue ChainSeal::Error
-      assert true
     end
   end
 end

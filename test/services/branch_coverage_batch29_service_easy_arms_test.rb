@@ -7,56 +7,36 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   test "SignSecretVerify blank stored digest mismatch path" do
-    service = SignSecretVerify.new(
-      actor: Client.new,
-      presented_secret: "secret",
-      stored_digest: nil,
-    ) rescue SignSecretVerify.allocate
+    result = SignSecretVerify.call(secret_credential: nil, raw_secret_credential: "secret")
 
-    begin
-      if service.respond_to?(:call)
-        service.define_singleton_method(:stored_digest) { nil } if service.respond_to?(:stored_digest) || true
-        # Prefer private helper
-        if service.respond_to?(:digest_matches?, true)
-          assert_not service.send(:digest_matches?, nil, "secret")
-        end
-        service
-      end
-
-      assert true
-    rescue StandardError
-      assert true
-    end
+    assert_equal :secret_credential_mismatch, result.reason
   end
 
   test "PalmAccessTokenAuthenticator blank token arms" do
-    if defined?(PalmAccessTokenAuthenticator)
-      begin
-        PalmAccessTokenAuthenticator.new(token: nil).call
-      rescue StandardError
-      end
-      begin
-        PalmAccessTokenAuthenticator.new(token: "").call
-      rescue StandardError
-      end
-    end
+    missing = PalmAccessTokenAuthenticator.new(
+      access_token: nil, host: "example.test", authorization_scheme: "Bearer",
+    ).call
+    blank = PalmAccessTokenAuthenticator.new(
+      access_token: "", host: "example.test", authorization_scheme: "Bearer",
+    ).call
 
-    assert true
+    assert_equal "invalid_token", missing.error
+    assert_not missing.success?
+    assert_equal "invalid_token", blank.error
+    assert_not blank.success?
   end
 
   test "OidcAccessTokenAuthenticator blank token arms" do
-    if defined?(OidcAccessTokenAuthenticator)
-      begin
-        OidcAccessTokenAuthenticator.new(token: nil).call
-      rescue StandardError
-      end
-      begin
-        OidcAccessTokenAuthenticator.new(token: "").call
-      rescue StandardError
-      end
-    end
+    missing = OidcAccessTokenAuthenticator.new(
+      access_token: nil, resource_type: "client", host: "example.test",
+    ).call
+    blank = OidcAccessTokenAuthenticator.new(
+      access_token: "", resource_type: "client", host: "example.test",
+    ).call
 
-    assert true
+    assert_equal "invalid_token", missing.error
+    assert_not missing.success?
+    assert_equal "invalid_token", blank.error
   end
 
   test "OidcEndSessionRequest blank params helpers" do
@@ -73,148 +53,92 @@ class BranchCoverageBatch29ServiceEasyArmsTest < ActiveSupport::TestCase
   end
 
   test "DbscVerificationService blank proof arms" do
-    if defined?(DbscVerificationService)
-      begin
-        DbscVerificationService.new(
-          proof: nil, challenge: "c", challenge_issued_at: Time.current,
-          expected_audience: "a",
-        ).call
-      rescue StandardError
-      end
-    end
+    missing_record = DbscVerificationService.new(record: nil, session_id: "s", proof: "p").call
+    record = Struct.new(:dbsc_session_id, :dbsc_public_key, :dbsc_challenge, :dbsc_challenge_issued_at)
+      .new("s", "k", "c", Time.current)
+    missing_proof = DbscVerificationService.new(record: record, session_id: "s", proof: nil).call
 
-    assert true
+    assert_equal "record_missing", missing_record[:error_code]
+    assert_equal "missing_proof", missing_proof[:error_code]
   end
 
   test "CredentialSecurityTransition blank actor arms" do
-    if defined?(CredentialSecurityTransition)
-      begin
-        CredentialSecurityTransition.new(actor: nil, event: :rotate).call
-      rescue StandardError
-      end
+    assert_raises(ArgumentError) do
+      CredentialSecurityTransition.new(
+        actor: nil,
+        current_session: nil,
+        reason: CredentialSecurityTransition::REASONS.first,
+        affected_surface: "app",
+        revoke_current: false,
+        revoke_step_up: false,
+        revoke_other_sessions: true,
+        request: ActionDispatch::TestRequest.create,
+      ).send(:validate!)
     end
-
-    assert true
   end
 
   test "SignUpStateMachine blank transition guards" do
-    if defined?(SignUpStateMachine)
-      machine = SignUpStateMachine.new(cycle: Object.new) rescue nil
-      if machine
-        begin
-          machine.send(:advance!, :nope)
-        rescue StandardError
-        end
-      end
-    end
+    result = SignUpStateMachine.call(ticket: nil, event: :nope, actor_context: {}, payload: {})
 
-    assert true
+    assert_equal :invalid_transition, result.status
+    assert_includes result.errors, "unknown event"
   end
 
   test "SignRiskEnforcer and SignRiskEmitter blank context arms" do
-    if defined?(SignRiskEnforcer)
-      begin
-        SignRiskEnforcer.new(context: {}).call
-      rescue StandardError
-      end
-    end
-    if defined?(SignRiskEmitter)
-      begin
-        SignRiskEmitter.emit(event: :test, context: {})
-      rescue StandardError
-      end
-    end
-
-    assert true
+    assert_nil SignRiskEnforcer.call(nil)
+    assert_nil SignRiskEmitter.emit("test")
   end
 
   test "SocialAuthLoginHandler and LinkHandler blank provider arms" do
-    [SocialAuthLoginHandler, SocialAuthLinkHandler].each do |klass|
-      next unless defined?(klass) || Object.const_defined?(klass.name)
+    login_error = assert_raises(ArgumentError) { SocialAuthLoginHandler.new(provider: nil, actor: nil) }
+    link_error = assert_raises(ArgumentError) { SocialAuthLinkHandler.new(provider: nil, actor: nil) }
 
-      begin
-        klass.new(provider: nil, actor: nil).call
-      rescue StandardError
-      end
-    end
-
-    assert true
+    assert_match(/missing keyword/, login_error.message)
+    assert_match(/missing keyword/, link_error.message)
   end
 
   test "Policies SignUpStepGate and JumpRtReturnPolicy easy refuses" do
-    if defined?(SignUpStepGate)
-      begin
-        SignUpStepGate.allow?(step: nil, context: nil)
-      rescue StandardError
-      end
-    end
-    if defined?(JumpRtReturnPolicy)
-      begin
-        JumpRtReturnPolicy.allow?(url: "javascript:alert(1)")
-      rescue StandardError
-      end
-    end
+    controller = Object.new
+    controller.define_singleton_method(:current_sign_up_flow_ticket) { nil }
+    controller.define_singleton_method(:session) { {} }
+    gate = SignUpStepGate.new(
+      controller: controller, surface: :app, family: "nope", step: :otp, mode: :show,
+    ).call
 
-    assert true
+    assert_equal :invalid, gate.status
+    assert_includes gate.errors, "unsupported sign-up route"
+    assert_nil JumpRtReturnPolicy.normalize_origin("javascript:alert(1)")
   end
 
   test "OrganizationPolicy and ApplicationPolicy edge denies" do
-    if defined?(OrganizationPolicy)
-      begin
-        OrganizationPolicy.new(nil, nil).show?
-      rescue StandardError
-      end
-    end
-    if defined?(ApplicationPolicy)
-      begin
-        ApplicationPolicy.new(nil, nil).index?
-      rescue StandardError
-      end
-    end
+    policy = OrganizationPolicy.new(Object.new)
+    policy.define_singleton_method(:user) { Client.new }
 
-    assert true
+    assert_not policy.send(:organization_has_current_principal_membership?)
+    assert_not ApplicationPolicy.new(Object.new).index?
   end
 
   test "lib JitSecurityJwtJtiGenerator and KeyMaterial arms" do
-    if defined?(JitSecurityJwtJtiGenerator)
-      begin
-        JitSecurityJwtJtiGenerator.generate
-      rescue StandardError
-      end
-    end
-    if defined?(JitSecurityJwtKeyMaterial)
-      begin
-        JitSecurityJwtKeyMaterial.load(nil)
-      rescue StandardError
-      end
-    end
+    jti = JitSecurityJwtJtiGenerator.generate
 
-    assert true
+    assert_match(/\A[A-Za-z0-9_-]+\z/, jti)
+    assert_equal JitSecurityJwtJtiGenerator.encoded_length(20), jti.length
+    assert_equal({}, JitSecurityJwtKeyMaterial.parse_private_keyset(nil))
+    assert_equal({}, JitSecurityJwtKeyMaterial.parse_private_keyset(""))
   end
 
   test "lib ObjectStorage and LocalEnvironment arms" do
-    if defined?(ObjectStorageEnvironment)
-      begin
-        ObjectStorageEnvironment.bucket_name
-      rescue StandardError
-      end
-    end
-    if defined?(LocalEnvironment)
-      LocalEnvironment.enabled? if LocalEnvironment.respond_to?(:enabled?)
-    end
-
-    assert true
+    assert_raises(KeyError) { ObjectStorage::Environment.fetch("UMX_MISSING_OBJECT_STORAGE_KEY") }
+    assert_nil LocalEnvironment.parse("# comment")[0]
+    assert_nil LocalEnvironment.parse("")[0]
+    assert_equal %w(FOO bar), LocalEnvironment.parse("FOO=bar")
   end
 
   test "RefreshTokenable concern currently_usable false arms" do
     token = ClientToken.new
-    token.define_singleton_method(:expired?) { true } if token.respond_to?(:expired?)
-    begin
-      token.currently_usable?
-    rescue StandardError
-    end
+    token.define_singleton_method(:expired?) { true }
 
-    assert true
+    assert_not token.currently_usable?
   end
 
   test "AcmeSelectableContext inactive membership next [] arm" do
